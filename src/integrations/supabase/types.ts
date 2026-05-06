@@ -14,16 +14,478 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      action_events: {
+        Row: {
+          action_id: string
+          actor: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["action_status"] | null
+          id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["action_status"]
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          actor?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["action_status"] | null
+          id?: string
+          reason?: string | null
+          to_status: Database["public"]["Enums"]["action_status"]
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          actor?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["action_status"] | null
+          id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["action_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_events_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      actions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          payload: Json
+          result: Json | null
+          risk: Database["public"]["Enums"]["action_risk"]
+          source: string | null
+          status: Database["public"]["Enums"]["action_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          risk?: Database["public"]["Enums"]["action_risk"]
+          source?: string | null
+          status?: Database["public"]["Enums"]["action_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          payload?: Json
+          result?: Json | null
+          risk?: Database["public"]["Enums"]["action_risk"]
+          source?: string | null
+          status?: Database["public"]["Enums"]["action_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      audit_log: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          event: string
+          id: string
+          payload: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          event: string
+          id?: string
+          payload?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          event?: string
+          id?: string
+          payload?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      awareness_briefings: {
+        Row: {
+          confidence: string | null
+          content: string
+          generated_at: string
+          id: string
+          place_id: string
+          section: string
+          sources: Json | null
+          user_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          content: string
+          generated_at?: string
+          id?: string
+          place_id: string
+          section: string
+          sources?: Json | null
+          user_id: string
+        }
+        Update: {
+          confidence?: string | null
+          content?: string
+          generated_at?: string
+          id?: string
+          place_id?: string
+          section?: string
+          sources?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "awareness_briefings_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "awareness_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      awareness_places: {
+        Row: {
+          country: string | null
+          created_at: string
+          geo: Json | null
+          id: string
+          label: string
+          region: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          geo?: Json | null
+          id?: string
+          label: string
+          region?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          geo?: Json | null
+          id?: string
+          label?: string
+          region?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      commitments: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          source_note: string | null
+          status: Database["public"]["Enums"]["commitment_status"]
+          summary: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          source_note?: string | null
+          status?: Database["public"]["Enums"]["commitment_status"]
+          summary: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          source_note?: string | null
+          status?: Database["public"]["Enums"]["commitment_status"]
+          summary?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commitments_source_note_fkey"
+            columns: ["source_note"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          state: Json
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          state?: Json
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          state?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: Database["public"]["Enums"]["message_role"]
+          tool_calls: Json | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: Database["public"]["Enums"]["message_role"]
+          tool_calls?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: Database["public"]["Enums"]["message_role"]
+          tool_calls?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      note_links: {
+        Row: {
+          created_at: string
+          from_note: string
+          id: string
+          kind: string
+          to_note: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_note: string
+          id?: string
+          kind?: string
+          to_note: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_note?: string
+          id?: string
+          kind?: string
+          to_note?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_links_from_note_fkey"
+            columns: ["from_note"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_links_to_note_fkey"
+            columns: ["to_note"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          tags: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      operational_state_events: {
+        Row: {
+          created_at: string
+          id: string
+          inferred_state: string
+          signals: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inferred_state: string
+          signals?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inferred_state?: string
+          signals?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          home_geo: Json | null
+          id: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          home_geo?: Json | null
+          id: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          home_geo?: Json | null
+          id?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      action_risk: "low_reversible" | "standard" | "high"
+      action_status:
+        | "proposed"
+        | "staged"
+        | "approved"
+        | "executed"
+        | "audited"
+        | "rolled_back"
+        | "cancelled"
+      app_role: "admin" | "user"
+      commitment_status: "open" | "done" | "cancelled"
+      message_role: "user" | "assistant" | "system" | "tool"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +612,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      action_risk: ["low_reversible", "standard", "high"],
+      action_status: [
+        "proposed",
+        "staged",
+        "approved",
+        "executed",
+        "audited",
+        "rolled_back",
+        "cancelled",
+      ],
+      app_role: ["admin", "user"],
+      commitment_status: ["open", "done", "cancelled"],
+      message_role: ["user", "assistant", "system", "tool"],
+    },
   },
 } as const
