@@ -1,7 +1,7 @@
 // embeddings-generate: compute embeddings for notes/messages/commitments via Lovable AI Gateway.
-// Usage modes:
-//   { mode: "single", kind: "note"|"message"|"commitment", id: uuid }
-//   { mode: "backfill", kind: "note"|"message"|"commitment", limit?: number }  (processes rows where embedding is null)
+// Modes:
+//   { mode: "single", kind, id }                — requires user JWT, scoped to caller
+//   { mode: "backfill", kind, limit?: number }  — runs as user when JWT present, else service-role across all users
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
@@ -12,7 +12,7 @@ const corsHeaders = {
 
 const Body = z.union([
   z.object({ mode: z.literal("single"), kind: z.enum(["note", "message", "commitment"]), id: z.string().uuid() }),
-  z.object({ mode: z.literal("backfill"), kind: z.enum(["note", "message", "commitment"]), limit: z.number().int().min(1).max(100).default(25) }),
+  z.object({ mode: z.literal("backfill"), kind: z.enum(["note", "message", "commitment"]), limit: z.number().int().min(1).max(200).default(50) }),
 ]);
 
 const TABLE_TEXT: Record<string, { table: string; textCols: string[] }> = {
@@ -35,37 +35,43 @@ async function embed(text: string, apiKey: string): Promise<number[]> {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Try user-scoped client first
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
+    );
+    const { data: { user } } = await userClient.auth.getUser();
+
     const { kind } = parsed.data;
     const def = TABLE_TEXT[kind];
     let processed = 0;
 
+    // Single mode requires a user
     if (parsed.data.mode === "single") {
-      const { data: row, error } = await supabase.from(def.table).select(`id, user_id, ${def.textCols.join(", ")}`).eq("id", parsed.data.id).maybeSingle();
+      if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: row, error } = await userClient.from(def.table).select(`id, user_id, ${def.textCols.join(", ")}`).eq("id", parsed.data.id).maybeSingle();
       if (error) throw error;
-      if (!row || row.user_id !== user.id) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!row || (row as { user_id: string }).user_id !== user.id) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const text = def.textCols.map((c) => (row as Record<string, unknown>)[c] ?? "").join("\n").trim();
-      if (!text) return new Response(JSON.stringify({ processed: 0, reason: "empty" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (!text) return new Response(JSON.stringify({ processed: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const vec = await embed(text, apiKey);
-      const { error: upErr } = await supabase.from(def.table).update({ embedding: vec as unknown as string }).eq("id", parsed.data.id);
+      const { error: upErr } = await userClient.from(def.table).update({ embedding: vec as unknown as string }).eq("id", parsed.data.id);
       if (upErr) throw upErr;
       processed = 1;
     } else {
+      // Backfill: prefer service role for cross-user sweeps when no user present
+      const client = user
+        ? userClient
+        : createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const limit = parsed.data.limit;
-      const { data: rows, error } = await supabase
+      const { data: rows, error } = await client
         .from(def.table)
         .select(`id, ${def.textCols.join(", ")}`)
         .is("embedding", null)
@@ -76,13 +82,13 @@ Deno.serve(async (req: Request) => {
         if (!text) continue;
         try {
           const vec = await embed(text, apiKey);
-          await supabase.from(def.table).update({ embedding: vec as unknown as string }).eq("id", (row as { id: string }).id);
+          await client.from(def.table).update({ embedding: vec as unknown as string }).eq("id", (row as { id: string }).id);
           processed++;
-        } catch (_e) { /* skip on per-row failures */ }
+        } catch (_e) { /* skip per-row failures */ }
       }
     }
 
-    return new Response(JSON.stringify({ processed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ processed, scope: user ? "user" : "service" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
