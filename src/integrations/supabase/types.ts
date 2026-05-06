@@ -205,7 +205,11 @@ export type Database = {
         Row: {
           created_at: string
           due_at: string | null
+          embedding: string | null
           id: string
+          last_reminded_at: string | null
+          priority: string
+          remind_at: string | null
           source_note: string | null
           status: Database["public"]["Enums"]["commitment_status"]
           summary: string
@@ -215,7 +219,11 @@ export type Database = {
         Insert: {
           created_at?: string
           due_at?: string | null
+          embedding?: string | null
           id?: string
+          last_reminded_at?: string | null
+          priority?: string
+          remind_at?: string | null
           source_note?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           summary: string
@@ -225,7 +233,11 @@ export type Database = {
         Update: {
           created_at?: string
           due_at?: string | null
+          embedding?: string | null
           id?: string
+          last_reminded_at?: string | null
+          priority?: string
+          remind_at?: string | null
           source_note?: string | null
           status?: Database["public"]["Enums"]["commitment_status"]
           summary?: string
@@ -274,6 +286,7 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          embedding: string | null
           id: string
           metadata: Json | null
           role: Database["public"]["Enums"]["message_role"]
@@ -284,6 +297,7 @@ export type Database = {
           content?: string
           conversation_id: string
           created_at?: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           role: Database["public"]["Enums"]["message_role"]
@@ -294,6 +308,7 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           role?: Database["public"]["Enums"]["message_role"]
@@ -354,8 +369,10 @@ export type Database = {
       }
       notes: {
         Row: {
+          autolink_suggestions: Json | null
           body: string
           created_at: string
+          embedding: string | null
           id: string
           metadata: Json | null
           tags: string[]
@@ -364,8 +381,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          autolink_suggestions?: Json | null
           body?: string
           created_at?: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           tags?: string[]
@@ -374,8 +393,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          autolink_suggestions?: Json | null
           body?: string
           created_at?: string
+          embedding?: string | null
           id?: string
           metadata?: Json | null
           tags?: string[]
@@ -471,6 +492,36 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      memory_search: {
+        Args: {
+          _match_count?: number
+          _min_similarity?: number
+          _query_embedding: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          similarity: number
+          snippet: string
+          title: string
+        }[]
+      }
+      notes_related: {
+        Args: {
+          _match_count?: number
+          _min_similarity?: number
+          _note_id: string
+          _user_id: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+          snippet: string
+          title: string
+        }[]
       }
     }
     Enums: {
