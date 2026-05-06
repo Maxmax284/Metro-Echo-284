@@ -16,7 +16,7 @@ type Commitment = {
   remind_at: string | null;
   last_reminded_at: string | null;
   priority: string;
-  status: "open" | "done" | "dropped";
+  status: "open" | "done" | "cancelled";
   created_at: string;
 };
 
@@ -76,7 +76,7 @@ export function CommitmentsSurface() {
   };
 
   const drop = async (id: string) => {
-    await supabase.from("commitments").update({ status: "dropped" }).eq("id", id);
+    await supabase.from("commitments").update({ status: "cancelled" }).eq("id", id);
     refresh();
   };
 
