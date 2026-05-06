@@ -1,1 +1,8 @@
 project_id = "dsyjofggptfblxftqtpv"
+
+[functions.commitment-reminders]
+verify_jwt = false
+
+[functions.embeddings-generate]
+verify_jwt = false
+

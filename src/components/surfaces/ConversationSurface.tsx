@@ -104,10 +104,15 @@ export function ConversationSurface({ onIntent }: { onIntent?: (kind: string, pa
       }
 
       // persist final assistant message
-      await supabase.from("messages").insert([
+      const { data: inserted } = await supabase.from("messages").insert([
         { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
         { user_id: session.user.id, conversation_id: convId, role: "assistant", content: assistantSoFar },
-      ]);
+      ]).select("id");
+      // Embed both messages in the background for memory search
+      if (inserted) {
+        const { generateEmbedding } = await import("@/lib/embeddings");
+        inserted.forEach((m) => generateEmbedding("message", m.id));
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong");
     } finally {
