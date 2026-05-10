@@ -11,9 +11,11 @@ import { AwarenessSurface } from "@/components/surfaces/AwarenessSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
-import { LogOut, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { LogOut, Loader2, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 
 export default function Index() {
   const { user, loading, signOut } = useAuth();
@@ -77,9 +79,24 @@ export default function Index() {
       <AmbientHeader
         state={state}
         right={
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </Button>
+          <div className="flex items-center gap-1">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
+                  <SettingsIcon className="h-3.5 w-3.5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[360px] max-w-full">
+                <SheetHeader><SheetTitle>Settings</SheetTitle></SheetHeader>
+                <div className="mt-4 space-y-4">
+                  <TelegramLinkCard />
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
         }
       />
 
