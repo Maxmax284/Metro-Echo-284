@@ -94,15 +94,12 @@ function IndexInner() {
           text: args.text ?? "",
         });
       } else if (kind === "query_awareness") {
-        toast.message("Pulling awareness briefing…");
-        const { data, error } = await supabase.functions.invoke("awareness-brief", {
-          body: { question: args.question, section: args.section ?? null },
+        // Phase C wiring: surface the question in Awareness; full free-form briefing
+        // routing is being built. For now, open Awareness and toast the question.
+        toast.message("Awareness question logged", {
+          description: args.question?.slice(0, 120) ?? "",
         });
-        if (error) throw error;
-        toast.success("Awareness briefing ready — open Awareness tab");
-        if (data?.brief) {
-          // Surface briefing inline as a notification; also persisted by edge function.
-        }
+        setSurface("awareness");
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
