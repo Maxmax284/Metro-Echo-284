@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 import { ExecutorsCard } from "@/components/ExecutorsCard";
+import { FileUploadCard } from "@/components/FileUploadCard";
+import { EmailInboxCard } from "@/components/EmailInboxCard";
 import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
 
@@ -94,6 +96,10 @@ export default function Index() {
                 <SheetHeader><SheetTitle>Settings</SheetTitle></SheetHeader>
                 <div className="mt-4 space-y-6 overflow-y-auto pr-1" style={{ maxHeight: "calc(100dvh - 80px)" }}>
                   <TelegramLinkCard />
+                  <Separator />
+                  <FileUploadCard />
+                  <Separator />
+                  <EmailInboxCard />
                   <Separator />
                   <ExecutorsCard />
                 </div>
