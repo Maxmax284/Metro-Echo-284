@@ -1,5 +1,5 @@
-// files-ingest: takes a previously-uploaded object in the memory-uploads bucket,
-// extracts text, creates a note, and queues an embedding.
+// files-ingest: extract text from an uploaded file (PDF, DOCX, image OCR, text),
+// create a note, embed, and trigger memory-autolink. Phase D — Ingestion Hardening.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -7,20 +7,81 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function extractText(blob: Blob, mime: string, filename: string): Promise<string> {
+const TEXT_EXTS = new Set(["md", "txt", "json", "xml", "csv", "log", "yaml", "yml", "html", "htm"]);
+
+async function extractPdfText(blob: Blob): Promise<string> {
+  // unpdf is Deno-compatible and ships a serverless build.
+  const { extractText, getDocumentProxy } = await import("https://esm.sh/unpdf@0.12.1");
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  const doc = await getDocumentProxy(buf);
+  const { text } = await extractText(doc, { mergePages: true });
+  return Array.isArray(text) ? text.join("\n\n") : String(text ?? "");
+}
+
+async function extractDocxText(blob: Blob): Promise<string> {
+  const mammoth = await import("https://esm.sh/mammoth@1.8.0?bundle");
+  const arrayBuffer = await blob.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return String(result?.value ?? "");
+}
+
+async function ocrImageWithGateway(blob: Blob, mime: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  // base64 encode
+  let bin = "";
+  for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+  const b64 = btoa(bin);
+  const dataUrl = `data:${mime || "image/png"};base64,${b64}`;
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: "Extract all readable text from this image. Return plain text only, preserve line breaks. If no text is present, describe the image in one short sentence." },
+          { type: "image_url", image_url: { url: dataUrl } },
+        ],
+      }],
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text().catch(() => "");
+    throw new Error(`vision ${r.status}: ${t.slice(0, 200)}`);
+  }
+  const j = await r.json();
+  return String(j.choices?.[0]?.message?.content ?? "").trim();
+}
+
+async function extractText(blob: Blob, mime: string, filename: string): Promise<{ text: string; method: string }> {
   const lower = (mime || "").toLowerCase();
   const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+
+  if (lower === "application/pdf" || ext === "pdf") {
+    return { text: await extractPdfText(blob), method: "pdf" };
+  }
+  if (
+    lower === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    ext === "docx"
+  ) {
+    return { text: await extractDocxText(blob), method: "docx" };
+  }
+  if (lower.startsWith("image/") || ["png", "jpg", "jpeg", "webp", "gif", "heic"].includes(ext)) {
+    return { text: await ocrImageWithGateway(blob, lower || "image/png"), method: "ocr" };
+  }
   if (
     lower.startsWith("text/") ||
     lower.includes("json") ||
     lower.includes("xml") ||
     lower.includes("csv") ||
-    ["md", "txt", "json", "xml", "csv", "log", "yaml", "yml"].includes(ext)
+    TEXT_EXTS.has(ext)
   ) {
-    return await blob.text();
+    return { text: await blob.text(), method: "text" };
   }
-  // Best-effort fallback for unknown binary: keep filename only.
-  return "";
+  return { text: "", method: "none" };
 }
 
 Deno.serve(async (req: Request) => {
@@ -30,7 +91,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: auth } } }
+      { global: { headers: { Authorization: auth } } },
     );
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -47,26 +108,30 @@ Deno.serve(async (req: Request) => {
     }
 
     const { data: rec, error: recErr } = await supabase
-      .from("ingested_files")
-      .select("*")
-      .eq("id", ingested_file_id)
-      .maybeSingle();
+      .from("ingested_files").select("*").eq("id", ingested_file_id).maybeSingle();
     if (recErr || !rec) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!rec.storage_path) return new Response(JSON.stringify({ error: "no storage_path" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     await supabase.from("ingested_files").update({ status: "processing" }).eq("id", rec.id);
 
     const { data: blob, error: dlErr } = await supabase.storage
-      .from("memory-uploads")
-      .download(rec.storage_path);
+      .from("memory-uploads").download(rec.storage_path);
     if (dlErr || !blob) {
       await supabase.from("ingested_files").update({ status: "error", error: dlErr?.message ?? "download failed" }).eq("id", rec.id);
       return new Response(JSON.stringify({ error: dlErr?.message ?? "download failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const text = await extractText(blob, rec.mime_type ?? "", rec.filename);
-    const trimmed = text.slice(0, 200_000); // cap
+    let text = ""; let method = "none";
+    try {
+      const r = await extractText(blob, rec.mime_type ?? "", rec.filename);
+      text = r.text; method = r.method;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "extract failed";
+      await supabase.from("ingested_files").update({ status: "error", error: msg }).eq("id", rec.id);
+      return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
+    const trimmed = (text ?? "").slice(0, 200_000);
     const noteBody = trimmed
       ? trimmed
       : `Imported file: ${rec.filename} (${rec.mime_type ?? "unknown"}, ${rec.size_bytes ?? 0} bytes). Text extraction not available.`;
@@ -77,8 +142,8 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         title: rec.filename,
         body: noteBody,
-        tags: ["imported", rec.source ?? "upload"],
-        metadata: { ingested_file_id: rec.id, source: rec.source, mime: rec.mime_type },
+        tags: ["imported", rec.source ?? "upload", `via:${method}`],
+        metadata: { ingested_file_id: rec.id, source: rec.source, mime: rec.mime_type, extraction: method },
       })
       .select("id")
       .single();
@@ -87,18 +152,24 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: noteErr?.message ?? "note insert failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    await supabase.from("ingested_files").update({ status: "done", note_id: note.id, error: null }).eq("id", rec.id);
+    await supabase.from("ingested_files").update({
+      status: "done", note_id: note.id, error: null,
+      metadata: { ...(rec.metadata ?? {}), extraction: method, chars: trimmed.length },
+    }).eq("id", rec.id);
 
-    // Fire-and-forget embedding
-    try {
-      await supabase.functions.invoke("embeddings-generate", {
-        body: { kind: "note", id: note.id },
-      });
-    } catch (e) {
-      console.warn("embedding invoke failed", e);
-    }
+    // Background: embed + autolink (do not block response on these)
+    (async () => {
+      try { await supabase.functions.invoke("embeddings-generate", { body: { kind: "note", id: note.id } }); } catch (e) { console.warn("embed", e); }
+      try { await supabase.functions.invoke("memory-autolink", { body: { note_id: note.id } }); } catch (e) { console.warn("autolink", e); }
+    })();
 
-    return new Response(JSON.stringify({ ok: true, note_id: note.id }), {
+    await supabase.from("audit_log").insert({
+      user_id: user.id, entity_type: "ingested_file", entity_id: rec.id,
+      event: "ingest.success",
+      payload: { method, note_id: note.id, chars: trimmed.length, mime: rec.mime_type },
+    });
+
+    return new Response(JSON.stringify({ ok: true, note_id: note.id, method, chars: trimmed.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

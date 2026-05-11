@@ -113,6 +113,13 @@ Deno.serve(async (req: Request) => {
     try {
       await supabase.functions.invoke("embeddings-generate", { body: { kind: "note", id: note!.id } });
     } catch {/* ignore */}
+    try {
+      await supabase.functions.invoke("memory-autolink", { body: { note_id: note!.id } });
+    } catch {/* ignore */}
+    await supabase.from("audit_log").insert({
+      user_id: addr.user_id, entity_type: "note", entity_id: note!.id,
+      event: "email.ingest", payload: { from, subject, slug },
+    });
 
     return new Response(JSON.stringify({ ok: true, note_id: note!.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
