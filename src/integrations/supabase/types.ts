@@ -525,6 +525,54 @@ export type Database = {
         }
         Relationships: []
       }
+      nudges: {
+        Row: {
+          body: string | null
+          created_at: string
+          dedupe_key: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          priority: number
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: Database["public"]["Enums"]["nudge_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          priority?: number
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: Database["public"]["Enums"]["nudge_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          priority?: number
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: Database["public"]["Enums"]["nudge_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       operational_state_events: {
         Row: {
           created_at: string
@@ -706,6 +754,7 @@ export type Database = {
       executor_kind: "webhook" | "telegram"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
+      nudge_status: "pending" | "seen" | "dismissed" | "acted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -848,6 +897,7 @@ export const Constants = {
       executor_kind: ["webhook", "telegram"],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
+      nudge_status: ["pending", "seen", "dismissed", "acted"],
     },
   },
 } as const
