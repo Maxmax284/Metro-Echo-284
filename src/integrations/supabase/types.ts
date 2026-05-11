@@ -55,6 +55,39 @@ export type Database = {
           },
         ]
       }
+      action_executors: {
+        Row: {
+          config: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          kind: Database["public"]["Enums"]["executor_kind"]
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind: Database["public"]["Enums"]["executor_kind"]
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          kind?: Database["public"]["Enums"]["executor_kind"]
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       actions: {
         Row: {
           created_at: string
@@ -584,6 +617,7 @@ export type Database = {
         | "cancelled"
       app_role: "admin" | "user"
       commitment_status: "open" | "done" | "cancelled"
+      executor_kind: "webhook" | "telegram"
       message_role: "user" | "assistant" | "system" | "tool"
     }
     CompositeTypes: {
@@ -724,6 +758,7 @@ export const Constants = {
       ],
       app_role: ["admin", "user"],
       commitment_status: ["open", "done", "cancelled"],
+      executor_kind: ["webhook", "telegram"],
       message_role: ["user", "assistant", "system", "tool"],
     },
   },
