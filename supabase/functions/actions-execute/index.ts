@@ -36,6 +36,68 @@ async function runWebhook(config: any, action: any) {
   return { status: res.status, body: text.slice(0, 1000) };
 }
 
+async function runEmail(config: any, action: any) {
+  // config: { to: string|string[], from?: string, subject?: string, html?: string, text?: string }
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  if (!apiKey || !resendKey) throw new Error("email executor requires Resend connector (RESEND_API_KEY) — link Resend in Connectors");
+  const to = Array.isArray(config?.to) ? config.to : (config?.to ? [String(config.to)] : null);
+  if (!to || to.length === 0) throw new Error("email executor missing config.to");
+  const from = config?.from ?? "Vanta <onboarding@resend.dev>";
+  const subject = config?.subject ?? action.title ?? "Vanta action";
+  const html = config?.html ?? `<p>${(action.description ?? action.title ?? "").replace(/</g, "&lt;")}</p>`;
+  const text = config?.text;
+  const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "X-Connection-Api-Key": resendKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from, to, subject, html, text }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`resend ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
+  return { provider: "resend", id: data?.id, to };
+}
+
+async function runGoogleCalendar(config: any, action: any) {
+  // config: { calendar_id?: string, summary?: string, description?: string, start: ISO, end: ISO,
+  //           timeZone?: string, attendees?: string[], location?: string }
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const calKey = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
+  if (!apiKey || !calKey) throw new Error("calendar executor requires Google Calendar connector — link Google Calendar in Connectors");
+  const payload = action.payload ?? {};
+  const start = config?.start ?? payload.start;
+  const end = config?.end ?? payload.end;
+  if (!start || !end) throw new Error("calendar executor needs start and end (ISO 8601)");
+  const calendarId = encodeURIComponent(config?.calendar_id ?? "primary");
+  const tz = config?.timeZone ?? payload.timeZone ?? "UTC";
+  const event: Record<string, unknown> = {
+    summary: config?.summary ?? action.title ?? "Vanta event",
+    description: config?.description ?? action.description ?? undefined,
+    location: config?.location ?? payload.location ?? undefined,
+    start: { dateTime: start, timeZone: tz },
+    end: { dateTime: end, timeZone: tz },
+  };
+  const attendees = config?.attendees ?? payload.attendees;
+  if (Array.isArray(attendees) && attendees.length) {
+    event.attendees = attendees.map((email: string) => ({ email }));
+  }
+  const res = await fetch(`https://connector-gateway.lovable.dev/google_calendar/calendar/v3/calendars/${calendarId}/events`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "X-Connection-Api-Key": calKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(event),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`google_calendar ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
+  return { provider: "google_calendar", event_id: data?.id, html_link: data?.htmlLink, calendar_id: config?.calendar_id ?? "primary" };
+}
+
 async function runTelegram(config: any, action: any) {
   const chat_id = config?.chat_id;
   if (!chat_id) throw new Error("telegram executor missing config.chat_id");
