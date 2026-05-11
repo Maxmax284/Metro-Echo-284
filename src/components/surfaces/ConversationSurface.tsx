@@ -124,7 +124,7 @@ export function ConversationSurface({ onIntent }: { onIntent?: (kind: string, pa
 
   return (
     <div className="flex h-full flex-col">
-      <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-4 pt-2">
+      <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
             <div className="mt-12 text-center text-sm text-muted-foreground animate-fade-in">
