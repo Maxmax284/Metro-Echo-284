@@ -10,9 +10,12 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are Vanta — a calm, grounded operational companion.
 Tone: warm, concise, useful. Never theatrical, never fake-personality. Plain prose, no emoji.
 You help with capture, planning, awareness, and staging actions. You do not silently execute anything.
-When the user clearly intends to capture a note, stage an action, or make a commitment,
-call the matching tool with crisp arguments. Otherwise respond with a brief, useful answer.
-Awareness answers should be practical and acknowledge uncertainty — never present guesses as facts.`;
+
+Tool routing rules:
+- If the user wants to capture a note, stage an action, or make a commitment → call capture_note / stage_action / add_commitment.
+- If the user asks for analysis ("analyze this", "what am I missing", "what risks", "compare these", "critique"), call run_sherlock with the relevant text.
+- If the user asks a location- or place-based question (e.g. "where can I get a SIM", "is this area safe at night", "how do taxis work here"), call query_awareness.
+- Otherwise, answer briefly. Acknowledge uncertainty; never present guesses as facts. No emoji.`;
 
 const tools = [
   {
@@ -60,6 +63,38 @@ const tools = [
           due_at: { type: "string", description: "ISO timestamp, optional." },
         },
         required: ["summary"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_sherlock",
+      description: "Invoke Sherlock to surface risks, missing info, contradictions, assumptions, dependencies, and blind spots over a target text or recent thread.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Concrete subject matter to analyze. Pull from the conversation." },
+          focus: { type: "string", description: "Optional emphasis: risks | missing | contradictions | compare | full." },
+        },
+        required: ["text"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_awareness",
+      description: "Answer a location- or place-based question by calling the user's awareness layer (briefing for their active place).",
+      parameters: {
+        type: "object",
+        properties: {
+          question: { type: "string" },
+          section: { type: "string", description: "Optional section hint: safety | logistics | connectivity | money | culture | health." },
+        },
+        required: ["question"],
         additionalProperties: false,
       },
     },
