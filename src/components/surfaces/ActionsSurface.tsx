@@ -26,13 +26,8 @@ const riskColor = {
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
 
-export function ActionsSurface() {
-  const { session } = useAuth();
-  const [actions, setActions] = useState<Action[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-
 type Executor = { id: string; name: string; kind: "webhook" | "telegram"; enabled: boolean };
+
 
 export function ActionsSurface() {
   const { session } = useAuth();
