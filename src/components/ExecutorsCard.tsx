@@ -104,7 +104,7 @@ export function ExecutorsCard() {
       config = { to: list, from: emailFrom.trim(), subject: emailSubject.trim() || undefined };
     }
     const { error } = await supabase.from("action_executors").insert({
-      user_id: session.user.id, name: name.trim(), kind, config, enabled: true,
+      user_id: session.user.id, name: name.trim(), kind: kind as any, config: config as any, enabled: true,
     });
     if (error) return toast.error(error.message);
     setName(""); setUrl(""); setChatId("");
