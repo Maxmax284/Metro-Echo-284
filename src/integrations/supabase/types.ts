@@ -941,7 +941,7 @@ export type Database = {
         | "needs_credentials"
       app_role: "admin" | "user"
       commitment_status: "open" | "done" | "cancelled"
-      executor_kind: "webhook" | "telegram"
+      executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
       nudge_status: "pending" | "seen" | "dismissed" | "acted"
@@ -1085,7 +1085,7 @@ export const Constants = {
       ],
       app_role: ["admin", "user"],
       commitment_status: ["open", "done", "cancelled"],
-      executor_kind: ["webhook", "telegram"],
+      executor_kind: ["webhook", "telegram", "google_calendar", "email"],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
       nudge_status: ["pending", "seen", "dismissed", "acted"],
