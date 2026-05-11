@@ -88,6 +88,36 @@ export type Database = {
         }
         Relationships: []
       }
+      action_retries: {
+        Row: {
+          action_id: string
+          attempt: number
+          created_at: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          attempt?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          attempt?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       actions: {
         Row: {
           created_at: string
@@ -702,6 +732,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          bucket: string
+          count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          bucket: string
+          count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          bucket?: string
+          count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       telegram_chat_links: {
         Row: {
           chat_id: number
@@ -812,6 +863,15 @@ export type Database = {
           snippet: string
           title: string
         }[]
+      }
+      rate_limit_hit: {
+        Args: {
+          _bucket: string
+          _limit: number
+          _user_id: string
+          _window_seconds: number
+        }
+        Returns: boolean
       }
     }
     Enums: {

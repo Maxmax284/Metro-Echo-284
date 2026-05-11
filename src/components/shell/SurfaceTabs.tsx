@@ -1,7 +1,7 @@
-import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search } from "lucide-react";
+import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SurfaceKey = "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock";
+export type SurfaceKey = "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   { key: "conversation", label: "Talk", Icon: MessageSquare },
@@ -10,6 +10,7 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   { key: "actions", label: "Actions", Icon: ListChecks },
   { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
+  { key: "audit", label: "Audit", Icon: ScrollText },
 ];
 
 export function SurfaceTabs({

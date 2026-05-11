@@ -79,6 +79,13 @@ Deno.serve(async (req: Request) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // Rate limit: 30 calls / 60s per user
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "vanta-converse", _limit: 30, _window_seconds: 60 });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { conversation_id, message } = await req.json();
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id and message required" }), {

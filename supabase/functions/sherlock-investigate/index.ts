@@ -53,6 +53,12 @@ Deno.serve(async (req: Request) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "sherlock", _limit: 10, _window_seconds: 60 });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { question } = await req.json();
     if (!question || typeof question !== "string" || question.length < 3) {
       return new Response(JSON.stringify({ error: "question required" }), {

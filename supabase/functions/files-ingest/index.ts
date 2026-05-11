@@ -35,6 +35,12 @@ Deno.serve(async (req: Request) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "files-ingest", _limit: 60, _window_seconds: 60 });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { ingested_file_id } = await req.json();
     if (!ingested_file_id) {
       return new Response(JSON.stringify({ error: "ingested_file_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
