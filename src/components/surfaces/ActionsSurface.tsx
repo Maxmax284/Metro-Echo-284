@@ -26,20 +26,25 @@ const riskColor = {
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
 
+type Executor = { id: string; name: string; kind: "webhook" | "telegram"; enabled: boolean };
+
+
 export function ActionsSurface() {
   const { session } = useAuth();
   const [actions, setActions] = useState<Action[]>([]);
+  const [executors, setExecutors] = useState<Executor[]>([]);
+  const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("actions")
-      .select("id, title, description, risk, status, created_at, updated_at")
-      .order("updated_at", { ascending: false })
-      .limit(100);
-    setActions((data ?? []) as Action[]);
+    const [a, e] = await Promise.all([
+      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at").order("updated_at", { ascending: false }).limit(100),
+      supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
+    ]);
+    setActions((a.data ?? []) as Action[]);
+    setExecutors((e.data ?? []) as Executor[]);
     setLoading(false);
   };
 
@@ -56,6 +61,27 @@ export function ActionsSurface() {
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Transition failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const execute = async (a: Action) => {
+    const executor_id = chosenExecutor[a.id];
+    setBusy(a.id);
+    try {
+      if (executor_id) {
+        const { data, error } = await supabase.functions.invoke("actions-execute", {
+          body: { action_id: a.id, executor_id },
+        });
+        if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
+        toast.success("Executed");
+        refresh();
+      } else {
+        await transition(a, "executed", "manual execute");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Execute failed");
     } finally {
       setBusy(null);
     }
@@ -126,9 +152,23 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {a.status === "approved" && (
-                              <Button size="sm" disabled={busy === a.id} onClick={() => transition(a, "executed", "manual execute")} className="gap-1">
-                                <Check className="h-3.5 w-3.5" /> Execute
-                              </Button>
+                              <>
+                                {executors.length > 0 && (
+                                  <select
+                                    className="h-8 rounded-md border border-border/60 bg-background px-2 text-xs"
+                                    value={chosenExecutor[a.id] ?? ""}
+                                    onChange={(ev) => setChosenExecutor((m) => ({ ...m, [a.id]: ev.target.value }))}
+                                  >
+                                    <option value="">manual</option>
+                                    {executors.map((ex) => (
+                                      <option key={ex.id} value={ex.id}>{ex.kind}: {ex.name}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                <Button size="sm" disabled={busy === a.id} onClick={() => execute(a)} className="gap-1">
+                                  <Check className="h-3.5 w-3.5" /> Execute
+                                </Button>
+                              </>
                             )}
                             {a.status === "executed" && (
                               <Button size="sm" variant="secondary" disabled={busy === a.id} onClick={() => transition(a, "audited", "reviewed")}>

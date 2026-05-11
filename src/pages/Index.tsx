@@ -16,6 +16,8 @@ import { LogOut, Loader2, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
+import { ExecutorsCard } from "@/components/ExecutorsCard";
+import { Separator } from "@/components/ui/separator";
 
 export default function Index() {
   const { user, loading, signOut } = useAuth();
@@ -88,8 +90,10 @@ export default function Index() {
               </SheetTrigger>
               <SheetContent side="right" className="w-[360px] max-w-full">
                 <SheetHeader><SheetTitle>Settings</SheetTitle></SheetHeader>
-                <div className="mt-4 space-y-4">
+                <div className="mt-4 space-y-6 overflow-y-auto pr-1" style={{ maxHeight: "calc(100dvh - 80px)" }}>
                   <TelegramLinkCard />
+                  <Separator />
+                  <ExecutorsCard />
                 </div>
               </SheetContent>
             </Sheet>
