@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Bell, X, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { getCurrentPosition } from "@/lib/native";
 
 type Nudge = {
   id: string;
@@ -48,21 +49,8 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
   const pulse = async () => {
     if (!user || pulsedRef.current) return;
     pulsedRef.current = true;
-    let geo: { lat: number; lon: number } | undefined;
-    try {
-      if (navigator.geolocation && navigator.permissions) {
-        const perm = await navigator.permissions.query({ name: "geolocation" as PermissionName }).catch(() => null);
-        if (perm?.state === "granted") {
-          geo = await new Promise<{ lat: number; lon: number } | undefined>((resolve) => {
-            navigator.geolocation.getCurrentPosition(
-              (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
-              () => resolve(undefined),
-              { timeout: 4000, maximumAge: 5 * 60 * 1000 }
-            );
-          });
-        }
-      }
-    } catch { /* ignore */ }
+    const pos = await getCurrentPosition();
+    const geo = pos ?? undefined;
 
     try {
       await supabase.functions.invoke("ambient-pulse", { body: { geo } });
