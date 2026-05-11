@@ -14,7 +14,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LogOut, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
@@ -23,6 +23,8 @@ import { FileUploadCard } from "@/components/FileUploadCard";
 import { EmailInboxCard } from "@/components/EmailInboxCard";
 import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
+import { SherlockProvider, useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
 
 export default function Index() {
   const { user, loading, signOut } = useAuth();
