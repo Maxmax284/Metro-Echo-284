@@ -67,6 +67,12 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "unknown address" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Per-recipient rate limit: 30 emails / 60s
+    const { data: allowed } = await supabase.rpc("rate_limit_hit", { _user_id: addr.user_id, _bucket: "email-inbound", _limit: 30, _window_seconds: 60 });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const body = (text && text.trim()) ? text : (html ? htmlToText(html) : "");
     const title = subject || `Email from ${from || "unknown"}`;
 
