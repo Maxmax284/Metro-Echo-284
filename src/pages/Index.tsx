@@ -94,12 +94,35 @@ function IndexInner() {
           text: args.text ?? "",
         });
       } else if (kind === "query_awareness") {
-        // Phase C wiring: surface the question in Awareness; full free-form briefing
-        // routing is being built. For now, open Awareness and toast the question.
-        toast.message("Awareness question logged", {
-          description: args.question?.slice(0, 120) ?? "",
+        // Phase C: real round-trip — answer grounded in the active place + briefings,
+        // then post the result back into the active conversation as an assistant turn.
+        const question = String(args.question ?? "").trim();
+        if (!question) return;
+        const { data, error } = await supabase.functions.invoke("awareness-query", {
+          body: { question, section: args.section ?? null },
         });
-        setSurface("awareness");
+        if (error || (data as any)?.error) {
+          throw new Error((data as any)?.error || error?.message || "awareness query failed");
+        }
+        const { answer, confidence, place } = data as { answer: string; confidence: string; place: { label: string } | null };
+        const tag = place ? `📍 ${place.label} · confidence: ${confidence}` : `confidence: ${confidence}`;
+        const composed = `${answer}\n\n_${tag}_`;
+        const { data: conv } = await supabase
+          .from("conversations")
+          .select("id")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (conv?.id) {
+          await supabase.from("messages").insert({
+            user_id: user.id,
+            conversation_id: conv.id,
+            role: "assistant",
+            content: composed,
+            metadata: { source: "awareness", confidence, place_id: place ? (data as any).place.id : null },
+          });
+        }
+        toast.success("Awareness answered", { description: place?.label ?? "no active place set" });
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't apply intent");

@@ -40,8 +40,8 @@ export function ConversationDock({
   };
 
   return (
-    <div className="safe-bottom sticky bottom-0 z-20 px-3 pb-3 pt-2 md:relative md:px-0 md:pb-0">
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl glass px-3 py-2 shadow-lg">
+    <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
+      <div className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
         <textarea
           ref={ref}
           value={v}
