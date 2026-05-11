@@ -5,6 +5,7 @@ import { ConversationDock } from "@/components/shell/ConversationDock";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
 
 type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
 
