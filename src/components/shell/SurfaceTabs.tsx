@@ -1,13 +1,14 @@
-import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare } from "lucide-react";
+import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SurfaceKey = "conversation" | "memory" | "commitments" | "actions" | "awareness";
+export type SurfaceKey = "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   { key: "conversation", label: "Talk", Icon: MessageSquare },
   { key: "memory", label: "Memory", Icon: Notebook },
   { key: "commitments", label: "Commit", Icon: CheckSquare },
   { key: "actions", label: "Actions", Icon: ListChecks },
+  { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
 ];
 

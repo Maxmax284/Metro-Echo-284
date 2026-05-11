@@ -8,6 +8,7 @@ import { MemorySurface } from "@/components/surfaces/MemorySurface";
 import { CommitmentsSurface } from "@/components/surfaces/CommitmentsSurface";
 import { ActionsSurface } from "@/components/surfaces/ActionsSurface";
 import { AwarenessSurface } from "@/components/surfaces/AwarenessSurface";
+import { SherlockSurface } from "@/components/surfaces/SherlockSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -111,6 +112,7 @@ export default function Index() {
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}
           {surface === "actions" && <ActionsSurface />}
+          {surface === "sherlock" && <SherlockSurface />}
           {surface === "awareness" && <AwarenessSurface />}
         </main>
       </div>

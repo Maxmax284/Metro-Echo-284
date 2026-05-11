@@ -314,6 +314,92 @@ export type Database = {
         }
         Relationships: []
       }
+      investigation_findings: {
+        Row: {
+          claim: string
+          confidence: string
+          created_at: string
+          id: string
+          investigation_id: string
+          source_excerpt: string | null
+          source_id: string | null
+          source_kind: string | null
+          user_id: string
+        }
+        Insert: {
+          claim: string
+          confidence?: string
+          created_at?: string
+          id?: string
+          investigation_id: string
+          source_excerpt?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          user_id: string
+        }
+        Update: {
+          claim?: string
+          confidence?: string
+          created_at?: string
+          id?: string
+          investigation_id?: string
+          source_excerpt?: string | null
+          source_id?: string | null
+          source_kind?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investigation_findings_investigation_id_fkey"
+            columns: ["investigation_id"]
+            isOneToOne: false
+            referencedRelation: "investigations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investigations: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          question: string
+          related_action_ids: string[]
+          related_commitment_ids: string[]
+          related_note_ids: string[]
+          status: Database["public"]["Enums"]["investigation_status"]
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          question: string
+          related_action_ids?: string[]
+          related_commitment_ids?: string[]
+          related_note_ids?: string[]
+          status?: Database["public"]["Enums"]["investigation_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          question?: string
+          related_action_ids?: string[]
+          related_commitment_ids?: string[]
+          related_note_ids?: string[]
+          status?: Database["public"]["Enums"]["investigation_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -618,6 +704,7 @@ export type Database = {
       app_role: "admin" | "user"
       commitment_status: "open" | "done" | "cancelled"
       executor_kind: "webhook" | "telegram"
+      investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
     }
     CompositeTypes: {
@@ -759,6 +846,7 @@ export const Constants = {
       app_role: ["admin", "user"],
       commitment_status: ["open", "done", "cancelled"],
       executor_kind: ["webhook", "telegram"],
+      investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
     },
   },
