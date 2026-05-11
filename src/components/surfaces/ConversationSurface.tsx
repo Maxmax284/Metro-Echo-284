@@ -134,16 +134,29 @@ export function ConversationSurface({ onIntent }: { onIntent?: (kind: string, pa
             </div>
           )}
           {msgs.map((m, i) => (
-            <div
-              key={i}
-              className={cn(
-                "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed animate-fade-in",
-                m.role === "user"
-                  ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
-                  : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
+            <div key={i} className="group/msg flex items-start gap-1.5 animate-fade-in">
+              <div
+                className={cn(
+                  "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
+                  m.role === "user"
+                    ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
+                    : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
+                )}
+              >
+                {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
+              </div>
+              {m.content && (
+                <div className="opacity-0 transition-opacity group-hover/msg:opacity-100">
+                  <AnalyzeButton
+                    scope={{
+                      entity_type: "message",
+                      entity_id: m.id ?? null,
+                      title: m.content.slice(0, 80),
+                      text: m.content,
+                    }}
+                  />
+                </div>
               )}
-            >
-              {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
             </div>
           ))}
         </div>
