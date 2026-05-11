@@ -74,6 +74,21 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
     if (!user) return;
     load();
     pulse();
+    const interval = setInterval(() => {
+      pulsedRef.current = false;
+      pulse();
+    }, 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        pulsedRef.current = false;
+        pulse();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [user]);
 
   const dismiss = async (id: string) => {
