@@ -27,9 +27,19 @@ import { SherlockProvider, useSherlock } from "@/components/sherlock/SherlockCon
 import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
 
 export default function Index() {
+  return (
+    <SherlockProvider>
+      <IndexInner />
+      <SherlockOverlay />
+    </SherlockProvider>
+  );
+}
+
+function IndexInner() {
   const { user, loading, signOut } = useAuth();
   const [surface, setSurface] = useState<SurfaceKey>("conversation");
   const { state } = useOperationalState(surface);
+  const { openSherlock } = useSherlock();
 
   if (loading) {
     return (
@@ -77,6 +87,22 @@ export default function Index() {
           .single();
         if (data) generateEmbedding("commitment", data.id);
         toast.success("Commitment added");
+      } else if (kind === "run_sherlock") {
+        openSherlock({
+          entity_type: "freeform",
+          title: (args.text ?? "").slice(0, 80),
+          text: args.text ?? "",
+        });
+      } else if (kind === "query_awareness") {
+        toast.message("Pulling awareness briefing…");
+        const { data, error } = await supabase.functions.invoke("awareness-brief", {
+          body: { question: args.question, section: args.section ?? null },
+        });
+        if (error) throw error;
+        toast.success("Awareness briefing ready — open Awareness tab");
+        if (data?.brief) {
+          // Surface briefing inline as a notification; also persisted by edge function.
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
@@ -89,6 +115,16 @@ export default function Index() {
         state={state}
         right={
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Analyze with Sherlock"
+              onClick={() => openSherlock({ entity_type: "freeform", title: "Ad-hoc analysis", text: "" })}
+              title="Analyze with Sherlock"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </Button>
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
