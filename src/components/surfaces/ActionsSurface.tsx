@@ -38,6 +38,8 @@ export function ActionsSurface() {
   const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [highRiskTarget, setHighRiskTarget] = useState<Action | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   const refresh = async () => {
     setLoading(true);
@@ -149,8 +151,19 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {a.status === "staged" && (
-                              <Button size="sm" disabled={busy === a.id} onClick={() => transition(a, "approved")}>
-                                Approve
+                              <Button
+                                size="sm"
+                                disabled={busy === a.id}
+                                onClick={() => {
+                                  if (a.risk === "high") {
+                                    setConfirmText("");
+                                    setHighRiskTarget(a);
+                                  } else {
+                                    transition(a, "approved");
+                                  }
+                                }}
+                              >
+                                {a.risk === "high" ? "Review & Approve" : "Approve"}
                               </Button>
                             )}
                             {a.status === "approved" && (
