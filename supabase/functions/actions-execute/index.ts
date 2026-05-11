@@ -62,20 +62,33 @@ async function runEmail(config: any, action: any) {
 }
 
 async function runGoogleCalendar(config: any, action: any) {
-  // config: { calendar_id?: string, summary?: string, description?: string, start: ISO, end: ISO,
-  //           timeZone?: string, attendees?: string[], location?: string }
+  // config: { calendar_id?, timeZone?, start_field?, end_field?, default_duration_minutes?,
+  //           summary_template?, description_template?, attendees? }
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   const calKey = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
   if (!apiKey || !calKey) throw new Error("calendar executor requires Google Calendar connector — link Google Calendar in Connectors");
   const payload = action.payload ?? {};
-  const start = config?.start ?? payload.start;
-  const end = config?.end ?? payload.end;
-  if (!start || !end) throw new Error("calendar executor needs start and end (ISO 8601)");
+  const pick = (path?: string) => {
+    if (!path) return undefined;
+    return path.split(".").reduce((acc: any, key) => (acc == null ? acc : acc[key]), payload);
+  };
+  const startField = config?.start_field ?? "start";
+  const endField = config?.end_field ?? "end";
+  let start = config?.start ?? pick(startField) ?? payload.start;
+  let end = config?.end ?? pick(endField) ?? payload.end;
+  if (start && !end && Number.isFinite(config?.default_duration_minutes)) {
+    end = new Date(new Date(start).getTime() + Number(config.default_duration_minutes) * 60_000).toISOString();
+  }
+  if (!start || !end) throw new Error(`calendar executor needs start and end (looked at config + payload.${startField}/${endField})`);
   const calendarId = encodeURIComponent(config?.calendar_id ?? "primary");
   const tz = config?.timeZone ?? payload.timeZone ?? "UTC";
+  const fill = (tpl?: string, fallback?: string) =>
+    typeof tpl === "string" && tpl
+      ? tpl.replace(/\{\{\s*(title|description)\s*\}\}/g, (_, k) => String((action as any)[k] ?? ""))
+      : fallback;
   const event: Record<string, unknown> = {
-    summary: config?.summary ?? action.title ?? "Vanta event",
-    description: config?.description ?? action.description ?? undefined,
+    summary: fill(config?.summary_template, action.title ?? "Vanta event"),
+    description: fill(config?.description_template, action.description ?? undefined),
     location: config?.location ?? payload.location ?? undefined,
     start: { dateTime: start, timeZone: tz },
     end: { dateTime: end, timeZone: tz },
