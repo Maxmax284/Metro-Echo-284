@@ -48,7 +48,22 @@ Deno.serve(async (req: Request) => {
     }
 
     const from = action.status;
-    const { error: uErr } = await supabase.from("actions").update({ status: to_status }).eq("id", action_id);
+
+    // High-risk approval gate: require explicit confirmation phrase
+    if (from === "staged" && to_status === "approved" && action.risk === "high") {
+      if ((reason ?? "").trim().toLowerCase() !== "approve") {
+        return new Response(JSON.stringify({ error: "high-risk approval requires confirmation phrase 'approve'" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    const patch: Record<string, unknown> = { status: to_status };
+    if (to_status === "approved" && action.risk === "high") patch.risk_acknowledged_at = new Date().toISOString();
+    if (to_status === "executed") patch.executed_at = new Date().toISOString();
+    if (to_status === "rolled_back") patch.rolled_back_at = new Date().toISOString();
+
+    const { error: uErr } = await supabase.from("actions").update(patch).eq("id", action_id);
     if (uErr) throw uErr;
 
     await supabase.from("action_events").insert({

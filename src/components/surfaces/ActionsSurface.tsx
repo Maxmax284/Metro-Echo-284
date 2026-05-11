@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,8 @@ export function ActionsSurface() {
   const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [highRiskTarget, setHighRiskTarget] = useState<Action | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   const refresh = async () => {
     setLoading(true);
@@ -147,8 +151,19 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {a.status === "staged" && (
-                              <Button size="sm" disabled={busy === a.id} onClick={() => transition(a, "approved")}>
-                                Approve
+                              <Button
+                                size="sm"
+                                disabled={busy === a.id}
+                                onClick={() => {
+                                  if (a.risk === "high") {
+                                    setConfirmText("");
+                                    setHighRiskTarget(a);
+                                  } else {
+                                    transition(a, "approved");
+                                  }
+                                }}
+                              >
+                                {a.risk === "high" ? "Review & Approve" : "Approve"}
                               </Button>
                             )}
                             {a.status === "approved" && (
@@ -196,6 +211,48 @@ export function ActionsSurface() {
           )
         )}
       </div>
+
+      <Dialog open={!!highRiskTarget} onOpenChange={(o) => !o && setHighRiskTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-warn" />
+              High-risk action
+            </DialogTitle>
+            <DialogDescription>
+              {highRiskTarget?.title}
+              {highRiskTarget?.description && (
+                <span className="mt-2 block text-xs text-muted-foreground">{highRiskTarget.description}</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              This action is marked high-risk. Type <span className="font-mono font-semibold text-foreground">approve</span> to confirm.
+            </p>
+            <Input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="approve"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setHighRiskTarget(null)}>Cancel</Button>
+            <Button
+              disabled={confirmText.trim().toLowerCase() !== "approve" || busy === highRiskTarget?.id}
+              onClick={async () => {
+                if (!highRiskTarget) return;
+                await transition(highRiskTarget, "approved", "approve");
+                setHighRiskTarget(null);
+              }}
+            >
+              {busy === highRiskTarget?.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+              Confirm approval
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
