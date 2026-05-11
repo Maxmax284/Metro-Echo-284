@@ -120,12 +120,18 @@ export type Database = {
       }
       actions: {
         Row: {
+          affected_entities: Json
           created_at: string
           description: string | null
+          executed_at: string | null
           id: string
           payload: Json
           result: Json | null
           risk: Database["public"]["Enums"]["action_risk"]
+          risk_acknowledged_at: string | null
+          rollback_available: boolean
+          rollback_token: string | null
+          rolled_back_at: string | null
           source: string | null
           status: Database["public"]["Enums"]["action_status"]
           title: string
@@ -133,12 +139,18 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          affected_entities?: Json
           created_at?: string
           description?: string | null
+          executed_at?: string | null
           id?: string
           payload?: Json
           result?: Json | null
           risk?: Database["public"]["Enums"]["action_risk"]
+          risk_acknowledged_at?: string | null
+          rollback_available?: boolean
+          rollback_token?: string | null
+          rolled_back_at?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title: string
@@ -146,12 +158,18 @@ export type Database = {
           user_id: string
         }
         Update: {
+          affected_entities?: Json
           created_at?: string
           description?: string | null
+          executed_at?: string | null
           id?: string
           payload?: Json
           result?: Json | null
           risk?: Database["public"]["Enums"]["action_risk"]
+          risk_acknowledged_at?: string | null
+          rollback_available?: boolean
+          rollback_token?: string | null
+          rolled_back_at?: string | null
           source?: string | null
           status?: Database["public"]["Enums"]["action_status"]
           title?: string
@@ -753,6 +771,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sherlock_findings_cache: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          findings: Json
+          id: string
+          scope_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          findings: Json
+          id?: string
+          scope_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          findings?: Json
+          id?: string
+          scope_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_chat_links: {
         Row: {
           chat_id: number
@@ -884,6 +938,7 @@ export type Database = {
         | "audited"
         | "rolled_back"
         | "cancelled"
+        | "needs_credentials"
       app_role: "admin" | "user"
       commitment_status: "open" | "done" | "cancelled"
       executor_kind: "webhook" | "telegram"
@@ -1026,6 +1081,7 @@ export const Constants = {
         "audited",
         "rolled_back",
         "cancelled",
+        "needs_credentials",
       ],
       app_role: ["admin", "user"],
       commitment_status: ["open", "done", "cancelled"],
