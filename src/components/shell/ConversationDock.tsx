@@ -2,8 +2,18 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+function timeAwarePlaceholder(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Late thought to capture?";
+  if (h < 11) return "What's the day's shape?";
+  if (h < 14) return "Midday check — anything to stage?";
+  if (h < 18) return "What needs Vanta's attention?";
+  if (h < 22) return "Wrap-up: capture, commit, or plan?";
+  return "Anything to log before bed?";
+}
+
 export function ConversationDock({
-  placeholder = "Tell Vanta…",
+  placeholder,
   busy,
   onSend,
 }: {
@@ -13,6 +23,7 @@ export function ConversationDock({
 }) {
   const [v, setV] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
+  const ph = placeholder ?? timeAwarePlaceholder();
 
   useEffect(() => {
     const el = ref.current;
@@ -42,7 +53,7 @@ export function ConversationDock({
             }
           }}
           rows={1}
-          placeholder={placeholder}
+          placeholder={ph}
           className={cn(
             "flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
           )}
