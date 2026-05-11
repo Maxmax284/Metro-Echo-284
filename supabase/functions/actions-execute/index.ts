@@ -103,7 +103,14 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: msg }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    await supabase.from("actions").update({ status: "executed", result }).eq("id", action_id);
+    const rollback_available = executor.kind === "telegram" && !!result?.message_id;
+    await supabase.from("actions").update({
+      status: "executed",
+      result,
+      executed_at: new Date().toISOString(),
+      rollback_available,
+      rollback_token: rollback_available ? String(result?.message_id ?? "") : null,
+    }).eq("id", action_id);
     await supabase.from("action_events").insert({
       user_id: user.id, action_id, from_status: "approved", to_status: "executed", actor: "executor",
       reason: `${executor.kind}:${executor.name}`,
