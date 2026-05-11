@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 import { ExecutorsCard } from "@/components/ExecutorsCard";
 import { Separator } from "@/components/ui/separator";
+import { NudgesPanel } from "@/components/NudgesPanel";
 
 export default function Index() {
   const { user, loading, signOut } = useAuth();
@@ -108,6 +109,9 @@ export default function Index() {
       <div className="flex flex-1 min-h-0">
         <SurfaceTabs active={surface} onChange={setSurface} variant="rail" />
         <main className="relative flex flex-1 min-h-0 flex-col">
+          <div className="px-3 pt-2 md:px-4">
+            <NudgesPanel collapsed />
+          </div>
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} />}
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}
