@@ -314,6 +314,81 @@ export type Database = {
         }
         Relationships: []
       }
+      email_inbound_addresses: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          last_received_at: string | null
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_received_at?: string | null
+          slug: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          last_received_at?: string | null
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ingested_files: {
+        Row: {
+          created_at: string
+          error: string | null
+          filename: string
+          id: string
+          metadata: Json | null
+          mime_type: string | null
+          note_id: string | null
+          size_bytes: number | null
+          source: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          filename: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          note_id?: string | null
+          size_bytes?: number | null
+          source?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          filename?: string
+          id?: string
+          metadata?: Json | null
+          mime_type?: string | null
+          note_id?: string | null
+          size_bytes?: number | null
+          source?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       investigation_findings: {
         Row: {
           claim: string
