@@ -152,9 +152,23 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {a.status === "approved" && (
-                              <Button size="sm" disabled={busy === a.id} onClick={() => transition(a, "executed", "manual execute")} className="gap-1">
-                                <Check className="h-3.5 w-3.5" /> Execute
-                              </Button>
+                              <>
+                                {executors.length > 0 && (
+                                  <select
+                                    className="h-8 rounded-md border border-border/60 bg-background px-2 text-xs"
+                                    value={chosenExecutor[a.id] ?? ""}
+                                    onChange={(ev) => setChosenExecutor((m) => ({ ...m, [a.id]: ev.target.value }))}
+                                  >
+                                    <option value="">manual</option>
+                                    {executors.map((ex) => (
+                                      <option key={ex.id} value={ex.id}>{ex.kind}: {ex.name}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                <Button size="sm" disabled={busy === a.id} onClick={() => execute(a)} className="gap-1">
+                                  <Check className="h-3.5 w-3.5" /> Execute
+                                </Button>
+                              </>
                             )}
                             {a.status === "executed" && (
                               <Button size="sm" variant="secondary" disabled={busy === a.id} onClick={() => transition(a, "audited", "reviewed")}>
