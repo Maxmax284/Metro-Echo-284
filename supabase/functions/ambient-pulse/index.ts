@@ -45,6 +45,12 @@ Deno.serve(async (req: Request) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "ambient-pulse", _limit: 12, _window_seconds: 60 });
+    if (allowed === false) {
+      return new Response(JSON.stringify({ proposed: 0, created: 0, rate_limited: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const body = await req.json().catch(() => ({}));
     const here: { lat: number; lon: number } | null =
       body?.geo && typeof body.geo.lat === "number" && typeof body.geo.lon === "number"
