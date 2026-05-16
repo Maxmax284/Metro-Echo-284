@@ -5,7 +5,7 @@ export type SurfaceKey = "command" | "conversation" | "memory" | "commitments" |
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   { key: "command", label: "Cockpit", Icon: LayoutDashboard },
-  { key: "conversation", label: "Talk", Icon: MessageSquare },
+  { key: "conversation", label: "Log", Icon: MessageSquare },
   { key: "memory", label: "Memory", Icon: Notebook },
   { key: "commitments", label: "Commit", Icon: CheckSquare },
   { key: "actions", label: "Actions", Icon: ListChecks },
