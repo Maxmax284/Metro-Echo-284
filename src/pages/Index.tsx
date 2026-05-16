@@ -137,6 +137,9 @@ function IndexInner() {
     <div className="flex min-h-dvh flex-col">
       <AmbientHeader
         state={state}
+        place={place?.label}
+        awareness={{ freshness: awareness.freshness, confidence: awareness.confidence }}
+        onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1">
             <Button
