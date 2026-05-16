@@ -16,6 +16,7 @@ import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { ModeBadge } from "@/components/shell/ModeBadge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
@@ -141,7 +142,8 @@ function IndexInner() {
         awareness={{ freshness: awareness.freshness, confidence: awareness.confidence }}
         onAwarenessClick={() => setSurface("awareness")}
         right={
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            <ModeBadge />
             <Button
               variant="ghost"
               size="icon"

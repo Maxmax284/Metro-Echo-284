@@ -3,19 +3,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
 import { toast } from "sonner";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
  * All paths are draft-only — never calls actions-execute or transitions to approved.
+ * Gated by the user's Companion mode (locked/observer/advisor/operator).
  */
 export function useIntentHandler() {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
+  const { mode } = useMode();
 
   return useCallback(
     async (kind: string, args: any) => {
       if (!user) return;
+      if (!modeAllows(mode, kind)) {
+        toast.warning(`${MODE_LABEL[mode]} mode — intent "${kind}" blocked`, {
+          description: "Switch mode in the header to allow this.",
+        });
+        return;
+      }
       try {
         if (kind === "capture_note") {
           const { data } = await supabase
@@ -94,6 +103,6 @@ export function useIntentHandler() {
         toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
       }
     },
-    [user, openSherlock]
+    [user, openSherlock, mode]
   );
 }

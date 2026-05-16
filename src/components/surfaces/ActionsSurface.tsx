@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -17,6 +18,10 @@ type Action = {
   status: "proposed" | "staged" | "approved" | "executed" | "audited" | "rolled_back" | "cancelled";
   created_at: string;
   updated_at: string;
+  payload: Record<string, unknown> | null;
+  source: string | null;
+  affected_entities: unknown[] | null;
+  rollback_available: boolean | null;
 };
 
 const RiskIcon = { low_reversible: ShieldCheck, standard: Shield, high: ShieldAlert } as const;
@@ -24,6 +29,11 @@ const riskColor = {
   low_reversible: "text-signal",
   standard: "text-primary",
   high: "text-warn",
+};
+const riskLabel = {
+  low_reversible: "Low risk · reversible",
+  standard: "Standard risk",
+  high: "High risk",
 };
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
@@ -38,13 +48,13 @@ export function ActionsSurface() {
   const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [highRiskTarget, setHighRiskTarget] = useState<Action | null>(null);
+  const [approvalTarget, setApprovalTarget] = useState<Action | null>(null);
   const [confirmText, setConfirmText] = useState("");
 
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at").order("updated_at", { ascending: false }).limit(100),
+      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available").order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
     setActions((a.data ?? []) as Action[]);
@@ -155,15 +165,15 @@ export function ActionsSurface() {
                                 size="sm"
                                 disabled={busy === a.id}
                                 onClick={() => {
-                                  if (a.risk === "high") {
-                                    setConfirmText("");
-                                    setHighRiskTarget(a);
-                                  } else {
+                                  if (a.risk === "low_reversible") {
                                     transition(a, "approved");
+                                  } else {
+                                    setConfirmText("");
+                                    setApprovalTarget(a);
                                   }
                                 }}
                               >
-                                {a.risk === "high" ? "Review & Approve" : "Approve"}
+                                {a.risk === "low_reversible" ? "Approve" : "Review & Approve"}
                               </Button>
                             )}
                             {a.status === "approved" && (
@@ -212,45 +222,98 @@ export function ActionsSurface() {
         )}
       </div>
 
-      <Dialog open={!!highRiskTarget} onOpenChange={(o) => !o && setHighRiskTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-warn" />
-              High-risk action
-            </DialogTitle>
-            <DialogDescription>
-              {highRiskTarget?.title}
-              {highRiskTarget?.description && (
-                <span className="mt-2 block text-xs text-muted-foreground">{highRiskTarget.description}</span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              This action is marked high-risk. Type <span className="font-mono font-semibold text-foreground">approve</span> to confirm.
-            </p>
-            <Input
-              autoFocus
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="approve"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setHighRiskTarget(null)}>Cancel</Button>
-            <Button
-              disabled={confirmText.trim().toLowerCase() !== "approve" || busy === highRiskTarget?.id}
-              onClick={async () => {
-                if (!highRiskTarget) return;
-                await transition(highRiskTarget, "approved", "approve");
-                setHighRiskTarget(null);
-              }}
-            >
-              {busy === highRiskTarget?.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
-              Confirm approval
-            </Button>
-          </DialogFooter>
+      <Dialog open={!!approvalTarget} onOpenChange={(o) => !o && setApprovalTarget(null)}>
+        <DialogContent className="max-w-lg">
+          {approvalTarget && (() => {
+            const t = approvalTarget;
+            const Icon = RiskIcon[t.risk];
+            const needsPhrase = t.risk === "high";
+            const phraseOk = !needsPhrase || confirmText.trim().toLowerCase() === "approve";
+            const affectedCount = Array.isArray(t.affected_entities) ? t.affected_entities.length : 0;
+            const payloadStr = t.payload && Object.keys(t.payload).length > 0
+              ? JSON.stringify(t.payload, null, 2)
+              : null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Icon className={cn("h-5 w-5", riskColor[t.risk])} />
+                    Review action
+                  </DialogTitle>
+                  <DialogDescription className="space-y-2">
+                    <span className="block text-sm font-medium text-foreground">{t.title}</span>
+                    {t.description && (
+                      <span className="block text-xs text-muted-foreground">{t.description}</span>
+                    )}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Badge variant="outline" className={cn("gap-1", riskColor[t.risk])}>
+                      <Icon className="h-3 w-3" /> {riskLabel[t.risk]}
+                    </Badge>
+                    {t.source && (
+                      <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <History className="h-3 w-3" /> via {t.source}
+                      </Badge>
+                    )}
+                    {affectedCount > 0 && (
+                      <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <Boxes className="h-3 w-3" /> {affectedCount} affected
+                      </Badge>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={cn("gap-1", t.rollback_available ? "text-signal" : "text-muted-foreground")}
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      {t.rollback_available ? "Rollback available" : "No rollback"}
+                    </Badge>
+                  </div>
+
+                  {payloadStr && (
+                    <details className="rounded-md ring-1 ring-border/60">
+                      <summary className="flex cursor-pointer items-center gap-1.5 px-2 py-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+                        <FileCode2 className="h-3 w-3" /> Payload
+                      </summary>
+                      <pre className="scrollbar-thin max-h-48 overflow-auto rounded-b-md bg-surface-elevated/60 px-2 py-2 text-[11px] leading-snug text-foreground/90">
+{payloadStr}
+                      </pre>
+                    </details>
+                  )}
+
+                  {needsPhrase && (
+                    <div className="space-y-1.5 rounded-md border border-warn/30 bg-warn/5 p-2.5">
+                      <p className="text-xs text-foreground">
+                        High-risk. Type <span className="font-mono font-semibold">approve</span> to confirm.
+                      </p>
+                      <Input
+                        autoFocus
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        placeholder="approve"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setApprovalTarget(null)}>Cancel</Button>
+                  <Button
+                    disabled={!phraseOk || busy === t.id}
+                    onClick={async () => {
+                      await transition(t, "approved", needsPhrase ? "approve" : "reviewed");
+                      setApprovalTarget(null);
+                    }}
+                  >
+                    {busy === t.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                    Confirm approval
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

@@ -855,6 +855,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_modes: {
+        Row: {
+          mode: Database["public"]["Enums"]["app_mode"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          mode?: Database["public"]["Enums"]["app_mode"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          mode?: Database["public"]["Enums"]["app_mode"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -939,6 +957,7 @@ export type Database = {
         | "rolled_back"
         | "cancelled"
         | "needs_credentials"
+      app_mode: "locked" | "observer" | "advisor" | "operator"
       app_role: "admin" | "user"
       commitment_status: "open" | "done" | "cancelled"
       executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
@@ -1083,6 +1102,7 @@ export const Constants = {
         "cancelled",
         "needs_credentials",
       ],
+      app_mode: ["locked", "observer", "advisor", "operator"],
       app_role: ["admin", "user"],
       commitment_status: ["open", "done", "cancelled"],
       executor_kind: ["webhook", "telegram", "google_calendar", "email"],
