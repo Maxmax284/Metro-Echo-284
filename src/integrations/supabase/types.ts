@@ -958,7 +958,7 @@ export type Database = {
         | "cancelled"
         | "needs_credentials"
       app_mode: "locked" | "observer" | "advisor" | "operator"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "owner"
       commitment_status: "open" | "done" | "cancelled"
       executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
       investigation_status: "pending" | "running" | "complete" | "failed"
@@ -1103,7 +1103,7 @@ export const Constants = {
         "needs_credentials",
       ],
       app_mode: ["locked", "observer", "advisor", "operator"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "owner"],
       commitment_status: ["open", "done", "cancelled"],
       executor_kind: ["webhook", "telegram", "google_calendar", "email"],
       investigation_status: ["pending", "running", "complete", "failed"],
