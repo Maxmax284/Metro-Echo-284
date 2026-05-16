@@ -24,16 +24,12 @@ import { FileUploadCard } from "@/components/FileUploadCard";
 import { EmailInboxCard } from "@/components/EmailInboxCard";
 import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
-import { SherlockProvider, useSherlock } from "@/components/sherlock/SherlockContext";
-import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { useEffect } from "react";
 
 export default function Index() {
-  return (
-    <SherlockProvider>
-      <IndexInner />
-      <SherlockOverlay />
-    </SherlockProvider>
-  );
+  return <IndexInner />;
 }
 
 function IndexInner() {
@@ -41,6 +37,11 @@ function IndexInner() {
   const [surface, setSurface] = useState<SurfaceKey>("command");
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
+  const { setContext } = useCurrentContext();
+
+  useEffect(() => {
+    setContext({ surface });
+  }, [surface, setContext]);
 
   if (loading) {
     return (
@@ -179,7 +180,7 @@ function IndexInner() {
             <NudgesPanel collapsed />
           </div>
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
-          {surface === "conversation" && <ConversationSurface onIntent={onIntent} />}
+          {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}
           {surface === "actions" && <ActionsSurface />}
