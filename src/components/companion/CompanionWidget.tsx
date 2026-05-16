@@ -16,6 +16,7 @@ export function CompanionWidget() {
   const { user } = useAuth();
   const { mode, open, close, expand, collapse } = useCompanion();
   const { context } = useCurrentContext();
+  const { overall: awareness } = useAwareness();
   const isMobile = useIsMobile();
   const onIntent = useIntentHandler();
   const location = useLocation();
