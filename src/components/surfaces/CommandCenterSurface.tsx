@@ -38,7 +38,7 @@ const RiskIcon = { low_reversible: ShieldCheck, standard: Shield, high: ShieldAl
 const riskTone = { low_reversible: "text-signal", standard: "text-primary", high: "text-warn" } as const;
 
 export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
-  const { session, user } = useAuth();
+  const { session } = useAuth();
   const { openSherlock } = useSherlock();
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Counts>({
