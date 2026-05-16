@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { CurrentContextProvider } from "@/providers/CurrentContextProvider";
+import { AwarenessProvider } from "@/providers/AwarenessProvider";
 import { CompanionProvider } from "@/components/companion/CompanionContext";
 import { CompanionWidget } from "@/components/companion/CompanionWidget";
 import { SherlockProvider } from "@/components/sherlock/SherlockContext";
