@@ -30,6 +30,21 @@ export function CompanionWidget() {
           <span className="text-xs font-medium text-foreground">Companion</span>
           <span className="text-[10px] text-muted-foreground">
             On <span className="text-foreground/80">{context.surface}</span> · drafts only, never executes
+            {awareness.place && (
+              <>
+                {" · "}
+                <span className="text-foreground/80">{awareness.place.label}</span>{" "}
+                <span className={cn(
+                  "uppercase tracking-wider",
+                  awareness.freshness === "fresh" && "text-primary",
+                  awareness.freshness === "aging" && "text-amber-400",
+                  awareness.freshness === "stale" && "text-destructive",
+                  awareness.freshness === "missing" && "text-muted-foreground",
+                )}>
+                  {awareness.freshness}{awareness.confidence ? ` · ${awareness.confidence}` : ""}
+                </span>
+              </>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-1">
