@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCompanion } from "./CompanionContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { useAwareness } from "@/providers/AwarenessProvider";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { useIntentHandler } from "@/hooks/useIntentHandler";
 import { useAuth } from "@/lib/auth";
