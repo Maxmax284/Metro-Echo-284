@@ -4,9 +4,10 @@ import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, X, Sparkles } from "lucide-react";
+import { Bell, X, Sparkles, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { getCurrentPosition } from "@/lib/native";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
 
 type Nudge = {
   id: string;
@@ -33,6 +34,7 @@ const KIND_LABEL: Record<string, string> = {
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
   const { user } = useAuth();
+  const { openSherlock } = useSherlock();
   const [nudges, setNudges] = useState<Nudge[]>([]);
   const [open, setOpen] = useState(!collapsed);
   const pulsedRef = useRef(false);
@@ -84,6 +86,33 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
   const dismiss = async (id: string) => {
     setNudges((n) => n.filter((x) => x.id !== id));
     await supabase.from("nudges").update({ status: "dismissed" }).eq("id", id);
+  };
+
+  const investigate = async (n: Nudge) => {
+    if (n.kind === "file_insight" && n.related_entity_id) {
+      const { data: note } = await supabase
+        .from("notes")
+        .select("id, title, body")
+        .eq("id", n.related_entity_id)
+        .maybeSingle();
+      if (note) {
+        openSherlock({
+          entity_type: "file",
+          entity_id: note.id,
+          title: note.title ?? n.title,
+          text: note.body ?? "",
+        });
+      }
+    } else if (n.kind === "synthesis_suggestion") {
+      const tagMatch = n.title.match(/"([^"]+)"/);
+      const tag = tagMatch?.[1];
+      const text = tag
+        ? `Synthesize this week's captures around the theme "${tag}". What's the through-line, what's missing, what should I commit to?`
+        : n.title;
+      openSherlock({ entity_type: "freeform", title: n.title, text });
+    }
+    await supabase.from("nudges").update({ status: "dismissed" }).eq("id", n.id);
+    setNudges((all) => all.filter((x) => x.id !== n.id));
   };
 
   if (!nudges.length) return null;
