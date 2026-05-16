@@ -1,9 +1,10 @@
-import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText } from "lucide-react";
+import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type SurfaceKey = "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
+export type SurfaceKey = "command" | "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
+  { key: "command", label: "Cockpit", Icon: LayoutDashboard },
   { key: "conversation", label: "Talk", Icon: MessageSquare },
   { key: "memory", label: "Memory", Icon: Notebook },
   { key: "commitments", label: "Commit", Icon: CheckSquare },
