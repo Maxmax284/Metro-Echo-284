@@ -178,6 +178,7 @@ function IndexInner() {
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
           </div>
+          {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} />}
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}
