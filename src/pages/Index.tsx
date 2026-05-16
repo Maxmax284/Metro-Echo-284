@@ -10,6 +10,7 @@ import { ActionsSurface } from "@/components/surfaces/ActionsSurface";
 import { AwarenessSurface } from "@/components/surfaces/AwarenessSurface";
 import { SherlockSurface } from "@/components/surfaces/SherlockSurface";
 import { AuditSurface } from "@/components/surfaces/AuditSurface";
+import { CommandCenterSurface } from "@/components/surfaces/CommandCenterSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, setSurface] = useState<SurfaceKey>("conversation");
+  const [surface, setSurface] = useState<SurfaceKey>("command");
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
 
@@ -177,6 +178,7 @@ function IndexInner() {
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
           </div>
+          {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} />}
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}
