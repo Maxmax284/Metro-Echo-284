@@ -11,7 +11,7 @@ type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 
-export function ConversationSurface({ onIntent }: { onIntent?: (kind: string, payload: any) => void }) {
+export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
   const { session } = useAuth();
   const [convId, setConvId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -161,7 +161,15 @@ export function ConversationSurface({ onIntent }: { onIntent?: (kind: string, pa
           ))}
         </div>
       </div>
-      <ConversationDock busy={busy} onSend={send} />
+      {readOnly ? (
+        <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
+          <div className="mx-auto max-w-3xl rounded-2xl glass px-4 py-2.5 text-center text-xs text-muted-foreground">
+            Read-only log. Open the companion to talk.
+          </div>
+        </div>
+      ) : (
+        <ConversationDock busy={busy} onSend={send} />
+      )}
     </div>
   );
 }
