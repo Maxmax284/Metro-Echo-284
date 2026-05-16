@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -17,6 +18,10 @@ type Action = {
   status: "proposed" | "staged" | "approved" | "executed" | "audited" | "rolled_back" | "cancelled";
   created_at: string;
   updated_at: string;
+  payload: Record<string, unknown> | null;
+  source: string | null;
+  affected_entities: unknown[] | null;
+  rollback_available: boolean | null;
 };
 
 const RiskIcon = { low_reversible: ShieldCheck, standard: Shield, high: ShieldAlert } as const;
@@ -24,6 +29,11 @@ const riskColor = {
   low_reversible: "text-signal",
   standard: "text-primary",
   high: "text-warn",
+};
+const riskLabel = {
+  low_reversible: "Low risk · reversible",
+  standard: "Standard risk",
+  high: "High risk",
 };
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
@@ -38,13 +48,13 @@ export function ActionsSurface() {
   const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [highRiskTarget, setHighRiskTarget] = useState<Action | null>(null);
+  const [approvalTarget, setApprovalTarget] = useState<Action | null>(null);
   const [confirmText, setConfirmText] = useState("");
 
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at").order("updated_at", { ascending: false }).limit(100),
+      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available").order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
     setActions((a.data ?? []) as Action[]);
