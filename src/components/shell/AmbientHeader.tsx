@@ -49,8 +49,8 @@ export function AmbientHeader({
 
   return (
     <header className="safe-top sticky top-0 z-30 glass">
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground md:px-4 md:py-2.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <span
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full bg-surface-elevated/80 px-2 py-0.5 text-[10.5px] tracking-wide uppercase",
@@ -59,7 +59,7 @@ export function AmbientHeader({
             title="Inferred operational posture"
           >
             <Activity className="h-3 w-3 text-primary" />
-            <span className="text-foreground/90">{stateLabel[state]}</span>
+            <span className="text-foreground/90 hidden sm:inline">{stateLabel[state]}</span>
           </span>
           {place && (
             <button
@@ -69,7 +69,7 @@ export function AmbientHeader({
               title="Awareness"
             >
               <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[140px]">{place}</span>
+              <span className="truncate max-w-[88px] sm:max-w-[140px]">{place}</span>
               {awareness && (
                 <span
                   className={cn(
@@ -78,14 +78,14 @@ export function AmbientHeader({
                   )}
                 >
                   {freshnessLabel[awareness.freshness]}
-                  {awareness.confidence ? ` · ${awareness.confidence}` : ""}
+                  <span className="hidden sm:inline">{awareness.confidence ? ` · ${awareness.confidence}` : ""}</span>
                 </span>
               )}
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="hidden sm:inline-flex items-center gap-1">
             <Time className="h-3 w-3" />
             {time}
           </span>
