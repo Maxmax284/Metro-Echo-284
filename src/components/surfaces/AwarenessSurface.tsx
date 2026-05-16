@@ -5,41 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, RefreshCcw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
-
-type Place = { id: string; label: string; geo: any; country: string | null; region: string | null };
-type Briefing = { id: string; section: string; content: string; confidence: string | null; generated_at: string };
-
-const SECTIONS = ["transport", "infrastructure", "payments", "etiquette", "hazards", "scams", "connectivity", "timing"];
+import { AWARENESS_SECTIONS, useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const [places, setPlaces] = useState<Place[]>([]);
-  const [activePlace, setActivePlace] = useState<Place | null>(null);
-  const [briefings, setBriefings] = useState<Briefing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<string | null>(null);
+  const { place: activePlaceFromProvider, latestBySection, loading, generate, generating, refresh } = useAwareness();
+  const [places, setPlaces] = useState<AwarenessPlace[]>([]);
+  const [activePlace, setActivePlace] = useState<AwarenessPlace | null>(null);
   const [newLabel, setNewLabel] = useState("");
 
-  const refresh = async () => {
-    setLoading(true);
-    const { data } = await supabase.from("awareness_places").select("*").order("updated_at", { ascending: false });
-    setPlaces((data ?? []) as Place[]);
-    setLoading(false);
+  const loadList = async () => {
+    const { data } = await supabase
+      .from("awareness_places")
+      .select("id,label,geo,country,region,updated_at")
+      .order("updated_at", { ascending: false });
+    setPlaces((data ?? []) as AwarenessPlace[]);
   };
 
-  useEffect(() => { if (session) refresh(); }, [session]);
-
-  useEffect(() => {
-    if (!activePlace) return;
-    (async () => {
-      const { data } = await supabase
-        .from("awareness_briefings")
-        .select("id, section, content, confidence, generated_at")
-        .eq("place_id", activePlace.id)
-        .order("generated_at", { ascending: false });
-      setBriefings((data ?? []) as Briefing[]);
-    })();
-  }, [activePlace]);
+  useEffect(() => { if (session) loadList(); }, [session, activePlaceFromProvider?.id]);
 
   const captureHere = async () => {
     if (!session || !navigator.geolocation) {
@@ -56,41 +39,18 @@ export function AwarenessSurface() {
             label,
             geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy },
           })
-          .select("*")
+          .select("id,label,geo,country,region,updated_at")
           .single();
         if (data) {
           setNewLabel("");
-          setPlaces((p) => [data as Place, ...p]);
+          setPlaces((p) => [data as AwarenessPlace, ...p]);
+          await refresh();
         }
       },
       () => toast.error("Couldn't get location"),
       { enableHighAccuracy: false, timeout: 8000 }
     );
   };
-
-  const generate = async (section: string) => {
-    if (!activePlace) return;
-    setGenerating(section);
-    try {
-      const { error } = await supabase.functions.invoke("awareness-brief", {
-        body: { place_id: activePlace.id, section },
-      });
-      if (error) throw error;
-      const { data } = await supabase
-        .from("awareness_briefings")
-        .select("id, section, content, confidence, generated_at")
-        .eq("place_id", activePlace.id)
-        .order("generated_at", { ascending: false });
-      setBriefings((data ?? []) as Briefing[]);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Briefing failed");
-    } finally {
-      setGenerating(null);
-    }
-  };
-
-  const latestBy = new Map<string, Briefing>();
-  for (const b of briefings) if (!latestBy.has(b.section)) latestBy.set(b.section, b);
 
   return (
     <div className="flex h-full flex-col">
@@ -126,6 +86,11 @@ export function AwarenessSurface() {
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary/80" />
                     <span className="text-sm font-medium">{p.label}</span>
+                    {activePlaceFromProvider?.id === p.id && (
+                      <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                        active
+                      </span>
+                    )}
                   </div>
                   {p.geo && (
                     <p className="mt-1 text-[11.5px] text-muted-foreground">
@@ -152,8 +117,10 @@ export function AwarenessSurface() {
               </button>
             </div>
             <div className="space-y-3">
-              {SECTIONS.map((s) => {
-                const b = latestBy.get(s);
+              {AWARENESS_SECTIONS.map((s) => {
+                // Only show briefings from provider when this is the active place
+                const b = activePlaceFromProvider?.id === activePlace.id ? latestBySection[s] : undefined;
+                const busy = generating === s && activePlaceFromProvider?.id === activePlace.id;
                 return (
                   <div key={s} className="rounded-xl surface-elevated p-3 ring-1 ring-border/60">
                     <div className="flex items-center justify-between">
@@ -161,11 +128,12 @@ export function AwarenessSurface() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={generating === s}
+                        disabled={busy || activePlaceFromProvider?.id !== activePlace.id}
                         onClick={() => generate(s)}
                         className="gap-1"
+                        title={activePlaceFromProvider?.id !== activePlace.id ? "Briefings only for the most recent place in this stage" : undefined}
                       >
-                        {generating === s ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
+                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
                           b ? <RefreshCcw className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
                         {b ? "Refresh" : "Generate"}
                       </Button>
