@@ -158,6 +158,18 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </p>
             </div>
+            {(n.kind === "synthesis_suggestion" || n.kind === "file_insight") && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 text-primary"
+                onClick={() => investigate(n)}
+                aria-label="Investigate"
+                title="Investigate with Sherlock"
+              >
+                <Search className="h-3 w-3" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
