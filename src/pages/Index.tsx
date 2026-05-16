@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
 
 export default function Index() {
@@ -38,6 +39,7 @@ function IndexInner() {
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
   const { setContext } = useCurrentContext();
+  const { overall: awareness, place } = useAwareness();
 
   useEffect(() => {
     setContext({ surface });
