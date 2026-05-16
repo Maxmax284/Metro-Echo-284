@@ -1,9 +1,10 @@
 
 # Vanta Awareness Radar + API Control Room — Audit & Plan
 
-The uploaded spec explicitly demands "Stage 0: Audit before building." So this is the audit + staged plan, not code. Nothing ships until you approve.
+Status: **Stage 1 (the leash) shipped.** Stages 2–9 pending.
 
 ---
+
 
 ## Stage 0 — Audit (what already exists)
 
