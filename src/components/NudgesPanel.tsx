@@ -27,6 +27,8 @@ const KIND_LABEL: Record<string, string> = {
   note_stale: "Memory",
   arrival_new_area: "Arrival",
   arrival_known: "Place",
+  synthesis_suggestion: "Synthesis",
+  file_insight: "File",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {

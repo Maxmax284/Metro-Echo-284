@@ -197,6 +197,47 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // 6. Proactive synthesis — detect repeated tag themes over last 7 days that
+    // have NOT already been investigated. One suggestion per day, lowest priority
+    // so it never shouts.
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentNotes } = await supabase
+      .from("notes")
+      .select("id, tags, created_at")
+      .gte("created_at", sevenDaysAgo)
+      .limit(200);
+
+    const tagCount = new Map<string, number>();
+    for (const n of recentNotes ?? []) {
+      for (const t of (n.tags ?? []) as string[]) {
+        if (!t || t.startsWith("via:") || ["imported", "upload", "email", "telegram"].includes(t)) continue;
+        tagCount.set(t, (tagCount.get(t) ?? 0) + 1);
+      }
+    }
+    const themes = [...tagCount.entries()]
+      .filter(([, c]) => c >= 3)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 1);
+
+    for (const [tag, count] of themes) {
+      // Skip if an investigation already touches this tag this week
+      const { data: recentInv } = await supabase
+        .from("investigations")
+        .select("id, question")
+        .gte("created_at", sevenDaysAgo)
+        .ilike("question", `%${tag}%`)
+        .limit(1);
+      if (recentInv && recentInv.length) continue;
+      nudges.push({
+        kind: "synthesis_suggestion",
+        title: `Pattern: "${tag}" came up ${count}×`,
+        body: `Recurring theme in this week's captures. Run Sherlock to synthesize?`,
+        priority: 35,
+        dedupe_key: `synthesis:${tag}:${dayKey}`,
+        expires_at: todayEnd.toISOString(),
+      });
+    }
+
     // Insert (dedupe_key unique partial index will silently skip duplicates)
     let created = 0;
     if (nudges.length) {
