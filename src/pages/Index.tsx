@@ -38,7 +38,7 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, setSurface] = useState<SurfaceKey>("conversation");
+  const [surface, setSurface] = useState<SurfaceKey>("command");
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
 
