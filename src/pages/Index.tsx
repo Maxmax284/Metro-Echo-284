@@ -10,6 +10,7 @@ import { ActionsSurface } from "@/components/surfaces/ActionsSurface";
 import { AwarenessSurface } from "@/components/surfaces/AwarenessSurface";
 import { SherlockSurface } from "@/components/surfaces/SherlockSurface";
 import { AuditSurface } from "@/components/surfaces/AuditSurface";
+import { CommandCenterSurface } from "@/components/surfaces/CommandCenterSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
