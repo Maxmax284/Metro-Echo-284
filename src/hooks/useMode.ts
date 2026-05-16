@@ -48,12 +48,12 @@ export function useMode() {
       }
     })();
 
-    const channel = supabase
-      .channel(`user_modes:${user.id}`)
+    const channel = supabase.channel(`user_modes:${user.id}:${Math.random().toString(36).slice(2)}`);
+    channel
       .on(
-        "postgres_changes",
+        "postgres_changes" as any,
         { event: "*", schema: "public", table: "user_modes", filter: `user_id=eq.${user.id}` },
-        (payload) => {
+        (payload: any) => {
           const next = (payload.new as any)?.mode as AppMode | undefined;
           if (next) setModeState(next);
         }
