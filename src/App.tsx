@@ -12,6 +12,7 @@ import { SherlockProvider } from "@/components/sherlock/SherlockContext";
 import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
+import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
+                    <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                   <CompanionWidget />

@@ -178,6 +178,105 @@ export type Database = {
         }
         Relationships: []
       }
+      api_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          feature: string
+          id: string
+          location_context: Json | null
+          normalized_query: string | null
+          owner_id: string
+          provider: string
+          query_hash: string
+          result_json: Json
+          source_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          feature: string
+          id?: string
+          location_context?: Json | null
+          normalized_query?: string | null
+          owner_id: string
+          provider: string
+          query_hash: string
+          result_json: Json
+          source_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          feature?: string
+          id?: string
+          location_context?: Json | null
+          normalized_query?: string | null
+          owner_id?: string
+          provider?: string
+          query_hash?: string
+          result_json?: Json
+          source_type?: string | null
+        }
+        Relationships: []
+      }
+      api_usage_logs: {
+        Row: {
+          cache_hit: boolean
+          created_at: string
+          credits_used: number | null
+          error_message: string | null
+          estimated_cost: number | null
+          feature: string
+          id: string
+          owner_id: string
+          provider: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          request_type: string | null
+          status: string
+          task_id: string | null
+          tokens_used: number | null
+          user_id: string | null
+        }
+        Insert: {
+          cache_hit?: boolean
+          created_at?: string
+          credits_used?: number | null
+          error_message?: string | null
+          estimated_cost?: number | null
+          feature: string
+          id?: string
+          owner_id: string
+          provider: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          request_type?: string | null
+          status: string
+          task_id?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          cache_hit?: boolean
+          created_at?: string
+          credits_used?: number | null
+          error_message?: string | null
+          estimated_cost?: number | null
+          feature?: string
+          id?: string
+          owner_id?: string
+          provider?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          request_type?: string | null
+          status?: string
+          task_id?: string | null
+          tokens_used?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           created_at: string
@@ -807,6 +906,57 @@ export type Database = {
         }
         Relationships: []
       }
+      system_controls: {
+        Row: {
+          auto_refresh_enabled: boolean
+          background_awareness_enabled: boolean
+          calendar_sync_enabled: boolean
+          deep_research_enabled: boolean
+          external_apis_enabled: boolean
+          file_analysis_enabled: boolean
+          gemini_enabled: boolean
+          global_usage_mode: string
+          local_search_enabled: boolean
+          owner_id: string
+          proactive_synthesis_enabled: boolean
+          serpapi_enabled: boolean
+          updated_at: string
+          weather_enabled: boolean
+        }
+        Insert: {
+          auto_refresh_enabled?: boolean
+          background_awareness_enabled?: boolean
+          calendar_sync_enabled?: boolean
+          deep_research_enabled?: boolean
+          external_apis_enabled?: boolean
+          file_analysis_enabled?: boolean
+          gemini_enabled?: boolean
+          global_usage_mode?: string
+          local_search_enabled?: boolean
+          owner_id: string
+          proactive_synthesis_enabled?: boolean
+          serpapi_enabled?: boolean
+          updated_at?: string
+          weather_enabled?: boolean
+        }
+        Update: {
+          auto_refresh_enabled?: boolean
+          background_awareness_enabled?: boolean
+          calendar_sync_enabled?: boolean
+          deep_research_enabled?: boolean
+          external_apis_enabled?: boolean
+          file_analysis_enabled?: boolean
+          gemini_enabled?: boolean
+          global_usage_mode?: string
+          local_search_enabled?: boolean
+          owner_id?: string
+          proactive_synthesis_enabled?: boolean
+          serpapi_enabled?: boolean
+          updated_at?: string
+          weather_enabled?: boolean
+        }
+        Relationships: []
+      }
       telegram_chat_links: {
         Row: {
           chat_id: number
@@ -852,6 +1002,60 @@ export type Database = {
           expires_at?: string
           used_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      usage_limits: {
+        Row: {
+          auto_run_allowed: boolean
+          created_at: string
+          enabled: boolean
+          feature: string
+          id: string
+          limit_per_day: number | null
+          limit_per_hour: number | null
+          limit_per_minute: number | null
+          limit_per_month: number | null
+          manual_approval_required: boolean
+          max_calls_per_task: number | null
+          mode_override: string | null
+          owner_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          auto_run_allowed?: boolean
+          created_at?: string
+          enabled?: boolean
+          feature: string
+          id?: string
+          limit_per_day?: number | null
+          limit_per_hour?: number | null
+          limit_per_minute?: number | null
+          limit_per_month?: number | null
+          manual_approval_required?: boolean
+          max_calls_per_task?: number | null
+          mode_override?: string | null
+          owner_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          auto_run_allowed?: boolean
+          created_at?: string
+          enabled?: boolean
+          feature?: string
+          id?: string
+          limit_per_day?: number | null
+          limit_per_hour?: number | null
+          limit_per_minute?: number | null
+          limit_per_month?: number | null
+          manual_approval_required?: boolean
+          max_calls_per_task?: number | null
+          mode_override?: string | null
+          owner_id?: string
+          provider?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -958,7 +1162,7 @@ export type Database = {
         | "cancelled"
         | "needs_credentials"
       app_mode: "locked" | "observer" | "advisor" | "operator"
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "owner"
       commitment_status: "open" | "done" | "cancelled"
       executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
       investigation_status: "pending" | "running" | "complete" | "failed"
@@ -1103,7 +1307,7 @@ export const Constants = {
         "needs_credentials",
       ],
       app_mode: ["locked", "observer", "advisor", "operator"],
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "owner"],
       commitment_status: ["open", "done", "cancelled"],
       executor_kind: ["webhook", "telegram", "google_calendar", "email"],
       investigation_status: ["pending", "running", "complete", "failed"],
