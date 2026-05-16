@@ -25,15 +25,17 @@ const App = () => (
         <AuthProvider>
           <SherlockProvider>
             <CurrentContextProvider>
-              <CompanionProvider>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <CompanionWidget />
-                <SherlockOverlay />
-              </CompanionProvider>
+              <AwarenessProvider>
+                <CompanionProvider>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <CompanionWidget />
+                  <SherlockOverlay />
+                </CompanionProvider>
+              </AwarenessProvider>
             </CurrentContextProvider>
           </SherlockProvider>
         </AuthProvider>
