@@ -169,6 +169,22 @@ Deno.serve(async (req: Request) => {
       payload: { method, note_id: note.id, chars: trimmed.length, mime: rec.mime_type },
     });
 
+    // Stage 8 — File Intelligence: emit a low-priority nudge suggesting Sherlock
+    // when the extracted text is substantive enough to be worth investigating.
+    if (trimmed.length >= 400) {
+      const dayKey = new Date().toISOString().slice(0, 10);
+      await supabase.from("nudges").upsert([{
+        user_id: user.id,
+        kind: "file_insight",
+        title: `New file ready to investigate`,
+        body: `${rec.filename} — ${trimmed.length.toLocaleString()} chars extracted via ${method}. Tap to analyze.`,
+        related_entity_type: "note",
+        related_entity_id: note.id,
+        priority: 45,
+        dedupe_key: `file_insight:${rec.id}`,
+      }], { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+    }
+
     return new Response(JSON.stringify({ ok: true, note_id: note.id, method, chars: trimmed.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

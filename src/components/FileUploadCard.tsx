@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, FileText } from "lucide-react";
+import { Loader2, Upload, FileText, Search } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
 
 type Row = {
   id: string;
@@ -23,6 +24,7 @@ const MAX_BYTES = 20 * 1024 * 1024;
 
 export function FileUploadCard() {
   const { user } = useAuth();
+  const { openSherlock } = useSherlock();
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -110,6 +112,30 @@ export function FileUploadCard() {
                   {r.error ? ` · ${r.error}` : ""}
                 </div>
               </div>
+              {r.note_id && r.status === "done" && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1.5 text-[10px] gap-1"
+                  title="Investigate with Sherlock"
+                  onClick={async () => {
+                    const { data: note } = await supabase
+                      .from("notes")
+                      .select("id, title, body")
+                      .eq("id", r.note_id!)
+                      .maybeSingle();
+                    if (!note) { toast.error("Note not found"); return; }
+                    openSherlock({
+                      entity_type: "file",
+                      entity_id: note.id,
+                      title: note.title ?? r.filename,
+                      text: note.body ?? "",
+                    });
+                  }}
+                >
+                  <Search className="h-3 w-3" /> Investigate
+                </Button>
+              )}
               <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={refresh}>↻</Button>
             </div>
           ))}

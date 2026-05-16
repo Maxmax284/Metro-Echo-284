@@ -1,28 +1,35 @@
-# Stages 4 + 5 — Permission Modes & Approval Polish
+# Vanta — Stages 1–8 complete
 
-## Stage 4 — Permission Modes (shipped)
+## Stage 6 — Proactive Synthesis (shipped)
 
-- DB: `public.app_mode` enum (`locked | observer | advisor | operator`) + `public.user_modes` table (PK user_id, default `advisor`). RLS: own select/insert/update. Realtime subscription per user.
-- `src/hooks/useMode.ts` — `useMode()` (fetch, set, realtime); `modeAllows(mode, intent)` helper.
-- `src/components/shell/ModeBadge.tsx` — header pill + popover switcher with descriptions.
-- `src/pages/Index.tsx` — `ModeBadge` mounted in header right cluster.
-- `src/hooks/useIntentHandler.ts` — gates Companion intents:
-  - locked: nothing
-  - observer: `capture_note`, `run_sherlock`, `query_awareness` only
-  - advisor/operator: full draft-only set
+- `ambient-pulse` extended with a 7-day tag-frequency pass over `notes`.
+  - Skips infrastructural tags (`imported`, `upload`, `email`, `telegram`, `via:*`).
+  - Emits up to 1 `synthesis_suggestion` nudge/day for the top recurring theme,
+    only if no investigation in the last 7d already references that tag.
+  - Priority 35 (whisper-level), expires end of day.
+- `NudgesPanel` recognises the kind and adds an "Investigate" affordance that
+  opens Sherlock pre-loaded with a synthesis prompt around the detected theme.
 
-Server-side execution gate (actions-execute) deferred — the Companion never invokes it directly; user-driven approve/execute remains UI-gated.
+## Stage 7 — Mobile UX (shipped)
 
-## Stage 5 — Approval Modal Polish (shipped)
+- `SurfaceTabs` (bottom variant) now shows 4 primary surfaces (Cockpit, Log,
+  Commit, Actions) + a `More` sheet for Memory / Sherlock / Aware / Audit.
+  Touch targets stay honest at ≤390px width.
+- `AmbientHeader` tightened: state label hidden <sm, time hidden <sm,
+  place pill caps at 88px on mobile / 140px on desktop, awareness pill drops
+  the confidence suffix on mobile. Padding reduced on mobile.
 
-- `src/components/surfaces/ActionsSurface.tsx`:
-  - Loads `payload`, `source`, `affected_entities`, `rollback_available` columns.
-  - Approval dialog now triggered for **standard + high** risks (low_reversible stays one-click).
-  - Modal shows: risk badge, source, affected entity count, rollback availability, expandable payload JSON.
-  - High-risk retains "approve" confirmation phrase gate (matches `actions-transition` server enforcement).
+## Stage 8 — Research & File Intelligence (shipped)
 
-## Remaining stages
+- `files-ingest` now emits a `file_insight` nudge after a successful ingest
+  when extracted text ≥ 400 chars, linking back to the generated note.
+- `FileUploadCard` rows for `status=done` files expose an inline "Investigate"
+  button that opens Sherlock with the note's extracted body and `entity_type: "file"`.
+- `NudgesPanel` `file_insight` rows route the same way — one tap to investigation.
 
-- **Stage 6 — Proactive Synthesis**
-- **Stage 7 — Mobile UX pass**
-- **Stage 8 — Research & File Intelligence**
+## Status
+
+All 8 stages of the Vanta operational-companion arc are shipped.
+Companion + Awareness + Mode gates + Approval polish + Proactive synthesis +
+Mobile pass + File intelligence are live. Plan→Approve→Execute remains the
+only execution path; no chat surface controls the system directly.
