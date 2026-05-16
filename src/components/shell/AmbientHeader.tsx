@@ -11,13 +11,36 @@ const stateLabel: Record<OperationalState, string> = {
   moving: "moving",
 };
 
+export type AwarenessHeaderState = {
+  freshness: "fresh" | "aging" | "stale" | "missing";
+  confidence: "low" | "medium" | "high" | null;
+};
+
+const freshnessTone: Record<AwarenessHeaderState["freshness"], string> = {
+  fresh: "bg-primary/15 text-primary ring-primary/30",
+  aging: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
+  stale: "bg-destructive/15 text-destructive ring-destructive/30",
+  missing: "bg-muted/40 text-muted-foreground ring-border/60",
+};
+
+const freshnessLabel: Record<AwarenessHeaderState["freshness"], string> = {
+  fresh: "fresh",
+  aging: "aging",
+  stale: "stale",
+  missing: "no brief",
+};
+
 export function AmbientHeader({
   state,
   place,
+  awareness,
+  onAwarenessClick,
   right,
 }: {
   state: OperationalState;
   place?: string;
+  awareness?: AwarenessHeaderState;
+  onAwarenessClick?: () => void;
   right?: ReactNode;
 }) {
   const hour = new Date().getHours();
@@ -39,10 +62,26 @@ export function AmbientHeader({
             <span className="text-foreground/90">{stateLabel[state]}</span>
           </span>
           {place && (
-            <span className="inline-flex items-center gap-1 truncate">
+            <button
+              type="button"
+              onClick={onAwarenessClick}
+              className="inline-flex items-center gap-1 truncate rounded-full px-1.5 py-0.5 hover:bg-surface-elevated/60"
+              title="Awareness"
+            >
               <MapPin className="h-3 w-3" />
-              <span className="truncate">{place}</span>
-            </span>
+              <span className="truncate max-w-[140px]">{place}</span>
+              {awareness && (
+                <span
+                  className={cn(
+                    "ml-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                    freshnessTone[awareness.freshness]
+                  )}
+                >
+                  {freshnessLabel[awareness.freshness]}
+                  {awareness.confidence ? ` · ${awareness.confidence}` : ""}
+                </span>
+              )}
+            </button>
           )}
         </div>
         <div className="flex items-center gap-3">
