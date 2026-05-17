@@ -293,10 +293,11 @@ export function AwarenessHUD({ className }: { className?: string }) {
           <g
             key={p.key}
             onClick={() => openPing(p.key)}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", animationDelay: `${p.delay}s` }}
             role="button"
             tabIndex={0}
             aria-label={`Open ${p.label}`}
+            className="radar-fade-in"
           >
             {/* invisible hit target — bigger than the dot */}
             <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
