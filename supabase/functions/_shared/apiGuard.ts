@@ -63,6 +63,8 @@ type SystemControls = {
   deep_research_enabled: boolean;
   local_search_enabled: boolean;
   auto_refresh_enabled: boolean;
+  community_reddit_enabled: boolean;
+  community_public_fallback_enabled: boolean;
 };
 
 type UsageLimit = {
