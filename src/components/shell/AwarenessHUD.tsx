@@ -139,22 +139,24 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
 
-  // Build pings: snapshot sources + non-empty briefings (deduped by label)
+  // Build pings: snapshot sources + non-empty briefings + pinned (deduped by key)
   const pings = useMemo<Ping[]>(() => {
+    const pinnedSet = new Set(pinned);
     const out: Ping[] = [];
     const seen = new Set<string>();
     let i = 0;
     for (const s of sources) {
-      if (seen.has(s)) continue;
-      seen.add(s);
+      const key = `src:${s}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       const angle = hashAngle(s);
       const r = radiusFor(generated);
       out.push({
-        key: `src:${s}`,
-        label: s,
+        key, label: s,
         cx: 50 + Math.cos(angle) * r,
         cy: 50 + Math.sin(angle) * r,
         strong: true,
+        pinned: pinnedSet.has(key),
         delay: (i++ % 5) * 0.35,
       });
     }
@@ -167,16 +169,31 @@ export function AwarenessHUD({ className }: { className?: string }) {
       const angle = hashAngle(section);
       const r = radiusFor(b.generated_at);
       out.push({
-        key,
-        label: section,
+        key, label: section,
         cx: 50 + Math.cos(angle) * r,
         cy: 50 + Math.sin(angle) * r,
         strong: b.confidence === "high",
+        pinned: pinnedSet.has(key),
+        delay: (i++ % 5) * 0.35,
+      });
+    }
+    // Ghost pings for pinned keys that no longer have backing data — keep them visible
+    for (const key of pinned) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const label = key.startsWith("brief:") ? key.slice(6) : key.startsWith("src:") ? key.slice(4) : key;
+      const angle = hashAngle(label);
+      out.push({
+        key, label,
+        cx: 50 + Math.cos(angle) * 35,
+        cy: 50 + Math.sin(angle) * 35,
+        strong: false,
+        pinned: true,
         delay: (i++ % 5) * 0.35,
       });
     }
     return out;
-  }, [sources, generated, latestBySection]);
+  }, [sources, generated, latestBySection, pinned]);
 
   // Top signals (max 3): weather, summary, freshest briefing
   const topSignals = useMemo(() => {
