@@ -236,6 +236,15 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
     return out;
   }, [sources, generated, latestBySection, pinned]);
 
+  // Tier filter affects source-derived pings only; brief pings always show.
+  const visiblePings = useMemo(() => {
+    if (!tierFilter) return pings;
+    return pings.filter((p) => {
+      if (!p.key.startsWith("src:")) return true;
+      return tierFor(p.label) === tierFilter;
+    });
+  }, [pings, tierFilter]);
+
   // Top signals (max 3): weather, summary, freshest briefing
   const topSignals = useMemo(() => {
     const items: { key: string; icon: typeof Cloud; label: string; value: string }[] = [];
