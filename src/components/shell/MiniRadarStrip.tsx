@@ -164,8 +164,9 @@ export function MiniRadarStrip({ className }: { className?: string }) {
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="h-[90dvh] p-0">
           <DrawerHeader className="border-b border-border/60">
-            <DrawerTitle className="flex items-center gap-2 text-sm">
-              <Radar className="h-4 w-4 text-primary" /> Radar · {place.label}
+            <DrawerTitle className="flex items-center justify-between gap-2 text-sm">
+              <span className="inline-flex items-center gap-2"><Radar className="h-4 w-4 text-primary" /> Radar · {place.label}</span>
+              <SerpPill />
             </DrawerTitle>
           </DrawerHeader>
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-3 space-y-3 text-[13px]">
