@@ -4,7 +4,14 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-export type GuardProvider = "serpapi" | "gemini" | "open-meteo" | "google-calendar" | "lovable-ai";
+export type GuardProvider =
+  | "serpapi"
+  | "gemini"
+  | "open-meteo"
+  | "google-calendar"
+  | "lovable-ai"
+  | "reddit-serpapi"   // Community: Reddit via SerpApi engine (primary)
+  | "reddit-public";   // Community: public reddit.com JSON (fallback)
 
 export type GuardInput = {
   owner_id: string;
@@ -38,6 +45,8 @@ const PROVIDER_KILL_KEY: Record<GuardProvider, keyof SystemControls> = {
   "open-meteo": "weather_enabled",
   "google-calendar": "calendar_sync_enabled",
   "lovable-ai": "gemini_enabled",
+  "reddit-serpapi": "community_reddit_enabled",
+  "reddit-public": "community_public_fallback_enabled",
 };
 
 type SystemControls = {
@@ -54,6 +63,8 @@ type SystemControls = {
   deep_research_enabled: boolean;
   local_search_enabled: boolean;
   auto_refresh_enabled: boolean;
+  community_reddit_enabled: boolean;
+  community_public_fallback_enabled: boolean;
 };
 
 type UsageLimit = {

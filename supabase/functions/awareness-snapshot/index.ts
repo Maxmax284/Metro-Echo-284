@@ -42,6 +42,64 @@ function weatherCodeLabel(code: number | undefined): string | null {
   return null;
 }
 
+// ---- Community signals (Reddit) ---------------------------------------------
+// Strategy: SerpApi Reddit engine primary -> public reddit.com JSON fallback.
+// Both paths independently kill-switched so the skeleton is ready for more
+// sources (HN, forums, Bluesky...) without further plumbing.
+type CommunityItem = {
+  source: "reddit";
+  via: "serpapi" | "public";
+  title: string;
+  snippet?: string;
+  link?: string;
+  subreddit?: string;
+  score?: number;
+  comments?: number;
+  created_utc?: number;
+};
+
+async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<CommunityItem[]> {
+  const url = `https://serpapi.com/search.json?engine=reddit&q=${encodeURIComponent(query)}&api_key=${apiKey}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`serpapi-reddit ${r.status}`);
+  const j = await r.json();
+  const rows = (j.posts ?? j.organic_results ?? []).slice(0, 6);
+  return rows.map((it: any) => ({
+    source: "reddit" as const,
+    via: "serpapi" as const,
+    title: String(it.title ?? it.name ?? ""),
+    snippet: it.snippet ? String(it.snippet) : (it.selftext ? String(it.selftext).slice(0, 240) : undefined),
+    link: it.link ?? it.permalink ?? undefined,
+    subreddit: it.subreddit ?? it.community ?? undefined,
+    score: typeof it.score === "number" ? it.score : undefined,
+    comments: typeof it.num_comments === "number" ? it.num_comments : undefined,
+  }));
+}
+
+async function fetchRedditPublic(query: string): Promise<CommunityItem[]> {
+  const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=8&t=week`;
+  const r = await fetch(url, {
+    headers: { "User-Agent": "vanta-awareness/1.0 (street-signal fallback)" },
+  });
+  if (!r.ok) throw new Error(`reddit-public ${r.status}`);
+  const j = await r.json();
+  const children = j?.data?.children ?? [];
+  return children.slice(0, 6).map((c: any) => {
+    const d = c?.data ?? {};
+    return {
+      source: "reddit" as const,
+      via: "public" as const,
+      title: String(d.title ?? ""),
+      snippet: d.selftext ? String(d.selftext).slice(0, 240) : undefined,
+      link: d.permalink ? `https://www.reddit.com${d.permalink}` : undefined,
+      subreddit: d.subreddit ? String(d.subreddit) : undefined,
+      score: typeof d.score === "number" ? d.score : undefined,
+      comments: typeof d.num_comments === "number" ? d.num_comments : undefined,
+      created_utc: typeof d.created_utc === "number" ? d.created_utc : undefined,
+    };
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -76,7 +134,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Reuse fresh snapshot unless force_refresh
     if (!force_refresh) {
       const { data: existing } = await userClient
         .from("awareness_snapshots")
@@ -94,7 +151,6 @@ Deno.serve(async (req: Request) => {
 
     const sources_used: string[] = ["internal"];
 
-    // Internal context: latest briefings for this place
     const { data: briefings } = await userClient
       .from("awareness_briefings")
       .select("section, content, confidence, generated_at")
@@ -102,7 +158,6 @@ Deno.serve(async (req: Request) => {
       .order("generated_at", { ascending: false })
       .limit(16);
 
-    // Weather via guard
     let weather: WeatherSummary = null;
     const geo = place.geo as { lat?: number; lon?: number } | null;
     if (geo?.lat != null && geo?.lon != null) {
@@ -126,7 +181,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Optional SerpApi local signals (only when enabled + key present)
+    // SerpApi local signals
     let local_signals: Array<{ title: string; snippet?: string; link?: string }> | null = null;
     const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
     if (SERPAPI_KEY && geo?.lat != null && geo?.lon != null) {
@@ -162,7 +217,54 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Optional Gemini synthesis (skipped if disabled — guard returns block)
+    // Community: SerpApi Reddit primary -> public Reddit fallback.
+    let community: CommunityItem[] = [];
+    const communityQuery = `${place.label} ${place.country ?? ""}`.trim();
+    const communityCacheKey = `community:${place.label}:${(geo?.lat ?? 0).toFixed(2)},${(geo?.lon ?? 0).toFixed(2)}`;
+
+    if (SERPAPI_KEY && communityQuery.length > 0) {
+      const r1 = await runGuarded<CommunityItem[]>(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "reddit-serpapi",
+          feature: "awareness.community.reddit",
+          query: communityCacheKey,
+          location: geo ?? undefined,
+          cache_ttl_seconds: 60 * 60,
+          related_entity_type: "awareness_place",
+          related_entity_id: place_id,
+        },
+        () => fetchRedditViaSerpApi(SERPAPI_KEY!, communityQuery),
+      );
+      if (r1.ok && r1.data?.length) {
+        community = r1.data;
+        sources_used.push(r1.cached ? "reddit-serpapi:cached" : "reddit-serpapi");
+      }
+    }
+
+    if (community.length === 0 && communityQuery.length > 0) {
+      const r2 = await runGuarded<CommunityItem[]>(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "reddit-public",
+          feature: "awareness.community.reddit_public",
+          query: communityCacheKey,
+          location: geo ?? undefined,
+          cache_ttl_seconds: 30 * 60,
+          related_entity_type: "awareness_place",
+          related_entity_id: place_id,
+        },
+        () => fetchRedditPublic(communityQuery),
+      );
+      if (r2.ok && r2.data?.length) {
+        community = r2.data;
+        sources_used.push(r2.cached ? "reddit-public:cached" : "reddit-public");
+      }
+    }
+
+    // Gemini synthesis
     let summary: string | null = null;
     const briefingsText = (briefings ?? [])
       .map((b) => `[${b.section}] ${b.content}`)
@@ -171,6 +273,9 @@ Deno.serve(async (req: Request) => {
     const localText = local_signals?.length
       ? local_signals.map((s) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
       : "(none)";
+    const communityText = community.length
+      ? community.map((c) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
+      : "(none)";
 
     const synth = await runGuarded<string>(
       {
@@ -178,7 +283,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         provider: "lovable-ai",
         feature: "awareness.synthesis",
-        query: `synth:${place_id}:${weather?.condition ?? "na"}`,
+        query: `synth:${place_id}:${weather?.condition ?? "na"}:${community.length}`,
         cache_ttl_seconds: 15 * 60,
         related_entity_type: "awareness_place",
         related_entity_id: place_id,
@@ -186,7 +291,7 @@ Deno.serve(async (req: Request) => {
       async () => {
         const key = Deno.env.get("LOVABLE_API_KEY");
         if (!key) throw new Error("LOVABLE_API_KEY not configured");
-        const prompt = `Place: ${place.label}\nCountry: ${place.country ?? "?"}\nWeather: ${weather ? `${weather.tempC}C ${weather.condition}` : "unknown"}\n\nLocal signals:\n${localText}\n\nBriefings:\n${briefingsText || "(none)"}\n\nReturn a 2-3 sentence operational pulse, concrete and grounded. No fluff.`;
+        const prompt = `Place: ${place.label}\nCountry: ${place.country ?? "?"}\nWeather: ${weather ? `${weather.tempC}C ${weather.condition}` : "unknown"}\n\nLocal signals:\n${localText}\n\nCommunity chatter (Reddit):\n${communityText}\n\nBriefings:\n${briefingsText || "(none)"}\n\nReturn a 2-3 sentence operational pulse, concrete and grounded. Surface any street-level signal worth noting. No fluff.`;
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -213,6 +318,8 @@ Deno.serve(async (req: Request) => {
       weather,
       summary,
       local_signals_count: local_signals?.length ?? 0,
+      community_count: community.length,
+      community_via: community[0]?.via ?? null,
       briefing_count: (briefings ?? []).length,
       generated_at: new Date().toISOString(),
     };
@@ -222,6 +329,7 @@ Deno.serve(async (req: Request) => {
       weather,
       summary,
       local_signals: local_signals ?? [],
+      community,
       briefings: briefings ?? [],
     };
 

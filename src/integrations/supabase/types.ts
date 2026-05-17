@@ -1042,6 +1042,8 @@ export type Database = {
           auto_refresh_enabled: boolean
           background_awareness_enabled: boolean
           calendar_sync_enabled: boolean
+          community_public_fallback_enabled: boolean
+          community_reddit_enabled: boolean
           deep_research_enabled: boolean
           external_apis_enabled: boolean
           file_analysis_enabled: boolean
@@ -1058,6 +1060,8 @@ export type Database = {
           auto_refresh_enabled?: boolean
           background_awareness_enabled?: boolean
           calendar_sync_enabled?: boolean
+          community_public_fallback_enabled?: boolean
+          community_reddit_enabled?: boolean
           deep_research_enabled?: boolean
           external_apis_enabled?: boolean
           file_analysis_enabled?: boolean
@@ -1074,6 +1078,8 @@ export type Database = {
           auto_refresh_enabled?: boolean
           background_awareness_enabled?: boolean
           calendar_sync_enabled?: boolean
+          community_public_fallback_enabled?: boolean
+          community_reddit_enabled?: boolean
           deep_research_enabled?: boolean
           external_apis_enabled?: boolean
           file_analysis_enabled?: boolean
