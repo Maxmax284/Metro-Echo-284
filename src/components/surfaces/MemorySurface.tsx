@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle } from "lucide-react";
@@ -10,6 +10,14 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
+import { StatusDot, similarityTone } from "@/components/ui/status-dot";
+
+const STARTER_SEARCHES = [
+  "What did I commit to this week?",
+  "Notes about Lisbon",
+  "Recent messages on payments",
+  "Anything I logged about scams",
+];
 
 type HitKind = "note" | "message" | "commitment";
 const HIT_KINDS: { id: HitKind | "all"; label: string }[] = [
