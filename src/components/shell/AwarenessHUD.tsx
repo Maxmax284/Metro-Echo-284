@@ -99,6 +99,14 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
   const [pinned, setPinned] = useState<string[]>([]);
+  const [tierFilter, setTierFilter] = useState<SourceTier | null>(null);
+  const tierTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (tierTimer.current) window.clearTimeout(tierTimer.current); }, []);
+  const pickTier = (t: SourceTier) => {
+    setTierFilter((prev) => (prev === t ? null : t));
+    if (tierTimer.current) window.clearTimeout(tierTimer.current);
+    tierTimer.current = window.setTimeout(() => setTierFilter(null), 8000);
+  };
 
   // Load pinned keys when place changes
   useEffect(() => {
