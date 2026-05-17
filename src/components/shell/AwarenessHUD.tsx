@@ -41,6 +41,7 @@ type Ping = {
   cx: number;
   cy: number;
   strong: boolean;
+  pinned: boolean;
   delay: number;
 };
 
@@ -75,6 +76,22 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
+  const [pinned, setPinned] = useState<string[]>([]);
+
+  // Load pinned keys when place changes
+  useEffect(() => {
+    if (!place) { setPinned([]); return; }
+    setPinned(loadPinned(place.id));
+  }, [place?.id]);
+
+  const togglePin = (key: string) => {
+    if (!place) return;
+    setPinned((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      savePinned(place.id, next);
+      return next;
+    });
+  };
 
   const openPing = (key: string) => {
     setFocusedKey(key);
