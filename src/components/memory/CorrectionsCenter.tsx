@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Archive, Clock, MapPin, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PrivacySettingsPanel } from "./PrivacySettingsPanel";
 
 type Correction = {
   id: string;
@@ -110,7 +111,8 @@ export function CorrectionsCenter() {
   const visibleNotes = notes.filter((n) => showArchived || n.status === "active");
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col gap-2">
+      <PrivacySettingsPanel />
       {/* Header strip */}
       <div className="flex items-center gap-2 px-1 pb-2">
         <button
