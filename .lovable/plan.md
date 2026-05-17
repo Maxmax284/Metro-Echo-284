@@ -124,8 +124,13 @@ Verify every correction / field_note insert also writes an `audit_log` row (`eve
 
 ---
 
-# What I'll ship if you approve
+# Status
 
-**This pass = Stages 1 + 2.** Migration for the three tables, extended SignalRoute enum, expanded `useSignalRoute` handler, a small `<FeedbackBar />` used by SignalCard / Sherlock / Memory cards. Nothing org-scoped, nothing shared, nothing creepy. Private by default.
-
-Approve and I'll write the migration first (single file, all three tables + RLS + audit triggers), then the code.
+- Stage 1 ✅  models (corrections, field_notes, audit_annotations)
+- Stage 2 ✅  feedback verbs + FeedbackBar
+- Stage 3 ✅  correction routing into brief + companion
+- Stage 4 ✅  Corrections Center
+- Stage 5 ✅  Privacy & consent (privacy_settings + inline panel + export/delete)
+- Stage 8 ✅  Decay cron (awareness-decay edge fn)
+- Stage 10 ✅ Audit hardening (audit_log row for every correction/field_note)
+- Stages 6, 7, 9 — DEFERRED (org model, shared aggregation, polish)

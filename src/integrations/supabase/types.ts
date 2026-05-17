@@ -1024,6 +1024,36 @@ export type Database = {
         }
         Relationships: []
       }
+      privacy_settings: {
+        Row: {
+          allow_shared_aggregation: boolean
+          ask_before_contributing: boolean
+          created_at: string
+          default_share_intent: string
+          sensitive_by_default: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_shared_aggregation?: boolean
+          ask_before_contributing?: boolean
+          created_at?: string
+          default_share_intent?: string
+          sensitive_by_default?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_shared_aggregation?: boolean
+          ask_before_contributing?: boolean
+          created_at?: string
+          default_share_intent?: string
+          sensitive_by_default?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

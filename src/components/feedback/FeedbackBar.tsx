@@ -70,17 +70,25 @@ export function FeedbackBar({
           ? window.prompt(label ? `Field note about "${label}":` : "Field note:", "")
           : null;
         if (!summary || !summary.trim()) return;
-        const { error } = await supabase.from("field_notes").insert({
+        const { data: inserted, error } = await supabase.from("field_notes").insert({
           user_id: u.user.id,
           note_type: "custom",
           summary: summary.trim(),
           location_label: label ?? null,
-        });
+        }).select("id").single();
         if (error) throw error;
+        // Stage 10 — audit hardening.
+        await supabase.from("audit_log").insert({
+          user_id: u.user.id,
+          entity_type: "field_note",
+          entity_id: inserted?.id ?? null,
+          event: "field_note:created",
+          payload: { surface, target_type: targetType, target_id: targetId, summary: summary.trim() } as any,
+        });
         toast.success("Field note saved.");
       } else {
         const cfg = ACTIONS.find((a) => a.key === key)!;
-        const { error } = await supabase.from("corrections").insert({
+        const { data: inserted, error } = await supabase.from("corrections").insert({
           user_id: u.user.id,
           surface,
           target_type: targetType,
@@ -88,8 +96,15 @@ export function FeedbackBar({
           feedback_type: key,
           original_value: original ? { value: original } as any : null,
           confidence_impact: cfg.impact,
-        });
+        }).select("id").single();
         if (error) throw error;
+        await supabase.from("audit_log").insert({
+          user_id: u.user.id,
+          entity_type: "correction",
+          entity_id: inserted?.id ?? null,
+          event: `correction:${key}`,
+          payload: { surface, target_type: targetType, target_id: targetId } as any,
+        });
         toast.success(cfg.toast);
       }
       setDone((d) => new Set(d).add(key));
