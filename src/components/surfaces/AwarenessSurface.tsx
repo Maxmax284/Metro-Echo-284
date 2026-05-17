@@ -62,8 +62,38 @@ export function AwarenessSurface() {
         </p>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
-        <div className="mb-4 flex gap-2">
+      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 space-y-4">
+        {/* HUD: live radar pinned to the active place */}
+        <AwarenessHUD />
+
+        {/* Quick-generate row — bones for batch briefing actions */}
+        {activePlaceFromProvider && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">
+              Quick generate
+            </span>
+            {AWARENESS_SECTIONS.map((s) => {
+              const has = !!latestBySection[s];
+              const busy = generating === s;
+              return (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={has ? "outline" : "secondary"}
+                  disabled={busy}
+                  onClick={() => generate(s)}
+                  className="h-7 gap-1 text-[11px] capitalize"
+                >
+                  {busy ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                    has ? <RefreshCcw className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
+                  {s}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex gap-2">
           <Input placeholder="Place label (optional)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
           <Button onClick={captureHere} className="gap-1 shrink-0">
             <MapPin className="h-4 w-4" /> Use here
