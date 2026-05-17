@@ -281,43 +281,101 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     }
   };
 
+  const suggestions = useMemo<Tool[]>(() => {
+    const ids = SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
+    const picked: Tool[] = [];
+    for (const id of ids) {
+      const t = COMPANION_TOOLS.find((x) => x.id === id);
+      if (!t) continue;
+      const avail = getToolAvailability(t, { surface: context.surface, mode, isOwner, controls });
+      if (avail.available) picked.push(t);
+      if (picked.length >= 3) break;
+    }
+    return picked;
+  }, [context.surface, mode, isOwner, controls]);
+
+  const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
+
   return (
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
-            <div className="mt-12 text-center text-sm text-muted-foreground animate-fade-in">
-              <p className="text-balance">
-                Tell me what you're working on. Type <span className="text-foreground/80">/</span> for tools, paperclip to attach, mic to speak.
+            <div className="mt-10 space-y-4 animate-fade-in">
+              <p className="text-balance text-center text-sm text-muted-foreground">
+                {surfaceHint}
+              </p>
+              {suggestions.length > 0 && !readOnly && (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {suggestions.map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleSlashPick(t.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/60 px-2.5 py-1 text-[12px] text-foreground/85 transition-colors hover:bg-surface-elevated hover:text-foreground"
+                      >
+                        <Icon className="h-3 w-3 text-primary/80" />
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-center text-[11px] text-muted-foreground/70">
+                Type <span className="text-foreground/70">/</span> for tools · paperclip to attach · mic to speak
               </p>
             </div>
           )}
-          {msgs.map((m, i) => (
-            <div key={i} className="group/msg flex items-start gap-1.5 animate-fade-in">
-              <div
-                className={cn(
-                  "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
-                  m.role === "user"
-                    ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
-                    : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
-                )}
-              >
-                {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
-              </div>
-              {m.content && (
-                <div className="opacity-0 transition-opacity group-hover/msg:opacity-100">
-                  <AnalyzeButton
-                    scope={{
-                      entity_type: "message",
-                      entity_id: m.id ?? null,
-                      title: m.content.slice(0, 80),
-                      text: m.content,
-                    }}
-                  />
+          {msgs.map((m, i) => {
+            if (m.receipt) {
+              const meta = RECEIPT_META[m.receipt.kind];
+              const Icon = meta.icon;
+              return (
+                <div key={i} className="flex animate-fade-in">
+                  <div className="mr-auto flex max-w-[88%] items-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[12px] text-foreground/90">
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{meta.label}:</span>
+                    <span className="truncate text-muted-foreground">{m.receipt.summary}</span>
+                    <button
+                      type="button"
+                      onClick={() => setContext({ surface: m.receipt!.surface })}
+                      className="ml-1 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] text-primary hover:bg-primary/10"
+                    >
+                      Open <ArrowUpRight className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+            return (
+              <div key={i} className="group/msg flex items-start gap-1.5 animate-fade-in">
+                <div
+                  className={cn(
+                    "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
+                    m.role === "user"
+                      ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
+                      : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
+                  )}
+                >
+                  {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
+                </div>
+                {m.content && m.role !== "system" && (
+                  <div className="opacity-0 transition-opacity group-hover/msg:opacity-100">
+                    <AnalyzeButton
+                      scope={{
+                        entity_type: "message",
+                        entity_id: m.id ?? null,
+                        title: m.content.slice(0, 80),
+                        text: m.content,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
       {readOnly ? (
@@ -332,6 +390,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           onSend={send}
           onAttach={handleAttach}
           onSlashPick={handleSlashPick}
+          onStop={handleStop}
           surface={context.surface}
           mode={mode}
           isOwner={isOwner}
