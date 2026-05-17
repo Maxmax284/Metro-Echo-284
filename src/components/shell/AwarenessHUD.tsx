@@ -423,7 +423,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               )}
             </div>
 
-            {variant === "hero" ? null : topSignals.length > 0 ? (
+            {topSignals.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {topSignals.map((s) => {
                   const Icon = s.icon;
