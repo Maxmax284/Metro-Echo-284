@@ -50,6 +50,8 @@ type Props = {
   /** Stage 6 — externally-driven prefill (e.g. from useSignalRoute `ask_vanta`). */
   initialText?: string | null;
   onInitialTextConsumed?: () => void;
+  /** Companion Maturity — abort in-flight stream. When provided + busy, send button becomes Stop. */
+  onStop?: () => void;
 };
 
 export function ConversationDock({
