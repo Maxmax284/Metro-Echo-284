@@ -438,16 +438,29 @@ export function AwarenessHUD({ className }: { className?: string }) {
           </div>
         )}
 
-        {sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {sources.map((s) => (
-              <span
-                key={s}
-                className="rounded-full bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
-              >
-                {s}
-              </span>
-            ))}
+        {(sources.length > 0 || streetDisabled) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {tierOrder.map((t) => {
+              const items = tieredSources[t];
+              if (!items.length && !(t === "community" && streetDisabled)) return null;
+              const meta = TIER_META[t];
+              const off = t === "community" && streetDisabled;
+              return (
+                <span
+                  key={t}
+                  title={off ? `${meta.label} tier paused (SerpApi off)` : meta.hint}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                    off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,
+                  )}
+                >
+                  {meta.label}
+                  <span className="opacity-70 normal-case tracking-normal">
+                    {items.length || (off ? "off" : 0)}
+                  </span>
+                </span>
+              );
+            })}
           </div>
         )}
       </Card>
