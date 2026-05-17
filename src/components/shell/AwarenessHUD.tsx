@@ -10,6 +10,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
 import { SignalCard } from "@/components/awareness/SignalCard";
+import { useSignalRoute } from "@/lib/useSignalRoute";
 
 const PIN_STORE_KEY = "vanta:awareness:pinned"; // { [placeId]: string[] }
 function loadPinned(placeId: string): string[] {
@@ -93,6 +94,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   } = useAwareness();
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
+  const onSignalRoute = useSignalRoute();
   const [open, setOpen] = useState(false);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
@@ -492,7 +494,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
               <SignalCard
                 signal={locationWarning}
                 generatedAt={generated}
-                onRoute={(route) => toast(`Route: ${route}`)}
+                onRoute={onSignalRoute}
               />
             )}
 
@@ -541,7 +543,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
                         signal={briefing.signal ?? { title: ping.label, short_summary: briefing.content, confidence: briefing.confidence ?? "low" }}
                         fallbackBody={briefing.content}
                         generatedAt={briefing.generated_at}
-                        onRoute={(route) => toast(`Route: ${route}`)}
+                        onRoute={onSignalRoute}
                       />
                     </div>
                   ) : (
