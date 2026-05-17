@@ -189,9 +189,44 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
 
   const overall = useMemo(() => getSlice(), [getSlice]);
 
+  // Load most recent unexpired snapshot for current place
+  const loadSnapshot = useCallback(async (placeId: string | null) => {
+    if (!placeId) { setSnapshot(null); return; }
+    const { data } = await supabase
+      .from("awareness_snapshots" as any)
+      .select("id, compact, full_data, sources_used, generated_at, expires_at")
+      .eq("place_id", placeId)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data && new Date((data as any).expires_at).getTime() > Date.now()) {
+      setSnapshot(data as unknown as AwarenessSnapshot);
+    } else {
+      setSnapshot(null);
+    }
+  }, []);
+
+  useEffect(() => { loadSnapshot(place?.id ?? null); }, [place?.id, loadSnapshot]);
+
+  const refreshSnapshot = useCallback(async (force?: boolean) => {
+    if (!place) return;
+    setSnapshotLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("awareness-snapshot", {
+        body: { place_id: place.id, force_refresh: !!force },
+      });
+      if (!error && data?.snapshot) {
+        setSnapshot(data.snapshot as AwarenessSnapshot);
+      }
+    } finally {
+      setSnapshotLoading(false);
+    }
+  }, [place]);
+
   const value = useMemo<Ctx>(() => ({
     place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall,
-  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall]);
+    snapshot, snapshotLoading, refreshSnapshot,
+  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall, snapshot, snapshotLoading, refreshSnapshot]);
 
   return <AwarenessCtx.Provider value={value}>{children}</AwarenessCtx.Provider>;
 }
