@@ -195,28 +195,44 @@ export function MemorySurface() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
-          <p className="text-xs text-muted-foreground">Search the substrate. Capture, connect, recall.</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant={view === "corrections" ? "default" : "ghost"}
-            onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
-            className="gap-1"
-            title="Field notes & corrections"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span className="hidden sm:inline">Corrections</span>
-          </Button>
-          {view === "notes" && (
-            <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
-              <Plus className="h-4 w-4" /> New
+      <div className="space-y-2 px-4 pt-3 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
+            <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
+              semantic
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant={view === "corrections" ? "default" : "ghost"}
+              onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
+              className="gap-1"
+              title="Field notes & corrections"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span className="hidden sm:inline">Corrections</span>
             </Button>
-          )}
+            {view === "notes" && (
+              <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
+                <Plus className="h-4 w-4" /> New
+              </Button>
+            )}
+          </div>
         </div>
+        {view === "notes" && (
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
+              <StatusDot tone="primary" /> {notes.length} note{notes.length === 1 ? "" : "s"}
+            </span>
+            {notes[0] && (
+              <span className="text-muted-foreground/80">
+                last update {formatDistanceToNow(new Date(notes[0].updated_at), { addSuffix: true })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {view === "corrections" ? (
