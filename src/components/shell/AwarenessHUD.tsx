@@ -343,7 +343,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   return (
     <>
       <Card className={cn("border-border/60 bg-surface-elevated/40 p-3", className)}>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
             <Radar className="h-3 w-3 text-primary" /> Radar
           </div>
