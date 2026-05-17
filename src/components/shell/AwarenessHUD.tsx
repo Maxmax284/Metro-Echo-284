@@ -494,7 +494,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
               <SignalCard
                 signal={locationWarning}
                 generatedAt={generated}
-                onRoute={(route) => toast(`Route: ${route}`)}
+                onRoute={onSignalRoute}
               />
             )}
 
@@ -543,7 +543,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
                         signal={briefing.signal ?? { title: ping.label, short_summary: briefing.content, confidence: briefing.confidence ?? "low" }}
                         fallbackBody={briefing.content}
                         generatedAt={briefing.generated_at}
-                        onRoute={(route) => toast(`Route: ${route}`)}
+                        onRoute={onSignalRoute}
                       />
                     </div>
                   ) : (

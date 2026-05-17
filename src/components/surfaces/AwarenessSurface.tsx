@@ -176,7 +176,7 @@ export function AwarenessSurface() {
                         signal={b.signal ?? { title: s, short_summary: b.content, confidence: b.confidence ?? "low" }}
                         fallbackBody={b.content}
                         generatedAt={b.generated_at}
-                        onRoute={(route) => toast(`Route: ${route}`)}
+                        onRoute={onSignalRoute}
                       />
                     ) : (
                       <p className="rounded-xl border border-dashed border-border/60 p-3 text-[12.5px] text-muted-foreground">
