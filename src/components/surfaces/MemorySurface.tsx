@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle } from "lucide-react";
@@ -10,6 +10,14 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
+import { StatusDot, similarityTone } from "@/components/ui/status-dot";
+
+const STARTER_SEARCHES = [
+  "What did I commit to this week?",
+  "Notes about Lisbon",
+  "Recent messages on payments",
+  "Anything I logged about scams",
+];
 
 type HitKind = "note" | "message" | "commitment";
 const HIT_KINDS: { id: HitKind | "all"; label: string }[] = [
@@ -51,6 +59,7 @@ export function MemorySurface() {
   const [searching, setSearching] = useState(false);
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [hitFilter, setHitFilter] = useState<HitKind | "all">("all");
+  const searchCancelRef = useRef(false);
 
   const [related, setRelated] = useState<RelatedHit[]>([]);
   const [relatedBusy, setRelatedBusy] = useState(false);
@@ -117,20 +126,31 @@ export function MemorySurface() {
     }
   };
 
-  const runSearch = async () => {
-    if (!query.trim()) { setHits(null); return; }
+  const runSearch = async (override?: string) => {
+    const q = (override ?? query).trim();
+    if (!q) { setHits(null); return; }
+    if (override) setQuery(override);
+    searchCancelRef.current = false;
     setSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke("memory-search", {
-        body: { query: query.trim(), match_count: 15, min_similarity: 0.35 },
+        body: { query: q, match_count: 15, min_similarity: 0.35 },
       });
+      if (searchCancelRef.current) return;
       if (error) throw error;
       setHits((data?.results ?? []) as SearchHit[]);
     } catch (e) {
+      if (searchCancelRef.current) return;
       toast.error(e instanceof Error ? e.message : "Search failed");
     } finally {
       setSearching(false);
     }
+  };
+
+  const cancelSearch = () => {
+    searchCancelRef.current = true;
+    setSearching(false);
+    toast.message("Search cancelled");
   };
 
   const loadRelated = async (noteId: string) => {
@@ -175,28 +195,44 @@ export function MemorySurface() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
-          <p className="text-xs text-muted-foreground">Search the substrate. Capture, connect, recall.</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant={view === "corrections" ? "default" : "ghost"}
-            onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
-            className="gap-1"
-            title="Field notes & corrections"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span className="hidden sm:inline">Corrections</span>
-          </Button>
-          {view === "notes" && (
-            <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
-              <Plus className="h-4 w-4" /> New
+      <div className="space-y-2 px-4 pt-3 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
+            <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
+              semantic
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant={view === "corrections" ? "default" : "ghost"}
+              onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
+              className="gap-1"
+              title="Field notes & corrections"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span className="hidden sm:inline">Corrections</span>
             </Button>
-          )}
+            {view === "notes" && (
+              <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
+                <Plus className="h-4 w-4" /> New
+              </Button>
+            )}
+          </div>
         </div>
+        {view === "notes" && (
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
+              <StatusDot tone="primary" /> {notes.length} note{notes.length === 1 ? "" : "s"}
+            </span>
+            {notes[0] && (
+              <span className="text-muted-foreground/80">
+                last update {formatDistanceToNow(new Date(notes[0].updated_at), { addSuffix: true })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {view === "corrections" ? (
@@ -215,16 +251,42 @@ export function MemorySurface() {
             placeholder="Semantic search across notes, messages, commitments…"
             className="pl-8 pr-20"
           />
-          <Button
-            size="sm"
-            variant="secondary"
-            className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
-            disabled={searching || !query.trim()}
-            onClick={runSearch}
-          >
-            {searching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
-          </Button>
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            {searching && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px]"
+                onClick={cancelSearch}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 px-2 text-xs"
+              disabled={searching || !query.trim()}
+              onClick={() => runSearch()}
+            >
+              {searching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
+            </Button>
+          </div>
         </div>
+        {hits === null && !query.trim() && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {STARTER_SEARCHES.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => runSearch(q)}
+                className="rounded-full bg-surface-elevated/60 px-2.5 py-1 text-[11px] text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-surface-elevated hover:text-foreground/90"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {hits !== null && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {HIT_KINDS.map((k) => {
@@ -297,7 +359,10 @@ export function MemorySurface() {
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[10px] uppercase tracking-wider text-primary/80">{h.kind}</span>
-                      <span className="shrink-0 text-[10.5px] text-muted-foreground">{Math.round(h.similarity * 100)}%</span>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                        <StatusDot tone={similarityTone(h.similarity)} title={`${Math.round(h.similarity * 100)}% match`} />
+                        {Math.round(h.similarity * 100)}%
+                      </span>
                     </div>
                     {h.title && <h3 className="mt-1 truncate text-sm font-medium">{h.title}</h3>}
                     <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{h.snippet}</p>

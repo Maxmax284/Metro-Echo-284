@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,16 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
+
+const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
+  all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
+  notes:       ["Notes about Lisbon trip", "Anything I jotted on payments?", "Recent decisions I logged"],
+  commitments: ["Commitments due in the next 3 days", "What did I promise this week?", "Anything I keep slipping on?"],
+  actions:     ["Actions still pending approval", "Recently completed actions", "What's blocked right now?"],
+  awareness:   ["Latest scams worth knowing", "Transport changes in my area", "Connectivity hiccups recently"],
+  files:       ["What's in the most recent ingest?", "Files mentioning payments", "Files I haven't acted on"],
+};
 
 type Investigation = {
   id: string;
@@ -58,6 +68,8 @@ export function SherlockSurface() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [targets, setTargets] = useState<Target[]>([]);
+  const cancelRef = useRef(false);
+  const [justFinishedId, setJustFinishedId] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
@@ -110,25 +122,36 @@ export function SherlockSurface() {
 
   const run = async () => {
     if (!question.trim() || running) return;
+    cancelRef.current = false;
     setRunning(true);
     try {
       const fullQuestion = `${scopePrefix}${question.trim()}`;
       const { data, error } = await supabase.functions.invoke("sherlock-investigate", {
         body: { question: fullQuestion },
       });
+      if (cancelRef.current) return; // user cancelled; drop result silently
       if (error) throw error;
       toast.success(`Investigation complete · ${data?.findings_count ?? 0} findings`);
       setQuestion("");
       await load();
       if (data?.id) {
         setOpenId(data.id);
+        setJustFinishedId(data.id);
+        setTimeout(() => setJustFinishedId((v) => (v === data.id ? null : v)), 6000);
         await loadFindings(data.id);
       }
     } catch (e) {
+      if (cancelRef.current) return;
       toast.error(e instanceof Error ? e.message : "Investigation failed");
     } finally {
       setRunning(false);
     }
+  };
+
+  const cancel = () => {
+    cancelRef.current = true;
+    setRunning(false);
+    toast.message("Investigation cancelled");
   };
 
   const targetIcon = (k: Target["kind"]) =>
@@ -137,14 +160,25 @@ export function SherlockSurface() {
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-y-auto p-4 pb-32 md:pb-6">
       <div className="mx-auto w-full max-w-2xl space-y-4">
-        <header className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-medium">Sherlock</h2>
+        <header className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-medium">Sherlock</h2>
+              <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
+                cited findings only
+              </span>
+            </div>
+            <span className="text-[10.5px] text-muted-foreground">
+              {investigations.length} investigation{investigations.length === 1 ? "" : "s"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Scoped investigations across your operational substrate. Findings are cited.
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
+              <StatusDot tone="primary" /> scope: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
+            </span>
+            <span className="text-muted-foreground/70">{SCOPES.find((x) => x.id === scope)!.hint}</span>
+          </div>
         </header>
 
         <Card className="p-3 space-y-3">
@@ -177,11 +211,38 @@ export function SherlockSurface() {
             rows={3}
             className="resize-none"
           />
-          <div className="flex justify-end">
-            <Button onClick={run} disabled={running || !question.trim()} size="sm" className="gap-1.5">
-              {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Investigate
-            </Button>
+
+          {/* Starter question chips — shown when textarea is empty */}
+          {!question.trim() && (
+            <div className="flex flex-wrap gap-1.5">
+              {STARTER_QUESTIONS[scope].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuestion(q)}
+                  className="rounded-full bg-surface-elevated/60 px-2.5 py-1 text-[11px] text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-surface-elevated hover:text-foreground/90"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] text-muted-foreground">
+              {running ? "Investigating across your substrate…" : "Findings will be cited."}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {running && (
+                <Button onClick={cancel} size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                  Cancel
+                </Button>
+              )}
+              <Button onClick={run} disabled={running || !question.trim()} size="sm" className="gap-1.5">
+                {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                Investigate
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -222,8 +283,15 @@ export function SherlockSurface() {
           {investigations.map((inv) => {
             const isOpen = openId === inv.id;
             const findings = findingsByInv[inv.id] ?? [];
+            const isJustFinished = justFinishedId === inv.id;
             return (
-              <Card key={inv.id} className="p-3 space-y-2">
+              <Card
+                key={inv.id}
+                className={cn(
+                  "p-3 space-y-2 transition-shadow",
+                  isJustFinished && "ring-1 ring-primary/50 shadow-[0_0_0_3px_hsl(var(--primary)/0.08)]",
+                )}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <button
                     className="flex-1 text-left"
@@ -234,8 +302,14 @@ export function SherlockSurface() {
                     }}
                   >
                     <p className="text-sm font-medium leading-snug">{inv.question}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span>{formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}</span>
+                      {findings.length > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>{findings.length} finding{findings.length === 1 ? "" : "s"}</span>
+                        </>
+                      )}
                     </p>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
@@ -265,8 +339,11 @@ export function SherlockSurface() {
                         {findings.map((f) => (
                           <li key={f.id} className="rounded-md bg-surface-elevated p-2 text-xs">
                             <div className="flex items-start justify-between gap-2">
-                              <span className="leading-snug">{f.claim}</span>
-                              <Badge variant="outline" className="shrink-0 text-[9px]">{f.confidence}</Badge>
+                              <span className="flex-1 leading-snug">
+                                <StatusDot tone={confidenceTone(f.confidence)} className="mr-1.5 -translate-y-0.5" title={`${f.confidence} confidence`} />
+                                {f.claim}
+                              </span>
+                              <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{f.confidence}</Badge>
                             </div>
                             {f.source_kind && (
                               <p className="mt-1 text-[10px] text-muted-foreground">
