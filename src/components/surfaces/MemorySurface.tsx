@@ -251,16 +251,42 @@ export function MemorySurface() {
             placeholder="Semantic search across notes, messages, commitments…"
             className="pl-8 pr-20"
           />
-          <Button
-            size="sm"
-            variant="secondary"
-            className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
-            disabled={searching || !query.trim()}
-            onClick={() => runSearch()}
-          >
-            {searching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
-          </Button>
+          <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            {searching && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px]"
+                onClick={cancelSearch}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 px-2 text-xs"
+              disabled={searching || !query.trim()}
+              onClick={() => runSearch()}
+            >
+              {searching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
+            </Button>
+          </div>
         </div>
+        {hits === null && !query.trim() && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {STARTER_SEARCHES.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => runSearch(q)}
+                className="rounded-full bg-surface-elevated/60 px-2.5 py-1 text-[11px] text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-surface-elevated hover:text-foreground/90"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         {hits !== null && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {HIT_KINDS.map((k) => {
