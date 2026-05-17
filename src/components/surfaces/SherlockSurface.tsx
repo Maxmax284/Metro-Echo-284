@@ -160,14 +160,25 @@ export function SherlockSurface() {
   return (
     <div className="flex flex-1 min-h-0 flex-col overflow-y-auto p-4 pb-32 md:pb-6">
       <div className="mx-auto w-full max-w-2xl space-y-4">
-        <header className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-medium">Sherlock</h2>
+        <header className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-lg font-medium">Sherlock</h2>
+              <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
+                cited findings only
+              </span>
+            </div>
+            <span className="text-[10.5px] text-muted-foreground">
+              {investigations.length} investigation{investigations.length === 1 ? "" : "s"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Scoped investigations across your operational substrate. Findings are cited.
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
+              <StatusDot tone="primary" /> scope: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
+            </span>
+            <span className="text-muted-foreground/70">{SCOPES.find((x) => x.id === scope)!.hint}</span>
+          </div>
         </header>
 
         <Card className="p-3 space-y-3">
@@ -200,11 +211,38 @@ export function SherlockSurface() {
             rows={3}
             className="resize-none"
           />
-          <div className="flex justify-end">
-            <Button onClick={run} disabled={running || !question.trim()} size="sm" className="gap-1.5">
-              {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Investigate
-            </Button>
+
+          {/* Starter question chips — shown when textarea is empty */}
+          {!question.trim() && (
+            <div className="flex flex-wrap gap-1.5">
+              {STARTER_QUESTIONS[scope].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuestion(q)}
+                  className="rounded-full bg-surface-elevated/60 px-2.5 py-1 text-[11px] text-muted-foreground ring-1 ring-border/60 transition-colors hover:bg-surface-elevated hover:text-foreground/90"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] text-muted-foreground">
+              {running ? "Investigating across your substrate…" : "Findings will be cited."}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {running && (
+                <Button onClick={cancel} size="sm" variant="ghost" className="h-7 px-2 text-xs">
+                  Cancel
+                </Button>
+              )}
+              <Button onClick={run} disabled={running || !question.trim()} size="sm" className="gap-1.5">
+                {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                Investigate
+              </Button>
+            </div>
           </div>
         </Card>
 
