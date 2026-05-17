@@ -143,6 +143,67 @@ export function useSignalRoute(): SignalRouteHandler {
       case "dismiss":
         return;
 
+      // ---------- Stage 2 — feedback verbs ----------
+      case "mark_wrong":
+      case "mark_useful":
+      case "mark_outdated":
+      case "flag_source":
+      case "do_not_show_again": {
+        const map: Record<string, { type: string; impact: string; toast: string }> = {
+          mark_wrong:        { type: "wrong",      impact: "invalidate", toast: "Marked wrong. Vanta will lower confidence." },
+          mark_useful:       { type: "useful",     impact: "raise",      toast: "Marked useful." },
+          mark_outdated:     { type: "outdated",   impact: "lower",      toast: "Marked outdated." },
+          flag_source:       { type: "source_bad", impact: "lower",      toast: "Source flagged." },
+          do_not_show_again: { type: "reject",     impact: "invalidate", toast: "Won't show again." },
+        };
+        const cfg = map[route];
+        (async () => {
+          try {
+            const { data: u } = await supabase.auth.getUser();
+            if (!u.user) { toast.error("Not signed in."); return; }
+            const { error } = await supabase.from("corrections").insert({
+              user_id: u.user.id,
+              surface: "awareness",
+              target_type: `signal:${signal.signal_type}`,
+              target_id: signal.title || signal.signal_type,
+              feedback_type: cfg.type as any,
+              original_value: { signal } as any,
+              confidence_impact: cfg.impact as any,
+            });
+            if (error) throw error;
+            toast.success(cfg.toast);
+          } catch (e: any) {
+            toast.error("Couldn't save correction", { description: e?.message ?? "Try again." });
+          }
+        })();
+        return;
+      }
+
+      case "add_field_note": {
+        const summary = typeof window !== "undefined"
+          ? window.prompt(`Field note about "${title}":`, "")
+          : null;
+        if (!summary || !summary.trim()) return;
+        (async () => {
+          try {
+            const { data: u } = await supabase.auth.getUser();
+            if (!u.user) { toast.error("Not signed in."); return; }
+            const { error } = await supabase.from("field_notes").insert({
+              user_id: u.user.id,
+              note_type: "custom",
+              summary: summary.trim(),
+              details: signal.short_summary || null,
+              location_label: title,
+            });
+            if (error) throw error;
+            toast.success("Field note saved.");
+          } catch (e: any) {
+            toast.error("Couldn't save field note", { description: e?.message ?? "Try again." });
+          }
+        })();
+        return;
+      }
+
       default:
         toast.message(`Route: ${route}`);
     }
