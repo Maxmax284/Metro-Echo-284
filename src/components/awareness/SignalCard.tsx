@@ -195,6 +195,19 @@ export function SignalCard({
           ))}
         </div>
       )}
+
+      {/* Stage 2 — always-on feedback row */}
+      {!compact && (
+        <div className="mt-2 border-t border-border/50 pt-2">
+          <FeedbackBar
+            surface="awareness"
+            targetType={`signal:${s.signal_type}`}
+            targetId={s.title || s.signal_type}
+            label={s.title}
+            original={s}
+          />
+        </div>
+      )}
     </div>
   );
 }
