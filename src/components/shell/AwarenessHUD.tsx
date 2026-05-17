@@ -380,17 +380,31 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
             >
               <Maximize2 className="h-3 w-3" />
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1 text-[11px]"
-              onClick={() => refreshSnapshot(true)}
-              disabled={snapshotLoading}
-              title="Refresh snapshot (guarded)"
-            >
-              {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
-              {snapshot ? "Refresh" : "Generate"}
-            </Button>
+            {variant === "hero" ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0"
+                onClick={() => refreshSnapshot(true)}
+                disabled={snapshotLoading}
+                title={snapshot ? "Refresh snapshot (guarded)" : "Generate snapshot"}
+                aria-label="Refresh snapshot"
+              >
+                {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 gap-1 text-[11px]"
+                onClick={() => refreshSnapshot(true)}
+                disabled={snapshotLoading}
+                title="Refresh snapshot (guarded)"
+              >
+                {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
+                {snapshot ? "Refresh" : "Generate"}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -409,7 +423,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               )}
             </div>
 
-            {topSignals.length > 0 ? (
+            {variant === "hero" ? null : topSignals.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {topSignals.map((s) => {
                   const Icon = s.icon;
@@ -472,22 +486,39 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               if (!items.length && !(t === "community" && streetDisabled)) return null;
               const meta = TIER_META[t];
               const off = t === "community" && streetDisabled;
+              const active = tierFilter === t;
+              const dim = !!tierFilter && !active;
               return (
-                <span
+                <button
                   key={t}
-                  title={off ? `${meta.label} tier paused (SerpApi off)` : meta.hint}
+                  type="button"
+                  disabled={off}
+                  onClick={() => pickTier(t)}
+                  title={off ? `${meta.label} tier paused (SerpApi off)` : `${meta.hint} · tap to filter`}
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
-                    off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 transition-opacity",
+                    off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70 cursor-not-allowed" : meta.tone,
+                    active && "ring-2",
+                    dim && "opacity-50",
                   )}
                 >
                   {meta.label}
                   <span className="opacity-70 normal-case tracking-normal">
                     {items.length || (off ? "off" : 0)}
                   </span>
-                </span>
+                </button>
               );
             })}
+            {tierFilter && (
+              <button
+                type="button"
+                onClick={() => setTierFilter(null)}
+                className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                title="Clear tier filter"
+              >
+                <X className="h-2.5 w-2.5" /> clear
+              </button>
+            )}
           </div>
         )}
       </Card>
