@@ -1,3 +1,4 @@
+import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { COMPANION_TOOLS } from "@/lib/companionTools";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
 
@@ -242,7 +244,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           </div>
         </div>
       ) : (
-        <ConversationDock
+        <ConversationDockBridge
           busy={busy}
           onSend={send}
           onAttach={handleAttach}
@@ -265,5 +267,17 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         </SheetContent>
       </Sheet>
     </div>
+  );
+}
+
+// Stage 6 — bridge that wires Companion prefill into the dock.
+function ConversationDockBridge(props: React.ComponentProps<typeof ConversationDock>) {
+  const { prefill, setPrefill } = useCompanion();
+  return (
+    <ConversationDock
+      {...props}
+      initialText={prefill}
+      onInitialTextConsumed={() => setPrefill(null)}
+    />
   );
 }

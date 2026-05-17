@@ -47,6 +47,9 @@ type Props = {
   mode?: AppMode;
   isOwner?: boolean | null;
   controls?: SystemControls | null;
+  /** Stage 6 — externally-driven prefill (e.g. from useSignalRoute `ask_vanta`). */
+  initialText?: string | null;
+  onInitialTextConsumed?: () => void;
 };
 
 export function ConversationDock({
@@ -59,8 +62,24 @@ export function ConversationDock({
   mode = "advisor",
   isOwner = null,
   controls = null,
+  initialText = null,
+  onInitialTextConsumed,
 }: Props) {
   const [v, setV] = useState("");
+
+  // Stage 6 — apply external prefill, focus, and ack so parent can clear it.
+  useEffect(() => {
+    if (initialText && initialText.length > 0) {
+      setV(initialText);
+      requestAnimationFrame(() => {
+        ref.current?.focus();
+        const len = initialText.length;
+        try { ref.current?.setSelectionRange(len, len); } catch { /* noop */ }
+      });
+      onInitialTextConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialText]);
   const [listening, setListening] = useState(false);
   const [paletteIdx, setPaletteIdx] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);

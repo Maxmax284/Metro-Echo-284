@@ -8,6 +8,7 @@ import { useAwareness } from "@/providers/AwarenessProvider";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { SignalRoute, VantaSignal } from "@/lib/vantaSignal";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => void;
 
@@ -19,6 +20,7 @@ export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => vo
 export function useSignalRoute(): SignalRouteHandler {
   const { refresh, refreshSnapshot } = useAwareness();
   const { openSherlock } = useSherlock();
+  const { openWithPrefill } = useCompanion();
 
   return useCallback<SignalRouteHandler>((route, signal) => {
     const title = signal.title || signal.signal_type;
@@ -58,15 +60,10 @@ export function useSignalRoute(): SignalRouteHandler {
       }
 
       case "ask_vanta": {
-        // No converse-prefill surface API yet — drop the question into the
-        // clipboard so the user can paste into the Companion dock.
+        // Stage 6 — open the Companion dock prefilled with the question.
         const q = `About "${title}": ${signal.what_to_do_next || signal.short_summary}`;
-        try {
-          navigator.clipboard?.writeText(q);
-          toast.success("Copied — paste into the Vanta dock to ask.");
-        } catch {
-          toast.message("Ask Vanta", { description: q });
-        }
+        openWithPrefill(q);
+        toast.message("Companion opened", { description: "Edit or send the question." });
         return;
       }
 
@@ -115,11 +112,31 @@ export function useSignalRoute(): SignalRouteHandler {
       }
 
       case "draft_action": {
-        // Actions table shape varies; keep this as a staged-toast for now —
-        // Stage 6 wires the real actions-transition flow.
-        toast.message("Draft action queued", {
-          description: signal.what_to_do_next || title,
-        });
+        // Stage 6 — insert a proposed action; user reviews + transitions in ActionsSurface.
+        (async () => {
+          try {
+            const { data: u } = await supabase.auth.getUser();
+            if (!u.user) { toast.error("Not signed in."); return; }
+            const description = [
+              signal.short_summary,
+              signal.why_it_matters && `Why it matters: ${signal.why_it_matters}`,
+              signal.what_to_do_next && `Next: ${signal.what_to_do_next}`,
+            ].filter(Boolean).join("\n\n");
+            const { error } = await supabase.from("actions").insert({
+              user_id: u.user.id,
+              title: signal.what_to_do_next || title,
+              description: description || null,
+              source: `vanta-signal:${signal.signal_type}`,
+              status: "proposed",
+              risk: (signal.risk_level === "high" ? "high" : signal.risk_level === "medium" ? "medium" : "low") as any,
+              payload: { signal } as any,
+            });
+            if (error) throw error;
+            toast.success("Action drafted", { description: "Review in Actions to stage or approve." });
+          } catch (e: any) {
+            toast.error("Couldn't draft action", { description: e?.message ?? "Try again." });
+          }
+        })();
         return;
       }
 
@@ -129,5 +146,5 @@ export function useSignalRoute(): SignalRouteHandler {
       default:
         toast.message(`Route: ${route}`);
     }
-  }, [refresh, refreshSnapshot, openSherlock]);
+  }, [refresh, refreshSnapshot, openSherlock, openWithPrefill]);
 }
