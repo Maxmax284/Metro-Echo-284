@@ -1,14 +1,20 @@
-# Stage 3 — Awareness HUD (radar canvas · pings · top signals · drawer)
+# Stages 3b + 4 + 5 — HUD port · Sherlock scopes · Memory filters
 
-Replaces the text-only `MiniRadarStrip` with a real HUD on the Command Center.
+## 3b — Awareness tab HUD port
+- `AwarenessSurface.tsx` prepends `<AwarenessHUD />` and a quick-generate row of section chips (per AWARENESS_SECTIONS) → calls `generate(s)` from the provider.
 
-## Files
-- **NEW** `src/components/shell/AwarenessHUD.tsx` — SVG radar (concentric rings + crosshairs + sweep wedge), pings derived from `snapshot.sources_used` + non-empty briefings (angle = hash(label), radius = freshness bucket fresh/aging/stale → 20/30/40), top-signals list (weather, summary, freshest briefing), expand → `Drawer` with large radar + signals + sources + raw snapshot, preserves owner SerpApi pill + refresh.
-- `src/index.css` — keyframes `radar-sweep` (4.5s linear) + `radar-ping` (2.4s pulse), `prefers-reduced-motion` disables both.
-- `src/components/surfaces/CommandCenterSurface.tsx` — swap import + usage `MiniRadarStrip` → `AwarenessHUD`.
+## 4 — Sherlock surface
+- Scope chips (all / notes / commitments / actions / awareness / files) prefix the question with a `[Scope: …]` hint before invoking `sherlock-investigate`.
+- Target cards: recent commitments / notes / actions; tap to auto-seed question + scope.
+- Per-investigation Maximize icon → `openSherlock({ entity_type: "freeform", … })` overlay reuse.
+- Structured dashed empty state with radar glyph.
 
-## Behavior
-- Read-only canvas; refresh still calls guarded `refreshSnapshot()`.
-- No new tables, edge functions, or providers.
-- 384px-safe: radar 120px in the strip, gap-3 with side content.
-- `MiniRadarStrip.tsx` left in place for now (no consumers) — can delete in a later sweep.
+## 5 — Memory substrate
+- Search hits get type-filter chips (All / Notes / Messages / Commitments) with per-kind counts.
+- Filtered + zero states with dashed border + iconography.
+- Notes empty state upgraded with Inbox icon + capture hint.
+
+## Notes
+- No schema, edge function, or provider changes.
+- HUD remains the same component on both surfaces; provider is the binding layer.
+- Stages 6 (Street Signal) + 7 (Motion + Mobile) remain.

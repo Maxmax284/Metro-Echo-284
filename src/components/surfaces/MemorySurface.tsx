@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Plus, Sparkles, Loader2, X, Search, Link2, Check } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
+
+type HitKind = "note" | "message" | "commitment";
+const HIT_KINDS: { id: HitKind | "all"; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "note", label: "Notes" },
+  { id: "message", label: "Messages" },
+  { id: "commitment", label: "Commitments" },
+];
 
 type Note = {
   id: string;
@@ -39,6 +48,7 @@ export function MemorySurface() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [hits, setHits] = useState<SearchHit[] | null>(null);
+  const [hitFilter, setHitFilter] = useState<HitKind | "all">("all");
 
   const [related, setRelated] = useState<RelatedHit[]>([]);
   const [relatedBusy, setRelatedBusy] = useState(false);
@@ -194,9 +204,30 @@ export function MemorySurface() {
           </Button>
         </div>
         {hits !== null && (
-          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{hits.length} results</span>
-            <button onClick={() => { setHits(null); setQuery(""); }} className="hover:text-foreground">Clear</button>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {HIT_KINDS.map((k) => {
+              const count = k.id === "all" ? hits.length : hits.filter((h) => h.kind === k.id).length;
+              return (
+                <button
+                  key={k.id}
+                  onClick={() => setHitFilter(k.id)}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                    hitFilter === k.id
+                      ? "bg-primary/15 text-primary ring-primary/40"
+                      : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
+                  )}
+                >
+                  {k.label} <span className="opacity-60">· {count}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setHits(null); setQuery(""); setHitFilter("all"); }}
+              className="ml-auto text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
           </div>
         )}
       </div>
@@ -222,12 +253,21 @@ export function MemorySurface() {
       )}
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
-        {hits !== null ? (
-          hits.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">No matches. Try different wording.</div>
-          ) : (
+        {hits !== null ? (() => {
+          const filtered = hitFilter === "all" ? hits : hits.filter((h) => h.kind === hitFilter);
+          if (filtered.length === 0) {
+            return (
+              <div className="rounded-lg border border-dashed border-border/60 py-10 text-center text-sm text-muted-foreground">
+                <Search className="mx-auto mb-2 h-4 w-4 opacity-60" />
+                {hits.length === 0
+                  ? "No matches. Try different wording or broader terms."
+                  : `No ${hitFilter} matches. Switch filter or broaden the query.`}
+              </div>
+            );
+          }
+          return (
             <ul className="space-y-2">
-              {hits.map((h) => (
+              {filtered.map((h) => (
                 <li key={`${h.kind}:${h.id}`}>
                   <button
                     onClick={() => openHit(h)}
@@ -243,11 +283,15 @@ export function MemorySurface() {
                 </li>
               ))}
             </ul>
-          )
-        ) : loading ? (
+          );
+        })() : loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>
         ) : notes.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">No notes yet. Capture a thought.</div>
+          <div className="rounded-lg border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
+            <Inbox className="mx-auto mb-2 h-5 w-5 opacity-60" />
+            <p>No notes yet.</p>
+            <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
+          </div>
         ) : (
           <ul className="space-y-2">
             {notes.map((n) => (
