@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Plus, Sparkles, Loader2, X, Search, Link2, Check } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
+
+type HitKind = "note" | "message" | "commitment";
+const HIT_KINDS: { id: HitKind | "all"; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "note", label: "Notes" },
+  { id: "message", label: "Messages" },
+  { id: "commitment", label: "Commitments" },
+];
 
 type Note = {
   id: string;
