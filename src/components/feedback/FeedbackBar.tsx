@@ -115,10 +115,31 @@ export function FeedbackBar({
     }
   };
 
+  // Stage 9 polish — once any verb succeeds, collapse the row into a calm
+  // confirmation. No surveys, no celebration, no nudge to do more.
+  if (done.size > 0) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-1.5 text-[10px] text-muted-foreground/80 animate-in fade-in duration-300",
+          className,
+        )}
+      >
+        <Check className="h-2.5 w-2.5 text-primary/80" />
+        <span>Thanks — saved.</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground", className)}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground/70",
+        "opacity-60 transition-opacity hover:opacity-100 focus-within:opacity-100",
+        className,
+      )}
+    >
       {ACTIONS.filter((a) => !(hideFieldNote && a.key === "add_field_note")).map((a) => {
-        const isDone = done.has(a.key);
         const isBusy = busy === a.key;
         return (
           <button
@@ -127,9 +148,10 @@ export function FeedbackBar({
             onClick={() => send(a.key)}
             disabled={isBusy}
             className={cn(
-              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 ring-1 ring-border/50 transition-colors",
+              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 ring-1 ring-border/40 transition-colors",
+              "hover:bg-muted/30 hover:ring-border/70",
               "disabled:opacity-50",
-              isDone ? "text-primary ring-primary/40" : a.tone,
+              a.tone,
             )}
             title={a.label}
           >
