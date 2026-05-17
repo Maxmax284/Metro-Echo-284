@@ -1,12 +1,14 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, FileText, Search } from "lucide-react";
+import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";
+import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
