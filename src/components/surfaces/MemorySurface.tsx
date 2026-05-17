@@ -253,12 +253,21 @@ export function MemorySurface() {
       )}
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
-        {hits !== null ? (
-          hits.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">No matches. Try different wording.</div>
-          ) : (
+        {hits !== null ? (() => {
+          const filtered = hitFilter === "all" ? hits : hits.filter((h) => h.kind === hitFilter);
+          if (filtered.length === 0) {
+            return (
+              <div className="rounded-lg border border-dashed border-border/60 py-10 text-center text-sm text-muted-foreground">
+                <Search className="mx-auto mb-2 h-4 w-4 opacity-60" />
+                {hits.length === 0
+                  ? "No matches. Try different wording or broader terms."
+                  : `No ${hitFilter} matches. Switch filter or broaden the query.`}
+              </div>
+            );
+          }
+          return (
             <ul className="space-y-2">
-              {hits.map((h) => (
+              {filtered.map((h) => (
                 <li key={`${h.kind}:${h.id}`}>
                   <button
                     onClick={() => openHit(h)}
@@ -274,11 +283,15 @@ export function MemorySurface() {
                 </li>
               ))}
             </ul>
-          )
-        ) : loading ? (
+          );
+        })() : loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>
         ) : notes.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">No notes yet. Capture a thought.</div>
+          <div className="rounded-lg border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
+            <Inbox className="mx-auto mb-2 h-5 w-5 opacity-60" />
+            <p>No notes yet.</p>
+            <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
+          </div>
         ) : (
           <ul className="space-y-2">
             {notes.map((n) => (
