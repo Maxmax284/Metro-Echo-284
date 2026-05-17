@@ -1,14 +1,32 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAwareness, AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Cloud, Loader2, Maximize2, MapPin, RefreshCcw, Radar, Thermometer, Sparkles } from "lucide-react";
+import { Cloud, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
+
+const PIN_STORE_KEY = "vanta:awareness:pinned"; // { [placeId]: string[] }
+function loadPinned(placeId: string): string[] {
+  try {
+    const raw = localStorage.getItem(PIN_STORE_KEY);
+    if (!raw) return [];
+    const m = JSON.parse(raw) as Record<string, string[]>;
+    return Array.isArray(m[placeId]) ? m[placeId] : [];
+  } catch { return []; }
+}
+function savePinned(placeId: string, keys: string[]) {
+  try {
+    const raw = localStorage.getItem(PIN_STORE_KEY);
+    const m: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    m[placeId] = keys;
+    localStorage.setItem(PIN_STORE_KEY, JSON.stringify(m));
+  } catch { /* ignore */ }
+}
 
 /**
  * AwarenessHUD — Stage 3.
