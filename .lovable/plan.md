@@ -131,6 +131,8 @@ Verify every correction / field_note insert also writes an `audit_log` row (`eve
 - Stage 3 ✅  correction routing into brief + companion
 - Stage 4 ✅  Corrections Center
 - Stage 5 ✅  Privacy & consent (privacy_settings + inline panel + export/delete)
-- Stage 8 ✅  Decay cron (awareness-decay edge fn)
+- Stage 8 ✅  Decay cron (awareness-decay edge fn + hourly pg_cron schedule)
+- Stage 9 ✅  FeedbackBar polish (calm collapse, hover-only emphasis)
 - Stage 10 ✅ Audit hardening (audit_log row for every correction/field_note)
-- Stages 6, 7, 9 — DEFERRED (org model, shared aggregation, polish)
+- Stage 6 — DEFERRED (needs org-model decision: Vanta vs CampCore vs Ground Truth shape)
+- Stage 7 — DEFERRED (depends on Stage 6 + anonymization pipeline)
