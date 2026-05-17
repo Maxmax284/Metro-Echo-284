@@ -161,7 +161,7 @@ export function useSignalRoute(): SignalRouteHandler {
           try {
             const { data: u } = await supabase.auth.getUser();
             if (!u.user) { toast.error("Not signed in."); return; }
-            const { error } = await supabase.from("corrections").insert({
+            const { data: inserted, error } = await supabase.from("corrections").insert({
               user_id: u.user.id,
               surface: "awareness",
               target_type: `signal:${signal.signal_type}`,
@@ -169,8 +169,16 @@ export function useSignalRoute(): SignalRouteHandler {
               feedback_type: cfg.type as any,
               original_value: { signal } as any,
               confidence_impact: cfg.impact as any,
-            });
+            }).select("id").single();
             if (error) throw error;
+            // Stage 10 — audit hardening: every correction also writes an audit row.
+            await supabase.from("audit_log").insert({
+              user_id: u.user.id,
+              entity_type: "correction",
+              entity_id: inserted?.id ?? null,
+              event: `correction:${cfg.type}`,
+              payload: { surface: "awareness", target: signal.title || signal.signal_type, signal_type: signal.signal_type } as any,
+            });
             toast.success(cfg.toast);
           } catch (e: any) {
             toast.error("Couldn't save correction", { description: e?.message ?? "Try again." });
@@ -188,14 +196,21 @@ export function useSignalRoute(): SignalRouteHandler {
           try {
             const { data: u } = await supabase.auth.getUser();
             if (!u.user) { toast.error("Not signed in."); return; }
-            const { error } = await supabase.from("field_notes").insert({
+            const { data: inserted, error } = await supabase.from("field_notes").insert({
               user_id: u.user.id,
               note_type: "custom",
               summary: summary.trim(),
               details: signal.short_summary || null,
               location_label: title,
-            });
+            }).select("id").single();
             if (error) throw error;
+            await supabase.from("audit_log").insert({
+              user_id: u.user.id,
+              entity_type: "field_note",
+              entity_id: inserted?.id ?? null,
+              event: "field_note:created",
+              payload: { location_label: title, summary: summary.trim() } as any,
+            });
             toast.success("Field note saved.");
           } catch (e: any) {
             toast.error("Couldn't save field note", { description: e?.message ?? "Try again." });
