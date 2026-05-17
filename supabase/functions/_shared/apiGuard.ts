@@ -45,6 +45,8 @@ const PROVIDER_KILL_KEY: Record<GuardProvider, keyof SystemControls> = {
   "open-meteo": "weather_enabled",
   "google-calendar": "calendar_sync_enabled",
   "lovable-ai": "gemini_enabled",
+  "reddit-serpapi": "community_reddit_enabled",
+  "reddit-public": "community_public_fallback_enabled",
 };
 
 type SystemControls = {
