@@ -68,6 +68,8 @@ export function SherlockSurface() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [targets, setTargets] = useState<Target[]>([]);
+  const cancelRef = useRef(false);
+  const [justFinishedId, setJustFinishedId] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
