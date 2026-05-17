@@ -134,7 +134,17 @@ export default function Settings() {
               </div>
               <Switch
                 checked={!!controls[key]}
-                onCheckedChange={(v) => update({ [key]: v } as any)}
+                onCheckedChange={async (v) => {
+                  try {
+                    await update({ [key]: v } as any);
+                    if (key === "serpapi_enabled") {
+                      if (v) toast.success("SerpApi resumed");
+                      else toast("SerpApi paused", { description: "Search, news, and local lookups will be blocked." });
+                    }
+                  } catch {
+                    if (key === "serpapi_enabled") toast.error("Couldn't update SerpApi");
+                  }
+                }}
               />
             </li>
           ))}
