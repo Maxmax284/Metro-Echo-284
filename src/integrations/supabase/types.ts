@@ -284,6 +284,7 @@ export type Database = {
           id: string
           kind: string
           note: string
+          organization_id: string | null
           user_id: string
         }
         Insert: {
@@ -292,6 +293,7 @@ export type Database = {
           id?: string
           kind?: string
           note: string
+          organization_id?: string | null
           user_id: string
         }
         Update: {
@@ -300,6 +302,7 @@ export type Database = {
           id?: string
           kind?: string
           note?: string
+          organization_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -308,6 +311,13 @@ export type Database = {
             columns: ["audit_event_id"]
             isOneToOne: false
             referencedRelation: "audit_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_annotations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -543,6 +553,7 @@ export type Database = {
           expires_at: string | null
           feedback_type: string
           id: string
+          organization_id: string | null
           original_value: Json | null
           scope: string
           source_label: string
@@ -561,6 +572,7 @@ export type Database = {
           expires_at?: string | null
           feedback_type: string
           id?: string
+          organization_id?: string | null
           original_value?: Json | null
           scope?: string
           source_label?: string
@@ -579,6 +591,7 @@ export type Database = {
           expires_at?: string | null
           feedback_type?: string
           id?: string
+          organization_id?: string | null
           original_value?: Json | null
           scope?: string
           source_label?: string
@@ -590,7 +603,15 @@ export type Database = {
           user_id?: string
           user_note?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "corrections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_inbound_addresses: {
         Row: {
@@ -627,9 +648,11 @@ export type Database = {
           expires_at: string | null
           freshness: string
           geo: Json | null
+          geohash: string | null
           id: string
           location_label: string | null
           note_type: string
+          organization_id: string | null
           place_id: string | null
           seasonal_context: Json | null
           sensitive: boolean
@@ -648,9 +671,11 @@ export type Database = {
           expires_at?: string | null
           freshness?: string
           geo?: Json | null
+          geohash?: string | null
           id?: string
           location_label?: string | null
           note_type?: string
+          organization_id?: string | null
           place_id?: string | null
           seasonal_context?: Json | null
           sensitive?: boolean
@@ -669,9 +694,11 @@ export type Database = {
           expires_at?: string | null
           freshness?: string
           geo?: Json | null
+          geohash?: string | null
           id?: string
           location_label?: string | null
           note_type?: string
+          organization_id?: string | null
           place_id?: string | null
           seasonal_context?: Json | null
           sensitive?: boolean
@@ -684,6 +711,13 @@ export type Database = {
           weather_context?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "field_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "field_notes_place_id_fkey"
             columns: ["place_id"]
@@ -1024,12 +1058,72 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       privacy_settings: {
         Row: {
           allow_shared_aggregation: boolean
           ask_before_contributing: boolean
           created_at: string
           default_share_intent: string
+          organization_id: string | null
           sensitive_by_default: boolean
           updated_at: string
           user_id: string
@@ -1039,6 +1133,7 @@ export type Database = {
           ask_before_contributing?: boolean
           created_at?: string
           default_share_intent?: string
+          organization_id?: string | null
           sensitive_by_default?: boolean
           updated_at?: string
           user_id: string
@@ -1048,11 +1143,20 @@ export type Database = {
           ask_before_contributing?: boolean
           created_at?: string
           default_share_intent?: string
+          organization_id?: string | null
           sensitive_by_default?: boolean
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "privacy_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1252,6 +1356,9 @@ export type Database = {
           owner_id: string
           proactive_synthesis_enabled: boolean
           serpapi_enabled: boolean
+          shared_aggregation_enabled: boolean
+          shared_min_distinct_users: number
+          shared_window_days: number
           updated_at: string
           weather_enabled: boolean
         }
@@ -1270,6 +1377,9 @@ export type Database = {
           owner_id: string
           proactive_synthesis_enabled?: boolean
           serpapi_enabled?: boolean
+          shared_aggregation_enabled?: boolean
+          shared_min_distinct_users?: number
+          shared_window_days?: number
           updated_at?: string
           weather_enabled?: boolean
         }
@@ -1288,6 +1398,9 @@ export type Database = {
           owner_id?: string
           proactive_synthesis_enabled?: boolean
           serpapi_enabled?: boolean
+          shared_aggregation_enabled?: boolean
+          shared_min_distinct_users?: number
+          shared_window_days?: number
           updated_at?: string
           weather_enabled?: boolean
         }
@@ -1446,6 +1559,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       memory_search: {
         Args: {
           _match_count?: number
@@ -1484,6 +1601,10 @@ export type Database = {
           _window_seconds: number
         }
         Returns: boolean
+      }
+      shared_candidate_strength: {
+        Args: { _geohash: string; _note_type: string; _window_days?: number }
+        Returns: number
       }
     }
     Enums: {
