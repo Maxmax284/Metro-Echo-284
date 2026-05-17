@@ -180,9 +180,23 @@ export function MemorySurface() {
           <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
           <p className="text-xs text-muted-foreground">Search the substrate. Capture, connect, recall.</p>
         </div>
-        <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
-          <Plus className="h-4 w-4" /> New
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant={view === "corrections" ? "default" : "ghost"}
+            onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
+            className="gap-1"
+            title="Field notes & corrections"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">Corrections</span>
+          </Button>
+          {view === "notes" && (
+            <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
+              <Plus className="h-4 w-4" /> New
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 pb-2">
