@@ -21,10 +21,6 @@ import { toast } from "sonner";
 export function MiniRadarStrip({ className }: { className?: string }) {
   const { place, snapshot, snapshotLoading, refreshSnapshot } = useAwareness();
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(false);
-
-  const { place, snapshot, snapshotLoading, refreshSnapshot } = useAwareness();
-  const isMobile = useIsMobile();
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
   const [open, setOpen] = useState(false);
