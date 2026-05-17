@@ -3,6 +3,7 @@
 // confidence + sources. Phase C of Sherlock & Core Gap Closure.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,8 +15,9 @@ const Body = z.object({
   section: z.string().optional(),
 });
 
-const SYS = `You are Vanta's awareness layer. Answer one short, practical place-based question.
-Tone: calm, grounded, no tourist fluff, no emoji. Cite specifics from the provided place context where relevant.
+const SYS = `${AWARENESS_VOICE}
+
+You are answering one short, practical place-based question. Cite specifics from the provided place context where relevant.
 If you do not actually know, say so plainly. Never invent specific addresses, prices, or times.
 Hard cap: 140 words. Final line must be: confidence: low|medium|high`;
 
