@@ -98,7 +98,56 @@ async function fetchRedditPublic(query: string): Promise<CommunityItem[]> {
       created_utc: typeof d.created_utc === "number" ? d.created_utc : undefined,
     };
   });
-}
+    }
+
+    // Community signals: SerpApi Reddit primary -> public reddit.com fallback.
+    // Both paths kill-switched independently so the skeleton is ready for more
+    // sources (HN, forums, Bluesky...) without further plumbing.
+    let community: CommunityItem[] = [];
+    const communityQuery = `${place.label} ${place.country ?? ""}`.trim();
+    const communityCacheKey = `community:${place.label}:${(geo?.lat ?? 0).toFixed(2)},${(geo?.lon ?? 0).toFixed(2)}`;
+
+    if (SERPAPI_KEY) {
+      const r1 = await runGuarded<CommunityItem[]>(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "reddit-serpapi",
+          feature: "awareness.community.reddit",
+          query: communityCacheKey,
+          location: geo ?? undefined,
+          cache_ttl_seconds: 60 * 60,
+          related_entity_type: "awareness_place",
+          related_entity_id: place_id,
+        },
+        () => fetchRedditViaSerpApi(SERPAPI_KEY!, communityQuery),
+      );
+      if (r1.ok && r1.data?.length) {
+        community = r1.data;
+        sources_used.push(r1.cached ? "reddit-serpapi:cached" : "reddit-serpapi");
+      }
+    }
+
+    if (community.length === 0) {
+      const r2 = await runGuarded<CommunityItem[]>(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "reddit-public",
+          feature: "awareness.community.reddit_public",
+          query: communityCacheKey,
+          location: geo ?? undefined,
+          cache_ttl_seconds: 30 * 60,
+          related_entity_type: "awareness_place",
+          related_entity_id: place_id,
+        },
+        () => fetchRedditPublic(communityQuery),
+      );
+      if (r2.ok && r2.data?.length) {
+        community = r2.data;
+        sources_used.push(r2.cached ? "reddit-public:cached" : "reddit-public");
+      }
+    }
 
 
 Deno.serve(async (req: Request) => {
