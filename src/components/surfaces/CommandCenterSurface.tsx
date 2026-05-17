@@ -10,6 +10,7 @@ import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
 
 type Counts = {
   pendingApprovals: number;
