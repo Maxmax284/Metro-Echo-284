@@ -45,6 +45,25 @@ type Ping = {
   delay: number;
 };
 
+// Stage 6 — Street Signal: classify sources into a trust hierarchy.
+// Tier order = display order (top = most authoritative).
+type SourceTier = "official" | "local" | "community" | "web" | "ai";
+const TIER_META: Record<SourceTier, { label: string; hint: string; tone: string }> = {
+  official: { label: "Official",  hint: "Weather, calendars, gov feeds", tone: "bg-primary/15 text-primary ring-primary/40" },
+  local:    { label: "Local",     hint: "Maps, nearby places, transit",  tone: "bg-signal/15 text-signal-foreground ring-signal/40" },
+  community:{ label: "Community", hint: "Reddit, forums, local chatter (kill-switched)", tone: "bg-accent/15 text-accent ring-accent/40" },
+  web:      { label: "Web",       hint: "Search, news, broad lookups",   tone: "bg-warn/15 text-warn-foreground ring-warn/40" },
+  ai:       { label: "AI",        hint: "Synthesis layer over above",    tone: "bg-muted/40 text-muted-foreground ring-border/60" },
+};
+function tierFor(source: string): SourceTier {
+  const s = source.toLowerCase();
+  if (s.includes("reddit") || s.includes("forum") || s.includes("community")) return "community";
+  if (s.includes("weather") || s.includes("meteo") || s.includes("calendar") || s.includes("gov")) return "official";
+  if (s.includes("local") || s.includes("places") || s.includes("nearby") || s.includes("maps") || s.includes("transit")) return "local";
+  if (s.includes("gemini") || s.includes("lovable-ai") || s.includes("synthesis") || s.includes("brief")) return "ai";
+  return "web";
+}
+
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -138,6 +157,16 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const summary = compact?.summary;
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
+
+  // Stage 6 — group sources by trust tier for the Street Signal panel.
+  const tieredSources = useMemo(() => {
+    const map: Record<SourceTier, string[]> = { official: [], local: [], community: [], web: [], ai: [] };
+    for (const s of sources) map[tierFor(s)].push(s);
+    return map;
+  }, [sources]);
+  const tierOrder: SourceTier[] = ["official", "local", "community", "web", "ai"];
+  // Street/community tier currently rides the SerpApi switch — when it's off, we surface that.
+  const streetDisabled = !!controls && !controls.serpapi_enabled;
 
   // Build pings: snapshot sources + non-empty briefings + pinned (deduped by key)
   const pings = useMemo<Ping[]>(() => {
@@ -264,10 +293,11 @@ export function AwarenessHUD({ className }: { className?: string }) {
           <g
             key={p.key}
             onClick={() => openPing(p.key)}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", animationDelay: `${p.delay}s` }}
             role="button"
             tabIndex={0}
             aria-label={`Open ${p.label}`}
+            className="radar-fade-in"
           >
             {/* invisible hit target — bigger than the dot */}
             <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
@@ -313,7 +343,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   return (
     <>
       <Card className={cn("border-border/60 bg-surface-elevated/40 p-3", className)}>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
             <Radar className="h-3 w-3 text-primary" /> Radar
           </div>
@@ -408,16 +438,29 @@ export function AwarenessHUD({ className }: { className?: string }) {
           </div>
         )}
 
-        {sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {sources.map((s) => (
-              <span
-                key={s}
-                className="rounded-full bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
-              >
-                {s}
-              </span>
-            ))}
+        {(sources.length > 0 || streetDisabled) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {tierOrder.map((t) => {
+              const items = tieredSources[t];
+              if (!items.length && !(t === "community" && streetDisabled)) return null;
+              const meta = TIER_META[t];
+              const off = t === "community" && streetDisabled;
+              return (
+                <span
+                  key={t}
+                  title={off ? `${meta.label} tier paused (SerpApi off)` : meta.hint}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                    off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,
+                  )}
+                >
+                  {meta.label}
+                  <span className="opacity-70 normal-case tracking-normal">
+                    {items.length || (off ? "off" : 0)}
+                  </span>
+                </span>
+              );
+            })}
           </div>
         )}
       </Card>
@@ -534,18 +577,59 @@ export function AwarenessHUD({ className }: { className?: string }) {
               </div>
             )}
 
-            {sources.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {sources.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
-                  >
-                    {s}
-                  </span>
-                ))}
+            {/* Stage 6 — Street Signal hierarchy */}
+            <div className="rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Source hierarchy</div>
+                <span className="text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                  guarded · cached
+                </span>
               </div>
-            )}
+              <ul className="space-y-1.5">
+                {tierOrder.map((t) => {
+                  const items = tieredSources[t];
+                  const meta = TIER_META[t];
+                  const off = t === "community" && streetDisabled;
+                  if (!items.length && !off) return null;
+                  return (
+                    <li key={t} className="flex items-start gap-2 text-[12px]">
+                      <span
+                        className={cn(
+                          "mt-[1px] inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                          off ? "bg-muted/30 text-muted-foreground ring-border/60" : meta.tone,
+                        )}
+                      >
+                        {meta.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        {items.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {items.map((s) => (
+                              <span
+                                key={s}
+                                className="rounded bg-muted/40 px-1.5 py-0.5 text-[10.5px] text-foreground/80 ring-1 ring-border/60"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11.5px] italic text-muted-foreground">
+                            {off ? "Paused — SerpApi off" : "—"}
+                          </span>
+                        )}
+                        <div className="mt-0.5 text-[10.5px] text-muted-foreground">{meta.hint}</div>
+                      </div>
+                    </li>
+                  );
+                })}
+                {sources.length === 0 && !streetDisabled && (
+                  <li className="text-[11.5px] italic text-muted-foreground">
+                    No sources fed this snapshot yet.
+                  </li>
+                )}
+              </ul>
+            </div>
 
             {snapshot?.full_data && (
               <details className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3">
