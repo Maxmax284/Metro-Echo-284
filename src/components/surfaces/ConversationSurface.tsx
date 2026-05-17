@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
+import { CompanionTools } from "@/components/companion/CompanionTools";
 
 type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
 
@@ -124,6 +125,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   return (
     <div className="flex h-full flex-col">
+      {!readOnly && <CompanionTools onPick={(p) => { if (!busy) void send(p); }} />}
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
