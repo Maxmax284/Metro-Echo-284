@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
+import { SignalCard } from "@/components/awareness/SignalCard";
 
 const PIN_STORE_KEY = "vanta:awareness:pinned"; // { [placeId]: string[] }
 function loadPinned(placeId: string): string[] {
@@ -157,6 +158,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const summary = compact?.summary;
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
+  const locationWarning = (compact as any)?.location_warning ?? null;
 
   // Stage 6 — group sources by trust tier for the Street Signal panel.
   const tieredSources = useMemo(() => {
@@ -415,6 +417,12 @@ export function AwarenessHUD({ className }: { className?: string }) {
           </div>
         </div>
 
+        {locationWarning && (
+          <div className="mt-3">
+            <SignalCard signal={locationWarning} compact generatedAt={generated} />
+          </div>
+        )}
+
         {pinned.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1">
             <Pin className="h-2.5 w-2.5 text-primary/80" />
@@ -480,6 +488,14 @@ export function AwarenessHUD({ className }: { className?: string }) {
               <RadarCanvas size={220} />
             </div>
 
+            {locationWarning && (
+              <SignalCard
+                signal={locationWarning}
+                generatedAt={generated}
+                onRoute={(route) => toast(`Route: ${route}`)}
+              />
+            )}
+
             {/* Focused ping panel */}
             {(() => {
               if (!focusedKey) return null;
@@ -520,17 +536,14 @@ export function AwarenessHUD({ className }: { className?: string }) {
                   </div>
                   <div className="text-sm font-medium capitalize">{ping.label}</div>
                   {briefing ? (
-                    <>
-                      <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/90">
-                        {briefing.content}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                        {briefing.confidence && (
-                          <span className="uppercase tracking-wider">confidence: {briefing.confidence}</span>
-                        )}
-                        <span>· {formatDistanceToNow(new Date(briefing.generated_at), { addSuffix: true })}</span>
-                      </div>
-                    </>
+                    <div className="mt-2">
+                      <SignalCard
+                        signal={briefing.signal ?? { title: ping.label, short_summary: briefing.content, confidence: briefing.confidence ?? "low" }}
+                        fallbackBody={briefing.content}
+                        generatedAt={briefing.generated_at}
+                        onRoute={(route) => toast(`Route: ${route}`)}
+                      />
+                    </div>
                   ) : (
                     <p className="mt-1.5 text-[12px] text-muted-foreground">
                       Source feeding the current snapshot. {generated ? `Last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}.` : ""}

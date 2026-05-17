@@ -20,6 +20,7 @@ export type AwarenessBriefing = {
   content: string;
   confidence: AwarenessConfidence | null;
   generated_at: string;
+  signal?: unknown | null;
 };
 
 export type AwarenessSlice = {
@@ -119,7 +120,7 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     if (active?.id) {
       const { data: b } = await supabase
         .from("awareness_briefings")
-        .select("id,section,content,confidence,generated_at")
+        .select("id,section,content,confidence,generated_at,signal")
         .eq("place_id", active.id)
         .order("generated_at", { ascending: false });
       setBriefings((b ?? []) as AwarenessBriefing[]);

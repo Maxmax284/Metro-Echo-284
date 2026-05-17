@@ -7,6 +7,7 @@ import { Loader2, MapPin, RefreshCcw, Sparkles, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
+import { SignalCard } from "@/components/awareness/SignalCard";
 
 export function AwarenessSurface() {
   const { session } = useAuth();
@@ -152,17 +153,18 @@ export function AwarenessSurface() {
                 // Only show briefings from provider when this is the active place
                 const b = activePlaceFromProvider?.id === activePlace.id ? latestBySection[s] : undefined;
                 const busy = generating === s && activePlaceFromProvider?.id === activePlace.id;
+                const sameActive = activePlaceFromProvider?.id === activePlace.id;
                 return (
-                  <div key={s} className="rounded-xl surface-elevated p-3 ring-1 ring-border/60">
+                  <div key={s} className="space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium capitalize">{s}</h4>
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={busy || activePlaceFromProvider?.id !== activePlace.id}
+                        disabled={busy || !sameActive}
                         onClick={() => generate(s)}
                         className="gap-1"
-                        title={activePlaceFromProvider?.id !== activePlace.id ? "Briefings only for the most recent place in this stage" : undefined}
+                        title={!sameActive ? "Briefings only for the most recent place in this stage" : undefined}
                       >
                         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
                           b ? <RefreshCcw className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -170,16 +172,16 @@ export function AwarenessSurface() {
                       </Button>
                     </div>
                     {b ? (
-                      <div className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground/90">
-                        {b.content}
-                        {b.confidence && (
-                          <p className="mt-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-                            confidence: {b.confidence}
-                          </p>
-                        )}
-                      </div>
+                      <SignalCard
+                        signal={b.signal ?? { title: s, short_summary: b.content, confidence: b.confidence ?? "low" }}
+                        fallbackBody={b.content}
+                        generatedAt={b.generated_at}
+                        onRoute={(route) => toast(`Route: ${route}`)}
+                      />
                     ) : (
-                      <p className="mt-1 text-[12.5px] text-muted-foreground">No briefing yet.</p>
+                      <p className="rounded-xl border border-dashed border-border/60 p-3 text-[12.5px] text-muted-foreground">
+                        No briefing yet.
+                      </p>
                     )}
                   </div>
                 );
