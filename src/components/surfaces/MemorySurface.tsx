@@ -199,6 +199,12 @@ export function MemorySurface() {
         </div>
       </div>
 
+      {view === "corrections" ? (
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+          <CorrectionsCenter />
+        </div>
+      ) : (
+      <>
       <div className="px-4 pb-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
