@@ -118,10 +118,29 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Stage 3 — load active user corrections for this signal type. They
+    // become evidence in the prompt + can force a confidence downgrade.
+    const { data: corrections } = await supabase
+      .from("corrections")
+      .select("feedback_type, user_note, confidence_impact, created_at")
+      .eq("surface", "awareness")
+      .eq("target_type", `signal:${section}`)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    const hasInvalidate = (corrections ?? []).some((c: any) => c.confidence_impact === "invalidate");
+    const correctionBlock = (corrections ?? []).length
+      ? `\n\nUser corrections on past "${section}" signals (treat as authoritative ground truth, respect them):\n` +
+        (corrections ?? []).map((c: any) =>
+          `- [${c.feedback_type}] ${c.user_note ?? "(no note)"} — said ${new Date(c.created_at).toISOString().slice(0,10)}`
+        ).join("\n")
+      : "";
+
     let signal: VantaSignal;
     let usedFallback = false;
     try {
-      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, place));
+      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, place) + correctionBlock);
       const validated = VantaSignalSchema.safeParse(raw);
       if (validated.success && validated.data.signal_type === section) {
         signal = validated.data;
@@ -145,6 +164,19 @@ Deno.serve(async (req: Request) => {
         source_labels: ["internal"],
         reason: "The AI gateway didn't respond cleanly. Cached and internal context preserved.",
       });
+    }
+
+    // Deterministic: if the user has invalidated this signal type, force low
+    // confidence and surface the conflict — never silently override the user.
+    if (hasInvalidate) {
+      signal = {
+        ...signal,
+        confidence: "low",
+        requires_confirmation: true,
+        confirmation_reason: signal.confirmation_reason
+          || "You previously flagged this kind of signal as wrong. Verify before relying on it.",
+        source_labels: Array.from(new Set([...(signal.source_labels ?? []), "memory"])),
+      };
     }
 
     // Persist: keep `content` populated (short_summary) for back-compat with

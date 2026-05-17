@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
+import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 
 type HitKind = "note" | "message" | "commitment";
 const HIT_KINDS: { id: HitKind | "all"; label: string }[] = [
@@ -44,6 +45,7 @@ export function MemorySurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
+  const [view, setView] = useState<"notes" | "corrections">("notes");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -178,11 +180,31 @@ export function MemorySurface() {
           <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
           <p className="text-xs text-muted-foreground">Search the substrate. Capture, connect, recall.</p>
         </div>
-        <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
-          <Plus className="h-4 w-4" /> New
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            size="sm"
+            variant={view === "corrections" ? "default" : "ghost"}
+            onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
+            className="gap-1"
+            title="Field notes & corrections"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span className="hidden sm:inline">Corrections</span>
+          </Button>
+          {view === "notes" && (
+            <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
+              <Plus className="h-4 w-4" /> New
+            </Button>
+          )}
+        </div>
       </div>
 
+      {view === "corrections" ? (
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+          <CorrectionsCenter />
+        </div>
+      ) : (
+      <>
       <div className="px-4 pb-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -383,6 +405,8 @@ export function MemorySurface() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
