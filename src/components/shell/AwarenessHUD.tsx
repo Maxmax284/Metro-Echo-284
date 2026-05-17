@@ -209,7 +209,16 @@ export function AwarenessHUD({ className }: { className?: string }) {
 
         {/* pings */}
         {pings.map((p) => (
-          <g key={p.key}>
+          <g
+            key={p.key}
+            onClick={() => openPing(p.key)}
+            style={{ cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${p.label}`}
+          >
+            {/* invisible hit target — bigger than the dot */}
+            <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
             <circle
               cx={p.cx}
               cy={p.cy}
@@ -227,6 +236,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
               className="radar-ping-pulse"
               style={{ animationDelay: `${p.delay}s` }}
             />
+            <title>{p.label}</title>
           </g>
         ))}
 
