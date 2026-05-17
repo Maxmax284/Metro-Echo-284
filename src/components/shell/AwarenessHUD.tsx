@@ -1,14 +1,32 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAwareness, AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Cloud, Loader2, Maximize2, MapPin, RefreshCcw, Radar, Thermometer, Sparkles } from "lucide-react";
+import { Cloud, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
+
+const PIN_STORE_KEY = "vanta:awareness:pinned"; // { [placeId]: string[] }
+function loadPinned(placeId: string): string[] {
+  try {
+    const raw = localStorage.getItem(PIN_STORE_KEY);
+    if (!raw) return [];
+    const m = JSON.parse(raw) as Record<string, string[]>;
+    return Array.isArray(m[placeId]) ? m[placeId] : [];
+  } catch { return []; }
+}
+function savePinned(placeId: string, keys: string[]) {
+  try {
+    const raw = localStorage.getItem(PIN_STORE_KEY);
+    const m: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+    m[placeId] = keys;
+    localStorage.setItem(PIN_STORE_KEY, JSON.stringify(m));
+  } catch { /* ignore */ }
+}
 
 /**
  * AwarenessHUD — Stage 3.
@@ -23,6 +41,7 @@ type Ping = {
   cx: number;
   cy: number;
   strong: boolean;
+  pinned: boolean;
   delay: number;
 };
 
@@ -57,6 +76,22 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
+  const [pinned, setPinned] = useState<string[]>([]);
+
+  // Load pinned keys when place changes
+  useEffect(() => {
+    if (!place) { setPinned([]); return; }
+    setPinned(loadPinned(place.id));
+  }, [place?.id]);
+
+  const togglePin = (key: string) => {
+    if (!place) return;
+    setPinned((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      savePinned(place.id, next);
+      return next;
+    });
+  };
 
   const openPing = (key: string) => {
     setFocusedKey(key);
@@ -104,22 +139,24 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
 
-  // Build pings: snapshot sources + non-empty briefings (deduped by label)
+  // Build pings: snapshot sources + non-empty briefings + pinned (deduped by key)
   const pings = useMemo<Ping[]>(() => {
+    const pinnedSet = new Set(pinned);
     const out: Ping[] = [];
     const seen = new Set<string>();
     let i = 0;
     for (const s of sources) {
-      if (seen.has(s)) continue;
-      seen.add(s);
+      const key = `src:${s}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
       const angle = hashAngle(s);
       const r = radiusFor(generated);
       out.push({
-        key: `src:${s}`,
-        label: s,
+        key, label: s,
         cx: 50 + Math.cos(angle) * r,
         cy: 50 + Math.sin(angle) * r,
         strong: true,
+        pinned: pinnedSet.has(key),
         delay: (i++ % 5) * 0.35,
       });
     }
@@ -132,16 +169,31 @@ export function AwarenessHUD({ className }: { className?: string }) {
       const angle = hashAngle(section);
       const r = radiusFor(b.generated_at);
       out.push({
-        key,
-        label: section,
+        key, label: section,
         cx: 50 + Math.cos(angle) * r,
         cy: 50 + Math.sin(angle) * r,
         strong: b.confidence === "high",
+        pinned: pinnedSet.has(key),
+        delay: (i++ % 5) * 0.35,
+      });
+    }
+    // Ghost pings for pinned keys that no longer have backing data — keep them visible
+    for (const key of pinned) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const label = key.startsWith("brief:") ? key.slice(6) : key.startsWith("src:") ? key.slice(4) : key;
+      const angle = hashAngle(label);
+      out.push({
+        key, label,
+        cx: 50 + Math.cos(angle) * 35,
+        cy: 50 + Math.sin(angle) * 35,
+        strong: false,
+        pinned: true,
         delay: (i++ % 5) * 0.35,
       });
     }
     return out;
-  }, [sources, generated, latestBySection]);
+  }, [sources, generated, latestBySection, pinned]);
 
   // Top signals (max 3): weather, summary, freshest briefing
   const topSignals = useMemo(() => {
@@ -222,21 +274,33 @@ export function AwarenessHUD({ className }: { className?: string }) {
             <circle
               cx={p.cx}
               cy={p.cy}
-              r={p.strong ? 1.6 : 1.2}
-              fill="hsl(var(--primary))"
+              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
+              fill={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
               opacity={0.95}
             />
             <circle
               cx={p.cx}
               cy={p.cy}
-              r={p.strong ? 1.6 : 1.2}
+              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
               fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth={0.4}
+              stroke={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
+              strokeWidth={p.pinned ? 0.6 : 0.4}
               className="radar-ping-pulse"
               style={{ animationDelay: `${p.delay}s` }}
             />
-            <title>{p.label}</title>
+            {p.pinned && (
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r={4}
+                fill="none"
+                stroke="hsl(var(--accent, var(--primary)))"
+                strokeOpacity={0.55}
+                strokeWidth={0.5}
+                strokeDasharray="1 1.2"
+              />
+            )}
+            <title>{p.label}{p.pinned ? " · pinned" : ""}</title>
           </g>
         ))}
 
@@ -321,6 +385,29 @@ export function AwarenessHUD({ className }: { className?: string }) {
           </div>
         </div>
 
+        {pinned.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            <Pin className="h-2.5 w-2.5 text-primary/80" />
+            {pinned.map((key) => {
+              const label = key.startsWith("brief:") ? key.slice(6) : key.startsWith("src:") ? key.slice(4) : key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => openPing(key)}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-primary ring-1 ring-primary/30 hover:bg-primary/15"
+                  title="Open pinned signal"
+                >
+                  {label}
+                  <PinOff
+                    className="h-2.5 w-2.5 opacity-60 hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); togglePin(key); }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {sources.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {sources.map((s) => (
@@ -360,16 +447,33 @@ export function AwarenessHUD({ className }: { className?: string }) {
               const briefing = section ? latestBySection[section] : null;
               return (
                 <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
-                  <div className="mb-1.5 flex items-center justify-between">
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
                     <div className="text-[10px] uppercase tracking-wider text-primary">
                       Focused · {isBrief ? "Briefing" : "Source"}
                     </div>
-                    <button
-                      onClick={() => setFocusedKey(null)}
-                      className="text-[10px] text-muted-foreground hover:text-foreground"
-                    >
-                      Clear
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          togglePin(ping.key);
+                          toast(pinned.includes(ping.key) ? "Unpinned from radar" : "Pinned to radar");
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1 transition-colors",
+                          pinned.includes(ping.key)
+                            ? "bg-primary/15 text-primary ring-primary/40"
+                            : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
+                        )}
+                      >
+                        {pinned.includes(ping.key) ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                        {pinned.includes(ping.key) ? "Pinned" : "Pin"}
+                      </button>
+                      <button
+                        onClick={() => setFocusedKey(null)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
                   <div className="text-sm font-medium capitalize">{ping.label}</div>
                   {briefing ? (
