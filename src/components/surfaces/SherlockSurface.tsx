@@ -283,8 +283,15 @@ export function SherlockSurface() {
           {investigations.map((inv) => {
             const isOpen = openId === inv.id;
             const findings = findingsByInv[inv.id] ?? [];
+            const isJustFinished = justFinishedId === inv.id;
             return (
-              <Card key={inv.id} className="p-3 space-y-2">
+              <Card
+                key={inv.id}
+                className={cn(
+                  "p-3 space-y-2 transition-shadow",
+                  isJustFinished && "ring-1 ring-primary/50 shadow-[0_0_0_3px_hsl(var(--primary)/0.08)]",
+                )}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <button
                     className="flex-1 text-left"
@@ -295,8 +302,14 @@ export function SherlockSurface() {
                     }}
                   >
                     <p className="text-sm font-medium leading-snug">{inv.question}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span>{formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}</span>
+                      {findings.length > 0 && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>{findings.length} finding{findings.length === 1 ? "" : "s"}</span>
+                        </>
+                      )}
                     </p>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
@@ -326,8 +339,11 @@ export function SherlockSurface() {
                         {findings.map((f) => (
                           <li key={f.id} className="rounded-md bg-surface-elevated p-2 text-xs">
                             <div className="flex items-start justify-between gap-2">
-                              <span className="leading-snug">{f.claim}</span>
-                              <Badge variant="outline" className="shrink-0 text-[9px]">{f.confidence}</Badge>
+                              <span className="flex-1 leading-snug">
+                                <StatusDot tone={confidenceTone(f.confidence)} className="mr-1.5 -translate-y-0.5" title={`${f.confidence} confidence`} />
+                                {f.claim}
+                              </span>
+                              <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{f.confidence}</Badge>
                             </div>
                             {f.source_kind && (
                               <p className="mt-1 text-[10px] text-muted-foreground">
