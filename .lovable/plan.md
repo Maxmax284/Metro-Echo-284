@@ -1,20 +1,26 @@
-# Stages 3b + 4 + 5 — HUD port · Sherlock scopes · Memory filters
+# V3 Stages 6 + 7 — Street Signal · Motion + Mobile
 
-## 3b — Awareness tab HUD port
-- `AwarenessSurface.tsx` prepends `<AwarenessHUD />` and a quick-generate row of section chips (per AWARENESS_SECTIONS) → calls `generate(s)` from the provider.
+## 6 — Street Signal (source hierarchy, kill-switched)
+- Added a `tierFor()` classifier mapping each `sources_used` string into a tier:
+  Official · Local · Community · Web · AI.
+- HUD card now renders a compact **tier-count chip strip** (replacing the flat per-source chips).
+  Community tier renders struck-through + "off" when SerpApi is paused — the same kill switch
+  governs street/community ingest today.
+- HUD drawer now renders a full **Source hierarchy** panel listing each tier with its hint
+  ("Maps, nearby places, transit", "Reddit, forums, local chatter (kill-switched)", etc.)
+  and the underlying source names beneath each tier badge.
+- No new edge functions, providers, or schema; piggybacks on existing `apiGuard` switches.
 
-## 4 — Sherlock surface
-- Scope chips (all / notes / commitments / actions / awareness / files) prefix the question with a `[Scope: …]` hint before invoking `sherlock-investigate`.
-- Target cards: recent commitments / notes / actions; tap to auto-seed question + scope.
-- Per-investigation Maximize icon → `openSherlock({ entity_type: "freeform", … })` overlay reuse.
-- Structured dashed empty state with radar glyph.
-
-## 5 — Memory substrate
-- Search hits get type-filter chips (All / Notes / Messages / Commitments) with per-kind counts.
-- Filtered + zero states with dashed border + iconography.
-- Notes empty state upgraded with Inbox icon + capture hint.
+## 7 — Motion + Mobile pass
+- New `radar-fade-in` keyframe applied to each ping `<g>` with the existing stagger delay,
+  so pings emerge instead of snapping in.
+- New `motion-drawer-in` utility + `drawer-slide-up` keyframe (available for any panel
+  that wants a softer slide).
+- `prefers-reduced-motion` block extended to disable all four animations.
+- HUD header row switched to `flex-wrap` so the SerpApi pill + Expand + Refresh buttons
+  reflow cleanly at 384 px instead of clipping.
 
 ## Notes
-- No schema, edge function, or provider changes.
-- HUD remains the same component on both surfaces; provider is the binding layer.
-- Stages 6 (Street Signal) + 7 (Motion + Mobile) remain.
+- Out of scope: real Reddit ingest. The Community tier surface is now ready for a future
+  guarded fetcher behind a `reddit_enabled` switch — the UI already speaks the language.
+- All V3 spec stages now complete.
