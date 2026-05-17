@@ -58,6 +58,21 @@ function worstConfidence(values: (AwarenessConfidence | null)[]): AwarenessConfi
   return worst;
 }
 
+export type AwarenessSnapshot = {
+  id: string;
+  compact: {
+    place?: { id: string; label: string };
+    weather?: { tempC: number | null; condition: string | null; updated_at: string } | null;
+    summary?: string | null;
+    briefing_count?: number;
+    generated_at?: string;
+  };
+  full_data: any;
+  sources_used: string[];
+  generated_at: string;
+  expires_at: string;
+};
+
 type Ctx = {
   place: AwarenessPlace | null;
   briefings: AwarenessBriefing[];
@@ -68,6 +83,9 @@ type Ctx = {
   generating: string | null;
   getSlice: (sections?: readonly string[]) => AwarenessSlice;
   overall: AwarenessSlice;
+  snapshot: AwarenessSnapshot | null;
+  snapshotLoading: boolean;
+  refreshSnapshot: (force?: boolean) => Promise<void>;
 };
 
 const AwarenessCtx = createContext<Ctx | null>(null);
