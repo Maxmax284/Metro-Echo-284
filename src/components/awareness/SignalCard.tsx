@@ -12,6 +12,7 @@ import {
 import { stripMarkdown } from "@/lib/markdown";
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 
 type Props = {
   /** Anything: a full VantaSignal, a partial, legacy briefing, etc. */
