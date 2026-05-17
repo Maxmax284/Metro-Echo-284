@@ -55,7 +55,13 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
   const [open, setOpen] = useState(false);
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
+
+  const openPing = (key: string) => {
+    setFocusedKey(key);
+    setOpen(true);
+  };
 
   const toggleSerp = async () => {
     if (!controls || serpBusy) return;
@@ -203,7 +209,16 @@ export function AwarenessHUD({ className }: { className?: string }) {
 
         {/* pings */}
         {pings.map((p) => (
-          <g key={p.key}>
+          <g
+            key={p.key}
+            onClick={() => openPing(p.key)}
+            style={{ cursor: "pointer" }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${p.label}`}
+          >
+            {/* invisible hit target — bigger than the dot */}
+            <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
             <circle
               cx={p.cx}
               cy={p.cy}
@@ -221,6 +236,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
               className="radar-ping-pulse"
               style={{ animationDelay: `${p.delay}s` }}
             />
+            <title>{p.label}</title>
           </g>
         ))}
 
@@ -333,6 +349,49 @@ export function AwarenessHUD({ className }: { className?: string }) {
             <div className="flex justify-center">
               <RadarCanvas size={220} />
             </div>
+
+            {/* Focused ping panel */}
+            {(() => {
+              if (!focusedKey) return null;
+              const ping = pings.find((p) => p.key === focusedKey);
+              if (!ping) return null;
+              const isBrief = focusedKey.startsWith("brief:");
+              const section = isBrief ? focusedKey.slice("brief:".length) : null;
+              const briefing = section ? latestBySection[section] : null;
+              return (
+                <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <div className="text-[10px] uppercase tracking-wider text-primary">
+                      Focused · {isBrief ? "Briefing" : "Source"}
+                    </div>
+                    <button
+                      onClick={() => setFocusedKey(null)}
+                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <div className="text-sm font-medium capitalize">{ping.label}</div>
+                  {briefing ? (
+                    <>
+                      <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground/90">
+                        {briefing.content}
+                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+                        {briefing.confidence && (
+                          <span className="uppercase tracking-wider">confidence: {briefing.confidence}</span>
+                        )}
+                        <span>· {formatDistanceToNow(new Date(briefing.generated_at), { addSuffix: true })}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-1.5 text-[12px] text-muted-foreground">
+                      Source feeding the current snapshot. {generated ? `Last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}.` : ""}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             {topSignals.length > 0 && (
               <div className="rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
