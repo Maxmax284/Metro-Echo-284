@@ -268,3 +268,15 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     </div>
   );
 }
+
+// Stage 6 — bridge that wires Companion prefill into the dock.
+function ConversationDockBridge(props: React.ComponentProps<typeof ConversationDock>) {
+  const { prefill, setPrefill } = useCompanion();
+  return (
+    <ConversationDock
+      {...props}
+      initialText={prefill}
+      onInitialTextConsumed={() => setPrefill(null)}
+    />
+  );
+}
