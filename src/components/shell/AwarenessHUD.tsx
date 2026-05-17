@@ -385,6 +385,29 @@ export function AwarenessHUD({ className }: { className?: string }) {
           </div>
         </div>
 
+        {pinned.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            <Pin className="h-2.5 w-2.5 text-primary/80" />
+            {pinned.map((key) => {
+              const label = key.startsWith("brief:") ? key.slice(6) : key.startsWith("src:") ? key.slice(4) : key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => openPing(key)}
+                  className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-primary ring-1 ring-primary/30 hover:bg-primary/15"
+                  title="Open pinned signal"
+                >
+                  {label}
+                  <PinOff
+                    className="h-2.5 w-2.5 opacity-60 hover:opacity-100"
+                    onClick={(e) => { e.stopPropagation(); togglePin(key); }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {sources.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {sources.map((s) => (
