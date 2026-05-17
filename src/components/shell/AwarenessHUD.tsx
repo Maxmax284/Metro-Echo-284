@@ -94,6 +94,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   } = useAwareness();
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
+  const onSignalRoute = useSignalRoute();
   const [open, setOpen] = useState(false);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
