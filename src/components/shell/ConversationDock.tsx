@@ -1,7 +1,10 @@
-import { ArrowUp, Loader2, Mic, MicOff } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowUp, Loader2, Mic, MicOff, Paperclip } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
+import type { AppMode } from "@/hooks/useMode";
+import type { SystemControls } from "@/hooks/useSystemControls";
 
 function timeAwarePlaceholder(): string {
   const h = new Date().getHours();
@@ -31,23 +34,58 @@ function getSpeechRecognition(): { new (): SR } | null {
   return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
 }
 
+type Props = {
+  placeholder?: string;
+  busy?: boolean;
+  onSend: (text: string) => void | Promise<void>;
+  /** Optional: attach button is shown when this is provided. */
+  onAttach?: (files: FileList) => void | Promise<void>;
+  /** Optional: slash palette picks a registry tool by id. */
+  onSlashPick?: (toolId: string) => void;
+  /** Required for slash palette filtering. */
+  surface?: string;
+  mode?: AppMode;
+  isOwner?: boolean | null;
+  controls?: SystemControls | null;
+};
+
 export function ConversationDock({
   placeholder,
   busy,
   onSend,
-}: {
-  placeholder?: string;
-  busy?: boolean;
-  onSend: (text: string) => void | Promise<void>;
-}) {
+  onAttach,
+  onSlashPick,
+  surface = "conversation",
+  mode = "advisor",
+  isOwner = null,
+  controls = null,
+}: Props) {
   const [v, setV] = useState("");
   const [listening, setListening] = useState(false);
+  const [paletteIdx, setPaletteIdx] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const recRef = useRef<SR | null>(null);
   const baseRef = useRef("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const ph = placeholder ?? timeAwarePlaceholder();
   const SRClass = getSpeechRecognition();
   const speechSupported = !!SRClass;
+
+  // Slash palette state
+  const slashActive = !!onSlashPick && v.startsWith("/");
+  const slashQuery = slashActive ? v.slice(1).trim().toLowerCase() : "";
+
+  const paletteTools: Tool[] = useMemo(() => {
+    if (!slashActive) return [];
+    return COMPANION_TOOLS.filter((t) => {
+      const a = getToolAvailability(t, { surface, mode, isOwner, controls });
+      if (!a.available) return false;
+      if (!slashQuery) return true;
+      return t.label.toLowerCase().includes(slashQuery) || t.id.includes(slashQuery);
+    });
+  }, [slashActive, slashQuery, surface, mode, isOwner, controls]);
+
+  useEffect(() => { setPaletteIdx(0); }, [slashQuery, slashActive]);
 
   useEffect(() => {
     const el = ref.current;
@@ -64,6 +102,11 @@ export function ConversationDock({
     setV("");
     if (listening) stopListening();
     void onSend(t);
+  };
+
+  const pickPaletteTool = (tool: Tool) => {
+    setV("");
+    onSlashPick?.(tool.id);
   };
 
   const startListening = () => {
@@ -111,12 +154,93 @@ export function ConversationDock({
 
   return (
     <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
+      {/* Slash palette */}
+      {slashActive && paletteTools.length > 0 && (
+        <div className="mx-auto mb-1.5 w-full max-w-3xl overflow-hidden rounded-2xl glass shadow-lg backdrop-blur-md">
+          <div className="border-b border-border/40 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            Tools · ↑↓ Enter
+          </div>
+          <ul role="listbox" className="max-h-64 overflow-y-auto py-1">
+            {paletteTools.map((t, i) => {
+              const Icon = t.icon;
+              const active = i === paletteIdx;
+              return (
+                <li
+                  key={t.id}
+                  role="option"
+                  aria-selected={active}
+                  onMouseEnter={() => setPaletteIdx(i)}
+                  onMouseDown={(e) => { e.preventDefault(); pickPaletteTool(t); }}
+                  className={cn(
+                    "flex cursor-pointer items-start gap-2 px-3 py-2 text-[13px]",
+                    active ? "bg-primary/10 text-foreground" : "text-foreground/85"
+                  )}
+                >
+                  <Icon className="mt-0.5 h-3.5 w-3.5 text-primary/80" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{t.label}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">{t.description}</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
+        {onAttach && (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) void onAttach(e.target.files);
+                if (fileRef.current) fileRef.current.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+              aria-label="Attach file"
+              title="Attach"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-elevated text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+          </>
+        )}
         <textarea
           ref={ref}
           value={v}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => {
+            // Slash palette navigation
+            if (slashActive && paletteTools.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setPaletteIdx((i) => (i + 1) % paletteTools.length);
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setPaletteIdx((i) => (i - 1 + paletteTools.length) % paletteTools.length);
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                pickPaletteTool(paletteTools[paletteIdx]);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setV("");
+                return;
+              }
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               submit();
