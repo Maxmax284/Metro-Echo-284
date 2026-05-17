@@ -6,18 +6,34 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
-import { CompanionTools } from "@/components/companion/CompanionTools";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { ResearchPanel } from "@/components/research/ResearchPanel";
+import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { useAwareness } from "@/providers/AwarenessProvider";
+import { useMode } from "@/hooks/useMode";
+import { useIsOwner } from "@/hooks/useIsOwner";
+import { useSystemControls } from "@/hooks/useSystemControls";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { COMPANION_TOOLS } from "@/lib/companionTools";
 
 type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
+const MAX_BYTES = 20 * 1024 * 1024;
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
+  const { context } = useCurrentContext();
+  const { place } = useAwareness();
+  const { mode } = useMode();
+  const isOwner = useIsOwner();
+  const { controls } = useSystemControls();
+  const { openSherlock } = useSherlock();
   const [convId, setConvId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Load or create conversation
@@ -93,24 +109,20 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           if (json === "[DONE]") { done = true; break; }
           try {
             const p = JSON.parse(json);
-            // text deltas
             const delta = p.choices?.[0]?.delta?.content as string | undefined;
             if (delta) {
               assistantSoFar += delta;
               setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
             }
-            // tool call result (sent by our edge function as a sentinel event)
             if (p.intent) onIntent?.(p.intent.name, p.intent.args);
           } catch { /* partial */ }
         }
       }
 
-      // persist final assistant message
       const { data: inserted } = await supabase.from("messages").insert([
         { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
         { user_id: session.user.id, conversation_id: convId, role: "assistant", content: assistantSoFar },
       ]).select("id");
-      // Embed both messages in the background for memory search
       if (inserted) {
         const { generateEmbedding } = await import("@/lib/embeddings");
         inserted.forEach((m) => generateEmbedding("message", m.id));
@@ -123,15 +135,75 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     }
   };
 
+  // Attach: upload file → ingest → auto-run analyze-file tool
+  const handleAttach = async (files: FileList) => {
+    if (!user) return;
+    const list = Array.from(files);
+    for (const f of list) {
+      try {
+        if (f.size > MAX_BYTES) { toast.error(`${f.name} exceeds 20MB`); continue; }
+        const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
+        if (upErr) throw upErr;
+        const { data: rec, error: insErr } = await supabase
+          .from("ingested_files")
+          .insert({
+            user_id: user.id,
+            filename: f.name,
+            mime_type: f.type || null,
+            size_bytes: f.size,
+            storage_path: path,
+            source: "upload",
+            status: "pending",
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        const { error: fnErr } = await supabase.functions.invoke("files-ingest", {
+          body: { ingested_file_id: rec.id },
+        });
+        if (fnErr) throw fnErr;
+        toast.success(`${f.name} ingested`);
+        // Auto-run analyze-file registry tool
+        const analyze = COMPANION_TOOLS.find((t) => t.id === "analyze-file");
+        if (analyze?.buildPrompt && !busy) {
+          void send(analyze.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
+        }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Upload failed");
+      }
+    }
+  };
+
+  // Slash: dispatch a registry tool by id
+  const handleSlashPick = (toolId: string) => {
+    const tool = COMPANION_TOOLS.find((t) => t.id === toolId);
+    if (!tool) return;
+    if (tool.directAction === "open-sherlock") {
+      openSherlock({
+        entity_type: "freeform",
+        title: `From ${context.surface}`,
+        text: place?.label ? `Current place: ${place.label}` : undefined,
+      });
+      return;
+    }
+    if (tool.directAction === "open-research") {
+      setResearchOpen(true);
+      return;
+    }
+    if (tool.buildPrompt && !busy) {
+      void send(tool.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
+    }
+  };
+
   return (
     <div className="flex h-full flex-col">
-      {!readOnly && <CompanionTools onPick={(p) => { if (!busy) void send(p); }} />}
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
             <div className="mt-12 text-center text-sm text-muted-foreground animate-fade-in">
               <p className="text-balance">
-                Tell me what you're working on. Capture, ask, plan, or stage an action.
+                Tell me what you're working on. Type <span className="text-foreground/80">/</span> for tools, paperclip to attach, mic to speak.
               </p>
             </div>
           )}
@@ -170,8 +242,28 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           </div>
         </div>
       ) : (
-        <ConversationDock busy={busy} onSend={send} />
+        <ConversationDock
+          busy={busy}
+          onSend={send}
+          onAttach={handleAttach}
+          onSlashPick={handleSlashPick}
+          surface={context.surface}
+          mode={mode}
+          isOwner={isOwner}
+          controls={controls}
+        />
       )}
+
+      <Sheet open={researchOpen} onOpenChange={setResearchOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-[520px]">
+          <SheetHeader className="border-b border-border/60 px-4 py-3">
+            <SheetTitle className="text-sm">Research</SheetTitle>
+          </SheetHeader>
+          <div className="p-3">
+            <ResearchPanel />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
