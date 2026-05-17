@@ -7,6 +7,9 @@ import { Cloud, Loader2, Maximize2, MapPin, RefreshCcw, Radar, Thermometer } fro
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsOwner } from "@/hooks/useIsOwner";
+import { useSystemControls } from "@/hooks/useSystemControls";
+import { toast } from "sonner";
 
 /**
  * MiniRadarStrip — compact awareness pulse for the Command Center.
