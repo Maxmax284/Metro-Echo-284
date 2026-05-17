@@ -111,6 +111,6 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
       }
     },
-    [user, openSherlock, mode]
+    [user, openSherlock, mode, onAck]
   );
 }
