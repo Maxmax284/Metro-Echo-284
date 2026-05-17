@@ -424,16 +424,33 @@ export function AwarenessHUD({ className }: { className?: string }) {
               const briefing = section ? latestBySection[section] : null;
               return (
                 <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
-                  <div className="mb-1.5 flex items-center justify-between">
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
                     <div className="text-[10px] uppercase tracking-wider text-primary">
                       Focused · {isBrief ? "Briefing" : "Source"}
                     </div>
-                    <button
-                      onClick={() => setFocusedKey(null)}
-                      className="text-[10px] text-muted-foreground hover:text-foreground"
-                    >
-                      Clear
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          togglePin(ping.key);
+                          toast(pinned.includes(ping.key) ? "Unpinned from radar" : "Pinned to radar");
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1 transition-colors",
+                          pinned.includes(ping.key)
+                            ? "bg-primary/15 text-primary ring-primary/40"
+                            : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
+                        )}
+                      >
+                        {pinned.includes(ping.key) ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                        {pinned.includes(ping.key) ? "Pinned" : "Pin"}
+                      </button>
+                      <button
+                        onClick={() => setFocusedKey(null)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Clear
+                      </button>
+                    </div>
                   </div>
                   <div className="text-sm font-medium capitalize">{ping.label}</div>
                   {briefing ? (
