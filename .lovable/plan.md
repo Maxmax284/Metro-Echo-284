@@ -95,8 +95,20 @@ tone/voice header changed. No new external APIs, no paid auto-calls.
   drawer) and `AwarenessSurface` (per-section cards). All three placeholder
   `toast("Route: …")` callsites swapped.
 
-## Remaining
-- Stage 6 — legacy cleanup + final QA: retire prose chip rendering once the
-  new path is stable, wire Companion dock prefill for `ask_vanta`, wire
-  actions-transition for `draft_action`, and re-run before/after validation
-  across all surfaces.
+## Stage 6 — Legacy cleanup + final QA (this pass)
+- **Companion prefill**: `CompanionContext` now carries a `prefill` slot
+  plus `openWithPrefill(text)`. `useSignalRoute.ask_vanta` opens the
+  Companion panel pre-seeded with `About "<title>": <what_to_do_next>`,
+  via a new `ConversationDockBridge` that consumes the prefill once and
+  clears it.
+- **Actions wiring**: `useSignalRoute.draft_action` now inserts a
+  `proposed` row in `actions` (title/description/risk/source/payload).
+  Users walk it through `actions-transition` from ActionsSurface — the
+  existing high-risk approval phrase gate is untouched.
+- **Validation**: `/mnt/documents/awareness_before_after_v6.md` captures
+  before/after for the location_warning, offshore transport edge case,
+  ask_vanta prefill, draft_action persistence, and the global voice
+  rollout. No new external APIs, no auto-paid calls, no schema changes.
+- **Out of scope (intentional)**: SerpApi pill, snapshot caching rules,
+  high-risk approval phrase, RLS on notes/commitments/actions.
+
