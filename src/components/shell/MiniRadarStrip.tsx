@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,16 +10,37 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
+import { AttentionQueue } from "@/components/awareness/AttentionQueue";
+
+type SourceTier = "official" | "local" | "community" | "web" | "ai";
+const TIER_META: Record<SourceTier, { label: string; tone: string }> = {
+  official: { label: "Official",  tone: "bg-primary/15 text-primary ring-primary/40" },
+  local:    { label: "Local",     tone: "bg-signal/15 text-signal-foreground ring-signal/40" },
+  community:{ label: "Community", tone: "bg-accent/15 text-accent ring-accent/40" },
+  web:      { label: "Web",       tone: "bg-warn/15 text-warn-foreground ring-warn/40" },
+  ai:       { label: "AI",        tone: "bg-muted/40 text-muted-foreground ring-border/60" },
+};
+function tierFor(source: string): SourceTier {
+  const s = source.toLowerCase();
+  if (s.includes("reddit") || s.includes("forum") || s.includes("community")) return "community";
+  if (s.includes("weather") || s.includes("meteo") || s.includes("calendar") || s.includes("gov")) return "official";
+  if (s.includes("local") || s.includes("places") || s.includes("nearby") || s.includes("maps") || s.includes("transit")) return "local";
+  if (s.includes("gemini") || s.includes("lovable-ai") || s.includes("synthesis") || s.includes("brief")) return "ai";
+  return "web";
+}
+
+const CONF_DOT: Record<string, string> = {
+  high:   "bg-primary",
+  medium: "bg-accent",
+  low:    "bg-warn",
+};
 
 /**
  * MiniRadarStrip — compact awareness pulse for the Command Center.
- * Read-only. Uses the snapshot already fetched by AwarenessProvider.
- * Refresh button calls refreshSnapshot() which goes through the guarded
- * awareness-snapshot edge function (no client-side external calls).
- * On mobile, tapping Expand opens a full-screen drawer with all snapshot detail.
+ * Read-only. Tier chips replace the raw source label cloud.
  */
 export function MiniRadarStrip({ className }: { className?: string }) {
-  const { place, snapshot, snapshotLoading, refreshSnapshot } = useAwareness();
+  const { place, snapshot, snapshotLoading, refreshSnapshot, overall } = useAwareness();
   const isMobile = useIsMobile();
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
@@ -41,7 +62,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
     }
   };
 
-  const SerpPill = ({ compact: pillCompact = false }: { compact?: boolean }) => {
+  const SerpPill = () => {
     if (!isOwner || !controls) return null;
     const on = controls.serpapi_enabled;
     return (
@@ -49,13 +70,12 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         type="button"
         onClick={toggleSerp}
         disabled={serpBusy}
-        title={on ? "SerpApi is on — click to pause" : "SerpApi is paused — click to resume"}
+        title={on ? "SerpApi on" : "SerpApi paused"}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] uppercase tracking-wider ring-1 transition-colors disabled:opacity-60",
           on
             ? "bg-primary/15 text-primary ring-primary/40 hover:bg-primary/20"
             : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
-          pillCompact && "px-1.5"
         )}
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary" : "bg-amber-400")} />
@@ -63,6 +83,20 @@ export function MiniRadarStrip({ className }: { className?: string }) {
       </button>
     );
   };
+
+  const compact = snapshot?.compact;
+  const weather = compact?.weather;
+  const summary = compact?.summary;
+  const sources = snapshot?.sources_used ?? [];
+  const generated = snapshot?.generated_at;
+  const streetDisabled = !!controls && !controls.serpapi_enabled;
+
+  const tieredSources = useMemo(() => {
+    const map: Record<SourceTier, string[]> = { official: [], local: [], community: [], web: [], ai: [] };
+    for (const s of sources) map[tierFor(s)].push(s);
+    return map;
+  }, [sources]);
+  const tierOrder: SourceTier[] = ["official", "local", "community", "web", "ai"];
 
   if (!place) {
     return (
@@ -75,11 +109,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
     );
   }
 
-  const compact = snapshot?.compact;
-  const weather = compact?.weather;
-  const summary = compact?.summary;
-  const sources = snapshot?.sources_used ?? [];
-  const generated = snapshot?.generated_at;
+  const confDot = overall.confidence ? CONF_DOT[overall.confidence] : "bg-muted-foreground/40";
 
   return (
     <>
@@ -117,7 +147,8 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]">
-          <span className="inline-flex items-center gap-1 text-foreground/90">
+          <span className="inline-flex items-center gap-1.5 text-foreground/90">
+            <span className={cn("h-1.5 w-1.5 rounded-full", confDot)} title={overall.confidence ?? "no signal"} aria-hidden />
             <MapPin className="h-3 w-3 text-primary/80" />
             {place.label}
           </span>
@@ -143,20 +174,31 @@ export function MiniRadarStrip({ className }: { className?: string }) {
           <p className="mt-2 text-[12.5px] leading-relaxed text-foreground/85">{summary}</p>
         ) : snapshot ? null : (
           <p className="mt-2 text-[12px] text-muted-foreground">
-            No snapshot yet. Hit Generate to assemble one (cached weather, optional local signals, brief synthesis — all behind the leash).
+            No snapshot yet. Hit Generate to assemble one.
           </p>
         )}
 
-        {sources.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {sources.map((s) => (
-              <span
-                key={s}
-                className="rounded-full bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
-              >
-                {s}
-              </span>
-            ))}
+        {(sources.length > 0 || streetDisabled) && (
+          <div className="mt-2 flex flex-wrap items-center gap-1">
+            {tierOrder.map((t) => {
+              const items = tieredSources[t];
+              const off = t === "community" && streetDisabled;
+              if (!items.length && !off) return null;
+              const meta = TIER_META[t];
+              return (
+                <span
+                  key={t}
+                  title={off ? `${meta.label} paused` : `${items.length} ${meta.label.toLowerCase()} source(s)`}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                    off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,
+                  )}
+                >
+                  {meta.label}
+                  <span className="opacity-70 normal-case tracking-normal">{items.length || (off ? "off" : 0)}</span>
+                </span>
+              );
+            })}
           </div>
         )}
       </Card>
@@ -180,23 +222,10 @@ export function MiniRadarStrip({ className }: { className?: string }) {
                 </div>
               </div>
             )}
-            {snapshot?.full_data && (
-              <details className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3">
-                <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-muted-foreground">Full snapshot</summary>
-                <pre className="mt-2 max-h-[40dvh] overflow-auto whitespace-pre-wrap text-[11px] text-foreground/70">
-{JSON.stringify(snapshot.full_data, null, 2)}
-                </pre>
-              </details>
-            )}
-            {sources.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {sources.map((s) => (
-                  <span key={s} className="rounded-full bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3">
+              <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Attention</div>
+              <AttentionQueue onOpenSection={() => setOpen(false)} />
+            </div>
             <Button
               size="sm"
               variant="outline"

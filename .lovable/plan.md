@@ -1,163 +1,105 @@
-# Stage 0 — Audit of what already exists in Vanta
+# Awareness Radar UX Maturity
 
-I read the full spec. It explicitly forbids "build first" — audit, then stage. Here's what's already in the codebase, what's partial, and what's truly missing.
+Make Awareness behave like radar instead of a report generator. No new data, no schema changes, no new edge functions. This is a behavior and layout correction across the Awareness surface, the HUD, and the Command Center mini-card — using signals, snapshots, and briefings that already exist.
 
-## What already exists (reuse — do NOT duplicate)
+## Operating principle
 
-- **Signal model**: `awareness_briefings.signal jsonb` + `VantaSignal` zod schema with `confidence`, `source_labels`, `freshness`, `requires_confirmation`, `available_routes`. Perfect substrate for corrections.
-- **SignalCard**: single renderer; `available_routes` already drives action buttons. Feedback verbs slot in without new UI scaffolding.
-- **`useSignalRoute`** hook: central router for verb → action. New verbs (`mark_wrong`, `correct`, `add_field_note`, `source_bad`) plug in here. **One file, one switch.**
-- **`audit_log`**: insert-only, no update/delete RLS. Already correct for "annotate-not-rewrite."
-- **`awareness_places`** (geo + label): the natural anchor for place-scoped field notes.
-- **`nudges.status`**: dismissed/expired already exists.
-- **`user_roles`**: owner / admin / user enum + `has_role()` SECURITY DEFINER. Good base.
-- **`system_controls`**: per-owner switches for SerpApi, community sources, etc. Privacy toggles can live here.
-- **HUD source tiers** (`TIER_META`): official / local / community / web / ai already classified.
-- **Sherlock**: `sherlock_findings_cache`, `investigations`, `investigation_findings` — already accept "scope text" payloads and have a confidence column.
+When the user opens Awareness, the first screen must answer five questions in one glance:
 
-## What's partial
+1. Where am I (and how sure is Vanta).
+2. What are the top live signals right now.
+3. What sources are feeding this (with trust tier).
+4. What needs attention (warnings, stale, contradictions, low confidence).
+5. Where do I tap for more.
 
-- Confidence labels exist but **no mechanism to adjust them from user input**.
-- HUD pinning (localStorage) — a weak form of "useful / show again" already.
-- `vantaVoice` global rollout (Stage 4 of prior pass) — voices already accept new instructions like "respect saved corrections."
+Everything else — long prose, full briefings, raw snapshot, generation controls — moves into drawers, secondary chips, or owner-only affordances. "Generate" stops being a primary verb on the main view.
 
-## What's genuinely missing
+## Scope (5 focused changes)
 
-- **No `corrections` table**. No structured place to land "wrong / outdated / not a commitment."
-- **No `field_notes` table**. No place-scoped lived context.
-- **No `audit_annotations`** sibling (audit_log is immutable, correctly).
-- **No `organization_id` anywhere**. Vanta is single-tenant today. Org intelligence (Stage 6 of spec) would require a real org model — defer.
-- **No shared / global intelligence pipeline** (Stage 7). Defer.
-- **No privacy / consent settings UI**. `system_controls` is owner-only and admin-y.
-- **No "Corrections Center"** review surface.
-- **Memory** (`notes`) has no merge / split / forget / pin / sensitive metadata.
-- **Telegram-side correction routing**: webhook accepts text but doesn't map "wrong" back to the prior bot message.
+### 1. Awareness surface: radar-first layout
 
-## What we will NOT touch this pass
+File: `src/components/surfaces/AwarenessSurface.tsx`
 
-- No org/team model. No shared/global table. No anonymization pipeline.
-- No rewriting of `audit_log` (annotations live in a sibling table).
-- No changes to `apiGuard`, RLS on existing tables, or the high-risk approval phrase.
-- No Telegram correction mapping yet (needs message-id round-tripping; risky given the "messaging feeds, doesn't control" law).
-
----
-
-# Staged plan (mirrors spec's Stages 1–10, scoped honestly)
-
-This pass = **Stages 1 + 2 only**. Everything else gated behind explicit approval after we feel the shape.
-
-## Stage 1 — Models (next pass)
-
-Two new tables. Both private by default, owner-scoped RLS, no org column yet (additive later).
+Reorder the main scroll into a strict hierarchy:
 
 ```text
-corrections
-  id, user_id, scope ('private'|'org'|'shared_candidate'|'shared_approved'),
-  surface, target_type, target_id (uuid or text key),
-  feedback_type ('wrong'|'correct'|'outdated'|'not_useful'|'useful'
-                |'override'|'reject'|'source_bad'|'risk_adjust'|'style'),
-  original_value jsonb, corrected_value jsonb, user_note,
-  source_label default 'user_feedback',
-  confidence_impact ('lower'|'raise'|'invalidate'|'none'),
-  status ('active'|'archived'|'dismissed'|'expired'),
-  expires_at nullable,
-  created_at, updated_at
-
-field_notes
-  id, user_id, place_id nullable, geo jsonb nullable,
-  note_type ('place_status'|'hazard'|'transport'|'payments'
-            |'connectivity'|'etiquette'|'scam'|'timing'
-            |'source_quality'|'custom'),
-  summary, details, confidence, freshness,
-  sensitive boolean default false,
-  share_intent ('private_only'|'ask'|'anonymized_ok'),
-  expires_at nullable, seasonal_context jsonb nullable,
-  created_at, updated_at
-
-audit_annotations  (sibling — never edits audit_log)
-  id, user_id, audit_event_id, note, kind, created_at
+┌─ Place strip      "Spot · confidence chip · freshness · change place"
+├─ AwarenessHUD     (already the radar — promote it, make it the hero)
+├─ Top Signals (3)  Weather / freshest brief / highest-risk warning
+├─ Attention queue  Stale sections, low-confidence items, location_warning
+├─ Layer chips      transport · infrastructure · payments · etiquette · …
+│                   (tap = open section drawer, NOT generate)
+└─ Places list      (collapsed under "Switch place" — secondary)
 ```
 
-RLS: `auth.uid() = user_id` on all three, ALL command. No DELETE on `audit_annotations` (immutable like its parent).
+Remove the "Quick generate" row of 8 zap buttons from the main view. Move it into a single owner-visible "Manage briefings" drawer reachable from a small kebab on the HUD. Same for the giant per-place modal with 8 generate buttons — keep the modal but make tapping a layer chip open a single-section drawer (read first, refresh as a secondary action).
 
-## Stage 2 — Surface-level feedback controls (this is the smallest user-visible win)
+### 2. Layer chips replace the section grid
 
-Extend `SignalRoute` enum + `useSignalRoute` switch with: `mark_wrong`, `mark_useful`, `mark_outdated`, `add_field_note`, `flag_source`, `do_not_show_again`.
+New behavior for the 8 `AWARENESS_SECTIONS`:
 
-Each verb writes one `corrections` (or `field_notes`) row and surfaces a small toast. **No new buttons added anywhere.** They appear automatically wherever a SignalCard renders because `available_routes` already drives the UI. The brief/snapshot edge functions get a small append: include feedback verbs in `available_routes` by default.
+- Each chip shows: section name + a tiny freshness dot (fresh/aging/stale/missing) + confidence tint.
+- Tap a chip → opens a focused **SectionDrawer** with that section's `SignalCard` (already built), source labels, and a single "Refresh" button.
+- No prose on the main surface. No 8-card wall.
 
-Add the same verb set to Sherlock finding cards and Memory note cards via a thin shared `<FeedbackBar />` (one component, reused).
+New file: `src/components/awareness/LayerChips.tsx`
+New file: `src/components/awareness/SectionDrawer.tsx` (wraps shadcn Drawer + SignalCard)
 
-## Stage 3 — Routing (after Stage 2 ships)
+### 3. Attention queue (the "what needs you" row)
 
-- Awareness brief edge fn: on regeneration, query active `corrections` for that place+section and lower confidence / mark conflict in the signal payload.
-- Companion (`vanta-converse`) system prompt: prepend "respect active corrections for this user" + inject top N corrections as context.
-- Sherlock: when scope mentions a `field_note` or `correction`, treat as evidence, not noise.
+New file: `src/components/awareness/AttentionQueue.tsx`
 
-## Stage 4 — Corrections Center
+Pure derivation from existing provider state — no new fetches. Surfaces, in order:
 
-New Memory sub-tab: "Field notes & corrections." Lists user's rows, lets them archive, edit, mark expired. Uses existing MemorySurface patterns.
+- `location_warning` from snapshot.compact (already rendered inline today)
+- Any briefing with `confidence: "low"` AND `risk_level !== "none"`
+- Any briefing with freshness `stale`
+- Missing critical sections (hazards, scams, connectivity) when place is non-trivial
 
-## Stage 5 — Privacy & consent
+Each row is a tappable mini-card: title, one-line reason, tap → opens the relevant SectionDrawer or runs the safe action (e.g., "Refresh stale", "Open warning"). If queue is empty: show a single calm line — "Nothing pulling at your attention." No fake urgency.
 
-New `privacy_settings` per-user (private_only default). Adds: share_intent default, "ask before contributing," delete-all button, export JSON. **No sharing actually happens** until Stage 7.
+### 4. AwarenessHUD trims and promotes
 
-## Stage 6 — Organization intelligence (DEFERRED — needs org model decision)
+File: `src/components/shell/AwarenessHUD.tsx`
 
-Requires actual `organizations`, `organization_members` tables and role logic. Out of scope until we agree on org shape. CampCore / Ground Truth Hub each have their own org model — picking one here would lock us in.
+- Remove the redundant Top Signals list from the HUD when used inside AwarenessSurface (it will live one row below as its own block). Keep it when HUD is used in Command Center context. Add a `variant?: "hero" | "compact"` prop.
+- Demote the "Refresh / Generate" button to a small icon-only control inside an overflow menu. Generation is not the headline action.
+- Keep pings, pin behavior, Street Signal tier chips, SerpApi pill (owner). These are already correct.
+- Add tap-to-filter: tapping a tier chip (Official / Local / Community / Web / AI) filters the pings + Top Signals to that source tier for the next 8 seconds, with a "Clear filter" pill. No persisted state.
 
-## Stage 7 — Shared field intelligence (DEFERRED)
+### 5. MiniRadarStrip parity (Command Center)
 
-Aggregation pipeline + anonymization + suppression thresholds. Only after Stage 5 is real and Stage 6 settled.
+File: `src/components/shell/MiniRadarStrip.tsx`
 
-## Stage 8 — Confidence decay & conflict (partially this pass via Stage 2 routing)
+- Replace the inline source-label cloud with the same 5 tier chips as the HUD (one-glance trust hierarchy).
+- Add a confidence dot next to the place name (matches `overall.confidence`).
+- Tap the card body → routes to Awareness surface (existing nav). Refresh stays as the only explicit button.
+- Drawer view: drop the raw JSON `<pre>`. Replace with Top Signals + AttentionQueue (read-only, no Refresh button beyond the existing one).
 
-Decay rules on `field_notes.expires_at` + a cron edge fn to mark `status='expired'`. Sherlock conflict-referee mode (uses existing investigate flow with new scope hint).
+## What we are explicitly NOT doing this pass
 
-## Stage 9 — UX polish
+- No schema changes. No new edge functions. No changes to `awareness-snapshot`, `awareness-brief`, or `awareness-decay`.
+- No new section types, no new signal taxonomy.
+- No Companion / Sherlock / Memory / Intake work — that comes after, in order.
+- No shared-aggregation surfacing. Stage 7 stays gated.
+- No "Generate everything" button. Generation stays manual, single-section, owner-initiated, behind the overflow.
 
-`<FeedbackBar />` polish, micro-copy, animation. No surveys, no stars.
+## Technical notes
 
-## Stage 10 — Audit hardening
+- All new components live under `src/components/awareness/` and consume `useAwareness()` + `useAwarenessSlice()`. No new providers.
+- Freshness/confidence dots reuse the `FRESH_TONE` and `CONFIDENCE_TONE` token maps already in `vantaSignal.ts` and `AwarenessHUD.tsx`.
+- SectionDrawer reuses `SignalCard` (already handles routes, feedback, long-detail toggle, source labels). Zero new rendering logic.
+- AttentionQueue is a pure `useMemo` over `overall.briefings`, `overall.missing_sections`, `overall.freshness`, and `snapshot.compact.location_warning`.
+- HUD's `variant` prop defaults to `"hero"` on the Awareness surface and `"compact"` in Command Center / mini contexts.
+- All colors via semantic tokens (no raw hex). Tap targets ≥ 32px. Drawer behavior matches existing shadcn Drawer usage in MiniRadarStrip.
 
-Verify every correction / field_note insert also writes an `audit_log` row (`event: 'correction:created'` / `'field_note:created'`). RLS audit on the new tables.
+## Acceptance check
 
----
+- Open Awareness: radar + place + top signals + attention queue + layer chips are visible above the fold on mobile, with zero long prose.
+- Tap a layer chip: opens a drawer with that section's SignalCard. No generation happens automatically.
+- Tap a tier chip on the HUD: pings + top signals filter to that tier; clears after 8s or on tap.
+- Attention queue is empty when state is clean; non-empty rows are all tappable.
+- Command Center mini-card shows tier chips and a confidence dot; no raw JSON anywhere in the drawer.
+- No new tables, no new functions, no behavior change in `awareness-snapshot` or `awareness-brief`.
 
-# Status
-
-- Stage 1 ✅  models (corrections, field_notes, audit_annotations)
-- Stage 2 ✅  feedback verbs + FeedbackBar
-- Stage 3 ✅  correction routing into brief + companion
-- Stage 4 ✅  Corrections Center
-- Stage 5 ✅  Privacy & consent (privacy_settings + inline panel + export/delete)
-- Stage 8 ✅  Decay cron (awareness-decay edge fn + hourly pg_cron schedule)
-- Stage 9 ✅  FeedbackBar polish (calm collapse, hover-only emphasis)
-- Stage 10 ✅ Audit hardening (audit_log row for every correction/field_note)
-- Stage 6 ✅  Org foundation (organizations + members, personal-org-of-one autoseed, nullable organization_id on corrections/field_notes/audit_annotations/privacy_settings, org-scope read RLS via is_org_member). No org management UI yet — data layer only. Vanta stays personal by default; existing rows untouched (NULL = personal).
-- Stage 7 ⏸  Aggregation **foundation laid, pipeline gated OFF**.
-    - `field_notes.geohash` column added (caller populates when known).
-    - `system_controls.shared_aggregation_enabled` default **false**.
-    - `system_controls.shared_min_distinct_users` default **3**.
-    - `system_controls.shared_window_days` default **14**.
-    - `shared_candidate_strength(geohash, note_type, window_days)` SECURITY DEFINER fn returns distinct-user count — does NOT share anything.
-    - No shared-read RLS policy exists. Activation requires (a) flipping the flag, (b) adding a `shared_field_notes` materialized view with sensitive content stripped + source labels preserved + confidence floor, and (c) an explicit "shared select" policy. Three deliberate steps, no accidents.
-
-## Scope ladder (final shape)
-
-```
-private (NULL org)        → owner only
-org / org_shared          → org members via is_org_member
-shared_candidate (Stage 7)→ surfaces to owner as "promotable" once strength ≥ threshold
-shared_approved (Stage 7) → globally readable AFTER owner approval + anonymization
-```
-
-## What's left before Stage 7 activation
-
-1. Geohashing helper (client or edge fn) so `field_notes.geohash` actually gets populated.
-2. Anonymization pipeline (strip user_note free-text PII, preserve note_type + summary template + confidence).
-3. Owner-facing "Promote to shared" review surface inside Corrections Center.
-4. `shared_field_notes` read-only view + matching RLS.
-5. Flip `shared_aggregation_enabled` per-owner — never globally.
-
-No fake crowd intelligence. Low-volume areas stay private.
+Next after this lands: Companion tool coverage (front-door identity shift).
