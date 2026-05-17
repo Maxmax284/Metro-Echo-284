@@ -60,3 +60,43 @@
   are `SECURITY DEFINER` and executable by authenticated users — by design.
 - `update_updated_at_column`, `set_updated_at` SECURITY DEFINER trigger helpers.
 - All present before this pass; left alone.
+
+---
+
+# Stages 4 + 5 — Voice rollout + Route wiring (this pass)
+
+## Stage 4 — Global Vanta voice rollout
+Shared voice fragments from `_shared/vantaVoice.ts` now prefix the system
+prompts of every AI surface:
+- `vanta-converse` → `COMPANION_VOICE`
+- `telegram-webhook` → `TELEGRAM_VOICE`
+- `awareness-query` → `AWARENESS_VOICE`
+- `sherlock-investigate` (FULL + OVERLAY) → `SHERLOCK_VOICE`
+- `notes-assist` (summarize + extract) → `MEMORY_VOICE`
+
+Behavior contracts (tools, JSON schemas, hard caps) untouched — only the
+tone/voice header changed. No new external APIs, no paid auto-calls.
+
+## Stage 5 — Cross-surface route wiring
+- New `src/lib/useSignalRoute.ts` — single handler maps every
+  `available_routes` verb to a real action:
+  - `refresh_signal` / `confirm_location` / `use_saved_place` → snapshot +
+    briefing refresh via `useAwareness`.
+  - `send_to_sherlock` → `openSherlock({ entity_type: "briefing", … })` with
+    summary + why + next + long_detail composed as scope text.
+  - `ask_vanta` → copies a prefilled question to clipboard (Companion dock has
+    no prefill API yet; Stage 6 can wire that).
+  - `save_to_memory` → inserts a `notes` row owned by the current user.
+  - `create_commitment` → inserts a `commitments` row.
+  - `draft_action` → toast placeholder (actions-transition wiring deferred to
+    Stage 6 to keep this pass surgical).
+  - `dismiss` → no-op.
+- Wired into `AwarenessHUD` (location_warning card, focused-ping card,
+  drawer) and `AwarenessSurface` (per-section cards). All three placeholder
+  `toast("Route: …")` callsites swapped.
+
+## Remaining
+- Stage 6 — legacy cleanup + final QA: retire prose chip rendering once the
+  new path is stable, wire Companion dock prefill for `ask_vanta`, wire
+  actions-transition for `draft_action`, and re-run before/after validation
+  across all surfaces.
