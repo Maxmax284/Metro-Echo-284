@@ -126,12 +126,51 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Optional SerpApi local signals (only when enabled + key present)
+    let local_signals: Array<{ title: string; snippet?: string; link?: string }> | null = null;
+    const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
+    if (SERPAPI_KEY && geo?.lat != null && geo?.lon != null) {
+      const serp = await runGuarded<typeof local_signals>(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "serpapi",
+          feature: "awareness.local_signals",
+          query: `local:${place.label}:${geo.lat.toFixed(2)},${geo.lon.toFixed(2)}`,
+          location: { lat: geo.lat, lon: geo.lon },
+          cache_ttl_seconds: 60 * 60,
+          related_entity_type: "awareness_place",
+          related_entity_id: place_id,
+        },
+        async () => {
+          const q = encodeURIComponent(`${place.label} ${place.country ?? ""} local news today`.trim());
+          const url = `https://serpapi.com/search.json?engine=google&q=${q}&num=5&api_key=${SERPAPI_KEY}`;
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`serpapi ${r.status}`);
+          const j = await r.json();
+          const items = (j.organic_results ?? []).slice(0, 5).map((it: any) => ({
+            title: String(it.title ?? ""),
+            snippet: it.snippet ? String(it.snippet) : undefined,
+            link: it.link ? String(it.link) : undefined,
+          }));
+          return items;
+        },
+      );
+      if (serp.ok) {
+        local_signals = serp.data;
+        sources_used.push(serp.cached ? "serpapi:cached" : "serpapi");
+      }
+    }
+
     // Optional Gemini synthesis (skipped if disabled — guard returns block)
     let summary: string | null = null;
     const briefingsText = (briefings ?? [])
       .map((b) => `[${b.section}] ${b.content}`)
       .join("\n\n")
       .slice(0, 6000);
+    const localText = local_signals?.length
+      ? local_signals.map((s) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
+      : "(none)";
 
     const synth = await runGuarded<string>(
       {
