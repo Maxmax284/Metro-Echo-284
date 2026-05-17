@@ -36,8 +36,8 @@ Deno.serve(async (req: Request) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const sys = action === "summarize"
-      ? "Summarize the user's note in 3-5 tight bullet points. Plain text, no fluff."
-      : "Extract concrete action items from the note as a short numbered list. Each item must be actionable and specific. Plain text.";
+      ? `${MEMORY_VOICE}\n\nSummarize the user's note in 3-5 tight bullet points. Plain text, no fluff.`
+      : `${MEMORY_VOICE}\n\nExtract concrete action items from the note as a short numbered list. Each item must be actionable and specific. Plain text.`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
