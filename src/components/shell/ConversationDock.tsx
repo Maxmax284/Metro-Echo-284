@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, Mic, MicOff, Paperclip } from "lucide-react";
+import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
