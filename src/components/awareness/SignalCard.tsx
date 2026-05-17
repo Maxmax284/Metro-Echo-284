@@ -12,6 +12,7 @@ import {
 import { stripMarkdown } from "@/lib/markdown";
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 
 type Props = {
   /** Anything: a full VantaSignal, a partial, legacy briefing, etc. */
@@ -192,6 +193,19 @@ export function SignalCard({
               {ROUTE_LABEL[r] ?? r}
             </Button>
           ))}
+        </div>
+      )}
+
+      {/* Stage 2 — always-on feedback row */}
+      {!compact && (
+        <div className="mt-2 border-t border-border/50 pt-2">
+          <FeedbackBar
+            surface="awareness"
+            targetType={`signal:${s.signal_type}`}
+            targetId={s.title || s.signal_type}
+            label={s.title}
+            original={s}
+          />
         </div>
       )}
     </div>

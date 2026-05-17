@@ -277,6 +277,41 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_annotations: {
+        Row: {
+          audit_event_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          audit_event_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          audit_event_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_annotations_audit_event_id_fkey"
+            columns: ["audit_event_id"]
+            isOneToOne: false
+            referencedRelation: "audit_log"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           created_at: string
@@ -500,6 +535,63 @@ export type Database = {
         }
         Relationships: []
       }
+      corrections: {
+        Row: {
+          confidence_impact: string
+          corrected_value: Json | null
+          created_at: string
+          expires_at: string | null
+          feedback_type: string
+          id: string
+          original_value: Json | null
+          scope: string
+          source_label: string
+          status: string
+          surface: string
+          target_id: string
+          target_type: string
+          updated_at: string
+          user_id: string
+          user_note: string | null
+        }
+        Insert: {
+          confidence_impact?: string
+          corrected_value?: Json | null
+          created_at?: string
+          expires_at?: string | null
+          feedback_type: string
+          id?: string
+          original_value?: Json | null
+          scope?: string
+          source_label?: string
+          status?: string
+          surface: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+          user_id: string
+          user_note?: string | null
+        }
+        Update: {
+          confidence_impact?: string
+          corrected_value?: Json | null
+          created_at?: string
+          expires_at?: string | null
+          feedback_type?: string
+          id?: string
+          original_value?: Json | null
+          scope?: string
+          source_label?: string
+          status?: string
+          surface?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+          user_id?: string
+          user_note?: string | null
+        }
+        Relationships: []
+      }
       email_inbound_addresses: {
         Row: {
           active: boolean
@@ -526,6 +618,80 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      field_notes: {
+        Row: {
+          confidence: string
+          created_at: string
+          details: string | null
+          expires_at: string | null
+          freshness: string
+          geo: Json | null
+          id: string
+          location_label: string | null
+          note_type: string
+          place_id: string | null
+          seasonal_context: Json | null
+          sensitive: boolean
+          share_intent: string
+          source_label: string
+          status: string
+          summary: string
+          updated_at: string
+          user_id: string
+          weather_context: Json | null
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          details?: string | null
+          expires_at?: string | null
+          freshness?: string
+          geo?: Json | null
+          id?: string
+          location_label?: string | null
+          note_type?: string
+          place_id?: string | null
+          seasonal_context?: Json | null
+          sensitive?: boolean
+          share_intent?: string
+          source_label?: string
+          status?: string
+          summary: string
+          updated_at?: string
+          user_id: string
+          weather_context?: Json | null
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          details?: string | null
+          expires_at?: string | null
+          freshness?: string
+          geo?: Json | null
+          id?: string
+          location_label?: string | null
+          note_type?: string
+          place_id?: string | null
+          seasonal_context?: Json | null
+          sensitive?: boolean
+          share_intent?: string
+          source_label?: string
+          status?: string
+          summary?: string
+          updated_at?: string
+          user_id?: string
+          weather_context?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_notes_place_id_fkey"
+            columns: ["place_id"]
+            isOneToOne: false
+            referencedRelation: "awareness_places"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ingested_files: {
         Row: {
