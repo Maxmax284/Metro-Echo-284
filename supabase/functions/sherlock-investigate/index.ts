@@ -3,13 +3,15 @@
 //   assumptions / dependencies / blind_spots) over a focused scope. Caches in sherlock_findings_cache.
 // - default mode: full investigation question over the user's memory (persisted to investigations).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { SHERLOCK_VOICE } from "../_shared/vantaVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FULL_SYSTEM = `You are Sherlock — Vanta's investigator.
+const FULL_SYSTEM = `${SHERLOCK_VOICE}
+
 You answer the user's question by reasoning across their own captured memory:
 notes, commitments, actions, and awareness briefings provided in CONTEXT.
 Be precise. Cite which item supports each claim using its kind+id like (note:abc123).
@@ -42,9 +44,10 @@ const FULL_SCHEMA = {
   additionalProperties: false,
 };
 
-const OVERLAY_SYSTEM = `You are Sherlock — Vanta's contextual intelligence overlay.
+const OVERLAY_SYSTEM = `${SHERLOCK_VOICE}
+
 Given a focused TARGET (a note, message, action, commitment, briefing, file, or freeform text)
-and recent CONTEXT from the user's memory, you surface what a sharp operator would notice
+and recent CONTEXT from the user's memory, surface what a sharp operator would notice
 that the user might miss. Be specific, not generic. No fluff. No moralizing.
 Each item must be a single concrete observation, not a category restatement.
 If a section has nothing real, return an empty array. Output strict JSON only.`;
