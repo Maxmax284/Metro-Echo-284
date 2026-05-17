@@ -577,18 +577,59 @@ export function AwarenessHUD({ className }: { className?: string }) {
               </div>
             )}
 
-            {sources.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {sources.map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60"
-                  >
-                    {s}
-                  </span>
-                ))}
+            {/* Stage 6 — Street Signal hierarchy */}
+            <div className="rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Source hierarchy</div>
+                <span className="text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                  guarded · cached
+                </span>
               </div>
-            )}
+              <ul className="space-y-1.5">
+                {tierOrder.map((t) => {
+                  const items = tieredSources[t];
+                  const meta = TIER_META[t];
+                  const off = t === "community" && streetDisabled;
+                  if (!items.length && !off) return null;
+                  return (
+                    <li key={t} className="flex items-start gap-2 text-[12px]">
+                      <span
+                        className={cn(
+                          "mt-[1px] inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                          off ? "bg-muted/30 text-muted-foreground ring-border/60" : meta.tone,
+                        )}
+                      >
+                        {meta.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        {items.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {items.map((s) => (
+                              <span
+                                key={s}
+                                className="rounded bg-muted/40 px-1.5 py-0.5 text-[10.5px] text-foreground/80 ring-1 ring-border/60"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11.5px] italic text-muted-foreground">
+                            {off ? "Paused — SerpApi off" : "—"}
+                          </span>
+                        )}
+                        <div className="mt-0.5 text-[10.5px] text-muted-foreground">{meta.hint}</div>
+                      </div>
+                    </li>
+                  );
+                })}
+                {sources.length === 0 && !streetDisabled && (
+                  <li className="text-[11.5px] italic text-muted-foreground">
+                    No sources fed this snapshot yet.
+                  </li>
+                )}
+              </ul>
+            </div>
 
             {snapshot?.full_data && (
               <details className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3">
