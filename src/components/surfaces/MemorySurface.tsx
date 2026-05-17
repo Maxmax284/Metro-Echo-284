@@ -204,9 +204,30 @@ export function MemorySurface() {
           </Button>
         </div>
         {hits !== null && (
-          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{hits.length} results</span>
-            <button onClick={() => { setHits(null); setQuery(""); }} className="hover:text-foreground">Clear</button>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {HIT_KINDS.map((k) => {
+              const count = k.id === "all" ? hits.length : hits.filter((h) => h.kind === k.id).length;
+              return (
+                <button
+                  key={k.id}
+                  onClick={() => setHitFilter(k.id)}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                    hitFilter === k.id
+                      ? "bg-primary/15 text-primary ring-primary/40"
+                      : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
+                  )}
+                >
+                  {k.label} <span className="opacity-60">· {count}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => { setHits(null); setQuery(""); setHitFilter("all"); }}
+              className="ml-auto text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
           </div>
         )}
       </div>
