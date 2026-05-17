@@ -15,7 +15,10 @@ export type SourceLabel =
 export type SignalRoute =
   | "ask_vanta" | "save_to_memory" | "send_to_sherlock"
   | "create_commitment" | "draft_action" | "refresh_signal"
-  | "confirm_location" | "use_saved_place" | "dismiss";
+  | "confirm_location" | "use_saved_place" | "dismiss"
+  // Stage 2 — feedback verbs. Always available, regardless of AI suggestion.
+  | "mark_wrong" | "mark_useful" | "mark_outdated"
+  | "add_field_note" | "flag_source" | "do_not_show_again";
 
 export type Confidence = "low" | "medium" | "high";
 export type RiskLevel = "none" | "low" | "medium" | "high";
@@ -99,4 +102,10 @@ export const ROUTE_LABEL: Record<SignalRoute, string> = {
   confirm_location:  "Confirm location",
   use_saved_place:   "Use saved place",
   dismiss:           "Dismiss",
+  mark_wrong:        "Wrong",
+  mark_useful:       "Useful",
+  mark_outdated:     "Outdated",
+  add_field_note:    "Field note",
+  flag_source:       "Source bad",
+  do_not_show_again: "Hide",
 };
