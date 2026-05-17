@@ -1,114 +1,131 @@
-# V3 Stages 6 + 7 — Street Signal · Motion + Mobile (shipped)
+# Stage 0 — Audit of what already exists in Vanta
 
-(see prior plan content — kept for context.)
+I read the full spec. It explicitly forbids "build first" — audit, then stage. Here's what's already in the codebase, what's partial, and what's truly missing.
 
----
+## What already exists (reuse — do NOT duplicate)
 
-# Stages 1 + 2 — Structured signals + Vanta voice (this pass)
+- **Signal model**: `awareness_briefings.signal jsonb` + `VantaSignal` zod schema with `confidence`, `source_labels`, `freshness`, `requires_confirmation`, `available_routes`. Perfect substrate for corrections.
+- **SignalCard**: single renderer; `available_routes` already drives action buttons. Feedback verbs slot in without new UI scaffolding.
+- **`useSignalRoute`** hook: central router for verb → action. New verbs (`mark_wrong`, `correct`, `add_field_note`, `source_bad`) plug in here. **One file, one switch.**
+- **`audit_log`**: insert-only, no update/delete RLS. Already correct for "annotate-not-rewrite."
+- **`awareness_places`** (geo + label): the natural anchor for place-scoped field notes.
+- **`nudges.status`**: dismissed/expired already exists.
+- **`user_roles`**: owner / admin / user enum + `has_role()` SECURITY DEFINER. Good base.
+- **`system_controls`**: per-owner switches for SerpApi, community sources, etc. Privacy toggles can live here.
+- **HUD source tiers** (`TIER_META`): official / local / community / web / ai already classified.
+- **Sherlock**: `sherlock_findings_cache`, `investigations`, `investigation_findings` — already accept "scope text" payloads and have a confidence column.
 
-## Stage 1 — Voice + signal scaffolding
-- `supabase/functions/_shared/vantaVoice.ts` — `VANTA_CORE_VOICE`, `AWARENESS_VOICE`,
-  plus surface variants reserved for Stage 4 (Companion / Sherlock / Memory /
-  Actions / Audit / Telegram / Intake). `VantaSignalSchema` (Zod) and
-  `VANTA_SIGNAL_JSON_SCHEMA` (for Gemini `response_format`). `fallbackSignal()`
-  helper for safe degradation.
-- `src/lib/vantaSignal.ts` — matching TS types + tone/route label helpers (no
-  UI shipped yet; awaits Stage 3).
-- `src/lib/markdown.ts` — tiny stripper to keep legacy briefings clean.
+## What's partial
 
-## Stage 2 — Backend → structured signals
-- **Migration**: `awareness_briefings.signal jsonb` (nullable; old rows unaffected).
-- **`awareness-brief`** rewritten:
-  - System prompt = `AWARENESS_VOICE`.
-  - Gemini call uses `response_format: json_schema` bound to `VantaSignal`.
-  - Zod-validates the response. If invalid OR call fails, persists a
-    `fallbackSignal` ("I couldn't structure this signal cleanly — try
-    refreshing or send it to Sherlock"). No raw prose ever lands in the UI.
-  - Persists `short_summary` into `content` for back-compat with the existing
-    HUD/drawer, plus the full structured `signal` in the new column.
-- **`awareness-snapshot`** now emits a deterministic `location_warning` (no AI
-  call) when GPS has no country/region match, weak accuracy (>500m), or no
-  coords at all. Exposed in both `compact.location_warning` and
-  `full_data.location_warning` — back-compatible additive change.
-- No new external APIs, no auto-refresh, no page-render paid calls. apiGuard
-  untouched.
+- Confidence labels exist but **no mechanism to adjust them from user input**.
+- HUD pinning (localStorage) — a weak form of "useful / show again" already.
+- `vantaVoice` global rollout (Stage 4 of prior pass) — voices already accept new instructions like "respect saved corrections."
 
-## Validation
-- `/mnt/documents/awareness_before_after_v1.md` — real AI-gateway runs comparing
-  the legacy prose prompt vs the new voice + schema, across Transport, Hazards,
-  Payments, Connectivity, and Location Warning (deterministic).
-- Offshore case correctly produced `confidence: "low"`,
-  `requires_confirmation: true`, `confirm_location` route, and a plain-English
-  `confirmation_reason`.
+## What's genuinely missing
 
-## Back-compat notes
-- Existing cached snapshots keep working (`location_warning` is additive).
-- HUD continues to render `compact.summary` and ping list — no rendering
-  contract changes this pass.
-- API guard kill-switches unchanged.
-- No paid call on page render.
+- **No `corrections` table**. No structured place to land "wrong / outdated / not a commitment."
+- **No `field_notes` table**. No place-scoped lived context.
+- **No `audit_annotations`** sibling (audit_log is immutable, correctly).
+- **No `organization_id` anywhere**. Vanta is single-tenant today. Org intelligence (Stage 6 of spec) would require a real org model — defer.
+- **No shared / global intelligence pipeline** (Stage 7). Defer.
+- **No privacy / consent settings UI**. `system_controls` is owner-only and admin-y.
+- **No "Corrections Center"** review surface.
+- **Memory** (`notes`) has no merge / split / forget / pin / sensitive metadata.
+- **Telegram-side correction routing**: webhook accepts text but doesn't map "wrong" back to the prior bot message.
 
-## Out of scope (Stage 3+ — not started)
-- UI shift: chips → radar layers, drawer rendering the structured signal,
-  Generate→operational verbs.
-- Global voice rollout to Companion/Sherlock/Memory/Notes/Actions/Telegram.
-- Cross-surface routing wiring.
+## What we will NOT touch this pass
 
-## Known pre-existing security warnings (NOT introduced by this migration)
-- vector extension in `public` schema.
-- `has_role`, `handle_new_user`, `rate_limit_hit`, `memory_search`, `notes_related`
-  are `SECURITY DEFINER` and executable by authenticated users — by design.
-- `update_updated_at_column`, `set_updated_at` SECURITY DEFINER trigger helpers.
-- All present before this pass; left alone.
+- No org/team model. No shared/global table. No anonymization pipeline.
+- No rewriting of `audit_log` (annotations live in a sibling table).
+- No changes to `apiGuard`, RLS on existing tables, or the high-risk approval phrase.
+- No Telegram correction mapping yet (needs message-id round-tripping; risky given the "messaging feeds, doesn't control" law).
 
 ---
 
-# Stages 4 + 5 — Voice rollout + Route wiring (this pass)
+# Staged plan (mirrors spec's Stages 1–10, scoped honestly)
 
-## Stage 4 — Global Vanta voice rollout
-Shared voice fragments from `_shared/vantaVoice.ts` now prefix the system
-prompts of every AI surface:
-- `vanta-converse` → `COMPANION_VOICE`
-- `telegram-webhook` → `TELEGRAM_VOICE`
-- `awareness-query` → `AWARENESS_VOICE`
-- `sherlock-investigate` (FULL + OVERLAY) → `SHERLOCK_VOICE`
-- `notes-assist` (summarize + extract) → `MEMORY_VOICE`
+This pass = **Stages 1 + 2 only**. Everything else gated behind explicit approval after we feel the shape.
 
-Behavior contracts (tools, JSON schemas, hard caps) untouched — only the
-tone/voice header changed. No new external APIs, no paid auto-calls.
+## Stage 1 — Models (next pass)
 
-## Stage 5 — Cross-surface route wiring
-- New `src/lib/useSignalRoute.ts` — single handler maps every
-  `available_routes` verb to a real action:
-  - `refresh_signal` / `confirm_location` / `use_saved_place` → snapshot +
-    briefing refresh via `useAwareness`.
-  - `send_to_sherlock` → `openSherlock({ entity_type: "briefing", … })` with
-    summary + why + next + long_detail composed as scope text.
-  - `ask_vanta` → copies a prefilled question to clipboard (Companion dock has
-    no prefill API yet; Stage 6 can wire that).
-  - `save_to_memory` → inserts a `notes` row owned by the current user.
-  - `create_commitment` → inserts a `commitments` row.
-  - `draft_action` → toast placeholder (actions-transition wiring deferred to
-    Stage 6 to keep this pass surgical).
-  - `dismiss` → no-op.
-- Wired into `AwarenessHUD` (location_warning card, focused-ping card,
-  drawer) and `AwarenessSurface` (per-section cards). All three placeholder
-  `toast("Route: …")` callsites swapped.
+Two new tables. Both private by default, owner-scoped RLS, no org column yet (additive later).
 
-## Stage 6 — Legacy cleanup + final QA (this pass)
-- **Companion prefill**: `CompanionContext` now carries a `prefill` slot
-  plus `openWithPrefill(text)`. `useSignalRoute.ask_vanta` opens the
-  Companion panel pre-seeded with `About "<title>": <what_to_do_next>`,
-  via a new `ConversationDockBridge` that consumes the prefill once and
-  clears it.
-- **Actions wiring**: `useSignalRoute.draft_action` now inserts a
-  `proposed` row in `actions` (title/description/risk/source/payload).
-  Users walk it through `actions-transition` from ActionsSurface — the
-  existing high-risk approval phrase gate is untouched.
-- **Validation**: `/mnt/documents/awareness_before_after_v6.md` captures
-  before/after for the location_warning, offshore transport edge case,
-  ask_vanta prefill, draft_action persistence, and the global voice
-  rollout. No new external APIs, no auto-paid calls, no schema changes.
-- **Out of scope (intentional)**: SerpApi pill, snapshot caching rules,
-  high-risk approval phrase, RLS on notes/commitments/actions.
+```text
+corrections
+  id, user_id, scope ('private'|'org'|'shared_candidate'|'shared_approved'),
+  surface, target_type, target_id (uuid or text key),
+  feedback_type ('wrong'|'correct'|'outdated'|'not_useful'|'useful'
+                |'override'|'reject'|'source_bad'|'risk_adjust'|'style'),
+  original_value jsonb, corrected_value jsonb, user_note,
+  source_label default 'user_feedback',
+  confidence_impact ('lower'|'raise'|'invalidate'|'none'),
+  status ('active'|'archived'|'dismissed'|'expired'),
+  expires_at nullable,
+  created_at, updated_at
 
+field_notes
+  id, user_id, place_id nullable, geo jsonb nullable,
+  note_type ('place_status'|'hazard'|'transport'|'payments'
+            |'connectivity'|'etiquette'|'scam'|'timing'
+            |'source_quality'|'custom'),
+  summary, details, confidence, freshness,
+  sensitive boolean default false,
+  share_intent ('private_only'|'ask'|'anonymized_ok'),
+  expires_at nullable, seasonal_context jsonb nullable,
+  created_at, updated_at
+
+audit_annotations  (sibling — never edits audit_log)
+  id, user_id, audit_event_id, note, kind, created_at
+```
+
+RLS: `auth.uid() = user_id` on all three, ALL command. No DELETE on `audit_annotations` (immutable like its parent).
+
+## Stage 2 — Surface-level feedback controls (this is the smallest user-visible win)
+
+Extend `SignalRoute` enum + `useSignalRoute` switch with: `mark_wrong`, `mark_useful`, `mark_outdated`, `add_field_note`, `flag_source`, `do_not_show_again`.
+
+Each verb writes one `corrections` (or `field_notes`) row and surfaces a small toast. **No new buttons added anywhere.** They appear automatically wherever a SignalCard renders because `available_routes` already drives the UI. The brief/snapshot edge functions get a small append: include feedback verbs in `available_routes` by default.
+
+Add the same verb set to Sherlock finding cards and Memory note cards via a thin shared `<FeedbackBar />` (one component, reused).
+
+## Stage 3 — Routing (after Stage 2 ships)
+
+- Awareness brief edge fn: on regeneration, query active `corrections` for that place+section and lower confidence / mark conflict in the signal payload.
+- Companion (`vanta-converse`) system prompt: prepend "respect active corrections for this user" + inject top N corrections as context.
+- Sherlock: when scope mentions a `field_note` or `correction`, treat as evidence, not noise.
+
+## Stage 4 — Corrections Center
+
+New Memory sub-tab: "Field notes & corrections." Lists user's rows, lets them archive, edit, mark expired. Uses existing MemorySurface patterns.
+
+## Stage 5 — Privacy & consent
+
+New `privacy_settings` per-user (private_only default). Adds: share_intent default, "ask before contributing," delete-all button, export JSON. **No sharing actually happens** until Stage 7.
+
+## Stage 6 — Organization intelligence (DEFERRED — needs org model decision)
+
+Requires actual `organizations`, `organization_members` tables and role logic. Out of scope until we agree on org shape. CampCore / Ground Truth Hub each have their own org model — picking one here would lock us in.
+
+## Stage 7 — Shared field intelligence (DEFERRED)
+
+Aggregation pipeline + anonymization + suppression thresholds. Only after Stage 5 is real and Stage 6 settled.
+
+## Stage 8 — Confidence decay & conflict (partially this pass via Stage 2 routing)
+
+Decay rules on `field_notes.expires_at` + a cron edge fn to mark `status='expired'`. Sherlock conflict-referee mode (uses existing investigate flow with new scope hint).
+
+## Stage 9 — UX polish
+
+`<FeedbackBar />` polish, micro-copy, animation. No surveys, no stars.
+
+## Stage 10 — Audit hardening
+
+Verify every correction / field_note insert also writes an `audit_log` row (`event: 'correction:created'` / `'field_note:created'`). RLS audit on the new tables.
+
+---
+
+# What I'll ship if you approve
+
+**This pass = Stages 1 + 2.** Migration for the three tables, extended SignalRoute enum, expanded `useSignalRoute` handler, a small `<FeedbackBar />` used by SignalCard / Sherlock / Memory cards. Nothing org-scoped, nothing shared, nothing creepy. Private by default.
+
+Approve and I'll write the migration first (single file, all three tables + RLS + audit triggers), then the code.
