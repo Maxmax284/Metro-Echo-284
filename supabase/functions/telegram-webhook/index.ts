@@ -33,7 +33,9 @@ async function tg(method: string, body: unknown) {
   });
 }
 
-const SYSTEM = `You are Vanta — a calm, grounded operational companion reachable via Telegram.
+import { TELEGRAM_VOICE } from "../_shared/vantaVoice.ts";
+
+const SYSTEM = `${TELEGRAM_VOICE}
 Replies must be brief (1–4 sentences), plain prose, no emoji.
 When the user clearly wants to capture a note, stage an action, or record a commitment, call the matching tool. Otherwise, answer succinctly.`;
 
