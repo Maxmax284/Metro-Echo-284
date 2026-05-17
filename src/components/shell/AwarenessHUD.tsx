@@ -488,6 +488,14 @@ export function AwarenessHUD({ className }: { className?: string }) {
               <RadarCanvas size={220} />
             </div>
 
+            {locationWarning && (
+              <SignalCard
+                signal={locationWarning}
+                generatedAt={generated}
+                onRoute={(route) => toast(`Route: ${route}`)}
+              />
+            )}
+
             {/* Focused ping panel */}
             {(() => {
               if (!focusedKey) return null;
