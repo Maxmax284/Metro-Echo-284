@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAwareness, AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Cloud, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles } from "lucide-react";
+import { Cloud, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -83,7 +83,7 @@ function radiusFor(generatedAt: string | null | undefined) {
   return 40;
 }
 
-export function AwarenessHUD({ className }: { className?: string }) {
+export function AwarenessHUD({ className, variant = "compact" }: { className?: string; variant?: "hero" | "compact" }) {
   const {
     place,
     snapshot,
