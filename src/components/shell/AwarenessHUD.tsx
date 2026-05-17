@@ -10,6 +10,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
 import { SignalCard } from "@/components/awareness/SignalCard";
+import { useSignalRoute } from "@/lib/useSignalRoute";
 
 const PIN_STORE_KEY = "vanta:awareness:pinned"; // { [placeId]: string[] }
 function loadPinned(placeId: string): string[] {
