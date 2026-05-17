@@ -158,6 +158,7 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const summary = compact?.summary;
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
+  const locationWarning = (compact as any)?.location_warning ?? null;
 
   // Stage 6 — group sources by trust tier for the Street Signal panel.
   const tieredSources = useMemo(() => {
@@ -415,6 +416,12 @@ export function AwarenessHUD({ className }: { className?: string }) {
             )}
           </div>
         </div>
+
+        {locationWarning && (
+          <div className="mt-3">
+            <SignalCard signal={locationWarning} compact generatedAt={generated} />
+          </div>
+        )}
 
         {pinned.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1">
