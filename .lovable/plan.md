@@ -134,5 +134,30 @@ Verify every correction / field_note insert also writes an `audit_log` row (`eve
 - Stage 8 ✅  Decay cron (awareness-decay edge fn + hourly pg_cron schedule)
 - Stage 9 ✅  FeedbackBar polish (calm collapse, hover-only emphasis)
 - Stage 10 ✅ Audit hardening (audit_log row for every correction/field_note)
-- Stage 6 — DEFERRED (needs org-model decision: Vanta vs CampCore vs Ground Truth shape)
-- Stage 7 — DEFERRED (depends on Stage 6 + anonymization pipeline)
+- Stage 6 ✅  Org foundation (organizations + members, personal-org-of-one autoseed, nullable organization_id on corrections/field_notes/audit_annotations/privacy_settings, org-scope read RLS via is_org_member). No org management UI yet — data layer only. Vanta stays personal by default; existing rows untouched (NULL = personal).
+- Stage 7 ⏸  Aggregation **foundation laid, pipeline gated OFF**.
+    - `field_notes.geohash` column added (caller populates when known).
+    - `system_controls.shared_aggregation_enabled` default **false**.
+    - `system_controls.shared_min_distinct_users` default **3**.
+    - `system_controls.shared_window_days` default **14**.
+    - `shared_candidate_strength(geohash, note_type, window_days)` SECURITY DEFINER fn returns distinct-user count — does NOT share anything.
+    - No shared-read RLS policy exists. Activation requires (a) flipping the flag, (b) adding a `shared_field_notes` materialized view with sensitive content stripped + source labels preserved + confidence floor, and (c) an explicit "shared select" policy. Three deliberate steps, no accidents.
+
+## Scope ladder (final shape)
+
+```
+private (NULL org)        → owner only
+org / org_shared          → org members via is_org_member
+shared_candidate (Stage 7)→ surfaces to owner as "promotable" once strength ≥ threshold
+shared_approved (Stage 7) → globally readable AFTER owner approval + anonymization
+```
+
+## What's left before Stage 7 activation
+
+1. Geohashing helper (client or edge fn) so `field_notes.geohash` actually gets populated.
+2. Anonymization pipeline (strip user_note free-text PII, preserve note_type + summary template + confidence).
+3. Owner-facing "Promote to shared" review surface inside Corrections Center.
+4. `shared_field_notes` read-only view + matching RLS.
+5. Flip `shared_aggregation_enabled` per-owner — never globally.
+
+No fake crowd intelligence. Low-volume areas stay private.
