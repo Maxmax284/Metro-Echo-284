@@ -45,6 +45,25 @@ type Ping = {
   delay: number;
 };
 
+// Stage 6 — Street Signal: classify sources into a trust hierarchy.
+// Tier order = display order (top = most authoritative).
+type SourceTier = "official" | "local" | "community" | "web" | "ai";
+const TIER_META: Record<SourceTier, { label: string; hint: string; tone: string }> = {
+  official: { label: "Official",  hint: "Weather, calendars, gov feeds", tone: "bg-primary/15 text-primary ring-primary/40" },
+  local:    { label: "Local",     hint: "Maps, nearby places, transit",  tone: "bg-signal/15 text-signal-foreground ring-signal/40" },
+  community:{ label: "Community", hint: "Reddit, forums, local chatter (kill-switched)", tone: "bg-accent/15 text-accent ring-accent/40" },
+  web:      { label: "Web",       hint: "Search, news, broad lookups",   tone: "bg-warn/15 text-warn-foreground ring-warn/40" },
+  ai:       { label: "AI",        hint: "Synthesis layer over above",    tone: "bg-muted/40 text-muted-foreground ring-border/60" },
+};
+function tierFor(source: string): SourceTier {
+  const s = source.toLowerCase();
+  if (s.includes("reddit") || s.includes("forum") || s.includes("community")) return "community";
+  if (s.includes("weather") || s.includes("meteo") || s.includes("calendar") || s.includes("gov")) return "official";
+  if (s.includes("local") || s.includes("places") || s.includes("nearby") || s.includes("maps") || s.includes("transit")) return "local";
+  if (s.includes("gemini") || s.includes("lovable-ai") || s.includes("synthesis") || s.includes("brief")) return "ai";
+  return "web";
+}
+
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
 
