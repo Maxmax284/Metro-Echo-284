@@ -372,6 +372,7 @@ Deno.serve(async (req: Request) => {
       community_count: community.length,
       community_via: community[0]?.via ?? null,
       briefing_count: (briefings ?? []).length,
+      location_warning,
       generated_at: new Date().toISOString(),
     };
 
@@ -382,6 +383,7 @@ Deno.serve(async (req: Request) => {
       local_signals: local_signals ?? [],
       community,
       briefings: briefings ?? [],
+      location_warning,
     };
 
     const db = adminClient();
