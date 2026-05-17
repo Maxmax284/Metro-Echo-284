@@ -9,6 +9,7 @@ import { Check, AlertTriangle, Clock, MapPin, EyeOff, Flag } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { geohashFromGeo } from "@/lib/geohash";
+import { useAwarenessOptional } from "@/providers/AwarenessProvider";
 
 type Surface =
   | "awareness" | "memory" | "sherlock" | "intake" | "companion"
@@ -58,6 +59,8 @@ export function FeedbackBar({
 }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [done, setDone] = useState<Set<string>>(new Set());
+  const awareness = useAwarenessOptional();
+  const place = awareness?.place ?? null;
 
   const send = async (key: FeedbackType | "add_field_note") => {
     if (busy) return;
@@ -71,11 +74,15 @@ export function FeedbackBar({
           ? window.prompt(label ? `Field note about "${label}":` : "Field note:", "")
           : null;
         if (!summary || !summary.trim()) return;
+        const gh = geohashFromGeo(place?.geo);
         const { data: inserted, error } = await supabase.from("field_notes").insert({
           user_id: u.user.id,
           note_type: "custom",
           summary: summary.trim(),
           location_label: label ?? null,
+          place_id: place?.id ?? null,
+          geo: place?.geo ?? null,
+          geohash: gh,
         }).select("id").single();
         if (error) throw error;
         // Stage 10 — audit hardening.
