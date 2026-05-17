@@ -359,7 +359,10 @@ export function MemorySurface() {
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="text-[10px] uppercase tracking-wider text-primary/80">{h.kind}</span>
-                      <span className="shrink-0 text-[10.5px] text-muted-foreground">{Math.round(h.similarity * 100)}%</span>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                        <StatusDot tone={similarityTone(h.similarity)} title={`${Math.round(h.similarity * 100)}% match`} />
+                        {Math.round(h.similarity * 100)}%
+                      </span>
                     </div>
                     {h.title && <h3 className="mt-1 truncate text-sm font-medium">{h.title}</h3>}
                     <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{h.snippet}</p>
