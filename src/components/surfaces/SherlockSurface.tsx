@@ -11,6 +11,16 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
+
+const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
+  all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
+  notes:       ["Notes about Lisbon trip", "Anything I jotted on payments?", "Recent decisions I logged"],
+  commitments: ["Commitments due in the next 3 days", "What did I promise this week?", "Anything I keep slipping on?"],
+  actions:     ["Actions still pending approval", "Recently completed actions", "What's blocked right now?"],
+  awareness:   ["Latest scams worth knowing", "Transport changes in my area", "Connectivity hiccups recently"],
+  files:       ["What's in the most recent ingest?", "Files mentioning payments", "Files I haven't acted on"],
+};
 
 type Investigation = {
   id: string;
