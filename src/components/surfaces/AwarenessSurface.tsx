@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, MapPin, RefreshCcw, Sparkles, X } from "lucide-react";
+import { Loader2, MapPin, RefreshCcw, Sparkles, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
+import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 
 export function AwarenessSurface() {
   const { session } = useAuth();
