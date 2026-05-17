@@ -3,11 +3,12 @@
 // Wherever a card represents something Vanta inferred (signal, finding,
 // memory, classification), drop this in the footer.
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { toast } from "sonner";
 import { Check, AlertTriangle, Clock, MapPin, EyeOff, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { geohashFromGeo } from "@/lib/geohash";
 
 type Surface =
   | "awareness" | "memory" | "sherlock" | "intake" | "companion"
