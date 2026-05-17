@@ -1,117 +1,56 @@
+# Stage 2 — Companion Toolbelt (attach · voice · slash)
 
-# Vanta V3 — Stage 0 Audit + Phased Plan
+Goal: turn the Companion composer into a real toolbelt where **every action is declared in `companionTools.ts`** and surfaced through three input affordances — paperclip (attach), mic (voice), and `/` (slash palette). No new tables, no new edge functions, no new providers.
 
-Confirmed: nothing in the V3 spec needs to be built from scratch. Every system already has a foundation — V3 is **wiring, refactor, and visual upgrade**, not new construction.
+## Scope (only this)
+- Attach button → reuses existing `files-ingest` pipeline, then auto-runs the `analyze-file` registry tool.
+- Voice button → keep existing Web Speech mic; promote it from inside `ConversationSurface` so it lives on the dock for every consumer.
+- Slash palette → typing `/` opens a registry-driven command menu (filtered by surface/mode/owner/API kill-switches via `getToolAvailability`).
+- Registry stays the single source of truth. No hardcoded action lists in the dock.
 
----
+Out of scope (later stages): Conversation tab demotion, Awareness HUD, Sherlock surface rebuild, Memory filters, Street Signals.
 
-## What exists and works (do NOT rebuild)
+## Files
 
-| Spec area | Already built | Status |
-|---|---|---|
-| Capture→Draft→Approve→Execute→Receipt→Audit law | `actions` + `action_events` + `audit_log` + `actions-execute` / `actions-transition` edge fns | ✅ Solid |
-| API leash / guard | `supabase/functions/_shared/apiGuard.ts` (270 LOC, kill switches + modes + cache + rate limits + task cap + usage log) | ✅ Solid |
-| System controls (kill switches) | `system_controls` table with 11 toggles + `useSystemControls` hook + owner-only RLS | ✅ Solid |
-| Settings / API Control Room | `src/pages/Settings.tsx` (kill switches, lockdown, usage_limits editor, mode) | ✅ Solid |
-| Awareness data model | `awareness_places` / `awareness_snapshots` / `awareness_briefings` + `AwarenessProvider` + 3 edge fns | ✅ Data layer solid; UI weak |
-| Companion shell | `CompanionWidget` + `CompanionContext` + `CompanionTools` (4 tools) + `CurrentContextProvider` | ⚠️ Shell exists, toolbelt thin |
-| Sherlock | `investigations` + `investigation_findings` + `SherlockProvider` + `SherlockOverlay` + `AnalyzeButton` + `sherlock-investigate` edge fn | ⚠️ Scoped overlay exists; SherlockSurface is text-box-only |
-| Memory | `notes` + `note_links` + `memory-autolink` + `memory-search` + embeddings | ⚠️ Notes-app feel, needs substrate framing |
-| Research objects | `research_objects` + `research_sources` + `research-run` + `ResearchPanel` | ✅ Just built last loop |
-| Cockpit / MiniRadarStrip | `CommandCenterSurface` + `MiniRadarStrip` with SerpApi pill | ✅ Solid, just needs top-signal chips |
-| Files | `ingested_files` + `files-ingest` + `FileUploadCard` | ⚠️ Lives in Settings, needs to surface in Companion |
-| Telegram capture | `telegram-webhook` + `telegram-link` (capture-only, no execution) | ✅ Matches "messaging feeds, doesn't control" law |
-| Roles | `user_roles` + `has_role()` SECURITY DEFINER | ✅ Correct pattern |
+**Edit `src/components/shell/ConversationDock.tsx`**
+- Add props: `onAttach?: (files: FileList) => void | Promise<void>`, `onSlashPick?: (toolId: string) => void`, `surface: string`, `mode: AppMode`, `isOwner: boolean | null`, `controls: SystemControls | null`.
+- Add a paperclip button left of the mic; hidden file input; calls `onAttach`.
+- Detect leading `/` in textarea → render a popover above the dock listing available tools (filter via `getToolAvailability`). ↑/↓/Enter to pick; Esc closes. Picking a tool calls `onSlashPick(tool.id)` and clears the input.
+- Tools with `directAction` execute directly (open Sherlock / Research). Prompt-style tools call `buildPrompt({ surface, placeLabel })` and submit via existing `onSend`.
+- Keep current behavior: Enter submits, Shift+Enter newline, mic transcribes.
 
-**Conclusion:** the V3 spec describes an architecture that is **~70% built**. The remaining 30% is UX upgrade + tool registry + Awareness HUD reskin. No new core tables needed except optionally a `tool_registry` config (and that can be in-memory TS).
+**Edit `src/components/surfaces/ConversationSurface.tsx`**
+- Remove the standalone `<CompanionTools>` chip strip (slash palette replaces it).
+- Pass new props to `ConversationDock`: surface/mode/owner/controls, plus
+  - `onAttach`: uploads to `memory-uploads` storage + inserts `ingested_files` + invokes `files-ingest` (reuse logic from `FileUploadCard`), then auto-sends the `analyze-file` registry prompt.
+  - `onSlashPick(toolId)`: looks tool up in `COMPANION_TOOLS`; if `directAction === "open-sherlock"` → `openSherlock(...)`; if `"open-research"` → set local `researchOpen=true`; else `send(tool.buildPrompt({ surface, placeLabel }))`.
+- Add a lightweight Research sheet (`<Sheet>` wrapping the existing `ResearchPanel`) opened by the registry's `research-this` tool. No new component logic — just mount existing panel.
 
----
+**Edit `src/components/companion/CompanionWidget.tsx`**
+- No structural change; `ConversationSurface` already gets the wiring. Verify the widget's surface context still feeds the dock correctly (it does via `CurrentContextProvider`).
 
-## What's placeholder / weak (real work)
+**No edits to:** `companionTools.ts`, `apiGuard.ts`, edge functions, DB, `CompanionTools.tsx` (kept as fallback chip-strip for any non-dock consumer; can be removed in Stage 3 once nothing imports it — leave for now to avoid churn).
 
-1. **CompanionTools** — only 4 hardcoded prompt buttons. The spec wants a registry of ~25 tools, surface-aware, mode-gated, permission-gated, API-availability-gated.
-2. **AwarenessSurface** — list of places + modal with "Generate" buttons. No radar visual, no pings, no source chips on the surface itself, no top-signals strip.
-3. **SherlockSurface** — single text box. The overlay (`AnalyzeButton` → `SherlockOverlay`) already supports scoped investigation; the surface itself doesn't expose modes or scoped targets.
-4. **MemorySurface** — works but framed as notes. No type filters (person/place/project/finding/signal), weak empty state.
-5. **Conversation tab** — still in primary nav (`PRIMARY` array in SurfaceTabs). Spec says demote to overflow/Companion Log.
-6. **Street Signal layer** — Reddit/HN/Wikidata/Nominatim entirely missing. Source hierarchy not codified anywhere.
-7. **File upload in Companion** — `FileUploadCard` exists but only inside Settings. Companion has no attach button.
+## Behavior contracts
 
----
+- **Attach**: 20MB cap (reuse `MAX_BYTES`), same upload+ingest as `FileUploadCard`. On success toast → automatically dispatches `analyze-file` tool prompt so the user sees the analysis stream inline. If `files-ingest` errors, surface toast; do not auto-prompt.
+- **Voice**: unchanged transcription; only repositioned.
+- **Slash**: palette only shows tools where `getToolAvailability(...).available === true`; disabled tools never appear (reasons are still visible on the chip strip elsewhere). Empty query after `/` lists all available tools; typing filters by `label` substring.
+- **Audit**: every dispatched tool keeps its existing audit pathway via `vanta-converse` / direct-action handlers. No new audit code in this stage.
 
-## What is duplicated (must NOT make worse)
+## Technical notes
 
-- `ConversationSurface` is rendered **both** as a route tab AND inside `CompanionWidget` body. This is the only real duplication. Fix during Stage 2 by making Companion the canonical conversation host and the tab becomes "Log" (read-only-ish history view).
-- Nothing else is duplicated. Previous loops correctly extended existing tables (research_objects, awareness_snapshots) instead of forking.
+- The dock stays presentational; all side-effects (upload, openSherlock, sheet state) live in `ConversationSurface` so the dock remains reusable.
+- Slash palette is a plain `<div role="listbox">` anchored above the textarea (no Popover dep) to keep it keyboard-clean inside the existing `glass` container.
+- Mobile (384px): paperclip + mic + send must all fit. Use `h-9 w-9` and tighten gap to `gap-1.5`. The palette is a full-width card above the dock so it never overflows.
+- Type-only changes; no new packages.
 
----
+## Verification
 
-## What must NOT be touched
-
-- `apiGuard.ts` contract — every new tool plugs into it, never bypasses.
-- `actions` table + transition flow — Companion/Awareness/Sherlock only create drafts.
-- `system_controls` schema — already has every toggle the spec asks for.
-- `src/integrations/supabase/client.ts` and `types.ts` — auto-generated.
-- Telegram webhook execution boundary — capture only.
-
----
-
-## Phased plan (build order)
-
-```text
-Stage 1 — Tool Registry        [foundation; everything else depends on it]
-Stage 2 — Companion Toolbelt   [attach/voice/slash + registry-driven tools + demote Conversation]
-Stage 3 — Awareness HUD        [radar canvas + pings + top signals + drawer]
-Stage 4 — Sherlock scoped      [modes + target cards on surface, reuse overlay]
-Stage 5 — Memory substrate     [type filters + structured empty state + linking UI]
-Stage 6 — Street Signal        [Reddit + source hierarchy through apiGuard, behind kill switch]
-Stage 7 — Motion + mobile pass [radar sweep, ping pulse, drawer slide; 384px audit]
-```
-
-Each stage = one approved sub-plan. We do NOT build ahead.
-
----
-
-## Stage 1 — Shared Companion Tool Registry (this is what I'll implement first if you approve)
-
-**New file:** `src/lib/companionTools.ts`
-
-A single TS registry declaring every tool with the metadata the spec demands (id, label, icon, surfaces, modes, role, edge fn, costs_credits, provider, rate-limit category, creates_draft, needs_approval, output_route, audit_event, disabled_reason resolver).
-
-**Refactor:** `CompanionTools.tsx` reads from the registry and filters by:
-- current surface (`useCurrentContext`)
-- current mode (`useMode`)
-- owner status (`useIsOwner`)
-- live API availability (`useSystemControls` — checks the relevant kill switch + `external_apis_enabled` + lockdown)
-
-Disabled tools render with a tooltip explaining *why* ("SerpApi paused in Control Room", "requires Operator mode", "owner-only").
-
-**Initial registry (12 tools, all already wired to existing edge fns):**
-- Ask about area · Explain receipt · Find related · Explain draft (existing 4)
-- Save to Memory · Create commitment · Draft action (route to existing tables)
-- Run Sherlock (calls `openSherlock` with freeform scope)
-- Research this (opens `ResearchPanel` with prefilled question)
-- Summarize page · Translate · Analyze file (route to `vanta-converse` / `notes-assist`)
-
-**No new tables. No new edge functions. No new providers.** Pure refactor + extension of what's there.
-
-### Files touched in Stage 1
-- `src/lib/companionTools.ts` (new, ~150 LOC)
-- `src/components/companion/CompanionTools.tsx` (refactor to read registry)
-- `src/components/companion/CompanionContext.tsx` (add `runTool(toolId)` helper if needed)
-
-### What Stage 1 does NOT touch
-- No DB migrations.
-- No edge function changes.
-- No Awareness/Sherlock/Memory surface changes.
-- No nav changes (Conversation demotion is Stage 2).
-
----
-
-## Confirmation on "no double building"
-
-I cross-checked every spec section against the existing codebase before writing this plan. The only true duplication is `ConversationSurface` being rendered in two places, and that's resolved by Stage 2's demotion (not a rebuild — same component, different mount point + reduced nav weight). Every other "new" V3 capability is either:
-- **already built** (just needs to be referenced from the registry), or
-- **purely additive** (radar canvas overlay, Reddit provider) with zero overlap to existing systems.
-
-Approve this plan and I'll execute Stage 1 only. We re-plan before each next stage.
+1. Open Companion on any surface → see paperclip, mic, send.
+2. Drop a PDF via paperclip → file appears in `ingested_files`, then assistant message streams an analysis (proves end-to-end attach → registry tool dispatch).
+3. Type `/` → palette lists registry tools; arrow keys + Enter dispatch.
+4. Pick `Run Sherlock` from slash → Sherlock overlay opens scoped to current surface.
+5. Pick `Research this` → Research sheet mounts with `ResearchPanel`.
+6. Disable SerpApi in Control Room → `Research this` disappears from palette within the controls refresh interval.
+7. Mic still works inside `ConversationSurface` (no regression).
