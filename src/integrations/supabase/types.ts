@@ -381,6 +381,42 @@ export type Database = {
         }
         Relationships: []
       }
+      awareness_snapshots: {
+        Row: {
+          compact: Json
+          created_at: string
+          expires_at: string
+          full_data: Json
+          generated_at: string
+          id: string
+          place_id: string
+          sources_used: Json
+          user_id: string
+        }
+        Insert: {
+          compact?: Json
+          created_at?: string
+          expires_at?: string
+          full_data?: Json
+          generated_at?: string
+          id?: string
+          place_id: string
+          sources_used?: Json
+          user_id: string
+        }
+        Update: {
+          compact?: Json
+          created_at?: string
+          expires_at?: string
+          full_data?: Json
+          generated_at?: string
+          id?: string
+          place_id?: string
+          sources_used?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       commitments: {
         Row: {
           created_at: string
