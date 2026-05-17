@@ -274,21 +274,33 @@ export function AwarenessHUD({ className }: { className?: string }) {
             <circle
               cx={p.cx}
               cy={p.cy}
-              r={p.strong ? 1.6 : 1.2}
-              fill="hsl(var(--primary))"
+              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
+              fill={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
               opacity={0.95}
             />
             <circle
               cx={p.cx}
               cy={p.cy}
-              r={p.strong ? 1.6 : 1.2}
+              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
               fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth={0.4}
+              stroke={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
+              strokeWidth={p.pinned ? 0.6 : 0.4}
               className="radar-ping-pulse"
               style={{ animationDelay: `${p.delay}s` }}
             />
-            <title>{p.label}</title>
+            {p.pinned && (
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r={4}
+                fill="none"
+                stroke="hsl(var(--accent, var(--primary)))"
+                strokeOpacity={0.55}
+                strokeWidth={0.5}
+                strokeDasharray="1 1.2"
+              />
+            )}
+            <title>{p.label}{p.pinned ? " · pinned" : ""}</title>
           </g>
         ))}
 
