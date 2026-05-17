@@ -9,6 +9,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { SignalRoute, VantaSignal } from "@/lib/vantaSignal";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { geohashFromGeo } from "@/lib/geohash";
 
 export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => void;
 
@@ -18,7 +19,7 @@ export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => vo
  * targets degrade to toast feedback rather than silent no-ops.
  */
 export function useSignalRoute(): SignalRouteHandler {
-  const { refresh, refreshSnapshot } = useAwareness();
+  const { refresh, refreshSnapshot, place } = useAwareness();
   const { openSherlock } = useSherlock();
   const { openWithPrefill } = useCompanion();
 
@@ -202,6 +203,9 @@ export function useSignalRoute(): SignalRouteHandler {
               summary: summary.trim(),
               details: signal.short_summary || null,
               location_label: title,
+              place_id: place?.id ?? null,
+              geo: place?.geo ?? null,
+              geohash: geohashFromGeo(place?.geo),
             }).select("id").single();
             if (error) throw error;
             await supabase.from("audit_log").insert({
@@ -209,7 +213,7 @@ export function useSignalRoute(): SignalRouteHandler {
               entity_type: "field_note",
               entity_id: inserted?.id ?? null,
               event: "field_note:created",
-              payload: { location_label: title, summary: summary.trim() } as any,
+              payload: { location_label: title, summary: summary.trim(), geohash: geohashFromGeo(place?.geo) } as any,
             });
             toast.success("Field note saved.");
           } catch (e: any) {
@@ -222,5 +226,5 @@ export function useSignalRoute(): SignalRouteHandler {
       default:
         toast.message(`Route: ${route}`);
     }
-  }, [refresh, refreshSnapshot, openSherlock, openWithPrefill]);
+  }, [refresh, refreshSnapshot, openSherlock, openWithPrefill, place]);
 }

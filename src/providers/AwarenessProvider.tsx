@@ -238,6 +238,11 @@ export function useAwareness() {
   return v;
 }
 
+/** Tolerant variant: returns null when used outside the provider. */
+export function useAwarenessOptional() {
+  return useContext(AwarenessCtx);
+}
+
 export function useAwarenessSlice(sections?: readonly string[]) {
   const { getSlice } = useAwareness();
   return useMemo(() => getSlice(sections), [getSlice, sections]);
