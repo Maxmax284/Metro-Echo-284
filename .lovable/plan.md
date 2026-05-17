@@ -1,26 +1,62 @@
-# V3 Stages 6 + 7 — Street Signal · Motion + Mobile
+# V3 Stages 6 + 7 — Street Signal · Motion + Mobile (shipped)
 
-## 6 — Street Signal (source hierarchy, kill-switched)
-- Added a `tierFor()` classifier mapping each `sources_used` string into a tier:
-  Official · Local · Community · Web · AI.
-- HUD card now renders a compact **tier-count chip strip** (replacing the flat per-source chips).
-  Community tier renders struck-through + "off" when SerpApi is paused — the same kill switch
-  governs street/community ingest today.
-- HUD drawer now renders a full **Source hierarchy** panel listing each tier with its hint
-  ("Maps, nearby places, transit", "Reddit, forums, local chatter (kill-switched)", etc.)
-  and the underlying source names beneath each tier badge.
-- No new edge functions, providers, or schema; piggybacks on existing `apiGuard` switches.
+(see prior plan content — kept for context.)
 
-## 7 — Motion + Mobile pass
-- New `radar-fade-in` keyframe applied to each ping `<g>` with the existing stagger delay,
-  so pings emerge instead of snapping in.
-- New `motion-drawer-in` utility + `drawer-slide-up` keyframe (available for any panel
-  that wants a softer slide).
-- `prefers-reduced-motion` block extended to disable all four animations.
-- HUD header row switched to `flex-wrap` so the SerpApi pill + Expand + Refresh buttons
-  reflow cleanly at 384 px instead of clipping.
+---
 
-## Notes
-- Out of scope: real Reddit ingest. The Community tier surface is now ready for a future
-  guarded fetcher behind a `reddit_enabled` switch — the UI already speaks the language.
-- All V3 spec stages now complete.
+# Stages 1 + 2 — Structured signals + Vanta voice (this pass)
+
+## Stage 1 — Voice + signal scaffolding
+- `supabase/functions/_shared/vantaVoice.ts` — `VANTA_CORE_VOICE`, `AWARENESS_VOICE`,
+  plus surface variants reserved for Stage 4 (Companion / Sherlock / Memory /
+  Actions / Audit / Telegram / Intake). `VantaSignalSchema` (Zod) and
+  `VANTA_SIGNAL_JSON_SCHEMA` (for Gemini `response_format`). `fallbackSignal()`
+  helper for safe degradation.
+- `src/lib/vantaSignal.ts` — matching TS types + tone/route label helpers (no
+  UI shipped yet; awaits Stage 3).
+- `src/lib/markdown.ts` — tiny stripper to keep legacy briefings clean.
+
+## Stage 2 — Backend → structured signals
+- **Migration**: `awareness_briefings.signal jsonb` (nullable; old rows unaffected).
+- **`awareness-brief`** rewritten:
+  - System prompt = `AWARENESS_VOICE`.
+  - Gemini call uses `response_format: json_schema` bound to `VantaSignal`.
+  - Zod-validates the response. If invalid OR call fails, persists a
+    `fallbackSignal` ("I couldn't structure this signal cleanly — try
+    refreshing or send it to Sherlock"). No raw prose ever lands in the UI.
+  - Persists `short_summary` into `content` for back-compat with the existing
+    HUD/drawer, plus the full structured `signal` in the new column.
+- **`awareness-snapshot`** now emits a deterministic `location_warning` (no AI
+  call) when GPS has no country/region match, weak accuracy (>500m), or no
+  coords at all. Exposed in both `compact.location_warning` and
+  `full_data.location_warning` — back-compatible additive change.
+- No new external APIs, no auto-refresh, no page-render paid calls. apiGuard
+  untouched.
+
+## Validation
+- `/mnt/documents/awareness_before_after_v1.md` — real AI-gateway runs comparing
+  the legacy prose prompt vs the new voice + schema, across Transport, Hazards,
+  Payments, Connectivity, and Location Warning (deterministic).
+- Offshore case correctly produced `confidence: "low"`,
+  `requires_confirmation: true`, `confirm_location` route, and a plain-English
+  `confirmation_reason`.
+
+## Back-compat notes
+- Existing cached snapshots keep working (`location_warning` is additive).
+- HUD continues to render `compact.summary` and ping list — no rendering
+  contract changes this pass.
+- API guard kill-switches unchanged.
+- No paid call on page render.
+
+## Out of scope (Stage 3+ — not started)
+- UI shift: chips → radar layers, drawer rendering the structured signal,
+  Generate→operational verbs.
+- Global voice rollout to Companion/Sherlock/Memory/Notes/Actions/Telegram.
+- Cross-surface routing wiring.
+
+## Known pre-existing security warnings (NOT introduced by this migration)
+- vector extension in `public` schema.
+- `has_role`, `handle_new_user`, `rate_limit_hit`, `memory_search`, `notes_related`
+  are `SECURITY DEFINER` and executable by authenticated users — by design.
+- `update_updated_at_column`, `set_updated_at` SECURITY DEFINER trigger helpers.
+- All present before this pass; left alone.

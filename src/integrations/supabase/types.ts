@@ -315,6 +315,7 @@ export type Database = {
           id: string
           place_id: string
           section: string
+          signal: Json | null
           sources: Json | null
           user_id: string
         }
@@ -325,6 +326,7 @@ export type Database = {
           id?: string
           place_id: string
           section: string
+          signal?: Json | null
           sources?: Json | null
           user_id: string
         }
@@ -335,6 +337,7 @@ export type Database = {
           id?: string
           place_id?: string
           section?: string
+          signal?: Json | null
           sources?: Json | null
           user_id?: string
         }
