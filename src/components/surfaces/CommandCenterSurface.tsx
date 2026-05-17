@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
+import { ResearchPanel } from "@/components/research/ResearchPanel";
 
 type Counts = {
   pendingApprovals: number;
