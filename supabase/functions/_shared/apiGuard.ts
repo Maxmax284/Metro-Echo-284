@@ -4,7 +4,14 @@
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-export type GuardProvider = "serpapi" | "gemini" | "open-meteo" | "google-calendar" | "lovable-ai";
+export type GuardProvider =
+  | "serpapi"
+  | "gemini"
+  | "open-meteo"
+  | "google-calendar"
+  | "lovable-ai"
+  | "reddit-serpapi"   // Community: Reddit via SerpApi engine (primary)
+  | "reddit-public";   // Community: public reddit.com JSON (fallback)
 
 export type GuardInput = {
   owner_id: string;
