@@ -137,8 +137,41 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: true })
       .limit(30);
 
+    // Stage 3 — pull user's active corrections + recent field notes so Vanta
+    // never repeats mistakes the user already corrected.
+    const [{ data: corrections }, { data: fieldNotes }] = await Promise.all([
+      supabase
+        .from("corrections")
+        .select("surface, target_type, feedback_type, user_note, created_at")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("field_notes")
+        .select("note_type, summary, location_label, created_at")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ]);
+
+    const correctionsBlock = (corrections ?? []).length
+      ? "Active user corrections (respect these; do not repeat the mistake):\n" +
+        (corrections ?? []).map((c: any) =>
+          `- [${c.surface}/${c.target_type}] ${c.feedback_type}${c.user_note ? `: ${c.user_note}` : ""}`
+        ).join("\n")
+      : "";
+    const fieldNotesBlock = (fieldNotes ?? []).length
+      ? "User field notes (lived context, treat as ground truth from the user):\n" +
+        (fieldNotes ?? []).map((n: any) =>
+          `- [${n.note_type}]${n.location_label ? ` @ ${n.location_label}` : ""}: ${n.summary}`
+        ).join("\n")
+      : "";
+
+    const sysWithCorrections = [SYSTEM_PROMPT, correctionsBlock, fieldNotesBlock]
+      .filter(Boolean).join("\n\n");
+
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: sysWithCorrections },
       ...(history ?? []).filter((m: any) => m.role === "user" || m.role === "assistant"),
       { role: "user", content: message },
     ];
