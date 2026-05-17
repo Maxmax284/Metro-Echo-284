@@ -1,9 +1,9 @@
 import type * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
@@ -15,13 +15,48 @@ import { useMode } from "@/hooks/useMode";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
-import { COMPANION_TOOLS } from "@/lib/companionTools";
+import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 
-type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
+type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
+type Msg = {
+  id?: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  receipt?: Receipt;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 const MAX_BYTES = 20 * 1024 * 1024;
+
+const SURFACE_HINTS: Record<string, string> = {
+  awareness: "I can read your radar, explain a layer, or stage a draft from a signal.",
+  actions: "I can walk you through a draft before approval, or propose a new one.",
+  commitments: "I can stage a commitment from this thread or surface what's due.",
+  memory: "I can capture a note, find related items, or translate something.",
+  sherlock: "I can open a scoped investigation or summarize what's on screen.",
+  audit: "I can explain the latest draft or summarize recent events.",
+  command: "I can read your current place, summarize the view, or draft an action.",
+  conversation: "Type, attach, or hit / for tools. Drafts only — nothing executes.",
+};
+
+const SUGGESTIONS_BY_SURFACE: Record<string, string[]> = {
+  awareness: ["area", "summarize-page", "save-memory"],
+  actions: ["draft", "draft-action", "create-commitment"],
+  commitments: ["create-commitment", "related", "summarize-page"],
+  memory: ["save-memory", "translate", "related"],
+  sherlock: ["run-sherlock", "related", "summarize-page"],
+  audit: ["draft", "summarize-page", "related"],
+  command: ["area", "summarize-page", "related"],
+  conversation: ["area", "save-memory", "draft-action"],
+};
+
+const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
+  stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
+  add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
+  capture_note: { label: "Saved to memory", icon: BookmarkPlus, surface: "memory" },
+};
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
   const { session, user } = useAuth();
