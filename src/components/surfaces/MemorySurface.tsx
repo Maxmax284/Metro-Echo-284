@@ -126,20 +126,31 @@ export function MemorySurface() {
     }
   };
 
-  const runSearch = async () => {
-    if (!query.trim()) { setHits(null); return; }
+  const runSearch = async (override?: string) => {
+    const q = (override ?? query).trim();
+    if (!q) { setHits(null); return; }
+    if (override) setQuery(override);
+    searchCancelRef.current = false;
     setSearching(true);
     try {
       const { data, error } = await supabase.functions.invoke("memory-search", {
-        body: { query: query.trim(), match_count: 15, min_similarity: 0.35 },
+        body: { query: q, match_count: 15, min_similarity: 0.35 },
       });
+      if (searchCancelRef.current) return;
       if (error) throw error;
       setHits((data?.results ?? []) as SearchHit[]);
     } catch (e) {
+      if (searchCancelRef.current) return;
       toast.error(e instanceof Error ? e.message : "Search failed");
     } finally {
       setSearching(false);
     }
+  };
+
+  const cancelSearch = () => {
+    searchCancelRef.current = true;
+    setSearching(false);
+    toast.message("Search cancelled");
   };
 
   const loadRelated = async (noteId: string) => {
