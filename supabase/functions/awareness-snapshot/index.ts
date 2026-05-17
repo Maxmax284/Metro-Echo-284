@@ -151,6 +151,57 @@ Deno.serve(async (req: Request) => {
 
     const sources_used: string[] = ["internal"];
 
+    // ---- Weird-location detection ------------------------------------------
+    // Emits a structured location_warning when the GPS or saved geo doesn't
+    // line up with a real land-based place. Heuristic, intentionally cheap —
+    // no extra paid API calls.
+    type LocationWarning = {
+      signal_type: "location_warning";
+      title: string;
+      short_summary: string;
+      confidence: "low" | "medium" | "high";
+      reasons: string[];
+      what_to_do_next: string;
+      requires_confirmation: boolean;
+    };
+    let location_warning: LocationWarning | null = null;
+    {
+      const reasons: string[] = [];
+      const geoAny = place.geo as { lat?: number; lon?: number; acc?: number; updated_at?: string } | null;
+      const hasGeo = geoAny?.lat != null && geoAny?.lon != null;
+      const hasCountry = !!place.country;
+      const hasRegion = !!place.region;
+      if (!hasGeo) {
+        reasons.push("No coordinates on this place yet.");
+      } else {
+        if (!hasCountry && !hasRegion) reasons.push("No country or region matched these coordinates.");
+        if (typeof geoAny?.acc === "number" && geoAny.acc > 500) {
+          reasons.push(`GPS accuracy is weak (±${Math.round(geoAny.acc)}m).`);
+        }
+        // Crude "looks offshore" heuristic: no country match AND coordinates
+        // sit in a band that's far from common populated areas. We don't try
+        // to be clever — we just flag the case the user described.
+        const lat = geoAny!.lat!;
+        const lon = geoAny!.lon!;
+        if (!hasCountry && Math.abs(lat) < 60 && Math.abs(lon) < 180) {
+          reasons.push("Coordinates didn't reverse-geocode to a known land area.");
+        }
+      }
+      if (reasons.length > 0) {
+        location_warning = {
+          signal_type: "location_warning",
+          title: "Location looks off",
+          short_summary: hasGeo
+            ? "Your location reads as something other than a normal land-based spot. Confirm before I treat this as local context."
+            : "I don't have coordinates for this place yet. Confirm a location before I scan local context.",
+          confidence: "low",
+          reasons,
+          what_to_do_next: "Confirm your active place, use a saved place, or refresh the location.",
+          requires_confirmation: true,
+        };
+      }
+    }
+
     const { data: briefings } = await userClient
       .from("awareness_briefings")
       .select("section, content, confidence, generated_at")
