@@ -162,3 +162,25 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 999px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 }
+
+/* ============= Awareness HUD radar ============= */
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}
+@keyframes radar-ping {
+  0%   { transform: scale(1);   opacity: 0.9; }
+  70%  { transform: scale(2.4); opacity: 0;   }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+.radar-sweep {
+  transform-origin: 50% 50%;
+  animation: radar-sweep 4.5s linear infinite;
+}
+.radar-ping-pulse {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: radar-ping 2.4s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep, .radar-ping-pulse { animation: none; }
+}
