@@ -60,7 +60,7 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
   const { session, user } = useAuth();
-  const { context } = useCurrentContext();
+  const { context, setContext } = useCurrentContext();
   const { place } = useAwareness();
   const { mode } = useMode();
   const isOwner = useIsOwner();
@@ -72,6 +72,21 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const [streaming, setStreaming] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Internal intent handler — emits inline receipt cards on successful drafts.
+  const internalIntent = useIntentHandler((ack) => {
+    const meta = RECEIPT_META[ack.kind];
+    if (!meta) return;
+    setMsgs((prev) => [
+      ...prev,
+      {
+        role: "system",
+        content: ack.summary,
+        receipt: { kind: ack.kind, summary: ack.summary, surface: meta.surface },
+      },
+    ]);
+  });
 
   // Load or create conversation
   useEffect(() => {
