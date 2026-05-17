@@ -42,6 +42,65 @@ function weatherCodeLabel(code: number | undefined): string | null {
   return null;
 }
 
+// ---- Community signals (Reddit) ---------------------------------------------
+// Strategy: try SerpApi Reddit engine first (richer + key already wired),
+// then fall back to public reddit.com JSON. Each path is independently guarded
+// + kill-switched so the skeleton stays open for future sources (HN, forums...).
+type CommunityItem = {
+  source: "reddit";
+  via: "serpapi" | "public";
+  title: string;
+  snippet?: string;
+  link?: string;
+  subreddit?: string;
+  score?: number;
+  comments?: number;
+  created_utc?: number;
+};
+
+async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<CommunityItem[]> {
+  const url = `https://serpapi.com/search.json?engine=reddit&q=${encodeURIComponent(query)}&api_key=${apiKey}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`serpapi-reddit ${r.status}`);
+  const j = await r.json();
+  const rows = (j.posts ?? j.organic_results ?? []).slice(0, 6);
+  return rows.map((it: any) => ({
+    source: "reddit" as const,
+    via: "serpapi" as const,
+    title: String(it.title ?? it.name ?? ""),
+    snippet: it.snippet ? String(it.snippet) : (it.selftext ? String(it.selftext).slice(0, 240) : undefined),
+    link: it.link ?? it.permalink ?? undefined,
+    subreddit: it.subreddit ?? it.community ?? undefined,
+    score: typeof it.score === "number" ? it.score : undefined,
+    comments: typeof it.num_comments === "number" ? it.num_comments : undefined,
+  }));
+}
+
+async function fetchRedditPublic(query: string): Promise<CommunityItem[]> {
+  const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=8&t=week`;
+  const r = await fetch(url, {
+    headers: { "User-Agent": "vanta-awareness/1.0 (street-signal fallback)" },
+  });
+  if (!r.ok) throw new Error(`reddit-public ${r.status}`);
+  const j = await r.json();
+  const children = j?.data?.children ?? [];
+  return children.slice(0, 6).map((c: any) => {
+    const d = c?.data ?? {};
+    return {
+      source: "reddit" as const,
+      via: "public" as const,
+      title: String(d.title ?? ""),
+      snippet: d.selftext ? String(d.selftext).slice(0, 240) : undefined,
+      link: d.permalink ? `https://www.reddit.com${d.permalink}` : undefined,
+      subreddit: d.subreddit ? String(d.subreddit) : undefined,
+      score: typeof d.score === "number" ? d.score : undefined,
+      comments: typeof d.num_comments === "number" ? d.num_comments : undefined,
+      created_utc: typeof d.created_utc === "number" ? d.created_utc : undefined,
+    };
+  });
+}
+
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
