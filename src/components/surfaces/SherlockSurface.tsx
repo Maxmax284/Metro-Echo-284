@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 
 type Investigation = {
   id: string;
@@ -272,6 +273,15 @@ export function SherlockSurface() {
                                 source: {f.source_kind}{f.source_excerpt ? ` — "${f.source_excerpt}"` : ""}
                               </p>
                             )}
+                            <div className="mt-1.5">
+                              <FeedbackBar
+                                surface="sherlock"
+                                targetType="sherlock_finding"
+                                targetId={f.id}
+                                label={f.claim.slice(0, 80)}
+                                original={f}
+                              />
+                            </div>
                           </li>
                         ))}
                       </ul>
