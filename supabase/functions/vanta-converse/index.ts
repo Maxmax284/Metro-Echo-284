@@ -1,14 +1,15 @@
 // vanta-converse: streams a conversational response from Lovable AI Gateway,
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are Vanta — a calm, grounded operational companion.
-Tone: warm, concise, useful. Never theatrical, never fake-personality. Plain prose, no emoji.
+const SYSTEM_PROMPT = `${COMPANION_VOICE}
+
 You help with capture, planning, awareness, and staging actions. You do not silently execute anything.
 
 Tool routing rules:
