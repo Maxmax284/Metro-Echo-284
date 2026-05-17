@@ -128,6 +128,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     setBusy(true);
     setStreaming(true);
 
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    let aborted = false;
     let assistantSoFar = "";
     try {
       const resp = await fetch(CHAT_URL, {
@@ -137,6 +140,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ conversation_id: convId, message: text }),
+        signal: ctrl.signal,
       });
 
       if (resp.status === 429) throw new Error("Rate limited — please slow down a moment.");
@@ -166,25 +170,54 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
               assistantSoFar += delta;
               setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
             }
-            if (p.intent) onIntent?.(p.intent.name, p.intent.args);
+            if (p.intent) {
+              onIntent?.(p.intent.name, p.intent.args);
+              void internalIntent(p.intent.name, p.intent.args);
+            }
           } catch { /* partial */ }
         }
       }
 
-      const { data: inserted } = await supabase.from("messages").insert([
-        { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
-        { user_id: session.user.id, conversation_id: convId, role: "assistant", content: assistantSoFar },
-      ]).select("id");
-      if (inserted) {
-        const { generateEmbedding } = await import("@/lib/embeddings");
-        inserted.forEach((m) => generateEmbedding("message", m.id));
+      const finalContent = aborted && assistantSoFar
+        ? `${assistantSoFar}\n\n_Stopped._`
+        : assistantSoFar;
+      if (aborted) {
+        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+
+      if (finalContent) {
+        const { data: inserted } = await supabase.from("messages").insert([
+          { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
+          { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+        ]).select("id");
+        if (inserted) {
+          const { generateEmbedding } = await import("@/lib/embeddings");
+          inserted.forEach((m) => generateEmbedding("message", m.id));
+        }
+      }
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        aborted = true;
+        const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
+        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        try {
+          await supabase.from("messages").insert([
+            { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
+            { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+          ]);
+        } catch { /* noop */ }
+      } else {
+        toast.error(e instanceof Error ? e.message : "Something went wrong");
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
       setStreaming(false);
     }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
   };
 
   // Attach: upload file → ingest → auto-run analyze-file tool
