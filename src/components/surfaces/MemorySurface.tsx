@@ -240,7 +240,7 @@ export function MemorySurface() {
             variant="secondary"
             className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
             disabled={searching || !query.trim()}
-            onClick={runSearch}
+            onClick={() => runSearch()}
           >
             {searching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Search"}
           </Button>
