@@ -8,6 +8,7 @@ import { useAwareness } from "@/providers/AwarenessProvider";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { SignalRoute, VantaSignal } from "@/lib/vantaSignal";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => void;
 
@@ -19,6 +20,7 @@ export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => vo
 export function useSignalRoute(): SignalRouteHandler {
   const { refresh, refreshSnapshot } = useAwareness();
   const { openSherlock } = useSherlock();
+  const { openWithPrefill } = useCompanion();
 
   return useCallback<SignalRouteHandler>((route, signal) => {
     const title = signal.title || signal.signal_type;
@@ -58,15 +60,10 @@ export function useSignalRoute(): SignalRouteHandler {
       }
 
       case "ask_vanta": {
-        // No converse-prefill surface API yet — drop the question into the
-        // clipboard so the user can paste into the Companion dock.
+        // Stage 6 — open the Companion dock prefilled with the question.
         const q = `About "${title}": ${signal.what_to_do_next || signal.short_summary}`;
-        try {
-          navigator.clipboard?.writeText(q);
-          toast.success("Copied — paste into the Vanta dock to ask.");
-        } catch {
-          toast.message("Ask Vanta", { description: q });
-        }
+        openWithPrefill(q);
+        toast.message("Companion opened", { description: "Edit or send the question." });
         return;
       }
 
