@@ -3,7 +3,7 @@
 // Wherever a card represents something Vanta inferred (signal, finding,
 // memory, classification), drop this in the footer.
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Check, AlertTriangle, Clock, MapPin, EyeOff, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
