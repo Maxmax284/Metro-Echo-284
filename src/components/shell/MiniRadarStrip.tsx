@@ -89,6 +89,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
             <Radar className="h-3 w-3 text-primary" /> Radar
           </div>
           <div className="flex items-center gap-1">
+            {!isMobile && <SerpPill />}
             {isMobile && (
               <Button
                 size="sm"
