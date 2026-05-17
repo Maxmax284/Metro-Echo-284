@@ -96,6 +96,8 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
   const [briefings, setBriefings] = useState<AwarenessBriefing[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<AwarenessSnapshot | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
   const channelRef = useRef<any>(null);
 
   const refresh = useCallback(async () => {
