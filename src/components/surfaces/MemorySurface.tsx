@@ -48,6 +48,7 @@ export function MemorySurface() {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [hits, setHits] = useState<SearchHit[] | null>(null);
+  const [hitFilter, setHitFilter] = useState<HitKind | "all">("all");
 
   const [related, setRelated] = useState<RelatedHit[]>([]);
   const [relatedBusy, setRelatedBusy] = useState(false);
