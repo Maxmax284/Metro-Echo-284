@@ -11,6 +11,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
+import { ResearchPanel } from "@/components/research/ResearchPanel";
 
 type Counts = {
   pendingApprovals: number;
@@ -158,6 +159,8 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           <MemoryPulseCard onOpen={() => onNavigate("memory")} />
           <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("audit")} />
         </div>
+
+        <ResearchPanel />
 
         <div className="text-center text-[11px] text-muted-foreground">
           Command Center is read-only. Approvals route into the existing Actions room. Capture lanes remain capture-only.

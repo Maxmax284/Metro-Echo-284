@@ -906,6 +906,101 @@ export type Database = {
         }
         Relationships: []
       }
+      research_objects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          metadata: Json
+          mode: Database["public"]["Enums"]["research_mode"]
+          question: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: Database["public"]["Enums"]["research_status"]
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json
+          mode?: Database["public"]["Enums"]["research_mode"]
+          question: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: Database["public"]["Enums"]["research_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          metadata?: Json
+          mode?: Database["public"]["Enums"]["research_mode"]
+          question?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: Database["public"]["Enums"]["research_status"]
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      research_sources: {
+        Row: {
+          created_at: string
+          id: string
+          position: number | null
+          provider: string | null
+          relevance: number | null
+          research_id: string
+          snippet: string | null
+          title: string | null
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number | null
+          provider?: string | null
+          relevance?: number | null
+          research_id: string
+          snippet?: string | null
+          title?: string | null
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number | null
+          provider?: string | null
+          relevance?: number | null
+          research_id?: string
+          snippet?: string | null
+          title?: string | null
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_sources_research_id_fkey"
+            columns: ["research_id"]
+            isOneToOne: false
+            referencedRelation: "research_objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sherlock_findings_cache: {
         Row: {
           confidence: string | null
@@ -1204,6 +1299,8 @@ export type Database = {
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
       nudge_status: "pending" | "seen" | "dismissed" | "acted"
+      research_mode: "quick" | "deep"
+      research_status: "pending" | "running" | "complete" | "failed" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1349,6 +1446,8 @@ export const Constants = {
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
       nudge_status: ["pending", "seen", "dismissed", "acted"],
+      research_mode: ["quick", "deep"],
+      research_status: ["pending", "running", "complete", "failed", "blocked"],
     },
   },
 } as const
