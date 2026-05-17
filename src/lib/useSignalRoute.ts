@@ -129,7 +129,7 @@ export function useSignalRoute(): SignalRouteHandler {
               source: `vanta-signal:${signal.signal_type}`,
               status: "proposed",
               risk: (signal.risk_level === "high" ? "high" : signal.risk_level === "medium" ? "medium" : "low") as any,
-              payload: { signal },
+              payload: { signal } as any,
             });
             if (error) throw error;
             toast.success("Action drafted", { description: "Review in Actions to stage or approve." });
