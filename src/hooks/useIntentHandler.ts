@@ -11,7 +11,12 @@ import { toast } from "sonner";
  * All paths are draft-only — never calls actions-execute or transitions to approved.
  * Gated by the user's Companion mode (locked/observer/advisor/operator).
  */
-export function useIntentHandler() {
+export type IntentAck =
+  | { kind: "stage_action"; id?: string; summary: string }
+  | { kind: "add_commitment"; id?: string; summary: string }
+  | { kind: "capture_note"; id?: string; summary: string };
+
+export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { mode } = useMode();
