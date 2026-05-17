@@ -1,105 +1,73 @@
-# Awareness Radar UX Maturity
+# Companion Maturity — Stage 2 of the sequence
 
-Make Awareness behave like radar instead of a report generator. No new data, no schema changes, no new edge functions. This is a behavior and layout correction across the Awareness surface, the HUD, and the Command Center mini-card — using signals, snapshots, and briefings that already exist.
+Awareness now looks like radar. Companion still looks like a chat window with a paperclip. The concept says "field companion"; the surface needs to prove it.
 
-## Operating principle
+Five focused changes. No new tables, no new edge functions, no taxonomy shifts. Everything builds on `CompanionWidget`, `ConversationSurface`, `ConversationDock`, `useIntentHandler`, and the existing `COMPANION_TOOLS` registry.
 
-When the user opens Awareness, the first screen must answer five questions in one glance:
+---
 
-1. Where am I (and how sure is Vanta).
-2. What are the top live signals right now.
-3. What sources are feeding this (with trust tier).
-4. What needs attention (warnings, stale, contradictions, low confidence).
-5. Where do I tap for more.
+## 1. Glanceable Companion header
 
-Everything else — long prose, full briefings, raw snapshot, generation controls — moves into drawers, secondary chips, or owner-only affordances. "Generate" stops being a primary verb on the main view.
+`CompanionWidget.tsx` header is currently one dense run-on line. Restructure to a two-row chip strip so a user can tell — without reading — where they are, what mode they're in, and what the system knows.
 
-## Scope (5 focused changes)
+Row 1 (identity): `Companion` title · mode chip (Observer/Advisor/Operator/Locked, tinted) · "drafts only" pill.
+Row 2 (situation): surface chip · place chip with freshness dot + confidence (reusing same color logic as `LayerChips`) · stale warning if applicable.
 
-### 1. Awareness surface: radar-first layout
+Mode chip is tappable and opens the existing mode switcher inline (small popover listing the four modes — uses `useMode().setMode`). No new state.
 
-File: `src/components/surfaces/AwarenessSurface.tsx`
+## 2. Surface-aware empty state
 
-Reorder the main scroll into a strict hierarchy:
+When `msgs.length === 0`, replace the single "Tell me what you're working on" line with:
 
-```text
-┌─ Place strip      "Spot · confidence chip · freshness · change place"
-├─ AwarenessHUD     (already the radar — promote it, make it the hero)
-├─ Top Signals (3)  Weather / freshest brief / highest-risk warning
-├─ Attention queue  Stale sections, low-confidence items, location_warning
-├─ Layer chips      transport · infrastructure · payments · etiquette · …
-│                   (tap = open section drawer, NOT generate)
-└─ Places list      (collapsed under "Switch place" — secondary)
-```
+- One sentence framed for the current surface (e.g. on `awareness`: "I can read your radar, explain a layer, or stage a draft."; on `actions`: "I can walk you through a draft before approval, or propose a new one.").
+- Three suggested prompts chosen from `COMPANION_TOOLS` filtered by `getToolAvailability` for the current surface/mode/controls — rendered as tap-to-send chips. These reuse each tool's existing `buildPrompt` / `directAction`; no new prompts authored.
+- A small "More tools" toggle that reveals the full filtered `CompanionTools` chip strip (component already exists, currently unused inside the widget).
 
-Remove the "Quick generate" row of 8 zap buttons from the main view. Move it into a single owner-visible "Manage briefings" drawer reachable from a small kebab on the HUD. Same for the giant per-place modal with 8 generate buttons — keep the modal but make tapping a layer chip open a single-section drawer (read first, refresh as a secondary action).
+Surface copy lives in a small map inside `ConversationSurface.tsx`. No registry change.
 
-### 2. Layer chips replace the section grid
+## 3. Inline draft receipts
 
-New behavior for the 8 `AWARENESS_SECTIONS`:
+Right now `useIntentHandler` fires a toast when it stages an action, commitment, or note — then it's gone. The thread doesn't reflect that anything happened.
 
-- Each chip shows: section name + a tiny freshness dot (fresh/aging/stale/missing) + confidence tint.
-- Tap a chip → opens a focused **SectionDrawer** with that section's `SignalCard` (already built), source labels, and a single "Refresh" button.
-- No prose on the main surface. No 8-card wall.
+After a successful `stage_action`, `add_commitment`, or `capture_note`, append a small assistant-side **receipt card** to the local `msgs` state (no DB write — the action row itself is the source of truth). Card shows:
 
-New file: `src/components/awareness/LayerChips.tsx`
-New file: `src/components/awareness/SectionDrawer.tsx` (wraps shadcn Drawer + SignalCard)
+- Icon + kind ("Drafted action" / "Commitment staged" / "Saved to memory")
+- One-line summary
+- "Open" link that navigates to the relevant surface via existing `useSignalRoute` verbs
 
-### 3. Attention queue (the "what needs you" row)
+Implementation: lift the receipt-append callback into `ConversationSurface` and pass it through `onIntent`. The handler still writes the row; the surface renders the acknowledgment. Renders as a distinct message variant (muted bg, dashed ring) so it doesn't get mistaken for chat.
 
-New file: `src/components/awareness/AttentionQueue.tsx`
+## 4. Stop / cancel a stream
 
-Pure derivation from existing provider state — no new fetches. Surfaces, in order:
+The send button turns into a spinner while streaming and the user has no way out. Add a "Stop" affordance.
 
-- `location_warning` from snapshot.compact (already rendered inline today)
-- Any briefing with `confidence: "low"` AND `risk_level !== "none"`
-- Any briefing with freshness `stale`
-- Missing critical sections (hazards, scams, connectivity) when place is non-trivial
+- `ConversationSurface` keeps an `AbortController` ref tied to each `send()` call.
+- While `streaming`, the send button in `ConversationDock` swaps icon to a square stop glyph (new optional `onStop?: () => void` prop). Click aborts the fetch, commits whatever text streamed so far to local state, marks the assistant message with `[interrupted]` suffix, persists what's there.
+- No edge function changes — the abort is purely client-side.
 
-Each row is a tappable mini-card: title, one-line reason, tap → opens the relevant SectionDrawer or runs the safe action (e.g., "Refresh stale", "Open warning"). If queue is empty: show a single calm line — "Nothing pulling at your attention." No fake urgency.
+## 5. Inline place / mode controls in the bubble
 
-### 4. AwarenessHUD trims and promotes
+The floating bubble only opens the panel. Long-press / right-click could do more later, but for this pass keep it minimal and just add a subtle status dot on the bubble itself: freshness color from `useAwareness().overall`. Same logic as the HUD's existing dot. Gives the user a peripheral signal without opening anything.
 
-File: `src/components/shell/AwarenessHUD.tsx`
+---
 
-- Remove the redundant Top Signals list from the HUD when used inside AwarenessSurface (it will live one row below as its own block). Keep it when HUD is used in Command Center context. Add a `variant?: "hero" | "compact"` prop.
-- Demote the "Refresh / Generate" button to a small icon-only control inside an overflow menu. Generation is not the headline action.
-- Keep pings, pin behavior, Street Signal tier chips, SerpApi pill (owner). These are already correct.
-- Add tap-to-filter: tapping a tier chip (Official / Local / Community / Web / AI) filters the pings + Top Signals to that source tier for the next 8 seconds, with a "Clear filter" pill. No persisted state.
+## Explicitly NOT in scope
 
-### 5. MiniRadarStrip parity (Command Center)
+- No schema changes.
+- No new edge functions; no changes to `vanta-converse`, `awareness-*`, `files-ingest`, `research-run`, `sherlock-investigate`.
+- No new tools in `COMPANION_TOOLS` and no provider/gating changes.
+- No changes to `useIntentHandler` semantics — it still draft-only, still mode-gated. Only adds an optional ack callback.
+- No changes to the conversation persistence model (`conversations`, `messages` tables).
+- No Sherlock, Memory, Intake, or Telegram work — that's the next pass.
+- No "always-on" / proactive companion behavior. Still user-initiated.
 
-File: `src/components/shell/MiniRadarStrip.tsx`
+---
 
-- Replace the inline source-label cloud with the same 5 tier chips as the HUD (one-glance trust hierarchy).
-- Add a confidence dot next to the place name (matches `overall.confidence`).
-- Tap the card body → routes to Awareness surface (existing nav). Refresh stays as the only explicit button.
-- Drawer view: drop the raw JSON `<pre>`. Replace with Top Signals + AttentionQueue (read-only, no Refresh button beyond the existing one).
+## Files touched
 
-## What we are explicitly NOT doing this pass
+- `src/components/companion/CompanionWidget.tsx` — header restructure, bubble status dot, inline mode popover.
+- `src/components/surfaces/ConversationSurface.tsx` — empty-state composer, receipt-card rendering, abort wiring, `onIntent` ack plumbing.
+- `src/components/shell/ConversationDock.tsx` — optional `onStop` prop + stop icon while streaming, optional `suggestions` prop for empty-state chips.
+- `src/hooks/useIntentHandler.ts` — accept optional `onAck` callback; emit receipt events after successful inserts.
 
-- No schema changes. No new edge functions. No changes to `awareness-snapshot`, `awareness-brief`, or `awareness-decay`.
-- No new section types, no new signal taxonomy.
-- No Companion / Sherlock / Memory / Intake work — that comes after, in order.
-- No shared-aggregation surfacing. Stage 7 stays gated.
-- No "Generate everything" button. Generation stays manual, single-section, owner-initiated, behind the overflow.
-
-## Technical notes
-
-- All new components live under `src/components/awareness/` and consume `useAwareness()` + `useAwarenessSlice()`. No new providers.
-- Freshness/confidence dots reuse the `FRESH_TONE` and `CONFIDENCE_TONE` token maps already in `vantaSignal.ts` and `AwarenessHUD.tsx`.
-- SectionDrawer reuses `SignalCard` (already handles routes, feedback, long-detail toggle, source labels). Zero new rendering logic.
-- AttentionQueue is a pure `useMemo` over `overall.briefings`, `overall.missing_sections`, `overall.freshness`, and `snapshot.compact.location_warning`.
-- HUD's `variant` prop defaults to `"hero"` on the Awareness surface and `"compact"` in Command Center / mini contexts.
-- All colors via semantic tokens (no raw hex). Tap targets ≥ 32px. Drawer behavior matches existing shadcn Drawer usage in MiniRadarStrip.
-
-## Acceptance check
-
-- Open Awareness: radar + place + top signals + attention queue + layer chips are visible above the fold on mobile, with zero long prose.
-- Tap a layer chip: opens a drawer with that section's SignalCard. No generation happens automatically.
-- Tap a tier chip on the HUD: pings + top signals filter to that tier; clears after 8s or on tap.
-- Attention queue is empty when state is clean; non-empty rows are all tappable.
-- Command Center mini-card shows tier chips and a confidence dot; no raw JSON anywhere in the drawer.
-- No new tables, no new functions, no behavior change in `awareness-snapshot` or `awareness-brief`.
-
-Next after this lands: Companion tool coverage (front-door identity shift).
+No new files unless a small `CompanionEmptyState.tsx` helper is warranted to keep `ConversationSurface` readable.

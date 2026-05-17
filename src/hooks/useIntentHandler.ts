@@ -11,7 +11,12 @@ import { toast } from "sonner";
  * All paths are draft-only — never calls actions-execute or transitions to approved.
  * Gated by the user's Companion mode (locked/observer/advisor/operator).
  */
-export function useIntentHandler() {
+export type IntentAck =
+  | { kind: "stage_action"; id?: string; summary: string }
+  | { kind: "add_commitment"; id?: string; summary: string }
+  | { kind: "capture_note"; id?: string; summary: string };
+
+export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { mode } = useMode();
@@ -34,16 +39,18 @@ export function useIntentHandler() {
             .single();
           if (data) generateEmbedding("note", data.id);
           toast.success("Captured to memory");
+          onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
-          await supabase.from("actions").insert({
+          const { data } = await supabase.from("actions").insert({
             user_id: user.id,
             title: args.title,
             description: args.description ?? null,
             risk: args.risk ?? "standard",
             status: "staged",
             source: "companion",
-          });
+          }).select("id").single();
           toast.success("Drafted — open Actions to review");
+          onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {
           const remindAt = args.due_at
             ? new Date(new Date(args.due_at).getTime() - 24 * 60 * 60 * 1000).toISOString()
@@ -60,6 +67,7 @@ export function useIntentHandler() {
             .single();
           if (data) generateEmbedding("commitment", data.id);
           toast.success("Commitment added");
+          onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
         } else if (kind === "run_sherlock") {
           openSherlock({
             entity_type: "freeform",
@@ -103,6 +111,6 @@ export function useIntentHandler() {
         toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
       }
     },
-    [user, openSherlock, mode]
+    [user, openSherlock, mode, onAck]
   );
 }

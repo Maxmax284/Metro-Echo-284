@@ -1,4 +1,4 @@
-import { ArrowUp, Loader2, Mic, MicOff, Paperclip } from "lucide-react";
+import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,6 +50,8 @@ type Props = {
   /** Stage 6 — externally-driven prefill (e.g. from useSignalRoute `ask_vanta`). */
   initialText?: string | null;
   onInitialTextConsumed?: () => void;
+  /** Companion Maturity — abort in-flight stream. When provided + busy, send button becomes Stop. */
+  onStop?: () => void;
 };
 
 export function ConversationDock({
@@ -64,6 +66,7 @@ export function ConversationDock({
   controls = null,
   initialText = null,
   onInitialTextConsumed,
+  onStop,
 }: Props) {
   const [v, setV] = useState("");
 
@@ -289,15 +292,21 @@ export function ConversationDock({
           </button>
         )}
         <button
-          onClick={submit}
-          disabled={!v.trim() || busy}
+          onClick={busy && onStop ? onStop : submit}
+          disabled={busy ? !onStop : !v.trim()}
+          type="button"
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow transition-opacity",
-            (!v.trim() || busy) && "opacity-50"
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-primary-foreground shadow-glow transition-opacity",
+            busy && onStop
+              ? "bg-destructive"
+              : "bg-gradient-to-br from-primary to-primary-glow",
+            ((busy && !onStop) || (!busy && !v.trim())) && "opacity-50"
           )}
-          aria-label="Send"
+          aria-label={busy && onStop ? "Stop" : "Send"}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+          {busy
+            ? (onStop ? <Square className="h-3.5 w-3.5 fill-current" /> : <Loader2 className="h-4 w-4 animate-spin" />)
+            : <ArrowUp className="h-4 w-4" />}
         </button>
       </div>
     </div>

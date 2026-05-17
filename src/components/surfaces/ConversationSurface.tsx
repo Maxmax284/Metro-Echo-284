@@ -1,9 +1,9 @@
 import type * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
@@ -15,17 +15,52 @@ import { useMode } from "@/hooks/useMode";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
-import { COMPANION_TOOLS } from "@/lib/companionTools";
+import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 
-type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
+type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
+type Msg = {
+  id?: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  receipt?: Receipt;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 const MAX_BYTES = 20 * 1024 * 1024;
 
+const SURFACE_HINTS: Record<string, string> = {
+  awareness: "I can read your radar, explain a layer, or stage a draft from a signal.",
+  actions: "I can walk you through a draft before approval, or propose a new one.",
+  commitments: "I can stage a commitment from this thread or surface what's due.",
+  memory: "I can capture a note, find related items, or translate something.",
+  sherlock: "I can open a scoped investigation or summarize what's on screen.",
+  audit: "I can explain the latest draft or summarize recent events.",
+  command: "I can read your current place, summarize the view, or draft an action.",
+  conversation: "Type, attach, or hit / for tools. Drafts only — nothing executes.",
+};
+
+const SUGGESTIONS_BY_SURFACE: Record<string, string[]> = {
+  awareness: ["area", "summarize-page", "save-memory"],
+  actions: ["draft", "draft-action", "create-commitment"],
+  commitments: ["create-commitment", "related", "summarize-page"],
+  memory: ["save-memory", "translate", "related"],
+  sherlock: ["run-sherlock", "related", "summarize-page"],
+  audit: ["draft", "summarize-page", "related"],
+  command: ["area", "summarize-page", "related"],
+  conversation: ["area", "save-memory", "draft-action"],
+};
+
+const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
+  stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
+  add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
+  capture_note: { label: "Saved to memory", icon: BookmarkPlus, surface: "memory" },
+};
+
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
   const { session, user } = useAuth();
-  const { context } = useCurrentContext();
+  const { context, setContext } = useCurrentContext();
   const { place } = useAwareness();
   const { mode } = useMode();
   const isOwner = useIsOwner();
@@ -37,6 +72,21 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const [streaming, setStreaming] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Internal intent handler — emits inline receipt cards on successful drafts.
+  const internalIntent = useIntentHandler((ack) => {
+    const meta = RECEIPT_META[ack.kind];
+    if (!meta) return;
+    setMsgs((prev) => [
+      ...prev,
+      {
+        role: "system",
+        content: ack.summary,
+        receipt: { kind: ack.kind, summary: ack.summary, surface: meta.surface },
+      },
+    ]);
+  });
 
   // Load or create conversation
   useEffect(() => {
@@ -78,6 +128,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     setBusy(true);
     setStreaming(true);
 
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    let aborted = false;
     let assistantSoFar = "";
     try {
       const resp = await fetch(CHAT_URL, {
@@ -87,6 +140,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ conversation_id: convId, message: text }),
+        signal: ctrl.signal,
       });
 
       if (resp.status === 429) throw new Error("Rate limited — please slow down a moment.");
@@ -116,25 +170,54 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
               assistantSoFar += delta;
               setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
             }
-            if (p.intent) onIntent?.(p.intent.name, p.intent.args);
+            if (p.intent) {
+              onIntent?.(p.intent.name, p.intent.args);
+              void internalIntent(p.intent.name, p.intent.args);
+            }
           } catch { /* partial */ }
         }
       }
 
-      const { data: inserted } = await supabase.from("messages").insert([
-        { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
-        { user_id: session.user.id, conversation_id: convId, role: "assistant", content: assistantSoFar },
-      ]).select("id");
-      if (inserted) {
-        const { generateEmbedding } = await import("@/lib/embeddings");
-        inserted.forEach((m) => generateEmbedding("message", m.id));
+      const finalContent = aborted && assistantSoFar
+        ? `${assistantSoFar}\n\n_Stopped._`
+        : assistantSoFar;
+      if (aborted) {
+        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
       }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong");
+
+      if (finalContent) {
+        const { data: inserted } = await supabase.from("messages").insert([
+          { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
+          { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+        ]).select("id");
+        if (inserted) {
+          const { generateEmbedding } = await import("@/lib/embeddings");
+          inserted.forEach((m) => generateEmbedding("message", m.id));
+        }
+      }
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        aborted = true;
+        const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
+        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        try {
+          await supabase.from("messages").insert([
+            { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
+            { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+          ]);
+        } catch { /* noop */ }
+      } else {
+        toast.error(e instanceof Error ? e.message : "Something went wrong");
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
       setStreaming(false);
     }
+  };
+
+  const handleStop = () => {
+    abortRef.current?.abort();
   };
 
   // Attach: upload file → ingest → auto-run analyze-file tool
@@ -198,43 +281,101 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     }
   };
 
+  const suggestions = useMemo<Tool[]>(() => {
+    const ids = SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
+    const picked: Tool[] = [];
+    for (const id of ids) {
+      const t = COMPANION_TOOLS.find((x) => x.id === id);
+      if (!t) continue;
+      const avail = getToolAvailability(t, { surface: context.surface, mode, isOwner, controls });
+      if (avail.available) picked.push(t);
+      if (picked.length >= 3) break;
+    }
+    return picked;
+  }, [context.surface, mode, isOwner, controls]);
+
+  const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
+
   return (
     <div className="flex h-full flex-col">
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
-            <div className="mt-12 text-center text-sm text-muted-foreground animate-fade-in">
-              <p className="text-balance">
-                Tell me what you're working on. Type <span className="text-foreground/80">/</span> for tools, paperclip to attach, mic to speak.
+            <div className="mt-10 space-y-4 animate-fade-in">
+              <p className="text-balance text-center text-sm text-muted-foreground">
+                {surfaceHint}
+              </p>
+              {suggestions.length > 0 && !readOnly && (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {suggestions.map((t) => {
+                    const Icon = t.icon;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleSlashPick(t.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/60 px-2.5 py-1 text-[12px] text-foreground/85 transition-colors hover:bg-surface-elevated hover:text-foreground"
+                      >
+                        <Icon className="h-3 w-3 text-primary/80" />
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <p className="text-center text-[11px] text-muted-foreground/70">
+                Type <span className="text-foreground/70">/</span> for tools · paperclip to attach · mic to speak
               </p>
             </div>
           )}
-          {msgs.map((m, i) => (
-            <div key={i} className="group/msg flex items-start gap-1.5 animate-fade-in">
-              <div
-                className={cn(
-                  "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
-                  m.role === "user"
-                    ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
-                    : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
-                )}
-              >
-                {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
-              </div>
-              {m.content && (
-                <div className="opacity-0 transition-opacity group-hover/msg:opacity-100">
-                  <AnalyzeButton
-                    scope={{
-                      entity_type: "message",
-                      entity_id: m.id ?? null,
-                      title: m.content.slice(0, 80),
-                      text: m.content,
-                    }}
-                  />
+          {msgs.map((m, i) => {
+            if (m.receipt) {
+              const meta = RECEIPT_META[m.receipt.kind];
+              const Icon = meta.icon;
+              return (
+                <div key={i} className="flex animate-fade-in">
+                  <div className="mr-auto flex max-w-[88%] items-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[12px] text-foreground/90">
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{meta.label}:</span>
+                    <span className="truncate text-muted-foreground">{m.receipt.summary}</span>
+                    <button
+                      type="button"
+                      onClick={() => setContext({ surface: m.receipt!.surface })}
+                      className="ml-1 inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] text-primary hover:bg-primary/10"
+                    >
+                      Open <ArrowUpRight className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+            return (
+              <div key={i} className="group/msg flex items-start gap-1.5 animate-fade-in">
+                <div
+                  className={cn(
+                    "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
+                    m.role === "user"
+                      ? "ml-auto bg-primary/10 text-foreground ring-1 ring-primary/20"
+                      : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
+                  )}
+                >
+                  {m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : "")}
+                </div>
+                {m.content && m.role !== "system" && (
+                  <div className="opacity-0 transition-opacity group-hover/msg:opacity-100">
+                    <AnalyzeButton
+                      scope={{
+                        entity_type: "message",
+                        entity_id: m.id ?? null,
+                        title: m.content.slice(0, 80),
+                        text: m.content,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
       {readOnly ? (
@@ -249,6 +390,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           onSend={send}
           onAttach={handleAttach}
           onSlashPick={handleSlashPick}
+          onStop={handleStop}
           surface={context.surface}
           mode={mode}
           isOwner={isOwner}
