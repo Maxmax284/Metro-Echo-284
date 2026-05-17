@@ -55,7 +55,13 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const isOwner = useIsOwner();
   const { controls, update } = useSystemControls();
   const [open, setOpen] = useState(false);
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
+
+  const openPing = (key: string) => {
+    setFocusedKey(key);
+    setOpen(true);
+  };
 
   const toggleSerp = async () => {
     if (!controls || serpBusy) return;
