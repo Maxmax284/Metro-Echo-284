@@ -186,7 +186,7 @@ Deno.serve(async (req: Request) => {
       async () => {
         const key = Deno.env.get("LOVABLE_API_KEY");
         if (!key) throw new Error("LOVABLE_API_KEY not configured");
-        const prompt = `Place: ${place.label}\nCountry: ${place.country ?? "?"}\nWeather: ${weather ? `${weather.tempC}C ${weather.condition}` : "unknown"}\n\nBriefings:\n${briefingsText || "(none)"}\n\nReturn a 2-3 sentence operational pulse, concrete and grounded. No fluff.`;
+        const prompt = `Place: ${place.label}\nCountry: ${place.country ?? "?"}\nWeather: ${weather ? `${weather.tempC}C ${weather.condition}` : "unknown"}\n\nLocal signals:\n${localText}\n\nBriefings:\n${briefingsText || "(none)"}\n\nReturn a 2-3 sentence operational pulse, concrete and grounded. No fluff.`;
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
