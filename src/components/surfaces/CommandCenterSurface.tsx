@@ -160,6 +160,8 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("audit")} />
         </div>
 
+        <ResearchPanel />
+
         <div className="text-center text-[11px] text-muted-foreground">
           Command Center is read-only. Approvals route into the existing Actions room. Capture lanes remain capture-only.
         </div>
