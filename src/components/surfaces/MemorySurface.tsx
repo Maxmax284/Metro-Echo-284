@@ -406,6 +406,8 @@ export function MemorySurface() {
           </div>
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
