@@ -8,10 +8,12 @@ import { toast } from "sonner";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { SignalCard } from "@/components/awareness/SignalCard";
+import { useSignalRoute } from "@/lib/useSignalRoute";
 
 export function AwarenessSurface() {
   const { session } = useAuth();
   const { place: activePlaceFromProvider, latestBySection, loading, generate, generating, refresh } = useAwareness();
+  const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   const [activePlace, setActivePlace] = useState<AwarenessPlace | null>(null);
   const [newLabel, setNewLabel] = useState("");
