@@ -310,7 +310,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
         </g>
 
         {/* pings */}
-        {pings.map((p) => (
+        {visiblePings.map((p) => (
           <g
             key={p.key}
             onClick={() => openPing(p.key)}
