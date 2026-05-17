@@ -118,8 +118,8 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     const active = (p ?? null) as AwarenessPlace | null;
     setPlace(active);
     if (active?.id) {
-      const { data: b } = await (supabase
-        .from("awareness_briefings") as any)
+      const { data: b } = await supabase
+        .from("awareness_briefings")
         .select("id,section,content,confidence,generated_at,signal")
         .eq("place_id", active.id)
         .order("generated_at", { ascending: false });
