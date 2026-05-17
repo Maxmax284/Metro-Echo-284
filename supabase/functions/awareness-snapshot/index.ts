@@ -152,17 +152,25 @@ Deno.serve(async (req: Request) => {
     const sources_used: string[] = ["internal"];
 
     // ---- Weird-location detection ------------------------------------------
-    // Emits a structured location_warning when the GPS or saved geo doesn't
-    // line up with a real land-based place. Heuristic, intentionally cheap —
-    // no extra paid API calls.
+    // Deterministic, non-AI. Emits a full VantaSignal-shaped object so the UI
+    // renders it through the same pipeline as model-generated signals.
+    // No paid API calls.
     type LocationWarning = {
       signal_type: "location_warning";
       title: string;
       short_summary: string;
       confidence: "low" | "medium" | "high";
-      reasons: string[];
+      risk_level: "none" | "low" | "medium" | "high";
+      source_labels: string[];
+      freshness: "live" | "cached" | "stale" | "unknown";
+      why_it_matters: string;
       what_to_do_next: string;
       requires_confirmation: boolean;
+      confirmation_reason: string;
+      available_routes: string[];
+      long_detail: string;
+      display_priority: number;
+      reasons: string[];
     };
     let location_warning: LocationWarning | null = null;
     {
@@ -178,9 +186,6 @@ Deno.serve(async (req: Request) => {
         if (typeof geoAny?.acc === "number" && geoAny.acc > 500) {
           reasons.push(`GPS accuracy is weak (±${Math.round(geoAny.acc)}m).`);
         }
-        // Crude "looks offshore" heuristic: no country match AND coordinates
-        // sit in a band that's far from common populated areas. We don't try
-        // to be clever — we just flag the case the user described.
         const lat = geoAny!.lat!;
         const lon = geoAny!.lon!;
         if (!hasCountry && Math.abs(lat) < 60 && Math.abs(lon) < 180) {
@@ -192,12 +197,22 @@ Deno.serve(async (req: Request) => {
           signal_type: "location_warning",
           title: "Location looks off",
           short_summary: hasGeo
-            ? "Your location reads as something other than a normal land-based spot. Confirm before I treat this as local context."
-            : "I don't have coordinates for this place yet. Confirm a location before I scan local context.",
+            ? "Your coordinates don't line up with a normal land-based spot."
+            : "I don't have coordinates for this place yet.",
           confidence: "low",
-          reasons,
-          what_to_do_next: "Confirm your active place, use a saved place, or refresh the location.",
+          risk_level: "low",
+          source_labels: ["internal"],
+          freshness: hasGeo ? "live" : "unknown",
+          why_it_matters:
+            "If I treat shaky location data as ground truth, every other signal on the radar inherits the mistake.",
+          what_to_do_next:
+            "Confirm the active place, switch to a saved place, or refresh your location.",
           requires_confirmation: true,
+          confirmation_reason: reasons.join(" "),
+          available_routes: ["confirm_location", "use_saved_place", "refresh_signal", "ask_vanta"],
+          long_detail: "",
+          display_priority: 2,
+          reasons,
         };
       }
     }

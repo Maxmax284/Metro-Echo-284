@@ -48,6 +48,34 @@ export function isVantaSignal(v: unknown): v is VantaSignal {
       && typeof s.confidence === "string";
 }
 
+/**
+ * Safe coercer — fills every field with sensible defaults so renderers never
+ * crash on partial/legacy payloads. Use this at the UI boundary in Stage 3.
+ */
+export function coerceSignal(v: unknown): VantaSignal {
+  const s = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const str = (k: string, d = "") => (typeof s[k] === "string" ? (s[k] as string) : d);
+  const arr = <T,>(k: string): T[] => (Array.isArray(s[k]) ? (s[k] as T[]) : []);
+  const enumOr = <T extends string>(k: string, allowed: readonly T[], d: T): T =>
+    (allowed as readonly string[]).includes(s[k] as string) ? (s[k] as T) : d;
+  return {
+    signal_type: str("signal_type", "source") as SignalType,
+    title: str("title", "Signal"),
+    short_summary: str("short_summary", ""),
+    confidence: enumOr<Confidence>("confidence", ["low", "medium", "high"], "low"),
+    risk_level: enumOr<RiskLevel>("risk_level", ["none", "low", "medium", "high"], "none"),
+    source_labels: arr<SourceLabel>("source_labels"),
+    freshness: enumOr<Freshness>("freshness", ["live", "cached", "stale", "unknown"], "unknown"),
+    why_it_matters: str("why_it_matters", ""),
+    what_to_do_next: str("what_to_do_next", ""),
+    requires_confirmation: s.requires_confirmation === true,
+    confirmation_reason: str("confirmation_reason", ""),
+    available_routes: arr<SignalRoute>("available_routes"),
+    long_detail: str("long_detail", ""),
+    display_priority: typeof s.display_priority === "number" ? s.display_priority : 5,
+  };
+}
+
 export const CONFIDENCE_TONE: Record<Confidence, string> = {
   low:    "bg-warn/15 text-warn ring-warn/30",
   medium: "bg-accent/15 text-accent ring-accent/30",
