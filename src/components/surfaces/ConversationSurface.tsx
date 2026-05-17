@@ -15,6 +15,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { COMPANION_TOOLS } from "@/lib/companionTools";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 type Msg = { id?: string; role: "user" | "assistant" | "system"; content: string };
 
@@ -242,7 +243,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           </div>
         </div>
       ) : (
-        <ConversationDock
+        <ConversationDockBridge
           busy={busy}
           onSend={send}
           onAttach={handleAttach}
