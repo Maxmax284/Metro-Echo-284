@@ -1,67 +1,90 @@
-import { MapPin, Receipt, Link2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { useMode } from "@/hooks/useMode";
+import { useIsOwner } from "@/hooks/useIsOwner";
+import { useSystemControls } from "@/hooks/useSystemControls";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { COMPANION_TOOLS, getToolAvailability } from "@/lib/companionTools";
 
-type Tool = { id: string; label: string; icon: typeof MapPin; build: (ctx: { placeLabel?: string; surface: string }) => string };
+type Props = {
+  /** Called with a prompt string for prompt-style tools. */
+  onPick: (prompt: string) => void;
+  /** Optional: handler for direct-action tools that need parent UI (e.g. open research panel). */
+  onAction?: (actionId: "open-research") => void;
+  className?: string;
+};
 
-const TOOLS: Tool[] = [
-  {
-    id: "area",
-    label: "Ask about area",
-    icon: MapPin,
-    build: ({ placeLabel }) =>
-      placeLabel
-        ? `Ask about ${placeLabel}: what should I know right now (transport, payments, etiquette, hazards)? Use the latest awareness briefings and snapshot.`
-        : `Ask about my current area: what should I know right now? If no place is set, suggest capturing one first.`,
-  },
-  {
-    id: "receipt",
-    label: "Explain receipt",
-    icon: Receipt,
-    build: () =>
-      `Explain the most recent receipt/file I uploaded — what was bought, totals, anomalies, and whether anything needs follow-up. Stage a draft action only if needed.`,
-  },
-  {
-    id: "related",
-    label: "Find related",
-    icon: Link2,
-    build: ({ surface }) =>
-      `Find notes, commitments, and actions related to what I'm currently looking at on the ${surface} surface. Surface links — don't execute anything.`,
-  },
-  {
-    id: "draft",
-    label: "Explain draft",
-    icon: FileText,
-    build: () =>
-      `Explain the latest proposed action: what it does, what it touches, the risk level, and what to check before approving. Do not execute.`,
-  },
-];
-
-export function CompanionTools({ onPick, className }: { onPick: (prompt: string) => void; className?: string }) {
+export function CompanionTools({ onPick, onAction, className }: Props) {
   const { place } = useAwareness();
   const { context } = useCurrentContext();
+  const { mode } = useMode();
+  const isOwner = useIsOwner();
+  const { controls } = useSystemControls();
+  const { openSherlock } = useSherlock();
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2", className)}>
-      {TOOLS.map((t) => {
-        const Icon = t.icon;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onPick(t.build({ placeLabel: place?.label, surface: context.surface }))}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-elevated/60",
-              "px-2 py-1 text-[11px] text-foreground/85 hover:bg-surface-elevated hover:text-foreground transition-colors"
-            )}
-            title={t.label}
-          >
-            <Icon className="h-3 w-3 text-primary/80" />
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
+    <TooltipProvider delayDuration={300}>
+      <div className={cn("flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2", className)}>
+        {COMPANION_TOOLS.map((t) => {
+          const avail = getToolAvailability(t, {
+            surface: context.surface,
+            mode,
+            isOwner,
+            controls,
+          });
+          const Icon = t.icon;
+          const disabled = !avail.available;
+
+          const handleClick = () => {
+            if (disabled) return;
+            if (t.directAction === "open-sherlock") {
+              openSherlock({
+                entity_type: "freeform",
+                title: `From ${context.surface}`,
+                text: place?.label ? `Current place: ${place.label}` : undefined,
+              });
+              return;
+            }
+            if (t.directAction === "open-research") {
+              onAction?.("open-research");
+              return;
+            }
+            if (t.buildPrompt) {
+              onPick(t.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
+            }
+          };
+
+          const btn = (
+            <button
+              key={t.id}
+              type="button"
+              onClick={handleClick}
+              disabled={disabled}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] transition-colors",
+                disabled
+                  ? "cursor-not-allowed border-border/40 bg-surface-elevated/30 text-muted-foreground/60"
+                  : "border-border/60 bg-surface-elevated/60 text-foreground/85 hover:bg-surface-elevated hover:text-foreground"
+              )}
+              aria-label={t.label}
+            >
+              <Icon className={cn("h-3 w-3", disabled ? "text-muted-foreground/50" : "text-primary/80")} />
+              {t.label}
+            </button>
+          );
+
+          return (
+            <Tooltip key={t.id}>
+              <TooltipTrigger asChild>{btn}</TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-[11px]">
+                {disabled ? (avail as { reason: string }).reason : t.description}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
