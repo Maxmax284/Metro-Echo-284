@@ -158,6 +158,16 @@ export function AwarenessHUD({ className }: { className?: string }) {
   const sources = snapshot?.sources_used ?? [];
   const generated = snapshot?.generated_at;
 
+  // Stage 6 — group sources by trust tier for the Street Signal panel.
+  const tieredSources = useMemo(() => {
+    const map: Record<SourceTier, string[]> = { official: [], local: [], community: [], web: [], ai: [] };
+    for (const s of sources) map[tierFor(s)].push(s);
+    return map;
+  }, [sources]);
+  const tierOrder: SourceTier[] = ["official", "local", "community", "web", "ai"];
+  // Street/community tier currently rides the SerpApi switch — when it's off, we surface that.
+  const streetDisabled = !!controls && !controls.serpapi_enabled;
+
   // Build pings: snapshot sources + non-empty briefings + pinned (deduped by key)
   const pings = useMemo<Ping[]>(() => {
     const pinnedSet = new Set(pinned);
