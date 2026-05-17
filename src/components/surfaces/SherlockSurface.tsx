@@ -122,25 +122,36 @@ export function SherlockSurface() {
 
   const run = async () => {
     if (!question.trim() || running) return;
+    cancelRef.current = false;
     setRunning(true);
     try {
       const fullQuestion = `${scopePrefix}${question.trim()}`;
       const { data, error } = await supabase.functions.invoke("sherlock-investigate", {
         body: { question: fullQuestion },
       });
+      if (cancelRef.current) return; // user cancelled; drop result silently
       if (error) throw error;
       toast.success(`Investigation complete · ${data?.findings_count ?? 0} findings`);
       setQuestion("");
       await load();
       if (data?.id) {
         setOpenId(data.id);
+        setJustFinishedId(data.id);
+        setTimeout(() => setJustFinishedId((v) => (v === data.id ? null : v)), 6000);
         await loadFindings(data.id);
       }
     } catch (e) {
+      if (cancelRef.current) return;
       toast.error(e instanceof Error ? e.message : "Investigation failed");
     } finally {
       setRunning(false);
     }
+  };
+
+  const cancel = () => {
+    cancelRef.current = true;
+    setRunning(false);
+    toast.message("Investigation cancelled");
   };
 
   const targetIcon = (k: Target["kind"]) =>
