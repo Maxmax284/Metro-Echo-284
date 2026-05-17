@@ -212,6 +212,7 @@ Deno.serve(async (req: Request) => {
       place: { id: place.id, label: place.label },
       weather,
       summary,
+      local_signals_count: local_signals?.length ?? 0,
       briefing_count: (briefings ?? []).length,
       generated_at: new Date().toISOString(),
     };
@@ -220,6 +221,7 @@ Deno.serve(async (req: Request) => {
       place,
       weather,
       summary,
+      local_signals: local_signals ?? [],
       briefings: briefings ?? [],
     };
 
