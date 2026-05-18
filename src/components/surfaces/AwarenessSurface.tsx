@@ -245,8 +245,7 @@ export function AwarenessSurface() {
                 </div>
                 {b ? (
                   <SignalCard
-                    signal={b.signal ?? { title: activeLayer, short_summary: b.content, confidence: b.confidence ?? "low" }}
-                    fallbackBody={b.content}
+                    signal={normalizeAwarenessSignal(activeLayer, b, { place })}
                     generatedAt={b.generated_at}
                     onRoute={onSignalRoute}
                     compact
