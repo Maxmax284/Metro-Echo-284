@@ -67,12 +67,15 @@ function scoreItem(text: string, keywords: string[]): number {
   return score;
 }
 
+type SliceMode = "matched" | "thin" | "none";
+type SliceResult<T> = { items: T[]; mode: SliceMode; matched_count: number; total: number };
+
 function sliceForSection<T extends { title?: string; snippet?: string; subreddit?: string }>(
   items: T[],
   section: typeof SECTION_VALUES[number],
   limit = 5,
-): T[] {
-  if (!items.length) return items;
+): SliceResult<T> {
+  if (!items.length) return { items: [], mode: "none", matched_count: 0, total: 0 };
   const kws = SECTION_KEYWORDS[section] ?? [];
   const scored = items.map((it, i) => ({
     it,
@@ -80,11 +83,18 @@ function sliceForSection<T extends { title?: string; snippet?: string; subreddit
     score: scoreItem(`${it.title ?? ""} ${it.snippet ?? ""} ${(it as any).subreddit ?? ""}`, kws),
   }));
   const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score || a.i - b.i);
-  if (matched.length >= 2) return matched.slice(0, limit).map((s) => s.it);
-  // Mix: any matches first, then fill with original order to keep card non-empty.
-  const picked = new Set(matched.map((s) => s.i));
-  const fill = scored.filter((s) => !picked.has(s.i)).map((s) => s.it);
-  return [...matched.map((s) => s.it), ...fill].slice(0, limit);
+  // Strong match: send only matched items, no padding.
+  if (matched.length >= 2) {
+    return { items: matched.slice(0, limit).map((s) => s.it), mode: "matched", matched_count: matched.length, total: items.length };
+  }
+  // Thin match: send the single matched item only — do NOT pad with off-topic
+  // filler. Empty is better than misleading.
+  if (matched.length === 1) {
+    return { items: [matched[0].it], mode: "thin", matched_count: 1, total: items.length };
+  }
+  // No match: return nothing. Prompt will tell the model to lean on tier
+  // context + weather instead of fabricating from unrelated chatter.
+  return { items: [], mode: "none", matched_count: 0, total: items.length };
 }
 
 // Server-side mirror of classifyTier (kept tiny, no shared module yet).
