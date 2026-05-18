@@ -227,8 +227,31 @@ export function normalizeAwarenessSignal(
     };
   }
 
-  // Case 2: legacy prose + (vague location OR prose itself sounds vague) → force confirm-place plain-talk.
+  // Case 2: legacy prose + (vague location OR prose itself sounds vague).
+  //   - If we at least know the country/city (tier >= country), use broader-context copy
+  //     instead of refusing — the user gets a useful read scoped to the tier.
+  //   - Only fall back to hard "confirm location" when tier is genuinely unknown.
   if (briefing && (vague || proseVague)) {
+    const tier = classifyTier(ctx.place);
+    const broader = broaderContextCopy(section, tier);
+    if (broader) {
+      return coerceSignal({
+        signal_type: section,
+        title: broader.title,
+        short_summary: broader.summary,
+        confidence: "low",
+        risk_level: "none",
+        source_labels: ["internal"] as SourceLabel[],
+        freshness: freshness(briefing.generated_at),
+        why_it_matters: broader.why,
+        what_to_do_next: broader.next,
+        requires_confirmation: false,
+        confirmation_reason: "",
+        available_routes: ["confirm_location", "refresh_signal"] as SignalRoute[],
+        long_detail: rawContent,
+        display_priority: 5,
+      });
+    }
     const copy = VAGUE_COPY[section] ?? VAGUE_COPY.transport;
     return coerceSignal({
       signal_type: section,
@@ -243,10 +266,11 @@ export function normalizeAwarenessSignal(
       requires_confirmation: true,
       confirmation_reason: "Location looks too vague or off — confirm the place before trusting this read.",
       available_routes: ["confirm_location", "use_saved_place", "refresh_signal"] as SignalRoute[],
-      long_detail: rawContent, // full robotic paragraph lives here, behind "View full detail"
+      long_detail: rawContent,
       display_priority: 5,
     });
   }
+
 
   // Case 3: legacy prose, location seems fine → extract first sentence as summary, dump rest to long_detail.
   if (briefing && rawContent) {
