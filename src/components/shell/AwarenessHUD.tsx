@@ -569,8 +569,11 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
             </DrawerTitle>
           </DrawerHeader>
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 space-y-4 text-[13px]">
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1.5">
               <RadarCanvas size={220} />
+              <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
+                Dot position is visual only — it doesn't represent compass direction. Tap a dot to see what it is.
+              </p>
             </div>
 
             {locationWarning && (
