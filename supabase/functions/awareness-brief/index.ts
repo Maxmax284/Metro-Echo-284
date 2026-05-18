@@ -176,6 +176,8 @@ RULES:
 - If tier is "country" or "city" (not exact), say you're using broader area context and explain the limit in one short clause.
 - If tier is "unknown", set requires_confirmation true and ask user to confirm a place.
 - If no external sources fired (all "off"/"not_called"), say so plainly in short_summary — do not fabricate local detail.
+- If a source slice is empty for THIS section (e.g. "none match"), DO NOT pull from unrelated chatter — fall back to weather + tier-level common knowledge for ${ev.place.country ?? "the region"}, and lower confidence to "medium" or "low". Say in short_summary that you don't have section-specific signals yet and suggest a scan.
+- If a slice is marked "weak signal" (only 1 loose match), reference it cautiously and keep confidence at "medium" max.
 - Tone: human, warm, direct, like a friend giving practical advice. No corporate/report voice. No "geospatial specificity", no "significantly hampered", no "infrastructure effectively zero".
 - signal_type must be "${section}".
 - short_summary: one or two plain-English sentences. No markdown.
