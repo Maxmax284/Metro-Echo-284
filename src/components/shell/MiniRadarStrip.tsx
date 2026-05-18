@@ -70,7 +70,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         type="button"
         onClick={toggleSerp}
         disabled={serpBusy}
-        title={on ? "SerpApi on" : "SerpApi paused"}
+        title={on ? "External search is on." : "External search is off — I'm using saved/cached info only."}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] uppercase tracking-wider ring-1 transition-colors disabled:opacity-60",
           on
@@ -79,7 +79,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         )}
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary" : "bg-amber-400")} />
-        SerpApi: {on ? "on" : "off"}
+        Search: {on ? "on" : "off"}
       </button>
     );
   };
