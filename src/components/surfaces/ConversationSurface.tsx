@@ -226,7 +226,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     const list = Array.from(files);
     for (const f of list) {
       try {
-        if (f.size > MAX_BYTES) { toast.error(`${f.name} exceeds 20MB`); continue; }
+        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
         const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
         const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
         if (upErr) throw upErr;
