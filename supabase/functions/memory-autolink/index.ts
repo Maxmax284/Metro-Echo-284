@@ -39,13 +39,31 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ linked: rows.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Guard: notes_related requires the source note to have an embedding.
+    // Without this check the RPC throws a null-vector error → generic 500.
+    const { data: noteRow, error: noteErr } = await supabase
+      .from("notes")
+      .select("id, embedding")
+      .eq("id", note_id)
+      .maybeSingle();
+    if (noteErr) throw noteErr;
+    if (!noteRow) {
+      return new Response(JSON.stringify({ error: "note not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!noteRow.embedding) {
+      return new Response(JSON.stringify({ suggestions: [], reason: "no_embedding_yet" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { data, error } = await supabase.rpc("notes_related", {
       _user_id: user.id,
       _note_id: note_id,
       _match_count: match_count,
       _min_similarity: min_similarity,
     });
-    if (error) throw error;
+    if (error) {
+      console.error("notes_related rpc failed", { note_id, message: error.message });
+      throw error;
+    }
 
     // Cache suggestions on the note
     await supabase.from("notes").update({ autolink_suggestions: data ?? [] }).eq("id", note_id);
