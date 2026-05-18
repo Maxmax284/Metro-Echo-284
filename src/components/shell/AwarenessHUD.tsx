@@ -299,6 +299,48 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
     );
   }
 
+  const terrainMode = useMemo(() => terrainModeFor(place), [place]);
+  const terrainActive = activeLayer === "terrain";
+
+  const TerrainOverlay = () => {
+    const baseOpacity = terrainActive ? 0.85 : 0.35;
+    if (terrainMode === "water") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[18, 28, 38].map((r, i) => (
+            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="hsl(var(--primary))" strokeOpacity={0.18 - i * 0.04} strokeWidth={0.35} strokeDasharray="0.6 1.4" />
+          ))}
+        </g>
+      );
+    }
+    if (terrainMode === "urban") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[20, 35, 50, 65, 80].map((p) => (
+            <line key={`v${p}`} x1={p} y1="10" x2={p} y2="90" stroke="hsl(var(--accent, var(--primary)))" strokeOpacity={0.18} strokeWidth={0.25} />
+          ))}
+          {[20, 35, 50, 65, 80].map((p) => (
+            <line key={`h${p}`} x1="10" y1={p} x2="90" y2={p} stroke="hsl(var(--accent, var(--primary)))" strokeOpacity={0.18} strokeWidth={0.25} />
+          ))}
+        </g>
+      );
+    }
+    if (terrainMode === "region") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[12, 22, 32, 42].map((r) => (
+            <path key={r} d={`M ${50 - r} 50 Q 50 ${50 - r * 0.6} ${50 + r} 50`} fill="none" stroke="hsl(var(--primary))" strokeOpacity={0.2} strokeWidth={0.3} />
+          ))}
+        </g>
+      );
+    }
+    return (
+      <g opacity={baseOpacity * 0.6} aria-hidden>
+        <circle cx="50" cy="50" r="44" fill="none" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} strokeWidth={0.2} strokeDasharray="0.4 1.2" />
+      </g>
+    );
+  };
+
   const RadarCanvas = ({ size = 144 }: { size?: number }) => (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" width={size} height={size} className="block">
@@ -315,6 +357,8 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
 
         {/* backdrop + rings */}
         <circle cx="50" cy="50" r="48" fill="url(#radar-bg)" />
+        {/* R4 terrain overlay sits between backdrop and rings */}
+        <TerrainOverlay />
         {[16, 30, 44].map((r) => (
           <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="hsl(var(--border))" strokeOpacity={0.55} strokeWidth={0.4} />
         ))}
