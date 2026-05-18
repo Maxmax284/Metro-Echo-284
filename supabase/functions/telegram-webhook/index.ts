@@ -72,7 +72,34 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
     const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id).order("created_at", { ascending: true }).limit(20);
     history = (m ?? []).filter((x: any) => x.role === "user" || x.role === "assistant");
   }
-  const messages = [{ role: "system", content: SYSTEM }, ...history, { role: "user", content: text }];
+
+  // Stage 3 — match Companion: pull active corrections + recent field notes so
+  // Telegram replies respect the same lived context.
+  const [{ data: corrections }, { data: fieldNotes }] = await Promise.all([
+    sb.from("corrections")
+      .select("surface, target_type, feedback_type, user_note")
+      .eq("user_id", userId).eq("status", "active")
+      .order("created_at", { ascending: false }).limit(8),
+    sb.from("field_notes")
+      .select("note_type, summary, location_label")
+      .eq("user_id", userId).eq("status", "active")
+      .order("created_at", { ascending: false }).limit(8),
+  ]);
+  const correctionsBlock = (corrections ?? []).length
+    ? "Active user corrections (respect these; do not repeat the mistake):\n" +
+      (corrections ?? []).map((c: any) =>
+        `- [${c.surface}/${c.target_type}] ${c.feedback_type}${c.user_note ? `: ${c.user_note}` : ""}`
+      ).join("\n")
+    : "";
+  const fieldNotesBlock = (fieldNotes ?? []).length
+    ? "User field notes (lived context, treat as ground truth):\n" +
+      (fieldNotes ?? []).map((n: any) =>
+        `- [${n.note_type}]${n.location_label ? ` @ ${n.location_label}` : ""}: ${n.summary}`
+      ).join("\n")
+    : "";
+  const sys = [SYSTEM, correctionsBlock, fieldNotesBlock].filter(Boolean).join("\n\n");
+
+  const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
 
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
