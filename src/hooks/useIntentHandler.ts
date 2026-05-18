@@ -25,7 +25,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
     async (kind: string, args: any) => {
       if (!user) return;
       if (!modeAllows(mode, kind)) {
-        toast.warning(`${MODE_LABEL[mode]} mode — intent "${kind}" blocked`, {
+        toast.warning(vantaSay.intentBlocked(MODE_LABEL[mode], kind), {
           description: "Switch mode in the header to allow this.",
         });
         return;

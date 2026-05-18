@@ -65,7 +65,7 @@ export function AwarenessSurface() {
 
   const captureHere = async () => {
     if (!session || !navigator.geolocation) {
-      toast.error("Location not available");
+      toast.error(vantaSay.locationUnavailable());
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -88,7 +88,7 @@ export function AwarenessSurface() {
           await refresh();
         }
       },
-      () => toast.error("Couldn't get location"),
+      () => toast.error(vantaSay.locationUnavailable()),
       { enableHighAccuracy: false, timeout: 8000 }
     );
   };
@@ -99,7 +99,7 @@ export function AwarenessSurface() {
       return;
     }
     if (!navigator.geolocation) {
-      toast.error("This browser can't read location. Pick a saved place instead.");
+      toast.error(vantaSay.locationUnavailable());
       return;
     }
     setRecentering(true);
@@ -115,7 +115,7 @@ export function AwarenessSurface() {
           .eq("id", place.id);
         setRecentering(false);
         if (error) {
-          toast.error("Couldn't save the new location.");
+          toast.error(vantaSay.couldntSave());
           return;
         }
         if (acc && acc > 5000) {

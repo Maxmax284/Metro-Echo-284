@@ -63,7 +63,7 @@ export function CommitmentsSurface() {
       .single();
     if (data) {
       generateEmbedding("commitment", data.id);
-      toast.success("Commitment captured");
+      toast.success(vantaSay.commitmentAdded());
       setDraft({ summary: "", due_at: "", priority: "normal" });
       setComposing(false);
       refresh();

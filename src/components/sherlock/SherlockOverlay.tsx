@@ -69,7 +69,7 @@ export function SherlockOverlay() {
       .select("id")
       .single();
     if (data) generateEmbedding("note", data.id);
-    toast.success("Saved to memory");
+    toast.success(vantaSay.noteSaved());
   };
 
   const turnIntoAction = async (text: string) => {
@@ -82,7 +82,7 @@ export function SherlockOverlay() {
       status: "staged",
       source: "sherlock",
     });
-    toast.success("Action staged");
+    toast.success(vantaSay.actionStaged());
   };
 
   const createCommitment = async (text: string) => {
@@ -93,7 +93,7 @@ export function SherlockOverlay() {
       .select("id")
       .single();
     if (data) generateEmbedding("commitment", data.id);
-    toast.success("Commitment created");
+    toast.success(vantaSay.commitmentAdded());
   };
 
   const addReminder = async (text: string) => {
@@ -105,7 +105,7 @@ export function SherlockOverlay() {
       remind_at,
       priority: "high",
     });
-    toast.success("Reminder set for tomorrow");
+    toast.success("Reminder set for tomorrow.");
   };
 
   return (

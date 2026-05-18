@@ -89,7 +89,7 @@ export function ActionsSurface() {
           body: { action_id: a.id, executor_id },
         });
         if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
-        toast.success("Executed");
+        toast.success("Executed.");
         refresh();
       } else {
         await transition(a, "executed", "manual execute");
