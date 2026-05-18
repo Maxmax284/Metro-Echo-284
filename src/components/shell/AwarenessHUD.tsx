@@ -714,7 +714,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               disabled={snapshotLoading}
             >
               {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
-              Refresh snapshot
+              {snapshot ? "Refresh signal" : "Scan area"}
             </Button>
           </div>
         </DrawerContent>
