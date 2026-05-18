@@ -46,10 +46,9 @@ export function SectionDrawer({ section, open, onOpenChange }: Props) {
           </DrawerTitle>
         </DrawerHeader>
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-3">
-          {b ? (
+          {b && section ? (
             <SignalCard
-              signal={b.signal ?? { title: section ?? "", short_summary: b.content, confidence: b.confidence ?? "low" }}
-              fallbackBody={b.content}
+              signal={normalizeAwarenessSignal(section, b, { place })}
               generatedAt={b.generated_at}
               onRoute={onSignalRoute}
             />
