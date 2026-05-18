@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Download, Loader2, ShieldAlert, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

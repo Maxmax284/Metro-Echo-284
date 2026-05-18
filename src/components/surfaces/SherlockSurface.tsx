@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Sparkles, Maximize2, FileText, CheckSquare, ListTodo, Radar } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";

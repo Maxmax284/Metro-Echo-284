@@ -6,7 +6,7 @@ import { Loader2, AlertTriangle, HelpCircle, Link2, Sparkles, ShieldAlert, GitBr
 import { useSherlock, SherlockFindings } from "./SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
 

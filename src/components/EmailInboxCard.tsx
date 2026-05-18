@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy, Mail, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 

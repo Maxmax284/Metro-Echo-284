@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";

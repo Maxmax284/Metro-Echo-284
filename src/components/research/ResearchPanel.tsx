@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Telescope, Loader2, ShieldAlert, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 type Mode = "quick" | "deep";
 type ResearchRow = {

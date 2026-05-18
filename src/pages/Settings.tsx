@@ -7,7 +7,7 @@ import { KILL_SWITCHES, MODE_DESC, MODE_LABEL, UsageMode, useSystemControls } fr
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];

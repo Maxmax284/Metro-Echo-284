@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2 } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 

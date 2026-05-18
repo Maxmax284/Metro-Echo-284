@@ -4,7 +4,7 @@
 // memory, classification), drop this in the footer.
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Check, AlertTriangle, Clock, MapPin, EyeOff, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";

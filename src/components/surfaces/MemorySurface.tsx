@@ -5,7 +5,7 @@ import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";

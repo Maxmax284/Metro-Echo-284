@@ -3,7 +3,7 @@
 // behave identically when a user clicks a SignalCard action button.
 
 import { useCallback } from "react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { supabase } from "@/integrations/supabase/client";

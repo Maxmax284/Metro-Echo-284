@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { ModeBadge } from "@/components/shell/ModeBadge";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 import { ExecutorsCard } from "@/components/ExecutorsCard";

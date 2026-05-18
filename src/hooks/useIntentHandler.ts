@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.

@@ -9,7 +9,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 
