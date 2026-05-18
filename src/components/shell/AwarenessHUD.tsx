@@ -372,6 +372,39 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
           </div>
           <div className="flex items-center gap-1">
             <SerpPill />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  title="Radar key — what the dots mean"
+                  aria-label="Radar key"
+                >
+                  <HelpCircle className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-3 text-[11.5px]">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Radar key</div>
+                <ul className="space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span><span className="text-foreground/90">Source ping</span> — a feed (weather, web, AI) used in this scan.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+                    <span><span className="text-foreground/90">Briefing ping</span> — a layer with a written read. Bigger = stronger confidence.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-accent ring-2 ring-accent/40" />
+                    <span><span className="text-foreground/90">Pinned</span> — kept on the radar even when its source goes quiet.</span>
+                  </li>
+                </ul>
+                <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">
+                  Tap a dot to see what it is. Dot position is visual only — it doesn't represent compass direction.
+                </p>
+              </PopoverContent>
+            </Popover>
             <Button
               size="sm"
               variant="ghost"
