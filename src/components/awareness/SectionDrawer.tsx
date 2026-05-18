@@ -34,11 +34,12 @@ export function SectionDrawer({ section, open, onOpenChange }: Props) {
                 className="h-7 gap-1 text-[11px]"
                 disabled={busy}
                 onClick={() => generate(section)}
+                title={b ? "Refresh this layer" : "Scan this layer now"}
               >
                 {busy
                   ? <Loader2 className="h-3 w-3 animate-spin" />
                   : b ? <RefreshCcw className="h-3 w-3" /> : <Sparkles className="h-3 w-3" />}
-                {b ? "Refresh" : "Generate"}
+                {b ? "Refresh" : "Scan layer"}
               </Button>
             )}
           </DrawerTitle>
