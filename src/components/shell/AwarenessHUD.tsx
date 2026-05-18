@@ -380,15 +380,38 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
           const baseR = p.pinned ? 2.2 : p.strong ? 1.6 : 1.2;
           const r = isBriefMatch ? baseR * 1.4 : baseR;
           const groupOpacity = dim ? (terrainActive ? 0.18 : 0.3) : 1;
+          // Build a rich, single-source-of-truth label used by both aria-label and <title>
+          const labelParts: string[] = [p.label];
+          if (p.key.startsWith("brief:")) {
+            const sec = p.key.slice(6);
+            const b = latestBySection[sec];
+            labelParts.push("briefing layer");
+            if (b?.confidence) labelParts.push(`${b.confidence} confidence`);
+            const summary = (b?.signal as any)?.short_summary ?? b?.content;
+            if (summary) labelParts.push(String(summary).split("\n")[0].slice(0, 120));
+          } else if (p.key.startsWith("src:")) {
+            labelParts.push(`${TIER_META[tierFor(p.label)].label} source`);
+          }
+          if (p.pinned) labelParts.push("pinned");
+          if (isBriefMatch) labelParts.push("active layer");
+          if (dim) labelParts.push("filtered out");
+          const fullLabel = labelParts.join(" · ");
           return (
             <g
               key={p.key}
               onClick={() => openPing(p.key)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openPing(p.key);
+                }
+              }}
               style={{ cursor: "pointer", animationDelay: `${p.delay}s`, opacity: groupOpacity }}
               role="button"
               tabIndex={0}
-              aria-label={`Open ${p.label}`}
-              className="radar-fade-in transition-opacity"
+              aria-label={`Open ping: ${fullLabel}`}
+              aria-pressed={isBriefMatch}
+              className="radar-fade-in transition-opacity outline-none focus-visible:[&>circle.focus-ring]:opacity-100"
             >
               {/* invisible hit target — bigger than the dot */}
               <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
