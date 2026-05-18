@@ -66,6 +66,72 @@ function isLocationVague(place: AwarenessPlace | null): boolean {
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// L2 — Location tier classifier
+// ---------------------------------------------------------------------------
+export type LocationTier = "exact" | "saved" | "area" | "city" | "country" | "unknown";
+
+export type TierClassification = {
+  tier: LocationTier;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  offshoreGuess: boolean;
+  accuracy_m: number | null;
+  display: string;
+};
+
+export function classifyTier(place: AwarenessPlace | null): TierClassification {
+  if (!place) {
+    return { tier: "unknown", city: null, region: null, country: null, offshoreGuess: false, accuracy_m: null, display: "Unknown location" };
+  }
+  const geo = (place.geo ?? {}) as any;
+  const city: string | null = geo.city ?? null;
+  const accuracy_m: number | null = Number.isFinite(geo.acc) ? Number(geo.acc) : null;
+  const offshoreGuess = isOffshoreGuess(place);
+  const country = place.country ?? null;
+  const region = place.region ?? null;
+
+  const parts = [city, region, country].filter(Boolean) as string[];
+  const display = parts.length ? parts.join(", ") : (offshoreGuess ? "Offshore (best guess)" : "Unknown location");
+
+  if (!country) return { tier: "unknown", city, region, country, offshoreGuess, accuracy_m, display };
+  if (!city && !region) return { tier: "country", city, region, country, offshoreGuess, accuracy_m, display };
+  if (!city) return { tier: "city", city, region, country, offshoreGuess, accuracy_m, display };
+  if (accuracy_m !== null && accuracy_m <= 150) return { tier: "exact", city, region, country, offshoreGuess, accuracy_m, display };
+  if (!accuracy_m && place.label) return { tier: "saved", city, region, country, offshoreGuess, accuracy_m, display };
+  return { tier: "area", city, region, country, offshoreGuess, accuracy_m, display };
+}
+
+export function tierIsUseless(tier: LocationTier): boolean {
+  return tier === "unknown";
+}
+
+/** L6 — Tier-aware broader-context guidance per layer. */
+const BROADER_CONTEXT: Record<string, (scope: string) => { summary: string; why: string; next: string }> = {
+  transport:     (s) => ({ summary: `Using broader ${s} context for transport — useful but not street-level.`, why: "Exact transport options change neighborhood by neighborhood.", next: "Confirm your spot for sharper info." }),
+  infrastructure:(s) => ({ summary: `Showing ${s}-wide infrastructure context.`, why: "Power, water, and services vary block by block.", next: "Confirm the place to sharpen this read." }),
+  payments:      (s) => ({ summary: `Payment norms across ${s} — confirm spot for shop-level detail.`, why: "Card/cash/QR varies by neighborhood and vendor.", next: "Pin a specific place when you need to pay." }),
+  etiquette:     (s) => ({ summary: `General etiquette for ${s}.`, why: "Customs hold at the country/region level — useful baseline.", next: "Sharpen the place for neighborhood nuances." }),
+  hazards:       (s) => ({ summary: `Broad hazard read for ${s}.`, why: "Big-picture risks (weather, region-wide alerts) still apply.", next: "Confirm spot for street-level hazards." }),
+  scams:         (s) => ({ summary: `Known scam patterns across ${s}.`, why: "Some scams are regional, not neighborhood-specific.", next: "Confirm the spot for hyper-local warnings." }),
+  connectivity:  (s) => ({ summary: `${s}-wide connectivity outlook.`, why: "Carriers/eSIM coverage usually consistent at country level.", next: "Confirm spot for venue Wi-Fi specifics." }),
+  timing:        (s) => ({ summary: `General timing patterns for ${s}.`, why: "Holidays, prayer/siesta, rush hours hold at the region level.", next: "Confirm spot for venue hours." }),
+};
+
+/** Build a broader-context signal payload when tier is city/country/area but not exact. */
+export function broaderContextCopy(section: string, tier: TierClassification): { title: string; summary: string; why: string; next: string } | null {
+  if (tier.tier === "exact" || tier.tier === "saved") return null;
+  if (tier.tier === "unknown") return null;
+  const scope = tier.city ?? tier.region ?? tier.country ?? "this area";
+  const fn = BROADER_CONTEXT[section] ?? BROADER_CONTEXT.transport;
+  const copy = fn(scope);
+  return {
+    title: `${section.charAt(0).toUpperCase() + section.slice(1)} — broader ${scope} context`,
+    ...copy,
+  };
+}
+
 function proseSoundsVague(prose: string): boolean {
   const p = prose.toLowerCase();
   return VAGUE_PROSE_MARKERS.some((m) => p.includes(m));
@@ -161,8 +227,31 @@ export function normalizeAwarenessSignal(
     };
   }
 
-  // Case 2: legacy prose + (vague location OR prose itself sounds vague) → force confirm-place plain-talk.
+  // Case 2: legacy prose + (vague location OR prose itself sounds vague).
+  //   - If we at least know the country/city (tier >= country), use broader-context copy
+  //     instead of refusing — the user gets a useful read scoped to the tier.
+  //   - Only fall back to hard "confirm location" when tier is genuinely unknown.
   if (briefing && (vague || proseVague)) {
+    const tier = classifyTier(ctx.place);
+    const broader = broaderContextCopy(section, tier);
+    if (broader) {
+      return coerceSignal({
+        signal_type: section,
+        title: broader.title,
+        short_summary: broader.summary,
+        confidence: "low",
+        risk_level: "none",
+        source_labels: ["internal"] as SourceLabel[],
+        freshness: freshness(briefing.generated_at),
+        why_it_matters: broader.why,
+        what_to_do_next: broader.next,
+        requires_confirmation: false,
+        confirmation_reason: "",
+        available_routes: ["confirm_location", "refresh_signal"] as SignalRoute[],
+        long_detail: rawContent,
+        display_priority: 5,
+      });
+    }
     const copy = VAGUE_COPY[section] ?? VAGUE_COPY.transport;
     return coerceSignal({
       signal_type: section,
@@ -177,10 +266,11 @@ export function normalizeAwarenessSignal(
       requires_confirmation: true,
       confirmation_reason: "Location looks too vague or off — confirm the place before trusting this read.",
       available_routes: ["confirm_location", "use_saved_place", "refresh_signal"] as SignalRoute[],
-      long_detail: rawContent, // full robotic paragraph lives here, behind "View full detail"
+      long_detail: rawContent,
       display_priority: 5,
     });
   }
+
 
   // Case 3: legacy prose, location seems fine → extract first sentence as summary, dump rest to long_detail.
   if (briefing && rawContent) {

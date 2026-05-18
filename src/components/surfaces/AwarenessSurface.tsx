@@ -13,7 +13,7 @@ import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
-import { normalizeAwarenessSignal } from "@/lib/awarenessPlainTalk";
+import { normalizeAwarenessSignal, classifyTier, type LocationTier } from "@/lib/awarenessPlainTalk";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,8 @@ export function AwarenessSurface() {
         if (data) {
           setNewLabel("");
           setPlaces((p) => [data as AwarenessPlace, ...p]);
+          // Fire-and-forget reverse geocode → fills country/region/city.
+          supabase.functions.invoke("awareness-geocode", { body: { place_id: (data as any).id } }).catch(() => {});
           await refresh();
         }
       },
@@ -115,6 +117,8 @@ export function AwarenessSurface() {
         } else {
           toast.success("Recentered. Tap Scan area when you want fresh context.");
         }
+        // Refresh reverse-geocode in the background so country/region/city stay in sync.
+        supabase.functions.invoke("awareness-geocode", { body: { place_id: place.id, force: true } }).catch(() => {});
         await refresh();
       },
       (err) => {
@@ -153,6 +157,25 @@ export function AwarenessSurface() {
               <MapPin className="h-3.5 w-3.5 text-primary/80" />
               <span className="font-medium">{place.label}</span>
             </span>
+            {(() => {
+              const tier = classifyTier(place);
+              const TONE: Record<LocationTier, string> = {
+                exact:   "bg-primary/15 text-primary ring-primary/40",
+                saved:   "bg-primary/10 text-primary ring-primary/30",
+                area:    "bg-accent/15 text-accent ring-accent/40",
+                city:    "bg-accent/10 text-accent ring-accent/30",
+                country: "bg-warn/15 text-warn ring-warn/40",
+                unknown: "bg-muted/40 text-muted-foreground ring-border/60",
+              };
+              return (
+                <span
+                  title={`Location tier: ${tier.tier} — ${tier.display}`}
+                  className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", TONE[tier.tier])}
+                >
+                  {tier.tier}
+                </span>
+              );
+            })()}
             <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", confTone)}>
               {overall.confidence ?? "no signal"}
             </span>
