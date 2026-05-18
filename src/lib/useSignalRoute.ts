@@ -64,7 +64,7 @@ export function useSignalRoute(): SignalRouteHandler {
         // Stage 6 — open the Companion dock prefilled with the question.
         const q = `About "${title}": ${signal.what_to_do_next || signal.short_summary}`;
         openWithPrefill(q);
-        toast.message("Companion opened", { description: "Edit or send the question." });
+        toast.message({ title: "Companion opened", description: "Edit or send the question." });
         return;
       }
 
