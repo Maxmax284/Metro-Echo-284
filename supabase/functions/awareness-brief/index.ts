@@ -133,14 +133,20 @@ function buildPrompt(section: typeof SECTION_VALUES[number], ev: Evidence) {
     ? `${ev.weather.tempC ?? "?"}°C ${ev.weather.condition ?? ""}`.trim()
     : "(none collected)";
   // Section-aware slicing — payments card no longer sees transport chatter, etc.
-  const localSliced = sliceForSection(ev.local_signals as any[], section);
-  const communitySliced = sliceForSection(ev.community as any[], section);
-  const localStr = localSliced.length
-    ? localSliced.map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
-    : "(none relevant to this section)";
-  const communityStr = communitySliced.length
-    ? communitySliced.map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
-    : "(none relevant to this section)";
+  const localSlice = sliceForSection(ev.local_signals as any[], section);
+  const communitySlice = sliceForSection(ev.community as any[], section);
+  const fmtMode = (s: SliceResult<any>, kind: string) => {
+    if (s.mode === "none" && s.total === 0) return `(no ${kind} in this snapshot)`;
+    if (s.mode === "none") return `(snapshot has ${s.total} ${kind} item${s.total === 1 ? "" : "s"}, but none match "${section}" — ignore this source for this card)`;
+    if (s.mode === "thin") return `(only 1 ${kind} item loosely matches "${section}" — treat as weak signal)`;
+    return `(${s.matched_count} of ${s.total} ${kind} items match "${section}")`;
+  };
+  const localStr = localSlice.items.length
+    ? `${fmtMode(localSlice, "local")}\n` + localSlice.items.map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
+    : fmtMode(localSlice, "local");
+  const communityStr = communitySlice.items.length
+    ? `${fmtMode(communitySlice, "community")}\n` + communitySlice.items.map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
+    : fmtMode(communitySlice, "community");
   const stateStr = Object.entries(ev.source_states).map(([k, v]) => `${k}=${v}`).join(", ");
 
   return `You are summarizing real evidence. Do not invent facts. If a source is missing, say so honestly.
