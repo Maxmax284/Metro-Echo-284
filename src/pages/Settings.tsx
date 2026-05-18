@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -97,6 +98,8 @@ export default function Settings() {
         </div>
       )}
 
+      <InstallVantaSection />
+
       {/* Global mode */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
         <h2 className="text-sm font-semibold">Global usage mode</h2>
@@ -112,7 +115,7 @@ export default function Settings() {
                   "rounded-lg p-2.5 text-left text-xs ring-1 transition-colors",
                   active ? "bg-primary/15 text-foreground ring-primary/40" : "bg-background/40 ring-border/60 hover:bg-surface-elevated"
                 )}
-              >
+                >
                 <div className="font-medium">{MODE_LABEL[m]}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">{MODE_DESC[m]}</div>
               </button>
