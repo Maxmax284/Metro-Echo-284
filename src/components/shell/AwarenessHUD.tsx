@@ -417,7 +417,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
               <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
               {/* keyboard focus ring (hidden until :focus-visible on parent <g>) */}
               <circle
-                className="focus-ring pointer-events-none opacity-0 transition-opacity"
+                className="focus-ring pointer-events-none opacity-0 transition-opacity group-focus:opacity-100 group-hover:opacity-60"
                 cx={p.cx}
                 cy={p.cy}
                 r={r + 3}
