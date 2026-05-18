@@ -29,15 +29,17 @@ const CONF_TINT: Record<AwarenessConfidence | "none", string> = {
 
 type Props = {
   onPick: (section: string) => void;
+  activeLayer?: string | null;
   className?: string;
 };
 
 /**
  * LayerChips — 8 Awareness sections rendered as compact tappable chips.
- * No prose. Tap → open SectionDrawer. Generation lives inside the drawer.
+ * Acts as a radar filter when `activeLayer` is provided.
  */
-export function LayerChips({ onPick, className }: Props) {
+export function LayerChips({ onPick, activeLayer, className }: Props) {
   const { latestBySection } = useAwareness();
+  const hasActive = !!activeLayer;
 
   return (
     <div className={cn("flex flex-wrap gap-1.5", className)}>
@@ -45,16 +47,20 @@ export function LayerChips({ onPick, className }: Props) {
         const b = latestBySection[s];
         const f = freshnessOf(b?.generated_at);
         const conf = (b?.confidence ?? "none") as AwarenessConfidence | "none";
+        const isActive = activeLayer === s;
         return (
           <button
             key={s}
             type="button"
             onClick={() => onPick(s)}
+            aria-pressed={isActive}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-2.5 py-1 text-[11px] capitalize transition-colors hover:bg-surface-elevated",
+              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-2.5 py-1 text-[11px] capitalize transition-all hover:bg-surface-elevated",
               CONF_TINT[conf],
+              isActive && "ring-2 ring-primary/60 border-primary/50 bg-primary/10 text-foreground",
+              hasActive && !isActive && "opacity-60",
             )}
-            aria-label={`Open ${s} (${f})`}
+            aria-label={`${isActive ? "Clear" : "Filter radar by"} ${s} (${f})`}
           >
             <span className={cn("h-1.5 w-1.5 rounded-full", DOT[f])} aria-hidden />
             {s}
