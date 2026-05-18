@@ -11,6 +11,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
+import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 
 type SourceTier = "official" | "local" | "community" | "web" | "ai";
 const TIER_META: Record<SourceTier, { label: string; tone: string }> = {
