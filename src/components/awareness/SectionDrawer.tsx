@@ -4,6 +4,7 @@ import { Loader2, RefreshCcw, Sparkles } from "lucide-react";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
+import { normalizeAwarenessSignal } from "@/lib/awarenessPlainTalk";
 
 type Props = {
   section: string | null;
