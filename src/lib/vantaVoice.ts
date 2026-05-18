@@ -119,6 +119,57 @@ export const vantaSay = {
   rejected: () => "Rejected. Nothing happened.",
 } as const;
 
+// ---------- i18n hook ------------------------------------------------------
+// English (`en`) is the canonical phrase library. Other locales can be
+// registered as a deep-partial override; anything missing falls back to `en`
+// so we never ship an empty string to the UI.
+//
+// Usage:
+//   registerVantaLocale("es", { generic: () => "Eso no funcionó. Inténtalo de nuevo." });
+//   setVantaLocale("es");
+//   vantaSayFor("es").generic();   // -> Spanish
+//   vantaSayFor().generic();       // -> active locale
+//
+// Existing call sites that import `vantaSay` keep working unchanged — they
+// resolve against `en` until a locale is set.
+export type VantaLocale = string;
+export type VantaPhrases = typeof vantaSay;
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+export type VantaPhraseOverrides = DeepPartial<VantaPhrases>;
+
+const LOCALES: Record<VantaLocale, VantaPhrases> = { en: vantaSay };
+let ACTIVE_LOCALE: VantaLocale = "en";
+
+function deepMerge<T>(base: T, override: DeepPartial<T>): T {
+  if (!override) return base;
+  const out: any = Array.isArray(base) ? [...(base as any)] : { ...(base as any) };
+  for (const key of Object.keys(override) as (keyof T)[]) {
+    const ov = (override as any)[key];
+    const bv = (base as any)[key];
+    out[key] =
+      ov && typeof ov === "object" && !Array.isArray(ov) && typeof bv === "object"
+        ? deepMerge(bv, ov)
+        : ov;
+  }
+  return out;
+}
+
+export function registerVantaLocale(locale: VantaLocale, overrides: VantaPhraseOverrides) {
+  LOCALES[locale] = deepMerge(vantaSay, overrides);
+}
+
+export function setVantaLocale(locale: VantaLocale) {
+  ACTIVE_LOCALE = LOCALES[locale] ? locale : "en";
+}
+
+export function getVantaLocale(): VantaLocale {
+  return ACTIVE_LOCALE;
+}
+
+export function vantaSayFor(locale?: VantaLocale): VantaPhrases {
+  return LOCALES[locale ?? ACTIVE_LOCALE] ?? LOCALES.en;
+}
+
 // ---------- Toast wrapper ---------------------------------------------------
 // Use vantaToast.* instead of sonner's toast directly so future tone tweaks
 // (timing, descriptions, classNames) happen in one place.
