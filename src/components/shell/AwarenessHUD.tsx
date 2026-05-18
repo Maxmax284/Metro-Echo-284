@@ -84,6 +84,21 @@ function radiusFor(generatedAt: string | null | undefined) {
   return 40;
 }
 
+// R4 — terrain overlay modes derived from place metadata.
+type TerrainMode = "water" | "urban" | "region" | "unknown";
+function terrainModeFor(place: { country: string | null; region: string | null; geo: any } | null): TerrainMode {
+  if (!place) return "unknown";
+  if (!place.country) return "water";
+  if (place.region) return "urban";
+  return "region";
+}
+const TERRAIN_CAPTION: Record<TerrainMode, string> = {
+  water:   "Looks offshore or unmapped — terrain context not reliable yet.",
+  urban:   "Urban/region overlay — pings layered over local grid.",
+  region:  "Country-level read — terrain context is broad.",
+  unknown: "No place yet — terrain overlay idle.",
+};
+
 export function AwarenessHUD({ className, variant = "compact", activeLayer }: { className?: string; variant?: "hero" | "compact"; activeLayer?: string | null }) {
   const {
     place,
