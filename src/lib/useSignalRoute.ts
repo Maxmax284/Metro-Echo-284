@@ -37,10 +37,7 @@ export function useSignalRoute(): SignalRouteHandler {
 
       case "confirm_location":
       case "use_saved_place": {
-        toast.message(
-          route === "confirm_location" ? "Re-checking location…" : "Using saved place…",
-          { description: "Pulling a fresh snapshot." },
-        );
+        toast.message({ title: route === "confirm_location" ? "Re-checking location…" : "Using saved place…", description: "Pulling a fresh snapshot." });
         refreshSnapshot?.().catch(() => {});
         return;
       }
@@ -64,7 +61,7 @@ export function useSignalRoute(): SignalRouteHandler {
         // Stage 6 — open the Companion dock prefilled with the question.
         const q = `About "${title}": ${signal.what_to_do_next || signal.short_summary}`;
         openWithPrefill(q);
-        toast.message("Companion opened", { description: "Edit or send the question." });
+        toast.message({ title: "Companion opened", description: "Edit or send the question." });
         return;
       }
 
