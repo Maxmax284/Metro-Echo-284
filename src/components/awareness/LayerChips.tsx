@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Mountain } from "lucide-react";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessConfidence } from "@/providers/AwarenessProvider";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
