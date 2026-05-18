@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Mountain } from "lucide-react";
+import {
+  Car, Plug, CreditCard, HandHeart, AlertTriangle, ShieldAlert, Wifi, Clock, Mountain,
+  type LucideIcon,
+} from "lucide-react";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessConfidence } from "@/providers/AwarenessProvider";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
@@ -28,6 +31,17 @@ const CONF_TINT: Record<AwarenessConfidence | "none", string> = {
   none:   "border-border/60 text-muted-foreground",
 };
 
+const SECTION_ICON: Record<string, LucideIcon> = {
+  transport: Car,
+  infrastructure: Plug,
+  payments: CreditCard,
+  etiquette: HandHeart,
+  hazards: AlertTriangle,
+  scams: ShieldAlert,
+  connectivity: Wifi,
+  timing: Clock,
+};
+
 type Props = {
   onPick: (section: string) => void;
   activeLayer?: string | null;
@@ -36,20 +50,31 @@ type Props = {
 
 /**
  * LayerChips — 8 Awareness sections rendered as compact tappable chips.
- * Acts as a radar filter when `activeLayer` is provided.
+ * Mobile: horizontally scrollable row with ~44px tap height.
+ * Desktop (md+): wraps to multiple rows.
  */
 export function LayerChips({ onPick, activeLayer, className }: Props) {
   const { latestBySection } = useAwareness();
   const hasActive = !!activeLayer;
 
   return (
-    <div className={cn("flex flex-wrap gap-1.5", className)}>
+    <div
+      className={cn(
+        // Mobile: horizontal scroll snap row with safe overscroll.
+        // Desktop: wraps.
+        "flex gap-1.5 -mx-1 px-1 overflow-x-auto md:overflow-visible md:flex-wrap snap-x snap-mandatory scrollbar-thin",
+        className,
+      )}
+      role="group"
+      aria-label="Awareness layers"
+    >
       {AWARENESS_SECTIONS.map((s) => {
         const b = latestBySection[s];
         const f = freshnessOf(b?.generated_at);
         const conf = (b?.confidence ?? "none") as AwarenessConfidence | "none";
         const isActive = activeLayer === s;
         const confLabel = conf === "none" ? "no read yet" : `${conf} confidence`;
+        const Icon = SECTION_ICON[s];
         return (
           <button
             key={s}
@@ -57,7 +82,8 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             onClick={() => onPick(s)}
             aria-pressed={isActive}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-2.5 py-1 text-[11px] capitalize transition-all hover:bg-surface-elevated",
+              "snap-start shrink-0 inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
+              "min-h-[36px] md:min-h-0 md:py-1 md:px-2.5 md:text-[11px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
               CONF_TINT[conf],
               isActive && "ring-2 ring-primary/60 border-primary/50 bg-primary/10 text-foreground",
@@ -66,7 +92,8 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             aria-label={`${s} layer — ${confLabel}, ${f} data. ${isActive ? "Active filter, tap to clear." : "Tap to filter radar."}`}
             title={`${s} · ${confLabel} · ${f}`}
           >
-            <span className={cn("h-1.5 w-1.5 rounded-full", DOT[f])} aria-hidden />
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", DOT[f])} aria-hidden />
+            {Icon && <Icon className="h-3 w-3 shrink-0" aria-hidden />}
             {s}
           </button>
         );
@@ -81,7 +108,8 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             onClick={() => onPick("terrain")}
             aria-pressed={isActive}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-2.5 py-1 text-[11px] capitalize transition-all hover:bg-surface-elevated",
+              "snap-start shrink-0 inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
+              "min-h-[36px] md:min-h-0 md:py-1 md:px-2.5 md:text-[11px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
               "border-accent/40 text-foreground/85",
               isActive && "ring-2 ring-accent/60 border-accent/50 bg-accent/10 text-foreground",
@@ -94,7 +122,7 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             }
             title="Terrain overlay — emphasises the radar backdrop, dims pings."
           >
-            <Mountain className="h-3 w-3" aria-hidden />
+            <Mountain className="h-3 w-3 shrink-0" aria-hidden />
             terrain
           </button>
         );
