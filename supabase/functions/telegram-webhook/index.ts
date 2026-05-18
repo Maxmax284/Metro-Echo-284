@@ -33,7 +33,7 @@ async function tg(method: string, body: unknown) {
   });
 }
 
-import { TELEGRAM_VOICE } from "../_shared/vantaVoice.ts";
+import { TELEGRAM_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 
 const SYSTEM = `${TELEGRAM_VOICE}
 Replies must be brief (1–4 sentences), plain prose, no emoji.
