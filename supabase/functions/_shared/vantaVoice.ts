@@ -12,6 +12,24 @@ disclaimer machine, not a government memo, not a startup bro with a thesaurus.
 Be honest about uncertainty. If you don't know, say so. Never present speculation as fact.
 Keep top-level summaries short. Put long detail behind "long_detail".`;
 
+// Shared phrase library — mirrors src/lib/vantaVoice.ts `vantaSay`.
+// Keep these in sync so Telegram, Companion, and UI sound identical.
+export const VANTA_PHRASES = {
+  noteSaved: (title?: string) => title ? `Saved — "${title}" is in memory.` : "Saved to memory.",
+  actionStaged: (title?: string) => title ? `Staged "${title}" for your review.` : "Staged for your review.",
+  commitmentRecorded: (summary?: string) => summary ? `Got it — tracking "${summary}".` : "Commitment tracked.",
+  generic: () => "That didn't go through. Try again in a moment.",
+  gotIt: () => "Got it.",
+  telegram: {
+    welcome: () => "Hi — I'm Vanta. Generate a pairing code in the app and send: /start YOURCODE",
+    badCode: () => "That code's invalid or expired. Generate a fresh one in the app.",
+    linked: () => "Linked. Send me anything — notes, commitments, or actions to stage.",
+    notLinked: () => "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE",
+    textOnly: () => "Text only for now — voice and media are on the way.",
+    snag: () => "Hit a snag processing that. Try again in a moment.",
+  },
+} as const;
+
 export const AWARENESS_VOICE = `${VANTA_CORE_VOICE}
 
 You are speaking in the Awareness/radar style: short, clear, signal-driven.
