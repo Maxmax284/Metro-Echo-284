@@ -4,7 +4,7 @@
 // memory, classification), drop this in the footer.
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Check, AlertTriangle, Clock, MapPin, EyeOff, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,7 +67,7 @@ export function FeedbackBar({
     setBusy(key);
     try {
       const { data: u } = await supabase.auth.getUser();
-      if (!u.user) { toast.error("Not signed in."); return; }
+      if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
 
       if (key === "add_field_note") {
         const summary = typeof window !== "undefined"
@@ -93,7 +93,7 @@ export function FeedbackBar({
           event: "field_note:created",
           payload: { surface, target_type: targetType, target_id: targetId, summary: summary.trim() } as any,
         });
-        toast.success("Field note saved.");
+        toast.success(vantaSay.fieldNoteSaved());
       } else {
         const cfg = ACTIONS.find((a) => a.key === key)!;
         const { data: inserted, error } = await supabase.from("corrections").insert({
@@ -117,7 +117,7 @@ export function FeedbackBar({
       }
       setDone((d) => new Set(d).add(key));
     } catch (e: any) {
-      toast.error("Couldn't save", { description: e?.message ?? "Try again." });
+      toast.error(vantaSay.couldntSave());
     } finally {
       setBusy(null);
     }

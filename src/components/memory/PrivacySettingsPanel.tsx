@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Download, Loader2, ShieldAlert, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +52,7 @@ export function PrivacySettingsPanel() {
       .from("privacy_settings")
       .upsert({ user_id: u.user.id, ...merged }, { onConflict: "user_id" });
     setSaving(false);
-    if (error) toast.error("Couldn't save", { description: error.message });
+    if (error) toast.error(vantaSay.couldntSave());
   };
 
   const exportAll = async () => {
@@ -74,9 +74,9 @@ export function PrivacySettingsPanel() {
       a.download = `vanta-corrections-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Exported.");
+      toast.success(vantaSay.exported());
     } catch (e: any) {
-      toast.error("Couldn't export", { description: e?.message ?? "Try again." });
+      toast.error(vantaSay.couldntExport());
     } finally {
       setWorking(null);
     }
@@ -95,9 +95,9 @@ export function PrivacySettingsPanel() {
       ]);
       if (c.error) throw c.error;
       if (f.error) throw f.error;
-      toast.success("All corrections and field notes deleted.");
+      toast.success(vantaSay.deleted());
     } catch (e: any) {
-      toast.error("Couldn't delete", { description: e?.message ?? "Try again." });
+      toast.error(vantaSay.couldntDelete());
     } finally {
       setWorking(null);
     }

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -25,7 +25,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
     async (kind: string, args: any) => {
       if (!user) return;
       if (!modeAllows(mode, kind)) {
-        toast.warning(`${MODE_LABEL[mode]} mode — intent "${kind}" blocked`, {
+        toast.warning(vantaSay.intentBlocked(MODE_LABEL[mode], kind), {
           description: "Switch mode in the header to allow this.",
         });
         return;
@@ -38,7 +38,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("note", data.id);
-          toast.success("Captured to memory");
+          toast.success(vantaSay.capturedToMemory());
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
           const { data } = await supabase.from("actions").insert({
@@ -49,7 +49,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             status: "staged",
             source: "companion",
           }).select("id").single();
-          toast.success("Drafted — open Actions to review");
+          toast.success(vantaSay.actionDrafted());
           onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {
           const remindAt = args.due_at
@@ -66,7 +66,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("commitment", data.id);
-          toast.success("Commitment added");
+          toast.success(vantaSay.commitmentAdded());
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
         } else if (kind === "run_sherlock") {
           openSherlock({
@@ -105,10 +105,10 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
               metadata: { source: "awareness", confidence, place_id: place?.id ?? null },
             });
           }
-          toast.success("Awareness answered", { description: place?.label ?? "no active place set" });
+          toast.success(vantaSay.awarenessAnswered(place?.label));
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
+        toast.fromError(e);
       }
     },
     [user, openSherlock, mode, onAck]

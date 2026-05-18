@@ -5,7 +5,7 @@ import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -118,9 +118,9 @@ export function MemorySurface() {
         setActive(updated);
         await save(updated);
       }
-      toast.success(action === "summarize" ? "Summary added" : "Action items extracted");
+      toast.success(action === "summarize" ? vantaSay.summarized() : vantaSay.actionsExtracted());
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "AI assist failed");
+      toast.fromError(e, vantaSay.aiAssistFailed());
     } finally {
       setAiBusy(false);
     }
@@ -141,7 +141,7 @@ export function MemorySurface() {
       setHits((data?.results ?? []) as SearchHit[]);
     } catch (e) {
       if (searchCancelRef.current) return;
-      toast.error(e instanceof Error ? e.message : "Search failed");
+      toast.fromError(e, vantaSay.searchFailed());
     } finally {
       setSearching(false);
     }
@@ -150,7 +150,7 @@ export function MemorySurface() {
   const cancelSearch = () => {
     searchCancelRef.current = true;
     setSearching(false);
-    toast.message("Search cancelled");
+    toast.message(vantaSay.cancelled("Search cancelled"));
   };
 
   const loadRelated = async (noteId: string) => {
@@ -176,9 +176,9 @@ export function MemorySurface() {
         body: { note_id: active.id, accept_ids: [toNote] },
       });
       setRelated((p) => p.filter((r) => r.id !== toNote));
-      toast.success("Linked");
+      toast.success(vantaSay.linked());
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Link failed");
+      toast.fromError(e);
     }
   };
 

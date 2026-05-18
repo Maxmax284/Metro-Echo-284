@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { Archive, Clock, MapPin, AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,18 +83,18 @@ export function CorrectionsCenter() {
     setBusy(id);
     const { error } = await supabase.from("corrections").update({ status }).eq("id", id);
     setBusy(null);
-    if (error) { toast.error("Couldn't update", { description: error.message }); return; }
+    if (error) { toast.error(vantaSay.couldntUpdate()); return; }
     setCorrections((p) => p.map((c) => (c.id === id ? { ...c, status } : c)));
-    toast.success(status === "archived" ? "Archived." : "Restored.");
+    toast.success(status === "archived" ? vantaSay.archived() : vantaSay.restored());
   };
 
   const setNoteStatus = async (id: string, status: "archived" | "active" | "expired") => {
     setBusy(id);
     const { error } = await supabase.from("field_notes").update({ status }).eq("id", id);
     setBusy(null);
-    if (error) { toast.error("Couldn't update", { description: error.message }); return; }
+    if (error) { toast.error(vantaSay.couldntUpdate()); return; }
     setNotes((p) => p.map((n) => (n.id === id ? { ...n, status } : n)));
-    toast.success(status === "archived" ? "Archived." : status === "expired" ? "Marked expired." : "Restored.");
+    toast.success(status === "archived" ? vantaSay.archived() : status === "expired" ? vantaSay.expired() : vantaSay.restored());
   };
 
   const deleteNote = async (id: string) => {
@@ -102,9 +102,9 @@ export function CorrectionsCenter() {
     setBusy(id);
     const { error } = await supabase.from("field_notes").delete().eq("id", id);
     setBusy(null);
-    if (error) { toast.error("Couldn't delete", { description: error.message }); return; }
+    if (error) { toast.error(vantaSay.couldntDelete()); return; }
     setNotes((p) => p.filter((n) => n.id !== id));
-    toast.success("Deleted.");
+    toast.success(vantaSay.deleted());
   };
 
   const visibleCorrections = corrections.filter((c) => showArchived || c.status === "active");

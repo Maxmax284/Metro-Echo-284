@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Sparkles, Maximize2, FileText, CheckSquare, ListTodo, Radar } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -131,7 +131,7 @@ export function SherlockSurface() {
       });
       if (cancelRef.current) return; // user cancelled; drop result silently
       if (error) throw error;
-      toast.success(`Investigation complete · ${data?.findings_count ?? 0} findings`);
+      toast.success(vantaSay.sherlockComplete(data?.findings_count ?? 0));
       setQuestion("");
       await load();
       if (data?.id) {
@@ -142,7 +142,7 @@ export function SherlockSurface() {
       }
     } catch (e) {
       if (cancelRef.current) return;
-      toast.error(e instanceof Error ? e.message : "Investigation failed");
+      toast.fromError(e, vantaSay.sherlockFailed());
     } finally {
       setRunning(false);
     }
@@ -151,7 +151,7 @@ export function SherlockSurface() {
   const cancel = () => {
     cancelRef.current = true;
     setRunning(false);
-    toast.message("Investigation cancelled");
+    toast.message(vantaSay.cancelled("Investigation cancelled"));
   };
 
   const targetIcon = (k: Target["kind"]) =>

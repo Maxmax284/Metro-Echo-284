@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, CheckCircle2, Bell, AlertTriangle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow, formatDistanceToNowStrict, isPast } from "date-fns";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ export function CommitmentsSurface() {
       .single();
     if (data) {
       generateEmbedding("commitment", data.id);
-      toast.success("Commitment captured");
+      toast.success(vantaSay.commitmentAdded());
       setDraft({ summary: "", due_at: "", priority: "normal" });
       setComposing(false);
       refresh();

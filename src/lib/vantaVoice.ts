@@ -24,12 +24,23 @@ export const vantaSay = {
   noteSaved: (title?: string) =>
     title ? `Saved — "${title}" is in memory.` : "Saved to memory.",
   noteEmbedFailed: () => "Saved, but I couldn't index it for search yet.",
+  capturedToMemory: () => "Captured to memory.",
   actionStaged: (title?: string) =>
     title ? `Staged "${title}" for your review.` : "Staged for your review.",
+  actionDrafted: () => "Drafted — open Actions to review.",
   commitmentRecorded: (summary?: string) =>
     summary ? `Got it — tracking "${summary}".` : "Commitment tracked.",
+  commitmentAdded: () => "Commitment added.",
   fileIngested: (name: string) => `${name} is in. Indexing now.`,
   copied: (what = "Code") => `${what} copied.`,
+  fieldNoteSaved: () => "Field note saved.",
+  linked: () => "Linked.",
+  archived: () => "Archived.",
+  restored: () => "Restored.",
+  expired: () => "Marked expired.",
+  deleted: () => "Deleted.",
+  exported: () => "Exported.",
+  cancelled: (what = "Cancelled") => `${what}.`,
 
   // Awareness / radar
   recentered: () => "Recentered. Tap Scan area when you want fresh context.",
@@ -37,16 +48,45 @@ export const vantaSay = {
     `Got a rough fix (±${km}km). Confirm the place if it looks off.`,
   pinned: () => "Pinned to your radar.",
   unpinned: () => "Off the radar.",
+  awarenessAnswered: (place?: string) =>
+    place ? `Awareness answered — ${place}.` : "Awareness answered — no active place set.",
 
   // Source / scan state
   sourcePaused: (name: string) => `${name} paused.`,
   sourceResumed: (name: string) => `${name} back on.`,
+  serpapiPaused: () => "SerpApi paused.",
+  serpapiResumed: () => "SerpApi back on.",
+  lockdown: () => "Lockdown engaged. All external APIs disabled.",
+
+  // Research / Sherlock
+  researchComplete: (sources: number) => `Research done — ${sources} sources.`,
+  researchBlocked: (reason: string) => `Blocked: ${reason}.`,
+  researchFailed: (reason: string) => `Couldn't finish that research: ${reason}.`,
+  sherlockComplete: (n: number) => `Investigation done — ${n} findings.`,
+  sherlockFailed: () => "Investigation didn't finish.",
+
+  // Memory
+  summarized: () => "Summary added.",
+  actionsExtracted: () => "Action items extracted.",
+  searchFailed: () => "Search didn't go through.",
+  aiAssistFailed: () => "AI assist didn't finish.",
+
+  // Auth
+  accountCreated: () => "Account created. Welcome.",
+  notSignedIn: () => "You're not signed in.",
+  authFailed: () => "Sign-in didn't go through. Try again.",
 
   // Errors — honest, non-alarming
   generic: () => "That didn't go through. Try again in a moment.",
+  couldntSave: () => "Couldn't save that. Try again.",
+  couldntUpdate: () => "Couldn't update that.",
+  couldntDelete: () => "Couldn't delete that.",
+  couldntExport: () => "Couldn't export that.",
   network: () => "Network's flaky right now. Give it a beat and retry.",
   rateLimited: () => "Easy — you're moving faster than the gateway. Try again in a few seconds.",
   unauthorized: () => "You'll need to sign in again before I can do that.",
+  intentBlocked: (mode: string, kind: string) =>
+    `${mode} mode — "${kind}" is blocked here.`,
   permissionLocation: () =>
     "Location permission is off. Enable it in your browser or pick a saved place.",
   locationUnavailable: () =>
@@ -56,6 +96,9 @@ export const vantaSay = {
     `${name} is over ${maxMb}MB — slim it down or split it up.`,
   micUnsupported: () => "Voice input isn't supported in this browser.",
   micError: (detail?: string) => (detail ? `Mic: ${detail}` : "Mic didn't catch that."),
+  nameRequired: () => "Name's required.",
+  fieldRequired: (name: string) => `${name} is required.`,
+  notFound: (what = "Item") => `${what} not found.`,
 
   // Empty states
   empty: {
@@ -101,6 +144,18 @@ export const vantaToast = Object.assign(say, {
   error(arg: ToastArg) {
     const { message, opts } = normalize(arg);
     return sonnerToast.error(message, opts);
+  },
+  warning(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.warning(message, opts);
+  },
+  message(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.message(message, opts);
+  },
+  info(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.message(message, opts);
   },
   // Convenience: pass an unknown error and get a clean phrase out.
   fromError(e: unknown, fallback = vantaSay.generic()) {

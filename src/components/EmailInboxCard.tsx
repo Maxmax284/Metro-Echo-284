@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy, Mail, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID as string;
 
@@ -42,9 +42,9 @@ export function EmailInboxCard() {
         if (!error) { setSlug(candidate); break; }
         candidate = newSlug();
       }
-      toast.success("Inbound address ready");
+      toast.success("Inbound address ready.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not create address");
+      toast.fromError(e);
     } finally { setBusy(false); }
   };
 
@@ -57,16 +57,16 @@ export function EmailInboxCard() {
       .update({ slug: candidate })
       .eq("user_id", user.id);
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(vantaSay.couldntSave());
     setSlug(candidate);
-    toast.success("Address rotated");
+    toast.success("Address rotated.");
   };
 
   // Webhook URL (what users would point a forwarding service at)
   const webhookUrl = `https://${PROJECT_ID}.supabase.co/functions/v1/email-inbound?slug=${slug ?? ""}`;
   const friendlyAddress = slug ? `${slug}@inbound.vanta` : null;
 
-  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success("Copied"); };
+  const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success(vantaSay.copied()); };
 
   return (
     <Card>

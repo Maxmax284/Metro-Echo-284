@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Plus, Trash2, Webhook, Send, CalendarDays, Mail } from "lucide-react";
 
 type Kind = "webhook" | "telegram" | "google_calendar" | "email";
@@ -77,13 +77,13 @@ export function ExecutorsCard() {
   useEffect(() => { if (session) load(); }, [session]);
 
   const create = async () => {
-    if (!session?.user || !name.trim()) return toast.error("Name required");
+    if (!session?.user || !name.trim()) return toast.error(vantaSay.nameRequired());
     let config: Record<string, unknown> = {};
     if (kind === "webhook") {
-      if (!url.trim()) return toast.error("Webhook URL required");
+      if (!url.trim()) return toast.error(vantaSay.fieldRequired("Webhook URL"));
       config = { url: url.trim() };
     } else if (kind === "telegram") {
-      if (!chatId) return toast.error("Telegram chat ID required");
+      if (!chatId) return toast.error(vantaSay.fieldRequired("Telegram chat ID"));
       config = { chat_id: Number(chatId) };
     } else if (kind === "google_calendar") {
       const dur = Number(duration);
@@ -100,17 +100,17 @@ export function ExecutorsCard() {
       };
     } else if (kind === "email") {
       const list = emailTo.split(",").map((s) => s.trim()).filter(Boolean);
-      if (!list.length) return toast.error("At least one recipient required");
+      if (!list.length) return toast.error(vantaSay.fieldRequired("At least one recipient"));
       config = { to: list, from: emailFrom.trim(), subject: emailSubject.trim() || undefined };
     }
     const { error } = await supabase.from("action_executors").insert({
       user_id: session.user.id, name: name.trim(), kind: kind as any, config: config as any, enabled: true,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.fromError(error);
     setName(""); setUrl(""); setChatId("");
     setEmailTo(""); setEmailSubject("");
     setAttendees("");
-    toast.success("Executor added");
+    toast.success("Executor added.");
     load();
   };
 

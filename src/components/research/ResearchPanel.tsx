@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Telescope, Loader2, ShieldAlert, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 type Mode = "quick" | "deep";
 type ResearchRow = {
@@ -69,16 +69,16 @@ export function ResearchPanel() {
       });
       if (error) throw error;
       if (data?.status === "blocked") {
-        toast.error(`Blocked: ${data.reason ?? "disabled"}`);
+        toast.error(vantaSay.researchBlocked(data.reason ?? "disabled"));
       } else if (data?.status === "failed") {
-        toast.error(`Failed: ${data.error ?? "unknown"}`);
+        toast.error(vantaSay.researchFailed(data.error ?? "unknown"));
       } else {
-        toast.success(`Research complete · ${data?.sources ?? 0} sources`);
+        toast.success(vantaSay.researchComplete(data?.sources ?? 0));
         setQuestion("");
       }
       await refresh();
     } catch (e: any) {
-      toast.error(e?.message ?? "research failed");
+      toast.fromError(e, vantaSay.researchFailed("unknown"));
     } finally {
       setRunning(false);
     }
