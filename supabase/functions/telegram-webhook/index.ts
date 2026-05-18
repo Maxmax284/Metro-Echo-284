@@ -186,6 +186,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    // /help — voice-aligned help text
+    if (text === "/help" || text.startsWith("/help ")) {
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.help() });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // /unlink — remove the chat→user link
+    if (text === "/unlink" || text.startsWith("/unlink ")) {
+      await admin.from("telegram_chat_links").delete().eq("chat_id", chatId);
+      await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.unlinked", payload: { chat_id: chatId } });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.unlinked() });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // Rate limit per linked user — same bucket pattern as vanta-converse
+    const { data: allowed } = await admin.rpc("rate_limit_hit", {
+      _user_id: link.user_id, _bucket: "telegram-webhook", _limit: 30, _window_seconds: 60,
+    });
+    if (allowed === false) {
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.rateLimited() });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
     // Audit inbound
     await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in", payload: { chat_id: chatId, text } });
 
