@@ -46,6 +46,47 @@ const SECTION_HINT: Record<typeof SECTION_VALUES[number], string> = {
   timing:        "Time-of-day or seasonal patterns that affect operations — rush hour, siesta, monsoon, etc.",
 };
 
+// Per-section keyword vocab for slicing snapshot evidence. Items get scored on
+// title+snippet; section-relevant ones bubble to the top. Empty score keeps
+// original snapshot order as fallback.
+const SECTION_KEYWORDS: Record<typeof SECTION_VALUES[number], string[]> = {
+  transport:      ["taxi","grab","bolt","uber","tuk","songthaew","scooter","moto","bike","rental","road","traffic","ferry","bus","train","airport","transfer","ride"],
+  infrastructure: ["power","outage","electric","water","plumbing","internet","wifi","fiber","bank","atm","hospital","clinic","pharmacy","construction","blackout"],
+  payments:       ["atm","cash","card","visa","mastercard","promptpay","qr","fx","exchange","baht","currency","fee","wise","revolut","stripe","payment","tip"],
+  etiquette:      ["temple","wat","dress","shoes","monk","respect","custom","greeting","wai","tip","gesture","photo","modest","religion"],
+  hazards:        ["scam","theft","robbery","accident","injury","dengue","snake","jellyfish","rip current","flood","storm","fire","assault","unsafe","warning"],
+  scams:          ["scam","overcharge","fake","rigged","tout","fraud","fake police","gem","tailor","jet ski","grab scam","meter"],
+  connectivity:   ["sim","esim","ais","dtac","truemove","5g","4g","lte","wifi","coverage","dead zone","mbps","signal","network"],
+  timing:         ["rush hour","monsoon","rainy","dry season","holiday","songkran","loy krathong","festival","closed","opening","siesta","peak","low season"],
+};
+
+function scoreItem(text: string, keywords: string[]): number {
+  const t = text.toLowerCase();
+  let score = 0;
+  for (const k of keywords) if (t.includes(k)) score += k.length > 6 ? 2 : 1;
+  return score;
+}
+
+function sliceForSection<T extends { title?: string; snippet?: string; subreddit?: string }>(
+  items: T[],
+  section: typeof SECTION_VALUES[number],
+  limit = 5,
+): T[] {
+  if (!items.length) return items;
+  const kws = SECTION_KEYWORDS[section] ?? [];
+  const scored = items.map((it, i) => ({
+    it,
+    i,
+    score: scoreItem(`${it.title ?? ""} ${it.snippet ?? ""} ${(it as any).subreddit ?? ""}`, kws),
+  }));
+  const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score || a.i - b.i);
+  if (matched.length >= 2) return matched.slice(0, limit).map((s) => s.it);
+  // Mix: any matches first, then fill with original order to keep card non-empty.
+  const picked = new Set(matched.map((s) => s.i));
+  const fill = scored.filter((s) => !picked.has(s.i)).map((s) => s.it);
+  return [...matched.map((s) => s.it), ...fill].slice(0, limit);
+}
+
 // Server-side mirror of classifyTier (kept tiny, no shared module yet).
 type Tier = "exact" | "saved" | "area" | "city" | "country" | "unknown";
 function classifyTierServer(p: { label?: string; geo: any; country: string | null; region: string | null }): Tier {
@@ -74,19 +115,22 @@ type Evidence = {
   snapshot_age_min: number | null;
 };
 
-function buildPrompt(section: string, ev: Evidence) {
+function buildPrompt(section: typeof SECTION_VALUES[number], ev: Evidence) {
   const geoStr = ev.geo.lat != null && ev.geo.lon != null
     ? `${ev.geo.lat.toFixed(4)}, ${ev.geo.lon.toFixed(4)}${ev.geo.acc_m != null ? ` (±${Math.round(ev.geo.acc_m)}m)` : ""}`
     : "unknown";
   const weatherStr = ev.weather
     ? `${ev.weather.tempC ?? "?"}°C ${ev.weather.condition ?? ""}`.trim()
     : "(none collected)";
-  const localStr = ev.local_signals.length
-    ? ev.local_signals.slice(0, 5).map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
-    : "(none)";
-  const communityStr = ev.community.length
-    ? ev.community.slice(0, 5).map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
-    : "(none)";
+  // Section-aware slicing — payments card no longer sees transport chatter, etc.
+  const localSliced = sliceForSection(ev.local_signals as any[], section);
+  const communitySliced = sliceForSection(ev.community as any[], section);
+  const localStr = localSliced.length
+    ? localSliced.map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
+    : "(none relevant to this section)";
+  const communityStr = communitySliced.length
+    ? communitySliced.map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
+    : "(none relevant to this section)";
   const stateStr = Object.entries(ev.source_states).map(([k, v]) => `${k}=${v}`).join(", ");
 
   return `You are summarizing real evidence. Do not invent facts. If a source is missing, say so honestly.
