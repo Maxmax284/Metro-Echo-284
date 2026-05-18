@@ -409,14 +409,28 @@ Deno.serve(async (req: Request) => {
       async () => {
         const key = Deno.env.get("LOVABLE_API_KEY");
         if (!key) throw new Error("LOVABLE_API_KEY not configured");
-        const prompt = `Place: ${place.label}\nCountry: ${place.country ?? "?"}\nWeather: ${weather ? `${weather.tempC}C ${weather.condition}` : "unknown"}\n\nLocal signals:\n${localText}\n\nCommunity chatter (Reddit):\n${communityText}\n\nBriefings:\n${briefingsText || "(none)"}\n\nReturn a 2-3 sentence operational pulse, concrete and grounded. Surface any street-level signal worth noting. No fluff.`;
+        const prompt = `Location tier: ${tier} (scope: ${tierScope || "unknown"})
+Place: ${place.label}
+Country: ${place.country ?? "?"} | Region: ${place.region ?? "?"} | City: ${geoCity ?? "?"}
+Weather: ${weather ? `${weather.tempC}C ${weather.condition}` : "(none collected)"}
+
+Local web/Places results:
+${localText}
+
+Community chatter (Reddit — unverified):
+${communityText}
+
+Briefings:
+${briefingsText || "(none)"}
+
+Write a 2-3 sentence operational pulse. Use only the evidence above. If tier isn't exact, say you're using broader ${tierScope || "area"} context. If no live sources fired, say so plainly. Human, warm, direct tone — no report voice, no "geospatial", no "infrastructure effectively zero".`;
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are an operational awareness analyst. Be concrete, grounded, and brief." },
+              { role: "system", content: "You are Vanta's operational awareness layer. Plain English, warm, direct. Summarize only the evidence given. Never invent local detail." },
               { role: "user", content: prompt },
             ],
           }),
