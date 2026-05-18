@@ -83,6 +83,34 @@ export function AwarenessSurface() {
     );
   };
 
+  const recenter = () => {
+    if (!session || !place || !navigator.geolocation) {
+      toast.error("Location not available");
+      return;
+    }
+    setRecentering(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { error } = await supabase
+          .from("awareness_places")
+          .update({
+            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", place.id);
+        setRecentering(false);
+        if (error) {
+          toast.error("Couldn't update location");
+        } else {
+          toast.success("Recentered on your current location");
+          await refresh();
+        }
+      },
+      () => { setRecentering(false); toast.error("Couldn't get location"); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   const confTone = overall.confidence ? CONFIDENCE_TONE[overall.confidence] : "bg-muted/40 text-muted-foreground ring-border/60";
   const generatedAt = snapshot?.generated_at ?? overall.newest_at;
 
