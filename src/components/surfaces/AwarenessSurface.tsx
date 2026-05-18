@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
 function freshLabel(generated: string | null): string {
-  if (!generated) return "no snapshot";
+  if (!generated) return "no scan yet";
   const age = Date.now() - new Date(generated).getTime();
   if (age < FRESH_MS) return "fresh";
   if (age < AGING_MS) return "aging";
