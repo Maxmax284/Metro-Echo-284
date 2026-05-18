@@ -84,6 +84,21 @@ function radiusFor(generatedAt: string | null | undefined) {
   return 40;
 }
 
+// R4 — terrain overlay modes derived from place metadata.
+type TerrainMode = "water" | "urban" | "region" | "unknown";
+function terrainModeFor(place: { country: string | null; region: string | null; geo: any } | null): TerrainMode {
+  if (!place) return "unknown";
+  if (!place.country) return "water";
+  if (place.region) return "urban";
+  return "region";
+}
+const TERRAIN_CAPTION: Record<TerrainMode, string> = {
+  water:   "Looks offshore or unmapped — terrain context not reliable yet.",
+  urban:   "Urban/region overlay — pings layered over local grid.",
+  region:  "Country-level read — terrain context is broad.",
+  unknown: "No place yet — terrain overlay idle.",
+};
+
 export function AwarenessHUD({ className, variant = "compact", activeLayer }: { className?: string; variant?: "hero" | "compact"; activeLayer?: string | null }) {
   const {
     place,
@@ -284,6 +299,48 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
     );
   }
 
+  const terrainMode = useMemo(() => terrainModeFor(place), [place]);
+  const terrainActive = activeLayer === "terrain";
+
+  const TerrainOverlay = () => {
+    const baseOpacity = terrainActive ? 0.85 : 0.35;
+    if (terrainMode === "water") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[18, 28, 38].map((r, i) => (
+            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="hsl(var(--primary))" strokeOpacity={0.18 - i * 0.04} strokeWidth={0.35} strokeDasharray="0.6 1.4" />
+          ))}
+        </g>
+      );
+    }
+    if (terrainMode === "urban") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[20, 35, 50, 65, 80].map((p) => (
+            <line key={`v${p}`} x1={p} y1="10" x2={p} y2="90" stroke="hsl(var(--accent, var(--primary)))" strokeOpacity={0.18} strokeWidth={0.25} />
+          ))}
+          {[20, 35, 50, 65, 80].map((p) => (
+            <line key={`h${p}`} x1="10" y1={p} x2="90" y2={p} stroke="hsl(var(--accent, var(--primary)))" strokeOpacity={0.18} strokeWidth={0.25} />
+          ))}
+        </g>
+      );
+    }
+    if (terrainMode === "region") {
+      return (
+        <g opacity={baseOpacity} aria-hidden>
+          {[12, 22, 32, 42].map((r) => (
+            <path key={r} d={`M ${50 - r} 50 Q 50 ${50 - r * 0.6} ${50 + r} 50`} fill="none" stroke="hsl(var(--primary))" strokeOpacity={0.2} strokeWidth={0.3} />
+          ))}
+        </g>
+      );
+    }
+    return (
+      <g opacity={baseOpacity * 0.6} aria-hidden>
+        <circle cx="50" cy="50" r="44" fill="none" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.2} strokeWidth={0.2} strokeDasharray="0.4 1.2" />
+      </g>
+    );
+  };
+
   const RadarCanvas = ({ size = 144 }: { size?: number }) => (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" width={size} height={size} className="block">
@@ -300,6 +357,8 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
 
         {/* backdrop + rings */}
         <circle cx="50" cy="50" r="48" fill="url(#radar-bg)" />
+        {/* R4 terrain overlay sits between backdrop and rings */}
+        <TerrainOverlay />
         {[16, 30, 44].map((r) => (
           <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="hsl(var(--border))" strokeOpacity={0.55} strokeWidth={0.4} />
         ))}
@@ -314,10 +373,13 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         {/* pings */}
         {visiblePings.map((p) => {
           const isBriefMatch = !!activeLayer && p.key === `brief:${activeLayer}`;
-          const dim = !!activeLayer && !isBriefMatch && !p.pinned;
+          // R4 — when terrain layer is active, dim every ping so overlay shows through.
+          const dim = terrainActive
+            ? !p.pinned
+            : (!!activeLayer && !isBriefMatch && !p.pinned);
           const baseR = p.pinned ? 2.2 : p.strong ? 1.6 : 1.2;
           const r = isBriefMatch ? baseR * 1.4 : baseR;
-          const groupOpacity = dim ? 0.3 : 1;
+          const groupOpacity = dim ? (terrainActive ? 0.18 : 0.3) : 1;
           return (
             <g
               key={p.key}
@@ -370,7 +432,22 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   strokeDasharray="1 1.2"
                 />
               )}
-              <title>{p.label}{p.pinned ? " · pinned" : ""}{isBriefMatch ? " · active layer" : ""}</title>
+              <title>{(() => {
+                const parts: string[] = [p.label];
+                if (p.key.startsWith("brief:")) {
+                  const sec = p.key.slice(6);
+                  const b = latestBySection[sec];
+                  if (b?.confidence) parts.push(`${b.confidence} confidence`);
+                  const summary = (b?.signal as any)?.short_summary ?? b?.content;
+                  if (summary) parts.push(String(summary).split("\n")[0].slice(0, 120));
+                } else if (p.key.startsWith("src:")) {
+                  parts.push(`${TIER_META[tierFor(p.label)].label} source`);
+                }
+                if (p.pinned) parts.push("pinned");
+                if (isBriefMatch) parts.push("active layer");
+                if (dim) parts.push("filtered out");
+                return parts.join(" · ");
+              })()}</title>
             </g>
           );
         })}
@@ -417,6 +494,14 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                     <span className="inline-block h-2 w-2 rounded-full bg-accent ring-2 ring-accent/40" />
                     <span><span className="text-foreground/90">Pinned</span> — kept on the radar even when its source goes quiet.</span>
                   </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary opacity-30" />
+                    <span><span className="text-foreground/90">Dim</span> — filtered out by the active layer or source tier.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] inline-block h-1.5 w-3 rounded-sm bg-accent/40" />
+                    <span><span className="text-foreground/90">Terrain overlay</span> — backdrop pattern reflects the place ({terrainMode}).</span>
+                  </li>
                 </ul>
                 <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">
                   Tap a dot to see what it is. Dot position is visual only — it doesn't represent compass direction.
@@ -462,7 +547,14 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         </div>
 
         <div className="mt-3 flex items-start gap-3">
-          <RadarCanvas size={120} />
+          <div className="flex flex-col items-center gap-1">
+            <RadarCanvas size={120} />
+            {terrainActive && (
+              <p className="max-w-[120px] text-center text-[9.5px] leading-tight text-muted-foreground">
+                {TERRAIN_CAPTION[terrainMode]}
+              </p>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
               <span className="inline-flex items-center gap-1 text-foreground/90">
@@ -594,6 +686,9 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 space-y-4 text-[13px]">
             <div className="flex flex-col items-center gap-1.5">
               <RadarCanvas size={220} />
+              <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
+                <span className="text-foreground/80">Terrain:</span> {TERRAIN_CAPTION[terrainMode]}
+              </p>
               <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
                 Dot position is visual only — it doesn't represent compass direction. Tap a dot to see what it is.
               </p>

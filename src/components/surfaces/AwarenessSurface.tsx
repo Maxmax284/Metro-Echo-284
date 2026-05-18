@@ -214,7 +214,27 @@ export function AwarenessSurface() {
             onPick={(s) => setActiveLayer((cur) => (cur === s ? null : s))}
           />
 
-          {activeLayer && (() => {
+          {activeLayer === "terrain" ? (
+            <div className="mt-2 rounded-xl border border-accent/30 bg-accent/[0.05] p-3">
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wider text-accent">terrain</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveLayer(null)}
+                  className="text-[10.5px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </div>
+              <p className="text-[12px] leading-snug text-foreground/85">
+                {!place?.country
+                  ? "This looks offshore or unmapped, so terrain context isn't reliable yet. Confirm the place."
+                  : !place?.region
+                    ? `Country-level read only (${place.country}). Confirm a region for sharper terrain context.`
+                    : `Showing terrain backdrop for ${place.region}, ${place.country}. Pings are dimmed so the overlay stands out.`}
+              </p>
+            </div>
+          ) : activeLayer && (() => {
             const b = latestBySection[activeLayer];
             const busy = generating === activeLayer;
             return (
@@ -269,6 +289,7 @@ export function AwarenessSurface() {
               </div>
             );
           })()}
+
         </div>
 
         {/* Places list — collapsed by default */}

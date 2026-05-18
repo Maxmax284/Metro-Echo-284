@@ -179,6 +179,21 @@ Deno.serve(async (req: Request) => {
       };
     }
 
+    // R6 — structural sanity guard: keep short_summary actually short.
+    // If the model overshoots, push the overflow into long_detail so the
+    // compact card never renders a wall of prose.
+    if (signal.short_summary && signal.short_summary.length > 220) {
+      const full = signal.short_summary;
+      const firstSentence = full.match(/^[^.!?]{20,200}[.!?]/)?.[0]?.trim();
+      signal = {
+        ...signal,
+        short_summary: firstSentence ?? full.slice(0, 200).trimEnd() + "…",
+        long_detail: signal.long_detail
+          ? `${signal.long_detail}\n\n${full}`
+          : full,
+      };
+    }
+
     // Persist: keep `content` populated (short_summary) for back-compat with
     // existing UI; store full structured signal in the new `signal` column.
     const { error: insErr } = await supabase.from("awareness_briefings").insert({

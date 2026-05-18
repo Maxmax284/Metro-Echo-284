@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Mountain } from "lucide-react";
 import { AWARENESS_SECTIONS, useAwareness, type AwarenessConfidence } from "@/providers/AwarenessProvider";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
@@ -67,6 +68,29 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
           </button>
         );
       })}
+      {/* R4 — Terrain chip (non-section overlay control) */}
+      {(() => {
+        const isActive = activeLayer === "terrain";
+        return (
+          <button
+            key="terrain"
+            type="button"
+            onClick={() => onPick("terrain")}
+            aria-pressed={isActive}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-2.5 py-1 text-[11px] capitalize transition-all hover:bg-surface-elevated",
+              "border-accent/40 text-foreground/85",
+              isActive && "ring-2 ring-accent/60 border-accent/50 bg-accent/10 text-foreground",
+              hasActive && !isActive && "opacity-60",
+            )}
+            aria-label={`${isActive ? "Clear" : "Show"} terrain overlay`}
+            title="Terrain overlay — emphasises the radar backdrop, dims pings."
+          >
+            <Mountain className="h-3 w-3" aria-hidden />
+            terrain
+          </button>
+        );
+      })()}
     </div>
   );
 }
