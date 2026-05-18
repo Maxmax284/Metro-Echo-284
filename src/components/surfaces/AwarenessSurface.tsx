@@ -13,7 +13,8 @@ import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
-import { normalizeAwarenessSignal, classifyTier, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { normalizeAwarenessSignal, classifyTier, tierScanCopy, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 
