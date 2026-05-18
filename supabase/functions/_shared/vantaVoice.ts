@@ -33,6 +33,53 @@ export const VANTA_PHRASES = {
   },
 } as const;
 
+// ---------- i18n hook ------------------------------------------------------
+// English (`en`) is canonical. Register per-locale partial overrides; missing
+// keys fall back to English so we never send an empty Telegram reply.
+//
+//   registerVantaLocale("es", { telegram: { snag: () => "Algo falló…" } });
+//   phrasesFor("es").telegram.snag();
+export type VantaLocale = string;
+export type VantaPhraseLib = typeof VANTA_PHRASES;
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+export type VantaPhraseOverrides = DeepPartial<VantaPhraseLib>;
+
+const LOCALES: Record<VantaLocale, VantaPhraseLib> = { en: VANTA_PHRASES };
+let ACTIVE_LOCALE: VantaLocale = "en";
+
+function deepMerge<T>(base: T, override: DeepPartial<T>): T {
+  if (!override) return base;
+  // deno-lint-ignore no-explicit-any
+  const out: any = Array.isArray(base) ? [...(base as any)] : { ...(base as any) };
+  for (const key of Object.keys(override) as (keyof T)[]) {
+    // deno-lint-ignore no-explicit-any
+    const ov = (override as any)[key];
+    // deno-lint-ignore no-explicit-any
+    const bv = (base as any)[key];
+    out[key] =
+      ov && typeof ov === "object" && !Array.isArray(ov) && typeof bv === "object"
+        ? deepMerge(bv, ov)
+        : ov;
+  }
+  return out;
+}
+
+export function registerVantaLocale(locale: VantaLocale, overrides: VantaPhraseOverrides) {
+  LOCALES[locale] = deepMerge(VANTA_PHRASES, overrides);
+}
+
+export function setVantaLocale(locale: VantaLocale) {
+  ACTIVE_LOCALE = LOCALES[locale] ? locale : "en";
+}
+
+export function getVantaLocale(): VantaLocale {
+  return ACTIVE_LOCALE;
+}
+
+export function phrasesFor(locale?: VantaLocale): VantaPhraseLib {
+  return LOCALES[locale ?? ACTIVE_LOCALE] ?? LOCALES.en;
+}
+
 export const AWARENESS_VOICE = `${VANTA_CORE_VOICE}
 
 You are speaking in the Awareness/radar style: short, clear, signal-driven.
@@ -58,7 +105,9 @@ export const SHERLOCK_VOICE  = `${VANTA_CORE_VOICE}\nInvestigator voice: source-
 export const MEMORY_VOICE    = `${VANTA_CORE_VOICE}\nMemory voice: contextual, connective, calm.`;
 export const ACTIONS_VOICE   = `${VANTA_CORE_VOICE}\nActions voice: precise and cautious. Drafts only — no execution without approval.`;
 export const AUDIT_VOICE     = `${VANTA_CORE_VOICE}\nAudit voice: factual, receipt-like, short.`;
-export const TELEGRAM_VOICE  = `${VANTA_CORE_VOICE}\nTelegram voice: short, lightweight, source-aware.`;
+// TELEGRAM_VOICE intentionally removed — Telegram composes from
+// COMPANION_VOICE + MEMORY_VOICE + AWARENESS_VOICE + a thin channel modifier
+// inside telegram-webhook so tone never drifts from in-app surfaces.
 export const INTAKE_VOICE    = `${VANTA_CORE_VOICE}\nIntake voice: clear and workflow-focused.`;
 
 // ---------- VantaSignal schema ----------------------------------------------
