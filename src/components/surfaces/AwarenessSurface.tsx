@@ -87,29 +87,49 @@ export function AwarenessSurface() {
   };
 
   const recenter = () => {
-    if (!session || !place || !navigator.geolocation) {
-      toast.error("Location not available");
+    if (!session || !place) {
+      toast.error("No active place to recenter on.");
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast.error("This browser can't read location. Pick a saved place instead.");
       return;
     }
     setRecentering(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        const acc = pos.coords.accuracy;
         const { error } = await supabase
           .from("awareness_places")
           .update({
-            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy },
+            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc },
             updated_at: new Date().toISOString(),
           })
           .eq("id", place.id);
         setRecentering(false);
         if (error) {
-          toast.error("Couldn't update location");
+          toast.error("Couldn't save the new location.");
+          return;
+        }
+        if (acc && acc > 5000) {
+          toast(`Got a rough fix (±${Math.round(acc / 1000)}km). Confirm the place if it looks wrong.`);
         } else {
-          toast.success("Recentered on your current location");
-          await refresh();
+          toast.success("Recentered. Tap Scan area when you want fresh context.");
+        }
+        await refresh();
+      },
+      (err) => {
+        setRecentering(false);
+        if (err.code === 1) {
+          toast.error("Location permission is off. Enable it in your browser or pick a saved place.");
+        } else if (err.code === 2) {
+          toast.error("Location unavailable right now. Try again or pick a saved place.");
+        } else if (err.code === 3) {
+          toast.error("Location timed out. Try again in a moment.");
+        } else {
+          toast.error("Couldn't read your location.");
         }
       },
-      () => { setRecentering(false); toast.error("Couldn't get location"); },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
