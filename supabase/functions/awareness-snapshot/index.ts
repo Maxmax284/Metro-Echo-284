@@ -433,6 +433,8 @@ Deno.serve(async (req: Request) => {
 
     const compact = {
       place: { id: place.id, label: place.label },
+      tier,
+      tier_scope: tierScope,
       weather,
       summary,
       local_signals_count: local_signals?.length ?? 0,
