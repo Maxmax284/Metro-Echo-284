@@ -248,14 +248,14 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           body: { ingested_file_id: rec.id },
         });
         if (fnErr) throw fnErr;
-        toast.success(`${f.name} ingested`);
+        toast.success(vantaSay.fileIngested(f.name));
         // Auto-run analyze-file registry tool
         const analyze = COMPANION_TOOLS.find((t) => t.id === "analyze-file");
         if (analyze?.buildPrompt && !busy) {
           void send(analyze.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Upload failed");
+        toast.fromError(e);
       }
     }
   };
