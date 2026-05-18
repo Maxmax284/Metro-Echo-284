@@ -138,10 +138,10 @@ export function MiniRadarStrip({ className }: { className?: string }) {
               className="h-7 gap-1 text-[11px]"
               onClick={() => refreshSnapshot(true)}
               disabled={snapshotLoading}
-              title="Refresh snapshot (guarded)"
+              title={snapshot ? "Refresh signal (guarded, cached when possible)" : "Scan this area now (guarded)"}
             >
               {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
-              {snapshot ? "Refresh" : "Generate"}
+              {snapshot ? "Refresh" : "Scan area"}
             </Button>
           </div>
         </div>
