@@ -112,7 +112,9 @@ export default function Settings() {
                 className={cn(
                   "rounded-lg p-2.5 text-left text-xs ring-1 transition-colors",
                   active ? "bg-primary/15 text-foreground ring-primary/40" : "bg-background/40 ring-border/60 hover:bg-surface-elevated"
-                )}
+      )}
+
+      <InstallVantaSection />
               >
                 <div className="font-medium">{MODE_LABEL[m]}</div>
                 <div className="mt-0.5 text-[11px] text-muted-foreground">{MODE_DESC[m]}</div>
