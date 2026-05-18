@@ -632,11 +632,25 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
                         onRoute={onSignalRoute}
                       />
                     </div>
-                  ) : (
-                    <p className="mt-1.5 text-[12px] text-muted-foreground">
-                      Source feeding the current snapshot. {generated ? `Last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}.` : ""}
-                    </p>
-                  )}
+                  ) : (() => {
+                    const tier = tierFor(ping.label);
+                    const tierLine: Record<SourceTier, string> = {
+                      official: "Official feed — weather, calendars, or government data. High trust.",
+                      local: "Local feed — maps, nearby places, or transit. Geographic context.",
+                      community: "Community signal — Reddit, forums, local chatter. Use with judgement.",
+                      web: "Web search — broad lookups and news. Verify before acting.",
+                      ai: "AI synthesis layer — summarising the feeds above, not a source of truth.",
+                    };
+                    return (
+                      <div className="mt-1.5 space-y-1.5">
+                        <p className="text-[12px] text-foreground/85">{tierLine[tier]}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Feeding the current scan
+                          {generated ? ` · last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}` : ""}.
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
