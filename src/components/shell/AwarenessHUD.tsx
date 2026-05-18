@@ -687,6 +687,9 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
             <div className="flex flex-col items-center gap-1.5">
               <RadarCanvas size={220} />
               <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
+                <span className="text-foreground/80">Terrain:</span> {TERRAIN_CAPTION[terrainMode]}
+              </p>
+              <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
                 Dot position is visual only — it doesn't represent compass direction. Tap a dot to see what it is.
               </p>
             </div>
