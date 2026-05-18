@@ -288,6 +288,9 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
     return items.slice(0, 3);
   }, [weather, summary, overall.briefings]);
 
+  const terrainMode = useMemo(() => terrainModeFor(place), [place]);
+  const terrainActive = activeLayer === "terrain";
+
   if (!place) {
     return (
       <Card className={cn("border-border/60 bg-surface-elevated/40 p-3", className)}>
@@ -298,9 +301,6 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
       </Card>
     );
   }
-
-  const terrainMode = useMemo(() => terrainModeFor(place), [place]);
-  const terrainActive = activeLayer === "terrain";
 
   const TerrainOverlay = () => {
     const baseOpacity = terrainActive ? 0.85 : 0.35;
