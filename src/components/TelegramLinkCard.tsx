@@ -47,7 +47,7 @@ export function TelegramLinkCard() {
   const copyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code);
-    toast.success("Code copied");
+    toast.success(vantaSay.copied());
   };
 
   const linked = links.length > 0;
