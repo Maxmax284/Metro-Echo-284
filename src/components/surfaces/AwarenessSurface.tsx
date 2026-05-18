@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Loader2, MapPin, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -18,11 +18,14 @@ import { cn } from "@/lib/utils";
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
 function freshLabel(generated: string | null): string {
-  if (!generated) return "no scan yet";
+  if (!generated) return "never scanned";
   const age = Date.now() - new Date(generated).getTime();
-  if (age < FRESH_MS) return "fresh";
-  if (age < AGING_MS) return "aging";
-  return "stale";
+  const hours = age / (60 * 60 * 1000);
+  if (hours < 1) return "just scanned";
+  if (age < FRESH_MS) return `scanned ${Math.round(hours)}h ago`;
+  const days = Math.round(age / (24 * 60 * 60 * 1000));
+  if (age < AGING_MS) return `${days}d old — still useful`;
+  return `${days}d old — time for a refresh`;
 }
 
 export function AwarenessSurface() {
@@ -35,6 +38,7 @@ export function AwarenessSurface() {
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
+  const [recentering, setRecentering] = useState(false);
 
   const loadList = async () => {
     const { data } = await supabase
@@ -79,6 +83,34 @@ export function AwarenessSurface() {
     );
   };
 
+  const recenter = () => {
+    if (!session || !place || !navigator.geolocation) {
+      toast.error("Location not available");
+      return;
+    }
+    setRecentering(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { error } = await supabase
+          .from("awareness_places")
+          .update({
+            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", place.id);
+        setRecentering(false);
+        if (error) {
+          toast.error("Couldn't update location");
+        } else {
+          toast.success("Recentered on your current location");
+          await refresh();
+        }
+      },
+      () => { setRecentering(false); toast.error("Couldn't get location"); },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   const confTone = overall.confidence ? CONFIDENCE_TONE[overall.confidence] : "bg-muted/40 text-muted-foreground ring-border/60";
   const generatedAt = snapshot?.generated_at ?? overall.newest_at;
 
@@ -102,17 +134,32 @@ export function AwarenessSurface() {
             <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", confTone)}>
               {overall.confidence ?? "no signal"}
             </span>
-            <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <span
+              className="text-[10.5px] lowercase tracking-wide text-muted-foreground"
+              title={generatedAt ? new Date(generatedAt).toLocaleString() : "No scan recorded yet"}
+            >
               {freshLabel(generatedAt)}
             </span>
-            <button
-              type="button"
-              onClick={() => setShowPlaces((v) => !v)}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Switch place
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={recenter}
+                disabled={recentering}
+                title="Update this place to your current GPS location"
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-surface-elevated/60 disabled:opacity-60"
+              >
+                {recentering ? <Loader2 className="h-3 w-3 animate-spin" /> : <Crosshair className="h-3 w-3" />}
+                Recenter
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPlaces((v) => !v)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                Switch place
+              </button>
+            </div>
           </div>
         )}
 

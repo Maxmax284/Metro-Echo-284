@@ -163,10 +163,15 @@ export function MiniRadarStrip({ className }: { className?: string }) {
               <Cloud className="h-3 w-3" /> weather pending
             </span>
           )}
-          {generated && (
-            <span className="text-[10.5px] text-muted-foreground">
-              {formatDistanceToNow(new Date(generated), { addSuffix: true })}
+          {generated ? (
+            <span
+              className="text-[10.5px] text-muted-foreground"
+              title={new Date(generated).toLocaleString()}
+            >
+              scanned {formatDistanceToNow(new Date(generated), { addSuffix: true })}
             </span>
+          ) : (
+            <span className="text-[10.5px] text-muted-foreground">never scanned</span>
           )}
         </div>
 

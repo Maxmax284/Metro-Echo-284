@@ -469,10 +469,15 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                 <MapPin className="h-3 w-3 text-primary/80" />
                 {place.label}
               </span>
-              {generated && (
-                <span className="text-[10px] text-muted-foreground">
-                  {formatDistanceToNow(new Date(generated), { addSuffix: true })}
+              {generated ? (
+                <span
+                  className="text-[10px] text-muted-foreground"
+                  title={new Date(generated).toLocaleString()}
+                >
+                  scanned {formatDistanceToNow(new Date(generated), { addSuffix: true })}
                 </span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">never scanned</span>
               )}
             </div>
 
