@@ -52,6 +52,8 @@ ${AWARENESS_VOICE}
 
 ${TELEGRAM_CHANNEL}
 
+Tool routing: if the user wants to capture a note → call capture_note. Stage an action → stage_action. Commit to something → add_commitment. Otherwise answer succinctly.`;
+
 const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
