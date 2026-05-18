@@ -145,6 +145,18 @@ export const vantaToast = Object.assign(say, {
     const { message, opts } = normalize(arg);
     return sonnerToast.error(message, opts);
   },
+  warning(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.warning(message, opts);
+  },
+  message(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.message(message, opts);
+  },
+  info(arg: ToastArg) {
+    const { message, opts } = normalize(arg);
+    return sonnerToast.message(message, opts);
+  },
   // Convenience: pass an unknown error and get a clean phrase out.
   fromError(e: unknown, fallback = vantaSay.generic()) {
     const msg = e instanceof Error ? e.message : "";
