@@ -98,6 +98,8 @@ export default function Settings() {
         </div>
       )}
 
+      <InstallVantaSection />
+
       {/* Global mode */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
         <h2 className="text-sm font-semibold">Global usage mode</h2>
