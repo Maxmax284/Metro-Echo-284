@@ -411,7 +411,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
               tabIndex={0}
               aria-label={`Open ping: ${fullLabel}`}
               aria-pressed={isBriefMatch}
-              className="radar-fade-in transition-opacity outline-none focus-visible:[&>circle.focus-ring]:opacity-100"
+              className="radar-fade-in group transition-opacity outline-none"
             >
               {/* invisible hit target — bigger than the dot */}
               <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
