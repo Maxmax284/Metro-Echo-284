@@ -247,39 +247,91 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // SerpApi local signals
-    let local_signals: Array<{ title: string; snippet?: string; link?: string }> | null = null;
+    // ---- Tier-aware query construction -------------------------------------
+    type Tier = "exact" | "saved" | "area" | "city" | "country" | "unknown";
+    const geoCity: string | null = (place.geo as any)?.city ?? null;
+    const accuracy: number | null = Number.isFinite((place.geo as any)?.acc) ? Number((place.geo as any).acc) : null;
+    const tier: Tier = !place.country
+      ? "unknown"
+      : !geoCity && !place.region ? "country"
+      : !geoCity ? "city"
+      : accuracy != null && accuracy <= 150 ? "exact"
+      : accuracy == null && place.label ? "saved"
+      : "area";
+
+    const tierScope =
+      tier === "exact" || tier === "saved" ? place.label
+      : tier === "area" || tier === "city" ? (geoCity ?? place.region ?? place.country!)
+      : tier === "country" ? place.country!
+      : "";
+    const tierWebQuery =
+      tier === "country"
+        ? `${tierScope} local tips payments transport connectivity tourist`
+        : tier === "city" || tier === "area"
+          ? `${tierScope} ${place.country ?? ""} local tips connectivity payments`
+          : `${tierScope} local tips today`;
+
+    // SerpApi web + Google Maps (nearby services) — only when tier is useful.
+    let local_signals: Array<{ title: string; snippet?: string; link?: string; kind?: string }> | null = null;
     const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
-    if (SERPAPI_KEY && geo?.lat != null && geo?.lon != null) {
+    if (SERPAPI_KEY && tier !== "unknown") {
       const serp = await runGuarded<typeof local_signals>(
         {
           owner_id: user.id,
           user_id: user.id,
           provider: "serpapi",
           feature: "awareness.local_signals",
-          query: `local:${place.label}:${geo.lat.toFixed(2)},${geo.lon.toFixed(2)}`,
-          location: { lat: geo.lat, lon: geo.lon },
+          query: `local:${tier}:${tierScope}`,
+          location: geo ?? undefined,
           cache_ttl_seconds: 60 * 60,
           related_entity_type: "awareness_place",
           related_entity_id: place_id,
         },
         async () => {
-          const q = encodeURIComponent(`${place.label} ${place.country ?? ""} local news today`.trim());
-          const url = `https://serpapi.com/search.json?engine=google&q=${q}&num=5&api_key=${SERPAPI_KEY}`;
-          const r = await fetch(url);
-          if (!r.ok) throw new Error(`serpapi ${r.status}`);
-          const j = await r.json();
-          const items = (j.organic_results ?? []).slice(0, 5).map((it: any) => ({
-            title: String(it.title ?? ""),
-            snippet: it.snippet ? String(it.snippet) : undefined,
-            link: it.link ? String(it.link) : undefined,
-          }));
+          const items: NonNullable<typeof local_signals> = [];
+
+          // Tier-aware general web search
+          const webUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(tierWebQuery)}&num=5&api_key=${SERPAPI_KEY}`;
+          const wr = await fetch(webUrl);
+          if (wr.ok) {
+            const wj = await wr.json();
+            for (const it of (wj.organic_results ?? []).slice(0, 5)) {
+              items.push({
+                title: String(it.title ?? ""),
+                snippet: it.snippet ? String(it.snippet) : undefined,
+                link: it.link ? String(it.link) : undefined,
+                kind: "web",
+              });
+            }
+          }
+
+          // Google Maps engine for nearby services — only when exact/saved with coords
+          if ((tier === "exact" || tier === "saved") && geo?.lat != null && geo?.lon != null) {
+            const ll = `@${geo.lat},${geo.lon},14z`;
+            const mapsUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent("ATM pharmacy")}&ll=${encodeURIComponent(ll)}&type=search&api_key=${SERPAPI_KEY}`;
+            const mr = await fetch(mapsUrl);
+            if (mr.ok) {
+              const mj = await mr.json();
+              for (const p of (mj.local_results ?? []).slice(0, 5)) {
+                items.push({
+                  title: String(p.title ?? ""),
+                  snippet: [p.type, p.address, p.open_state].filter(Boolean).join(" · ") || undefined,
+                  link: p.website ?? undefined,
+                  kind: "place",
+                });
+              }
+            }
+          }
+
           return items;
         },
       );
       if (serp.ok) {
         local_signals = serp.data;
         sources_used.push(serp.cached ? "serpapi:cached" : "serpapi");
+        if ((tier === "exact" || tier === "saved") && (local_signals ?? []).some((i) => i.kind === "place")) {
+          sources_used.push("google_maps");
+        }
       }
     }
 
