@@ -441,7 +441,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               </ul>
             ) : !snapshot ? (
               <p className="mt-2 text-[11.5px] text-muted-foreground">
-                No snapshot yet. Hit Generate to assemble one.
+                No scan yet. Tap <span className="font-medium text-foreground/80">Scan area</span> when you want one.
               </p>
             ) : (
               <p className="mt-2 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
