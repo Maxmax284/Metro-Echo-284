@@ -87,11 +87,13 @@ function normalize(arg: ToastArg): { message: string; opts?: { description?: str
   return { message: arg.title, opts: arg.description ? { description: arg.description } : undefined };
 }
 
-export const vantaToast = {
-  say(arg: ToastArg) {
-    const { message, opts } = normalize(arg);
-    return sonnerToast(message, opts);
-  },
+function say(arg: ToastArg) {
+  const { message, opts } = normalize(arg);
+  return sonnerToast(message, opts);
+}
+
+export const vantaToast = Object.assign(say, {
+  say,
   success(arg: ToastArg) {
     const { message, opts } = normalize(arg);
     return sonnerToast.success(message, opts);
@@ -109,7 +111,7 @@ export const vantaToast = {
     if (/unauthor|401/i.test(msg)) return sonnerToast.error(vantaSay.unauthorized());
     return sonnerToast.error(msg);
   },
-};
+});
 
 // Re-export raw sonner toast for legacy call sites that still need it.
 export { sonnerToast as toast };
