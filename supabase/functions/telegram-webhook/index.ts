@@ -92,7 +92,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
     } catch { /* ignore */ }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
-  if (!reply) reply = "Got it.";
+  if (!reply) reply = VANTA_PHRASES.gotIt();
 
   // persist into the user's most recent conversation for cross-surface continuity
   if (conv?.id) {
