@@ -163,6 +163,7 @@ export function AwarenessSurface() {
             >
               {freshLabel(generatedAt)}
             </span>
+            <SourceStatusPill />
             <div className="ml-auto flex items-center gap-1">
               <button
                 type="button"
