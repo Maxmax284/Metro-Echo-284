@@ -33,11 +33,26 @@ async function tg(method: string, body: unknown) {
   });
 }
 
-import { TELEGRAM_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
+import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 
-const SYSTEM = `${TELEGRAM_VOICE}
-Replies must be brief (1–4 sentences), plain prose, no emoji.
-When the user clearly wants to capture a note, stage an action, or record a commitment, call the matching tool. Otherwise, answer succinctly.`;
+// Telegram shares the exact same voice constants as the in-app surfaces so
+// wording stays identical across Companion (chat), Memory (capture), and
+// Awareness (place answers). The only Telegram-specific layer is a thin
+// channel modifier: warmer tone (per user pref) and SMS-length brevity.
+const TELEGRAM_CHANNEL = `Telegram channel rules: warm and approachable, but still grounded.
+Replies must be brief (1–4 sentences), plain prose, no emoji, no markdown.
+Messaging feeds the system — it does not control it. Never claim to have executed anything;
+notes, actions, and commitments surface as drafts inside the app for review.`;
+
+const SYSTEM = `${COMPANION_VOICE}
+
+${MEMORY_VOICE}
+
+${AWARENESS_VOICE}
+
+${TELEGRAM_CHANNEL}
+
+Tool routing: if the user wants to capture a note → call capture_note. Stage an action → stage_action. Commit to something → add_commitment. Otherwise answer succinctly.`;
 
 const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
