@@ -134,17 +134,32 @@ export function AwarenessSurface() {
             <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", confTone)}>
               {overall.confidence ?? "no signal"}
             </span>
-            <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <span
+              className="text-[10.5px] lowercase tracking-wide text-muted-foreground"
+              title={generatedAt ? new Date(generatedAt).toLocaleString() : "No scan recorded yet"}
+            >
               {freshLabel(generatedAt)}
             </span>
-            <button
-              type="button"
-              onClick={() => setShowPlaces((v) => !v)}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Switch place
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={recenter}
+                disabled={recentering}
+                title="Update this place to your current GPS location"
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-surface-elevated/60 disabled:opacity-60"
+              >
+                {recentering ? <Loader2 className="h-3 w-3 animate-spin" /> : <Crosshair className="h-3 w-3" />}
+                Recenter
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPlaces((v) => !v)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                Switch place
+              </button>
+            </div>
           </div>
         )}
 
