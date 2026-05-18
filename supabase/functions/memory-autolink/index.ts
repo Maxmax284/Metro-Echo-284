@@ -70,6 +70,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({ suggestions: data ?? [] }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
+    console.error("memory-autolink error", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
