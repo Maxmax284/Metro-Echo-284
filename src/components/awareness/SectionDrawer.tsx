@@ -54,7 +54,7 @@ export function SectionDrawer({ section, open, onOpenChange }: Props) {
             />
           ) : (
             <p className="rounded-xl border border-dashed border-border/60 p-4 text-[12.5px] text-muted-foreground">
-              No briefing for this layer yet. Tap Generate to assemble one.
+              No scan for this layer yet. Tap <span className="font-medium text-foreground/80">Scan layer</span> when you want one.
             </p>
           )}
         </div>
