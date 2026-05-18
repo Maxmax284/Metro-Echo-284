@@ -207,7 +207,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           ]);
         } catch { /* noop */ }
       } else {
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+        toast.fromError(e);
       }
     } finally {
       abortRef.current = null;
