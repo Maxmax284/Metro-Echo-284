@@ -155,7 +155,7 @@ export function ConversationDock({
       };
       rec.onerror = (e: any) => {
         if (e?.error && e.error !== "aborted" && e.error !== "no-speech") {
-          toast.error(`Mic: ${e.error}`);
+          toast.error(vantaSay.micError(e.error));
         }
         setListening(false);
       };
