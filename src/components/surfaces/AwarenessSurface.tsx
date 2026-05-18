@@ -116,8 +116,8 @@ export function AwarenessSurface() {
           </div>
         )}
 
-        {/* HUD: radar hero */}
-        <AwarenessHUD variant="hero" />
+        {/* HUD: radar hero — receives active layer for ping filtering */}
+        <AwarenessHUD variant="hero" activeLayer={activeLayer} />
 
         {/* Attention queue — derived, never alarmist */}
         <div className="rounded-xl border border-border/60 bg-surface-elevated/30 p-3">
@@ -125,10 +125,81 @@ export function AwarenessSurface() {
           <AttentionQueue onOpenSection={openSection} />
         </div>
 
-        {/* Layer chips — tap = open SectionDrawer (read first, refresh inside) */}
+        {/* Layer chips — tap = filter the radar; drawer is "view full detail" */}
         <div>
-          <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Layers</div>
-          <LayerChips onPick={openSection} />
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Layers</span>
+            {activeLayer && (
+              <button
+                type="button"
+                onClick={() => setActiveLayer(null)}
+                className="inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3 w-3" /> All layers
+              </button>
+            )}
+          </div>
+          <LayerChips
+            activeLayer={activeLayer}
+            onPick={(s) => setActiveLayer((cur) => (cur === s ? null : s))}
+          />
+
+          {activeLayer && (() => {
+            const b = latestBySection[activeLayer];
+            const busy = generating === activeLayer;
+            return (
+              <div className="mt-2 rounded-xl border border-primary/30 bg-primary/[0.04] p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-primary capitalize">
+                    {activeLayer}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {b && (
+                      <button
+                        type="button"
+                        onClick={() => openSection(activeLayer)}
+                        className="text-[10.5px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                      >
+                        View full detail
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setActiveLayer(null)}
+                      className="text-[10.5px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                {b ? (
+                  <SignalCard
+                    signal={b.signal ?? { title: activeLayer, short_summary: b.content, confidence: b.confidence ?? "low" }}
+                    fallbackBody={b.content}
+                    generatedAt={b.generated_at}
+                    onRoute={onSignalRoute}
+                    compact
+                  />
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12px] text-muted-foreground">
+                      No read for this layer yet. Tap <span className="font-medium text-foreground/80">Scan layer</span> to assemble one.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 text-[11px] shrink-0"
+                      disabled={busy || !place}
+                      onClick={() => generate(activeLayer)}
+                    >
+                      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      Scan layer
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Places list — collapsed by default */}
