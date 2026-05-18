@@ -84,7 +84,7 @@ function radiusFor(generatedAt: string | null | undefined) {
   return 40;
 }
 
-export function AwarenessHUD({ className, variant = "compact" }: { className?: string; variant?: "hero" | "compact" }) {
+export function AwarenessHUD({ className, variant = "compact", activeLayer }: { className?: string; variant?: "hero" | "compact"; activeLayer?: string | null }) {
   const {
     place,
     snapshot,
