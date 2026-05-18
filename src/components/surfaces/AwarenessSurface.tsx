@@ -243,7 +243,32 @@ export function AwarenessSurface() {
         })()}
 
         {/* HUD: radar hero — receives active layer for ping filtering */}
-        <AwarenessHUD variant="hero" activeLayer={activeLayer} />
+        <div className="relative">
+          <AwarenessHUD variant="hero" activeLayer={activeLayer} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/70 text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                aria-label="What am I seeing?"
+                title="What am I seeing?"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 text-[11.5px] leading-relaxed">
+              <div className="font-medium text-foreground mb-1">What am I seeing?</div>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><span className="text-foreground/85">Pings</span> = real data (source or layer briefing).</li>
+                <li><span className="text-foreground/85">Ring distance</span> = how fresh (closer = newer).</li>
+                <li><span className="text-foreground/85">Layer chips</span> = filter pings to one slice.</li>
+                <li><span className="text-foreground/85">Terrain</span> = backdrop changes by water / urban / region.</li>
+                <li>Tap any chip → quick read. "View full detail" → bottom sheet.</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
+        </div>
+
 
         {/* Attention queue — derived, never alarmist */}
         <div className="rounded-xl border border-border/60 bg-surface-elevated/30 p-3">
