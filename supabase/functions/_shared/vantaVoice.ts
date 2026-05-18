@@ -27,6 +27,9 @@ export const VANTA_PHRASES = {
     notLinked: () => "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE",
     textOnly: () => "Text only for now — voice and media are on the way.",
     snag: () => "Hit a snag processing that. Try again in a moment.",
+    help: () => "I can capture notes, stage actions, and track commitments. Just say what you need. Commands: /help, /unlink.",
+    unlinked: () => "Unlinked. This chat won't reach your account until you pair again.",
+    rateLimited: () => "Easy — you're moving faster than I can keep up. Give it a few seconds.",
   },
 } as const;
 
