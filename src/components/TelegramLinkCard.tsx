@@ -33,7 +33,7 @@ export function TelegramLinkCard() {
       setDeepLink(data?.deep_link ?? null);
       setBot(data?.bot_username ?? null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't generate code");
+      toast.fromError(e, "Couldn't generate a code right now.");
     } finally {
       setBusy(false);
     }
