@@ -547,7 +547,14 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         </div>
 
         <div className="mt-3 flex items-start gap-3">
-          <RadarCanvas size={120} />
+          <div className="flex flex-col items-center gap-1">
+            <RadarCanvas size={120} />
+            {terrainActive && (
+              <p className="max-w-[120px] text-center text-[9.5px] leading-tight text-muted-foreground">
+                {TERRAIN_CAPTION[terrainMode]}
+              </p>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
               <span className="inline-flex items-center gap-1 text-foreground/90">
