@@ -312,50 +312,68 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         </g>
 
         {/* pings */}
-        {visiblePings.map((p) => (
-          <g
-            key={p.key}
-            onClick={() => openPing(p.key)}
-            style={{ cursor: "pointer", animationDelay: `${p.delay}s` }}
-            role="button"
-            tabIndex={0}
-            aria-label={`Open ${p.label}`}
-            className="radar-fade-in"
-          >
-            {/* invisible hit target — bigger than the dot */}
-            <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
-            <circle
-              cx={p.cx}
-              cy={p.cy}
-              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
-              fill={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
-              opacity={0.95}
-            />
-            <circle
-              cx={p.cx}
-              cy={p.cy}
-              r={p.pinned ? 2.2 : p.strong ? 1.6 : 1.2}
-              fill="none"
-              stroke={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
-              strokeWidth={p.pinned ? 0.6 : 0.4}
-              className="radar-ping-pulse"
-              style={{ animationDelay: `${p.delay}s` }}
-            />
-            {p.pinned && (
+        {visiblePings.map((p) => {
+          const isBriefMatch = !!activeLayer && p.key === `brief:${activeLayer}`;
+          const dim = !!activeLayer && !isBriefMatch && !p.pinned;
+          const baseR = p.pinned ? 2.2 : p.strong ? 1.6 : 1.2;
+          const r = isBriefMatch ? baseR * 1.4 : baseR;
+          const groupOpacity = dim ? 0.3 : 1;
+          return (
+            <g
+              key={p.key}
+              onClick={() => openPing(p.key)}
+              style={{ cursor: "pointer", animationDelay: `${p.delay}s`, opacity: groupOpacity }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${p.label}`}
+              className="radar-fade-in transition-opacity"
+            >
+              {/* invisible hit target — bigger than the dot */}
+              <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
               <circle
                 cx={p.cx}
                 cy={p.cy}
-                r={4}
-                fill="none"
-                stroke="hsl(var(--accent, var(--primary)))"
-                strokeOpacity={0.55}
-                strokeWidth={0.5}
-                strokeDasharray="1 1.2"
+                r={r}
+                fill={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
+                opacity={0.95}
               />
-            )}
-            <title>{p.label}{p.pinned ? " · pinned" : ""}</title>
-          </g>
-        ))}
+              <circle
+                cx={p.cx}
+                cy={p.cy}
+                r={r}
+                fill="none"
+                stroke={p.pinned ? "hsl(var(--accent, var(--primary)))" : "hsl(var(--primary))"}
+                strokeWidth={p.pinned ? 0.6 : 0.4}
+                className="radar-ping-pulse"
+                style={{ animationDelay: `${p.delay}s` }}
+              />
+              {isBriefMatch && (
+                <circle
+                  cx={p.cx}
+                  cy={p.cy}
+                  r={r + 2}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeOpacity={0.6}
+                  strokeWidth={0.5}
+                />
+              )}
+              {p.pinned && (
+                <circle
+                  cx={p.cx}
+                  cy={p.cy}
+                  r={4}
+                  fill="none"
+                  stroke="hsl(var(--accent, var(--primary)))"
+                  strokeOpacity={0.55}
+                  strokeWidth={0.5}
+                  strokeDasharray="1 1.2"
+                />
+              )}
+              <title>{p.label}{p.pinned ? " · pinned" : ""}{isBriefMatch ? " · active layer" : ""}</title>
+            </g>
+          );
+        })}
 
         {/* center */}
         <circle cx="50" cy="50" r="1.4" fill="hsl(var(--primary))" />
