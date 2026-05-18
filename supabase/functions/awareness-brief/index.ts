@@ -115,19 +115,22 @@ type Evidence = {
   snapshot_age_min: number | null;
 };
 
-function buildPrompt(section: string, ev: Evidence) {
+function buildPrompt(section: typeof SECTION_VALUES[number], ev: Evidence) {
   const geoStr = ev.geo.lat != null && ev.geo.lon != null
     ? `${ev.geo.lat.toFixed(4)}, ${ev.geo.lon.toFixed(4)}${ev.geo.acc_m != null ? ` (±${Math.round(ev.geo.acc_m)}m)` : ""}`
     : "unknown";
   const weatherStr = ev.weather
     ? `${ev.weather.tempC ?? "?"}°C ${ev.weather.condition ?? ""}`.trim()
     : "(none collected)";
-  const localStr = ev.local_signals.length
-    ? ev.local_signals.slice(0, 5).map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
-    : "(none)";
-  const communityStr = ev.community.length
-    ? ev.community.slice(0, 5).map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
-    : "(none)";
+  // Section-aware slicing — payments card no longer sees transport chatter, etc.
+  const localSliced = sliceForSection(ev.local_signals as any[], section);
+  const communitySliced = sliceForSection(ev.community as any[], section);
+  const localStr = localSliced.length
+    ? localSliced.map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
+    : "(none relevant to this section)";
+  const communityStr = communitySliced.length
+    ? communitySliced.map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
+    : "(none relevant to this section)";
   const stateStr = Object.entries(ev.source_states).map(([k, v]) => `${k}=${v}`).join(", ");
 
   return `You are summarizing real evidence. Do not invent facts. If a source is missing, say so honestly.
