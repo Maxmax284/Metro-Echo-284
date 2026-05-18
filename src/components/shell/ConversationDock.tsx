@@ -164,7 +164,7 @@ export function ConversationDock({
       recRef.current = rec;
       setListening(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Mic failed");
+      toast.fromError(err, vantaSay.micError());
       setListening(false);
     }
   };
