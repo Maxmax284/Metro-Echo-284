@@ -11,6 +11,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { toast } from "sonner";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
+import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 
 type SourceTier = "official" | "local" | "community" | "web" | "ai";
 const TIER_META: Record<SourceTier, { label: string; tone: string }> = {
@@ -119,6 +120,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
             <Radar className="h-3 w-3 text-primary" /> Radar
           </div>
           <div className="flex items-center gap-1">
+            {!isMobile && <SourceStatusPill />}
             {!isMobile && <SerpPill />}
             {isMobile && (
               <Button
@@ -223,7 +225,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
           <DrawerHeader className="border-b border-border/60">
             <DrawerTitle className="flex items-center justify-between gap-2 text-sm">
               <span className="inline-flex items-center gap-2"><Radar className="h-4 w-4 text-primary" /> Radar · {place.label}</span>
-              <SerpPill />
+              <div className="flex items-center gap-1"><SourceStatusPill /><SerpPill /></div>
             </DrawerTitle>
           </DrawerHeader>
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-3 space-y-3 text-[13px]">
