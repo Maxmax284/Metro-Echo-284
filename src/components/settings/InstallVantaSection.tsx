@@ -1,0 +1,153 @@
+import { useState } from "react";
+import { Download, Smartphone, Apple, Monitor, CheckCircle2, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { vantaToast as toast } from "@/lib/vantaVoice";
+
+export function InstallVantaSection() {
+  const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
+  const [busy, setBusy] = useState(false);
+
+  const handleInstall = async () => {
+    setBusy(true);
+    const r = await promptInstall();
+    setBusy(false);
+    if (r === "accepted") toast.success("Vanta is installing. Check your home screen or app drawer.");
+    else if (r === "dismissed") toast("No problem — you can install it later from Settings.");
+    else toast("Install isn't available from this browser right now. Try opening Vanta in Chrome.");
+  };
+
+  return (
+    <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+      <div className="flex items-start gap-3">
+        <div className="rounded-md bg-primary/15 p-2 ring-1 ring-primary/30">
+          <Download className="h-4 w-4 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold">Install Vanta</h2>
+          <p className="text-[12px] text-muted-foreground">Use Vanta like an app on this device.</p>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        {installed ? (
+          <InstalledCard />
+        ) : platform === "android-chromium" ? (
+          <AndroidChromiumCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
+        ) : platform === "android-other" ? (
+          <SimpleHint icon={<Smartphone className="h-4 w-4" />} title="Open in Chrome to install">
+            For the easiest one-tap install on Android, open Vanta in Chrome and come back to this screen.
+          </SimpleHint>
+        ) : platform === "ios-safari" ? (
+          <IosSafariCard />
+        ) : platform === "ios-other" ? (
+          <SimpleHint icon={<Apple className="h-4 w-4" />} title="Open in Safari on iPhone">
+            Apple does this through Safari. Open Vanta in Safari, then follow the Add to Home Screen steps.
+          </SimpleHint>
+        ) : platform === "desktop-chromium" ? (
+          <DesktopCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
+        ) : (
+          <SimpleHint icon={<Info className="h-4 w-4" />} title="Install isn't ready from this browser">
+            Your browser hasn't offered the install prompt yet. Try Chrome or Edge on desktop, or Chrome on Android.
+          </SimpleHint>
+        )}
+      </div>
+
+      <CapabilitiesCard />
+    </section>
+  );
+}
+
+function InstalledCard() {
+  return (
+    <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 p-3 ring-1 ring-emerald-500/30">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
+      <div className="text-xs">
+        <div className="font-medium text-emerald-300">You're using Vanta in app mode.</div>
+        <div className="text-muted-foreground">Open from your home screen next time for the full app feel.</div>
+      </div>
+    </div>
+  );
+}
+
+function AndroidChromiumCard({ canPrompt, busy, onInstall }: { canPrompt: boolean; busy: boolean; onInstall: () => void }) {
+  return (
+    <div className="space-y-2">
+      <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={!canPrompt || busy}>
+        <Download className="h-4 w-4" />
+        Install Vanta App
+      </Button>
+      {!canPrompt && (
+        <p className="text-[11px] text-muted-foreground">
+          Your browser hasn't offered the install prompt yet. Use Vanta for a moment, then check back here.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function DesktopCard({ canPrompt, busy, onInstall }: { canPrompt: boolean; busy: boolean; onInstall: () => void }) {
+  if (canPrompt) {
+    return (
+      <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={busy}>
+        <Monitor className="h-4 w-4" />
+        Install Vanta on this computer
+      </Button>
+    );
+  }
+  return (
+    <SimpleHint icon={<Monitor className="h-4 w-4" />} title="Install from your browser menu">
+      In Chrome or Edge, look for the install icon in the address bar, or open the browser menu and choose Install Vanta.
+    </SimpleHint>
+  );
+}
+
+function IosSafariCard() {
+  return (
+    <div className="rounded-lg bg-background/40 p-3 ring-1 ring-border/60">
+      <div className="flex items-center gap-2">
+        <Apple className="h-4 w-4 text-foreground/70" />
+        <div className="text-xs font-medium">Install on iPhone or iPad</div>
+      </div>
+      <ol className="mt-2 space-y-1 pl-5 text-[12px] text-muted-foreground list-decimal">
+        <li>Tap the Share button in Safari.</li>
+        <li>Choose <span className="text-foreground">Add to Home Screen</span>.</li>
+        <li>Tap <span className="text-foreground">Add</span>.</li>
+      </ol>
+      <p className="mt-2 text-[11px] text-muted-foreground">Apple does this through Safari, not a one-tap prompt.</p>
+    </div>
+  );
+}
+
+function SimpleHint({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg bg-background/40 p-3 ring-1 ring-border/60">
+      <div className="flex items-center gap-2">
+        <span className="text-foreground/70">{icon}</span>
+        <div className="text-xs font-medium">{title}</div>
+      </div>
+      <p className="mt-1 text-[12px] text-muted-foreground">{children}</p>
+    </div>
+  );
+}
+
+function CapabilitiesCard() {
+  return (
+    <div className="mt-4 rounded-lg bg-background/30 p-3 ring-1 ring-border/40">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">What installing does</div>
+      <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">
+        <li>· Adds Vanta to your home screen or app drawer.</li>
+        <li>· Opens in a clean standalone window — no browser chrome.</li>
+        <li>· Faster launch into the core shell.</li>
+        <li>· Camera, files, and location work where your browser allows them.</li>
+        <li>· Deep links into Vanta surfaces still work.</li>
+      </ul>
+      <div className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">Honest limits</div>
+      <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">
+        <li>· This is a PWA, not a full native app yet.</li>
+        <li>· Offline shell and push notifications are coming later.</li>
+        <li>· On iPhone, install runs through Safari's Add to Home Screen.</li>
+      </ul>
+    </div>
+  );
+}

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
