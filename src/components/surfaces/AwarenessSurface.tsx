@@ -341,7 +341,7 @@ export function AwarenessSurface() {
                 </div>
                 {b ? (
                   <SignalCard
-                    signal={normalizeAwarenessSignal(activeLayer, b, { place })}
+                    signal={normalizeAwarenessSignal(activeLayer, b, { place, compact: isMobile })}
                     generatedAt={b.generated_at}
                     onRoute={onSignalRoute}
                     compact
