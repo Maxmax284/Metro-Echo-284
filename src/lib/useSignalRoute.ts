@@ -37,10 +37,7 @@ export function useSignalRoute(): SignalRouteHandler {
 
       case "confirm_location":
       case "use_saved_place": {
-        toast.message(
-          route === "confirm_location" ? "Re-checking location…" : "Using saved place…",
-          { description: "Pulling a fresh snapshot." },
-        );
+        toast.message({ title: route === "confirm_location" ? "Re-checking location…" : "Using saved place…", description: "Pulling a fresh snapshot." });
         refreshSnapshot?.().catch(() => {});
         return;
       }
