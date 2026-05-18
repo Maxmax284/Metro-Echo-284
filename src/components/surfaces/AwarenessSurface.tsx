@@ -77,6 +77,8 @@ export function AwarenessSurface() {
         if (data) {
           setNewLabel("");
           setPlaces((p) => [data as AwarenessPlace, ...p]);
+          // Fire-and-forget reverse geocode → fills country/region/city.
+          supabase.functions.invoke("awareness-geocode", { body: { place_id: (data as any).id } }).catch(() => {});
           await refresh();
         }
       },
@@ -115,6 +117,8 @@ export function AwarenessSurface() {
         } else {
           toast.success("Recentered. Tap Scan area when you want fresh context.");
         }
+        // Refresh reverse-geocode in the background so country/region/city stay in sync.
+        supabase.functions.invoke("awareness-geocode", { body: { place_id: place.id, force: true } }).catch(() => {});
         await refresh();
       },
       (err) => {
