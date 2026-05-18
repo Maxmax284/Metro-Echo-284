@@ -308,11 +308,7 @@ export function AwarenessSurface() {
                 </button>
               </div>
               <p className="text-[12px] leading-snug text-foreground/85">
-                {!place?.country
-                  ? "This looks offshore or unmapped, so terrain context isn't reliable yet. Confirm the place."
-                  : !place?.region
-                    ? `Country-level read only (${place.country}). Confirm a region for sharper terrain context.`
-                    : `Showing terrain backdrop for ${place.region}, ${place.country}. Pings are dimmed so the overlay stands out.`}
+                {terrainModeCaption(terrainModeFor(place), place, isMobile)}
               </p>
             </div>
           ) : activeLayer && (() => {
