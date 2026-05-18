@@ -133,7 +133,7 @@ export function ConversationDock({
 
   const startListening = () => {
     if (!SRClass) {
-      toast.error("Voice input isn't supported in this browser");
+      toast.error(vantaSay.micUnsupported());
       return;
     }
     try {
