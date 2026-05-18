@@ -365,7 +365,8 @@ export function normalizeAwarenessSignal(
 
   // Case 3: legacy prose, location seems fine → extract first sentence as summary, dump rest to long_detail.
   if (briefing && rawContent) {
-    const summary = stripMarkdown(firstSentence(rawContent));
+    let summary = stripMarkdown(firstSentence(rawContent));
+    if (compact && summary.length > 90) summary = summary.slice(0, 87).replace(/[,;:\s]+\S*$/, "") + "…";
     return coerceSignal({
       signal_type: section,
       title: section.charAt(0).toUpperCase() + section.slice(1),
