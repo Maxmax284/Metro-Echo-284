@@ -13,7 +13,10 @@ import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
-import { normalizeAwarenessSignal, classifyTier, tierScanCopy, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { HelpCircle } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
@@ -34,6 +37,7 @@ function freshLabel(generated: string | null): string {
 export function AwarenessSurface() {
   const { session } = useAuth();
   const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating } = useAwareness();
+  const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
@@ -151,10 +155,12 @@ export function AwarenessSurface() {
         </p>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 space-y-4">
-        {/* Place strip — answers "where am I, how sure, how fresh" */}
+      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-36 md:pb-24 safe-bottom space-y-4">
+        {/* Place strip — sticky on mobile so Where/Tier/Confidence/Source stays visible. */}
         {place && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-[12px]">
+          <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-[12px]">
+
             <span className="inline-flex items-center gap-1 text-foreground/90">
               <MapPin className="h-3.5 w-3.5 text-primary/80" />
               <span className="font-medium">{place.label}</span>
@@ -207,6 +213,7 @@ export function AwarenessSurface() {
                 {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 Switch place
               </button>
+              </div>
             </div>
           </div>
         )}
@@ -236,7 +243,32 @@ export function AwarenessSurface() {
         })()}
 
         {/* HUD: radar hero — receives active layer for ping filtering */}
-        <AwarenessHUD variant="hero" activeLayer={activeLayer} />
+        <div className="relative">
+          <AwarenessHUD variant="hero" activeLayer={activeLayer} />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/70 text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                aria-label="What am I seeing?"
+                title="What am I seeing?"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 text-[11.5px] leading-relaxed">
+              <div className="font-medium text-foreground mb-1">What am I seeing?</div>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><span className="text-foreground/85">Pings</span> = real data (source or layer briefing).</li>
+                <li><span className="text-foreground/85">Ring distance</span> = how fresh (closer = newer).</li>
+                <li><span className="text-foreground/85">Layer chips</span> = filter pings to one slice.</li>
+                <li><span className="text-foreground/85">Terrain</span> = backdrop changes by water / urban / region.</li>
+                <li>Tap any chip → quick read. "View full detail" → bottom sheet.</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
+        </div>
+
 
         {/* Attention queue — derived, never alarmist */}
         <div className="rounded-xl border border-border/60 bg-surface-elevated/30 p-3">
@@ -276,11 +308,7 @@ export function AwarenessSurface() {
                 </button>
               </div>
               <p className="text-[12px] leading-snug text-foreground/85">
-                {!place?.country
-                  ? "This looks offshore or unmapped, so terrain context isn't reliable yet. Confirm the place."
-                  : !place?.region
-                    ? `Country-level read only (${place.country}). Confirm a region for sharper terrain context.`
-                    : `Showing terrain backdrop for ${place.region}, ${place.country}. Pings are dimmed so the overlay stands out.`}
+                {terrainModeCaption(terrainModeFor(place), place, isMobile)}
               </p>
             </div>
           ) : activeLayer && (() => {
@@ -313,7 +341,7 @@ export function AwarenessSurface() {
                 </div>
                 {b ? (
                   <SignalCard
-                    signal={normalizeAwarenessSignal(activeLayer, b, { place })}
+                    signal={normalizeAwarenessSignal(activeLayer, b, { place, compact: isMobile })}
                     generatedAt={b.generated_at}
                     onRoute={onSignalRoute}
                     compact

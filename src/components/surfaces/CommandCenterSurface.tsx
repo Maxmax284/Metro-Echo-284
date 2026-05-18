@@ -10,7 +10,7 @@ import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
+import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 
 type Counts = {
@@ -147,7 +147,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
-        <AwarenessHUD />
+        <MiniRadarStrip onOpenAwareness={() => onNavigate("awareness")} />
         <AmbientSummary counts={counts} />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">

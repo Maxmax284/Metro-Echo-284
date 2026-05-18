@@ -1,91 +1,136 @@
-# Awareness Radar — Repair Pass Plan
+# Awareness UI/UX — Audit + Staged Polish Plan
 
-## Audit summary (what's actually rendered, and why it still looks robotic)
+## Part 1 — Pipeline Audit (rendered state)
 
-**Render path:** `AwarenessSurface.tsx` and `SectionDrawer.tsx` both feed briefings into `SignalCard.tsx`. The smoking gun is on line 224 of `AwarenessSurface.tsx` (and 50 of `SectionDrawer.tsx`):
+### What's actually shipped and wired
 
-```ts
-signal={b.signal ?? { title: activeLayer, short_summary: b.content, confidence: b.confidence ?? "low" }}
-```
+| Layer | Status | Evidence in rendered UI |
+|---|---|---|
+| L1 reverse-geocode | ✅ live | `awareness-geocode` invoked on capture + recenter in `AwarenessSurface.tsx:83, 123` |
+| L2 tier classifier | ✅ live | `classifyTier(place)` rendered as tier chip in place strip (`AwarenessSurface.tsx:162-180`) |
+| L3 evidence bundle to Gemini | ✅ live | `awareness-brief` reads `awareness_snapshots`, passes weather/SerpApi/Reddit/source_states/tier into prompt with section-aware slicing + "use only this evidence" + empty-slice fallback |
+| L4 tier-aware source routing | ✅ live | `awareness-snapshot` selects google_maps engine for exact/saved, broad SerpApi for city/country |
+| L5 tier-aware Scan button | ✅ live | `tierScanCopy()` renders explicit Scan button with helper + source-impact line; never auto-fires |
+| L6 plain-talk normalizer | ✅ live | `normalizeAwarenessSignal` used in `SectionDrawer` and `AwarenessSurface` active-layer card |
 
-When the DB row has no structured `signal` JSON (every legacy row from before the Vanta-voice work), the full robotic Gemini paragraph is shoved into `short_summary` and rendered verbatim by `SignalCard`. No `why_it_matters` / `what_to_do_next` is computed, so the "structure" collapses into one giant prose blob — exactly what the screenshots show.
+### Real disconnects found in the rendered UI
 
-**Confirmed live components** (rendered, not orphaned): `AwarenessSurface`, `AwarenessHUD`, `LayerChips`, `SectionDrawer`, `SignalCard`, `AttentionQueue`, `MiniRadarStrip`. Previous Stage A–F work IS wired — the failure is purely the legacy-prose fallback path bypassing all structure.
+These are the actual gaps. None require pipeline changes — only UI wiring.
 
-**SERP status:** `MiniRadarStrip` has a SerpPill that reads `controls.serpapi_enabled` only. It does not distinguish enabled-but-not-called / cached / failed / blocked. No state for "external search is on, but no live scan yet."
+1. **Command Center renders the full `AwarenessHUD`, not the compact `MiniRadarStrip`.**  
+   `CommandCenterSurface.tsx:150` mounts `<AwarenessHUD />` — that's the 912-line radar room, not a compact mini-card. `MiniRadarStrip` exists, is already compact + drawer-driven, but is unused. This violates the spec's "Command Center = radar feed, Awareness = radar room."
 
-**Location:** `recenter()` works on a single browser geolocation call. No accuracy gating, no offshore detection, no permission-denied messaging beyond a generic toast.
+2. **Tier chip and Source pill exist in `AwarenessSurface` but not in `MiniRadarStrip` summary line.**  
+   `MiniRadarStrip` shows place + weather + freshness but no tier badge and no scan button adapted to tier. Once we swap it into Command Center, those need to be added.
 
-**Terrain:** No terrain layer exists in the radar. Previous prompts referenced it but nothing was built.
+3. **Mini-radar Scan button is generic.**  
+   `MiniRadarStrip:137-147` uses "Refresh" / "Scan area" hardcoded — does not use `tierScanCopy()`. Should mirror `AwarenessSurface` so both surfaces tell the same story.
 
-## Stages (small, verifiable)
+4. **Source chips in `MiniRadarStrip` and `AwarenessHUD` derive tier from raw `sources_used` strings** (`tierFor()` keyword match). They count present sources but don't render the honest "Search ON but no scan has run" / "cached" / "failed" states. The `SourceStatusPill` does this honestly — it's already rendered in `MiniRadarStrip:123`, but only on desktop (`!isMobile`). Mobile loses the most important truth signal.
 
-### Stage R1 — Plain-talk normalizer (the actual fix for robotic text)
+5. **AwarenessSurface bottom padding is `pb-24` but no `safe-bottom`.**  
+   Bottom nav (`SurfaceTabs`) uses `safe-bottom` and is 64px tall. On iOS PWA / notch devices the last layer chips / places list can sit under the nav. The scrollable area needs `safe-bottom` plus enough extra for the floating Companion bubble (`fixed bottom-20 right-4`).
 
-New file `src/lib/awarenessPlainTalk.ts`:
+6. **Companion floating bubble at `bottom-20 right-4` overlaps the Scan/Recenter area on small screens.**  
+   On 360–390px wide screens with the place strip + Scan button stack, the 48px bubble at y=80 from bottom lands on top of the layer-chip row when scrolled to the bottom. No collapse-on-drawer-open behavior exists.
 
-- `normalizeAwarenessSignal(section, briefing, ctx)` returns a `VantaSignal`.
-- If `briefing.signal` is a valid structured signal → trust its `short_summary`/`why_it_matters`/`what_to_do_next`, push original `content` into `long_detail` only.
-- If only legacy `content` exists → **never** pass it to `short_summary`. Instead:
-  - Move full prose to `long_detail`.
-  - Detect "no-useful-read" patterns: missing country/region, offshore (lat/lon over water heuristic from a simple bounding-box list, or just `!place.country`), or phrases like "hampered", "unavailable", "too broad", "insufficient", "cannot determine" → emit a confirm-place plain-talk signal per layer (see copy table below).
-  - Otherwise extract first sentence as `short_summary`, infer `why_it_matters` and `what_to_do_next` from per-layer templates.
-- Per-layer copy table (location-vague case):
-  - transport → "Your location looks too broad right now. Confirm the place so I can give useful transport info."
-  - payments → "This location looks offshore or misread, so I can't tell what payment options are nearby. Confirm your place first."
-  - connectivity → "Connection info looks shaky because your location is too broad. Confirm the spot before relying on it."
-  - hazards → "I can't trust the hazard read yet because the location is too vague. Confirm the place first."
-  - scams → "I'm not seeing a useful scam read here because the location looks wrong or offshore. Fix the location before trusting this."
-  - infrastructure / etiquette / timing → analogous one-liners.
-- Always emits `available_routes: ["confirm_location", "use_saved_place", "refresh_signal"]` when in vague-location state.
+7. **Layer chips use `flex-wrap`** (`LayerChips.tsx:46`).  
+   9 chips (8 sections + terrain) wrap to 3 rows on 360px. Spec asked for horizontal scroll OR compact icons. Currently a "messy wall" exactly as the spec said not to do. Tap targets are ~28px tall — under the 44px iOS minimum.
 
-Wire `AwarenessSurface.tsx` line 222–229 and `SectionDrawer.tsx` line 48–54 to call `normalizeAwarenessSignal(...)` and pass the result to `<SignalCard signal={...} />`. Drop the inline `b.signal ?? { ... b.content ... }` hack.
+8. **Active-layer drawer trigger inside `AwarenessSurface:286-340`** renders the SignalCard inline below the chips but never opens the `SectionDrawer`. So tapping a chip filters the radar (good) but to see full detail the user must find the "View full detail" mini-link in the inline card. Spec wants a clean bottom sheet path for thumbs.
 
-### Stage R2 — Honest SERP / source state
+9. **Terrain visible response in radar is unclear.**  
+   `AwarenessHUD` accepts `activeLayer` and has a `terrainMode` memo (fixed in last pass), but the spec asks for visible overlay variation per terrain (water rings, urban grid, etc). Not built. Currently only pings dim. Need a minimal terrain-mode backdrop swap (4 variants max — water / urban / wild / unknown — keyed off `geo.city` keywords or a simple country/region heuristic). Subtle, not gamer-RGB.
 
-Extend `MiniRadarStrip` SerpPill into a small state machine reading: `controls.serpapi_enabled`, `snapshot?.sources_used` (presence of "serpapi"), `snapshot?.generated_at` freshness, and any `snapshot.full_data.errors?.serpapi`.
+10. **No "Search ON, no scan yet" specific copy in mini-card.**  
+    `MiniRadarStrip:182-186` falls back to "No scan yet. Tap Scan area when you want one." — fine, but doesn't differentiate Search-on vs Search-off. `SourceStatusPill` does this honestly via `computeSourceStatus()` — already exists, just needs to be visible on mobile too.
 
-States + copy:
-- on + no snapshot → "External search on · no live scan yet"
-- on + serpapi in sources + fresh → "External search active"
-- on + snapshot cached / stale → "External search cached"
-- on + error flag → "External search failed — check key/quota"
-- off → "External search off — using saved/cached info"
+11. **Legend / "What am I seeing?" helper does not exist** on the radar. Pings have tooltips but no first-use hint, no ping-type legend.
 
-Same pill copy mirrored in `AwarenessSurface` place strip via a tiny shared `<SourceStatusPill />` component so users see the same truth in both surfaces.
+12. **Mobile copy is identical to desktop.**  
+    `normalizeAwarenessSignal` returns one length of summary. No `compact` vs `verbose` mode. Spec wants shorter mobile lines.
 
-### Stage R3 — Location safety + clear feedback
+## Part 2 — Out of scope (explicitly NOT doing)
 
-`recenter()` in `AwarenessSurface.tsx`:
-- On permission denied (`err.code === 1`) → "Location permission is off. Enable it in your browser or pick a saved place."
-- On position with `accuracy > 5000m` → still saves, but toasts "Got a rough fix (±Nkm). Confirm the place if it looks wrong."
-- After successful update, toast offers "Scan local context" (CTA → `refreshSnapshot(true)`), never auto-triggers paid scan.
-- Same "offshore guard": if new coords land in a water bounding box → toast "This looks offshore or misread. Pick a saved place or confirm manually." and still save (don't block).
+- No new edge functions.
+- No new tables.
+- No new tabs.
+- No redesign of Awareness or Command Center layout grids.
+- No changes to `awareness-brief`, `awareness-snapshot`, `awareness-geocode` (pipeline is correct).
+- No new Companion features.
+- No animations beyond subtle CSS.
 
-### Stage R4 — Terrain as a real radar overlay
+## Part 3 — Staged polish plan
 
-`AwarenessHUD.tsx`:
-- Add `terrainMode: "water"|"urban"|"hill"|"road"|"unknown"` derived from `place.country/region` + simple offshore check (or `snapshot.full_data.terrain` if backend ever fills it).
-- Each mode renders a distinct subtle SVG overlay inside the radar (water rings, grid lines, contour bands, route hint dashes, muted noise for unknown). All colors via existing semantic tokens (`primary/10`, `muted/30`, `accent/20`).
-- Add a one-line terrain caption under radar matching the audit copy ("This looks offshore, so terrain context is not reliable yet." etc.).
-- New chip "Terrain" added to `LayerChips` (9th chip) that, when active, dims pings and emphasizes the overlay.
+Each stage = one user message, shippable, validated separately. Mobile-first.
 
-### Stage R5 — Ping legend + tap meaning
+### Stage A — Honest source state everywhere (no new data)
 
-Tiny `<RadarLegend />` toggle inside `AwarenessHUD` (info icon top-right of the radar). Opens a popover listing: briefing ping = layer read, source ping = raw source point, pinned = manual, dim = filtered out. Tapping any ping already opens detail — verify the tooltip content includes layer + confidence + source + plain summary (small patch to existing ping render).
+- Show `SourceStatusPill` on mobile in `MiniRadarStrip` (drop the `!isMobile` gate).
+- Show `SourceStatusPill` in the floating Companion situation row when on Awareness/CommandCenter routes.
+- Add tier chip to `MiniRadarStrip` summary line.
+- Wire `tierScanCopy()` into `MiniRadarStrip` button so label adapts (Scan This Spot / Scan Koh Samui Context / Confirm Place First).
 
-### Stage R6 — Backend nudge (small, optional within this pass)
+### Stage B — Command Center uses the compact mini, not the full radar
 
-In `supabase/functions/awareness-brief/index.ts`, when the model returns a `signal` JSON, also write a structural sanity check: if `short_summary.length > 220` chars, truncate and dump full into `long_detail`. This prevents future legacy-style rows. Pure server-side guard, no schema change.
+- Swap `<AwarenessHUD />` → `<MiniRadarStrip />` in `CommandCenterSurface.tsx:150`.
+- Add "Open Awareness" CTA in the mini-card that calls `onNavigate("awareness")`.
+- Mini gets: tier, place, source pill, scan button (tier-aware), top 1–3 signals from `latestBySection`, freshness, no full radar.
 
-## Out of scope this pass
-- Re-running awareness-brief over old rows (the normalizer makes that unnecessary).
-- New tables, RLS changes, or schema migrations.
-- Any companion/Sherlock surface changes.
+### Stage C — Mobile-safe layout chrome
 
-## Acceptance gate
+- Add `safe-bottom` to `AwarenessSurface` scroll container and bump bottom padding to clear the 64px nav + 48px Companion bubble.
+- Companion bubble: auto-hide when any Awareness drawer/sheet is open (subscribe to `panelMode` + a new drawer-open flag), and move from `bottom-20` to `bottom-24` on Awareness route only.
+- Sticky place strip on mobile (`md:static sticky top-0`) so Where/Tier/Confidence/Source stay visible while scrolling layers.
 
-After R1 alone, the screenshots in the audit (hazards "significantly hampered", payments Gulf of Thailand prose, etc.) must visibly disappear from compact cards — those paragraphs will only appear under "View full detail" in the drawer. After R2 the SERP pill must show one of the six honest states. After R3 every location failure has a sentence, not a silent toast. After R4 picking the Terrain chip must visibly change the radar overlay.
+### Stage D — Layer chips that don't wrap into a wall
 
-## Execution order
-R1 → R2 → R3 → R4 → R5 → R6, verified surface-by-surface in the preview. R1 is the highest-value, smallest, most isolated change — ship and verify before touching anything else.
+- Convert `LayerChips` row to horizontal scroll on mobile (`overflow-x-auto snap-x`), bump min height to 36px (~44px hit area with padding).
+- Keep wrap behavior on `md:` desktop.
+- Add icons next to labels (transport→Car, payments→CreditCard, etc) so they're recognizable at a glance.
+
+### Stage E — Visible terrain response
+
+- Add `terrainMode` heuristic in `awarenessPlainTalk.ts`: `"water" | "urban" | "wild" | "unknown"` derived from place country + offshore guess + city keywords.
+- In `AwarenessHUD`, swap radar backdrop ring/gradient by mode (4 subtle variants, all using existing semantic tokens — no new colors). Dim pings further when terrain active (already partially done).
+- Update the terrain helper text in `AwarenessSurface:278-284` to name the terrain mode plainly ("Showing water/coastal backdrop — most exact-pin signals dimmed.").
+
+### Stage F — Detail drawer is the default deep view + "What am I seeing?"
+
+- Make layer-chip tap open `SectionDrawer` as primary path on mobile (inline card stays as a quick-peek summary).
+- Inside `SectionDrawer` first viewport: Summary / Why / Next / Confidence / Source chips / Routes. Long detail collapsed.
+- Add a small `?` helper button next to the radar that opens a tiny popover legend explaining ping = data, dot = decoration, freshness ring = how old, layer filter = which slice.
+
+### Stage G — Mobile-shorter copy
+
+- Add `compact?: boolean` to `normalizeAwarenessSignal` and `broaderContextCopy`. When compact, return ≤14-word summaries.
+- Pass `compact` from `MiniRadarStrip` and from the inline layer card on mobile (`useIsMobile`).
+- Desktop unchanged.
+
+### Stage H — Final validation pass
+
+- Browser-test mobile (390x844 iPhone, 360x800 Android) and desktop:
+  - Command Center renders mini, not full radar.
+  - Awareness shows tier + source pill + tier-aware Scan button.
+  - Terrain mode swaps backdrop.
+  - Layer chips scroll horizontally, ~44px tap height.
+  - Companion bubble doesn't overlap Scan / chips / drawer.
+  - Detail drawer opens from chip tap, short copy default.
+- Capture screenshots, attach to final summary.
+
+## Part 4 — Acceptance gate
+
+Stage H is the only "complete" signal. Earlier stages may ship but the audit closes only when the mobile screenshots show:
+- Honest source pill on mobile.
+- Tier-aware Scan label on both surfaces.
+- Compact Command Center (no full radar).
+- Horizontal layer chips with comfortable tap targets.
+- Visible terrain backdrop variant.
+- Companion not blocking primary controls.
+- Short mobile copy.
+
+## Technical notes
+
+- All changes live in: `AwarenessSurface.tsx`, `MiniRadarStrip.tsx`, `AwarenessHUD.tsx`, `LayerChips.tsx`, `CommandCenterSurface.tsx`, `CompanionWidget.tsx`, `awarenessPlainTalk.ts`, `SectionDrawer.tsx`, and `index.css` (one or two safe-area utility additions).
+- No DB migrations. No edge function changes. No new dependencies.
+- Reuses existing tokens in `index.css` / `tailwind.config.ts` — no new colors.
