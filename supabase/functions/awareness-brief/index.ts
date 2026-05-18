@@ -194,10 +194,63 @@ Deno.serve(async (req: Request) => {
         ).join("\n")
       : "";
 
+    // Build evidence bundle from latest snapshot (if any). Never trigger paid calls here.
+    const { data: snap } = await supabase
+      .from("awareness_snapshots")
+      .select("compact, full_data, sources_used, generated_at, expires_at")
+      .eq("place_id", place_id)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const tier = classifyTierServer(place as any);
+    const geoAny = (place.geo ?? {}) as any;
+    const scope =
+      tier === "exact" || tier === "saved" ? (place.label || "this spot")
+      : tier === "area" || tier === "city" ? (geoAny.city ?? place.region ?? place.country ?? "this area")
+      : tier === "country" ? (place.country ?? "this country")
+      : "unknown";
+
+    const full = (snap?.full_data ?? {}) as any;
+    const sourcesUsed: string[] = (snap?.sources_used ?? []) as string[];
+    const has = (k: string) => sourcesUsed.some((s) => s.toLowerCase().includes(k));
+    const source_states: Evidence["source_states"] = {
+      weather: has("open-meteo") ? (has("cached") && has("open-meteo:cached") ? "cached" : "used") : "not_called",
+      serpapi: has("serpapi") ? (has("serpapi:cached") ? "cached" : "used") : (Deno.env.get("SERPAPI_KEY") ? "not_called" : "off"),
+      community: has("reddit") ? (has("cached") ? "cached" : "used") : "not_called",
+      gemini: has("gemini") ? "used" : "not_called",
+    };
+    const snapshotAgeMin = snap?.generated_at
+      ? Math.round((Date.now() - new Date(snap.generated_at).getTime()) / 60000)
+      : null;
+
+    const evidence: Evidence = {
+      tier,
+      scope,
+      place: {
+        label: place.label,
+        country: place.country,
+        region: place.region,
+        city: geoAny.city ?? null,
+      },
+      geo: {
+        lat: typeof geoAny.lat === "number" ? geoAny.lat : null,
+        lon: typeof geoAny.lon === "number" ? geoAny.lon : null,
+        acc_m: typeof geoAny.acc === "number" ? geoAny.acc : null,
+      },
+      weather: full.weather ?? null,
+      local_signals: Array.isArray(full.local_signals) ? full.local_signals : [],
+      community: Array.isArray(full.community) ? full.community : [],
+      snapshot_summary: typeof full.summary === "string" ? full.summary : null,
+      sources_available: sourcesUsed,
+      source_states,
+      snapshot_age_min: snapshotAgeMin,
+    };
+
     let signal: VantaSignal;
     let usedFallback = false;
     try {
-      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, place) + correctionBlock);
+      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, evidence) + correctionBlock);
       const validated = VantaSignalSchema.safeParse(raw);
       if (validated.success && validated.data.signal_type === section) {
         signal = validated.data;
