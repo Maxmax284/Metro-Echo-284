@@ -33,7 +33,7 @@ async function tg(method: string, body: unknown) {
   });
 }
 
-import { TELEGRAM_VOICE } from "../_shared/vantaVoice.ts";
+import { TELEGRAM_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 
 const SYSTEM = `${TELEGRAM_VOICE}
 Replies must be brief (1–4 sentences), plain prose, no emoji.
@@ -49,17 +49,17 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
-    return "Captured to memory.";
+    return VANTA_PHRASES.noteSaved(args.title);
   }
   if (name === "stage_action") {
     await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" });
-    return "Action staged for your review.";
+    return VANTA_PHRASES.actionStaged(args.title);
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
     const { data } = await sb.from("commitments").insert({ user_id: userId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
-    return "Commitment recorded.";
+    return VANTA_PHRASES.commitmentRecorded(args.summary);
   }
   return null;
 }
@@ -92,7 +92,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
     } catch { /* ignore */ }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
-  if (!reply) reply = "Got it.";
+  if (!reply) reply = VANTA_PHRASES.gotIt();
 
   // persist into the user's most recent conversation for cross-surface continuity
   if (conv?.id) {
@@ -128,12 +128,12 @@ Deno.serve(async (req) => {
       const parts = text.split(/\s+/);
       const code = parts[1]?.toUpperCase();
       if (!code) {
-        await tg("sendMessage", { chat_id: chatId, text: "Hi — I'm Vanta. To link this chat, generate a pairing code in the app and send: /start YOURCODE" });
+        await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.welcome() });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
       const { data: row } = await admin.from("telegram_link_codes").select("*").eq("code", code).maybeSingle();
       if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now()) {
-        await tg("sendMessage", { chat_id: chatId, text: "That code is invalid or expired. Generate a new one in the app." });
+        await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.badCode() });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
       // upsert link (chat_id unique)
@@ -143,30 +143,30 @@ Deno.serve(async (req) => {
       );
       await admin.from("telegram_link_codes").update({ used_at: new Date().toISOString() }).eq("code", code);
       await admin.from("audit_log").insert({ user_id: row.user_id, entity_type: "telegram", event: "telegram.linked", payload: { chat_id: chatId, username: msg.from?.username ?? null } });
-      await tg("sendMessage", { chat_id: chatId, text: "Linked. Send me anything — notes, commitments, or actions to stage." });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.linked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     // Look up linked user
     const { data: link } = await admin.from("telegram_chat_links").select("user_id").eq("chat_id", chatId).maybeSingle();
     if (!link) {
-      await tg("sendMessage", { chat_id: chatId, text: "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE" });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.notLinked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     if (!text) {
-      await tg("sendMessage", { chat_id: chatId, text: "I can only handle text right now." });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.textOnly() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     // Audit inbound
     await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in", payload: { chat_id: chatId, text } });
 
-    let reply = "Got it.";
+    let reply = VANTA_PHRASES.gotIt();
     try {
       reply = await aiRespond(admin, link.user_id, text);
     } catch (e) {
-      reply = "I hit a snag processing that. Try again in a moment.";
+      reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
     }
     await tg("sendMessage", { chat_id: chatId, text: reply });

@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, X } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { LayerChips } from "@/components/awareness/LayerChips";
@@ -119,9 +119,9 @@ export function AwarenessSurface() {
           return;
         }
         if (acc && acc > 5000) {
-          toast(`Got a rough fix (±${Math.round(acc / 1000)}km). Confirm the place if it looks wrong.`);
+          toast(vantaSay.roughFix(Math.round(acc / 1000)));
         } else {
-          toast.success("Recentered. Tap Scan area when you want fresh context.");
+          toast.success(vantaSay.recentered());
         }
         // Refresh reverse-geocode in the background so country/region/city stay in sync.
         supabase.functions.invoke("awareness-geocode", { body: { place_id: place.id, force: true } }).catch(() => {});
@@ -130,13 +130,13 @@ export function AwarenessSurface() {
       (err) => {
         setRecentering(false);
         if (err.code === 1) {
-          toast.error("Location permission is off. Enable it in your browser or pick a saved place.");
+          toast.error(vantaSay.permissionLocation());
         } else if (err.code === 2) {
-          toast.error("Location unavailable right now. Try again or pick a saved place.");
+          toast.error(vantaSay.locationUnavailable());
         } else if (err.code === 3) {
-          toast.error("Location timed out. Try again in a moment.");
+          toast.error(vantaSay.locationTimeout());
         } else {
-          toast.error("Couldn't read your location.");
+          toast.error(vantaSay.locationUnavailable());
         }
       },
       { enableHighAccuracy: true, timeout: 8000 }

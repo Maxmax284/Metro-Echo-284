@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { StatusDot } from "@/components/ui/status-dot";
 
@@ -33,7 +33,7 @@ export function TelegramLinkCard() {
       setDeepLink(data?.deep_link ?? null);
       setBot(data?.bot_username ?? null);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't generate code");
+      toast.fromError(e, "Couldn't generate a code right now.");
     } finally {
       setBusy(false);
     }
@@ -47,7 +47,7 @@ export function TelegramLinkCard() {
   const copyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code);
-    toast.success("Code copied");
+    toast.success(vantaSay.copied());
   };
 
   const linked = links.length > 0;

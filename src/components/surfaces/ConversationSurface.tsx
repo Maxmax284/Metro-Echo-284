@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
 import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
@@ -207,7 +207,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           ]);
         } catch { /* noop */ }
       } else {
-        toast.error(e instanceof Error ? e.message : "Something went wrong");
+        toast.fromError(e);
       }
     } finally {
       abortRef.current = null;
@@ -226,7 +226,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     const list = Array.from(files);
     for (const f of list) {
       try {
-        if (f.size > MAX_BYTES) { toast.error(`${f.name} exceeds 20MB`); continue; }
+        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
         const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
         const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
         if (upErr) throw upErr;
@@ -248,14 +248,14 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           body: { ingested_file_id: rec.id },
         });
         if (fnErr) throw fnErr;
-        toast.success(`${f.name} ingested`);
+        toast.success(vantaSay.fileIngested(f.name));
         // Auto-run analyze-file registry tool
         const analyze = COMPANION_TOOLS.find((t) => t.id === "analyze-file");
         if (analyze?.buildPrompt && !busy) {
           void send(analyze.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
         }
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Upload failed");
+        toast.fromError(e);
       }
     }
   };

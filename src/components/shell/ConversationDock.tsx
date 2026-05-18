@@ -1,7 +1,7 @@
 import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
@@ -133,7 +133,7 @@ export function ConversationDock({
 
   const startListening = () => {
     if (!SRClass) {
-      toast.error("Voice input isn't supported in this browser");
+      toast.error(vantaSay.micUnsupported());
       return;
     }
     try {
@@ -155,7 +155,7 @@ export function ConversationDock({
       };
       rec.onerror = (e: any) => {
         if (e?.error && e.error !== "aborted" && e.error !== "no-speech") {
-          toast.error(`Mic: ${e.error}`);
+          toast.error(vantaSay.micError(e.error));
         }
         setListening(false);
       };
@@ -164,7 +164,7 @@ export function ConversationDock({
       recRef.current = rec;
       setListening(true);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Mic failed");
+      toast.fromError(err, vantaSay.micError());
       setListening(false);
     }
   };
