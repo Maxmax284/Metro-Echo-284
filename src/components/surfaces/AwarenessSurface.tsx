@@ -213,6 +213,7 @@ export function AwarenessSurface() {
                 {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 Switch place
               </button>
+              </div>
             </div>
           </div>
         )}
