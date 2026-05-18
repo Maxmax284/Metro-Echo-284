@@ -373,10 +373,13 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         {/* pings */}
         {visiblePings.map((p) => {
           const isBriefMatch = !!activeLayer && p.key === `brief:${activeLayer}`;
-          const dim = !!activeLayer && !isBriefMatch && !p.pinned;
+          // R4 — when terrain layer is active, dim every ping so overlay shows through.
+          const dim = terrainActive
+            ? !p.pinned
+            : (!!activeLayer && !isBriefMatch && !p.pinned);
           const baseR = p.pinned ? 2.2 : p.strong ? 1.6 : 1.2;
           const r = isBriefMatch ? baseR * 1.4 : baseR;
-          const groupOpacity = dim ? 0.3 : 1;
+          const groupOpacity = dim ? (terrainActive ? 0.18 : 0.3) : 1;
           return (
             <g
               key={p.key}
