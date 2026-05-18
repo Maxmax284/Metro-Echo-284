@@ -128,12 +128,12 @@ Deno.serve(async (req) => {
       const parts = text.split(/\s+/);
       const code = parts[1]?.toUpperCase();
       if (!code) {
-        await tg("sendMessage", { chat_id: chatId, text: "Hi — I'm Vanta. To link this chat, generate a pairing code in the app and send: /start YOURCODE" });
+        await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.welcome() });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
       const { data: row } = await admin.from("telegram_link_codes").select("*").eq("code", code).maybeSingle();
       if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now()) {
-        await tg("sendMessage", { chat_id: chatId, text: "That code is invalid or expired. Generate a new one in the app." });
+        await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.badCode() });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
       // upsert link (chat_id unique)
@@ -143,30 +143,30 @@ Deno.serve(async (req) => {
       );
       await admin.from("telegram_link_codes").update({ used_at: new Date().toISOString() }).eq("code", code);
       await admin.from("audit_log").insert({ user_id: row.user_id, entity_type: "telegram", event: "telegram.linked", payload: { chat_id: chatId, username: msg.from?.username ?? null } });
-      await tg("sendMessage", { chat_id: chatId, text: "Linked. Send me anything — notes, commitments, or actions to stage." });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.linked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     // Look up linked user
     const { data: link } = await admin.from("telegram_chat_links").select("user_id").eq("chat_id", chatId).maybeSingle();
     if (!link) {
-      await tg("sendMessage", { chat_id: chatId, text: "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE" });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.notLinked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     if (!text) {
-      await tg("sendMessage", { chat_id: chatId, text: "I can only handle text right now." });
+      await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.textOnly() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
     // Audit inbound
     await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in", payload: { chat_id: chatId, text } });
 
-    let reply = "Got it.";
+    let reply = VANTA_PHRASES.gotIt();
     try {
       reply = await aiRespond(admin, link.user_id, text);
     } catch (e) {
-      reply = "I hit a snag processing that. Try again in a moment.";
+      reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
     }
     await tg("sendMessage", { chat_id: chatId, text: reply });
