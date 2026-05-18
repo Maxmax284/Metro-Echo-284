@@ -27,12 +27,14 @@ function freshLabel(generated: string | null): string {
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const { place, overall, refresh, snapshot } = useAwareness();
+  const { place, overall, refresh, snapshot, latestBySection, generate, generating } = useAwareness();
+  const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   const [showPlaces, setShowPlaces] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<string | null>(null);
 
   const loadList = async () => {
     const { data } = await supabase
