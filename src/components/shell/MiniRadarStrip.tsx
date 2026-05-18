@@ -174,7 +174,13 @@ export function MiniRadarStrip({ className }: { className?: string }) {
           <p className="mt-2 text-[12.5px] leading-relaxed text-foreground/85">{summary}</p>
         ) : snapshot ? null : (
           <p className="mt-2 text-[12px] text-muted-foreground">
-            No snapshot yet. Hit Generate to assemble one.
+            No scan yet. Tap <span className="font-medium text-foreground/80">Scan area</span> when you want one.
+          </p>
+        )}
+
+        {streetDisabled && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            External search is off — I'm using saved/cached info only.
           </p>
         )}
 
