@@ -58,7 +58,9 @@ export const SHERLOCK_VOICE  = `${VANTA_CORE_VOICE}\nInvestigator voice: source-
 export const MEMORY_VOICE    = `${VANTA_CORE_VOICE}\nMemory voice: contextual, connective, calm.`;
 export const ACTIONS_VOICE   = `${VANTA_CORE_VOICE}\nActions voice: precise and cautious. Drafts only — no execution without approval.`;
 export const AUDIT_VOICE     = `${VANTA_CORE_VOICE}\nAudit voice: factual, receipt-like, short.`;
-export const TELEGRAM_VOICE  = `${VANTA_CORE_VOICE}\nTelegram voice: short, lightweight, source-aware.`;
+// TELEGRAM_VOICE intentionally removed — Telegram composes from
+// COMPANION_VOICE + MEMORY_VOICE + AWARENESS_VOICE + a thin channel modifier
+// inside telegram-webhook so tone never drifts from in-app surfaces.
 export const INTAKE_VOICE    = `${VANTA_CORE_VOICE}\nIntake voice: clear and workflow-focused.`;
 
 // ---------- VantaSignal schema ----------------------------------------------
