@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Loader2, MapPin, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -18,11 +18,14 @@ import { cn } from "@/lib/utils";
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
 function freshLabel(generated: string | null): string {
-  if (!generated) return "no scan yet";
+  if (!generated) return "never scanned";
   const age = Date.now() - new Date(generated).getTime();
-  if (age < FRESH_MS) return "fresh";
-  if (age < AGING_MS) return "aging";
-  return "stale";
+  const hours = age / (60 * 60 * 1000);
+  if (hours < 1) return "just scanned";
+  if (age < FRESH_MS) return `scanned ${Math.round(hours)}h ago`;
+  const days = Math.round(age / (24 * 60 * 60 * 1000));
+  if (age < AGING_MS) return `${days}d old — still useful`;
+  return `${days}d old — time for a refresh`;
 }
 
 export function AwarenessSurface() {
@@ -35,6 +38,7 @@ export function AwarenessSurface() {
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
+  const [recentering, setRecentering] = useState(false);
 
   const loadList = async () => {
     const { data } = await supabase
