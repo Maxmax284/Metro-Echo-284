@@ -432,7 +432,22 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   strokeDasharray="1 1.2"
                 />
               )}
-              <title>{p.label}{p.pinned ? " · pinned" : ""}{isBriefMatch ? " · active layer" : ""}</title>
+              <title>{(() => {
+                const parts: string[] = [p.label];
+                if (p.key.startsWith("brief:")) {
+                  const sec = p.key.slice(6);
+                  const b = latestBySection[sec];
+                  if (b?.confidence) parts.push(`${b.confidence} confidence`);
+                  const summary = (b?.signal as any)?.short_summary ?? b?.content;
+                  if (summary) parts.push(String(summary).split("\n")[0].slice(0, 120));
+                } else if (p.key.startsWith("src:")) {
+                  parts.push(`${TIER_META[tierFor(p.label)].label} source`);
+                }
+                if (p.pinned) parts.push("pinned");
+                if (isBriefMatch) parts.push("active layer");
+                if (dim) parts.push("filtered out");
+                return parts.join(" · ");
+              })()}</title>
             </g>
           );
         })}
