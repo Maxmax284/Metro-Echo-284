@@ -155,10 +155,12 @@ export function AwarenessSurface() {
         </p>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24 space-y-4">
-        {/* Place strip — answers "where am I, how sure, how fresh" */}
+      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-36 md:pb-24 safe-bottom space-y-4">
+        {/* Place strip — sticky on mobile so Where/Tier/Confidence/Source stays visible. */}
         {place && (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-[12px]">
+          <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-[12px]">
+
             <span className="inline-flex items-center gap-1 text-foreground/90">
               <MapPin className="h-3.5 w-3.5 text-primary/80" />
               <span className="font-medium">{place.label}</span>
