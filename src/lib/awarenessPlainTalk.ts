@@ -165,28 +165,61 @@ export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boo
 }
 
 /** L6 — Tier-aware broader-context guidance per layer. */
-const BROADER_CONTEXT: Record<string, (scope: string) => { summary: string; why: string; next: string }> = {
-  transport:     (s) => ({ summary: `Using broader ${s} context for transport — useful but not street-level.`, why: "Exact transport options change neighborhood by neighborhood.", next: "Confirm your spot for sharper info." }),
-  infrastructure:(s) => ({ summary: `Showing ${s}-wide infrastructure context.`, why: "Power, water, and services vary block by block.", next: "Confirm the place to sharpen this read." }),
-  payments:      (s) => ({ summary: `Payment norms across ${s} — confirm spot for shop-level detail.`, why: "Card/cash/QR varies by neighborhood and vendor.", next: "Pin a specific place when you need to pay." }),
-  etiquette:     (s) => ({ summary: `General etiquette for ${s}.`, why: "Customs hold at the country/region level — useful baseline.", next: "Sharpen the place for neighborhood nuances." }),
-  hazards:       (s) => ({ summary: `Broad hazard read for ${s}.`, why: "Big-picture risks (weather, region-wide alerts) still apply.", next: "Confirm spot for street-level hazards." }),
-  scams:         (s) => ({ summary: `Known scam patterns across ${s}.`, why: "Some scams are regional, not neighborhood-specific.", next: "Confirm the spot for hyper-local warnings." }),
-  connectivity:  (s) => ({ summary: `${s}-wide connectivity outlook.`, why: "Carriers/eSIM coverage usually consistent at country level.", next: "Confirm spot for venue Wi-Fi specifics." }),
-  timing:        (s) => ({ summary: `General timing patterns for ${s}.`, why: "Holidays, prayer/siesta, rush hours hold at the region level.", next: "Confirm spot for venue hours." }),
+const BROADER_CONTEXT: Record<string, (scope: string, compact: boolean) => { summary: string; why: string; next: string }> = {
+  transport:     (s, c) => c
+    ? ({ summary: `Broader ${s} transport context — not street-level.`, why: "Exact options vary by block.", next: "Confirm spot for sharper info." })
+    : ({ summary: `Using broader ${s} context for transport — useful but not street-level.`, why: "Exact transport options change neighborhood by neighborhood.", next: "Confirm your spot for sharper info." }),
+  infrastructure:(s, c) => c
+    ? ({ summary: `${s}-wide infrastructure read.`, why: "Power/water vary block by block.", next: "Confirm the place to sharpen." })
+    : ({ summary: `Showing ${s}-wide infrastructure context.`, why: "Power, water, and services vary block by block.", next: "Confirm the place to sharpen this read." }),
+  payments:      (s, c) => c
+    ? ({ summary: `Payment norms across ${s}.`, why: "Card/cash/QR varies by vendor.", next: "Pin a place for shop-level info." })
+    : ({ summary: `Payment norms across ${s} — confirm spot for shop-level detail.`, why: "Card/cash/QR varies by neighborhood and vendor.", next: "Pin a specific place when you need to pay." }),
+  etiquette:     (s, c) => c
+    ? ({ summary: `General etiquette for ${s}.`, why: "Customs hold at country level.", next: "Sharpen place for nuances." })
+    : ({ summary: `General etiquette for ${s}.`, why: "Customs hold at the country/region level — useful baseline.", next: "Sharpen the place for neighborhood nuances." }),
+  hazards:       (s, c) => c
+    ? ({ summary: `Broad hazard read for ${s}.`, why: "Big-picture risks still apply.", next: "Confirm spot for street-level." })
+    : ({ summary: `Broad hazard read for ${s}.`, why: "Big-picture risks (weather, region-wide alerts) still apply.", next: "Confirm spot for street-level hazards." }),
+  scams:         (s, c) => c
+    ? ({ summary: `Scam patterns across ${s}.`, why: "Some scams are regional.", next: "Confirm spot for hyper-local warnings." })
+    : ({ summary: `Known scam patterns across ${s}.`, why: "Some scams are regional, not neighborhood-specific.", next: "Confirm the spot for hyper-local warnings." }),
+  connectivity:  (s, c) => c
+    ? ({ summary: `${s}-wide connectivity outlook.`, why: "Coverage is usually country-wide.", next: "Confirm spot for Wi-Fi info." })
+    : ({ summary: `${s}-wide connectivity outlook.`, why: "Carriers/eSIM coverage usually consistent at country level.", next: "Confirm spot for venue Wi-Fi specifics." }),
+  timing:        (s, c) => c
+    ? ({ summary: `General timing patterns for ${s}.`, why: "Holidays/rush hold at region level.", next: "Confirm spot for venue hours." })
+    : ({ summary: `General timing patterns for ${s}.`, why: "Holidays, prayer/siesta, rush hours hold at the region level.", next: "Confirm spot for venue hours." }),
 };
 
 /** Build a broader-context signal payload when tier is city/country/area but not exact. */
-export function broaderContextCopy(section: string, tier: TierClassification): { title: string; summary: string; why: string; next: string } | null {
+export function broaderContextCopy(section: string, tier: TierClassification, opts: { compact?: boolean } = {}): { title: string; summary: string; why: string; next: string } | null {
   if (tier.tier === "exact" || tier.tier === "saved") return null;
   if (tier.tier === "unknown") return null;
   const scope = tier.city ?? tier.region ?? tier.country ?? "this area";
   const fn = BROADER_CONTEXT[section] ?? BROADER_CONTEXT.transport;
-  const copy = fn(scope);
+  const copy = fn(scope, !!opts.compact);
   return {
-    title: `${section.charAt(0).toUpperCase() + section.slice(1)} — broader ${scope} context`,
+    title: opts.compact ? `${section.charAt(0).toUpperCase() + section.slice(1)} · ${scope}` : `${section.charAt(0).toUpperCase() + section.slice(1)} — broader ${scope} context`,
     ...copy,
   };
+}
+
+/** Terrain mode label for human-readable helper text. */
+export type TerrainMode = "water" | "urban" | "region" | "unknown";
+export function terrainModeFor(place: AwarenessPlace | null): TerrainMode {
+  if (!place) return "unknown";
+  if (!place.country) return "water";
+  if (place.region) return "urban";
+  return "region";
+}
+export function terrainModeCaption(mode: TerrainMode, place: AwarenessPlace | null, compact = false): string {
+  switch (mode) {
+    case "water":   return compact ? "Looks offshore — terrain unclear." : "This looks offshore or unmapped. Terrain context isn't reliable yet — confirm the place.";
+    case "urban":   return compact ? `Urban backdrop · ${place?.region ?? "region"}.` : `Urban/region backdrop for ${place?.region ?? "this region"}, ${place?.country ?? ""}. Pings dim so the overlay reads.`;
+    case "region":  return compact ? `Country read only · ${place?.country ?? ""}.` : `Country-level read only (${place?.country ?? "unknown"}). Confirm a region for sharper terrain context.`;
+    case "unknown": return compact ? "No place yet." : "Capture a place to enable terrain context.";
+  }
 }
 
 function proseSoundsVague(prose: string): boolean {
