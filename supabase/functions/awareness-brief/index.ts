@@ -46,27 +46,84 @@ const SECTION_HINT: Record<typeof SECTION_VALUES[number], string> = {
   timing:        "Time-of-day or seasonal patterns that affect operations — rush hour, siesta, monsoon, etc.",
 };
 
-function buildPrompt(section: string, place: { label: string; geo: unknown; country: string | null; region: string | null }) {
-  const geo = place.geo as { lat?: number; lon?: number; acc?: number } | null;
-  const geoStr = geo?.lat != null && geo?.lon != null
-    ? `${geo.lat.toFixed(4)}, ${geo.lon.toFixed(4)}${geo.acc != null ? ` (±${Math.round(geo.acc)}m)` : ""}`
+// Server-side mirror of classifyTier (kept tiny, no shared module yet).
+type Tier = "exact" | "saved" | "area" | "city" | "country" | "unknown";
+function classifyTierServer(p: { label?: string; geo: any; country: string | null; region: string | null }): Tier {
+  const geo = (p.geo ?? {}) as any;
+  const city = geo?.city ?? null;
+  const acc = Number.isFinite(geo?.acc) ? Number(geo.acc) : null;
+  if (!p.country) return "unknown";
+  if (!city && !p.region) return "country";
+  if (!city) return "city";
+  if (acc !== null && acc <= 150) return "exact";
+  if (!acc && p.label) return "saved";
+  return "area";
+}
+
+type Evidence = {
+  tier: Tier;
+  scope: string;
+  place: { label: string; country: string | null; region: string | null; city: string | null };
+  geo: { lat: number | null; lon: number | null; acc_m: number | null };
+  weather: any;
+  local_signals: any[];
+  community: any[];
+  snapshot_summary: string | null;
+  sources_available: string[];
+  source_states: Record<string, "used" | "cached" | "off" | "not_called" | "failed">;
+  snapshot_age_min: number | null;
+};
+
+function buildPrompt(section: string, ev: Evidence) {
+  const geoStr = ev.geo.lat != null && ev.geo.lon != null
+    ? `${ev.geo.lat.toFixed(4)}, ${ev.geo.lon.toFixed(4)}${ev.geo.acc_m != null ? ` (±${Math.round(ev.geo.acc_m)}m)` : ""}`
     : "unknown";
-  return `Place: ${place.label}
+  const weatherStr = ev.weather
+    ? `${ev.weather.tempC ?? "?"}°C ${ev.weather.condition ?? ""}`.trim()
+    : "(none collected)";
+  const localStr = ev.local_signals.length
+    ? ev.local_signals.slice(0, 5).map((s: any) => `- ${s.title}${s.snippet ? `: ${s.snippet}` : ""}`).join("\n")
+    : "(none)";
+  const communityStr = ev.community.length
+    ? ev.community.slice(0, 5).map((c: any) => `- r/${c.subreddit ?? "?"}: ${c.title}${c.snippet ? ` — ${c.snippet}` : ""}`).join("\n")
+    : "(none)";
+  const stateStr = Object.entries(ev.source_states).map(([k, v]) => `${k}=${v}`).join(", ");
+
+  return `You are summarizing real evidence. Do not invent facts. If a source is missing, say so honestly.
+
+LOCATION TIER: ${ev.tier} (scope: "${ev.scope}")
+Place: ${ev.place.label}
+Country: ${ev.place.country ?? "unknown"} | Region: ${ev.place.region ?? "unknown"} | City: ${ev.place.city ?? "unknown"}
 Geo: ${geoStr}
-Country: ${place.country ?? "unknown"}
-Region: ${place.region ?? "unknown"}
-Section: ${section}
+Snapshot age: ${ev.snapshot_age_min == null ? "no snapshot yet" : `${ev.snapshot_age_min} min`}
+Source states: ${stateStr || "(none)"}
+
+EVIDENCE BUNDLE — section "${section}":
 Section focus: ${SECTION_HINT[section as keyof typeof SECTION_HINT] ?? section}
 
-Return a single VantaSignal JSON object for this section. Rules:
+Weather: ${weatherStr}
+
+Local web/Places results:
+${localStr}
+
+Community chatter (Reddit — unverified, treat as street-signal not truth):
+${communityStr}
+
+Prior snapshot summary: ${ev.snapshot_summary ? ev.snapshot_summary.slice(0, 600) : "(none)"}
+
+RULES:
+- Use ONLY the evidence above. Never claim a source was checked unless it appears here.
+- If tier is "country" or "city" (not exact), say you're using broader area context and explain the limit in one short clause.
+- If tier is "unknown", set requires_confirmation true and ask user to confirm a place.
+- If no external sources fired (all "off"/"not_called"), say so plainly in short_summary — do not fabricate local detail.
+- Tone: human, warm, direct, like a friend giving practical advice. No corporate/report voice. No "geospatial specificity", no "significantly hampered", no "infrastructure effectively zero".
 - signal_type must be "${section}".
-- short_summary is one or two plain-English sentences. No markdown, no bullets, no asterisks.
-- If location data is weak (no country/region, or coordinates look offshore/imprecise), set confidence to "low", set requires_confirmation true, and explain in confirmation_reason. Do not invent local detail.
-- source_labels should include "gemini" and "internal" at minimum. Add "memory" if you used prior briefings.
-- available_routes: include "refresh_signal" and "ask_vanta" by default; add "send_to_sherlock" when the topic deserves investigation, "create_commitment" when a follow-up action is implied.
+- short_summary: one or two plain-English sentences. No markdown.
+- source_labels: include only sources actually present above. Always add "internal" and "gemini".
+- available_routes: include "refresh_signal" and "ask_vanta". Add "send_to_sherlock" or "create_commitment" when warranted.
 - why_it_matters: one sentence on operational impact.
-- what_to_do_next: one concrete next step the user can take.
-- long_detail: optional 2–4 sentence expansion. Still plain English, no markdown.`;
+- what_to_do_next: one concrete step.
+- long_detail: optional 2-4 plain sentences expanding the summary.`;
 }
 
 async function callGemini(apiKey: string, system: string, user: string): Promise<unknown> {
@@ -137,10 +194,63 @@ Deno.serve(async (req: Request) => {
         ).join("\n")
       : "";
 
+    // Build evidence bundle from latest snapshot (if any). Never trigger paid calls here.
+    const { data: snap } = await supabase
+      .from("awareness_snapshots")
+      .select("compact, full_data, sources_used, generated_at, expires_at")
+      .eq("place_id", place_id)
+      .order("generated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const tier = classifyTierServer(place as any);
+    const geoAny = (place.geo ?? {}) as any;
+    const scope =
+      tier === "exact" || tier === "saved" ? (place.label || "this spot")
+      : tier === "area" || tier === "city" ? (geoAny.city ?? place.region ?? place.country ?? "this area")
+      : tier === "country" ? (place.country ?? "this country")
+      : "unknown";
+
+    const full = (snap?.full_data ?? {}) as any;
+    const sourcesUsed: string[] = (snap?.sources_used ?? []) as string[];
+    const has = (k: string) => sourcesUsed.some((s) => s.toLowerCase().includes(k));
+    const source_states: Evidence["source_states"] = {
+      weather: has("open-meteo") ? (has("cached") && has("open-meteo:cached") ? "cached" : "used") : "not_called",
+      serpapi: has("serpapi") ? (has("serpapi:cached") ? "cached" : "used") : (Deno.env.get("SERPAPI_KEY") ? "not_called" : "off"),
+      community: has("reddit") ? (has("cached") ? "cached" : "used") : "not_called",
+      gemini: has("gemini") ? "used" : "not_called",
+    };
+    const snapshotAgeMin = snap?.generated_at
+      ? Math.round((Date.now() - new Date(snap.generated_at).getTime()) / 60000)
+      : null;
+
+    const evidence: Evidence = {
+      tier,
+      scope,
+      place: {
+        label: place.label,
+        country: place.country,
+        region: place.region,
+        city: geoAny.city ?? null,
+      },
+      geo: {
+        lat: typeof geoAny.lat === "number" ? geoAny.lat : null,
+        lon: typeof geoAny.lon === "number" ? geoAny.lon : null,
+        acc_m: typeof geoAny.acc === "number" ? geoAny.acc : null,
+      },
+      weather: full.weather ?? null,
+      local_signals: Array.isArray(full.local_signals) ? full.local_signals : [],
+      community: Array.isArray(full.community) ? full.community : [],
+      snapshot_summary: typeof full.summary === "string" ? full.summary : null,
+      sources_available: sourcesUsed,
+      source_states,
+      snapshot_age_min: snapshotAgeMin,
+    };
+
     let signal: VantaSignal;
     let usedFallback = false;
     try {
-      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, place) + correctionBlock);
+      const raw = await callGemini(LOVABLE_API_KEY, AWARENESS_VOICE, buildPrompt(section, evidence) + correctionBlock);
       const validated = VantaSignalSchema.safeParse(raw);
       if (validated.success && validated.data.signal_type === section) {
         signal = validated.data;

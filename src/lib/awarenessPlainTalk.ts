@@ -107,6 +107,63 @@ export function tierIsUseless(tier: LocationTier): boolean {
   return tier === "unknown";
 }
 
+/** L5 — tier-aware Scan button label + helper copy + source preview. */
+export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boolean }): {
+  buttonLabel: string;
+  helper: string;
+  sourceImpact: string;
+  disabled: boolean;
+} {
+  const serp = !!opts.serpEnabled;
+  const sources = (extra: string[] = []) => {
+    const list = ["weather", ...(serp ? ["external search"] : []), ...extra, "Gemini summary"];
+    return `Uses: ${list.join(", ")}.`;
+  };
+  switch (tier.tier) {
+    case "exact":
+      return {
+        buttonLabel: "Scan this spot",
+        helper: "Use your current spot and nearby sources.",
+        sourceImpact: sources(serp ? ["Google Maps nearby"] : []),
+        disabled: false,
+      };
+    case "saved":
+      return {
+        buttonLabel: "Scan saved place",
+        helper: "Use your confirmed place instead of the shaky GPS pin.",
+        sourceImpact: sources(serp ? ["Google Maps nearby"] : []),
+        disabled: false,
+      };
+    case "area":
+    case "city": {
+      const scope = tier.city ?? tier.region ?? "area";
+      return {
+        buttonLabel: `Scan ${scope} context`,
+        helper: "The exact pin looks shaky, so I'll use broader local context.",
+        sourceImpact: sources(),
+        disabled: false,
+      };
+    }
+    case "country": {
+      const scope = tier.country ?? "country";
+      return {
+        buttonLabel: `Scan ${scope} context`,
+        helper: "I'll use country-level guidance only. Confirm a place for sharper results.",
+        sourceImpact: sources(),
+        disabled: false,
+      };
+    }
+    case "unknown":
+    default:
+      return {
+        buttonLabel: "Confirm place first",
+        helper: "I need a place before pulling live local sources.",
+        sourceImpact: "Won't run paid search until a place is confirmed.",
+        disabled: true,
+      };
+  }
+}
+
 /** L6 — Tier-aware broader-context guidance per layer. */
 const BROADER_CONTEXT: Record<string, (scope: string) => { summary: string; why: string; next: string }> = {
   transport:     (s) => ({ summary: `Using broader ${s} context for transport — useful but not street-level.`, why: "Exact transport options change neighborhood by neighborhood.", next: "Confirm your spot for sharper info." }),

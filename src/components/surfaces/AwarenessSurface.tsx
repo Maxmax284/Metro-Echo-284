@@ -13,7 +13,8 @@ import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
-import { normalizeAwarenessSignal, classifyTier, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { normalizeAwarenessSignal, classifyTier, tierScanCopy, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +33,8 @@ function freshLabel(generated: string | null): string {
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const { place, overall, refresh, snapshot, latestBySection, generate, generating } = useAwareness();
+  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating } = useAwareness();
+  const { controls } = useSystemControls();
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   const [showPlaces, setShowPlaces] = useState(false);
@@ -208,6 +210,30 @@ export function AwarenessSurface() {
             </div>
           </div>
         )}
+
+        {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
+        {place && (() => {
+          const tier = classifyTier(place);
+          const scan = tierScanCopy(tier, { serpEnabled: controls?.serpapi_enabled });
+          return (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/30 px-3 py-2 text-[12px]">
+              <Button
+                size="sm"
+                className="h-8 gap-1 text-[11.5px]"
+                disabled={scan.disabled || snapshotLoading}
+                onClick={() => refreshSnapshot(true)}
+                title={scan.helper}
+              >
+                {snapshotLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {snapshotLoading ? "Scanning…" : scan.buttonLabel}
+              </Button>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="text-[11.5px] text-foreground/85">{scan.helper}</span>
+                <span className="text-[10.5px] text-muted-foreground">{scan.sourceImpact}</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* HUD: radar hero — receives active layer for ping filtering */}
         <AwarenessHUD variant="hero" activeLayer={activeLayer} />
