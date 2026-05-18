@@ -194,7 +194,11 @@ export function MiniRadarStrip({ className }: { className?: string }) {
               return (
                 <span
                   key={t}
-                  title={off ? `${meta.label} paused` : `${items.length} ${meta.label.toLowerCase()} source(s)`}
+                  title={
+                    off
+                      ? "Community signal is off, so I'm not checking Reddit/forums/local chatter."
+                      : `${items.length} ${meta.label.toLowerCase()} source(s) feeding this scan`
+                  }
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
                     off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,
