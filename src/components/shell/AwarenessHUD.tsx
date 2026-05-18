@@ -150,6 +150,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
         type="button"
         onClick={toggleSerp}
         disabled={serpBusy}
+        title={on ? "External search is on." : "External search is off — I'm using saved/cached info only."}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1 transition-colors disabled:opacity-60",
           on
@@ -158,7 +159,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
         )}
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary" : "bg-amber-400")} />
-        SerpApi: {on ? "on" : "off"}
+        Search: {on ? "on" : "off"}
       </button>
     );
   };
