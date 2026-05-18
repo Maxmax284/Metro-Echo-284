@@ -301,8 +301,9 @@ function freshness(generatedAt: string | null | undefined): VantaSignal["freshne
 export function normalizeAwarenessSignal(
   section: string,
   briefing: AwarenessBriefing | undefined,
-  ctx: PlainTalkCtx,
+  ctx: PlainTalkCtx & { compact?: boolean },
 ): VantaSignal {
+  const compact = !!ctx.compact;
   const vague = isLocationVague(ctx.place) || isOffshoreGuess(ctx.place);
   const rawContent = briefing?.content ?? "";
   const proseVague = !!rawContent && proseSoundsVague(rawContent);
