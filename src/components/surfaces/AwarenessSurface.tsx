@@ -3,13 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, MapPin } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, MapPin, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { LayerChips } from "@/components/awareness/LayerChips";
 import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
+import { SignalCard } from "@/components/awareness/SignalCard";
+import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { cn } from "@/lib/utils";
 
