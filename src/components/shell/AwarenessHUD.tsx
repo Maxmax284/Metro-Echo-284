@@ -415,6 +415,17 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
             >
               {/* invisible hit target — bigger than the dot */}
               <circle cx={p.cx} cy={p.cy} r={5} fill="transparent" />
+              {/* keyboard focus ring (hidden until :focus-visible on parent <g>) */}
+              <circle
+                className="focus-ring pointer-events-none opacity-0 transition-opacity"
+                cx={p.cx}
+                cy={p.cy}
+                r={r + 3}
+                fill="none"
+                stroke="hsl(var(--ring, var(--primary)))"
+                strokeWidth={0.8}
+                strokeDasharray="1.2 1"
+              />
               <circle
                 cx={p.cx}
                 cy={p.cy}
@@ -455,22 +466,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   strokeDasharray="1 1.2"
                 />
               )}
-              <title>{(() => {
-                const parts: string[] = [p.label];
-                if (p.key.startsWith("brief:")) {
-                  const sec = p.key.slice(6);
-                  const b = latestBySection[sec];
-                  if (b?.confidence) parts.push(`${b.confidence} confidence`);
-                  const summary = (b?.signal as any)?.short_summary ?? b?.content;
-                  if (summary) parts.push(String(summary).split("\n")[0].slice(0, 120));
-                } else if (p.key.startsWith("src:")) {
-                  parts.push(`${TIER_META[tierFor(p.label)].label} source`);
-                }
-                if (p.pinned) parts.push("pinned");
-                if (isBriefMatch) parts.push("active layer");
-                if (dim) parts.push("filtered out");
-                return parts.join(" · ");
-              })()}</title>
+              <title>{fullLabel}</title>
             </g>
           );
         })}
