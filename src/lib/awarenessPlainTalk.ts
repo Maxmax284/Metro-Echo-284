@@ -324,7 +324,7 @@ export function normalizeAwarenessSignal(
   //   - Only fall back to hard "confirm location" when tier is genuinely unknown.
   if (briefing && (vague || proseVague)) {
     const tier = classifyTier(ctx.place);
-    const broader = broaderContextCopy(section, tier);
+    const broader = broaderContextCopy(section, tier, { compact });
     if (broader) {
       return coerceSignal({
         signal_type: section,
