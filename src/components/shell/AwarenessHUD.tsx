@@ -494,6 +494,14 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                     <span className="inline-block h-2 w-2 rounded-full bg-accent ring-2 ring-accent/40" />
                     <span><span className="text-foreground/90">Pinned</span> — kept on the radar even when its source goes quiet.</span>
                   </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary opacity-30" />
+                    <span><span className="text-foreground/90">Dim</span> — filtered out by the active layer or source tier.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-[3px] inline-block h-1.5 w-3 rounded-sm bg-accent/40" />
+                    <span><span className="text-foreground/90">Terrain overlay</span> — backdrop pattern reflects the place ({terrainMode}).</span>
+                  </li>
                 </ul>
                 <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">
                   Tap a dot to see what it is. Dot position is visual only — it doesn't represent compass direction.
