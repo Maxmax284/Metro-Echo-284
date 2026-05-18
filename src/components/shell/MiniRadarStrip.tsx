@@ -70,7 +70,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         type="button"
         onClick={toggleSerp}
         disabled={serpBusy}
-        title={on ? "SerpApi on" : "SerpApi paused"}
+        title={on ? "External search is on." : "External search is off — I'm using saved/cached info only."}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] uppercase tracking-wider ring-1 transition-colors disabled:opacity-60",
           on
@@ -79,7 +79,7 @@ export function MiniRadarStrip({ className }: { className?: string }) {
         )}
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary" : "bg-amber-400")} />
-        SerpApi: {on ? "on" : "off"}
+        Search: {on ? "on" : "off"}
       </button>
     );
   };
@@ -138,10 +138,10 @@ export function MiniRadarStrip({ className }: { className?: string }) {
               className="h-7 gap-1 text-[11px]"
               onClick={() => refreshSnapshot(true)}
               disabled={snapshotLoading}
-              title="Refresh snapshot (guarded)"
+              title={snapshot ? "Refresh signal (guarded, cached when possible)" : "Scan this area now (guarded)"}
             >
               {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
-              {snapshot ? "Refresh" : "Generate"}
+              {snapshot ? "Refresh" : "Scan area"}
             </Button>
           </div>
         </div>
@@ -174,7 +174,13 @@ export function MiniRadarStrip({ className }: { className?: string }) {
           <p className="mt-2 text-[12.5px] leading-relaxed text-foreground/85">{summary}</p>
         ) : snapshot ? null : (
           <p className="mt-2 text-[12px] text-muted-foreground">
-            No snapshot yet. Hit Generate to assemble one.
+            No scan yet. Tap <span className="font-medium text-foreground/80">Scan area</span> when you want one.
+          </p>
+        )}
+
+        {streetDisabled && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            External search is off — I'm using saved/cached info only.
           </p>
         )}
 
@@ -188,7 +194,11 @@ export function MiniRadarStrip({ className }: { className?: string }) {
               return (
                 <span
                   key={t}
-                  title={off ? `${meta.label} paused` : `${items.length} ${meta.label.toLowerCase()} source(s)`}
+                  title={
+                    off
+                      ? "Community signal is off, so I'm not checking Reddit/forums/local chatter."
+                      : `${items.length} ${meta.label.toLowerCase()} source(s) feeding this scan`
+                  }
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
                     off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70" : meta.tone,

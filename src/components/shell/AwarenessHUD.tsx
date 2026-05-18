@@ -3,7 +3,8 @@ import { useAwareness, AWARENESS_SECTIONS } from "@/providers/AwarenessProvider"
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import { Cloud, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Cloud, HelpCircle, Loader2, Maximize2, MapPin, Pin, PinOff, RefreshCcw, Radar, Thermometer, Sparkles, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -150,6 +151,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
         type="button"
         onClick={toggleSerp}
         disabled={serpBusy}
+        title={on ? "External search is on." : "External search is off — I'm using saved/cached info only."}
         className={cn(
           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1 transition-colors disabled:opacity-60",
           on
@@ -158,7 +160,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
         )}
       >
         <span className={cn("h-1.5 w-1.5 rounded-full", on ? "bg-primary" : "bg-amber-400")} />
-        SerpApi: {on ? "on" : "off"}
+        Search: {on ? "on" : "off"}
       </button>
     );
   };
@@ -370,6 +372,39 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
           </div>
           <div className="flex items-center gap-1">
             <SerpPill />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  title="Radar key — what the dots mean"
+                  aria-label="Radar key"
+                >
+                  <HelpCircle className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-3 text-[11.5px]">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Radar key</div>
+                <ul className="space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span><span className="text-foreground/90">Source ping</span> — a feed (weather, web, AI) used in this scan.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+                    <span><span className="text-foreground/90">Briefing ping</span> — a layer with a written read. Bigger = stronger confidence.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-accent ring-2 ring-accent/40" />
+                    <span><span className="text-foreground/90">Pinned</span> — kept on the radar even when its source goes quiet.</span>
+                  </li>
+                </ul>
+                <p className="mt-2 text-[10.5px] leading-snug text-muted-foreground">
+                  Tap a dot to see what it is. Dot position is visual only — it doesn't represent compass direction.
+                </p>
+              </PopoverContent>
+            </Popover>
             <Button
               size="sm"
               variant="ghost"
@@ -387,8 +422,8 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
                 className="h-7 w-7 p-0"
                 onClick={() => refreshSnapshot(true)}
                 disabled={snapshotLoading}
-                title={snapshot ? "Refresh snapshot (guarded)" : "Generate snapshot"}
-                aria-label="Refresh snapshot"
+                title={snapshot ? "Refresh signal (guarded)" : "Scan this area now (guarded)"}
+                aria-label={snapshot ? "Refresh signal" : "Scan area"}
               >
                 {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
               </Button>
@@ -399,10 +434,10 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
                 className="h-7 gap-1 text-[11px]"
                 onClick={() => refreshSnapshot(true)}
                 disabled={snapshotLoading}
-                title="Refresh snapshot (guarded)"
+                title={snapshot ? "Refresh signal (guarded)" : "Scan this area now (guarded)"}
               >
                 {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCcw className="h-3 w-3" />}
-                {snapshot ? "Refresh" : "Generate"}
+                {snapshot ? "Refresh" : "Scan area"}
               </Button>
             )}
           </div>
@@ -440,7 +475,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               </ul>
             ) : !snapshot ? (
               <p className="mt-2 text-[11.5px] text-muted-foreground">
-                No snapshot yet. Hit Generate to assemble one.
+                No scan yet. Tap <span className="font-medium text-foreground/80">Scan area</span> when you want one.
               </p>
             ) : (
               <p className="mt-2 inline-flex items-center gap-1 text-[11.5px] text-muted-foreground">
@@ -534,8 +569,11 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
             </DrawerTitle>
           </DrawerHeader>
           <div className="scrollbar-thin flex-1 overflow-y-auto px-4 py-4 space-y-4 text-[13px]">
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-1.5">
               <RadarCanvas size={220} />
+              <p className="text-center text-[10.5px] leading-snug text-muted-foreground">
+                Dot position is visual only — it doesn't represent compass direction. Tap a dot to see what it is.
+              </p>
             </div>
 
             {locationWarning && (
@@ -594,11 +632,25 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
                         onRoute={onSignalRoute}
                       />
                     </div>
-                  ) : (
-                    <p className="mt-1.5 text-[12px] text-muted-foreground">
-                      Source feeding the current snapshot. {generated ? `Last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}.` : ""}
-                    </p>
-                  )}
+                  ) : (() => {
+                    const tier = tierFor(ping.label);
+                    const tierLine: Record<SourceTier, string> = {
+                      official: "Official feed — weather, calendars, or government data. High trust.",
+                      local: "Local feed — maps, nearby places, or transit. Geographic context.",
+                      community: "Community signal — Reddit, forums, local chatter. Use with judgement.",
+                      web: "Web search — broad lookups and news. Verify before acting.",
+                      ai: "AI synthesis layer — summarising the feeds above, not a source of truth.",
+                    };
+                    return (
+                      <div className="mt-1.5 space-y-1.5">
+                        <p className="text-[12px] text-foreground/85">{tierLine[tier]}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Feeding the current scan
+                          {generated ? ` · last sweep ${formatDistanceToNow(new Date(generated), { addSuffix: true })}` : ""}.
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
@@ -713,7 +765,7 @@ export function AwarenessHUD({ className, variant = "compact" }: { className?: s
               disabled={snapshotLoading}
             >
               {snapshotLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCcw className="h-3 w-3 mr-1" />}
-              Refresh snapshot
+              {snapshot ? "Refresh signal" : "Scan area"}
             </Button>
           </div>
         </DrawerContent>
