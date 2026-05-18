@@ -65,7 +65,7 @@ function IndexInner() {
           .select("id")
           .single();
         if (data) generateEmbedding("note", data.id);
-        toast.success("Captured to memory");
+        toast.success(vantaSay.capturedToMemory());
       } else if (kind === "stage_action") {
         await supabase.from("actions").insert({
           user_id: user.id,
@@ -75,7 +75,7 @@ function IndexInner() {
           status: "staged",
           source: "conversation",
         });
-        toast.success("Action staged for review");
+        toast.success(vantaSay.actionStaged());
       } else if (kind === "add_commitment") {
         const remindAt = args.due_at
           ? new Date(new Date(args.due_at).getTime() - 24 * 60 * 60 * 1000).toISOString()
@@ -91,7 +91,7 @@ function IndexInner() {
           .select("id")
           .single();
         if (data) generateEmbedding("commitment", data.id);
-        toast.success("Commitment added");
+        toast.success(vantaSay.commitmentAdded());
       } else if (kind === "run_sherlock") {
         openSherlock({
           entity_type: "freeform",
@@ -127,10 +127,10 @@ function IndexInner() {
             metadata: { source: "awareness", confidence, place_id: place ? (data as any).place.id : null },
           });
         }
-        toast.success("Awareness answered", { description: place?.label ?? "no active place set" });
+        toast.success(vantaSay.awarenessAnswered(place?.label));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't apply intent");
+      toast.fromError(e);
     }
   };
 

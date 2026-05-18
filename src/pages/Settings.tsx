@@ -63,7 +63,7 @@ export default function Settings() {
 
   const emergencyDisable = async () => {
     await update({ external_apis_enabled: false, global_usage_mode: "lockdown" });
-    toast.success("Lockdown engaged. All external APIs disabled.");
+    toast.success(vantaSay.lockdown());
   };
 
   return (
@@ -138,11 +138,11 @@ export default function Settings() {
                   try {
                     await update({ [key]: v } as any);
                     if (key === "serpapi_enabled") {
-                      if (v) toast.success("SerpApi resumed");
-                      else toast("SerpApi paused", { description: "Search, news, and local lookups will be blocked." });
+                      if (v) toast.success(vantaSay.serpapiResumed());
+                      else toast(vantaSay.serpapiPaused());
                     }
                   } catch {
-                    if (key === "serpapi_enabled") toast.error("Couldn't update SerpApi");
+                    if (key === "serpapi_enabled") toast.error(vantaSay.couldntUpdate());
                   }
                 }}
               />

@@ -49,7 +49,7 @@ export function FileUploadCard() {
     setBusy(true);
     for (const f of list) {
       try {
-        if (f.size > MAX_BYTES) { toast.error(`${f.name} exceeds 20MB`); continue; }
+        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
         const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
         const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
         if (upErr) throw upErr;
@@ -71,9 +71,9 @@ export function FileUploadCard() {
           body: { ingested_file_id: rec.id },
         });
         if (fnErr) throw fnErr;
-        toast.success(`${f.name} ingested`);
+        toast.success(vantaSay.fileIngested(f.name));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Upload failed");
+        toast.fromError(e);
       }
     }
     setBusy(false);
@@ -183,7 +183,7 @@ export function FileUploadCard() {
                       .select("id, title, body")
                       .eq("id", r.note_id!)
                       .maybeSingle();
-                    if (!note) { toast.error("Note not found"); return; }
+                    if (!note) { toast.error(vantaSay.notFound("Note")); return; }
                     openSherlock({
                       entity_type: "file",
                       entity_id: note.id,

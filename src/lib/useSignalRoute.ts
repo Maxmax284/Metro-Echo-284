@@ -79,16 +79,16 @@ export function useSignalRoute(): SignalRouteHandler {
         (async () => {
           try {
             const { data: u } = await supabase.auth.getUser();
-            if (!u.user) { toast.error("Not signed in."); return; }
+            if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
             const { error } = await supabase.from("notes").insert({
               user_id: u.user.id,
               title,
               body,
             });
             if (error) throw error;
-            toast.success("Saved to memory.");
+            toast.success(vantaSay.noteSaved());
           } catch (e: any) {
-            toast.error("Couldn't save", { description: e?.message ?? "Try again." });
+            toast.error(vantaSay.couldntSave());
           }
         })();
         return;
@@ -98,15 +98,15 @@ export function useSignalRoute(): SignalRouteHandler {
         (async () => {
           try {
             const { data: u } = await supabase.auth.getUser();
-            if (!u.user) { toast.error("Not signed in."); return; }
+            if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
             const { error } = await supabase.from("commitments").insert({
               user_id: u.user.id,
               summary: signal.what_to_do_next || title,
             });
             if (error) throw error;
-            toast.success("Commitment staged.");
+            toast.success(vantaSay.actionStaged());
           } catch (e: any) {
-            toast.error("Couldn't stage commitment", { description: e?.message ?? "Try again." });
+            toast.error(vantaSay.couldntSave());
           }
         })();
         return;
@@ -117,7 +117,7 @@ export function useSignalRoute(): SignalRouteHandler {
         (async () => {
           try {
             const { data: u } = await supabase.auth.getUser();
-            if (!u.user) { toast.error("Not signed in."); return; }
+            if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
             const description = [
               signal.short_summary,
               signal.why_it_matters && `Why it matters: ${signal.why_it_matters}`,
@@ -133,9 +133,9 @@ export function useSignalRoute(): SignalRouteHandler {
               payload: { signal } as any,
             });
             if (error) throw error;
-            toast.success("Action drafted", { description: "Review in Actions to stage or approve." });
+            toast.success(vantaSay.actionDrafted());
           } catch (e: any) {
-            toast.error("Couldn't draft action", { description: e?.message ?? "Try again." });
+            toast.error(vantaSay.couldntSave());
           }
         })();
         return;
@@ -161,7 +161,7 @@ export function useSignalRoute(): SignalRouteHandler {
         (async () => {
           try {
             const { data: u } = await supabase.auth.getUser();
-            if (!u.user) { toast.error("Not signed in."); return; }
+            if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
             const { data: inserted, error } = await supabase.from("corrections").insert({
               user_id: u.user.id,
               surface: "awareness",
@@ -182,7 +182,7 @@ export function useSignalRoute(): SignalRouteHandler {
             });
             toast.success(cfg.toast);
           } catch (e: any) {
-            toast.error("Couldn't save correction", { description: e?.message ?? "Try again." });
+            toast.error(vantaSay.couldntSave());
           }
         })();
         return;
@@ -196,7 +196,7 @@ export function useSignalRoute(): SignalRouteHandler {
         (async () => {
           try {
             const { data: u } = await supabase.auth.getUser();
-            if (!u.user) { toast.error("Not signed in."); return; }
+            if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
             const { data: inserted, error } = await supabase.from("field_notes").insert({
               user_id: u.user.id,
               note_type: "custom",
@@ -215,9 +215,9 @@ export function useSignalRoute(): SignalRouteHandler {
               event: "field_note:created",
               payload: { location_label: title, summary: summary.trim(), geohash: geohashFromGeo(place?.geo) } as any,
             });
-            toast.success("Field note saved.");
+            toast.success(vantaSay.fieldNoteSaved());
           } catch (e: any) {
-            toast.error("Couldn't save field note", { description: e?.message ?? "Try again." });
+            toast.error(vantaSay.couldntSave());
           }
         })();
         return;

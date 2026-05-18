@@ -150,9 +150,9 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
     setSerpBusy(true);
     try {
       await update({ serpapi_enabled: next });
-      toast(next ? "SerpApi resumed" : "SerpApi paused");
+      toast(next ? vantaSay.serpapiResumed() : vantaSay.serpapiPaused());
     } catch {
-      toast.error("Couldn't update SerpApi");
+      toast.error(vantaSay.couldntUpdate());
     } finally {
       setSerpBusy(false);
     }
@@ -739,7 +739,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                       <button
                         onClick={() => {
                           togglePin(ping.key);
-                          toast(pinned.includes(ping.key) ? "Unpinned from radar" : "Pinned to radar");
+                          toast(pinned.includes(ping.key) ? vantaSay.unpinned() : vantaSay.pinned());
                         }}
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1 transition-colors",
