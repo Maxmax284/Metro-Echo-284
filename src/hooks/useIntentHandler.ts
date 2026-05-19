@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { formatInTimeZone } from "date-fns-tz";
 import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
