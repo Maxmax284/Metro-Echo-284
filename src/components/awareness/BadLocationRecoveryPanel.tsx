@@ -44,10 +44,31 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
+  const [nearby, setNearby] = useState<NearbyPlace[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const badness = classifyPlaceBadness(place);
   const lastGood = alternatives.find((p) => p.country);
+
+  // Auto-load nearby places suggestions whenever the active (bad) pin changes.
+  useEffect(() => {
+    const lat = (place?.geo as any)?.lat;
+    const lon = (place?.geo as any)?.lon;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) { setNearby([]); return; }
+    let cancelled = false;
+    setNearbyLoading(true);
+    supabase.functions
+      .invoke("awareness-nearby-places", { body: { lat, lon } })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data?.places) { setNearby([]); return; }
+        setNearby(data.places as NearbyPlace[]);
+      })
+      .catch(() => { if (!cancelled) setNearby([]); })
+      .finally(() => { if (!cancelled) setNearbyLoading(false); });
+    return () => { cancelled = true; };
+  }, [place?.id, (place?.geo as any)?.lat, (place?.geo as any)?.lon]);
 
   // Auto-refresh prompt: when the active place transitions from no-country
   // to a real country, offer a rescan. Detected via parent re-render of `place`.
