@@ -74,9 +74,9 @@ NUDGES = [  # title, body, hours_from_now
 ]
 
 FIELD_NOTES = [
-    ("printer_hours",  "Print shop near 7-Eleven closes ~5pm",       "Lamai"),
-    ("road_closure",   "Beach road floods 4-7pm after rain",          "Lamai"),
-    ("vendor_price",   "Vendor invoice #4421 priced 15% over quote",  "Lamai"),
+    ("timing",      "Print shop near 7-Eleven closes ~5pm",       "Lamai"),
+    ("hazard",      "Beach road floods 4-7pm after rain",          "Lamai"),
+    ("payments",    "Vendor invoice #4421 priced 15% over quote",  "Lamai"),
 ]
 
 FILES = [
