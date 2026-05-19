@@ -125,7 +125,7 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
       if (!fresh?.country) {
         toast.error(vantaSay.highAccuracyFailed());
       } else {
-        toast.success(vantaSay.geocodeOk([fresh.geo?.city, fresh.region, fresh.country].filter(Boolean).join(", ")));
+        toast.success(vantaSay.geocodeOk([((fresh.geo as any)?.city), fresh.region, fresh.country].filter(Boolean).join(", ")));
       }
     } catch (e: any) {
       if (e?.code === 1) toast.error(vantaSay.permissionLocation());
