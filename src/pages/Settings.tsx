@@ -76,7 +76,7 @@ export default function Settings() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">API Control Room</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Control Room</h1>
           <p className="text-xs text-muted-foreground">Owner-only. Rate limits, kill switches, usage logs.</p>
         </div>
         <Button
