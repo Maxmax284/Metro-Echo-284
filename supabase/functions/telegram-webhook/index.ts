@@ -145,6 +145,18 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
   if (!reply) reply = VANTA_PHRASES.gotIt();
 
+  // Stage 7 — audit expansion: when nothing routed, this is an ambiguous capture
+  // waiting for review in the Captures lane. Emit a distinct event so the Audit
+  // surface can show "front desk" activity, not just executed lifecycle.
+  if (!routedTo) {
+    await sb.from("audit_log").insert({
+      user_id: userId,
+      entity_type: "capture",
+      event: "capture.needs_review",
+      payload: { source: "telegram", text: text.slice(0, 200) },
+    });
+  }
+
   // persist into the user's most recent conversation for cross-surface continuity.
   // Stamp detected_type / routed_to / needs_review so the Capture Log + Captures lane
   // can render the front-desk chips uniformly across channels.
