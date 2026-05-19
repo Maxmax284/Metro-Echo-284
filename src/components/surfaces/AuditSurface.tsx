@@ -29,13 +29,25 @@ type ActionEvent = {
 };
 
 const QUICK_FILTERS = [
-  { id: "",            label: "All" },
-  { id: "capture",     label: "Captures" },
-  { id: "telegram",    label: "Telegram" },
-  { id: "action",      label: "Actions" },
-  { id: "commitment",  label: "Commitments" },
-  { id: "note",        label: "Notes" },
+  { id: "",              label: "All" },
+  { id: "capture",       label: "Captures" },
+  { id: "telegram",      label: "Telegram" },
+  { id: "action",        label: "Actions" },
+  { id: "commitment",    label: "Commitments" },
+  { id: "note",          label: "Notes" },
   { id: "ingested_file", label: "Files" },
+  { id: "schedule",      label: "Schedule" },
+  { id: "timezone",      label: "Timezone" },
+  { id: "reminder",      label: "Reminders" },
+];
+
+const EVENT_CLASSES: { id: string; label: string; match: (e: string) => boolean }[] = [
+  { id: "",         label: "Any event",  match: () => true },
+  { id: "routed",   label: "Routed",     match: (e) => e.includes("routed") },
+  { id: "created",  label: "Created",    match: (e) => /(created|added|insert)/.test(e) },
+  { id: "changed",  label: "Changed",    match: (e) => /(updated|change|approve|transition|snoozed|completed|dropped)/.test(e) },
+  { id: "query",    label: "Queries",    match: (e) => e.includes("query") },
+  { id: "failed",   label: "Failed",     match: (e) => /(fail|error|reject|retried)/.test(e) },
 ];
 
 function statusTone(status: string): DotTone {
