@@ -97,9 +97,15 @@ Deno.serve(async (req: Request) => {
     let telegramSent = 0;
     let telegramSkipped = 0;
     let telegramFailed = 0;
+    let pushSent = 0;
+    let pushSkipped = 0;
+    let pushFailed = 0;
 
-    for (const c of due ?? []) {
-      const lastMs = c.last_reminded_at ? new Date(c.last_reminded_at).getTime() : 0;
+    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+    const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
+    const pushConfigured = !!(vapidPublic && vapidPrivate && vapidSubject);
+
       if (lastMs && Date.now() - lastMs < TG_THROTTLE_MS) continue;
 
       const overdue = !!(c.due_at && new Date(c.due_at).getTime() < Date.now());
