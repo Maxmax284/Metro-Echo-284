@@ -54,6 +54,27 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
       await supabase.functions.invoke("awareness-geocode", { body: { place_id: placeId, force: true } });
     } catch {/* surfaced by feedback below */}
     await refresh();
+    // Auto-rescan if country resolved
+    const { data: fresh } = await supabase
+      .from("awareness_places")
+      .select("country")
+      .eq("id", placeId)
+      .maybeSingle();
+    if (fresh?.country) {
+      refreshSnapshot(true).catch(() => {});
+    }
+  };
+
+  const useLastGood = async () => {
+    if (!lastGood) return;
+    setBusy("lastgood");
+    try {
+      await setActivePlace(lastGood.id);
+      toast.success(vantaSay.switchedPlace(lastGood.label));
+      onDismiss?.();
+    } finally {
+      setBusy(null);
+    }
   };
 
   const quickRecenter = async () => {
