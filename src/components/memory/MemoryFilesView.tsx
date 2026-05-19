@@ -166,6 +166,13 @@ export function MemoryFilesView() {
       timezone: tz,
       remind_lead_minutes: Math.round((new Date(due).getTime() - new Date(remind).getTime()) / 60000),
     });
+    await supabase.from("audit_log").insert({
+      user_id: user.id,
+      entity_type: "commitment",
+      entity_id: data?.id,
+      event: "reminder.scheduled",
+      payload: { source: "file", file_id: f.id, due_at: due, remind_at: remind, timezone: tz },
+    });
     toast.success({ title: vantaSay.reminderSet(new Date(due).toLocaleString()) });
     setComposingFor(null);
     refresh();
