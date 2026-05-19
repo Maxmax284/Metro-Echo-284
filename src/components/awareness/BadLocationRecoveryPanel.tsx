@@ -30,13 +30,15 @@ type Props = {
 export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
   const { session } = useAuth();
   const { place, refresh, refreshSnapshot, setActivePlace, deletePlace } = useAwareness();
-  const [busy, setBusy] = useState<null | "quick" | "ha" | "search" | "delete" | "switch">(null);
+  const [busy, setBusy] = useState<null | "quick" | "ha" | "search" | "delete" | "switch" | "lastgood">(null);
   const [sampleStatus, setSampleStatus] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
+  const [mapOpen, setMapOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const badness = classifyPlaceBadness(place);
+  const lastGood = alternatives.find((p) => p.country);
 
   // Auto-refresh prompt: when the active place transitions from no-country
   // to a real country, offer a rescan. Detected via parent re-render of `place`.
