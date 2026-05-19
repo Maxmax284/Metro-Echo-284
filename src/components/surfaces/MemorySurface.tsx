@@ -12,6 +12,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -48,6 +49,7 @@ type RelatedHit = { id: string; title: string | null; snippet: string; similarit
 
 export function MemorySurface() {
   const { session } = useAuth();
+  const { openSherlock } = useSherlock();
   const [notes, setNotes] = useState<Note[]>([]);
   const [active, setActive] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,58 @@ export function MemorySurface() {
     await supabase.from("notes").delete().eq("id", id);
     setActive(null);
     setNotes((p) => p.filter((n) => n.id !== id));
+  };
+
+  const auditNote = async (noteId: string, event: string, payload: Record<string, any> = {}) => {
+    if (!session) return;
+    await supabase.from("audit_log").insert({
+      user_id: session.user.id,
+      entity_type: "note",
+      entity_id: noteId,
+      event,
+      payload,
+    });
+  };
+
+  const noteToReminder = async (n: Note) => {
+    if (!session) return;
+    const due = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const { data } = await supabase.from("commitments").insert({
+      user_id: session.user.id,
+      summary: (n.title || n.body).slice(0, 200),
+      due_at: due,
+      remind_at: due,
+      priority: "low",
+      source_note: n.id,
+    }).select("id").single();
+    if (data) generateEmbedding("commitment", data.id);
+    await auditNote(n.id, "note.converted_to_reminder", { commitment_id: data?.id });
+    toast.success(vantaSay.noteToReminder());
+  };
+
+  const noteToCommitment = async (n: Note) => {
+    if (!session) return;
+    const { data } = await supabase.from("commitments").insert({
+      user_id: session.user.id,
+      summary: (n.title || n.body).slice(0, 200),
+      source_note: n.id,
+    }).select("id").single();
+    if (data) generateEmbedding("commitment", data.id);
+    await auditNote(n.id, "note.converted_to_commitment", { commitment_id: data?.id });
+    toast.success(vantaSay.noteToCommitment());
+  };
+
+  const noteToSherlock = async (n: Note) => {
+    openSherlock({ entity_type: "note", entity_id: n.id, title: n.title || "Note", text: n.body });
+    await auditNote(n.id, "note.sent_to_sherlock");
+  };
+
+  const archiveNote = async (n: Note) => {
+    const tags = Array.from(new Set([...(n.tags || []), "archived"]));
+    await supabase.from("notes").update({ tags }).eq("id", n.id);
+    await auditNote(n.id, "memory.archived");
+    toast.success({ title: vantaSay.archived() });
+    refresh();
   };
 
   const aiAssist = async (action: "summarize" | "extract") => {
@@ -407,22 +461,63 @@ export function MemorySurface() {
             <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
           </div>
         ) : (() => {
-          const renderItem = (n: Note) => (
-            <li key={n.id}>
-              <button
-                onClick={() => setActive(n)}
-                className="block w-full rounded-xl surface-elevated p-3 text-left ring-1 ring-border/60 transition hover:ring-primary/40"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
-                  <span className="shrink-0 text-[10.5px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
-                  </span>
+          const sourceOf = (n: Note) => {
+            const tag = (n.tags || []).find((t) => t.startsWith("source:"));
+            if (tag) return tag.slice(7);
+            if ((n.tags || []).includes("imported")) return "file";
+            return "manual";
+          };
+          const SOURCE_CHIP: Record<string, string> = {
+            telegram: "From Telegram",
+            companion: "From Companion",
+            file: "From a file",
+            field_note: "Field note",
+            manual: "Written here",
+          };
+          const whyMatters = (n: Note) => {
+            const tags = n.tags || [];
+            if (tags.includes("archived")) return "Archived.";
+            const src = sourceOf(n);
+            const linked = tags.some((t) => t.startsWith("link:") || t.startsWith("project:") || t.startsWith("person:") || t.startsWith("place:"));
+            if (!linked && src === "manual") return "Saved, but no strong links yet.";
+            if (src === "telegram") return "Captured from Telegram.";
+            if (src === "companion") return "Saved from Companion.";
+            if (src === "file") return "Came in from a file upload.";
+            if (src === "field_note") return "Tied to a place you logged.";
+            return null;
+          };
+          const renderItem = (n: Note) => {
+            const src = sourceOf(n);
+            const why = whyMatters(n);
+            const archived = (n.tags || []).includes("archived");
+            return (
+              <li key={n.id}>
+                <div className={cn("rounded-xl surface-elevated p-3 ring-1 ring-border/60", archived && "opacity-60")}>
+                  <button onClick={() => setActive(n)} className="block w-full text-left">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
+                      <span className="shrink-0 text-[10.5px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{SOURCE_CHIP[src] ?? src}</span>
+                      {why && <span className="italic opacity-80">{why}</span>}
+                    </div>
+                  </button>
+                  {!archived && (
+                    <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToCommitment(n); }}>Commitment</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToSherlock(n); }}>Sherlock</Button>
+                      <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground" onClick={(e) => { e.stopPropagation(); archiveNote(n); }}>Archive</Button>
+                    </div>
+                  )}
                 </div>
-                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
-              </button>
-            </li>
-          );
+              </li>
+            );
+          };
           if (groupBy === "source") {
             const sourceOf = (n: Note) => {
               const tag = (n.tags || []).find((t) => t.startsWith("source:"));

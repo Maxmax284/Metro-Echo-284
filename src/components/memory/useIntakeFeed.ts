@@ -39,18 +39,26 @@ export function useIntakeFeed(limit = 60) {
 
     const out: IntakeRow[] = [];
 
+    const ROUTE_LABEL: Record<string, string> = {
+      memory: "Saved to Memory",
+      commitments: "Routed → Commitment",
+      reminders: "Routed → Reminder",
+      sherlock: "Sent to Sherlock",
+      ignored: "Filed away",
+    };
     for (const m of (msgs.data ?? []) as MsgRow[]) {
       const meta = m.metadata ?? {};
       const source: CaptureSource = meta.source === "telegram" ? "telegram" : "companion";
+      const routed = meta.routed_to as string | undefined;
       out.push({
         id: `msg:${m.id}`,
         source,
         text: m.content,
         detectedType: meta.detected_type ?? null,
         confidence: meta.confidence ?? null,
-        status: meta.routed_to ? "Routed" : meta.needs_review ? "Needs review" : "Captured",
-        routedTo: meta.routed_to ?? null,
-        needsReview: !!meta.needs_review || (!meta.detected_type && !meta.routed_to),
+        status: routed ? (ROUTE_LABEL[routed] ?? `Routed → ${routed}`) : meta.needs_review ? "Needs review" : "Captured",
+        routedTo: routed ?? null,
+        needsReview: !!meta.needs_review || (!meta.detected_type && !routed),
         ts: m.created_at,
         _raw: { kind: "message", row: m },
       });
