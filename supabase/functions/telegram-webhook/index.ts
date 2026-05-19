@@ -34,14 +34,17 @@ async function tg(method: string, body: unknown) {
 }
 
 import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
+import { parseReminderHint } from "../_shared/reminderParse.ts";
 
 // Telegram shares the exact same voice constants as the in-app surfaces so
 // wording stays identical across Companion (chat), Memory (capture), and
 // Awareness (place answers). The only Telegram-specific layer is a thin
 // channel modifier: warmer tone (per user pref) and SMS-length brevity.
 const TELEGRAM_CHANNEL = `Telegram channel rules: warm and approachable, but still grounded.
-Replies must be brief (1–4 sentences), plain prose, no emoji, no markdown.
-Messaging feeds the system — it does not control it. Never claim to have executed anything;
+Replies must be brief (1–3 sentences), plain prose, no markdown. Occasional emoji
+is fine on a success acknowledgement (⏰ for reminders, 📝 for notes) — never on
+errors, warnings, or anything serious. Vary your phrasing. Messaging feeds the
+system — it does not control it. Never claim to have executed anything risky;
 notes, actions, and commitments surface as drafts inside the app for review.`;
 
 const SYSTEM = `${COMPANION_VOICE}
@@ -52,20 +55,59 @@ ${AWARENESS_VOICE}
 
 ${TELEGRAM_CHANNEL}
 
-Tool routing: if the user wants to capture a note → call capture_note. Stage an action → stage_action. Commit to something → add_commitment. Otherwise answer succinctly.`;
+You CAN create notes, reminders, commitments, and stage actions for approval.
+NEVER tell the user "I can't directly set reminders" or "I'm unable to add
+notes" — route them. If a detail is missing (like the time for a reminder),
+ask ONE short question. No generic chatbot filler: no "As an AI…", no "Great
+news!", no "Absolutely, I'd be happy to assist!".
+
+Tool routing:
+- "Remind me…" / "Nudge me…" / "Follow up…" → set_reminder.
+- "Note that…" / "Save this…" / "Remember…" → capture_note.
+- "I promised…" / "I committed to…" → add_commitment.
+- External action to draft → stage_action.
+Otherwise answer succinctly.`;
 
 const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
+  { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
 ];
 
-async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any) {
+type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
+
+async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults) {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
     return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
+  }
+  if (name === "set_reminder") {
+    const tz = args.timezone || defaults.timezone;
+    const parsed = parseReminderHint(String(args.when ?? ""), { ...defaults, timezone: tz });
+    if (parsed.status === "needs_time") {
+      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      return { reply: VANTA_PHRASES.reminderNeedsTime(), detectedType: "reminder", routedTo: null };
+    }
+    if (parsed.status === "needs_ampm") {
+      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      return { reply: VANTA_PHRASES.reminderAmPmAsk(parsed.hh, parsed.mm), detectedType: "reminder", routedTo: null };
+    }
+    if (parsed.status === "needs_tz") {
+      return { reply: VANTA_PHRASES.reminderNeedsTz(), detectedType: "reminder", routedTo: null };
+    }
+    const { data } = await sb.from("commitments").insert({
+      user_id: userId,
+      summary: args.summary,
+      due_at: parsed.due_at,
+      remind_at: parsed.remind_at,
+      metadata: { kind: "reminder", source: "telegram", timezone: parsed.timezone, when_hint: args.when },
+    }).select("id").single();
+    if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
+    await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
+    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments" };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
