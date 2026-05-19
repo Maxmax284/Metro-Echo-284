@@ -110,6 +110,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
         ) : tab === "today" ? (
           <div className="space-y-3">
             <DailyBriefingCard />
+            <ScheduleQueryChips />
             <SummaryStrip
               reminders={todayList.filter((c) => !!c.remind_at).length}
               commitments={todayList.filter((c) => !c.remind_at).length}
