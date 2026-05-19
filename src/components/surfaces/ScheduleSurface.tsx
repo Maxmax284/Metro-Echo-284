@@ -16,7 +16,7 @@ type Commitment = { id: string; summary: string; due_at: string | null; remind_a
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
 
 export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) => void }) {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const [tab, setTab] = useState<TabKey>("today");
   const [commits, setCommits] = useState<Commitment[]>([]);
@@ -26,6 +26,20 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { if (session) load(); }, [session]);
+
+  // Doctrine: every surface change leaves a receipt. Debounced 1.5s to avoid spam.
+  useEffect(() => {
+    if (!user) return;
+    const t = setTimeout(() => {
+      supabase.from("audit_log").insert({
+        user_id: user.id,
+        entity_type: "schedule",
+        event: "schedule.viewed",
+        payload: { tab },
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [tab, user]);
 
   async function load() {
     setLoading(true);
