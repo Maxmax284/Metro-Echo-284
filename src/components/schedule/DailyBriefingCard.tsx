@@ -23,13 +23,16 @@ type Commitment = {
  * Pure read; no writes. Mounts on Schedule (Today) and is drop-in for Cockpit.
  */
 export function DailyBriefingCard() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
   const [overdue, setOverdue] = useState(0);
   const [files, setFiles] = useState(0);
   const [approvals, setApprovals] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [polish, setPolish] = useState<string | null>(null);
+  const [polishing, setPolishing] = useState(false);
+  const auditedRef = useRef(false);
 
   useEffect(() => {
     if (!session) return;
@@ -50,12 +53,24 @@ export function DailyBriefingCard() {
       ]);
       const rows = (c.data ?? []) as Commitment[];
       setItems(rows);
-      setOverdue(rows.filter((r) => r.due_at && new Date(r.due_at) < new Date()).length);
+      const od = rows.filter((r) => r.due_at && new Date(r.due_at) < new Date()).length;
+      setOverdue(od);
       setApprovals(a.count ?? 0);
       setFiles(f.count ?? 0);
       setLoading(false);
+
+      // Audit briefing.generated once per session-mount (counts-first, no AI).
+      if (user && !auditedRef.current) {
+        auditedRef.current = true;
+        await supabase.from("audit_log").insert({
+          user_id: user.id,
+          entity_type: "briefing",
+          event: "briefing.generated",
+          payload: { overdue: od, due_today: rows.length, approvals: a.count ?? 0, files_pending: f.count ?? 0 },
+        });
+      }
     })();
-  }, [session]);
+  }, [session, user]);
 
   const { Icon, greeting, clock } = useMemo(() => {
     const now = new Date();
