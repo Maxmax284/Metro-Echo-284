@@ -94,7 +94,7 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
       const { best, samples } = await sampleHighAccuracy(7000, (_, n) => {
         setSampleStatus(`Reading GPS… ${n} sample${n === 1 ? "" : "s"}`);
       });
-      const before = place.geo ?? {};
+      const before: any = place.geo ?? {};
       const sameAsBefore =
         Number.isFinite(before.lat) &&
         distMeters({ lat: before.lat, lon: before.lon }, { lat: best.lat, lon: best.lon }) < 50;
