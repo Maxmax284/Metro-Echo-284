@@ -368,6 +368,45 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
         <div className="text-[11px] text-muted-foreground">{sampleStatus}</div>
       )}
 
+      {/* Nearby suggestions — auto-loaded from the bad pin's vicinity. */}
+      {(nearbyLoading || nearby.length > 0) && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary/70" />
+            Places near this pin
+            {nearbyLoading && <Loader2 className="h-3 w-3 animate-spin opacity-60" />}
+          </div>
+          {nearby.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {nearby.slice(0, 8).map((np, i) => {
+                const km = np.distance_m / 1000;
+                const dist = km < 1 ? `${np.distance_m}m` : `${km.toFixed(km < 10 ? 1 : 0)}km`;
+                return (
+                  <button
+                    key={`${np.kind}:${np.name}:${i}`}
+                    onClick={() => useNearby(np)}
+                    disabled={!!busy}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/[0.06] px-2.5 py-1 text-[11.5px] text-foreground/90 hover:bg-primary/[0.12] disabled:opacity-60"
+                    title={`${np.kind} · ${dist} away${np.admin ? ` · ${np.admin}` : ""}`}
+                  >
+                    <MapPin className="h-3 w-3 text-primary/70" />
+                    <span className="truncate max-w-[140px]">{np.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{dist}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {!nearbyLoading && nearby.length === 0 && (
+            <div className="text-[11px] text-muted-foreground">
+              No nearby towns found. Try typing below or pick on map.
+            </div>
+          )}
+        </div>
+      )}
+
+
+
       {/* Manual search */}
       <div className="space-y-1.5">
         <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
