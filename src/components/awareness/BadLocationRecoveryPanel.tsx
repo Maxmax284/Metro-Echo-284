@@ -435,10 +435,10 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
             placeholder="e.g. Lamai, Koh Samui"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && runSearch()}
+            onKeyDown={(e) => e.key === "Enter" && runSearch(false)}
             className="h-9 text-[12px]"
           />
-          <Button size="sm" className="h-9 gap-1 shrink-0" onClick={runSearch} disabled={!!busy || !query.trim()}>
+          <Button size="sm" className="h-9 gap-1 shrink-0" onClick={() => runSearch(false)} disabled={!!busy || !query.trim()}>
             {busy === "search" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
           </Button>
         </div>
