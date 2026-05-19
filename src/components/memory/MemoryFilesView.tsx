@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, Inbox } from "lucide-react";
+import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, Inbox, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { ReminderComposer } from "@/components/reminders/ReminderComposer";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
+
+const MAX_BYTES = 20 * 1024 * 1024;
 
 export type FileRow = {
   id: string;
