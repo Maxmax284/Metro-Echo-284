@@ -299,6 +299,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   return (
     <div className="flex h-full flex-col">
+      <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
+        <span className="font-medium text-foreground/80">Capture Log.</span>{" "}
+        Capture only — nothing here executes. Approvals live in Actions.
+      </div>
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
