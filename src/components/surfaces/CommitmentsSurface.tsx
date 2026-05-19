@@ -26,6 +26,7 @@ const PRIORITIES = ["low", "normal", "high"] as const;
 
 export function CommitmentsSurface() {
   const { session } = useAuth();
+  const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
