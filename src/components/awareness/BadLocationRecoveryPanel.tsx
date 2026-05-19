@@ -291,7 +291,8 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
 
   const removeBad = async () => {
     if (!place) return;
-    if (!confirm("Delete this bad location? It looks unusable and can be recreated later.")) return;
+    const label = badness.bad ? "Remove this unresolved place?" : "Remove saved place?";
+    if (!confirm(label)) return;
     setBusy("delete");
     try {
       await deletePlace(place.id);
@@ -309,10 +310,10 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
         <AlertTriangle className="h-4 w-4 mt-0.5 text-warn shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium text-foreground">
-            {badness.headline || "Location looks wrong"}
+            {badness.headline || "This place isn't resolved yet"}
           </div>
           <div className="text-[11.5px] text-muted-foreground leading-snug mt-0.5">
-            I'm not pretending this pin is a real local place. Pick a fix below.
+            Pick a saved place, search a real one, or recenter — whichever's fastest.
           </div>
         </div>
         {onDismiss && (
@@ -498,7 +499,7 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
           disabled={!!busy}
         >
           {busy === "delete" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-          Delete this bad place
+          {badness.bad ? "Delete unresolved place" : "Remove saved place"}
         </Button>
       </div>
 

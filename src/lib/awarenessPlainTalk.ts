@@ -130,7 +130,7 @@ export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boo
     case "saved":
       return {
         buttonLabel: "Scan saved place",
-        helper: "Use your confirmed place instead of the shaky GPS pin.",
+        helper: "Using your saved place as broad-area context.",
         sourceImpact: sources(serp ? ["Google Maps nearby"] : []),
         disabled: false,
       };
@@ -139,7 +139,7 @@ export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boo
       const scope = tier.city ?? tier.region ?? "area";
       return {
         buttonLabel: `Scan ${scope} context`,
-        helper: "The exact pin looks shaky, so I'll use broader local context.",
+        helper: "Using broader local context. Exact GPS isn't needed for this scan.",
         sourceImpact: sources(),
         disabled: false,
       };
@@ -148,7 +148,7 @@ export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boo
       const scope = tier.country ?? "country";
       return {
         buttonLabel: `Scan ${scope} context`,
-        helper: "I'll use country-level guidance only. Confirm a place for sharper results.",
+        helper: "Country-level read. Confirm a place for sharper results.",
         sourceImpact: sources(),
         disabled: false,
       };
@@ -157,8 +157,8 @@ export function tierScanCopy(tier: TierClassification, opts: { serpEnabled?: boo
     default:
       return {
         buttonLabel: "Confirm place first",
-        helper: "I need a place before pulling live local sources.",
-        sourceImpact: "Won't run paid search until a place is confirmed.",
+        helper: "Pick or search a place to enable scans.",
+        sourceImpact: "Won't run external search until a place is confirmed.",
         disabled: true,
       };
   }

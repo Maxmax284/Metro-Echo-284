@@ -16,6 +16,7 @@ import { classifyPlaceBadness } from "@/lib/locationSanity";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { resolveLocationState, SOURCE_BADGE_LABEL, SOURCE_BADGE_TONE, logLocationDecision } from "@/lib/awarenessLocation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpCircle } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -189,6 +190,12 @@ export function AwarenessSurface() {
         {/* Place strip — sticky on mobile. Two clean lines. Extra chips in More. */}
         {place && (() => {
           const tier = classifyTier(place);
+          const locState = resolveLocationState(place, {
+            generatedAt,
+            serpEnabled: controls?.serpapi_enabled,
+            serpUsed: (snapshot?.sources_used ?? []).some((s) => s.toLowerCase().includes("serp")),
+          });
+          logLocationDecision("surface", locState, { placeId: place.id });
           const TONE: Record<LocationTier, string> = {
             exact:   "bg-primary/15 text-primary ring-primary/40",
             saved:   "bg-primary/10 text-primary ring-primary/30",
@@ -197,6 +204,8 @@ export function AwarenessSurface() {
             country: "bg-warn/15 text-warn ring-warn/40",
             unknown: "bg-muted/40 text-muted-foreground ring-border/60",
           };
+          // Limit badges so the strip stays calm.
+          const visibleBadges = locState.sources.slice(0, 4);
           return (
             <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
               <div className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 space-y-1.5">
@@ -215,16 +224,32 @@ export function AwarenessSurface() {
                   </span>
                 </div>
 
-                {/* Line 2 — status line */}
+                {/* Line 2 — calm, source-aware status */}
                 <div className="text-[11px] text-muted-foreground leading-snug">
-                  {badness.bad
-                    ? <span className="text-warn">{badness.headline}</span>
-                    : freshLabel(generatedAt)}
+                  {locState.placeUnresolved
+                    ? <span className="text-warn">{locState.message}</span>
+                    : locState.message}
+                </div>
+
+                {/* Source badges — always tell the user what we're using */}
+                <div className="flex flex-wrap gap-1">
+                  {visibleBadges.map((b) => (
+                    <span
+                      key={b}
+                      className={cn(
+                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                        SOURCE_BADGE_TONE[b],
+                      )}
+                      title={SOURCE_BADGE_LABEL[b]}
+                    >
+                      {SOURCE_BADGE_LABEL[b]}
+                    </span>
+                  ))}
                 </div>
 
                 {/* Line 3 — primary action */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  {badness.bad ? (
+                  {locState.placeUnresolved ? (
                     <Button
                       size="sm"
                       className="h-9 gap-1.5 text-[12px] flex-1 min-w-0"
