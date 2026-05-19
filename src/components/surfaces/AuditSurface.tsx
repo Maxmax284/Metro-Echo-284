@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollText, RefreshCw, Search } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ScrollText, RefreshCw, Search, X } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 
 type AuditRow = {
   id: string;
