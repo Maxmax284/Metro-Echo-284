@@ -1,93 +1,152 @@
-# Awareness — Map Picker + Overpass Sanity + Auto-Refresh + Last-Good Suggestion
+# Vanta E2E Test + Seeded Life Sim + Screenshot Report + Maturity Audit
 
-Targeted upgrade to the bad-location recovery flow we already shipped. Four self-contained pieces, all wired into the existing `BadLocationRecoveryPanel` + `AwarenessSurface` + `awareness-geocode` plumbing. No rewrite of awareness, no new architecture, no native code.
+## Ground rules (locked in by your answers)
 
----
+- **Seeding:** every row gets `metadata.seed = true` (or equivalent tag column). One teardown script wipes it all.
+- **Screenshots:** hybrid. I drive the headless browser where it works; where auth or modals block me, I drop a clearly labeled placeholder with reproduction steps.
+- **Telegram / Actions:** mocked only. I insert pretend telegram updates and action drafts. No bot calls, no execution.
+- **Output:** HTML (primary, dark/tactical), Markdown mirror, PDF (chromium print). All in `/mnt/documents/vanta-e2e/`.
+- **Tone:** East Coast plain English. Honest. No fluff. No fake hype.
 
-## 1. Pick-from-map flow
+## Surfaces actually present (confirmed from repo)
 
-A real map you can tap to drop a pin, with reverse-geocode preview, and an **Apply as active place** button.
+CommandCenter, Awareness, Conversation (Companion), Memory, Notes (lives inside Memory/Conversation surfaces — will verify), Commitments, Sherlock, Actions, Audit, Settings. Edge functions: awareness-*, telegram-webhook, vanta-converse, files-ingest, sherlock-investigate, actions-*, memory-*, notes-assist, research-run, commitment-reminders.
 
-- New component `src/components/awareness/MapPickerDialog.tsx` (radix `Dialog` + `leaflet`).
-- Library: `leaflet` + `react-leaflet` (small, no API key, OSM tiles). Add via `bun add`.
-- Behavior:
-  - Centers on the user's last known good place if any, else current pin, else a sane default (Koh Samui if the bad pin is offshore in SE Asia, otherwise world view).
-  - Search box at top reuses existing `searchPlaces()` from `locationSanity.ts` — selecting a hit recenters the map and drops the pin.
-  - Drag/tap to move pin. Live "Resolving…" label calls Nominatim reverse once the pin settles (300 ms debounce).
-  - Apply button is disabled until reverse-geocode returns a `country`. Confirms with the resolved label.
-  - On apply: inserts a new `awareness_places` row (mirrors `useHit` in the recovery panel), calls `setActivePlace()`, triggers the auto-refresh from §3, closes dialog.
-- Wired into `BadLocationRecoveryPanel` as a third primary action: **"Pick on map"** alongside High accuracy / Quick recenter.
-- Mobile: full-screen dialog at <640 px (existing `Dialog` works, just add `sm:max-w-md` + `h-[100dvh] sm:h-auto`).
+No standalone Notes page — Notes appear via Memory + capture flows. The report will call this out as a maturity finding rather than invent a surface.
 
-## 2. Overpass land/water + nearby-feature sanity
+## Phase 1 — Seed data (tagged, reversible)
 
-Server-side sanity layer that runs **only when Nominatim returns low confidence** (no country/region). Cached so we never hammer Overpass.
+Script: `scripts/vanta-seed.ts` (run via `bun`). Single user (you). Inserts:
 
-- Extend `supabase/functions/awareness-geocode/index.ts`:
-  - After Nominatim returns, if `!country && !region`, query Overpass:
-    ```
-    [out:json][timeout:8];
-    is_in({lat},{lon})->.a;
-    (
-      .a[place];
-      node(around:3000,{lat},{lon})[place~"island|town|village|city|hamlet|suburb"];
-      way(around:5000,{lat},{lon})[natural=coastline];
-    );
-    out tags 5;
-    ```
-  - Classify:
-    - Any `place=*` hit nearby → write a synthetic `region`/`city` (e.g., "Koh Samui") and mark `geo.sanity = "land_nearby"` with the closest feature name + distance.
-    - Only `natural=coastline` hits with no `place` → mark `geo.sanity = "offshore_confirmed"`, do NOT invent a country.
-    - Nothing → `geo.sanity = "unresolved"`.
-  - Cache the Overpass result keyed by rounded lat/lon (3 decimals → ~110 m grid) in a new tiny table `awareness_overpass_cache (cell_key text pk, payload jsonb, fetched_at timestamptz)` with a 7-day TTL check in the function. RLS: service-role read/write only, no client access.
-- Client: `classifyPlaceBadness()` in `locationSanity.ts` reads `geo.sanity` first — if `offshore_confirmed`, headline becomes the existing "This pin looks offshore." with high certainty; if `land_nearby` with a city, badness drops to `bad: false`.
-- Guardrails: Overpass call is wrapped in `Promise.race` against an 8 s timeout, errors are swallowed (function still returns whatever Nominatim gave us), and we only call it on the no-country path — never on healthy pins.
+- **awareness_places:** Lamai Muay Thai (valid land), Lamai town, Koh Samui island, offshore bad pin (9.45, 100.2 — ocean east of Samui), saved place, manual place.
+- **notes (8):** project/person/place/document/field/decision/idea/reminder-seed — each with `metadata.seed=true`.
+- **commitments (4):** GroundStay update, booking issue follow-up, vendor follow-up, schedule confirm.
+- **nudges/reminders (6):** rent, staff message, dog food, guest follow-up, schedule review, prep doc.
+- **field_notes (3):** printer hours, road closure, vendor price.
+- **ingested_files (5):** receipt, invoice, contract, visa doc, screenshot — metadata only, no real bytes.
+- **actions (3):** one proposed, one awaiting approval, one executed-with-receipt — all marked seed.
+- **audit_log:** event for every insert so Audit has receipts to render.
+- **investigations (2):** one contradiction, one source conflict, with findings.
+- **conversations + messages:** Companion thread referencing seeded items.
+- **mock telegram updates:** since `telegram_messages` table isn't in schema, I'll mock by inserting into `audit_log` + `notes` with `source='telegram'` so the routing path is visible. (Will verify and adjust if a dedicated table exists.)
 
-## 3. Auto-refresh after successful recenter/geocode
+Teardown: `scripts/vanta-seed-teardown.ts` — `delete where metadata->>'seed' = 'true'` across all touched tables, in FK-safe order.
 
-Today `BadLocationRecoveryPanel` calls `reverseGeocode()` then relies on realtime to re-paint, and the snapshot/brief is not re-run. The "too broad" view sticks around.
+## Phase 2 — Scenario runs
 
-- After every successful recenter (both `quickRecenter` and `highAccuracyRecenter`) and after the `useHit` / map-picker apply path:
-  1. Await `reverseGeocode()`.
-  2. Await `refresh()` (already happens).
-  3. If the fresh row has `country`, fire `refreshSnapshot(true)` and then `generate(missing_section)` for any still-missing core section, in the background (no spinner blocking).
-  4. Toast `vantaSay.locationFixedRescan()` once.
-- Also extend the existing `prevCountryRef` effect in `AwarenessSurface.tsx` so the same auto-snapshot fires when realtime delivers the `null → country` transition (covers cases where geocode finishes after the user navigated away from the panel).
-- Debounce: a `useRef` flag prevents double-fire when both the panel callback and the realtime effect see the transition.
+For each of the 17 scenarios in your prompt:
 
-## 4. One-tap "use last confirmed place" suggestion
+1. Pre-condition (seed state) → 2. Trigger (UI action or simulated event) → 3. Observe (DB rows, network, console, screenshot) → 4. Verdict (pass / partial / fail) → 5. Notes.
 
-Today the bad-location panel shows the full "Use a saved place" list. Pre-empt it with one big chip for the most recent place that actually resolved.
+Auto-driven scenarios (browser tool): Command Center load, Awareness valid + bad-pin recovery, Memory page, Commitments page, Sherlock, Actions list, Audit, Settings, mobile breakpoints (390x844, 360x800).
 
-- In `BadLocationRecoveryPanel`, when `badness.bad`, compute `lastGood = alternatives.find(p => p.country)` (alternatives is already filtered for `!!country` in `AwarenessSurface`).
-- Render above the recenter buttons:
-  ```
-  ┌──────────────────────────────────────────────┐
-  │  ↩  Use Lamai, Koh Samui again               │
-  │     Last confirmed place · 2d ago            │
-  └──────────────────────────────────────────────┘
-  ```
-  One-tap button → `setActivePlace(lastGood.id)` → toast `vantaSay.switchedPlace(label)` → panel closes (no longer bad).
-- Falls back silently if no good alternative exists.
+Manual/placeholder scenarios: Telegram interactions (mocked rows shown in Audit), real PWA install prompt, file upload with real bytes, action execution receipt.
 
----
+## Phase 3 — Screenshots
 
-## Technical notes
+- `screenshots/auto/*.png` — captured live, 1280x720 + 390x844.
+- `screenshots/placeholder/*.md` — labeled stub with what should be there + reproduction steps.
+- Each screenshot gets caption, what-tested, pass/fail, improvement note.
 
-**Files created**
-- `src/components/awareness/MapPickerDialog.tsx`
-- `supabase/migrations/<ts>_overpass_cache.sql` (new `awareness_overpass_cache` table, service-role only RLS)
+## Phase 4 — Report build
 
-**Files edited**
-- `src/components/awareness/BadLocationRecoveryPanel.tsx` — add map picker button, last-good chip, auto-refresh-after-success
-- `src/lib/locationSanity.ts` — read `geo.sanity` in `classifyPlaceBadness`
-- `src/components/surfaces/AwarenessSurface.tsx` — extend country-transition effect to also call `refreshSnapshot(true)` once, with dedupe ref
-- `supabase/functions/awareness-geocode/index.ts` — Overpass fallback path + cache lookup
-- `src/lib/vantaVoice.ts` — add `useLastGood(label)` and `mapPickerApplied(label)` phrases
-- `package.json` — add `leaflet`, `react-leaflet`, `@types/leaflet`
+`scripts/build-report.ts` assembles a single `report.html` from:
 
-**Out of scope (explicit)**
-- No native maps, no Mapbox, no tile-server account.
-- No new realtime architecture — reuses existing `awareness-provider` channel.
-- No change to brief/snapshot prompts or tier classification logic.
-- No change to PWA/install flow.
+- `report/parts/00-verdict.md` … `report/parts/12-roadmap.md`
+- Pass/fail JSON matrix → rendered table
+- Maturity scores JSON → rendered scorecards
+- Screenshots embedded as data URIs (so HTML is self-contained)
+
+Then:
+
+- `node` markdown-it → `report.md`
+- `chromium --headless --print-to-pdf` → `report.pdf`
+
+All three land in `/mnt/documents/vanta-e2e/`.
+
+## Maturity scoring rubric
+
+Each surface gets 0–100 with: score, why, what passed, what failed, what raises it next. Surfaces scored: CommandCenter, Awareness, Telegram, Memory, Notes, Reminders, Commitments, Companion, Sherlock, Files, Actions, Audit, Settings, PWA/Mobile, Voice, Integrations, Overall.
+
+## What I will explicitly NOT do
+
+- Won't hit any real external API beyond what's already wired (no SerpAPI calls during seed, no Telegram bot calls, no real file OCR).
+- Won't claim screenshots I didn't capture — placeholders are labeled.
+- Won't redesign anything. Findings go in the report, not in code edits.
+- Won't ship code changes as part of this task. Pure audit + report.
+
+## Deliverables
+
+```
+/mnt/documents/vanta-e2e/
+  report.html              (dark/tactical, self-contained)
+  report.md
+  report.pdf
+  seed-summary.json        (every row inserted, IDs, teardown SQL)
+  pass-fail-matrix.json
+  maturity-scores.json
+  screenshots/
+    auto/*.png
+    placeholder/*.md
+scripts/
+  vanta-seed.ts            (kept in repo so you can re-run)
+  vanta-seed-teardown.ts
+  build-report.ts
+```
+
+## Time / sequencing
+
+1. Seed script + dry-run (verify tables, dry insert)
+2. Real seed insert
+3. Auto scenario runs (browser, ~10 screenshots)
+4. Mocked telegram + action scenarios
+5. Report assembly (HTML → MD → PDF)
+6. Final QA pass on PDF (convert to images, eyeball every page)
+
+## Open question before I start
+
+The prompt says "do not pollute production unless this is the dev environment." Your account here **is** your live data. Tagged-seed means I can clean up, but for ~30 seconds during the test, your Memory/Commitments/Audit lists will show seeded items. If you want me to run this against a brand-new throwaway account instead, say so before I start seeding — otherwise I proceed against the cur
+
+&nbsp;
+
+Proceed against the current account using tagged seed only.
+
+&nbsp;
+
+Before inserting anything, run the seed script in dry-run mode and verify:
+
+- every table that will be touched,
+
+- every row type that will be inserted,
+
+- every seeded row has metadata.seed=true or an equivalent removable test marker,
+
+- teardown can find and delete every seeded row cleanly.
+
+&nbsp;
+
+After the test, run full teardown and confirm zero seeded rows remain.
+
+&nbsp;
+
+Do not use full seed/no tagging.
+
+Do not run destructive tests.
+
+Do not execute real external actions.
+
+Do not send real Telegram messages.
+
+Do not create real calendar events.
+
+Do not expose secrets in screenshots.
+
+If teardown verification fails, stop and report before proceeding.
+
+&nbsp;
+
+Mock Telegram and Actions only.
+
+Hybrid screenshots are fine.
+
+Deliver HTML + Markdown + PDF if possible.rent account with full teardown at the end.
