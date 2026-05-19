@@ -209,9 +209,24 @@ export function MemorySurface() {
           </div>
           <div className="flex items-center gap-1">
             {view === "notes" && (
-              <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
-                <Plus className="h-4 w-4" /> New
-              </Button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setGroupBy((g) => (g === "none" ? "source" : "none"))}
+                  className={cn(
+                    "rounded-full border px-2 py-1 text-[10.5px] transition-colors",
+                    groupBy === "source"
+                      ? "border-primary/40 bg-primary/15 text-primary"
+                      : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                  )}
+                  title="Group by source"
+                >
+                  {groupBy === "source" ? "Grouped" : "Group"}
+                </button>
+                <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
+                  <Plus className="h-4 w-4" /> New
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -391,26 +406,60 @@ export function MemorySurface() {
             <p>No notes yet.</p>
             <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
           </div>
-        ) : (
-          <ul className="space-y-2">
-            {notes.map((n) => (
-              <li key={n.id}>
-                <button
-                  onClick={() => setActive(n)}
-                  className="block w-full rounded-xl surface-elevated p-3 text-left ring-1 ring-border/60 transition hover:ring-primary/40"
-                >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
-                    <span className="shrink-0 text-[10.5px] text-muted-foreground">
-                      {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
-                    </span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        ) : (() => {
+          const renderItem = (n: Note) => (
+            <li key={n.id}>
+              <button
+                onClick={() => setActive(n)}
+                className="block w-full rounded-xl surface-elevated p-3 text-left ring-1 ring-border/60 transition hover:ring-primary/40"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
+                  <span className="shrink-0 text-[10.5px] text-muted-foreground">
+                    {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
+              </button>
+            </li>
+          );
+          if (groupBy === "source") {
+            const sourceOf = (n: Note) => {
+              const tag = (n.tags || []).find((t) => t.startsWith("source:"));
+              if (tag) return tag.slice(7);
+              if ((n.tags || []).includes("imported")) return "file";
+              return "manual";
+            };
+            const SOURCE_ORDER = ["telegram", "companion", "file", "field_note", "manual"];
+            const SOURCE_LABEL: Record<string, string> = {
+              telegram: "From Telegram",
+              companion: "From Companion",
+              file: "From files",
+              field_note: "From field notes",
+              manual: "Written here",
+            };
+            const groups = new Map<string, Note[]>();
+            for (const n of notes) {
+              const s = sourceOf(n);
+              if (!groups.has(s)) groups.set(s, []);
+              groups.get(s)!.push(n);
+            }
+            const ordered = [...SOURCE_ORDER.filter((s) => groups.has(s)), ...[...groups.keys()].filter((s) => !SOURCE_ORDER.includes(s))];
+            return (
+              <div className="space-y-4">
+                {ordered.map((src) => (
+                  <section key={src}>
+                    <h3 className="mb-1.5 px-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                      {SOURCE_LABEL[src] ?? src} <span className="opacity-60">· {groups.get(src)!.length}</span>
+                    </h3>
+                    <ul className="space-y-2">{groups.get(src)!.map(renderItem)}</ul>
+                  </section>
+                ))}
+              </div>
+            );
+          }
+          return <ul className="space-y-2">{notes.map(renderItem)}</ul>;
+        })()}
       </div>
 
       {active && (
