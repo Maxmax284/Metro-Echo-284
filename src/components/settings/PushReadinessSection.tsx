@@ -118,9 +118,10 @@ export function PushReadinessSection() {
       </div>
 
       <div className="mt-4 space-y-2 text-[12px]">
+        {isIosNotInstalled() && status !== "ready" && <IosInstallGuidance />}
         {status === "unsupported" && (
           <Hint icon={<Info className="h-4 w-4" />}>
-            Push reminders aren't supported in this browser. iOS Safari supports it only when Vanta is installed to the home screen.
+            Push reminders aren't supported in this browser. On iPhone, Vanta must be installed to the Home Screen first (see steps above).
           </Hint>
         )}
         {status === "blocked" && (
