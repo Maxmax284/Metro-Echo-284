@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy, Send } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { StatusDot } from "@/components/ui/status-dot";
@@ -42,6 +42,26 @@ export function TelegramLinkCard() {
   const unlink = async (id: string) => {
     await supabase.from("telegram_chat_links").delete().eq("id", id);
     load();
+  };
+
+  const sendTest = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-test");
+      if (error) throw error;
+      const d = (data ?? {}) as { sent?: number; failed?: number; reason?: string; public_url_present?: boolean };
+      if (d.reason === "no_links") {
+        toast("Pair a Telegram chat first.");
+      } else if ((d.sent ?? 0) > 0) {
+        toast.success(`Test sent to ${d.sent} chat${d.sent === 1 ? "" : "s"}.${d.public_url_present ? "" : " (No deep link — VANTA_PUBLIC_URL not set.)"}`);
+      } else {
+        toast("Telegram didn't accept the message. Check Audit.");
+      }
+    } catch (e) {
+      toast.fromError(e, "Test send failed.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copyCode = () => {
@@ -91,6 +111,10 @@ export function TelegramLinkCard() {
               <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => unlink(l.id)}>Unlink</Button>
             </div>
           ))}
+          <Button size="sm" variant="outline" className="w-full gap-1.5" onClick={sendTest} disabled={busy}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Send test Telegram now
+          </Button>
         </div>
       )}
 
