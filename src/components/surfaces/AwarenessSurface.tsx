@@ -431,19 +431,47 @@ export function AwarenessSurface() {
               </div>
             ) : (
               <ul className="space-y-2">
-                {places.map((p) => (
-                  <li key={p.id}>
-                    <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2">
-                      <MapPin className="h-4 w-4 text-primary/80" />
-                      <span className="text-sm font-medium">{p.label}</span>
-                      {place?.id === p.id && (
-                        <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
-                          active
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                {places.map((p) => {
+                  const isActive = place?.id === p.id;
+                  const pBad = classifyPlaceBadness(p as any).bad;
+                  return (
+                    <li key={p.id}>
+                      <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2">
+                        <MapPin className="h-4 w-4 text-primary/80 shrink-0" />
+                        <button
+                          onClick={() => !isActive && setActivePlace(p.id).then(() => toast.success(vantaSay.switchedPlace(p.label)))}
+                          className="text-left text-sm font-medium truncate hover:text-primary"
+                          disabled={isActive}
+                        >
+                          {p.label}
+                        </button>
+                        {pBad && (
+                          <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-warn ring-1 ring-warn/30">
+                            unresolved
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                            active
+                          </span>
+                        )}
+                        {!isActive && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete "${p.label}"?`)) return;
+                              await deletePlace(p.id);
+                              toast.success(vantaSay.placeDeleted());
+                            }}
+                            className="ml-auto text-muted-foreground hover:text-destructive"
+                            title="Delete place"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
