@@ -139,11 +139,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             />
             {overdueList.length > 0 && (
               <Section title="Overdue" Icon={Bell} empty="">
-                {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+                {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
               </Section>
             )}
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
-              {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+              {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
             </Section>
             <Section title="Files needing review" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
               {reviewFiles.slice(0, 5).map((f) => (
