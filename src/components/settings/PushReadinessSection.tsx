@@ -70,6 +70,8 @@ export function PushReadinessSection() {
     } finally {
       setBusy(false);
     }
+  };
+
   const sendTest = async () => {
     if (!user) return;
     setBusy(true);
