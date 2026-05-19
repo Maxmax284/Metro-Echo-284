@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle, Undo2, Map as MapIcon } from "lucide-react";
+import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle, Undo2, Map as MapIcon, Sparkles } from "lucide-react";
 import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import {
   sampleHighAccuracy,
@@ -14,6 +14,15 @@ import {
   type PlaceSearchHit,
 } from "@/lib/locationSanity";
 import { MapPickerDialog } from "@/components/awareness/MapPickerDialog";
+
+type NearbyPlace = {
+  name: string;
+  kind: string;
+  lat: number;
+  lon: number;
+  distance_m: number;
+  admin?: string | null;
+};
 
 type Props = {
   /** Other usable saved places to offer as fallbacks. */
@@ -35,10 +44,31 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
   const [mapOpen, setMapOpen] = useState(false);
+  const [nearby, setNearby] = useState<NearbyPlace[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const badness = classifyPlaceBadness(place);
   const lastGood = alternatives.find((p) => p.country);
+
+  // Auto-load nearby places suggestions whenever the active (bad) pin changes.
+  useEffect(() => {
+    const lat = (place?.geo as any)?.lat;
+    const lon = (place?.geo as any)?.lon;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) { setNearby([]); return; }
+    let cancelled = false;
+    setNearbyLoading(true);
+    supabase.functions
+      .invoke("awareness-nearby-places", { body: { lat, lon } })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data?.places) { setNearby([]); return; }
+        setNearby(data.places as NearbyPlace[]);
+      })
+      .catch(() => { if (!cancelled) setNearby([]); })
+      .finally(() => { if (!cancelled) setNearbyLoading(false); });
+    return () => { cancelled = true; };
+  }, [place?.id, (place?.geo as any)?.lat, (place?.geo as any)?.lon]);
 
   // Auto-refresh prompt: when the active place transitions from no-country
   // to a real country, offer a rescan. Detected via parent re-render of `place`.
@@ -205,6 +235,32 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
     }
   };
 
+  const useNearby = async (np: NearbyPlace) => {
+    if (!session) return;
+    setBusy("search");
+    try {
+      const label = np.admin ? `${np.name}, ${np.admin}` : np.name;
+      const { data } = await supabase
+        .from("awareness_places")
+        .insert({
+          user_id: session.user.id,
+          label,
+          geo: { lat: np.lat, lon: np.lon, source: "nearby_suggestion", city: np.name },
+        })
+        .select("id")
+        .single();
+      if (data) {
+        await setActivePlace((data as any).id);
+        toast.success(vantaSay.switchedPlace(label));
+        // Reverse geocode + auto-rescan in background
+        await reverseGeocode((data as any).id);
+        onDismiss?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const useSaved = async (alt: AwarenessPlace) => {
     setBusy("switch");
     try {
@@ -311,6 +367,45 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
       {sampleStatus && (
         <div className="text-[11px] text-muted-foreground">{sampleStatus}</div>
       )}
+
+      {/* Nearby suggestions — auto-loaded from the bad pin's vicinity. */}
+      {(nearbyLoading || nearby.length > 0) && (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary/70" />
+            Places near this pin
+            {nearbyLoading && <Loader2 className="h-3 w-3 animate-spin opacity-60" />}
+          </div>
+          {nearby.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {nearby.slice(0, 8).map((np, i) => {
+                const km = np.distance_m / 1000;
+                const dist = km < 1 ? `${np.distance_m}m` : `${km.toFixed(km < 10 ? 1 : 0)}km`;
+                return (
+                  <button
+                    key={`${np.kind}:${np.name}:${i}`}
+                    onClick={() => useNearby(np)}
+                    disabled={!!busy}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/[0.06] px-2.5 py-1 text-[11.5px] text-foreground/90 hover:bg-primary/[0.12] disabled:opacity-60"
+                    title={`${np.kind} · ${dist} away${np.admin ? ` · ${np.admin}` : ""}`}
+                  >
+                    <MapPin className="h-3 w-3 text-primary/70" />
+                    <span className="truncate max-w-[140px]">{np.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{dist}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {!nearbyLoading && nearby.length === 0 && (
+            <div className="text-[11px] text-muted-foreground">
+              No nearby towns found. Try typing below or pick on map.
+            </div>
+          )}
+        </div>
+      )}
+
+
 
       {/* Manual search */}
       <div className="space-y-1.5">
