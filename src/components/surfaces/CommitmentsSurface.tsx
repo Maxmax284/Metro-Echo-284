@@ -56,6 +56,29 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
   useEffect(() => { if (session) refresh(); }, [session, filter]);
 
+  // Push deep-link: focus the target commitment. Switch to "all" filter so
+  // done/cancelled items still surface, scroll the row into view, and
+  // briefly highlight it. Done once per focusId.
+  useEffect(() => {
+    if (!focusId || items.length === 0) return;
+    const exists = items.find((x) => x.id === focusId);
+    if (!exists) {
+      if (filter === "open") setFilter("all");
+      return;
+    }
+    setHighlightId(focusId);
+    requestAnimationFrame(() => {
+      const el = itemRefs.current[focusId];
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => {
+      setHighlightId(null);
+      onFocusHandled?.();
+    }, 2400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, items]);
+
   const create = async () => {
     if (!session || !draft.summary.trim()) return;
     const remindAt = draft.due_at
