@@ -226,10 +226,23 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     }
   }, [place]);
 
+  const setActivePlace = useCallback(async (id: string) => {
+    // "Active" = most recently updated. Bumping updated_at makes it the active one.
+    await supabase.from("awareness_places").update({ updated_at: new Date().toISOString() }).eq("id", id);
+    await refresh();
+  }, [refresh]);
+
+  const deletePlace = useCallback(async (id: string) => {
+    await supabase.from("awareness_briefings").delete().eq("place_id", id);
+    await supabase.from("awareness_snapshots" as any).delete().eq("place_id", id);
+    await supabase.from("awareness_places").delete().eq("id", id);
+    await refresh();
+  }, [refresh]);
+
   const value = useMemo<Ctx>(() => ({
     place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall,
-    snapshot, snapshotLoading, refreshSnapshot,
-  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall, snapshot, snapshotLoading, refreshSnapshot]);
+    snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace,
+  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall, snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace]);
 
   return <AwarenessCtx.Provider value={value}>{children}</AwarenessCtx.Provider>;
 }
