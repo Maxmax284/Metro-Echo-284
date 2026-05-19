@@ -378,9 +378,10 @@ export function MemoryFilesView() {
               {composingFor === f.id && (
                 <ReminderComposer
                   initialText=""
+                  initialTitle={`Review ${f.filename}`}
                   defaultDayOffset={1}
                   onCancel={() => setComposingFor(null)}
-                  onConfirm={(r) => createReminderForFile(f, r.due_at, r.remind_at, r.timezone)}
+                  onConfirm={(r) => createReminderForFile(f, r.due_at, r.remind_at, r.timezone, r.title)}
                 />
               )}
             </li>
