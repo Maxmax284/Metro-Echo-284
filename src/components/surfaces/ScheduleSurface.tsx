@@ -7,6 +7,7 @@ import { Calendar, Bell, CheckSquare, FileText, ListChecks, Inbox } from "lucide
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 
 type TabKey = "today" | "upcoming" | "week";
 
