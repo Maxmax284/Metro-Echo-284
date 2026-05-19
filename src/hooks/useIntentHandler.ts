@@ -114,6 +114,8 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
           toast.success(vantaSay.reminderCreated(parsed.phrasing));
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
+        } else if (kind === "run_sherlock") {
+          openSherlock({
             entity_type: "freeform",
             title: (args.text ?? "").slice(0, 80),
             text: args.text ?? "",
