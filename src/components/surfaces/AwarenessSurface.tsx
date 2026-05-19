@@ -49,6 +49,21 @@ export function AwarenessSurface() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
   const [recentering, setRecentering] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+
+  // Watch for country null → set transition to offer a rescan prompt.
+  const prevCountryRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!place) { prevCountryRef.current = undefined; return; }
+    const prev = prevCountryRef.current;
+    if (prev === null && place.country) {
+      toast.success(vantaSay.locationFixedRescan());
+      setRecoveryOpen(false);
+      setRecoveryDismissed(true);
+    }
+    prevCountryRef.current = place.country ?? null;
+  }, [place?.id, place?.country]);
 
   const loadList = async () => {
     const { data } = await supabase
@@ -59,6 +74,15 @@ export function AwarenessSurface() {
   };
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
+
+  const badness = classifyPlaceBadness(place);
+  const alternatives = places.filter((p) => p.id !== place?.id && !!p.country);
+  // Open the panel automatically once when bad is first detected (per place).
+  useEffect(() => {
+    if (badness.bad && !recoveryDismissed) setRecoveryOpen(true);
+    if (!badness.bad) setRecoveryDismissed(false);
+  }, [badness.bad, place?.id]);
+
 
   const openSection = (section: string) => {
     setDrawerSection(section);
