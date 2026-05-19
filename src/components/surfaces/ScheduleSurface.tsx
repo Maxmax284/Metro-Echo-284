@@ -10,7 +10,7 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 
 type TabKey = "today" | "upcoming" | "week";
 
-type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string; metadata: any };
+type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
 
 export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) => void }) {
