@@ -178,11 +178,88 @@ Deno.serve(async (req: Request) => {
       }
       // ----------------------------------------------------------------------
 
+      // Push delivery branch -------------------------------------------------
+      if (pushConfigured && prof.prefs.push_reminders_enabled) {
+        const urgent = c.priority === "urgent";
+        if (!urgent && isInQuietHours(prof.tz, prof.prefs.quiet_hours_start, prof.prefs.quiet_hours_end)) {
+          pushSkipped++;
+          await audit("reminder.push_skipped_quiet_hours", { tz: prof.tz });
+        } else {
+          const meta: any = c.metadata ?? {};
+          const lastPushMs = meta.push_sent_at ? new Date(meta.push_sent_at).getTime() : 0;
+          if (lastPushMs && Date.now() - lastPushMs < PUSH_THROTTLE_MS) {
+            pushSkipped++;
+          } else {
+            const { data: subs } = await supabase
+              .from("push_subscriptions")
+              .select("id, endpoint, p256dh, auth")
+              .eq("user_id", c.user_id);
+            if (subs && subs.length > 0) {
+              const title = overdue ? "Overdue" : "Heads up";
+              const when = c.due_at
+                ? new Intl.DateTimeFormat("en-US", {
+                    timeZone: prof.tz, weekday: "short", month: "short", day: "numeric",
+                    hour: "numeric", minute: "2-digit",
+                  }).format(new Date(c.due_at))
+                : "";
+              const body = overdue
+                ? `${c.summary}${when ? ` — was due ${when}` : ""}`
+                : `${c.summary}${when ? ` — due ${when}` : ""}`;
+              const payload = {
+                title: `Vanta · ${title}`,
+                body,
+                tag: `commitment-${c.id}`,
+                url: `/?commitment=${c.id}`,
+                data: { commitment_id: c.id, overdue },
+              };
+              let anySent = false;
+              for (const s of subs) {
+                const r = await sendWebPush(
+                  { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
+                  payload,
+                  { vapidPublicKey: vapidPublic, vapidPrivateKey: vapidPrivate, vapidSubject },
+                );
+                if (r.ok) {
+                  anySent = true;
+                  await supabase.from("push_subscriptions")
+                    .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
+                    .eq("id", s.id);
+                } else if (r.shouldDelete) {
+                  await supabase.from("push_subscriptions").delete().eq("id", s.id);
+                  await audit("push.subscription_expired", { status: r.status });
+                } else {
+                  await supabase.from("push_subscriptions")
+                    .update({ last_error: r.error ?? `status ${r.status}`, failure_count: (s as any).failure_count ? (s as any).failure_count + 1 : 1 })
+                    .eq("id", s.id);
+                }
+              }
+              if (anySent) {
+                pushSent++;
+                await supabase.from("commitments")
+                  .update({ metadata: { ...meta, push_sent_at: new Date().toISOString() } })
+                  .eq("id", c.id);
+                await audit("reminder.push_sent", { overdue, sub_count: subs.length });
+              } else {
+                pushFailed++;
+                await audit("reminder.push_failed", { sub_count: subs.length });
+              }
+            }
+          }
+        }
+      }
+      // ----------------------------------------------------------------------
+
       await supabase.from("commitments").update({ last_reminded_at: now }).eq("id", c.id);
     }
 
     return new Response(
-      JSON.stringify({ swept: due?.length ?? 0, emitted, telegramSent, telegramSkipped, telegramFailed }),
+      JSON.stringify({
+        swept: due?.length ?? 0,
+        emitted,
+        telegramSent, telegramSkipped, telegramFailed,
+        pushSent, pushSkipped, pushFailed,
+        pushConfigured,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
