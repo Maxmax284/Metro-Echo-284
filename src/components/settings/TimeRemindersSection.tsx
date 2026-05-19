@@ -39,6 +39,28 @@ export function TimeRemindersSection() {
   const { prefs, update, loading } = useUserPreferences();
   const { browserTimezone, storedTimezone, drifted } = useUserTimezone();
   const [tzQuery, setTzQuery] = useState("");
+  const [tgStatus, setTgStatus] = useState<{ lastSent: string | null; skipped: number; failed: number } | null>(null);
+
+  // Pull last 7 days of Telegram delivery audit so the user can see what's actually happening.
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const { data } = await supabase
+        .from("audit_log")
+        .select("event, created_at")
+        .eq("user_id", user.id)
+        .like("event", "reminder.telegram_%")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      const rows = data ?? [];
+      const lastSent = rows.find((r: any) => r.event === "reminder.telegram_sent")?.created_at ?? null;
+      const skipped = rows.filter((r: any) => r.event === "reminder.telegram_skipped_quiet_hours").length;
+      const failed = rows.filter((r: any) => r.event === "reminder.telegram_failed").length;
+      setTgStatus({ lastSent, skipped, failed });
+    })();
+  }, [user, prefs.telegram_reminders_enabled]);
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
