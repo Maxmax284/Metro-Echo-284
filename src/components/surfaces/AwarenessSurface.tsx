@@ -177,15 +177,15 @@ export function AwarenessSurface() {
   const generatedAt = snapshot?.generated_at ?? overall.newest_at;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-4 pt-3 pb-2">
+    <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
+      <div className="px-4 pt-3 pb-2 min-w-0">
         <h2 className="text-lg font-semibold tracking-tight">Awareness</h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground break-words">
           Operational context for where you are. Confidence labels included; not safety, legal, or medical advice.
         </p>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-36 md:pb-24 safe-bottom space-y-4">
+      <div className="scrollbar-thin flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 pb-36 md:pb-24 safe-bottom space-y-4">
         {/* Place strip — sticky on mobile. Two clean lines. Extra chips in More. */}
         {place && (() => {
           const tier = classifyTier(place);
