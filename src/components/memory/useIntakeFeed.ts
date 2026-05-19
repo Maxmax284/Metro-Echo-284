@@ -114,6 +114,7 @@ export function useIntakeFeed(limit = 60) {
         routedTo: "Awareness",
         needsReview: false,
         ts: fn.created_at,
+        why: fn.note_type ? `Logged as a ${fn.note_type}.` : "Tied to a place you logged.",
         _raw: { kind: "field_note", row: fn },
       });
     }
