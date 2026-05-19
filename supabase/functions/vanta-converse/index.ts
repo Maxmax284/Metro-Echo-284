@@ -16,6 +16,7 @@ Tool routing rules:
 - If the user wants to capture a note, stage an action, or make a commitment → call capture_note / stage_action / add_commitment.
 - If the user asks for analysis ("analyze this", "what am I missing", "what risks", "compare these", "critique"), call run_sherlock with the relevant text.
 - If the user asks a location- or place-based question (e.g. "where can I get a SIM", "is this area safe at night", "how do taxis work here"), call query_awareness.
+- If the user asks about their schedule, today, what's next, what's due, what's coming up, when something is, reminders, or upcoming commitments → call query_schedule.
 - Otherwise, answer briefly. Acknowledge uncertainty; never present guesses as facts. No emoji.`;
 
 const tools = [
