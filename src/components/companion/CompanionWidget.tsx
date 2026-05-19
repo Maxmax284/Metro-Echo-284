@@ -140,7 +140,7 @@ export function CompanionWidget() {
           onClick={open}
           aria-label="Open companion"
           className={cn(
-            "fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full",
+            "fixed bottom-24 right-3 z-40 flex h-12 w-12 items-center justify-center rounded-full",
             "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow",
             "transition-transform hover:scale-105 active:scale-95",
             "md:bottom-6 md:right-6"
