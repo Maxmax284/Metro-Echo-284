@@ -102,15 +102,16 @@ Deno.serve(async (req: Request) => {
 
     const { data: due, error } = await supabase
       .from("commitments")
-      .select("id, user_id, summary, due_at, remind_at, last_reminded_at, priority, metadata")
+      .select("id, user_id, summary, due_at, remind_at, last_reminded_at, priority, metadata, source_note")
       .eq("status", "open")
       .or(`remind_at.lte.${now},and(due_at.lte.${in24h},remind_at.is.null)`)
       .limit(500);
     if (error) throw error;
 
-    // Cache profile + chat lookups per user across the sweep.
+    // Cache profile + chat + note lookups per sweep.
     const profiles = new Map<string, { tz: string; prefs: Prefs }>();
     const chatIds = new Map<string, number | null>();
+    const notesCache = new Map<string, { title: string | null; body: string | null }>();
 
     let emitted = 0;
     let telegramSent = 0;
