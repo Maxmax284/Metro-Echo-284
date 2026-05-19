@@ -147,20 +147,45 @@ export function AuditSurface() {
               className="h-7 pl-7 text-xs"
             />
           </div>
+          {activeFilters > 0 && (
+            <button
+              onClick={clearAll}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted/30 px-2 py-1 text-[10.5px] text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+              aria-label="Clear filters"
+            >
+              <X className="h-3 w-3" /> Clear {activeFilters}
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="-mx-1 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 pb-0.5">
           {QUICK_FILTERS.map((qf) => (
             <button
               key={qf.id || "all"}
               onClick={() => setQuick(qf.id)}
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                "shrink-0 snap-start rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
                 quick === qf.id
                   ? "bg-primary/15 text-primary ring-primary/40"
                   : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
               )}
             >
               {qf.label}
+            </button>
+          ))}
+        </div>
+        <div className="-mx-1 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1">
+          {EVENT_CLASSES.map((ec) => (
+            <button
+              key={ec.id || "any"}
+              onClick={() => setEventClass(ec.id)}
+              className={cn(
+                "shrink-0 snap-start rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                eventClass === ec.id
+                  ? "bg-accent/30 text-foreground ring-accent/50"
+                  : "bg-muted/20 text-muted-foreground ring-border/50 hover:bg-muted/40",
+              )}
+            >
+              {ec.label}
             </button>
           ))}
         </div>
