@@ -60,9 +60,8 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
   return (
     <div
       className={cn(
-        // Mobile: horizontal scroll snap row with safe overscroll.
-        // Desktop: wraps.
-        "flex gap-1.5 -mx-1 px-1 overflow-x-auto md:overflow-visible md:flex-wrap snap-x snap-mandatory scrollbar-thin",
+        // Wrap chips on every viewport — no horizontal scroll on mobile.
+        "flex flex-wrap gap-1.5",
         className,
       )}
       role="group"
