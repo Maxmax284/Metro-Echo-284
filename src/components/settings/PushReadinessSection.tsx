@@ -118,9 +118,10 @@ export function PushReadinessSection() {
       </div>
 
       <div className="mt-4 space-y-2 text-[12px]">
+        {isIosNotInstalled() && status !== "ready" && <IosInstallGuidance />}
         {status === "unsupported" && (
           <Hint icon={<Info className="h-4 w-4" />}>
-            Push reminders aren't supported in this browser. iOS Safari supports it only when Vanta is installed to the home screen.
+            Push reminders aren't supported in this browser. On iPhone, Vanta must be installed to the Home Screen first (see steps above).
           </Hint>
         )}
         {status === "blocked" && (
@@ -163,6 +164,43 @@ function Hint({ icon, children }: { icon: React.ReactNode; children: React.React
     <div className="flex items-start gap-2 rounded-lg bg-background/40 p-3 ring-1 ring-border/60">
       <span className="mt-0.5 text-foreground/70">{icon}</span>
       <div className="text-[12px] text-muted-foreground">{children}</div>
+    </div>
+  );
+}
+
+// iOS-specific: Safari only allows Web Push when the site is installed to the Home Screen.
+// We detect iPhone/iPad and surface the Add-to-Home-Screen steps in plain language.
+function isIosNotInstalled(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const isIos = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
+  if (!isIos) return false;
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches
+    || (navigator as any).standalone === true;
+  return !standalone;
+}
+
+function IosInstallGuidance() {
+  return (
+    <div className="rounded-lg bg-amber-500/5 p-3 ring-1 ring-amber-500/30 text-[12px]">
+      <div className="flex items-center gap-2 font-medium text-amber-300">
+        <Info className="h-4 w-4" />
+        Install Vanta first on iPhone
+      </div>
+      <p className="mt-1 text-muted-foreground">
+        iOS is picky — Safari only allows push notifications after Vanta is added to the Home Screen.
+      </p>
+      <ol className="mt-2 space-y-1 pl-5 text-muted-foreground list-decimal">
+        <li>Open Vanta in <span className="text-foreground">Safari</span> (not Chrome).</li>
+        <li>Tap the <span className="text-foreground">Share</span> button.</li>
+        <li>Choose <span className="text-foreground">Add to Home Screen</span>, then <span className="text-foreground">Add</span>.</li>
+        <li>Open Vanta from the new Home Screen icon.</li>
+        <li>Come back here and tap <span className="text-foreground">Enable push reminders</span>.</li>
+      </ol>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Don't want to deal with it? Connect Telegram instead — reminders will go there with no install dance.
+      </p>
     </div>
   );
 }

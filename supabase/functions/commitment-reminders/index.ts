@@ -42,13 +42,32 @@ function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
   } catch { return false; }
 }
 
-function composeTelegram(summary: string, overdue: boolean, dueAt: string | null, tz: string): string {
+function composeTelegram(
+  summary: string,
+  overdue: boolean,
+  dueAt: string | null,
+  tz: string,
+  opts: { noteTitle?: string | null; noteSnippet?: string | null; commitmentId?: string } = {},
+): string {
   const when = dueAt ? new Intl.DateTimeFormat("en-US", {
     timeZone: tz, weekday: "short", month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit",
   }).format(new Date(dueAt)) : "";
-  if (overdue) return `⏰ Overdue: ${summary}${when ? ` (was due ${when} ${tz})` : ""}`;
-  return `Heads up: ${summary}${when ? ` — due ${when} ${tz}` : ""}`;
+  const header = overdue
+    ? `⏰ Overdue — ${summary}`
+    : `Reminder — ${summary}`;
+  const lines: string[] = [header];
+  if (when) lines.push(overdue ? `Was due: ${when} (${tz})` : `Due: ${when} (${tz})`);
+  const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 220);
+  if (opts.noteTitle || snippet) {
+    const noteLine = [opts.noteTitle, snippet].filter(Boolean).join(" — ");
+    if (noteLine) lines.push(`Note: ${noteLine}`);
+  }
+  const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
+  if (publicUrl && opts.commitmentId) {
+    lines.push(`Open in Vanta: ${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`);
+  }
+  return lines.join("\n");
 }
 
 async function sendTelegram(chatId: number, text: string): Promise<{ ok: boolean; err?: string }> {
@@ -83,15 +102,16 @@ Deno.serve(async (req: Request) => {
 
     const { data: due, error } = await supabase
       .from("commitments")
-      .select("id, user_id, summary, due_at, remind_at, last_reminded_at, priority, metadata")
+      .select("id, user_id, summary, due_at, remind_at, last_reminded_at, priority, metadata, source_note")
       .eq("status", "open")
       .or(`remind_at.lte.${now},and(due_at.lte.${in24h},remind_at.is.null)`)
       .limit(500);
     if (error) throw error;
 
-    // Cache profile + chat lookups per user across the sweep.
+    // Cache profile + chat + note lookups per sweep.
     const profiles = new Map<string, { tz: string; prefs: Prefs }>();
     const chatIds = new Map<string, number | null>();
+    const notesCache = new Map<string, { title: string | null; body: string | null }>();
 
     let emitted = 0;
     let telegramSent = 0;
@@ -160,7 +180,25 @@ Deno.serve(async (req: Request) => {
               chatIds.set(c.user_id, chatId);
             }
             if (chatId) {
-              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz);
+              let noteTitle: string | null = null;
+              let noteBody: string | null = null;
+              if (c.source_note) {
+                let cached = notesCache.get(c.source_note);
+                if (!cached) {
+                  const { data: n } = await supabase
+                    .from("notes")
+                    .select("title, body")
+                    .eq("id", c.source_note)
+                    .maybeSingle();
+                  cached = { title: n?.title ?? null, body: n?.body ?? null };
+                  notesCache.set(c.source_note, cached);
+                }
+                noteTitle = cached.title;
+                noteBody = cached.body;
+              }
+              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
+                noteTitle, noteSnippet: noteBody, commitmentId: c.id,
+              });
               const r = await sendTelegram(chatId, text);
               if (r.ok) {
                 telegramSent++;
