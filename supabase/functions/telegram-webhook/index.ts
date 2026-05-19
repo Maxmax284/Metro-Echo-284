@@ -129,21 +129,38 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   const choice = j.choices?.[0]?.message;
   let reply = choice?.content?.trim() ?? "";
   const intents: string[] = [];
+  let detectedType: string | null = null;
+  let routedTo: string | null = null;
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const note = await applyIntent(sb, userId, tc.function.name, args);
-      if (note) intents.push(note);
+      const res = await applyIntent(sb, userId, tc.function.name, args);
+      if (res) {
+        intents.push(res.reply);
+        detectedType = res.detectedType;
+        routedTo = res.routedTo;
+      }
     } catch { /* ignore */ }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
   if (!reply) reply = VANTA_PHRASES.gotIt();
 
-  // persist into the user's most recent conversation for cross-surface continuity
+  // persist into the user's most recent conversation for cross-surface continuity.
+  // Stamp detected_type / routed_to / needs_review so the Capture Log + Captures lane
+  // can render the front-desk chips uniformly across channels.
+  const userMeta: Record<string, unknown> = { source: "telegram" };
+  if (detectedType) userMeta.detected_type = detectedType;
+  if (routedTo) {
+    userMeta.routed_to = routedTo;
+    userMeta.confidence = "high";
+  } else {
+    userMeta.needs_review = true;
+    userMeta.confidence = "low";
+  }
   if (conv?.id) {
     await sb.from("messages").insert([
-      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: { source: "telegram" } },
-      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram" } },
+      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
+      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
     ]);
   }
   return reply;
