@@ -214,7 +214,7 @@ function IndexInner() {
           {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
           {surface === "memory" && <MemorySurface />}
-          {surface === "commitments" && <CommitmentsSurface />}
+          {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
           {surface === "actions" && <ActionsSurface />}
           {surface === "sherlock" && <SherlockSurface />}
           {surface === "awareness" && <AwarenessSurface />}
