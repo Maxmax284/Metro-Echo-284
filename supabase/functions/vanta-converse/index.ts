@@ -190,7 +190,9 @@ Deno.serve(async (req: Request) => {
 
     // Stage 3 — pull user's active corrections + recent field notes so Vanta
     // never repeats mistakes the user already corrected.
-    const [{ data: corrections }, { data: fieldNotes }] = await Promise.all([
+    // Also pull timezone + default morning/afternoon/evening so the model can
+    // resolve vague reminder times against the user's actual day shape.
+    const [{ data: corrections }, { data: fieldNotes }, { data: profile }] = await Promise.all([
       supabase
         .from("corrections")
         .select("surface, target_type, feedback_type, user_note, created_at")
@@ -203,6 +205,11 @@ Deno.serve(async (req: Request) => {
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(8),
+      supabase
+        .from("profiles")
+        .select("timezone, preferences")
+        .eq("id", user.id)
+        .maybeSingle(),
     ]);
 
     const correctionsBlock = (corrections ?? []).length
@@ -218,7 +225,16 @@ Deno.serve(async (req: Request) => {
         ).join("\n")
       : "";
 
-    const sysWithCorrections = [SYSTEM_PROMPT, correctionsBlock, fieldNotesBlock]
+    const prefs = (profile?.preferences ?? {}) as any;
+    const tz = profile?.timezone || "UTC";
+    const timeBlock = `User time context — use this when resolving reminder times:
+- timezone: ${tz}
+- morning default: ${prefs.default_morning_time ?? "08:00"}
+- afternoon default: ${prefs.default_afternoon_time ?? "14:00"}
+- evening / tonight default: ${prefs.default_evening_time ?? "19:00"}
+- quiet hours: ${prefs.quiet_hours_start ?? "22:00"}–${prefs.quiet_hours_end ?? "07:00"}`;
+
+    const sysWithCorrections = [SYSTEM_PROMPT, timeBlock, correctionsBlock, fieldNotesBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
