@@ -528,12 +528,17 @@ export function MemorySurface() {
                       {why && <span className="italic opacity-80">{why}</span>}
                     </div>
                   </button>
-                  {!archived && (
+                  {!archived ? (
                     <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToCommitment(n); }}>Commitment</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToActionDraft(n); }}>Action draft</Button>
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToSherlock(n); }}>Sherlock</Button>
                       <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground" onClick={(e) => { e.stopPropagation(); archiveNote(n); }}>Archive</Button>
+                    </div>
+                  ) : (
+                    <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); unarchiveNote(n); }}>Undo archive</Button>
                     </div>
                   )}
                 </div>
