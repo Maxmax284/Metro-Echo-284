@@ -42,13 +42,32 @@ function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
   } catch { return false; }
 }
 
-function composeTelegram(summary: string, overdue: boolean, dueAt: string | null, tz: string): string {
+function composeTelegram(
+  summary: string,
+  overdue: boolean,
+  dueAt: string | null,
+  tz: string,
+  opts: { noteTitle?: string | null; noteSnippet?: string | null; commitmentId?: string } = {},
+): string {
   const when = dueAt ? new Intl.DateTimeFormat("en-US", {
     timeZone: tz, weekday: "short", month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit",
   }).format(new Date(dueAt)) : "";
-  if (overdue) return `⏰ Overdue: ${summary}${when ? ` (was due ${when} ${tz})` : ""}`;
-  return `Heads up: ${summary}${when ? ` — due ${when} ${tz}` : ""}`;
+  const header = overdue
+    ? `⏰ Overdue — ${summary}`
+    : `Reminder — ${summary}`;
+  const lines: string[] = [header];
+  if (when) lines.push(overdue ? `Was due: ${when} (${tz})` : `Due: ${when} (${tz})`);
+  const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 220);
+  if (opts.noteTitle || snippet) {
+    const noteLine = [opts.noteTitle, snippet].filter(Boolean).join(" — ");
+    if (noteLine) lines.push(`Note: ${noteLine}`);
+  }
+  const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
+  if (publicUrl && opts.commitmentId) {
+    lines.push(`Open in Vanta: ${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`);
+  }
+  return lines.join("\n");
 }
 
 async function sendTelegram(chatId: number, text: string): Promise<{ ok: boolean; err?: string }> {
