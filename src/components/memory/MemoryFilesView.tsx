@@ -143,21 +143,45 @@ export function MemoryFilesView() {
     refresh();
   };
 
-  const createReminderForFile = async (f: FileRow, due: string, remind: string, tz: string) => {
+  const createReminderForFile = async (
+    f: FileRow,
+    due: string,
+    remind: string,
+    tz: string,
+    title?: string,
+  ) => {
     if (!user) return;
+    const summary = (title && title.trim()) || `Review ${f.filename}`;
     const { data } = await supabase.from("commitments").insert({
       user_id: user.id,
-      summary: `Follow up on ${f.filename}`,
+      summary,
       due_at: due,
       remind_at: remind,
       priority: "normal",
     }).select("id").single();
     const meta = { ...(f.metadata ?? {}), reminder_id: data?.id, timezone: tz };
     await supabase.from("ingested_files").update({ metadata: meta }).eq("id", f.id);
-    await audit(f.id, "file.reminder_created", { commitment_id: data?.id, timezone: tz });
+    await audit(f.id, "file.reminder_created", {
+      commitment_id: data?.id,
+      timezone: tz,
+      remind_lead_minutes: Math.round((new Date(due).getTime() - new Date(remind).getTime()) / 60000),
+    });
     toast.success({ title: vantaSay.reminderSet(new Date(due).toLocaleString()) });
     setComposingFor(null);
     refresh();
+  };
+
+  const retryIngest = async (f: FileRow) => {
+    try {
+      await supabase.from("ingested_files").update({ status: "pending", error: null }).eq("id", f.id);
+      const { error } = await supabase.functions.invoke("files-ingest", { body: { ingested_file_id: f.id } });
+      if (error) throw error;
+      await audit(f.id, "file.ingest_retried");
+      toast.success({ title: "Re-reading it." });
+      refresh();
+    } catch (e) {
+      toast.fromError(e);
+    }
   };
 
   const sendToSherlock = async (f: FileRow) => {
