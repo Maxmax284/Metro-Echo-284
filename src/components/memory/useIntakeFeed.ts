@@ -46,6 +46,22 @@ export function useIntakeFeed(limit = 60) {
       sherlock: "Sent to Sherlock",
       ignored: "Filed away",
     };
+
+    const whyForMessage = (source: CaptureSource, meta: any, routed?: string) => {
+      if (routed === "ignored") return "Filed away — undo to bring it back.";
+      if (routed) return `Already ${ROUTE_LABEL[routed]?.toLowerCase() ?? routed}.`;
+      if (meta.needs_review) return "Couldn't tell what this is — pick a lane.";
+      if (meta.detected_type && meta.confidence === "low") return `Looks like a ${meta.detected_type}, but I'm not sure.`;
+      if (meta.detected_type) return `Looks like a ${meta.detected_type}.`;
+      return source === "telegram" ? "Came in from Telegram — needs a home." : "Captured — needs a home.";
+    };
+    const whyForFile = (f: any, meta: any) => {
+      if (f.status === "failed" || f.status === "error") return "I couldn't read this one.";
+      if (f.status === "pending") return "Still reading it.";
+      if (meta.document_type) return `Read as a ${meta.document_type}.`;
+      if (f.note_id) return "Saved to Memory.";
+      return "Saved, but I couldn't tell what kind of file it is.";
+    };
     for (const m of (msgs.data ?? []) as MsgRow[]) {
       const meta = m.metadata ?? {};
       const source: CaptureSource = meta.source === "telegram" ? "telegram" : "companion";
