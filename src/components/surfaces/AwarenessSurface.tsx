@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -11,6 +11,8 @@ import { LayerChips } from "@/components/awareness/LayerChips";
 import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
+import { BadLocationRecoveryPanel } from "@/components/awareness/BadLocationRecoveryPanel";
+import { classifyPlaceBadness } from "@/lib/locationSanity";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
@@ -36,7 +38,7 @@ function freshLabel(generated: string | null): string {
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating } = useAwareness();
+  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   const onSignalRoute = useSignalRoute();
@@ -47,6 +49,21 @@ export function AwarenessSurface() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeLayer, setActiveLayer] = useState<string | null>(null);
   const [recentering, setRecentering] = useState(false);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+
+  // Watch for country null → set transition to offer a rescan prompt.
+  const prevCountryRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!place) { prevCountryRef.current = undefined; return; }
+    const prev = prevCountryRef.current;
+    if (prev === null && place.country) {
+      toast.success(vantaSay.locationFixedRescan());
+      setRecoveryOpen(false);
+      setRecoveryDismissed(true);
+    }
+    prevCountryRef.current = place.country ?? null;
+  }, [place?.id, place?.country]);
 
   const loadList = async () => {
     const { data } = await supabase
@@ -57,6 +74,15 @@ export function AwarenessSurface() {
   };
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
+
+  const badness = classifyPlaceBadness(place);
+  const alternatives = places.filter((p) => p.id !== place?.id && !!p.country);
+  // Open the panel automatically once when bad is first detected (per place).
+  useEffect(() => {
+    if (badness.bad && !recoveryDismissed) setRecoveryOpen(true);
+    if (!badness.bad) setRecoveryDismissed(false);
+  }, [badness.bad, place?.id]);
+
 
   const openSection = (section: string) => {
     setDrawerSection(section);
@@ -156,66 +182,87 @@ export function AwarenessSurface() {
       </div>
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-36 md:pb-24 safe-bottom space-y-4">
-        {/* Place strip — sticky on mobile so Where/Tier/Confidence/Source stays visible. */}
-        {place && (
-          <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-[12px]">
+        {/* Place strip — sticky on mobile. Two clean lines. Extra chips in More. */}
+        {place && (() => {
+          const tier = classifyTier(place);
+          const TONE: Record<LocationTier, string> = {
+            exact:   "bg-primary/15 text-primary ring-primary/40",
+            saved:   "bg-primary/10 text-primary ring-primary/30",
+            area:    "bg-accent/15 text-accent ring-accent/40",
+            city:    "bg-accent/10 text-accent ring-accent/30",
+            country: "bg-warn/15 text-warn ring-warn/40",
+            unknown: "bg-muted/40 text-muted-foreground ring-border/60",
+          };
+          return (
+            <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
+              <div className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 space-y-1.5">
+                {/* Line 1 — identity */}
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <MapPin className="h-3.5 w-3.5 text-primary/80 shrink-0" />
+                  <span className="font-medium text-[12px] text-foreground/90 truncate">{place.label}</span>
+                  <span
+                    title={`Tier: ${tier.tier} — ${tier.display}`}
+                    className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 shrink-0", TONE[tier.tier])}
+                  >
+                    {tier.tier}
+                  </span>
+                  <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 shrink-0", confTone)}>
+                    {overall.confidence ?? "no signal"}
+                  </span>
+                </div>
 
-            <span className="inline-flex items-center gap-1 text-foreground/90">
-              <MapPin className="h-3.5 w-3.5 text-primary/80" />
-              <span className="font-medium">{place.label}</span>
-            </span>
-            {(() => {
-              const tier = classifyTier(place);
-              const TONE: Record<LocationTier, string> = {
-                exact:   "bg-primary/15 text-primary ring-primary/40",
-                saved:   "bg-primary/10 text-primary ring-primary/30",
-                area:    "bg-accent/15 text-accent ring-accent/40",
-                city:    "bg-accent/10 text-accent ring-accent/30",
-                country: "bg-warn/15 text-warn ring-warn/40",
-                unknown: "bg-muted/40 text-muted-foreground ring-border/60",
-              };
-              return (
-                <span
-                  title={`Location tier: ${tier.tier} — ${tier.display}`}
-                  className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", TONE[tier.tier])}
-                >
-                  {tier.tier}
-                </span>
-              );
-            })()}
-            <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1", confTone)}>
-              {overall.confidence ?? "no signal"}
-            </span>
-            <span
-              className="text-[10.5px] lowercase tracking-wide text-muted-foreground"
-              title={generatedAt ? new Date(generatedAt).toLocaleString() : "No scan recorded yet"}
-            >
-              {freshLabel(generatedAt)}
-            </span>
-            <SourceStatusPill />
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                onClick={recenter}
-                disabled={recentering}
-                title="Update this place to your current GPS location"
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-surface-elevated/60 disabled:opacity-60"
-              >
-                {recentering ? <Loader2 className="h-3 w-3 animate-spin" /> : <Crosshair className="h-3 w-3" />}
-                Recenter
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPlaces((v) => !v)}
-                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-              >
-                {showPlaces ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                Switch place
-              </button>
+                {/* Line 2 — status line */}
+                <div className="text-[11px] text-muted-foreground leading-snug">
+                  {badness.bad
+                    ? <span className="text-warn">{badness.headline}</span>
+                    : freshLabel(generatedAt)}
+                </div>
+
+                {/* Line 3 — primary action */}
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  {badness.bad ? (
+                    <Button
+                      size="sm"
+                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      onClick={() => setRecoveryOpen(true)}
+                    >
+                      <Wrench className="h-3.5 w-3.5" />
+                      Fix location
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      onClick={recenter}
+                      disabled={recentering}
+                    >
+                      {recentering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+                      Recenter
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-9 gap-1 text-[12px] text-muted-foreground"
+                    onClick={() => setShowPlaces((v) => !v)}
+                  >
+                    {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    Switch
+                  </Button>
+                  <div className="ml-auto"><SourceStatusPill /></div>
+                </div>
               </div>
             </div>
-          </div>
+          );
+        })()}
+
+        {/* Bad Location Recovery — primary path when pin is unusable. */}
+        {place && badness.bad && recoveryOpen && (
+          <BadLocationRecoveryPanel
+            alternatives={alternatives}
+            onDismiss={() => { setRecoveryOpen(false); setRecoveryDismissed(true); }}
+          />
         )}
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
@@ -384,19 +431,47 @@ export function AwarenessSurface() {
               </div>
             ) : (
               <ul className="space-y-2">
-                {places.map((p) => (
-                  <li key={p.id}>
-                    <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2">
-                      <MapPin className="h-4 w-4 text-primary/80" />
-                      <span className="text-sm font-medium">{p.label}</span>
-                      {place?.id === p.id && (
-                        <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
-                          active
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
+                {places.map((p) => {
+                  const isActive = place?.id === p.id;
+                  const pBad = classifyPlaceBadness(p as any).bad;
+                  return (
+                    <li key={p.id}>
+                      <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2">
+                        <MapPin className="h-4 w-4 text-primary/80 shrink-0" />
+                        <button
+                          onClick={() => !isActive && setActivePlace(p.id).then(() => toast.success(vantaSay.switchedPlace(p.label)))}
+                          className="text-left text-sm font-medium truncate hover:text-primary"
+                          disabled={isActive}
+                        >
+                          {p.label}
+                        </button>
+                        {pBad && (
+                          <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-warn ring-1 ring-warn/30">
+                            unresolved
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
+                            active
+                          </span>
+                        )}
+                        {!isActive && (
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete "${p.label}"?`)) return;
+                              await deletePlace(p.id);
+                              toast.success(vantaSay.placeDeleted());
+                            }}
+                            className="ml-auto text-muted-foreground hover:text-destructive"
+                            title="Delete place"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

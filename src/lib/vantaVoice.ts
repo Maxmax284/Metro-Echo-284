@@ -51,6 +51,21 @@ export const vantaSay = {
   awarenessAnswered: (place?: string) =>
     place ? `Awareness answered — ${place}.` : "Awareness answered — no active place set.",
 
+  // Bad location recovery
+  pinLooksOff: () => "This pin looks wrong. Let's fix it.",
+  pinOffshore: () => "This pin looks offshore. Probably a bad GPS fix.",
+  sameBadFix: () => "Your phone gave me the same offshore spot again.",
+  gotGps: () => "Got your GPS.",
+  geocodeOk: (place: string) => `Location fixed — now reading ${place}.`,
+  geocodeMissed: () => "Got your GPS, but I couldn't resolve a real place from it.",
+  highAccuracySampling: (s: number) => `Reading GPS for ${s}s…`,
+  highAccuracyFailed: () => "Tried a high-accuracy recenter, but the GPS still looks wrong. Pick a saved place or search manually.",
+  placeDeleted: () => "Deleted that bad spot.",
+  switchedPlace: (label: string) => `Now using ${label}.`,
+  manualPlaceSaved: (label: string) => `Saved ${label}. Using it now.`,
+  manualPlaceMiss: () => "Couldn't find that place. Try a different spelling.",
+  locationFixedRescan: () => "Location looks fixed. Want me to rescan local context?",
+
   // Source / scan state
   sourcePaused: (name: string) => `${name} paused.`,
   sourceResumed: (name: string) => `${name} back on.`,
