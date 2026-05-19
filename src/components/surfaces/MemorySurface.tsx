@@ -163,6 +163,28 @@ export function MemorySurface() {
     refresh();
   };
 
+  const unarchiveNote = async (n: Note) => {
+    const tags = (n.tags || []).filter((t) => t !== "archived");
+    await supabase.from("notes").update({ tags }).eq("id", n.id);
+    await auditNote(n.id, "memory.unarchived");
+    toast.success({ title: vantaSay.restored() });
+    refresh();
+  };
+
+  const noteToActionDraft = async (n: Note) => {
+    if (!session) return;
+    const { data } = await supabase.from("actions").insert({
+      user_id: session.user.id,
+      title: (n.title || n.body).slice(0, 120),
+      description: n.body.slice(0, 1000),
+      source: `note:${n.id}`,
+      status: "proposed",
+    }).select("id").single();
+    await auditNote(n.id, "note.converted_to_action_draft", { action_id: data?.id });
+    toast.success({ title: vantaSay.actionDrafted() });
+  };
+
+
   const aiAssist = async (action: "summarize" | "extract") => {
     if (!active || !session) return;
     setAiBusy(true);
