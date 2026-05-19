@@ -9,6 +9,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
+import { LinkChips, readLinks } from "@/components/links/LinkChips";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
@@ -191,9 +192,24 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       )}
 
       <div className="space-y-2">
-        {filtered.map((item) => (
-          <CaptureCard key={item.id} item={item} actions={actionsFor(item)} />
-        ))}
+        {filtered.map((item) => {
+          // Doctrine: linking is consistent across surfaces. Mount LinkChips on
+          // message-row captures (the row we can persist `metadata.links` against).
+          const isMessage = item._raw.kind === "message";
+          const meta = isMessage ? (item._raw.row.metadata ?? {}) : {};
+          const linkFooter = isMessage ? (
+            <LinkChips
+              entityKind="message"
+              entityId={item._raw.row.id}
+              links={readLinks(meta)}
+              onChange={refresh}
+              compact
+            />
+          ) : undefined;
+          return (
+            <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={linkFooter} />
+          );
+        })}
       </div>
     </div>
   );
