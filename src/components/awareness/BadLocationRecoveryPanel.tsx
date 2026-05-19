@@ -58,7 +58,7 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
     setBusy("quick");
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const before = place.geo ?? {};
+        const before: any = place.geo ?? {};
         const next = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy };
         const sameAsBefore =
           Number.isFinite(before.lat) &&
