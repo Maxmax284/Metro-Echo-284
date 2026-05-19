@@ -65,6 +65,10 @@ export const vantaSay = {
   manualPlaceSaved: (label: string) => `Saved ${label}. Using it now.`,
   manualPlaceMiss: () => "Couldn't find that place. Try a different spelling.",
   locationFixedRescan: () => "Location looks fixed. Want me to rescan local context?",
+  useLastGood: (label: string) => `Use ${label} again — that one's confirmed.`,
+  mapPickerApplied: (label: string) => `Pinned ${label} on the map. Using it now.`,
+  mapPickerResolving: () => "Reading that spot…",
+  autoRescanFired: () => "Rescanning local context for the new spot.",
 
   // Source / scan state
   sourcePaused: (name: string) => `${name} paused.`,
