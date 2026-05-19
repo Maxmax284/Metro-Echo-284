@@ -134,8 +134,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   }
 
   // Stage 3 — match Companion: pull active corrections + recent field notes so
-  // Telegram replies respect the same lived context.
-  const [{ data: corrections }, { data: fieldNotes }] = await Promise.all([
+  // Telegram replies respect the same lived context. Also pull tz + default
+  // morning/afternoon/evening so reminder routing can resolve vague hints.
+  const [{ data: corrections }, { data: fieldNotes }, { data: profile }] = await Promise.all([
     sb.from("corrections")
       .select("surface, target_type, feedback_type, user_note")
       .eq("user_id", userId).eq("status", "active")
@@ -144,6 +145,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
       .select("note_type, summary, location_label")
       .eq("user_id", userId).eq("status", "active")
       .order("created_at", { ascending: false }).limit(8),
+    sb.from("profiles").select("timezone, preferences").eq("id", userId).maybeSingle(),
   ]);
   const correctionsBlock = (corrections ?? []).length
     ? "Active user corrections (respect these; do not repeat the mistake):\n" +
@@ -157,7 +159,17 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
         `- [${n.note_type}]${n.location_label ? ` @ ${n.location_label}` : ""}: ${n.summary}`
       ).join("\n")
     : "";
-  const sys = [SYSTEM, correctionsBlock, fieldNotesBlock].filter(Boolean).join("\n\n");
+  const prefs = (profile?.preferences ?? {}) as any;
+  const defaults: UserDefaults = {
+    timezone: profile?.timezone || "UTC",
+    morning: prefs.default_morning_time ?? "08:00",
+    afternoon: prefs.default_afternoon_time ?? "14:00",
+    evening: prefs.default_evening_time ?? "19:00",
+  };
+  const timeBlock = `User time context:
+- timezone: ${defaults.timezone}
+- morning: ${defaults.morning}, afternoon: ${defaults.afternoon}, evening/tonight: ${defaults.evening}`;
+  const sys = [SYSTEM, timeBlock, correctionsBlock, fieldNotesBlock].filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
 
@@ -176,7 +188,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const res = await applyIntent(sb, userId, tc.function.name, args);
+      const res = await applyIntent(sb, userId, tc.function.name, args, defaults);
       if (res) {
         intents.push(res.reply);
         detectedType = res.detectedType;
