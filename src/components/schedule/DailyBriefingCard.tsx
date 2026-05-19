@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
-import { Sunrise, Sun, Moon, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 
 type Commitment = {
   id: string;
