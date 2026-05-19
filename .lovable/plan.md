@@ -1,118 +1,93 @@
+## Audit findings (current state, before any changes)
 
-## Audit findings (current state)
+**Files (Stage 1)**
+- `MemoryFilesView` exists as a Memory tab; cards show filename/source/status/document_type, support Open note, Correct type, Create reminder, Send to Sherlock, Archive, Upload.
+- Pipeline status copy is partially Vanta-voice; still mixes raw `status` strings ("done", "pending") in a few spots.
+- Missing: re-classify (no-AI heuristic re-run), attach-to-commitment, create-action-draft from a file, audit-trail link on the card, linked-person/project/place rollup on file cards.
+- Audit events present: `file.reminder_created`, `file.ingest_retried`. Missing: `file.type_corrected`, `file.routed`, `file.archived`, `file.sent_to_sherlock`, `file.attached_to_commitment`.
 
-- **Files**: `ingested_files` exists with status/metadata/note_id. `files-ingest` extracts text → creates note → emits `ingest.success` audit + nudge. No Files view; files appear only as captures in the intake feed and as notes in Memory. No pipeline state UI, no document_type classification UI, no route actions on files.
-- **Reminders**: No separate `reminders` table. The `commitments` table doubles as reminders via `remind_at`. `CommitmentsSurface` and `commitment-reminders` cron exist. No time/timezone rules — `due_at` is whatever the datetime-local picker says, no timezone awareness, no ambiguity handling.
-- **Timezone**: `profiles.timezone` column exists but is never written or read anywhere. App silently uses browser local time.
-- **Linking**: `note_links` exists (note↔note only). Tags-on-everything is the de-facto link layer. No person/project/place chips, no cross-entity linking helper.
-- **Telegram**: Capture lane works. Outbound notifications: `telegram-link` only. No reminder delivery path.
-- **Push**: No service worker push, no permission flow. PWA install card exists.
-- **Schedule views**: None. Cockpit shows nudges, not "what's due today".
-- **Daily briefing**: No briefing surface. `awareness-brief` is place-only.
-- **Settings**: API Control Room only. No Time & Reminders section.
-- **Companion time queries**: Intents handle capture/commitment/sherlock; no "what's due today" query path.
+**Linking (Stage 2)**
+- `LinkChips` exists; mounted on Memory notes and Commitments. Not mounted on Files, Captures, Reminders, or Schedule items.
+- Metadata-first model in place (`metadata.links: [{kind,label}]`). Recent-labels picker reads across notes/commitments only.
+- Audit `link.added` / `link.removed` is wired in `LinkChips` itself, so mounting it on more surfaces inherits audit for free.
 
-## Scope for this pass
+**Time / Reminders / Settings (Stage 3)**
+- `useUserTimezone`, `useUserPreferences`, `ReminderComposer`, `TimeRemindersSection` all exist.
+- Timezone picker, auto-detect, drift banner, quiet hours, default morning/afternoon/evening, Telegram opt-in toggle are present.
+- `commitments` doubles as reminders via `metadata.kind="reminder"`. `remind_at`/`due_at` are written in user TZ via composer.
+- Gaps: no `reminder.needs_time` / `reminder.scheduled` audit events on composer save; AM/PM disambiguation lives in `timeRules.ts` but composer doesn't always surface the prompt; no `timezone.manual_override` event.
 
-Implement Stages 1–4, 7–9 from the prompt. Stage 5 (Telegram delivery), 6 (push), 11 (Google Calendar) are explicitly staged for later with hooks in place.
+**Telegram delivery (Stage 4)**
+- `commitment-reminders` cron sweeps and emits `commitment.due_soon` / `commitment.overdue` into `audit_log`. **It does not send Telegram messages.** No quiet-hours check. No per-user opt-in check. No dedupe beyond a 6h `last_reminded_at` throttle.
+- `telegram_chat_links` table + `telegram-webhook` (inbound) exist. Outbound send helper exists in `telegram-link` only.
+- Settings already has `telegram_reminders_enabled` toggle (off by default).
 
-### Stage 1 — Files pipeline visibility (Memory → Files tab)
-- Add `MemoryFilesView` component, rendered as a third tab inside `MemorySurface` alongside Notes / Captures.
-- One card per `ingested_files` row: filename, source, upload time, mime, status pill, detected document_type (already written by `files-ingest`), confidence, linked note, audit-trail link.
-- Status copy uses Vanta voice: "Uploaded.", "Reading it.", "Saved.", "Couldn't read this one.", "Needs review."
+**Push (Stage 4)**
+- No service worker, no `Notification.requestPermission` flow, no push UI. PWA install card only.
 
-### Stage 2 — File route actions
-- On each file card: Open note, Re-classify (no AI), Correct type (dropdown of receipt/invoice/contract/admin/booking/screenshot/checklist/unknown — stored in `metadata.document_type`), Create reminder, Attach to commitment, Send to Sherlock, Archive (sets `metadata.archived=true`).
-- All emit audit events (`file.type_corrected`, `file.routed`, `file.archived`, `file.reminder_created`).
+**Schedule / Today / Briefing (Stage 5)**
+- `ScheduleSurface` with Today/Upcoming/Week tabs, `DailyBriefingCard` (counts-first, no AI), `ScheduleQueryChips` all exist.
+- Briefing has no "Polish with Vanta" opt-in button. No `briefing.generated` / `schedule.viewed` audit. Overdue is folded into Today, not a distinct chip on Schedule itself.
 
-### Stage 3 — Lightweight linking (metadata-first, no new tables)
-- Add `links` array on `notes.metadata` and `commitments.metadata` and `ingested_files.metadata`: `[{kind:"person"|"project"|"place", label, ref?}]`.
-- New `LinkChips` component renders chips like "Linked to Nikki" and offers `+ Link person/project/place` → opens a small popover with free-text or pick-from-recent (recent labels pulled from existing metadata across the user's notes — cheap, no new table).
-- Wire into Memory note cards, Commitments cards, Files cards. Empty state: "No strong links yet."
-- Audit: `link.added`, `link.removed`.
+**Companion / Sherlock (Stage 6)**
+- `useIntentHandler` handles `query_schedule` (today/tomorrow/week/overdue/next) with TZ-correct formatting.
+- Missing intents: `query_waiting` (captures awaiting routing), `query_files_needing_review`, `query_aftermath` ("what happened to X").
+- Sherlock: investigates free-text only. No object-handoff from Files/Memory/Captures/Commitments. No evidence-tier display, no link-back from Sherlock case to source object.
 
-### Stage 4 — Reminder + timezone foundation
-- Use `commitments` as the reminder table (already has `remind_at`, `due_at`, `priority`, `status`). Add a `kind` discriminator to `commitments.metadata` (`"reminder"` vs default commitment) — no schema change.
-- `profiles.timezone` becomes the source of truth. New `useUserTimezone()` hook reads it; falls back to `Intl.DateTimeFormat().resolvedOptions().timeZone`.
-- All due-date display switches to `formatInTimeZone` from `date-fns-tz` using user TZ. Show TZ label next to times ("7:00 PM Asia/Bangkok").
-- Reminder time rules in a new `ReminderComposer` (used from notes, files, captures, commitments, Companion):
-  - Specific time → schedule.
-  - Vague time + default configured → suggest "Tonight usually means 7 PM. Use that?"
-  - Vague + no default → ask.
-  - No time → ask.
-  - AM/PM ambiguous → ask.
-  - Other TZ stated → respect, show "Scheduled for 9:00 AM America/New_York."
-- "Create reminder" actions added to Memory notes, Capture cards, File cards, Commitment cards.
+**Mobile / PWA**
+- Recent passes verified Schedule/Daily Briefing at 384px. `ReminderComposer`, `MemoryFilesView`, `TimeRemindersSection`, `SherlockSurface` have not been re-validated at 384px in this pass.
+- PWA install card present. Standalone-mode hiding of install prompt not verified.
 
-### Stage 7 — Today / Upcoming / This Week
-- New `ScheduleSurface` (added to nav as "Today", uses Calendar icon). Three tabs.
-- Pulls from existing data only:
-  - Commitments due/overdue.
-  - Reminders (commitments with `metadata.kind=reminder`).
-  - Captures with `needs_review=true`.
-  - Files where `status='needs_review'` or `metadata.document_type` missing.
-  - Actions with `status='proposed'|'staged'`.
-- Each row shows source chip and links back to its surface.
-- Mobile-first: full-width cards, large tap targets.
+---
 
-### Stage 8 — Daily briefing (cheap, no AI by default)
-- New `DailyBriefingCard` rendered at top of Cockpit and inside Schedule → Today.
-- Generated client-side from counts: "Today: 3 reminders, 2 commitments, 4 captures waiting, 1 file needs review."
-- Then a short list of the top items.
-- Optional "Polish with Vanta" button → calls `vanta-converse` once with the briefing as input; default off.
-- Audit: `briefing.generated`, `briefing.ai_polished`.
+## Implementation plan (Stages 1–6, no Google Calendar)
 
-### Stage 9 — Companion time queries (no AI when avoidable)
-- Add intent handlers in `useIntentHandler`: `query_due_today`, `query_upcoming`, `query_waiting`, `query_files_needing_review`.
-- Each runs a direct DB query, formats a plain-English answer, posts it as an assistant message. AI only invoked for summarization if user asks "summarize my week" style.
+### Stage 1 — Files pipeline + route actions
+- Normalize all file-card status copy through a single `fileStatusLabel()` helper in `vantaVoice.ts` (Uploaded / Reading it / Saved / Needs review / Couldn't read this one / Filed away).
+- Add to each file card: **Attach to commitment** (picker of open commitments → writes `metadata.attached_file_ids`), **Re-classify** (runs keyword heuristic from `files-ingest`, no AI), **View audit trail** (link to Audit filtered by `entity_id`), and a one-line link rollup ("Linked to Nikki · GroundStay").
+- Emit audit: `file.type_corrected`, `file.routed`, `file.archived`, `file.sent_to_sherlock`, `file.attached_to_commitment`, `file.reclassified`.
 
-### Settings — Time & Reminders section
-- New section in `Settings.tsx`: timezone picker (searchable, common zones first), auto-detect toggle, default morning/afternoon/evening times, quiet hours start/end, delivery preferences (in-app on; Telegram + Push shown as "Coming soon" / staged toggle that writes preference but does not deliver yet).
-- Drift banner if browser TZ ≠ saved TZ.
-- Persists to `profiles.timezone` and new `profiles.metadata` (or a tiny `user_preferences` JSON column — see Technical).
-- Audit: `timezone.updated`, `timezone.autodetected`.
+### Stage 2 — Linking everywhere relevant
+- Mount existing `LinkChips` on: `FileCard` inside `MemoryFilesView`, `CaptureCard` (CapturesView), `CommitmentsSurface` reminder rows, and Schedule item rows where space allows (compact variant, max 2 chips + "+N").
+- Extend recent-labels picker to read across `ingested_files.metadata.links` and `messages.metadata.links` too.
+- No new tables, no new audit events (LinkChips already emits `link.added`/`link.removed`).
 
-### Audit coverage
-- Add events listed in the prompt where missing. All UI changes use Vanta voice.
+### Stage 3 — Reminder / TZ polish
+- `ReminderComposer`: surface AM/PM disambiguation prompt when `timeRules.detectAmbiguity()` returns true; surface vague-time default prompt ("Tonight usually means 7 PM. Use that?"); emit `reminder.needs_time` when saved as draft without time, `reminder.scheduled` when saved with time.
+- TimezoneSection: emit `timezone.manual_override` when user picks zone after device-drift banner shown.
+- No schema changes.
 
-### Staged (not built this pass)
-- Stage 5 — Telegram reminder delivery (delivery toggle exists in Settings as "Coming soon"; audit events reserved).
-- Stage 6 — PWA push (settings stub only).
-- Stage 11 — Google Calendar (not touched).
+### Stage 4 — Telegram delivery (live, opt-in) + Push readiness (staged)
+- Extend `commitment-reminders` cron:
+  - For each due item, look up `profiles.preferences.telegram_reminders_enabled` and `telegram_chat_links` for that user.
+  - Skip if disabled, no chat link, in quiet hours (unless `priority='urgent'`), or `metadata.telegram_sent_at` already set for this `last_reminded_at` window.
+  - Send via Telegram `sendMessage` using `TELEGRAM_BOT_TOKEN`; on success write `reminder.telegram_sent` + stamp `metadata.telegram_sent_at`; on failure `reminder.telegram_failed`; on quiet-hours skip `reminder.telegram_skipped_quiet_hours`.
+- Push: add a `PushReadinessSection` in Settings. Detect `'serviceWorker' in navigator && 'PushManager' in window`. Show status (Supported / Unsupported / Blocked / Off). Enable button only requests permission on tap. No service worker registration yet — copy says "Push is staged. We'll turn it on once delivery is verified." Emits `push.permission_requested`, `push.permission_granted`, `push.permission_denied`.
 
-## Technical notes
+### Stage 5 — Schedule / Briefing polish
+- Add **Overdue** as a distinct Schedule tab (currently a chip inside Today). Today stays focused on "due today + needs review".
+- Daily Briefing: add **Polish with Vanta** button (manual tap → single `vanta-converse` call, audit `briefing.ai_polished`). Always emit `briefing.generated` on first render per session.
+- Emit `schedule.viewed` with `{tab}` on tab change (debounced).
 
-- **No schema migration needed** for Stages 1–4 + 7–9 if we use:
-  - `commitments.metadata` (jsonb) for `kind:"reminder"`, `links:[]`, `timezone`.
-  - `notes.metadata.links`, `ingested_files.metadata.links`, `metadata.archived`, `metadata.document_type`.
-  - `profiles.timezone` (existing column).
-- **One small migration** for user preferences: add `profiles.preferences jsonb default '{}'` to hold `default_morning_time`, `default_evening_time`, `quiet_hours_start/end`, `telegram_reminders_enabled`, `push_reminders_enabled`. Cheaper than a new table; profile is already per-user.
-- **Dependency**: add `date-fns-tz` for timezone-correct formatting.
-- **No new edge functions** required this pass; existing `commitment-reminders` cron continues to work and will pick up reminders since they're just commitments with `metadata.kind="reminder"`.
-- **No automatic AI calls.** All AI is behind explicit user taps.
-- **Files**: no real classifier yet — `metadata.document_type` is set by user "Correct type" action or by a cheap keyword heuristic at ingest time (already partially present from earlier pass). UI clearly says "Needs review" until set.
+### Stage 6 — Companion aftermath + Sherlock object handoff + Mobile/PWA
+- New intents in `useIntentHandler`: `query_waiting` (captures with `needs_review=true`), `query_files_needing_review` (`status='needs_review'` or `metadata.document_type` missing), `query_aftermath` (given an entity ref, walk `audit_log` for that `entity_id` and produce a plain-English timeline).
+- Sherlock object handoff: add `SendToSherlockButton` invocations from FileCard, MemoryNote, Capture, Commitment that pre-fill investigation context with a structured `{entity_type, entity_id, summary}`. SherlockOverlay renders a "Investigating: <object>" header and writes the resulting case back as `audit_log.event='sherlock.case_linked'` with `entity_id` pointing at the source.
+- Sherlock evidence tier: render the existing confidence value with three-tier copy ("Worth checking" / "Likely" / "Confirmed by your records").
+- Mobile sweep at 384px for: `ReminderComposer`, `MemoryFilesView`, `TimeRemindersSection`, `PushReadinessSection`, `SherlockSurface`. Fix any overflow, crowded chips, hidden primary actions.
+- PWA: in `InstallVantaSection`, hide install CTA when `matchMedia('(display-mode: standalone)').matches`.
 
-## Files touched (approx)
+### Out of scope (per prompt)
+- No Google Calendar.
+- No live push delivery (only readiness UI + permission flow).
+- No new tables — all stages use existing `commitments`, `ingested_files`, `notes`, `messages`, `audit_log`, `profiles.preferences`.
 
-New:
-- `src/components/memory/MemoryFilesView.tsx`
-- `src/components/memory/FileCard.tsx`
-- `src/components/links/LinkChips.tsx`
-- `src/components/reminders/ReminderComposer.tsx`
-- `src/components/surfaces/ScheduleSurface.tsx`
-- `src/components/cockpit/DailyBriefingCard.tsx`
-- `src/hooks/useUserTimezone.ts`
-- `src/hooks/useUserPreferences.ts`
-- `src/lib/timeRules.ts` (vague-time parser + AM/PM disambiguation)
-- `src/components/settings/TimeRemindersSection.tsx`
+### Technical notes
+- One small change to `commitment-reminders` edge function adds Telegram send + quiet-hours/opt-in checks. Requires existing `TELEGRAM_BOT_TOKEN` secret (already used by `telegram-link`/`telegram-webhook`).
+- Quiet-hours check: compute current local time in `profiles.timezone`, compare against `quiet_hours_start`/`end` (handles wrap past midnight).
+- Dedup: stamp `metadata.telegram_sent_at` on the commitment after send; cron skips if within 6h.
+- No new dependencies.
 
-Edited:
-- `src/components/surfaces/MemorySurface.tsx` (Files tab, link chips, "Create reminder")
-- `src/components/surfaces/CommitmentsSurface.tsx` (TZ-correct display, link chips, reminder kind)
-- `src/components/memory/CapturesView.tsx` (Create reminder action)
-- `src/components/surfaces/CommandCenterSurface.tsx` (DailyBriefingCard mount)
-- `src/components/shell/SurfaceTabs.tsx` (Schedule tab)
-- `src/hooks/useIntentHandler.ts` (time query intents, TZ-aware add_commitment)
-- `src/pages/Settings.tsx` (Time & Reminders section)
-- `src/lib/vantaVoice.ts` (new copy)
-- One migration: `profiles.preferences jsonb`.
+### Acceptance gate
+- Audit findings shipped above before any code change. ✓
+- Each stage's acceptance bullets from the prompt verifiably hit; staged items clearly labeled in UI (push delivery, Google Calendar).
+- 384px walkthrough re-run on every surface touched.
