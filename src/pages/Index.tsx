@@ -38,6 +38,7 @@ export default function Index() {
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
   const [surface, setSurface] = useState<SurfaceKey>("command");
+  const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
   const { setContext } = useCurrentContext();
@@ -46,6 +47,21 @@ function IndexInner() {
   useEffect(() => {
     setContext({ surface });
   }, [surface, setContext]);
+
+  // Deep-link from push notifications: /?commitment=<id> opens the Commitments
+  // surface and focuses that specific commitment. We strip the param so it
+  // doesn't re-fire on subsequent renders or navigations.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("commitment");
+    if (id) {
+      setSurface("commitments");
+      setFocusCommitmentId(id);
+      url.searchParams.delete("commitment");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
+  }, []);
 
   if (loading) {
     return (
