@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText, LayoutDashboard, MoreHorizontal } from "lucide-react";
+import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText, LayoutDashboard, MoreHorizontal, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-export type SurfaceKey = "command" | "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
+export type SurfaceKey = "command" | "schedule" | "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   { key: "command", label: "Cockpit", Icon: LayoutDashboard },
+  { key: "schedule", label: "Today", Icon: CalendarClock },
   { key: "conversation", label: "Capture", Icon: MessageSquare },
-  { key: "memory", label: "Memory", Icon: Notebook },
   { key: "commitments", label: "Commit", Icon: CheckSquare },
+  { key: "memory", label: "Memory", Icon: Notebook },
   { key: "actions", label: "Actions", Icon: ListChecks },
   { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
@@ -17,7 +18,8 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
 ];
 
 // Mobile: 4 primary + overflow drawer for the rest. Keeps touch targets honest at 384px.
-const PRIMARY: SurfaceKey[] = ["command", "conversation", "commitments", "actions"];
+// Today is now first-class — it's the doctrine's daily-use surface.
+const PRIMARY: SurfaceKey[] = ["command", "schedule", "conversation", "commitments"];
 
 export function SurfaceTabs({
   active,

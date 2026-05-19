@@ -11,6 +11,7 @@ import { AwarenessSurface } from "@/components/surfaces/AwarenessSurface";
 import { SherlockSurface } from "@/components/surfaces/SherlockSurface";
 import { AuditSurface } from "@/components/surfaces/AuditSurface";
 import { CommandCenterSurface } from "@/components/surfaces/CommandCenterSurface";
+import { ScheduleSurface } from "@/components/surfaces/ScheduleSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -194,6 +195,7 @@ function IndexInner() {
             <NudgesPanel collapsed />
           </div>
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
+          {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
           {surface === "memory" && <MemorySurface />}
           {surface === "commitments" && <CommitmentsSurface />}

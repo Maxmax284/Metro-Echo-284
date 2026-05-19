@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Clock, Globe, BellOff, MessageSquare, Bell, AlertTriangle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 const COMMON_TZ = [
   "Asia/Bangkok",
@@ -38,6 +39,28 @@ export function TimeRemindersSection() {
   const { prefs, update, loading } = useUserPreferences();
   const { browserTimezone, storedTimezone, drifted } = useUserTimezone();
   const [tzQuery, setTzQuery] = useState("");
+  const [tgStatus, setTgStatus] = useState<{ lastSent: string | null; skipped: number; failed: number } | null>(null);
+
+  // Pull last 7 days of Telegram delivery audit so the user can see what's actually happening.
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const { data } = await supabase
+        .from("audit_log")
+        .select("event, created_at")
+        .eq("user_id", user.id)
+        .like("event", "reminder.telegram_%")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      const rows = data ?? [];
+      const lastSent = rows.find((r: any) => r.event === "reminder.telegram_sent")?.created_at ?? null;
+      const skipped = rows.filter((r: any) => r.event === "reminder.telegram_skipped_quiet_hours").length;
+      const failed = rows.filter((r: any) => r.event === "reminder.telegram_failed").length;
+      setTgStatus({ lastSent, skipped, failed });
+    })();
+  }, [user, prefs.telegram_reminders_enabled]);
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
@@ -240,23 +263,49 @@ export function TimeRemindersSection() {
               </div>
               <Switch checked disabled />
             </li>
-            <li className="flex items-start justify-between gap-3 py-2 opacity-80">
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 text-xs font-medium">
-                  <MessageSquare className="h-3 w-3" /> Telegram
-                  <span className="rounded-full bg-muted/30 px-1.5 py-0 text-[9px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/50">
-                    soon
-                  </span>
+            <li className="py-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                    <MessageSquare className="h-3 w-3" /> Telegram
+                    <span className={cn(
+                      "rounded-full px-1.5 py-0 text-[9px] uppercase tracking-wider ring-1",
+                      prefs.telegram_reminders_enabled
+                        ? "bg-primary/15 text-primary ring-primary/30"
+                        : "bg-muted/30 text-muted-foreground ring-border/50",
+                    )}>
+                      {prefs.telegram_reminders_enabled ? "live" : "off"}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">Reminder nudges through your linked chat. Respects quiet hours.</div>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Reminder delivery — staged behind guardrails.</div>
+                <Switch
+                  checked={!!prefs.telegram_reminders_enabled}
+                  onCheckedChange={(v) => {
+                    update({ telegram_reminders_enabled: v });
+                    audit("preferences.updated", { field: "telegram_reminders_enabled", value: v });
+                  }}
+                />
               </div>
-              <Switch
-                checked={!!prefs.telegram_reminders_enabled}
-                onCheckedChange={(v) => {
-                  update({ telegram_reminders_enabled: v });
-                  audit("preferences.updated", { field: "telegram_reminders_enabled", value: v });
-                }}
-              />
+              {prefs.telegram_reminders_enabled && tgStatus && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                  <span className="rounded-full bg-background/40 px-2 py-0.5 ring-1 ring-border/60">
+                    {tgStatus.lastSent
+                      ? `Last sent ${formatDistanceToNow(new Date(tgStatus.lastSent), { addSuffix: true })}`
+                      : "No reminders sent yet"}
+                  </span>
+                  {tgStatus.skipped > 0 && (
+                    <span className="rounded-full bg-background/40 px-2 py-0.5 ring-1 ring-border/60">
+                      Quiet hours blocked {tgStatus.skipped}
+                    </span>
+                  )}
+                  {tgStatus.failed > 0 && (
+                    <span className="rounded-full bg-warn/10 px-2 py-0.5 text-warn ring-1 ring-warn/30">
+                      Failed {tgStatus.failed}
+                    </span>
+                  )}
+                </div>
+              )}
             </li>
             <li className="flex items-start justify-between gap-3 py-2 opacity-80">
               <div className="min-w-0">

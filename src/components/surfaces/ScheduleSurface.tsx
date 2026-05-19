@@ -73,10 +73,14 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   const endToday = new Date(); endToday.setHours(23, 59, 59, 999);
 
   const dueDate = (c: Commitment) => c.due_at || c.remind_at;
+  const overdueList = commits.filter((c) => {
+    const d = dueDate(c); if (!d) return false;
+    return new Date(d).getTime() < startToday.getTime();
+  });
   const todayList = commits.filter((c) => {
     const d = dueDate(c); if (!d) return false;
     const t = new Date(d).getTime();
-    return t <= endToday.getTime();
+    return t >= startToday.getTime() && t <= endToday.getTime();
   });
   const upcoming = commits.filter((c) => {
     const d = dueDate(c); if (!d) return false;
@@ -132,6 +136,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               files={reviewFiles.length}
               actions={pendingActions}
             />
+            {overdueList.length > 0 && (
+              <Section title="Overdue" Icon={Bell} empty="">
+                {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+              </Section>
+            )}
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
               {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
             </Section>
