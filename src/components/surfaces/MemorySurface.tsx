@@ -109,6 +109,58 @@ export function MemorySurface() {
     setNotes((p) => p.filter((n) => n.id !== id));
   };
 
+  const auditNote = async (noteId: string, event: string, payload: Record<string, any> = {}) => {
+    if (!session) return;
+    await supabase.from("audit_log").insert({
+      user_id: session.user.id,
+      entity_type: "note",
+      entity_id: noteId,
+      event,
+      payload,
+    });
+  };
+
+  const noteToReminder = async (n: Note) => {
+    if (!session) return;
+    const due = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+    const { data } = await supabase.from("commitments").insert({
+      user_id: session.user.id,
+      summary: (n.title || n.body).slice(0, 200),
+      due_at: due,
+      remind_at: due,
+      priority: "low",
+      source_note: n.id,
+    }).select("id").single();
+    if (data) generateEmbedding("commitment", data.id);
+    await auditNote(n.id, "note.converted_to_reminder", { commitment_id: data?.id });
+    toast.success(vantaSay.noteToReminder());
+  };
+
+  const noteToCommitment = async (n: Note) => {
+    if (!session) return;
+    const { data } = await supabase.from("commitments").insert({
+      user_id: session.user.id,
+      summary: (n.title || n.body).slice(0, 200),
+      source_note: n.id,
+    }).select("id").single();
+    if (data) generateEmbedding("commitment", data.id);
+    await auditNote(n.id, "note.converted_to_commitment", { commitment_id: data?.id });
+    toast.success(vantaSay.noteToCommitment());
+  };
+
+  const noteToSherlock = async (n: Note) => {
+    openSherlock({ entity_type: "note", entity_id: n.id, title: n.title || "Note", text: n.body });
+    await auditNote(n.id, "note.sent_to_sherlock");
+  };
+
+  const archiveNote = async (n: Note) => {
+    const tags = Array.from(new Set([...(n.tags || []), "archived"]));
+    await supabase.from("notes").update({ tags }).eq("id", n.id);
+    await auditNote(n.id, "memory.archived");
+    toast.success({ title: vantaSay.archived() });
+    refresh();
+  };
+
   const aiAssist = async (action: "summarize" | "extract") => {
     if (!active || !session) return;
     setAiBusy(true);
