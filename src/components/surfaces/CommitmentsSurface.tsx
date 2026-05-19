@@ -25,7 +25,12 @@ type Commitment = {
 
 const PRIORITIES = ["low", "normal", "high"] as const;
 
-export function CommitmentsSurface() {
+type CommitmentsSurfaceProps = {
+  focusId?: string | null;
+  onFocusHandled?: () => void;
+};
+
+export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfaceProps = {}) {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
@@ -33,6 +38,8 @@ export function CommitmentsSurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
   const [filter, setFilter] = useState<"open" | "all">("open");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const refresh = async () => {
     setLoading(true);
