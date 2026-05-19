@@ -102,39 +102,47 @@ export type PlaceBadness = {
  * geocoder already returned. Open-water gets flagged because reverse
  * geocoding lands no country/region/city.
  */
+/**
+ * classifyPlaceBadness — only true when the PLACE itself is unresolved.
+ *
+ * A valid broad place (country present, or land-nearby) is NEVER "bad",
+ * even if the raw GPS coordinate is offshore or low-accuracy. Pin quality
+ * and place validity are separate concerns — see awarenessLocation.ts.
+ */
 export function classifyPlaceBadness(place: {
   country: string | null;
   region: string | null;
   geo?: any;
 } | null): PlaceBadness {
   if (!place) return { bad: false, reasons: [], headline: "" };
-  const reasons: BadnessReason[] = [];
   const city = place.geo?.city ?? null;
   const sanity: string | null = place.geo?.sanity ?? null;
 
-  // Server-side Overpass sanity wins when present.
-  if (sanity === "offshore_confirmed") {
-    return { bad: true, reasons: ["open_water_hint"], headline: "This pin looks offshore." };
-  }
-  if (sanity === "land_nearby" && city) {
-    // Resolved enough to use — don't flag as bad.
+  // Valid broad place — country resolved. Pin issues handled separately.
+  if (place.country) return { bad: false, reasons: [], headline: "" };
+  if (sanity === "land_nearby" && (city || place.region)) {
     return { bad: false, reasons: [], headline: "" };
   }
 
+  const reasons: BadnessReason[] = [];
   if (!place.country) reasons.push("no_country");
   if (!place.region) reasons.push("no_region");
   if (!city) reasons.push("no_city");
+  if (sanity === "offshore_confirmed") {
+    return {
+      bad: true,
+      reasons: ["open_water_hint"],
+      headline: "GPS pin looks offshore. Pick a nearby place.",
+    };
+  }
   if (!place.country && !place.region && !city) reasons.push("open_water_hint");
-  const acc = Number(place.geo?.acc);
-  if (Number.isFinite(acc) && acc > 8000) reasons.push("low_accuracy");
 
-  const bad = reasons.includes("no_country") || reasons.includes("open_water_hint");
-  const headline = reasons.includes("open_water_hint")
-    ? "This pin looks offshore."
-    : bad
-      ? "This pin doesn't resolve to a real place."
-      : "";
-  return { bad, reasons, headline };
+  // No country and no resolution data → unresolved place.
+  return {
+    bad: true,
+    reasons,
+    headline: "This place isn't resolved yet.",
+  };
 }
 
 // ---------- Manual place search (Nominatim forward geocode) ----------------
