@@ -28,6 +28,14 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         toast.warning({ title: vantaSay.intentBlocked(MODE_LABEL[mode], kind), description: "Switch mode in the header to allow this." });
         return;
       }
+      const audit = async (destination: string, extra: Record<string, any> = {}) => {
+        await supabase.from("audit_log").insert({
+          user_id: user.id,
+          entity_type: "capture",
+          event: "capture.routed",
+          payload: { source: "companion", destination, intent: kind, ...extra },
+        });
+      };
       try {
         if (kind === "capture_note") {
           const { data } = await supabase
@@ -36,6 +44,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("note", data.id);
+          await audit("memory", { note_id: data?.id });
           toast.success(vantaSay.capturedToMemory());
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
@@ -47,6 +56,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             status: "staged",
             source: "companion",
           }).select("id").single();
+          await audit("actions", { action_id: data?.id });
           toast.success(vantaSay.actionDrafted());
           onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {
@@ -64,6 +74,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("commitment", data.id);
+          await audit("commitments", { commitment_id: data?.id });
           toast.success(vantaSay.commitmentAdded());
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
         } else if (kind === "run_sherlock") {
