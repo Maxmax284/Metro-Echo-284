@@ -168,7 +168,7 @@ function IndexInner() {
                     href="/settings"
                     className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
                   >
-                    <span className="font-medium">API Control Room</span>
+                    <span className="font-medium">Control Room</span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">owner</span>
                   </a>
                   <TelegramLinkCard />
