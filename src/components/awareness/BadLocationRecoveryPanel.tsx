@@ -291,7 +291,8 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
 
   const removeBad = async () => {
     if (!place) return;
-    if (!confirm("Delete this bad location? It looks unusable and can be recreated later.")) return;
+    const label = badness.bad ? "Remove this unresolved place?" : "Remove saved place?";
+    if (!confirm(label)) return;
     setBusy("delete");
     try {
       await deletePlace(place.id);
