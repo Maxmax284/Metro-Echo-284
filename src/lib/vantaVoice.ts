@@ -41,6 +41,11 @@ export const vantaSay = {
   deleted: () => "Deleted.",
   exported: () => "Exported.",
   cancelled: (what = "Cancelled") => `${what}.`,
+  snoozed: (until?: string) => (until ? `Snoozed until ${until}.` : "Snoozed."),
+  noteToReminder: () => "Turned into a reminder.",
+  noteToCommitment: () => "Tracking as a commitment.",
+  noteToSherlock: () => "Sent to Sherlock.",
+  markedDone: () => "Marked done.",
 
   // Awareness / radar
   recentered: () => "Recentered. Tap Scan area when you want fresh context.",

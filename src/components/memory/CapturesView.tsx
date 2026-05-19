@@ -117,14 +117,28 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     refresh();
   };
 
+  const undoIgnore = async (item: IntakeRow) => {
+    if (!user || item._raw.kind !== "message") return;
+    const row = item._raw.row;
+    const prevMeta = row.metadata ?? {};
+    await supabase.from("messages").update({
+      metadata: { ...prevMeta, routed_to: null, needs_review: true },
+    }).eq("id", row.id);
+    await logRoute(user.id, item, "undo_ignore");
+    toast.message({ title: "Back on the desk" });
+    refresh();
+  };
+
   const actionsFor = (item: IntakeRow): CaptureAction[] => {
     if (item._raw.kind !== "message") {
-      // files / field notes already have homes — offer Sherlock as the main lever
       return [
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       ];
     }
-    if (item.routedTo && item.routedTo !== "ignored") return []; // already handled
+    if (item.routedTo === "ignored") {
+      return [{ label: "Undo", onClick: () => undoIgnore(item) }];
+    }
+    if (item.routedTo) return []; // already routed — read-only chip
     return [
       { label: "Track as commitment", onClick: () => routeToCommitment(item), primary: true },
       { label: "Save as note", onClick: () => routeToNote(item) },
