@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 type TabKey = "today" | "upcoming" | "week";
 
