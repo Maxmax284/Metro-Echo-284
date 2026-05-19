@@ -6,6 +6,8 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { formatInTimeZone } from "date-fns-tz";
 import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
+import { parseReminderHint } from "@/lib/reminderParse";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -21,6 +23,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { mode } = useMode();
+  const { prefs } = useUserPreferences();
 
   return useCallback(
     async (kind: string, args: any) => {

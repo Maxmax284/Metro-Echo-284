@@ -22,7 +22,7 @@ export const MODE_DESCRIPTION: Record<AppMode, string> = {
 export function modeAllows(mode: AppMode, intent: string): boolean {
   if (mode === "locked") return false;
   if (mode === "observer") {
-    return intent === "capture_note" || intent === "run_sherlock" || intent === "query_awareness";
+    return intent === "capture_note" || intent === "run_sherlock" || intent === "query_awareness" || intent === "set_reminder";
   }
   // advisor + operator: all draft-only intents allowed
   return true;
