@@ -38,7 +38,7 @@ function freshLabel(generated: string | null): string {
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating } = useAwareness();
+  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   const onSignalRoute = useSignalRoute();
