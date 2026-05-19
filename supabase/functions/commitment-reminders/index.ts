@@ -5,6 +5,7 @@
 // stamping metadata.telegram_sent_at on the commitment. Capture never
 // executes — this only notifies.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { sendWebPush } from "../_shared/webpush.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,11 +14,13 @@ const corsHeaders = {
 
 const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 const TG_THROTTLE_MS = 6 * 60 * 60 * 1000;
+const PUSH_THROTTLE_MS = 6 * 60 * 60 * 1000;
 
 type Prefs = {
   telegram_reminders_enabled?: boolean;
-  quiet_hours_start?: string; // "22:00"
-  quiet_hours_end?: string;   // "07:00"
+  push_reminders_enabled?: boolean;
+  quiet_hours_start?: string;
+  quiet_hours_end?: string;
 };
 
 function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
