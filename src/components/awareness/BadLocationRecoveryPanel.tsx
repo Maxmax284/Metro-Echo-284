@@ -309,10 +309,10 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
         <AlertTriangle className="h-4 w-4 mt-0.5 text-warn shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium text-foreground">
-            {badness.headline || "Location looks wrong"}
+            {badness.headline || "This place isn't resolved yet"}
           </div>
           <div className="text-[11.5px] text-muted-foreground leading-snug mt-0.5">
-            I'm not pretending this pin is a real local place. Pick a fix below.
+            Pick a saved place, search a real one, or recenter — whichever's fastest.
           </div>
         </div>
         {onDismiss && (
