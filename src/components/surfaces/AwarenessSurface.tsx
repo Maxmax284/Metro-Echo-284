@@ -177,15 +177,15 @@ export function AwarenessSurface() {
   const generatedAt = snapshot?.generated_at ?? overall.newest_at;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-4 pt-3 pb-2">
+    <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
+      <div className="px-4 pt-3 pb-2 min-w-0">
         <h2 className="text-lg font-semibold tracking-tight">Awareness</h2>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground break-words">
           Operational context for where you are. Confidence labels included; not safety, legal, or medical advice.
         </p>
       </div>
 
-      <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-36 md:pb-24 safe-bottom space-y-4">
+      <div className="scrollbar-thin flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 pb-36 md:pb-24 safe-bottom space-y-4">
         {/* Place strip — sticky on mobile. Two clean lines. Extra chips in More. */}
         {place && (() => {
           const tier = classifyTier(place);
@@ -223,38 +223,38 @@ export function AwarenessSurface() {
                 </div>
 
                 {/* Line 3 — primary action */}
-                <div className="flex items-center gap-1.5 pt-0.5">
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   {badness.bad ? (
                     <Button
                       size="sm"
-                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      className="h-9 gap-1.5 text-[12px] flex-1 min-w-0"
                       onClick={() => setRecoveryOpen(true)}
                     >
-                      <Wrench className="h-3.5 w-3.5" />
-                      Fix location
+                      <Wrench className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Fix location</span>
                     </Button>
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      className="h-9 gap-1.5 text-[12px] flex-1 min-w-0"
                       onClick={recenter}
                       disabled={recentering}
                     >
-                      {recentering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
-                      Recenter
+                      {recentering ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> : <Crosshair className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="truncate">Recenter</span>
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-9 gap-1 text-[12px] text-muted-foreground"
+                    className="h-9 gap-1 text-[12px] text-muted-foreground shrink-0"
                     onClick={() => setShowPlaces((v) => !v)}
                   >
                     {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                     Switch
                   </Button>
-                  <div className="ml-auto"><SourceStatusPill /></div>
+                  <div className="shrink-0"><SourceStatusPill /></div>
                 </div>
               </div>
             </div>

@@ -60,9 +60,8 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
   return (
     <div
       className={cn(
-        // Mobile: horizontal scroll snap row with safe overscroll.
-        // Desktop: wraps.
-        "flex gap-1.5 -mx-1 px-1 overflow-x-auto md:overflow-visible md:flex-wrap snap-x snap-mandatory scrollbar-thin",
+        // Wrap chips on every viewport — no horizontal scroll on mobile.
+        "flex flex-wrap gap-1.5",
         className,
       )}
       role="group"
@@ -82,7 +81,7 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             onClick={() => onPick(s)}
             aria-pressed={isActive}
             className={cn(
-              "snap-start shrink-0 inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
+              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
               "min-h-[36px] md:min-h-0 md:py-1 md:px-2.5 md:text-[11px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
               CONF_TINT[conf],
@@ -108,7 +107,7 @@ export function LayerChips({ onPick, activeLayer, className }: Props) {
             onClick={() => onPick("terrain")}
             aria-pressed={isActive}
             className={cn(
-              "snap-start shrink-0 inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
+              "inline-flex items-center gap-1.5 rounded-full border bg-surface-elevated/60 px-3 py-2 text-[12px] capitalize transition-all hover:bg-surface-elevated",
               "min-h-[36px] md:min-h-0 md:py-1 md:px-2.5 md:text-[11px]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
               "border-accent/40 text-foreground/85",

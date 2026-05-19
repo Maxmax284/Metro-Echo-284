@@ -189,7 +189,7 @@ function IndexInner() {
 
       <div className="flex flex-1 min-h-0">
         <SurfaceTabs active={surface} onChange={setSurface} variant="rail" />
-        <main className="relative flex flex-1 min-h-0 flex-col">
+        <main className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-x-hidden">
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
           </div>
