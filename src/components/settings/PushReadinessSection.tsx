@@ -144,6 +144,10 @@ export function PushReadinessSection() {
             <Hint icon={<Bell className="h-4 w-4 text-emerald-300" />}>
               You're subscribed. Reminders fire to this device. Receipts land in Audit.
             </Hint>
+            <Button size="sm" className="w-full gap-2" disabled={busy} onClick={sendTest}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+              Send test push
+            </Button>
             <Button size="sm" variant="outline" className="w-full" disabled={busy} onClick={disable}>
               Turn off on this device
             </Button>
