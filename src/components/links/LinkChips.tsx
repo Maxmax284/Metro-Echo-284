@@ -75,11 +75,11 @@ export function LinkChips({
   const persist = async (next: EntityLink[]) => {
     setBusy(true);
     try {
-      const table: any = entityKind === "note" ? "notes" : entityKind === "commitment" ? "commitments" : "ingested_files";
-      // Fetch current metadata to merge
-      const { data: row } = await supabase.from(table).select("metadata").eq("id", entityId).maybeSingle();
+      const client = supabase as any;
+      const table = entityKind === "note" ? "notes" : entityKind === "commitment" ? "commitments" : "ingested_files";
+      const { data: row } = await client.from(table).select("metadata").eq("id", entityId).maybeSingle();
       const meta = (row?.metadata as any) ?? {};
-      await supabase.from(table).update({ metadata: { ...meta, links: next } }).eq("id", entityId);
+      await client.from(table).update({ metadata: { ...meta, links: next } }).eq("id", entityId);
       onChange?.(next);
     } finally {
       setBusy(false);
