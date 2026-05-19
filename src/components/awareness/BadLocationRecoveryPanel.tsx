@@ -383,6 +383,12 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
           Delete this bad place
         </Button>
       </div>
+
+      <MapPickerDialog
+        open={mapOpen}
+        onOpenChange={setMapOpen}
+        initial={place?.geo?.lat && place?.geo?.lon ? { lat: place.geo.lat, lon: place.geo.lon } : null}
+      />
     </div>
   );
 }
