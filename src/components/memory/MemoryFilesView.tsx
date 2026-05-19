@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, Inbox } from "lucide-react";
+import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, Inbox, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { ReminderComposer } from "@/components/reminders/ReminderComposer";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
+
+const MAX_BYTES = 20 * 1024 * 1024;
 
 export type FileRow = {
   id: string;
@@ -51,6 +53,9 @@ export function MemoryFilesView() {
   const [filter, setFilter] = useState<"all" | "review" | "archived">("all");
   const [composingFor, setComposingFor] = useState<string | null>(null);
   const [typeMenuFor, setTypeMenuFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -64,6 +69,44 @@ export function MemoryFilesView() {
   };
 
   useEffect(() => { refresh(); }, []);
+
+  const handleFiles = async (fileList: FileList | File[]) => {
+    if (!user) return;
+    const list = Array.from(fileList);
+    if (list.length === 0) return;
+    setUploading(true);
+    for (const f of list) {
+      try {
+        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
+        const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
+        if (upErr) throw upErr;
+        const { data: rec, error: insErr } = await supabase
+          .from("ingested_files")
+          .insert({
+            user_id: user.id,
+            filename: f.name,
+            mime_type: f.type || null,
+            size_bytes: f.size,
+            storage_path: path,
+            source: "upload",
+            status: "pending",
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        const { error: fnErr } = await supabase.functions.invoke("files-ingest", {
+          body: { ingested_file_id: rec.id },
+        });
+        if (fnErr) throw fnErr;
+        toast.success(vantaSay.fileIngested(f.name));
+      } catch (e) {
+        toast.fromError(e);
+      }
+    }
+    setUploading(false);
+    refresh();
+  };
 
   const audit = async (fileId: string, event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
@@ -139,6 +182,29 @@ export function MemoryFilesView() {
 
   return (
     <div className="space-y-3">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
+        onClick={() => !uploading && inputRef.current?.click()}
+        className={cn(
+          "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-4 text-xs transition-colors",
+          drag ? "border-primary bg-primary/10" : "border-border/60 hover:border-muted-foreground/60",
+        )}
+      >
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+        <span className="text-[11.5px] text-muted-foreground">
+          {uploading ? "Ingesting…" : "Drop files or tap to upload"}
+        </span>
+        <span className="text-[10px] text-muted-foreground/70">PDF, text, markdown · max 20MB</span>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        />
+      </div>
       <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
         {([
           { id: "all", label: "All" },
