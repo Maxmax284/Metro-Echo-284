@@ -53,6 +53,9 @@ export function MemoryFilesView() {
   const [filter, setFilter] = useState<"all" | "review" | "archived">("all");
   const [composingFor, setComposingFor] = useState<string | null>(null);
   const [typeMenuFor, setTypeMenuFor] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
     setLoading(true);
