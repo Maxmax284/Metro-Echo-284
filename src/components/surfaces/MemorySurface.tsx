@@ -205,16 +205,6 @@ export function MemorySurface() {
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant={view === "corrections" ? "default" : "ghost"}
-              onClick={() => setView(view === "corrections" ? "notes" : "corrections")}
-              className="gap-1"
-              title="Field notes & corrections"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              <span className="hidden sm:inline">Corrections</span>
-            </Button>
             {view === "notes" && (
               <Button size="sm" onClick={() => setComposing(true)} className="gap-1">
                 <Plus className="h-4 w-4" /> New
@@ -222,23 +212,41 @@ export function MemorySurface() {
             )}
           </div>
         </div>
-        {view === "notes" && (
-          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-              <StatusDot tone="primary" /> {notes.length} note{notes.length === 1 ? "" : "s"}
-            </span>
-            {notes[0] && (
-              <span className="text-muted-foreground/80">
-                last update {formatDistanceToNow(new Date(notes[0].updated_at), { addSuffix: true })}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1 overflow-x-auto px-1">
+          {([
+            { id: "notes", label: "Notes", Icon: Inbox },
+            { id: "captures", label: "Captures", Icon: Inbox },
+            { id: "ambiguous", label: "Ambiguous", Icon: HelpCircle },
+            { id: "corrections", label: "Corrections", Icon: AlertTriangle },
+          ] as const).map((v) => {
+            const Icon = v.Icon;
+            const active = view === v.id;
+            return (
+              <button
+                key={v.id}
+                onClick={() => setView(v.id)}
+                className={cn(
+                  "inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="h-3 w-3" />
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {view === "corrections" ? (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
           <CorrectionsCenter />
+        </div>
+      ) : view === "captures" || view === "ambiguous" ? (
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+          <CapturesView ambiguousOnly={view === "ambiguous"} />
         </div>
       ) : (
       <>
