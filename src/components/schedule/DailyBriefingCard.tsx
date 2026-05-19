@@ -110,6 +110,31 @@ export function DailyBriefingCard() {
     return parts.join(" · ");
   }, [loading, overdue, todayList.length, approvals, files]);
 
+  const polishBriefing = async () => {
+    if (!user || polishing) return;
+    setPolishing(true);
+    try {
+      const top = items.slice(0, 6).map((c) => `- ${c.summary}${c.due_at ? ` (due ${new Date(c.due_at).toISOString()})` : ""}`).join("\n");
+      const prompt = `In one warm, plain-English paragraph (max 3 sentences, no exclamation marks, East Coast tone), brief the user on their day. Counts: ${line}. Top items:\n${top}\nTimezone: ${timezone}.`;
+      const { data, error } = await supabase.functions.invoke("vanta-converse", {
+        body: { message: prompt, intent: "briefing_polish" },
+      });
+      if (error) throw error;
+      const reply = (data as any)?.reply || (data as any)?.content || (data as any)?.message;
+      if (reply && typeof reply === "string") setPolish(reply.trim());
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        entity_type: "briefing",
+        event: "briefing.ai_polished",
+        payload: { chars: reply?.length ?? 0 },
+      });
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setPolishing(false);
+    }
+  };
+
   return (
     <Card className="border-border/60 bg-surface-elevated/60 p-3">
       <div className="flex items-start gap-2.5">
@@ -130,6 +155,23 @@ export function DailyBriefingCard() {
                 · {formatDistanceToNowStrict(new Date((next.due_at || next.remind_at)!), { addSuffix: true })}
               </span>
             </p>
+          )}
+          {polish && (
+            <p className="mt-1 rounded-md bg-primary/5 p-2 text-[12px] italic text-foreground/85 ring-1 ring-primary/20">
+              {polish}
+            </p>
+          )}
+          {!loading && !polish && (overdue + todayList.length + approvals + files > 0) && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[10.5px] text-muted-foreground hover:text-primary"
+              onClick={polishBriefing}
+              disabled={polishing}
+            >
+              {polishing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wand2 className="mr-1 h-3 w-3" />}
+              Polish with Vanta
+            </Button>
           )}
         </div>
       </div>
