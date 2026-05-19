@@ -70,13 +70,36 @@ export function CommitmentsSurface() {
     }
   };
 
+  const audit = async (commitmentId: string, event: string, payload: Record<string, any> = {}) => {
+    if (!session) return;
+    await supabase.from("audit_log").insert({
+      user_id: session.user.id,
+      entity_type: "commitment",
+      entity_id: commitmentId,
+      event,
+      payload,
+    });
+  };
+
   const complete = async (id: string) => {
     await supabase.from("commitments").update({ status: "done" }).eq("id", id);
     setItems((p) => p.map((c) => (c.id === id ? { ...c, status: "done" } : c)));
+    await audit(id, "commitment.completed");
+    toast.success({ title: vantaSay.markedDone() });
+  };
+
+  const snooze = async (c: Commitment) => {
+    const base = c.due_at ? new Date(c.due_at) : new Date();
+    const next = new Date(base.getTime() + 24 * 3600 * 1000).toISOString();
+    await supabase.from("commitments").update({ due_at: next, remind_at: next }).eq("id", c.id);
+    await audit(c.id, "commitment.snoozed", { until: next });
+    toast.success({ title: vantaSay.snoozed("tomorrow") });
+    refresh();
   };
 
   const drop = async (id: string) => {
     await supabase.from("commitments").update({ status: "cancelled" }).eq("id", id);
+    await audit(id, "commitment.dropped");
     refresh();
   };
 
@@ -196,7 +219,10 @@ export function CommitmentsSurface() {
                       </div>
                     </div>
                     {c.status === "open" && (
-                      <button onClick={() => drop(c.id)} className="text-[10.5px] text-muted-foreground hover:text-foreground">drop</button>
+                      <div className="flex shrink-0 items-center gap-2 text-[10.5px]">
+                        <button onClick={() => snooze(c)} className="text-muted-foreground hover:text-foreground">snooze</button>
+                        <button onClick={() => drop(c.id)} className="text-muted-foreground hover:text-foreground">drop</button>
+                      </div>
                     )}
                   </div>
                 </li>
