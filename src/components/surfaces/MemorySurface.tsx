@@ -163,6 +163,28 @@ export function MemorySurface() {
     refresh();
   };
 
+  const unarchiveNote = async (n: Note) => {
+    const tags = (n.tags || []).filter((t) => t !== "archived");
+    await supabase.from("notes").update({ tags }).eq("id", n.id);
+    await auditNote(n.id, "memory.unarchived");
+    toast.success({ title: vantaSay.restored() });
+    refresh();
+  };
+
+  const noteToActionDraft = async (n: Note) => {
+    if (!session) return;
+    const { data } = await supabase.from("actions").insert({
+      user_id: session.user.id,
+      title: (n.title || n.body).slice(0, 120),
+      description: n.body.slice(0, 1000),
+      source: `note:${n.id}`,
+      status: "proposed",
+    }).select("id").single();
+    await auditNote(n.id, "note.converted_to_action_draft", { action_id: data?.id });
+    toast.success({ title: vantaSay.actionDrafted() });
+  };
+
+
   const aiAssist = async (action: "summarize" | "extract") => {
     if (!active || !session) return;
     setAiBusy(true);
@@ -506,12 +528,17 @@ export function MemorySurface() {
                       {why && <span className="italic opacity-80">{why}</span>}
                     </div>
                   </button>
-                  {!archived && (
+                  {!archived ? (
                     <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToCommitment(n); }}>Commitment</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToActionDraft(n); }}>Action draft</Button>
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToSherlock(n); }}>Sherlock</Button>
                       <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground" onClick={(e) => { e.stopPropagation(); archiveNote(n); }}>Archive</Button>
+                    </div>
+                  ) : (
+                    <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); unarchiveNote(n); }}>Undo archive</Button>
                     </div>
                   )}
                 </div>

@@ -81,10 +81,13 @@ export function CommitmentsSurface() {
     });
   };
 
+  const isReminder = (c: Commitment) => !!c.remind_at;
+
   const complete = async (id: string) => {
+    const c = items.find((x) => x.id === id);
     await supabase.from("commitments").update({ status: "done" }).eq("id", id);
-    setItems((p) => p.map((c) => (c.id === id ? { ...c, status: "done" } : c)));
-    await audit(id, "commitment.completed");
+    setItems((p) => p.map((x) => (x.id === id ? { ...x, status: "done" } : x)));
+    await audit(id, c && isReminder(c) ? "reminder.completed" : "commitment.completed");
     toast.success({ title: vantaSay.markedDone() });
   };
 
@@ -92,7 +95,7 @@ export function CommitmentsSurface() {
     const base = c.due_at ? new Date(c.due_at) : new Date();
     const next = new Date(base.getTime() + 24 * 3600 * 1000).toISOString();
     await supabase.from("commitments").update({ due_at: next, remind_at: next }).eq("id", c.id);
-    await audit(c.id, "commitment.snoozed", { until: next });
+    await audit(c.id, isReminder(c) ? "reminder.snoozed" : "commitment.snoozed", { until: next });
     toast.success({ title: vantaSay.snoozed("tomorrow") });
     refresh();
   };
