@@ -227,9 +227,11 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
               return (
                 <li
                   key={c.id}
+                  ref={(el) => { itemRefs.current[c.id] = el; }}
                   className={cn(
                     "rounded-xl surface-elevated p-3 ring-1 transition",
-                    c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60"
+                    c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60",
+                    highlightId === c.id && "ring-2 ring-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]",
                   )}
                 >
                   <div className="flex items-start gap-2">
