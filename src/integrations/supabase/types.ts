@@ -490,6 +490,7 @@ export type Database = {
           embedding: string | null
           id: string
           last_reminded_at: string | null
+          metadata: Json
           priority: string
           remind_at: string | null
           source_note: string | null
@@ -504,6 +505,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           last_reminded_at?: string | null
+          metadata?: Json
           priority?: string
           remind_at?: string | null
           source_note?: string | null
@@ -518,6 +520,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           last_reminded_at?: string | null
+          metadata?: Json
           priority?: string
           remind_at?: string | null
           source_note?: string | null
