@@ -25,6 +25,7 @@ type Msg = {
   role: "user" | "assistant" | "system";
   content: string;
   receipt?: Receipt;
+  metadata?: { source?: string; detected_type?: string; routed_to?: string; needs_review?: boolean } | null;
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
@@ -102,7 +103,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         setConvId(data.id);
         const { data: m } = await supabase
           .from("messages")
-          .select("id, role, content")
+          .select("id, role, content, metadata")
           .eq("conversation_id", data.id)
           .order("created_at", { ascending: true })
           .limit(200);
