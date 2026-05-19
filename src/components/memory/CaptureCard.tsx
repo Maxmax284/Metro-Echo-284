@@ -18,6 +18,7 @@ export type CaptureItem = {
   needsReview?: boolean;
   ts: string;
   linked?: string[];
+  why?: string | null;
 };
 
 export type CaptureAction = {
@@ -75,6 +76,9 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
             )}
             <span>· {formatDistanceToNow(new Date(item.ts), { addSuffix: true })}</span>
           </div>
+          {item.why && (
+            <p className="mt-1 text-[10.5px] italic text-muted-foreground/80">{item.why}</p>
+          )}
           {item.linked && item.linked.length > 0 && (
             <div className="mt-1 text-[10.5px] text-muted-foreground/80">Linked: {item.linked.join(" · ")}</div>
           )}
