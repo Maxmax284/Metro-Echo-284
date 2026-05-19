@@ -108,6 +108,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <div className="py-10 text-center text-[12px] text-muted-foreground">Looking at the runway…</div>
         ) : tab === "today" ? (
           <div className="space-y-3">
+            <DailyBriefingCard />
             <SummaryStrip
               reminders={todayList.filter((c) => !!c.remind_at).length}
               commitments={todayList.filter((c) => !c.remind_at).length}
