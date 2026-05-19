@@ -87,6 +87,8 @@ type Ctx = {
   snapshot: AwarenessSnapshot | null;
   snapshotLoading: boolean;
   refreshSnapshot: (force?: boolean) => Promise<void>;
+  setActivePlace: (id: string) => Promise<void>;
+  deletePlace: (id: string) => Promise<void>;
 };
 
 const AwarenessCtx = createContext<Ctx | null>(null);
