@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export type LinkKind = "person" | "project" | "place";
 export type EntityLink = { kind: LinkKind; label: string; ref?: string | null };
 
-type EntityKind = "note" | "commitment" | "ingested_file";
+type EntityKind = "note" | "commitment" | "ingested_file" | "message";
 
 const KIND_ICON = { person: User, project: Briefcase, place: MapPin } as const;
 const KIND_LABEL = { person: "person", project: "project", place: "place" } as const;
@@ -42,21 +42,27 @@ export function LinkChips({
   useEffect(() => {
     if (!user || !open) return;
     (async () => {
-      // Cheap recent labels: scan last 200 notes' metadata.links
-      const { data } = await supabase
-        .from("notes")
-        .select("metadata")
-        .order("updated_at", { ascending: false })
-        .limit(200);
+      // Cheap recent labels: scan recent metadata across notes, commitments,
+      // files, and captured messages so labels surface wherever the user has
+      // been working — not just notes.
+      const [n, c, f, m] = await Promise.all([
+        supabase.from("notes").select("metadata").order("updated_at", { ascending: false }).limit(120),
+        supabase.from("commitments").select("metadata").order("updated_at", { ascending: false }).limit(120),
+        supabase.from("ingested_files").select("metadata").order("updated_at", { ascending: false }).limit(80),
+        supabase.from("messages").select("metadata").eq("role", "user").order("created_at", { ascending: false }).limit(80),
+      ]);
       const buckets: Record<LinkKind, Set<string>> = { person: new Set(), project: new Set(), place: new Set() };
-      for (const r of data ?? []) {
-        const ls: EntityLink[] = ((r.metadata as any)?.links ?? []) as EntityLink[];
-        for (const l of ls) if (buckets[l.kind]) buckets[l.kind].add(l.label);
-      }
+      const ingest = (rows: any[] | null) => {
+        for (const r of rows ?? []) {
+          const ls: EntityLink[] = ((r.metadata as any)?.links ?? []) as EntityLink[];
+          for (const l of ls) if (buckets[l?.kind]) buckets[l.kind].add(l.label);
+        }
+      };
+      ingest(n.data); ingest(c.data); ingest(f.data); ingest(m.data);
       setRecent({
-        person: Array.from(buckets.person).slice(0, 8),
-        project: Array.from(buckets.project).slice(0, 8),
-        place: Array.from(buckets.place).slice(0, 8),
+        person: Array.from(buckets.person).slice(0, 10),
+        project: Array.from(buckets.project).slice(0, 10),
+        place: Array.from(buckets.place).slice(0, 10),
       });
     })();
   }, [user, open]);
@@ -76,7 +82,7 @@ export function LinkChips({
     setBusy(true);
     try {
       const client = supabase as any;
-      const table = entityKind === "note" ? "notes" : entityKind === "commitment" ? "commitments" : "ingested_files";
+      const table = entityKind === "note" ? "notes" : entityKind === "commitment" ? "commitments" : entityKind === "ingested_file" ? "ingested_files" : "messages";
       const { data: row } = await client.from(table).select("metadata").eq("id", entityId).maybeSingle();
       const meta = (row?.metadata as any) ?? {};
       await client.from(table).update({ metadata: { ...meta, links: next } }).eq("id", entityId);

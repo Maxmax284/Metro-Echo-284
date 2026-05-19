@@ -199,6 +199,83 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             payload: { window, timezone: tz, count: filtered.length },
           });
           toast.success({ title: `Schedule pulled (${header.toLowerCase()})` });
+        } else if (kind === "query_waiting" || kind === "query_files_needing_review" || kind === "query_aftermath") {
+          // Doctrine: companion can answer "what's waiting / what happened to X"
+          // from existing data first — no AI unless the user asks for narrative.
+          let composed = "";
+          if (kind === "query_waiting") {
+            const { data: capts } = await supabase.from("messages")
+              .select("id, content, created_at, metadata")
+              .eq("role", "user")
+              .filter("metadata->>needs_review", "eq", "true")
+              .order("created_at", { ascending: false })
+              .limit(20);
+            const lines = (capts ?? []).map((m: any) =>
+              `• ${(m.content ?? "").slice(0, 90)}${(m.content ?? "").length > 90 ? "…" : ""}`
+            );
+            composed = lines.length
+              ? `**Still waiting on you** (${lines.length})\n\n${lines.join("\n")}`
+              : "Nothing waiting on you. Clean desk.";
+          } else if (kind === "query_files_needing_review") {
+            const { data: files } = await supabase.from("ingested_files")
+              .select("id, filename, status, metadata, created_at")
+              .order("created_at", { ascending: false })
+              .limit(40);
+            const needing = (files ?? []).filter((f: any) =>
+              !f.metadata?.archived && (!f.metadata?.document_type || f.status === "failed" || f.status === "error")
+            ).slice(0, 15);
+            const lines = needing.map((f: any) => {
+              const why = f.status === "failed" || f.status === "error"
+                ? "couldn't read"
+                : "needs a type";
+              return `• ${f.filename} — ${why}`;
+            });
+            composed = lines.length
+              ? `**Files needing review** (${lines.length})\n\n${lines.join("\n")}`
+              : "All files are filed. Nothing waiting.";
+          } else if (kind === "query_aftermath") {
+            const entityId = String(args.entity_id ?? "").trim();
+            const label = String(args.label ?? args.summary ?? "this item").trim();
+            if (!entityId) {
+              composed = "Tell me which item — paste the ID or tap one from Memory/Files.";
+            } else {
+              const { data: trail } = await supabase.from("audit_log")
+                .select("event, payload, created_at, entity_type")
+                .eq("entity_id", entityId)
+                .order("created_at", { ascending: true })
+                .limit(50);
+              const lines = (trail ?? []).map((r: any) => {
+                const when = new Date(r.created_at).toLocaleString();
+                return `• ${when} — ${r.event}`;
+              });
+              composed = lines.length
+                ? `**What happened to ${label}**\n\n${lines.join("\n")}`
+                : `No receipts yet for ${label}. Either it's fresh, or nothing has touched it.`;
+            }
+          }
+
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (conv?.id) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: conv.id,
+              role: "assistant",
+              content: composed,
+              metadata: { source: "companion_query", intent: kind },
+            });
+          }
+          await supabase.from("audit_log").insert({
+            user_id: user.id,
+            entity_type: "companion_query",
+            event: `companion.${kind}`,
+            payload: { args },
+          });
+          toast.success({ title: "Pulled it up." });
         }
       } catch (e) {
         toast.fromError(e);

@@ -166,6 +166,13 @@ export function MemoryFilesView() {
       timezone: tz,
       remind_lead_minutes: Math.round((new Date(due).getTime() - new Date(remind).getTime()) / 60000),
     });
+    await supabase.from("audit_log").insert({
+      user_id: user.id,
+      entity_type: "commitment",
+      entity_id: data?.id,
+      event: "reminder.scheduled",
+      payload: { source: "file", file_id: f.id, due_at: due, remind_at: remind, timezone: tz },
+    });
     toast.success({ title: vantaSay.reminderSet(new Date(due).toLocaleString()) });
     setComposingFor(null);
     refresh();
@@ -192,6 +199,37 @@ export function MemoryFilesView() {
       text: "",
     });
     await audit(f.id, "file.sent_to_sherlock");
+  };
+
+  const reclassify = async (f: FileRow) => {
+    // No-AI heuristic: re-run keyword sniff against filename + extracted snippet.
+    const name = (f.filename || "").toLowerCase();
+    const snippet = ((f.metadata?.snippet ?? "") as string).toLowerCase();
+    const hay = `${name} ${snippet}`;
+    const rules: { type: string; needles: string[] }[] = [
+      { type: "receipt",   needles: ["receipt", "total ", "subtotal", "amount due", "thank you for"] },
+      { type: "invoice",   needles: ["invoice", "bill to", "amount payable", "net 30", "po #"] },
+      { type: "contract",  needles: ["agreement", "between the parties", "hereinafter", "term and termination"] },
+      { type: "booking",   needles: ["booking", "reservation", "confirmation #", "check-in", "itinerary"] },
+      { type: "visa",      needles: ["visa", "passport", "consulate", "immigration"] },
+      { type: "screenshot",needles: [".png", ".jpg", "screenshot"] },
+      { type: "checklist", needles: ["checklist", "[ ]", "todo"] },
+    ];
+    let pick = "unknown";
+    let confidence: "low" | "medium" | "high" = "low";
+    for (const r of rules) {
+      if (r.needles.some((n) => hay.includes(n))) { pick = r.type; confidence = "medium"; break; }
+    }
+    const meta = { ...(f.metadata ?? {}), document_type: pick, confidence };
+    await supabase.from("ingested_files").update({ metadata: meta }).eq("id", f.id);
+    await audit(f.id, "file.reclassified", { document_type: pick, confidence });
+    toast.message({ title: `Guessing this is a ${pick}.` });
+    refresh();
+  };
+
+  const openAuditTrail = (f: FileRow) => {
+    // Audit surface filters off the URL hash — drop a deep link.
+    window.location.hash = `#audit-entity-${f.id}`;
   };
 
   const filtered = files.filter((f) => {
@@ -356,8 +394,16 @@ export function MemoryFilesView() {
                       <Bell className="mr-1 h-3 w-3" /> Reminder
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]"
+                      onClick={() => reclassify(f)}>
+                      Re-classify
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]"
                       onClick={() => sendToSherlock(f)}>
                       <SearchIcon className="mr-1 h-3 w-3" /> Sherlock
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground"
+                      onClick={() => openAuditTrail(f)}>
+                      Audit trail
                     </Button>
                     <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground"
                       onClick={() => archive(f)}>

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
-import { Sunrise, Sun, Moon, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 
 type Commitment = {
   id: string;
@@ -21,13 +23,16 @@ type Commitment = {
  * Pure read; no writes. Mounts on Schedule (Today) and is drop-in for Cockpit.
  */
 export function DailyBriefingCard() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
   const [overdue, setOverdue] = useState(0);
   const [files, setFiles] = useState(0);
   const [approvals, setApprovals] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [polish, setPolish] = useState<string | null>(null);
+  const [polishing, setPolishing] = useState(false);
+  const auditedRef = useRef(false);
 
   useEffect(() => {
     if (!session) return;
@@ -48,12 +53,24 @@ export function DailyBriefingCard() {
       ]);
       const rows = (c.data ?? []) as Commitment[];
       setItems(rows);
-      setOverdue(rows.filter((r) => r.due_at && new Date(r.due_at) < new Date()).length);
+      const od = rows.filter((r) => r.due_at && new Date(r.due_at) < new Date()).length;
+      setOverdue(od);
       setApprovals(a.count ?? 0);
       setFiles(f.count ?? 0);
       setLoading(false);
+
+      // Audit briefing.generated once per session-mount (counts-first, no AI).
+      if (user && !auditedRef.current) {
+        auditedRef.current = true;
+        await supabase.from("audit_log").insert({
+          user_id: user.id,
+          entity_type: "briefing",
+          event: "briefing.generated",
+          payload: { overdue: od, due_today: rows.length, approvals: a.count ?? 0, files_pending: f.count ?? 0 },
+        });
+      }
     })();
-  }, [session]);
+  }, [session, user]);
 
   const { Icon, greeting, clock } = useMemo(() => {
     const now = new Date();
@@ -93,6 +110,31 @@ export function DailyBriefingCard() {
     return parts.join(" · ");
   }, [loading, overdue, todayList.length, approvals, files]);
 
+  const polishBriefing = async () => {
+    if (!user || polishing) return;
+    setPolishing(true);
+    try {
+      const top = items.slice(0, 6).map((c) => `- ${c.summary}${c.due_at ? ` (due ${new Date(c.due_at).toISOString()})` : ""}`).join("\n");
+      const prompt = `In one warm, plain-English paragraph (max 3 sentences, no exclamation marks, East Coast tone), brief the user on their day. Counts: ${line}. Top items:\n${top}\nTimezone: ${timezone}.`;
+      const { data, error } = await supabase.functions.invoke("vanta-converse", {
+        body: { message: prompt, intent: "briefing_polish" },
+      });
+      if (error) throw error;
+      const reply = (data as any)?.reply || (data as any)?.content || (data as any)?.message;
+      if (reply && typeof reply === "string") setPolish(reply.trim());
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        entity_type: "briefing",
+        event: "briefing.ai_polished",
+        payload: { chars: reply?.length ?? 0 },
+      });
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setPolishing(false);
+    }
+  };
+
   return (
     <Card className="border-border/60 bg-surface-elevated/60 p-3">
       <div className="flex items-start gap-2.5">
@@ -113,6 +155,23 @@ export function DailyBriefingCard() {
                 · {formatDistanceToNowStrict(new Date((next.due_at || next.remind_at)!), { addSuffix: true })}
               </span>
             </p>
+          )}
+          {polish && (
+            <p className="mt-1 rounded-md bg-primary/5 p-2 text-[12px] italic text-foreground/85 ring-1 ring-primary/20">
+              {polish}
+            </p>
+          )}
+          {!loading && !polish && (overdue + todayList.length + approvals + files > 0) && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[10.5px] text-muted-foreground hover:text-primary"
+              onClick={polishBriefing}
+              disabled={polishing}
+            >
+              {polishing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wand2 className="mr-1 h-3 w-3" />}
+              Polish with Vanta
+            </Button>
           )}
         </div>
       </div>

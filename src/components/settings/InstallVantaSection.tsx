@@ -8,6 +8,10 @@ export function InstallVantaSection() {
   const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
   const [busy, setBusy] = useState(false);
 
+  // Doctrine: hide install CTA when already running standalone — no point yelling at a closed door.
+  const standalone = typeof window !== "undefined" &&
+    (window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true);
+
   const handleInstall = async () => {
     setBusy(true);
     const r = await promptInstall();
@@ -16,6 +20,11 @@ export function InstallVantaSection() {
     else if (r === "dismissed") toast("No problem — you can install it later from Settings.");
     else toast("Install isn't available from this browser right now. Try opening Vanta in Chrome.");
   };
+
+  if (standalone && !installed) {
+    // Standalone signal trumps stale installed flag.
+    return null;
+  }
 
   return (
     <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
