@@ -8,6 +8,95 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
+// ---------- Overpass cache (server-only) -----------------------------------
+const OVERPASS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const OVERPASS_TIMEOUT_MS = 8000;
+
+function cellKey(lat: number, lon: number): string {
+  // ~110m grid via 3 decimal rounding
+  return `${lat.toFixed(3)},${lon.toFixed(3)}`;
+}
+
+type OverpassSanity = {
+  sanity: "land_nearby" | "offshore_confirmed" | "unresolved";
+  nearest_place?: { name: string; type: string; distance_m: number } | null;
+  coastline_nearby?: boolean;
+  fetched_at: string;
+};
+
+async function fetchOverpassSanity(lat: number, lon: number, admin: any): Promise<OverpassSanity | null> {
+  const key = cellKey(lat, lon);
+  try {
+    const { data: cached } = await admin
+      .from("awareness_overpass_cache")
+      .select("payload, fetched_at")
+      .eq("cell_key", key)
+      .maybeSingle();
+    if (cached && Date.now() - new Date(cached.fetched_at).getTime() < OVERPASS_TTL_MS) {
+      return cached.payload as OverpassSanity;
+    }
+  } catch {/* ignore cache miss */}
+
+  const ql = `[out:json][timeout:8];(node(around:3000,${lat},${lon})[place~"island|town|village|city|hamlet|suburb"];way(around:5000,${lat},${lon})[natural=coastline];);out tags center 10;`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
+  let json: any = null;
+  try {
+    const r = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: "data=" + encodeURIComponent(ql),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return null;
+    json = await r.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const elements = (json?.elements ?? []) as any[];
+  const places = elements.filter((e) => e.tags?.place && (e.type === "node" || e.center));
+  const coast = elements.some((e) => e.tags?.natural === "coastline");
+
+  // Haversine
+  const dist = (la2: number, lo2: number) => {
+    const R = 6371000;
+    const dLat = ((la2 - lat) * Math.PI) / 180;
+    const dLon = ((lo2 - lon) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat * Math.PI) / 180) * Math.cos((la2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  };
+
+  let nearest: OverpassSanity["nearest_place"] = null;
+  for (const p of places) {
+    const plat = p.lat ?? p.center?.lat;
+    const plon = p.lon ?? p.center?.lon;
+    if (!Number.isFinite(plat) || !Number.isFinite(plon)) continue;
+    const d = dist(plat, plon);
+    if (!nearest || d < nearest.distance_m) {
+      nearest = { name: p.tags.name ?? p.tags.place, type: p.tags.place, distance_m: Math.round(d) };
+    }
+  }
+
+  const sanity: OverpassSanity = nearest
+    ? { sanity: "land_nearby", nearest_place: nearest, coastline_nearby: coast, fetched_at: new Date().toISOString() }
+    : coast
+      ? { sanity: "offshore_confirmed", nearest_place: null, coastline_nearby: true, fetched_at: new Date().toISOString() }
+      : { sanity: "unresolved", nearest_place: null, coastline_nearby: false, fetched_at: new Date().toISOString() };
+
+  try {
+    await admin
+      .from("awareness_overpass_cache")
+      .upsert({ cell_key: key, payload: sanity, fetched_at: new Date().toISOString() });
+  } catch {/* ignore cache write failures */}
+
+  return sanity;
+}
+
+
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -137,10 +226,26 @@ Deno.serve(async (req: Request) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const country = nomi.address.country ?? null;
-    const region = pickRegion(nomi.address);
-    const city = pickCity(nomi.address);
+    let country = nomi.address.country ?? null;
+    let region = pickRegion(nomi.address);
+    let city = pickCity(nomi.address);
     const country_code = nomi.address.country_code?.toUpperCase() ?? null;
+
+    // Overpass sanity layer — only when Nominatim returned no country/region.
+    let sanity: OverpassSanity | null = null;
+    if (!country && !region) {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      sanity = await fetchOverpassSanity(lat, lon, admin);
+      if (sanity?.sanity === "land_nearby" && sanity.nearest_place) {
+        // Synthesize a city/region from the closest land feature so the UI
+        // can stop saying "unknown". Do NOT invent a country.
+        city = city ?? sanity.nearest_place.name;
+        region = region ?? sanity.nearest_place.name;
+      }
+    }
 
     const nextGeo: Geo = {
       ...geo,
@@ -148,6 +253,8 @@ Deno.serve(async (req: Request) => {
       country_code: country_code ?? (geo as any).country_code ?? null,
       display_name: nomi.display_name ?? (geo as any).display_name ?? null,
       geocoded_at: new Date().toISOString(),
+      sanity: sanity?.sanity ?? (geo as any).sanity ?? null,
+      sanity_meta: sanity ?? (geo as any).sanity_meta ?? null,
     };
 
     const { error: uErr } = await supabase
@@ -168,6 +275,7 @@ Deno.serve(async (req: Request) => {
       city,
       country_code,
       display_name: nomi.display_name,
+      sanity: sanity?.sanity ?? null,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("awareness-geocode error", e);

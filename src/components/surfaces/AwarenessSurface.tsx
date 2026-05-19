@@ -52,18 +52,22 @@ export function AwarenessSurface() {
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
 
-  // Watch for country null → set transition to offer a rescan prompt.
+  // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
+  const autoRescanFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!place) { prevCountryRef.current = undefined; return; }
     const prev = prevCountryRef.current;
-    if (prev === null && place.country) {
+    if (prev === null && place.country && autoRescanFiredRef.current !== place.id) {
+      autoRescanFiredRef.current = place.id;
       toast.success(vantaSay.locationFixedRescan());
       setRecoveryOpen(false);
       setRecoveryDismissed(true);
+      // Auto-fire a snapshot rescan for the freshly-resolved place.
+      refreshSnapshot(true).catch(() => {});
     }
     prevCountryRef.current = place.country ?? null;
-  }, [place?.id, place?.country]);
+  }, [place?.id, place?.country, refreshSnapshot]);
 
   const loadList = async () => {
     const { data } = await supabase

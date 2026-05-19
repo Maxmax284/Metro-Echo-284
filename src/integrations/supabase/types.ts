@@ -396,6 +396,24 @@ export type Database = {
           },
         ]
       }
+      awareness_overpass_cache: {
+        Row: {
+          cell_key: string
+          fetched_at: string
+          payload: Json
+        }
+        Insert: {
+          cell_key: string
+          fetched_at?: string
+          payload: Json
+        }
+        Update: {
+          cell_key?: string
+          fetched_at?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       awareness_places: {
         Row: {
           country: string | null

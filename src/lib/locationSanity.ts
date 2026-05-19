@@ -110,11 +110,20 @@ export function classifyPlaceBadness(place: {
   if (!place) return { bad: false, reasons: [], headline: "" };
   const reasons: BadnessReason[] = [];
   const city = place.geo?.city ?? null;
+  const sanity: string | null = place.geo?.sanity ?? null;
+
+  // Server-side Overpass sanity wins when present.
+  if (sanity === "offshore_confirmed") {
+    return { bad: true, reasons: ["open_water_hint"], headline: "This pin looks offshore." };
+  }
+  if (sanity === "land_nearby" && city) {
+    // Resolved enough to use — don't flag as bad.
+    return { bad: false, reasons: [], headline: "" };
+  }
+
   if (!place.country) reasons.push("no_country");
   if (!place.region) reasons.push("no_region");
   if (!city) reasons.push("no_city");
-  // Open-water heuristic: no country AND no region AND no city = almost
-  // certainly offshore or in unmapped wilderness.
   if (!place.country && !place.region && !city) reasons.push("open_water_hint");
   const acc = Number(place.geo?.acc);
   if (Number.isFinite(acc) && acc > 8000) reasons.push("low_accuracy");

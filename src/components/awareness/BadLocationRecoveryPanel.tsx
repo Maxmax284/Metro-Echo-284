@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle } from "lucide-react";
+import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle, Undo2, Map as MapIcon } from "lucide-react";
 import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import {
   sampleHighAccuracy,
@@ -13,6 +13,7 @@ import {
   searchPlaces,
   type PlaceSearchHit,
 } from "@/lib/locationSanity";
+import { MapPickerDialog } from "@/components/awareness/MapPickerDialog";
 
 type Props = {
   /** Other usable saved places to offer as fallbacks. */
@@ -29,13 +30,15 @@ type Props = {
 export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
   const { session } = useAuth();
   const { place, refresh, refreshSnapshot, setActivePlace, deletePlace } = useAwareness();
-  const [busy, setBusy] = useState<null | "quick" | "ha" | "search" | "delete" | "switch">(null);
+  const [busy, setBusy] = useState<null | "quick" | "ha" | "search" | "delete" | "switch" | "lastgood">(null);
   const [sampleStatus, setSampleStatus] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<PlaceSearchHit[]>([]);
+  const [mapOpen, setMapOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const badness = classifyPlaceBadness(place);
+  const lastGood = alternatives.find((p) => p.country);
 
   // Auto-refresh prompt: when the active place transitions from no-country
   // to a real country, offer a rescan. Detected via parent re-render of `place`.
@@ -51,6 +54,27 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
       await supabase.functions.invoke("awareness-geocode", { body: { place_id: placeId, force: true } });
     } catch {/* surfaced by feedback below */}
     await refresh();
+    // Auto-rescan if country resolved
+    const { data: fresh } = await supabase
+      .from("awareness_places")
+      .select("country")
+      .eq("id", placeId)
+      .maybeSingle();
+    if (fresh?.country) {
+      refreshSnapshot(true).catch(() => {});
+    }
+  };
+
+  const useLastGood = async () => {
+    if (!lastGood) return;
+    setBusy("lastgood");
+    try {
+      await setActivePlace(lastGood.id);
+      toast.success(vantaSay.switchedPlace(lastGood.label));
+      onDismiss?.();
+    } finally {
+      setBusy(null);
+    }
   };
 
   const quickRecenter = async () => {
@@ -228,6 +252,29 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
         )}
       </div>
 
+      {/* One-tap last-good shortcut */}
+      {lastGood && (
+        <button
+          onClick={useLastGood}
+          disabled={!!busy}
+          className="w-full flex items-center gap-2 rounded-lg border border-primary/40 bg-primary/[0.08] px-3 py-2 text-left hover:bg-primary/[0.12] disabled:opacity-60 transition-colors"
+        >
+          {busy === "lastgood" ? (
+            <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+          ) : (
+            <Undo2 className="h-4 w-4 text-primary shrink-0" />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] font-medium text-foreground truncate">
+              Use {lastGood.label} again
+            </div>
+            <div className="text-[10.5px] text-muted-foreground">
+              Last confirmed place{lastGood.country ? ` · ${lastGood.country}` : ""}
+            </div>
+          </div>
+        </button>
+      )}
+
       <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
         <Button
           size="sm"
@@ -248,7 +295,18 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
           {busy === "quick" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
           Quick recenter
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 gap-1.5 text-[12px] justify-start sm:col-span-2"
+          onClick={() => setMapOpen(true)}
+          disabled={!!busy}
+        >
+          <MapIcon className="h-3.5 w-3.5" />
+          Pick on map
+        </Button>
       </div>
+
 
       {sampleStatus && (
         <div className="text-[11px] text-muted-foreground">{sampleStatus}</div>
@@ -325,6 +383,12 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
           Delete this bad place
         </Button>
       </div>
+
+      <MapPickerDialog
+        open={mapOpen}
+        onOpenChange={setMapOpen}
+        initial={place?.geo?.lat && place?.geo?.lon ? { lat: place.geo.lat, lon: place.geo.lon } : null}
+      />
     </div>
   );
 }
