@@ -76,6 +76,7 @@ export function useIntakeFeed(limit = 60) {
         routedTo: routed ?? null,
         needsReview: !!meta.needs_review || (!meta.detected_type && !routed),
         ts: m.created_at,
+        why: whyForMessage(source, meta, routed),
         _raw: { kind: "message", row: m },
       });
     }
