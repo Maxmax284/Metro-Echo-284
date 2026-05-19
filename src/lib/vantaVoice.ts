@@ -46,6 +46,13 @@ export const vantaSay = {
   noteToCommitment: () => "Tracking as a commitment.",
   noteToSherlock: () => "Sent to Sherlock.",
   markedDone: () => "Marked done.",
+  reminderSet: (when: string) => `Reminder set for ${when}.`,
+  reminderNeedsTime: () => "Need a time. When should I remind you?",
+  timezoneUpdated: (tz: string) => `Timezone set to ${tz}.`,
+  briefingReady: () => "Briefing's ready.",
+  fileNeedsReview: () => "This file needs a type.",
+  fileTypeSet: (type: string) => `Filed as a ${type}.`,
+  fileArchived: () => "Filed away.",
 
   // Awareness / radar
   recentered: () => "Recentered. Tap Scan area when you want fresh context.",
