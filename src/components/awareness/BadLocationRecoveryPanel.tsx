@@ -235,6 +235,32 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
     }
   };
 
+  const useNearby = async (np: NearbyPlace) => {
+    if (!session) return;
+    setBusy("search");
+    try {
+      const label = np.admin ? `${np.name}, ${np.admin}` : np.name;
+      const { data } = await supabase
+        .from("awareness_places")
+        .insert({
+          user_id: session.user.id,
+          label,
+          geo: { lat: np.lat, lon: np.lon, source: "nearby_suggestion", city: np.name },
+        })
+        .select("id")
+        .single();
+      if (data) {
+        await setActivePlace((data as any).id);
+        toast.success(vantaSay.switchedPlace(label));
+        // Reverse geocode + auto-rescan in background
+        await reverseGeocode((data as any).id);
+        onDismiss?.();
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const useSaved = async (alt: AwarenessPlace) => {
     setBusy("switch");
     try {
