@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle, Undo2, Map as MapIcon } from "lucide-react";
+import { Loader2, Crosshair, MapPin, Search, Trash2, X, AlertTriangle, Undo2, Map as MapIcon, Sparkles } from "lucide-react";
 import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import {
   sampleHighAccuracy,
@@ -14,6 +14,15 @@ import {
   type PlaceSearchHit,
 } from "@/lib/locationSanity";
 import { MapPickerDialog } from "@/components/awareness/MapPickerDialog";
+
+type NearbyPlace = {
+  name: string;
+  kind: string;
+  lat: number;
+  lon: number;
+  distance_m: number;
+  admin?: string | null;
+};
 
 type Props = {
   /** Other usable saved places to offer as fallbacks. */
