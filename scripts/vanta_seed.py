@@ -88,9 +88,10 @@ FILES = [
 ]
 
 ACTIONS = [
-    ("[SEED] Draft reply to vendor #4421",          "proposed",            "standard"),
-    ("[SEED] Send GroundStay update email",         "awaiting_approval",   "standard"),
-    ("[SEED] Archived test action",                 "executed",            "standard"),
+    ("[SEED] Draft reply to vendor #4421",          "proposed",   "standard"),
+    ("[SEED] Send GroundStay update email",         "staged",     "standard"),
+    ("[SEED] Approved schedule confirmation",       "approved",   "standard"),
+    ("[SEED] Archived test action",                 "executed",   "standard"),
 ]
 
 # Mocked Telegram captures — recorded into audit_log + a note so the routing
