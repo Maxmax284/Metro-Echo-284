@@ -223,38 +223,38 @@ export function AwarenessSurface() {
                 </div>
 
                 {/* Line 3 — primary action */}
-                <div className="flex items-center gap-1.5 pt-0.5">
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   {badness.bad ? (
                     <Button
                       size="sm"
-                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      className="h-9 gap-1.5 text-[12px] flex-1 min-w-0"
                       onClick={() => setRecoveryOpen(true)}
                     >
-                      <Wrench className="h-3.5 w-3.5" />
-                      Fix location
+                      <Wrench className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Fix location</span>
                     </Button>
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 gap-1.5 text-[12px] flex-1 sm:flex-none"
+                      className="h-9 gap-1.5 text-[12px] flex-1 min-w-0"
                       onClick={recenter}
                       disabled={recentering}
                     >
-                      {recentering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
-                      Recenter
+                      {recentering ? <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" /> : <Crosshair className="h-3.5 w-3.5 shrink-0" />}
+                      <span className="truncate">Recenter</span>
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-9 gap-1 text-[12px] text-muted-foreground"
+                    className="h-9 gap-1 text-[12px] text-muted-foreground shrink-0"
                     onClick={() => setShowPlaces((v) => !v)}
                   >
                     {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                     Switch
                   </Button>
-                  <div className="ml-auto"><SourceStatusPill /></div>
+                  <div className="shrink-0"><SourceStatusPill /></div>
                 </div>
               </div>
             </div>
