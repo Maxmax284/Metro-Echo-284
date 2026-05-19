@@ -190,21 +190,39 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
     }
   };
 
-  const runSearch = async () => {
+  const runSearch = async (silent = false) => {
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
-    setBusy("search");
+    if (!silent) setBusy("search");
     try {
       const out = await searchPlaces(query, ac.signal);
       setHits(out);
-      if (out.length === 0) toast.error(vantaSay.manualPlaceMiss());
+      if (!silent && out.length === 0) toast.error(vantaSay.manualPlaceMiss());
     } catch (e: any) {
-      if (e?.name !== "AbortError") toast.error(vantaSay.manualPlaceMiss());
+      if (!silent && e?.name !== "AbortError") toast.error(vantaSay.manualPlaceMiss());
     } finally {
-      setBusy(null);
+      if (!silent) setBusy(null);
     }
   };
+
+  // Debounced auto-search as the user types (silent — no toast on empty).
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) { setHits([]); return; }
+    const t = setTimeout(() => { runSearch(true); }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Live filter for nearby chips — narrows the auto-loaded list as user types.
+  const filteredNearby = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return nearby;
+    return nearby.filter(
+      (np) => np.name.toLowerCase().includes(q) || (np.admin ?? "").toLowerCase().includes(q),
+    );
+  })();
 
   const useHit = async (hit: PlaceSearchHit) => {
     if (!session) return;
