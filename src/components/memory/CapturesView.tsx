@@ -58,7 +58,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       user_id: user.id,
       title: item.text.slice(0, 80),
       body: item.text,
-      tags: [`source:${item.source}`],
+      tags: [`source:${item.source}`, "type:note"],
     }).select("id").single();
     if (data) generateEmbedding("note", data.id);
     await stampMessageRoute(item, "memory");

@@ -30,10 +30,12 @@ type ActionEvent = {
 
 const QUICK_FILTERS = [
   { id: "",            label: "All" },
+  { id: "capture",     label: "Captures" },
+  { id: "telegram",    label: "Telegram" },
   { id: "action",      label: "Actions" },
   { id: "commitment",  label: "Commitments" },
   { id: "note",        label: "Notes" },
-  { id: "intent",      label: "Intents" },
+  { id: "ingested_file", label: "Files" },
 ];
 
 function statusTone(status: string): DotTone {

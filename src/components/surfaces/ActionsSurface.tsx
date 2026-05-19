@@ -50,6 +50,8 @@ export function ActionsSurface() {
   const [busy, setBusy] = useState<string | null>(null);
   const [approvalTarget, setApprovalTarget] = useState<Action | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [rollbackTarget, setRollbackTarget] = useState<Action | null>(null);
+  const [rollbackText, setRollbackText] = useState("");
 
   const refresh = async () => {
     setLoading(true);
@@ -201,7 +203,7 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => transition(a, "rolled_back", "user rollback")} className="gap-1">
+                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
                                 <RotateCcw className="h-3.5 w-3.5" /> Rollback
                               </Button>
                             )}
@@ -309,6 +311,52 @@ export function ActionsSurface() {
                   >
                     {busy === t.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
                     Confirm approval
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!rollbackTarget} onOpenChange={(o) => !o && setRollbackTarget(null)}>
+        <DialogContent className="max-w-md">
+          {rollbackTarget && (() => {
+            const t = rollbackTarget;
+            const ok = rollbackText.trim().toLowerCase() === "rollback";
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <RotateCcw className="h-5 w-5 text-warn" />
+                    Rollback action
+                  </DialogTitle>
+                  <DialogDescription className="space-y-2">
+                    <span className="block text-sm font-medium text-foreground">{t.title}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t.rollback_available
+                        ? "This will attempt to reverse the executed change. Audit trail is preserved."
+                        : "No automatic rollback is available. Marking as rolled_back is bookkeeping only — you'll need to undo the effect manually."}
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-1.5 rounded-md border border-warn/30 bg-warn/5 p-2.5">
+                  <p className="text-xs text-foreground">
+                    Type <span className="font-mono font-semibold">rollback</span> to confirm.
+                  </p>
+                  <Input autoFocus value={rollbackText} onChange={(e) => setRollbackText(e.target.value)} placeholder="rollback" />
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setRollbackTarget(null)}>Cancel</Button>
+                  <Button
+                    disabled={!ok || busy === t.id}
+                    onClick={async () => {
+                      await transition(t, "rolled_back", "user rollback");
+                      setRollbackTarget(null);
+                    }}
+                  >
+                    {busy === t.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                    Confirm rollback
                   </Button>
                 </DialogFooter>
               </>
