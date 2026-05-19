@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
+import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 
@@ -56,7 +57,7 @@ export function MemorySurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
-  const [view, setView] = useState<"notes" | "captures" | "ambiguous" | "corrections">("notes");
+  const [view, setView] = useState<"notes" | "captures" | "files" | "ambiguous" | "corrections">("notes");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -310,6 +311,7 @@ export function MemorySurface() {
           {([
             { id: "notes", label: "Notes", Icon: Inbox },
             { id: "captures", label: "Captures", Icon: Inbox },
+            { id: "files", label: "Files", Icon: Inbox },
             { id: "ambiguous", label: "Ambiguous", Icon: HelpCircle },
             { id: "corrections", label: "Corrections", Icon: AlertTriangle },
           ] as const).map((v) => {
@@ -337,6 +339,10 @@ export function MemorySurface() {
       {view === "corrections" ? (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
           <CorrectionsCenter />
+        </div>
+      ) : view === "files" ? (
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+          <MemoryFilesView />
         </div>
       ) : view === "captures" || view === "ambiguous" ? (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
