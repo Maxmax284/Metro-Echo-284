@@ -235,8 +235,11 @@ export function AuditSurface() {
                 <div className="flex items-center gap-2">
                   <StatusDot tone={eventTone(r.event)} title={r.event} />
                   <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{r.entity_type}</Badge>
-                  <span className="truncate font-medium">{r.event}</span>
-                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate font-medium">{r.event}</span>
+                  <span
+                    className="ml-auto shrink-0 text-[10px] text-muted-foreground"
+                    title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
+                  >
                     {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                   </span>
                 </div>
