@@ -81,8 +81,39 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("commitments", { commitment_id: data?.id });
           toast.success(vantaSay.commitmentAdded());
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
-        } else if (kind === "run_sherlock") {
-          openSherlock({
+        } else if (kind === "set_reminder") {
+          const tz = args.timezone || prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+          const parsed = parseReminderHint(String(args.when ?? ""), {
+            timezone: tz,
+            morning: prefs.default_morning_time,
+            afternoon: prefs.default_afternoon_time,
+            evening: prefs.default_evening_time,
+          });
+          if (parsed.status === "needs_time") {
+            await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "companion", summary: args.summary, when: args.when } });
+            toast.warning(vantaSay.reminderNeedsTime());
+            return;
+          }
+          if (parsed.status === "needs_ampm") {
+            await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "companion", summary: args.summary, when: args.when } });
+            toast.warning(vantaSay.reminderAmPmAsk(parsed.hh, parsed.mm));
+            return;
+          }
+          if (parsed.status === "needs_tz") {
+            toast.warning(vantaSay.reminderNeedsTz());
+            return;
+          }
+          const { data } = await supabase.from("commitments").insert({
+            user_id: user.id,
+            summary: args.summary,
+            due_at: parsed.due_at,
+            remind_at: parsed.remind_at,
+            metadata: { kind: "reminder", source: "companion", timezone: parsed.timezone, when_hint: args.when },
+          }).select("id").single();
+          if (data) generateEmbedding("commitment", data.id);
+          await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
+          toast.success(vantaSay.reminderCreated(parsed.phrasing));
+          onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
             entity_type: "freeform",
             title: (args.text ?? "").slice(0, 80),
             text: args.text ?? "",
