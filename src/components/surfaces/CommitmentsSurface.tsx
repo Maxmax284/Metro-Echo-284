@@ -8,6 +8,8 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow, formatDistanceToNowStrict, isPast } from "date-fns";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { formatTzLine } from "@/lib/timeRules";
 
 type Commitment = {
   id: string;
