@@ -116,6 +116,70 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           toast.success(vantaSay.awarenessAnswered(place?.label));
+        } else if (kind === "query_schedule") {
+          const window = String(args.window ?? "today");
+          // Resolve tz: stored profile timezone falls back to browser
+          let tz = "UTC";
+          try {
+            const { data: prof } = await supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle();
+            tz = prof?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+          } catch { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+
+          const now = new Date();
+          const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
+          const endOfTomorrow = new Date(endOfToday.getTime() + 24 * 3600 * 1000);
+          const endOfWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+
+          let query = supabase.from("commitments")
+            .select("id, summary, due_at, remind_at, status, priority")
+            .eq("status", "open")
+            .order("due_at", { ascending: true, nullsFirst: false })
+            .limit(50);
+
+          const { data: rows } = await query;
+          const all = (rows ?? []) as any[];
+          const dueAt = (c: any) => c.due_at || c.remind_at;
+          let filtered = all;
+          if (window === "today") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) <= endOfToday);
+          else if (window === "tomorrow") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) > endOfToday && new Date(dueAt(c)) <= endOfTomorrow);
+          else if (window === "week") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) <= endOfWeek);
+          else if (window === "overdue") filtered = all.filter((c) => c.due_at && new Date(c.due_at) < now);
+          else if (window === "next") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) > now).slice(0, 1);
+
+          const lines = filtered.length
+            ? filtered.map((c) => {
+                const d = dueAt(c);
+                const stamp = d ? formatInTimeZone(new Date(d), tz, "EEE MMM d · h:mm a") : "no time";
+                const tag = c.remind_at && !c.due_at ? "⏰" : "•";
+                return `${tag} **${c.summary}** — ${stamp} ${tz}`;
+              }).join("\n")
+            : `Nothing on the board for ${window}.`;
+
+          const header = window === "today" ? "Today" : window === "tomorrow" ? "Tomorrow" : window === "week" ? "Next 7 days" : window === "overdue" ? "Overdue" : "Next up";
+          const composed = `**${header}** (${tz})\n\n${lines}`;
+
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (conv?.id) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: conv.id,
+              role: "assistant",
+              content: composed,
+              metadata: { source: "schedule", window, timezone: tz, count: filtered.length },
+            });
+          }
+          await supabase.from("audit_log").insert({
+            user_id: user.id,
+            entity_type: "schedule",
+            event: "companion.query.schedule",
+            payload: { window, timezone: tz, count: filtered.length },
+          });
+          toast.success({ title: `Schedule pulled (${header.toLowerCase()})` });
         }
       } catch (e) {
         toast.fromError(e);
