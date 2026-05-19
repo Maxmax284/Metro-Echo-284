@@ -180,7 +180,25 @@ Deno.serve(async (req: Request) => {
               chatIds.set(c.user_id, chatId);
             }
             if (chatId) {
-              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz);
+              let noteTitle: string | null = null;
+              let noteBody: string | null = null;
+              if (c.source_note) {
+                let cached = notesCache.get(c.source_note);
+                if (!cached) {
+                  const { data: n } = await supabase
+                    .from("notes")
+                    .select("title, body")
+                    .eq("id", c.source_note)
+                    .maybeSingle();
+                  cached = { title: n?.title ?? null, body: n?.body ?? null };
+                  notesCache.set(c.source_note, cached);
+                }
+                noteTitle = cached.title;
+                noteBody = cached.body;
+              }
+              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
+                noteTitle, noteSnippet: noteBody, commitmentId: c.id,
+              });
               const r = await sendTelegram(chatId, text);
               if (r.ok) {
                 telegramSent++;
