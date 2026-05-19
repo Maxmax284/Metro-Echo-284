@@ -60,6 +60,9 @@ export function MemorySurface() {
   const [searching, setSearching] = useState(false);
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [hitFilter, setHitFilter] = useState<HitKind | "all">("all");
+  const [groupBy, setGroupBy] = useState<"none" | "source">("none");
+  const [deleteText, setDeleteText] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const searchCancelRef = useRef(false);
 
   const [related, setRelated] = useState<RelatedHit[]>([]);
@@ -473,10 +476,29 @@ export function MemorySurface() {
                 </Button>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => del(active.id)}>Delete</Button>
+                <Button variant="ghost" size="sm" onClick={() => { setDeleteText(""); setConfirmingDelete(true); }} className="text-destructive hover:text-destructive">Delete</Button>
                 <Button size="sm" onClick={() => { save(active); setActive(null); }}>Save</Button>
               </div>
             </div>
+            {confirmingDelete && (
+              <div className="mt-3 space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
+                <p className="text-xs text-foreground">
+                  Permanent. Type <span className="font-mono font-semibold">delete</span> to confirm.
+                </p>
+                <Input autoFocus value={deleteText} onChange={(e) => setDeleteText(e.target.value)} placeholder="delete" />
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={deleteText.trim().toLowerCase() !== "delete"}
+                    onClick={() => { del(active.id); setConfirmingDelete(false); }}
+                  >
+                    Delete forever
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
