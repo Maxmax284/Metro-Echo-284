@@ -68,8 +68,13 @@ export function PushReadinessSection() {
           {status === "on" ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-primary" />}
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold">Push notifications</h2>
-          <p className="text-[12px] text-muted-foreground">Browser push for reminders. Delivery is staged — permission only, no spam.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold">Push notifications</h2>
+            <span className="rounded-full bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/50">
+              Delivery: Staged
+            </span>
+          </div>
+          <p className="text-[12px] text-muted-foreground">Browser push for reminders. Permission only — no reminders fire from push yet.</p>
         </div>
       </div>
 
