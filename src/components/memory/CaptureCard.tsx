@@ -59,7 +59,7 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
             )}
             {item.confidence && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-                <StatusDot tone={confidenceTone[item.confidence]} pulse={item.confidence === "low"} />
+                <StatusDot tone={confTone[item.confidence]} pulse={item.confidence === "low"} />
                 {item.confidence} confidence
               </span>
             )}
