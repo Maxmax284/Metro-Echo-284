@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
+import { CapturesView } from "@/components/memory/CapturesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 
 const STARTER_SEARCHES = [
@@ -53,7 +54,7 @@ export function MemorySurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
-  const [view, setView] = useState<"notes" | "corrections">("notes");
+  const [view, setView] = useState<"notes" | "captures" | "ambiguous" | "corrections">("notes");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
