@@ -70,7 +70,28 @@ export function PushReadinessSection() {
     } finally {
       setBusy(false);
     }
+  const sendTest = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-test");
+      if (error) throw error;
+      const d = (data ?? {}) as { sent?: number; failed?: number; expired?: number; reason?: string };
+      if (d.reason === "no_subscriptions") {
+        toast("No active subscriptions on this account. Enable push first.");
+      } else if (d.sent && d.sent > 0) {
+        toast.success(`Test push sent to ${d.sent} device${d.sent === 1 ? "" : "s"}. Watch for it.`);
+      } else {
+        toast("Sent — but nothing delivered. Check Audit for details.");
+      }
+    } catch (e: any) {
+      toast(e?.message || "Test push failed.");
+    } finally {
+      setBusy(false);
+    }
   };
+
+
 
   return (
     <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
