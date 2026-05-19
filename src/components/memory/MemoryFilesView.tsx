@@ -70,6 +70,44 @@ export function MemoryFilesView() {
 
   useEffect(() => { refresh(); }, []);
 
+  const handleFiles = async (fileList: FileList | File[]) => {
+    if (!user) return;
+    const list = Array.from(fileList);
+    if (list.length === 0) return;
+    setUploading(true);
+    for (const f of list) {
+      try {
+        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
+        const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
+        const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
+        if (upErr) throw upErr;
+        const { data: rec, error: insErr } = await supabase
+          .from("ingested_files")
+          .insert({
+            user_id: user.id,
+            filename: f.name,
+            mime_type: f.type || null,
+            size_bytes: f.size,
+            storage_path: path,
+            source: "upload",
+            status: "pending",
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        const { error: fnErr } = await supabase.functions.invoke("files-ingest", {
+          body: { ingested_file_id: rec.id },
+        });
+        if (fnErr) throw fnErr;
+        toast.success(vantaSay.fileIngested(f.name));
+      } catch (e) {
+        toast.fromError(e);
+      }
+    }
+    setUploading(false);
+    refresh();
+  };
+
   const audit = async (fileId: string, event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
     await supabase.from("audit_log").insert({
