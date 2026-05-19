@@ -198,13 +198,13 @@ function Empty({ children }: { children: string }) {
   return <div className="rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">{children}</div>;
 }
 
-function CommitmentRow({ c, tz, dense }: { c: Commitment; tz: string; dense?: boolean }) {
+function CommitmentRow({ c, tz, dense, onChanged }: { c: Commitment; tz: string; dense?: boolean; onChanged?: () => void }) {
   const d = c.due_at || c.remind_at;
   const overdue = d ? new Date(d).getTime() < Date.now() : false;
   const isReminder = !!c.remind_at;
   return (
     <li className={cn("flex items-start gap-2 text-[12.5px]", dense && "py-0.5")}>
-      {isReminder ? <Bell className="mt-0.5 h-3 w-3 text-primary" /> : <CheckSquare className="mt-0.5 h-3 w-3 text-muted-foreground" />}
+      {isReminder ? <Bell className="mt-1.5 h-3 w-3 text-primary" /> : <CheckSquare className="mt-1.5 h-3 w-3 text-muted-foreground" />}
       <div className="min-w-0 flex-1">
         <div className={cn("truncate", overdue && "text-warn")}>{c.summary}</div>
         {d && (
@@ -213,6 +213,7 @@ function CommitmentRow({ c, tz, dense }: { c: Commitment; tz: string; dense?: bo
           </div>
         )}
       </div>
+      <CommitmentActions c={c} size="sm" onChanged={onChanged} />
     </li>
   );
 }
