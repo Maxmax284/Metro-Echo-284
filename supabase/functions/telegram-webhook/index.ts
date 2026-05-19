@@ -64,17 +64,20 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
-    return VANTA_PHRASES.noteSaved(args.title);
+    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
+    return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
   }
   if (name === "stage_action") {
-    await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" });
-    return VANTA_PHRASES.actionStaged(args.title);
+    const { data } = await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
+    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
+    return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions" };
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
     const { data } = await sb.from("commitments").insert({ user_id: userId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
-    return VANTA_PHRASES.commitmentRecorded(args.summary);
+    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
+    return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments" };
   }
   return null;
 }
@@ -126,21 +129,38 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   const choice = j.choices?.[0]?.message;
   let reply = choice?.content?.trim() ?? "";
   const intents: string[] = [];
+  let detectedType: string | null = null;
+  let routedTo: string | null = null;
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const note = await applyIntent(sb, userId, tc.function.name, args);
-      if (note) intents.push(note);
+      const res = await applyIntent(sb, userId, tc.function.name, args);
+      if (res) {
+        intents.push(res.reply);
+        detectedType = res.detectedType;
+        routedTo = res.routedTo;
+      }
     } catch { /* ignore */ }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
   if (!reply) reply = VANTA_PHRASES.gotIt();
 
-  // persist into the user's most recent conversation for cross-surface continuity
+  // persist into the user's most recent conversation for cross-surface continuity.
+  // Stamp detected_type / routed_to / needs_review so the Capture Log + Captures lane
+  // can render the front-desk chips uniformly across channels.
+  const userMeta: Record<string, unknown> = { source: "telegram" };
+  if (detectedType) userMeta.detected_type = detectedType;
+  if (routedTo) {
+    userMeta.routed_to = routedTo;
+    userMeta.confidence = "high";
+  } else {
+    userMeta.needs_review = true;
+    userMeta.confidence = "low";
+  }
   if (conv?.id) {
     await sb.from("messages").insert([
-      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: { source: "telegram" } },
-      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram" } },
+      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
+      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
     ]);
   }
   return reply;
