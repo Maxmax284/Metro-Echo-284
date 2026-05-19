@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, CheckCircle2, Bell, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Bell, AlertTriangle, Loader2 } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow, formatDistanceToNowStrict, isPast } from "date-fns";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatTzLine } from "@/lib/timeRules";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 type Commitment = {
   id: string;
