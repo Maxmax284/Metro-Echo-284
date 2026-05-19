@@ -72,6 +72,29 @@ export function PushReadinessSection() {
     }
   };
 
+  const sendTest = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-test");
+      if (error) throw error;
+      const d = (data ?? {}) as { sent?: number; failed?: number; expired?: number; reason?: string };
+      if (d.reason === "no_subscriptions") {
+        toast("No active subscriptions on this account. Enable push first.");
+      } else if (d.sent && d.sent > 0) {
+        toast.success(`Test push sent to ${d.sent} device${d.sent === 1 ? "" : "s"}. Watch for it.`);
+      } else {
+        toast("Sent — but nothing delivered. Check Audit for details.");
+      }
+    } catch (e: any) {
+      toast(e?.message || "Test push failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
+
   return (
     <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
       <div className="flex items-start gap-3">
@@ -121,6 +144,10 @@ export function PushReadinessSection() {
             <Hint icon={<Bell className="h-4 w-4 text-emerald-300" />}>
               You're subscribed. Reminders fire to this device. Receipts land in Audit.
             </Hint>
+            <Button size="sm" className="w-full gap-2" disabled={busy} onClick={sendTest}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+              Send test push
+            </Button>
             <Button size="sm" variant="outline" className="w-full" disabled={busy} onClick={disable}>
               Turn off on this device
             </Button>

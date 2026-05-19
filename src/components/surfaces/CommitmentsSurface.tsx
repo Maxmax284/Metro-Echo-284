@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,12 @@ type Commitment = {
 
 const PRIORITIES = ["low", "normal", "high"] as const;
 
-export function CommitmentsSurface() {
+type CommitmentsSurfaceProps = {
+  focusId?: string | null;
+  onFocusHandled?: () => void;
+};
+
+export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfaceProps = {}) {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
@@ -33,6 +38,8 @@ export function CommitmentsSurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
   const [filter, setFilter] = useState<"open" | "all">("open");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const refresh = async () => {
     setLoading(true);
@@ -48,6 +55,29 @@ export function CommitmentsSurface() {
   };
 
   useEffect(() => { if (session) refresh(); }, [session, filter]);
+
+  // Push deep-link: focus the target commitment. Switch to "all" filter so
+  // done/cancelled items still surface, scroll the row into view, and
+  // briefly highlight it. Done once per focusId.
+  useEffect(() => {
+    if (!focusId || items.length === 0) return;
+    const exists = items.find((x) => x.id === focusId);
+    if (!exists) {
+      if (filter === "open") setFilter("all");
+      return;
+    }
+    setHighlightId(focusId);
+    requestAnimationFrame(() => {
+      const el = itemRefs.current[focusId];
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => {
+      setHighlightId(null);
+      onFocusHandled?.();
+    }, 2400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, items]);
 
   const create = async () => {
     if (!session || !draft.summary.trim()) return;
@@ -197,9 +227,11 @@ export function CommitmentsSurface() {
               return (
                 <li
                   key={c.id}
+                  ref={(el) => { itemRefs.current[c.id] = el; }}
                   className={cn(
                     "rounded-xl surface-elevated p-3 ring-1 transition",
-                    c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60"
+                    c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60",
+                    highlightId === c.id && "ring-2 ring-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]",
                   )}
                 >
                   <div className="flex items-start gap-2">
