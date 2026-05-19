@@ -277,6 +277,8 @@ export function MemoryFilesView() {
           const needsType = !docType && f.status === "done";
           const status = STATUS_COPY[f.status] ?? { label: f.status, tone: "muted" as const };
           const links = readLinks(meta);
+          const ageMs = Date.now() - new Date(f.created_at).getTime();
+          const stalePending = f.status === "pending" && ageMs > 5 * 60 * 1000;
           return (
             <li key={f.id} className="space-y-2 rounded-xl surface-elevated p-3 ring-1 ring-border/60">
               <div className="flex items-start gap-2">
@@ -284,9 +286,17 @@ export function MemoryFilesView() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{f.filename}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1", TONE[status.tone])}>
-                      {status.label}
+                    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1", TONE[stalePending ? "warn" : status.tone])}>
+                      {stalePending ? "Stuck reading" : status.label}
                     </span>
+                    {stalePending && (
+                      <button
+                        onClick={() => retryIngest(f)}
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] text-primary ring-1 ring-primary/30 hover:bg-primary/20"
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" /> Retry ingest
+                      </button>
+                    )}
                     {docType ? (
                       <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType}</span>
                     ) : needsType ? (
