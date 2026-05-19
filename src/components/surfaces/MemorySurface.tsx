@@ -461,22 +461,63 @@ export function MemorySurface() {
             <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
           </div>
         ) : (() => {
-          const renderItem = (n: Note) => (
-            <li key={n.id}>
-              <button
-                onClick={() => setActive(n)}
-                className="block w-full rounded-xl surface-elevated p-3 text-left ring-1 ring-border/60 transition hover:ring-primary/40"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
-                  <span className="shrink-0 text-[10.5px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
-                  </span>
+          const sourceOf = (n: Note) => {
+            const tag = (n.tags || []).find((t) => t.startsWith("source:"));
+            if (tag) return tag.slice(7);
+            if ((n.tags || []).includes("imported")) return "file";
+            return "manual";
+          };
+          const SOURCE_CHIP: Record<string, string> = {
+            telegram: "From Telegram",
+            companion: "From Companion",
+            file: "From a file",
+            field_note: "Field note",
+            manual: "Written here",
+          };
+          const whyMatters = (n: Note) => {
+            const tags = n.tags || [];
+            if (tags.includes("archived")) return "Archived.";
+            const src = sourceOf(n);
+            const linked = tags.some((t) => t.startsWith("link:") || t.startsWith("project:") || t.startsWith("person:") || t.startsWith("place:"));
+            if (!linked && src === "manual") return "Saved, but no strong links yet.";
+            if (src === "telegram") return "Captured from Telegram.";
+            if (src === "companion") return "Saved from Companion.";
+            if (src === "file") return "Came in from a file upload.";
+            if (src === "field_note") return "Tied to a place you logged.";
+            return null;
+          };
+          const renderItem = (n: Note) => {
+            const src = sourceOf(n);
+            const why = whyMatters(n);
+            const archived = (n.tags || []).includes("archived");
+            return (
+              <li key={n.id}>
+                <div className={cn("rounded-xl surface-elevated p-3 ring-1 ring-border/60", archived && "opacity-60")}>
+                  <button onClick={() => setActive(n)} className="block w-full text-left">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <h3 className="truncate text-sm font-medium">{n.title || "Untitled"}</h3>
+                      <span className="shrink-0 text-[10.5px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(n.updated_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
+                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{SOURCE_CHIP[src] ?? src}</span>
+                      {why && <span className="italic opacity-80">{why}</span>}
+                    </div>
+                  </button>
+                  {!archived && (
+                    <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToCommitment(n); }}>Commitment</Button>
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToSherlock(n); }}>Sherlock</Button>
+                      <Button size="sm" variant="ghost" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px] text-muted-foreground" onClick={(e) => { e.stopPropagation(); archiveNote(n); }}>Archive</Button>
+                    </div>
+                  )}
                 </div>
-                <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{n.body}</p>
-              </button>
-            </li>
-          );
+              </li>
+            );
+          };
           if (groupBy === "source") {
             const sourceOf = (n: Note) => {
               const tag = (n.tags || []).find((t) => t.startsWith("source:"));
