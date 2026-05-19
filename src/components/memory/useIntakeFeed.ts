@@ -98,6 +98,7 @@ export function useIntakeFeed(limit = 60) {
         routedTo: f.note_id ? "Memory" : null,
         needsReview: !meta.document_type && f.status === "done",
         ts: f.created_at,
+        why: whyForFile(f, meta),
         _raw: { kind: "file", row: f },
       });
     }
