@@ -106,6 +106,8 @@ Deno.serve(async (req: Request) => {
     const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
     const pushConfigured = !!(vapidPublic && vapidPrivate && vapidSubject);
 
+    for (const c of due ?? []) {
+      const lastMs = c.last_reminded_at ? new Date(c.last_reminded_at).getTime() : 0;
       if (lastMs && Date.now() - lastMs < TG_THROTTLE_MS) continue;
 
       const overdue = !!(c.due_at && new Date(c.due_at).getTime() < Date.now());
