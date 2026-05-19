@@ -62,9 +62,11 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     if (!session || busy) return;
     setBusy("snooze");
     const iso = target.toISOString();
-    const patch: Record<string, any> = { remind_at: iso };
-    if (c.due_at && new Date(c.due_at).getTime() < Date.now()) patch.due_at = iso;
-    const { error } = await supabase.from("commitments").update(patch).eq("id", c.id);
+    const shiftDue = !!(c.due_at && new Date(c.due_at).getTime() < Date.now());
+    const { error } = await supabase
+      .from("commitments")
+      .update(shiftDue ? { remind_at: iso, due_at: iso } : { remind_at: iso })
+      .eq("id", c.id);
     if (error) {
       toast.fromError(error);
       setBusy(null);
