@@ -14,20 +14,59 @@ Keep top-level summaries short. Put long detail behind "long_detail".`;
 
 // Shared phrase library — mirrors src/lib/vantaVoice.ts `vantaSay`.
 // Keep these in sync so Telegram, Companion, and UI sound identical.
+function pick<T>(...arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+
 export const VANTA_PHRASES = {
-  noteSaved: (title?: string) => title ? `Saved — "${title}" is in memory.` : "Saved to memory.",
-  actionStaged: (title?: string) => title ? `Staged "${title}" for your review.` : "Staged for your review.",
-  commitmentRecorded: (summary?: string) => summary ? `Got it — tracking "${summary}".` : "Commitment tracked.",
+  noteSaved: (title?: string) => title
+    ? pick(`Saved — "${title}" is in memory.`, `Noted. "${title}" is filed. 📝`, `Got it — "${title}" saved.`)
+    : pick("Saved that.", "Noted.", "Saved as a note. 📝", "Got it — filed."),
+  actionStaged: (title?: string) => title
+    ? pick(`Staged "${title}" for your review.`, `Drafted "${title}" — waiting on you.`)
+    : pick("Staged for your review.", "Drafted — open Actions to review."),
+  commitmentRecorded: (summary?: string) => summary
+    ? pick(`Got it — tracking "${summary}".`, `On the board: "${summary}".`)
+    : pick("Commitment tracked.", "Logged."),
+  commitmentDetected: () => pick(
+    "That sounds like a commitment. Want me to track it?",
+    "You promised something there — should I track it?",
+    "Sounds like an open loop. Want it in Commitments?",
+  ),
+  reminderCreated: (when: string) => pick(
+    `Done — I'll remind you ${when}. ⏰`,
+    `Got you. Reminder set for ${when}.`,
+    `Handled — I'll nudge you ${when}.`,
+    `Reminder set for ${when}.`,
+  ),
+  reminderNeedsTime: () => pick(
+    "I can do that — what time?",
+    "Need a time before I can remind you. When?",
+    "What time should I remind you?",
+    "Morning, afternoon, evening, or a specific time?",
+  ),
+  reminderAmPmAsk: (hh: number, mm: number) => {
+    const t = `${hh}:${String(mm).padStart(2, "0")}`;
+    return `${t} AM or ${t} PM?`;
+  },
+  reminderNeedsTz: () => "I don't have your timezone yet — set it in Settings → Time & Reminders, then try again.",
+  pickTheLane: () => pick(
+    "I can help with that — note, reminder, commitment, or send it to Sherlock?",
+    "Pick the lane and I'll handle it: note, reminder, commitment, or Sherlock.",
+  ),
+  pushReady: () => "Push is ready.",
+  pushOff: () => "Push is off right now.",
+  pushNeedsSetup: () => "Push delivery needs setup.",
+  pushBlocked: () => "Your browser blocked notifications. You can change that in browser settings.",
+  pushUnsupported: () => "Push reminders aren't supported in this browser.",
   generic: () => "That didn't go through. Try again in a moment.",
-  gotIt: () => "Got it.",
+  gotIt: () => pick("Got it.", "Done.", "On it."),
   telegram: {
     welcome: () => "Hi — I'm Vanta. Generate a pairing code in the app and send: /start YOURCODE",
     badCode: () => "That code's invalid or expired. Generate a fresh one in the app.",
-    linked: () => "Linked. Send me anything — notes, commitments, or actions to stage.",
+    linked: () => "Linked. Send me anything — notes, commitments, reminders, or actions to stage.",
     notLinked: () => "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE",
     textOnly: () => "Text only for now — voice and media are on the way.",
     snag: () => "Hit a snag processing that. Try again in a moment.",
-    help: () => "I can capture notes, stage actions, and track commitments. Just say what you need. Commands: /help, /unlink.",
+    help: () => "I can capture notes, set reminders, stage actions, and track commitments. Just say what you need. Commands: /help, /unlink.",
     unlinked: () => "Unlinked. This chat won't reach your account until you pair again.",
     rateLimited: () => "Easy — you're moving faster than I can keep up. Give it a few seconds.",
   },
