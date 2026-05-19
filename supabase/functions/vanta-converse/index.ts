@@ -101,6 +101,22 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "query_schedule",
+      description: "Look up the user's schedule: today's commitments and reminders, what's overdue, what's next. All times returned in the user's timezone.",
+      parameters: {
+        type: "object",
+        properties: {
+          window: { type: "string", enum: ["today", "tomorrow", "week", "overdue", "next"], description: "Which slice of the schedule to summarize." },
+          question: { type: "string", description: "The user's original question, for context." },
+        },
+        required: ["window"],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 Deno.serve(async (req: Request) => {
