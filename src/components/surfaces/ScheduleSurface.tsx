@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 type TabKey = "today" | "upcoming" | "week";
 
@@ -138,11 +139,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             />
             {overdueList.length > 0 && (
               <Section title="Overdue" Icon={Bell} empty="">
-                {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+                {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
               </Section>
             )}
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
-              {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+              {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
             </Section>
             <Section title="Files needing review" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
               {reviewFiles.slice(0, 5).map((f) => (
@@ -159,7 +160,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <div className="space-y-2">
             {upcoming.length === 0 ? (
               <Empty>Nothing scheduled in the next 7 days.</Empty>
-            ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+            ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
           </div>
         ) : (
           <div className="space-y-3">
@@ -167,7 +168,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               <Empty>This week is empty.</Empty>
             ) : Object.entries(byDay).map(([day, list]) => (
               <Section key={day} title={day} Icon={Calendar} empty="">
-                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
               </Section>
             ))}
           </div>
@@ -197,13 +198,13 @@ function Empty({ children }: { children: string }) {
   return <div className="rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">{children}</div>;
 }
 
-function CommitmentRow({ c, tz, dense }: { c: Commitment; tz: string; dense?: boolean }) {
+function CommitmentRow({ c, tz, dense, onChanged }: { c: Commitment; tz: string; dense?: boolean; onChanged?: () => void }) {
   const d = c.due_at || c.remind_at;
   const overdue = d ? new Date(d).getTime() < Date.now() : false;
   const isReminder = !!c.remind_at;
   return (
     <li className={cn("flex items-start gap-2 text-[12.5px]", dense && "py-0.5")}>
-      {isReminder ? <Bell className="mt-0.5 h-3 w-3 text-primary" /> : <CheckSquare className="mt-0.5 h-3 w-3 text-muted-foreground" />}
+      {isReminder ? <Bell className="mt-1.5 h-3 w-3 text-primary" /> : <CheckSquare className="mt-1.5 h-3 w-3 text-muted-foreground" />}
       <div className="min-w-0 flex-1">
         <div className={cn("truncate", overdue && "text-warn")}>{c.summary}</div>
         {d && (
@@ -212,6 +213,7 @@ function CommitmentRow({ c, tz, dense }: { c: Commitment; tz: string; dense?: bo
           </div>
         )}
       </div>
+      <CommitmentActions c={c} size="sm" onChanged={onChanged} />
     </li>
   );
 }

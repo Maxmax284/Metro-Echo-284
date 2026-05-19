@@ -3,13 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, CheckCircle2, Bell, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Bell, AlertTriangle, Loader2 } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow, formatDistanceToNowStrict, isPast } from "date-fns";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatTzLine } from "@/lib/timeRules";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 type Commitment = {
   id: string;
@@ -202,14 +203,6 @@ export function CommitmentsSurface() {
                   )}
                 >
                   <div className="flex items-start gap-2">
-                    <button
-                      onClick={() => complete(c.id)}
-                      disabled={c.status !== "open"}
-                      className="mt-0.5 text-muted-foreground hover:text-signal disabled:cursor-not-allowed"
-                      title="Mark done"
-                    >
-                      <CheckCircle2 className={cn("h-4 w-4", c.status === "done" && "text-signal")} />
-                    </button>
                     <div className="min-w-0 flex-1">
                       <p className={cn("text-sm", c.status === "done" && "line-through")}>{c.summary}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
@@ -223,13 +216,12 @@ export function CommitmentsSurface() {
                         {c.last_reminded_at && (
                           <span className="flex items-center gap-1"><Bell className="h-2.5 w-2.5" /> reminded {formatDistanceToNow(new Date(c.last_reminded_at), { addSuffix: true })}</span>
                         )}
+                        {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
+                        {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                       </div>
                     </div>
                     {c.status === "open" && (
-                      <div className="flex shrink-0 items-center gap-2 text-[10.5px]">
-                        <button onClick={() => snooze(c)} className="text-muted-foreground hover:text-foreground">snooze</button>
-                        <button onClick={() => drop(c.id)} className="text-muted-foreground hover:text-foreground">drop</button>
-                      </div>
+                      <CommitmentActions c={c} onChanged={refresh} />
                     )}
                   </div>
                 </li>
