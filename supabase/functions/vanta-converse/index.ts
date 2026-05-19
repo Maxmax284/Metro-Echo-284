@@ -10,14 +10,31 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `${COMPANION_VOICE}
 
-You help with capture, planning, awareness, and staging actions. You do not silently execute anything.
+You help with capture, planning, awareness, and staging actions. You CAN create
+notes, set reminders, track commitments, stage actions for approval, run
+Sherlock investigations, query awareness, and read the user's schedule — all
+through your tools. NEVER tell the user "I can't directly set reminders" or
+"I'm unable to add notes" or anything similar. If a supported tool fits the
+request, call it. If a detail is missing (like the time for a reminder), ask
+ONE short clarifying question instead of refusing.
 
 Tool routing rules:
-- If the user wants to capture a note, stage an action, or make a commitment → call capture_note / stage_action / add_commitment.
-- If the user asks for analysis ("analyze this", "what am I missing", "what risks", "compare these", "critique"), call run_sherlock with the relevant text.
-- If the user asks a location- or place-based question (e.g. "where can I get a SIM", "is this area safe at night", "how do taxis work here"), call query_awareness.
-- If the user asks about their schedule, today, what's next, what's due, what's coming up, when something is, reminders, or upcoming commitments → call query_schedule.
-- Otherwise, answer briefly. Acknowledge uncertainty; never present guesses as facts. No emoji.`;
+- "Remind me…" / "Set a reminder…" / "Nudge me…" / "Follow up…" → call set_reminder with summary + the user's exact time phrasing in "when".
+- "Add a note…" / "Save this…" / "Remember this…" / "File this…" → call capture_note.
+- "I promised…" / "I committed to…" / "Track this as a commitment" → call add_commitment.
+- "Draft an action…" / external action → call stage_action.
+- "Analyze this" / "what am I missing" / "what risks" / "critique" → call run_sherlock.
+- Location/place question → call query_awareness.
+- "What's on today" / "what's due" / "schedule" → call query_schedule.
+
+Voice rules:
+- Warm but grounded. East-coast plain English. Vary phrasing — don't sound canned.
+- Occasional emoji on success acknowledgements is fine (⏰ for reminders, 📝 for notes).
+  Never use emoji on errors, warnings, or anything serious.
+- Never write "Great news!", "Absolutely, I'd be happy to assist!", "As an AI…",
+  "I'm just a language model", or any other generic chatbot filler.
+- Acknowledge uncertainty out loud. Don't fake confidence.
+- One or two short sentences beats three.`;
 
 const tools = [
   {
@@ -32,6 +49,23 @@ const tools = [
           body: { type: "string", description: "Note body." },
         },
         required: ["body"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "set_reminder",
+      description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up at a specific or vague time. Pass the user's exact time phrasing in `when` — the server resolves it against their timezone + default morning/afternoon/evening times.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "What the reminder is about." },
+          when: { type: "string", description: "Free-form time hint: 'in 20 minutes', 'tonight', 'tomorrow morning', '5pm Friday', or ISO timestamp." },
+          timezone: { type: "string", description: "IANA timezone override. Omit to use the user's saved timezone." },
+        },
+        required: ["summary", "when"],
         additionalProperties: false,
       },
     },
@@ -156,7 +190,9 @@ Deno.serve(async (req: Request) => {
 
     // Stage 3 — pull user's active corrections + recent field notes so Vanta
     // never repeats mistakes the user already corrected.
-    const [{ data: corrections }, { data: fieldNotes }] = await Promise.all([
+    // Also pull timezone + default morning/afternoon/evening so the model can
+    // resolve vague reminder times against the user's actual day shape.
+    const [{ data: corrections }, { data: fieldNotes }, { data: profile }] = await Promise.all([
       supabase
         .from("corrections")
         .select("surface, target_type, feedback_type, user_note, created_at")
@@ -169,6 +205,11 @@ Deno.serve(async (req: Request) => {
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(8),
+      supabase
+        .from("profiles")
+        .select("timezone, preferences")
+        .eq("id", user.id)
+        .maybeSingle(),
     ]);
 
     const correctionsBlock = (corrections ?? []).length
@@ -184,7 +225,16 @@ Deno.serve(async (req: Request) => {
         ).join("\n")
       : "";
 
-    const sysWithCorrections = [SYSTEM_PROMPT, correctionsBlock, fieldNotesBlock]
+    const prefs = (profile?.preferences ?? {}) as any;
+    const tz = profile?.timezone || "UTC";
+    const timeBlock = `User time context — use this when resolving reminder times:
+- timezone: ${tz}
+- morning default: ${prefs.default_morning_time ?? "08:00"}
+- afternoon default: ${prefs.default_afternoon_time ?? "14:00"}
+- evening / tonight default: ${prefs.default_evening_time ?? "19:00"}
+- quiet hours: ${prefs.quiet_hours_start ?? "22:00"}–${prefs.quiet_hours_end ?? "07:00"}`;
+
+    const sysWithCorrections = [SYSTEM_PROMPT, timeBlock, correctionsBlock, fieldNotesBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [

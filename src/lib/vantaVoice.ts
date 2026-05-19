@@ -19,18 +19,29 @@ If you don't know, say so. Keep it short.`;
 // Grouped by intent. Functions take light context so the phrase still sounds
 // human ("Saved that note." vs "Saved.") without callers writing copy.
 
+function pick<T>(...arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
+
 export const vantaSay = {
-  // Capture / staging
+  // Capture / staging — variation pools so toasts don't feel canned
   noteSaved: (title?: string) =>
-    title ? `Saved — "${title}" is in memory.` : "Saved to memory.",
+    title
+      ? pick(`Saved — "${title}" is in memory.`, `Noted. "${title}" is filed. 📝`, `Got it — "${title}" saved.`)
+      : pick("Saved that.", "Noted.", "Saved as a note. 📝", "Got it — filed."),
   noteEmbedFailed: () => "Saved, but I couldn't index it for search yet.",
-  capturedToMemory: () => "Captured to memory.",
+  capturedToMemory: () => pick("Captured to memory.", "Saved. 📝", "Got it — in memory."),
   actionStaged: (title?: string) =>
     title ? `Staged "${title}" for your review.` : "Staged for your review.",
-  actionDrafted: () => "Drafted — open Actions to review.",
+  actionDrafted: () => pick("Drafted — open Actions to review.", "Staged. Nothing's been sent."),
   commitmentRecorded: (summary?: string) =>
-    summary ? `Got it — tracking "${summary}".` : "Commitment tracked.",
-  commitmentAdded: () => "Commitment added.",
+    summary
+      ? pick(`Got it — tracking "${summary}".`, `On the board: "${summary}".`)
+      : pick("Commitment tracked.", "Logged."),
+  commitmentAdded: () => pick("Commitment added.", "Tracking it."),
+  commitmentDetected: () => pick(
+    "That sounds like a commitment. Want me to track it?",
+    "You promised something there — should I track it?",
+    "Sounds like an open loop. Want it in Commitments?",
+  ),
   fileIngested: (name: string) => `${name} is in. Indexing now.`,
   copied: (what = "Code") => `${what} copied.`,
   fieldNoteSaved: () => "Field note saved.",
@@ -47,7 +58,29 @@ export const vantaSay = {
   noteToSherlock: () => "Sent to Sherlock.",
   markedDone: () => "Marked done.",
   reminderSet: (when: string) => `Reminder set for ${when}.`,
-  reminderNeedsTime: () => "Need a time. When should I remind you?",
+  reminderCreated: (when: string) => pick(
+    `Done — I'll remind you ${when}. ⏰`,
+    `Got you. Reminder set for ${when}.`,
+    `Handled — I'll nudge you ${when}.`,
+    `Reminder set for ${when}.`,
+  ),
+  reminderNeedsTime: () => pick(
+    "I can do that — what time?",
+    "Need a time before I can remind you. When?",
+    "What time should I remind you?",
+    "Morning, afternoon, evening, or a specific time?",
+  ),
+  reminderAmPmAsk: (hh: number, mm: number) => `${hh}:${String(mm).padStart(2, "0")} — AM or PM?`,
+  reminderNeedsTz: () => "I don't have your timezone yet — set it in Settings → Time & Reminders, then try again.",
+  pickTheLane: () => pick(
+    "I can help with that — note, reminder, commitment, or send it to Sherlock?",
+    "Pick the lane and I'll handle it: note, reminder, commitment, or Sherlock.",
+  ),
+  pushReady: () => "Push is ready.",
+  pushOff: () => "Push is off right now.",
+  pushNeedsSetup: () => "Push delivery needs setup.",
+  pushBlocked: () => "Your browser blocked notifications. You can change that in browser settings.",
+  pushUnsupported: () => "Push reminders aren't supported in this browser.",
   timezoneUpdated: (tz: string) => `Timezone set to ${tz}.`,
   briefingReady: () => "Briefing's ready.",
   fileNeedsReview: () => "This file needs a type.",
