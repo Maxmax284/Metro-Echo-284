@@ -499,7 +499,7 @@ export function BadLocationRecoveryPanel({ alternatives, onDismiss }: Props) {
           disabled={!!busy}
         >
           {busy === "delete" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-          Delete this bad place
+          {badness.bad ? "Delete unresolved place" : "Remove saved place"}
         </Button>
       </div>
 
