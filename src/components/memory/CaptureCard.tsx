@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, FileText, MapPin, Bot, Inbox, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatusDot, type StatusTone } from "@/components/ui/status-dot";
+import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
 
 export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "note" | "unknown";
@@ -35,7 +35,7 @@ const sourceMeta: Record<CaptureSource, { label: string; Icon: typeof Inbox }> =
   unknown: { label: "Capture", Icon: Inbox },
 };
 
-const confidenceTone: Record<NonNullable<CaptureItem["confidence"]>, StatusTone> = {
+const confTone: Record<NonNullable<CaptureItem["confidence"]>, DotTone> = {
   high: "primary",
   medium: "accent",
   low: "destructive",
