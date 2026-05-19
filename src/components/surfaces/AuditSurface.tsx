@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollText, RefreshCw, Search } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ScrollText, RefreshCw, Search, X } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 
 type AuditRow = {
   id: string;
@@ -29,13 +31,25 @@ type ActionEvent = {
 };
 
 const QUICK_FILTERS = [
-  { id: "",            label: "All" },
-  { id: "capture",     label: "Captures" },
-  { id: "telegram",    label: "Telegram" },
-  { id: "action",      label: "Actions" },
-  { id: "commitment",  label: "Commitments" },
-  { id: "note",        label: "Notes" },
+  { id: "",              label: "All" },
+  { id: "capture",       label: "Captures" },
+  { id: "telegram",      label: "Telegram" },
+  { id: "action",        label: "Actions" },
+  { id: "commitment",    label: "Commitments" },
+  { id: "note",          label: "Notes" },
   { id: "ingested_file", label: "Files" },
+  { id: "schedule",      label: "Schedule" },
+  { id: "timezone",      label: "Timezone" },
+  { id: "reminder",      label: "Reminders" },
+];
+
+const EVENT_CLASSES: { id: string; label: string; match: (e: string) => boolean }[] = [
+  { id: "",         label: "Any event",  match: () => true },
+  { id: "routed",   label: "Routed",     match: (e) => e.includes("routed") },
+  { id: "created",  label: "Created",    match: (e) => /(created|added|insert)/.test(e) },
+  { id: "changed",  label: "Changed",    match: (e) => /(updated|change|approve|transition|snoozed|completed|dropped)/.test(e) },
+  { id: "query",    label: "Queries",    match: (e) => e.includes("query") },
+  { id: "failed",   label: "Failed",     match: (e) => /(fail|error|reject|retried)/.test(e) },
 ];
 
 function statusTone(status: string): DotTone {
@@ -55,10 +69,12 @@ function eventTone(event: string): DotTone {
 }
 
 export function AuditSurface() {
+  const { timezone } = useUserTimezone();
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [events, setEvents] = useState<ActionEvent[]>([]);
   const [filter, setFilter] = useState("");
   const [quick, setQuick] = useState("");
+  const [eventClass, setEventClass] = useState("");
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -78,6 +94,10 @@ export function AuditSurface() {
     const f = filter.trim().toLowerCase();
     let rows = audit;
     if (quick) rows = rows.filter((r) => r.entity_type.toLowerCase().includes(quick));
+    if (eventClass) {
+      const cls = EVENT_CLASSES.find((c) => c.id === eventClass);
+      if (cls) rows = rows.filter((r) => cls.match(r.event.toLowerCase()));
+    }
     if (f) {
       rows = rows.filter((r) =>
         r.event.toLowerCase().includes(f) ||
@@ -86,9 +106,11 @@ export function AuditSurface() {
         JSON.stringify(r.payload ?? {}).toLowerCase().includes(f));
     }
     return rows;
-  }, [audit, filter, quick]);
+  }, [audit, filter, quick, eventClass]);
 
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
+  const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
+  const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -125,20 +147,45 @@ export function AuditSurface() {
               className="h-7 pl-7 text-xs"
             />
           </div>
+          {activeFilters > 0 && (
+            <button
+              onClick={clearAll}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted/30 px-2 py-1 text-[10.5px] text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+              aria-label="Clear filters"
+            >
+              <X className="h-3 w-3" /> Clear {activeFilters}
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="-mx-1 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 pb-0.5">
           {QUICK_FILTERS.map((qf) => (
             <button
               key={qf.id || "all"}
               onClick={() => setQuick(qf.id)}
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                "shrink-0 snap-start rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
                 quick === qf.id
                   ? "bg-primary/15 text-primary ring-primary/40"
                   : "bg-muted/30 text-muted-foreground ring-border/60 hover:bg-muted/50",
               )}
             >
               {qf.label}
+            </button>
+          ))}
+        </div>
+        <div className="-mx-1 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1">
+          {EVENT_CLASSES.map((ec) => (
+            <button
+              key={ec.id || "any"}
+              onClick={() => setEventClass(ec.id)}
+              className={cn(
+                "shrink-0 snap-start rounded-full px-2 py-0.5 text-[10.5px] ring-1 transition-colors",
+                eventClass === ec.id
+                  ? "bg-accent/30 text-foreground ring-accent/50"
+                  : "bg-muted/20 text-muted-foreground ring-border/50 hover:bg-muted/40",
+              )}
+            >
+              {ec.label}
             </button>
           ))}
         </div>
@@ -188,8 +235,11 @@ export function AuditSurface() {
                 <div className="flex items-center gap-2">
                   <StatusDot tone={eventTone(r.event)} title={r.event} />
                   <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{r.entity_type}</Badge>
-                  <span className="truncate font-medium">{r.event}</span>
-                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate font-medium">{r.event}</span>
+                  <span
+                    className="ml-auto shrink-0 text-[10px] text-muted-foreground"
+                    title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
+                  >
                     {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                   </span>
                 </div>
