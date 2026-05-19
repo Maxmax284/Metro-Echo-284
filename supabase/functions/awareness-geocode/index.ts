@@ -226,10 +226,26 @@ Deno.serve(async (req: Request) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const country = nomi.address.country ?? null;
-    const region = pickRegion(nomi.address);
-    const city = pickCity(nomi.address);
+    let country = nomi.address.country ?? null;
+    let region = pickRegion(nomi.address);
+    let city = pickCity(nomi.address);
     const country_code = nomi.address.country_code?.toUpperCase() ?? null;
+
+    // Overpass sanity layer — only when Nominatim returned no country/region.
+    let sanity: OverpassSanity | null = null;
+    if (!country && !region) {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      sanity = await fetchOverpassSanity(lat, lon, admin);
+      if (sanity?.sanity === "land_nearby" && sanity.nearest_place) {
+        // Synthesize a city/region from the closest land feature so the UI
+        // can stop saying "unknown". Do NOT invent a country.
+        city = city ?? sanity.nearest_place.name;
+        region = region ?? sanity.nearest_place.name;
+      }
+    }
 
     const nextGeo: Geo = {
       ...geo,
@@ -237,6 +253,8 @@ Deno.serve(async (req: Request) => {
       country_code: country_code ?? (geo as any).country_code ?? null,
       display_name: nomi.display_name ?? (geo as any).display_name ?? null,
       geocoded_at: new Date().toISOString(),
+      sanity: sanity?.sanity ?? (geo as any).sanity ?? null,
+      sanity_meta: sanity ?? (geo as any).sanity_meta ?? null,
     };
 
     const { error: uErr } = await supabase
@@ -257,6 +275,7 @@ Deno.serve(async (req: Request) => {
       city,
       country_code,
       display_name: nomi.display_name,
+      sanity: sanity?.sanity ?? null,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("awareness-geocode error", e);
