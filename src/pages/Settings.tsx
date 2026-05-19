@@ -10,6 +10,7 @@ import { ArrowLeft, ShieldAlert, Power } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
+import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -99,6 +100,8 @@ export default function Settings() {
       )}
 
       <InstallVantaSection />
+
+      <TimeRemindersSection />
 
       {/* Global mode */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
