@@ -182,6 +182,29 @@ export function MemoryFilesView() {
 
   return (
     <div className="space-y-3">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
+        onClick={() => !uploading && inputRef.current?.click()}
+        className={cn(
+          "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed p-4 text-xs transition-colors",
+          drag ? "border-primary bg-primary/10" : "border-border/60 hover:border-muted-foreground/60",
+        )}
+      >
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+        <span className="text-[11.5px] text-muted-foreground">
+          {uploading ? "Ingesting…" : "Drop files or tap to upload"}
+        </span>
+        <span className="text-[10px] text-muted-foreground/70">PDF, text, markdown · max 20MB</span>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+        />
+      </div>
       <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
         {([
           { id: "all", label: "All" },
