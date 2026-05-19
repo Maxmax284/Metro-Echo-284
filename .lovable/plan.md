@@ -1,152 +1,104 @@
-# Vanta E2E Test + Seeded Life Sim + Screenshot Report + Maturity Audit
+# Vanta Capture + Intake Maturity Pass — Plan
 
-## Ground rules (locked in by your answers)
+## Part 1 — Audit findings (current wiring)
 
-- **Seeding:** every row gets `metadata.seed = true` (or equivalent tag column). One teardown script wipes it all.
-- **Screenshots:** hybrid. I drive the headless browser where it works; where auth or modals block me, I drop a clearly labeled placeholder with reproduction steps.
-- **Telegram / Actions:** mocked only. I insert pretend telegram updates and action drafts. No bot calls, no execution.
-- **Output:** HTML (primary, dark/tactical), Markdown mirror, PDF (chromium print). All in `/mnt/documents/vanta-e2e/`.
-- **Tone:** East Coast plain English. Honest. No fluff. No fake hype.
+What I found by reading the existing surfaces (no code changed):
 
-## Surfaces actually present (confirmed from repo)
+**Where captures actually land today**
+- Telegram messages → `messages` table via `telegram-webhook` edge fn. Visible only as raw chat lines in `ConversationSurface` (the "Log" tab). No source chip, no detected-type, no route, no confidence.
+- Companion / chat input → same `messages` table. Inline receipt cards exist for `stage_action`, `add_commitment`, `capture_note` (good), but only inside the active thread — they disappear from view once you leave.
+- File / screenshot uploads → `ingested_files` → `files-ingest` edge fn → optionally creates a `notes` row. Status chip exists *only* inside `FileUploadCard` on the Memory surface. No global pipeline view, no document-type classification surfaced, no route history.
+- Notes → created directly in `MemorySurface`, or by file ingest, or by Companion `capture_note`. No `type`, no source linkage shown, no "convert to reminder/commitment" affordance.
+- Reminders vs Commitments → both live in `commitments` table; no visible distinction in UI.
+- Corrections → `corrections` table, surfaced only inside `CorrectionsCenter` tab in Memory.
+- Field notes → `field_notes` table, only touched by Awareness flows. Invisible elsewhere.
+- Sherlock routes → `investigations` + `sherlock_findings_cache`. Visible on its own surface but not as a capture-route history.
+- Action drafts → `actions` surface. Not linked back to the capture that spawned them.
+- Audit → `audit_log` is well-populated for actions and approvals, **but** there are no events for: telegram capture received, file classified, ambiguous item created/resolved, capture routed.
 
-CommandCenter, Awareness, Conversation (Companion), Memory, Notes (lives inside Memory/Conversation surfaces — will verify), Commitments, Sherlock, Actions, Audit, Settings. Edge functions: awareness-*, telegram-webhook, vanta-converse, files-ingest, sherlock-investigate, actions-*, memory-*, notes-assist, research-run, commitment-reminders.
+**Visibility gaps (the "front desk" problem)**
+- No single place lists "what came in" across channels. `CommandCenterSurface` has a `LiveCaptureCard` but it only merges last 5 user messages + 5 files, no status/route/confidence.
+- No Ambiguous Queue exists. Anything Vanta can't classify silently becomes a plain note or message.
+- "Log" tab label is misleading — it looks like chat, smells like chat, but the platform law is capture-only. No banner says so.
+- File pipeline states exist in DB (`pending|done|failed|error`) but the card only shows raw status, no human copy, no document-type, no route options.
+- Memory is a flat list of notes + search. No grouping by people/projects/places/source/status.
+- Mobile: `FileUploadCard` and `LiveCaptureCard` cards are dense; chip rows wrap awkwardly at 390px.
 
-No standalone Notes page — Notes appear via Memory + capture flows. The report will call this out as a maturity finding rather than invent a surface.
+**Voice gaps**
+- File status reads as raw enums ("pending", "failed"). Needs Vanta voice.
+- Telegram bot replies are mostly fine but don't expose detected-type back to the user.
 
-## Phase 1 — Seed data (tagged, reversible)
+## Part 2 — What I'll build in this pass (Stage 1 + Stage 2 only)
 
-Script: `scripts/vanta-seed.ts` (run via `bun`). Single user (you). Inserts:
+Per the brief, do not implement all stages at once. This pass ships the visible front desk + the two most-used capture channels. Stages 3–9 are scoped but staged.
 
-- **awareness_places:** Lamai Muay Thai (valid land), Lamai town, Koh Samui island, offshore bad pin (9.45, 100.2 — ocean east of Samui), saved place, manual place.
-- **notes (8):** project/person/place/document/field/decision/idea/reminder-seed — each with `metadata.seed=true`.
-- **commitments (4):** GroundStay update, booking issue follow-up, vendor follow-up, schedule confirm.
-- **nudges/reminders (6):** rent, staff message, dog food, guest follow-up, schedule review, prep doc.
-- **field_notes (3):** printer hours, road closure, vendor price.
-- **ingested_files (5):** receipt, invoice, contract, visa doc, screenshot — metadata only, no real bytes.
-- **actions (3):** one proposed, one awaiting approval, one executed-with-receipt — all marked seed.
-- **audit_log:** event for every insert so Audit has receipts to render.
-- **investigations (2):** one contradiction, one source conflict, with findings.
-- **conversations + messages:** Companion thread referencing seeded items.
-- **mock telegram updates:** since `telegram_messages` table isn't in schema, I'll mock by inserting into `audit_log` + `notes` with `source='telegram'` so the routing path is visible. (Will verify and adjust if a dedicated table exists.)
+### Stage 1 — Captures lane + Ambiguous Queue (inside Memory)
 
-Teardown: `scripts/vanta-seed-teardown.ts` — `delete where metadata->>'seed' = 'true'` across all touched tables, in FK-safe order.
+Mature the existing Memory surface with a new top-level view toggle:
+`Notes | Captures | Ambiguous | Corrections`
 
-## Phase 2 — Scenario runs
-
-For each of the 17 scenarios in your prompt:
-
-1. Pre-condition (seed state) → 2. Trigger (UI action or simulated event) → 3. Observe (DB rows, network, console, screenshot) → 4. Verdict (pass / partial / fail) → 5. Notes.
-
-Auto-driven scenarios (browser tool): Command Center load, Awareness valid + bad-pin recovery, Memory page, Commitments page, Sherlock, Actions list, Audit, Settings, mobile breakpoints (390x844, 360x800).
-
-Manual/placeholder scenarios: Telegram interactions (mocked rows shown in Audit), real PWA install prompt, file upload with real bytes, action execution receipt.
-
-## Phase 3 — Screenshots
-
-- `screenshots/auto/*.png` — captured live, 1280x720 + 390x844.
-- `screenshots/placeholder/*.md` — labeled stub with what should be there + reproduction steps.
-- Each screenshot gets caption, what-tested, pass/fail, improvement note.
-
-## Phase 4 — Report build
-
-`scripts/build-report.ts` assembles a single `report.html` from:
-
-- `report/parts/00-verdict.md` … `report/parts/12-roadmap.md`
-- Pass/fail JSON matrix → rendered table
-- Maturity scores JSON → rendered scorecards
-- Screenshots embedded as data URIs (so HTML is self-contained)
-
-Then:
-
-- `node` markdown-it → `report.md`
-- `chromium --headless --print-to-pdf` → `report.pdf`
-
-All three land in `/mnt/documents/vanta-e2e/`.
-
-## Maturity scoring rubric
-
-Each surface gets 0–100 with: score, why, what passed, what failed, what raises it next. Surfaces scored: CommandCenter, Awareness, Telegram, Memory, Notes, Reminders, Commitments, Companion, Sherlock, Files, Actions, Audit, Settings, PWA/Mobile, Voice, Integrations, Overall.
-
-## What I will explicitly NOT do
-
-- Won't hit any real external API beyond what's already wired (no SerpAPI calls during seed, no Telegram bot calls, no real file OCR).
-- Won't claim screenshots I didn't capture — placeholders are labeled.
-- Won't redesign anything. Findings go in the report, not in code edits.
-- Won't ship code changes as part of this task. Pure audit + report.
-
-## Deliverables
+**Captures view** — unified feed pulling from `messages` (role=user), `ingested_files`, `field_notes`, recent `commitments`/`notes` created via capture, and `audit_log` entries tagged `capture.*`. Each row is a `CaptureCard`:
 
 ```
-/mnt/documents/vanta-e2e/
-  report.html              (dark/tactical, self-contained)
-  report.md
-  report.pdf
-  seed-summary.json        (every row inserted, IDs, teardown SQL)
-  pass-fail-matrix.json
-  maturity-scores.json
-  screenshots/
-    auto/*.png
-    placeholder/*.md
-scripts/
-  vanta-seed.ts            (kept in repo so you can re-run)
-  vanta-seed-teardown.ts
-  build-report.ts
+[source-icon] "Quick line of what came in…"
+Source: Telegram · Detected as: Possible commitment · Confidence: Medium
+Linked: Nikki · GroundStay         Status: Needs review
+[Confirm commitment] [Save as note] [Send to Sherlock] [Correct label] [Ignore]
 ```
 
-## Time / sequencing
+Filters (chip row): All · Telegram · Companion · Files · Notes · Field notes · Needs review · Last 24h.
 
-1. Seed script + dry-run (verify tables, dry insert)
-2. Real seed insert
-3. Auto scenario runs (browser, ~10 screenshots)
-4. Mocked telegram + action scenarios
-5. Report assembly (HTML → MD → PDF)
-6. Final QA pass on PDF (convert to images, eyeball every page)
+**Ambiguous view** — same card shape but only items where detected_type is null/low-confidence, or where `metadata.needs_review = true`. Empty state uses Vanta voice ("Nothing waiting on you. Clean desk."). Each card forces a lane pick before it leaves the queue.
 
-## Open question before I start
+Routing is implemented client-side first (no new edge fn): the action buttons call existing flows — insert into `commitments`, update `notes`, invoke `sherlock-investigate`, etc. Each route writes an `audit_log` row with event `capture.routed` so we get audit coverage for free.
 
-The prompt says "do not pollute production unless this is the dev environment." Your account here **is** your live data. Tagged-seed means I can clean up, but for ~30 seconds during the test, your Memory/Commitments/Audit lists will show seeded items. If you want me to run this against a brand-new throwaway account instead, say so before I start seeding — otherwise I proceed against the cur
+### Stage 2 — Telegram + Companion capture visibility
 
-&nbsp;
+- `messages` rows from telegram get `metadata.source = "telegram"` and `metadata.detected_type` already partly set by `telegram-webhook` — extend the webhook to also write `metadata.confidence` and `metadata.needs_review` when classification is fuzzy. (Small server-side edit, no behavior change for existing routes.)
+- Companion-created captures already emit receipt cards; extend `useIntentHandler` to also stamp `metadata.detected_type` and emit an `audit_log` row `capture.routed` with the destination surface.
+- The Captures lane reads these fields and renders the source/type/confidence/route chips uniformly across both channels.
 
-Proceed against the current account using tagged seed only.
+### Capture Log rename (small, ships in this pass)
 
-&nbsp;
+- `SurfaceTabs.tsx`: rename `Log` → `Capture Log` (label only; key stays `conversation`).
+- `ConversationSurface`: add a slim banner at top: *"Capture only. Nothing here executes. Approvals live in Actions."* Add status chips next to user messages when `metadata.detected_type` is present (Captured · Routed · Needs review · Draft created).
 
-Before inserting anything, run the seed script in dry-run mode and verify:
+### Voice + mobile polish (touched surfaces only)
 
-- every table that will be touched,
+- File ingest status copy: `pending → "Looking at it…"`, `done → "Saved"`, `failed → "Couldn't read this one"`, etc.
+- Capture card stacks vertically <420px; chip row scrolls horizontally with snap; primary action button stays full-width on mobile.
+- All copy reviewed for Vanta voice — no "Classification complete" anywhere.
 
-- every row type that will be inserted,
+## Part 3 — Staged but NOT built this pass
 
-- every seeded row has metadata.seed=true or an equivalent removable test marker,
+These are scoped so the next pass is one-shot:
+- **Stage 3** — File pipeline visibility (per-file detected document type chip, summary preview, route suggestions). Needs `files-ingest` to write `metadata.document_type` and `metadata.summary`.
+- **Stage 4** — Capture Log route/status chip layer beyond the banner.
+- **Stage 5** — Memory grouping (People/Projects/Places/Files) using `notes.tags` + `note_links`.
+- **Stage 6** — Notes type field + "convert to reminder/commitment" inline buttons. Needs `notes.type` column (migration).
+- **Stage 7** — Audit events expansion (`capture.received`, `capture.classified`, `capture.routed`, `ambiguous.resolved`) wired into every channel.
+- **Stage 8** — Typed-confirm destructive actions (DISABLE), Awareness chip polish.
+- **Stage 9** — Full mobile validation pass on every touched surface at 390x844.
 
-- teardown can find and delete every seeded row cleanly.
+## Technical notes
 
-&nbsp;
+Files I'll touch in this pass:
+- `src/components/surfaces/MemorySurface.tsx` — add view toggle, mount new `CapturesView` + `AmbiguousView`.
+- `src/components/memory/CapturesView.tsx` *(new)* — unified feed + filters.
+- `src/components/memory/AmbiguousView.tsx` *(new)* — lane-picker cards.
+- `src/components/memory/CaptureCard.tsx` *(new)* — shared card with source/type/confidence/route chips and action row.
+- `src/components/shell/SurfaceTabs.tsx` — label rename.
+- `src/components/surfaces/ConversationSurface.tsx` — banner + per-message status chips.
+- `src/hooks/useIntentHandler.ts` — stamp `detected_type` + audit row.
+- `supabase/functions/telegram-webhook/index.ts` — write `confidence` + `needs_review` into message metadata (additive, no behavior change for existing flows).
+- `src/lib/vantaVoice.ts` — add capture/file status copy helpers.
 
-After the test, run full teardown and confirm zero seeded rows remain.
+No schema changes in this pass. No new tables. No deletions. No executions. Everything reads from tables that already exist and routes through existing edge fns. Audit gets new event names but uses existing `audit_log` schema.
 
-&nbsp;
-
-Do not use full seed/no tagging.
-
-Do not run destructive tests.
-
-Do not execute real external actions.
-
-Do not send real Telegram messages.
-
-Do not create real calendar events.
-
-Do not expose secrets in screenshots.
-
-If teardown verification fails, stop and report before proceeding.
-
-&nbsp;
-
-Mock Telegram and Actions only.
-
-Hybrid screenshots are fine.
-
-Deliver HTML + Markdown + PDF if possible.rent account with full teardown at the end.
+Acceptance check before marking complete:
+- Captures view renders real data from your seeded rows.
+- Ambiguous view shows at least one item after seeding a low-confidence message.
+- Telegram message shows source chip in both Capture Log and Captures view.
+- Companion-created reminder shows up in Captures with route="commitments".
+- "Log" tab reads "Capture Log" with the law banner visible.
+- Mobile 390px pass on Memory + Capture Log.
