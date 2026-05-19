@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Clock, Globe, BellOff, MessageSquare, Bell, AlertTriangle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 const COMMON_TZ = [
   "Asia/Bangkok",
