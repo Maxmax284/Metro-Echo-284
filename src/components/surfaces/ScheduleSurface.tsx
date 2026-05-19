@@ -160,7 +160,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <div className="space-y-2">
             {upcoming.length === 0 ? (
               <Empty>Nothing scheduled in the next 7 days.</Empty>
-            ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+            ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
           </div>
         ) : (
           <div className="space-y-3">
@@ -168,7 +168,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               <Empty>This week is empty.</Empty>
             ) : Object.entries(byDay).map(([day, list]) => (
               <Section key={day} title={day} Icon={Calendar} empty="">
-                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
               </Section>
             ))}
           </div>
