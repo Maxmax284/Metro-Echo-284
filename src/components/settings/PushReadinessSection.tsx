@@ -1,31 +1,26 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, ShieldAlert, Info } from "lucide-react";
+import { Bell, BellOff, ShieldAlert, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { vantaToast as toast } from "@/lib/vantaVoice";
-
-type Status = "supported" | "unsupported" | "blocked" | "off" | "on";
+import { getStatus, pushSupported, subscribeToPush, unsubscribeFromPush, type PushStatus } from "@/lib/pushClient";
 
 /**
- * Push readiness — staged delivery. No service worker is registered yet.
- * Permission is requested only on explicit tap. Audit every transition.
+ * Push readiness — live delivery via VAPID Web Push.
+ * Permission requested only on explicit tap. Audit every transition.
  */
 export function PushReadinessSection() {
   const { user } = useAuth();
-  const [status, setStatus] = useState<Status>("unsupported");
+  const [status, setStatus] = useState<PushStatus>("unsupported");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { detect(); }, []);
 
-  function detect() {
-    if (typeof window === "undefined") return;
-    const supports = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-    if (!supports) return setStatus("unsupported");
-    const perm = Notification.permission;
-    if (perm === "denied") return setStatus("blocked");
-    if (perm === "granted") return setStatus("on");
-    return setStatus("off");
+  async function detect() {
+    if (!pushSupported()) return setStatus("unsupported");
+    const s = await getStatus();
+    setStatus(s);
   }
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
@@ -39,23 +34,39 @@ export function PushReadinessSection() {
   };
 
   const enable = async () => {
-    if (!("Notification" in window)) return;
+    if (!user) return;
     setBusy(true);
     await audit("push.permission_requested");
     try {
-      const r = await Notification.requestPermission();
-      if (r === "granted") {
-        setStatus("on");
+      const r = await subscribeToPush(user.id);
+      setStatus(r.status);
+      if (r.ok) {
         await audit("push.permission_granted");
-        toast.success("Push is ready. Delivery is still staged — we'll turn it on once verified.");
-      } else if (r === "denied") {
-        setStatus("blocked");
+        toast.success("Push is ready. You'll get reminders here too.");
+      } else if (r.status === "blocked") {
         await audit("push.permission_denied");
-        toast("Your browser blocked notifications. You can change that in browser settings.");
+        toast("Your browser blocked notifications. Change that in browser settings.");
+      } else if (r.status === "needs-config") {
+        toast("Push isn't configured on the server yet.");
+      } else if (r.status === "unsupported") {
+        toast("Push isn't supported in this browser.");
       } else {
-        setStatus("off");
-        toast("No problem — you can enable push later.");
+        toast("Push wasn't enabled. You can try again.");
       }
+    } catch (e) {
+      toast("Couldn't enable push. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disable = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      await unsubscribeFromPush(user.id);
+      setStatus("off");
+      toast("Push turned off. Telegram and in-app still work.");
     } finally {
       setBusy(false);
     }
@@ -65,16 +76,21 @@ export function PushReadinessSection() {
     <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
       <div className="flex items-start gap-3">
         <div className="rounded-md bg-primary/15 p-2 ring-1 ring-primary/30">
-          {status === "on" ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-primary" />}
+          {status === "ready" ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-primary" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-sm font-semibold">Push notifications</h2>
-            <span className="rounded-full bg-muted/30 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/50">
-              Delivery: Staged
+            <span className={
+              "rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider ring-1 " +
+              (status === "ready"
+                ? "bg-primary/15 text-primary ring-primary/30"
+                : "bg-muted/30 text-muted-foreground ring-border/50")
+            }>
+              {status === "ready" ? "Live" : status === "needs-config" ? "Setup needed" : status === "blocked" ? "Blocked" : "Off"}
             </span>
           </div>
-          <p className="text-[12px] text-muted-foreground">Browser push for reminders. Permission only — no reminders fire from push yet.</p>
+          <p className="text-[12px] text-muted-foreground">Browser / PWA push for reminders. Respects quiet hours.</p>
         </div>
       </div>
 
@@ -86,22 +102,30 @@ export function PushReadinessSection() {
         )}
         {status === "blocked" && (
           <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
-            Your browser blocked notifications. You can change that in browser settings, then come back.
+            Your browser blocked notifications. Change that in browser settings, then come back.
+          </Hint>
+        )}
+        {status === "needs-config" && (
+          <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
+            Push isn't configured on the server yet. Once VAPID keys are set, this will go live.
           </Hint>
         )}
         {status === "off" && (
           <Button size="lg" className="w-full gap-2" disabled={busy} onClick={enable}>
-            <Bell className="h-4 w-4" /> Enable push reminders
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
+            Enable push reminders
           </Button>
         )}
-        {status === "on" && (
-          <Hint icon={<Bell className="h-4 w-4 text-emerald-300" />}>
-            Permission granted. Push delivery is staged — we'll turn it on once the worker is verified. You'll see receipts in Audit.
-          </Hint>
+        {status === "ready" && (
+          <div className="space-y-2">
+            <Hint icon={<Bell className="h-4 w-4 text-emerald-300" />}>
+              You're subscribed. Reminders fire to this device. Receipts land in Audit.
+            </Hint>
+            <Button size="sm" variant="outline" className="w-full" disabled={busy} onClick={disable}>
+              Turn off on this device
+            </Button>
+          </div>
         )}
-        <p className="text-[11px] italic text-muted-foreground">
-          Telegram delivery is the live channel right now. Toggle it in Time & Reminders.
-        </p>
       </div>
     </section>
   );

@@ -307,15 +307,20 @@ export function TimeRemindersSection() {
                 </div>
               )}
             </li>
-            <li className="flex items-start justify-between gap-3 py-2 opacity-80">
+            <li className="flex items-start justify-between gap-3 py-2">
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 text-xs font-medium">
                   <Bell className="h-3 w-3" /> Push
-                  <span className="rounded-full bg-muted/30 px-1.5 py-0 text-[9px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/50">
-                    soon
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0 text-[9px] uppercase tracking-wider ring-1",
+                    prefs.push_reminders_enabled
+                      ? "bg-primary/15 text-primary ring-primary/30"
+                      : "bg-muted/30 text-muted-foreground ring-border/50",
+                  )}>
+                    {prefs.push_reminders_enabled ? "on" : "off"}
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground">Browser / PWA push — opt-in only.</div>
+                <div className="text-[11px] text-muted-foreground">Browser / PWA push. Enable per device above.</div>
               </div>
               <Switch
                 checked={!!prefs.push_reminders_enabled}

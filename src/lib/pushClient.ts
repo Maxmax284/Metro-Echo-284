@@ -1,0 +1,125 @@
+// pushClient — minimal Web Push subscription helper.
+// Doctrine: opt-in only, on explicit user tap. Receipts via audit_log.
+import { supabase } from "@/integrations/supabase/client";
+
+export type PushStatus =
+  | "unsupported"
+  | "blocked"
+  | "off"          // permission default, no subscription
+  | "needs-config" // VAPID not configured on server
+  | "ready";       // subscribed and stored
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+export function pushSupported(): boolean {
+  return typeof window !== "undefined"
+    && "serviceWorker" in navigator
+    && "PushManager" in window
+    && "Notification" in window;
+}
+
+async function fetchVapidPublicKey(): Promise<string | null> {
+  const { data, error } = await supabase.functions.invoke("push-config", {
+    body: { action: "get_public_key" },
+  });
+  if (error) return null;
+  return (data as any)?.public_key ?? null;
+}
+
+export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!pushSupported()) return null;
+  try {
+    return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  } catch {
+    return null;
+  }
+}
+
+export async function getStatus(): Promise<PushStatus> {
+  if (!pushSupported()) return "unsupported";
+  if (Notification.permission === "denied") return "blocked";
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  const sub = await reg?.pushManager.getSubscription();
+  if (sub) return "ready";
+  return "off";
+}
+
+export async function subscribeToPush(userId: string): Promise<{
+  ok: boolean;
+  status: PushStatus;
+  error?: string;
+}> {
+  if (!pushSupported()) return { ok: false, status: "unsupported" };
+
+  // Permission gate
+  const perm = await Notification.requestPermission();
+  if (perm === "denied") return { ok: false, status: "blocked" };
+  if (perm !== "granted") return { ok: false, status: "off" };
+
+  const publicKey = await fetchVapidPublicKey();
+  if (!publicKey) return { ok: false, status: "needs-config", error: "VAPID not configured" };
+
+  const reg = (await registerServiceWorker()) ?? (await navigator.serviceWorker.ready);
+  if (!reg) return { ok: false, status: "unsupported", error: "Service worker failed" };
+
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
+    });
+  }
+
+  const json: any = sub.toJSON();
+  const p256dh = json?.keys?.p256dh;
+  const auth = json?.keys?.auth;
+  if (!p256dh || !auth) return { ok: false, status: "off", error: "Invalid subscription keys" };
+
+  const { error: upErr } = await supabase
+    .from("push_subscriptions")
+    .upsert(
+      {
+        user_id: userId,
+        endpoint: sub.endpoint,
+        p256dh,
+        auth,
+        user_agent: navigator.userAgent.slice(0, 240),
+        failure_count: 0,
+        last_error: null,
+        last_used_at: null,
+      },
+      { onConflict: "endpoint" },
+    );
+  if (upErr) return { ok: false, status: "ready", error: upErr.message };
+
+  await supabase.from("audit_log").insert({
+    user_id: userId,
+    entity_type: "push",
+    event: "push.subscribed",
+    payload: { endpoint_host: new URL(sub.endpoint).host },
+  });
+
+  return { ok: true, status: "ready" };
+}
+
+export async function unsubscribeFromPush(userId: string): Promise<void> {
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  const sub = await reg?.pushManager.getSubscription();
+  if (sub) {
+    await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    await sub.unsubscribe();
+    await supabase.from("audit_log").insert({
+      user_id: userId,
+      entity_type: "push",
+      event: "push.unsubscribed",
+      payload: {},
+    });
+  }
+}
