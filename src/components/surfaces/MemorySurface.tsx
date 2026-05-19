@@ -12,6 +12,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -48,6 +49,7 @@ type RelatedHit = { id: string; title: string | null; snippet: string; similarit
 
 export function MemorySurface() {
   const { session } = useAuth();
+  const { openSherlock } = useSherlock();
   const [notes, setNotes] = useState<Note[]>([]);
   const [active, setActive] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
