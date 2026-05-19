@@ -1,0 +1,226 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { Card } from "@/components/ui/card";
+import { Calendar, Bell, CheckSquare, FileText, ListChecks, Inbox } from "lucide-react";
+import { formatInTimeZone } from "date-fns-tz";
+import { cn } from "@/lib/utils";
+import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+
+type TabKey = "today" | "upcoming" | "week";
+
+type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
+type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
+
+export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) => void }) {
+  const { session } = useAuth();
+  const { timezone } = useUserTimezone();
+  const [tab, setTab] = useState<TabKey>("today");
+  const [commits, setCommits] = useState<Commitment[]>([]);
+  const [reviewCaptures, setReviewCaptures] = useState<number>(0);
+  const [reviewFiles, setReviewFiles] = useState<FileRow[]>([]);
+  const [pendingActions, setPendingActions] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { if (session) load(); }, [session]);
+
+  async function load() {
+    setLoading(true);
+    const in7 = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+    const [c, m, f, a] = await Promise.all([
+      supabase.from("commitments")
+        .select("id, summary, due_at, remind_at, status, metadata")
+        .neq("status", "done").neq("status", "cancelled")
+        .or(`due_at.lte.${in7},remind_at.lte.${in7}`)
+        .order("due_at", { ascending: true, nullsFirst: false }).limit(100),
+      supabase.from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "user")
+        .filter("metadata->>needs_review", "eq", "true"),
+      supabase.from("ingested_files")
+        .select("id, filename, status, metadata, created_at")
+        .order("created_at", { ascending: false }).limit(30),
+      supabase.from("actions")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["proposed", "staged"]),
+    ]);
+    setCommits((c.data ?? []) as Commitment[]);
+    setReviewCaptures(m.count ?? 0);
+    setReviewFiles(((f.data ?? []) as FileRow[]).filter((x) => !x.metadata?.document_type && x.status === "done" && !x.metadata?.archived).slice(0, 20));
+    setPendingActions(a.count ?? 0);
+    setLoading(false);
+  }
+
+  const now = Date.now();
+  const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+  const endToday = new Date(); endToday.setHours(23, 59, 59, 999);
+
+  const dueDate = (c: Commitment) => c.due_at || c.remind_at;
+  const todayList = commits.filter((c) => {
+    const d = dueDate(c); if (!d) return false;
+    const t = new Date(d).getTime();
+    return t <= endToday.getTime();
+  });
+  const upcoming = commits.filter((c) => {
+    const d = dueDate(c); if (!d) return false;
+    const t = new Date(d).getTime();
+    return t > endToday.getTime();
+  });
+
+  const byDay: Record<string, Commitment[]> = {};
+  for (const c of [...todayList, ...upcoming]) {
+    const d = dueDate(c)!;
+    const key = formatInTimeZone(new Date(d), timezone, "EEE MMM d");
+    (byDay[key] ||= []).push(c);
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
+      <div className="mx-auto w-full max-w-3xl space-y-3 px-3 pt-3 md:px-6">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          <h2 className="text-lg font-semibold tracking-tight">Schedule</h2>
+          <span className="ml-auto text-[10.5px] text-muted-foreground">{timezone}</span>
+        </div>
+
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
+          {([
+            { id: "today", label: "Today" },
+            { id: "upcoming", label: "Upcoming" },
+            { id: "week", label: "This Week" },
+          ] as const).map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "shrink-0 rounded-full border px-3 py-1 text-[12px] transition-colors",
+                tab === t.id ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="py-10 text-center text-[12px] text-muted-foreground">Looking at the runway…</div>
+        ) : tab === "today" ? (
+          <div className="space-y-3">
+            <SummaryStrip
+              reminders={todayList.filter((c) => !!c.remind_at).length}
+              commitments={todayList.filter((c) => !c.remind_at).length}
+              captures={reviewCaptures}
+              files={reviewFiles.length}
+              actions={pendingActions}
+            />
+            <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
+              {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} />)}
+            </Section>
+            <Section title="Files needing review" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
+              {reviewFiles.slice(0, 5).map((f) => (
+                <li key={f.id} className="flex items-center gap-2 text-[12.5px]">
+                  <FileText className="h-3 w-3 text-muted-foreground" />
+                  <span className="truncate">{f.filename}</span>
+                  <span className="ml-auto text-[10.5px] text-warn">needs type</span>
+                </li>
+              ))}
+            </Section>
+            <QuickJump onNavigate={onNavigate} captures={reviewCaptures} actions={pendingActions} />
+          </div>
+        ) : tab === "upcoming" ? (
+          <div className="space-y-2">
+            {upcoming.length === 0 ? (
+              <Empty>Nothing scheduled in the next 7 days.</Empty>
+            ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Object.keys(byDay).length === 0 ? (
+              <Empty>This week is empty.</Empty>
+            ) : Object.entries(byDay).map(([day, list]) => (
+              <Section key={day} title={day} Icon={Calendar} empty="">
+                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense />)}
+              </Section>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, Icon, empty, onOpen, children }: { title: string; Icon: any; empty: string; onOpen?: () => void; children: any }) {
+  const items = Array.isArray(children) ? children : [children];
+  const isEmpty = !items || items.filter(Boolean).length === 0;
+  return (
+    <Card className="border-border/60 bg-surface-elevated/40 p-3">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+        <Icon className="h-3 w-3" /> {title}
+        {onOpen && <button className="ml-auto text-[11px] normal-case text-primary hover:underline" onClick={onOpen}>Open</button>}
+      </div>
+      {isEmpty && empty ? <p className="text-[12px] text-muted-foreground">{empty}</p> : (
+        <ul className="space-y-1.5">{children}</ul>
+      )}
+    </Card>
+  );
+}
+
+function Empty({ children }: { children: string }) {
+  return <div className="rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">{children}</div>;
+}
+
+function CommitmentRow({ c, tz, dense }: { c: Commitment; tz: string; dense?: boolean }) {
+  const d = c.due_at || c.remind_at;
+  const overdue = d ? new Date(d).getTime() < Date.now() : false;
+  const isReminder = !!c.remind_at;
+  return (
+    <li className={cn("flex items-start gap-2 text-[12.5px]", dense && "py-0.5")}>
+      {isReminder ? <Bell className="mt-0.5 h-3 w-3 text-primary" /> : <CheckSquare className="mt-0.5 h-3 w-3 text-muted-foreground" />}
+      <div className="min-w-0 flex-1">
+        <div className={cn("truncate", overdue && "text-warn")}>{c.summary}</div>
+        {d && (
+          <div className="text-[10.5px] text-muted-foreground">
+            {overdue ? "overdue " : ""}{formatInTimeZone(new Date(d), tz, "h:mm a · MMM d")}
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function SummaryStrip({ reminders, commitments, captures, files, actions }: { reminders: number; commitments: number; captures: number; files: number; actions: number }) {
+  const parts: string[] = [];
+  if (reminders) parts.push(`${reminders} reminder${reminders === 1 ? "" : "s"}`);
+  if (commitments) parts.push(`${commitments} commitment${commitments === 1 ? "" : "s"}`);
+  if (captures) parts.push(`${captures} capture${captures === 1 ? "" : "s"} waiting`);
+  if (files) parts.push(`${files} file${files === 1 ? "" : "s"} need review`);
+  if (actions) parts.push(`${actions} action${actions === 1 ? "" : "s"} need approval`);
+  const line = parts.length ? `Today: ${parts.join(", ")}.` : "Today: nothing on the board.";
+  return (
+    <Card className="border-border/60 bg-surface-elevated/60 p-3 text-[13px] text-foreground/90">
+      {line}
+    </Card>
+  );
+}
+
+function QuickJump({ onNavigate, captures, actions }: { onNavigate?: (k: SurfaceKey) => void; captures: number; actions: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <button onClick={() => onNavigate?.("memory")} className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 p-3 text-left text-[12.5px] hover:border-primary/40">
+        <Inbox className="h-4 w-4 text-primary" />
+        <div>
+          <div className="font-medium">Captures</div>
+          <div className="text-[10.5px] text-muted-foreground">{captures} waiting</div>
+        </div>
+      </button>
+      <button onClick={() => onNavigate?.("actions")} className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 p-3 text-left text-[12.5px] hover:border-primary/40">
+        <ListChecks className="h-4 w-4 text-primary" />
+        <div>
+          <div className="font-medium">Approvals</div>
+          <div className="text-[10.5px] text-muted-foreground">{actions} pending</div>
+        </div>
+      </button>
+    </div>
+  );
+}

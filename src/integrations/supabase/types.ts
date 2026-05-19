@@ -1183,6 +1183,7 @@ export type Database = {
           display_name: string | null
           home_geo: Json | null
           id: string
+          preferences: Json
           timezone: string | null
           updated_at: string
         }
@@ -1192,6 +1193,7 @@ export type Database = {
           display_name?: string | null
           home_geo?: Json | null
           id: string
+          preferences?: Json
           timezone?: string | null
           updated_at?: string
         }
@@ -1201,6 +1203,7 @@ export type Database = {
           display_name?: string | null
           home_geo?: Json | null
           id?: string
+          preferences?: Json
           timezone?: string | null
           updated_at?: string
         }

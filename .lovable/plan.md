@@ -1,104 +1,118 @@
-# Vanta Capture + Intake Maturity Pass — Plan
 
-## Part 1 — Audit findings (current wiring)
+## Audit findings (current state)
 
-What I found by reading the existing surfaces (no code changed):
+- **Files**: `ingested_files` exists with status/metadata/note_id. `files-ingest` extracts text → creates note → emits `ingest.success` audit + nudge. No Files view; files appear only as captures in the intake feed and as notes in Memory. No pipeline state UI, no document_type classification UI, no route actions on files.
+- **Reminders**: No separate `reminders` table. The `commitments` table doubles as reminders via `remind_at`. `CommitmentsSurface` and `commitment-reminders` cron exist. No time/timezone rules — `due_at` is whatever the datetime-local picker says, no timezone awareness, no ambiguity handling.
+- **Timezone**: `profiles.timezone` column exists but is never written or read anywhere. App silently uses browser local time.
+- **Linking**: `note_links` exists (note↔note only). Tags-on-everything is the de-facto link layer. No person/project/place chips, no cross-entity linking helper.
+- **Telegram**: Capture lane works. Outbound notifications: `telegram-link` only. No reminder delivery path.
+- **Push**: No service worker push, no permission flow. PWA install card exists.
+- **Schedule views**: None. Cockpit shows nudges, not "what's due today".
+- **Daily briefing**: No briefing surface. `awareness-brief` is place-only.
+- **Settings**: API Control Room only. No Time & Reminders section.
+- **Companion time queries**: Intents handle capture/commitment/sherlock; no "what's due today" query path.
 
-**Where captures actually land today**
-- Telegram messages → `messages` table via `telegram-webhook` edge fn. Visible only as raw chat lines in `ConversationSurface` (the "Log" tab). No source chip, no detected-type, no route, no confidence.
-- Companion / chat input → same `messages` table. Inline receipt cards exist for `stage_action`, `add_commitment`, `capture_note` (good), but only inside the active thread — they disappear from view once you leave.
-- File / screenshot uploads → `ingested_files` → `files-ingest` edge fn → optionally creates a `notes` row. Status chip exists *only* inside `FileUploadCard` on the Memory surface. No global pipeline view, no document-type classification surfaced, no route history.
-- Notes → created directly in `MemorySurface`, or by file ingest, or by Companion `capture_note`. No `type`, no source linkage shown, no "convert to reminder/commitment" affordance.
-- Reminders vs Commitments → both live in `commitments` table; no visible distinction in UI.
-- Corrections → `corrections` table, surfaced only inside `CorrectionsCenter` tab in Memory.
-- Field notes → `field_notes` table, only touched by Awareness flows. Invisible elsewhere.
-- Sherlock routes → `investigations` + `sherlock_findings_cache`. Visible on its own surface but not as a capture-route history.
-- Action drafts → `actions` surface. Not linked back to the capture that spawned them.
-- Audit → `audit_log` is well-populated for actions and approvals, **but** there are no events for: telegram capture received, file classified, ambiguous item created/resolved, capture routed.
+## Scope for this pass
 
-**Visibility gaps (the "front desk" problem)**
-- No single place lists "what came in" across channels. `CommandCenterSurface` has a `LiveCaptureCard` but it only merges last 5 user messages + 5 files, no status/route/confidence.
-- No Ambiguous Queue exists. Anything Vanta can't classify silently becomes a plain note or message.
-- "Log" tab label is misleading — it looks like chat, smells like chat, but the platform law is capture-only. No banner says so.
-- File pipeline states exist in DB (`pending|done|failed|error`) but the card only shows raw status, no human copy, no document-type, no route options.
-- Memory is a flat list of notes + search. No grouping by people/projects/places/source/status.
-- Mobile: `FileUploadCard` and `LiveCaptureCard` cards are dense; chip rows wrap awkwardly at 390px.
+Implement Stages 1–4, 7–9 from the prompt. Stage 5 (Telegram delivery), 6 (push), 11 (Google Calendar) are explicitly staged for later with hooks in place.
 
-**Voice gaps**
-- File status reads as raw enums ("pending", "failed"). Needs Vanta voice.
-- Telegram bot replies are mostly fine but don't expose detected-type back to the user.
+### Stage 1 — Files pipeline visibility (Memory → Files tab)
+- Add `MemoryFilesView` component, rendered as a third tab inside `MemorySurface` alongside Notes / Captures.
+- One card per `ingested_files` row: filename, source, upload time, mime, status pill, detected document_type (already written by `files-ingest`), confidence, linked note, audit-trail link.
+- Status copy uses Vanta voice: "Uploaded.", "Reading it.", "Saved.", "Couldn't read this one.", "Needs review."
 
-## Part 2 — What I'll build in this pass (Stage 1 + Stage 2 only)
+### Stage 2 — File route actions
+- On each file card: Open note, Re-classify (no AI), Correct type (dropdown of receipt/invoice/contract/admin/booking/screenshot/checklist/unknown — stored in `metadata.document_type`), Create reminder, Attach to commitment, Send to Sherlock, Archive (sets `metadata.archived=true`).
+- All emit audit events (`file.type_corrected`, `file.routed`, `file.archived`, `file.reminder_created`).
 
-Per the brief, do not implement all stages at once. This pass ships the visible front desk + the two most-used capture channels. Stages 3–9 are scoped but staged.
+### Stage 3 — Lightweight linking (metadata-first, no new tables)
+- Add `links` array on `notes.metadata` and `commitments.metadata` and `ingested_files.metadata`: `[{kind:"person"|"project"|"place", label, ref?}]`.
+- New `LinkChips` component renders chips like "Linked to Nikki" and offers `+ Link person/project/place` → opens a small popover with free-text or pick-from-recent (recent labels pulled from existing metadata across the user's notes — cheap, no new table).
+- Wire into Memory note cards, Commitments cards, Files cards. Empty state: "No strong links yet."
+- Audit: `link.added`, `link.removed`.
 
-### Stage 1 — Captures lane + Ambiguous Queue (inside Memory)
+### Stage 4 — Reminder + timezone foundation
+- Use `commitments` as the reminder table (already has `remind_at`, `due_at`, `priority`, `status`). Add a `kind` discriminator to `commitments.metadata` (`"reminder"` vs default commitment) — no schema change.
+- `profiles.timezone` becomes the source of truth. New `useUserTimezone()` hook reads it; falls back to `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+- All due-date display switches to `formatInTimeZone` from `date-fns-tz` using user TZ. Show TZ label next to times ("7:00 PM Asia/Bangkok").
+- Reminder time rules in a new `ReminderComposer` (used from notes, files, captures, commitments, Companion):
+  - Specific time → schedule.
+  - Vague time + default configured → suggest "Tonight usually means 7 PM. Use that?"
+  - Vague + no default → ask.
+  - No time → ask.
+  - AM/PM ambiguous → ask.
+  - Other TZ stated → respect, show "Scheduled for 9:00 AM America/New_York."
+- "Create reminder" actions added to Memory notes, Capture cards, File cards, Commitment cards.
 
-Mature the existing Memory surface with a new top-level view toggle:
-`Notes | Captures | Ambiguous | Corrections`
+### Stage 7 — Today / Upcoming / This Week
+- New `ScheduleSurface` (added to nav as "Today", uses Calendar icon). Three tabs.
+- Pulls from existing data only:
+  - Commitments due/overdue.
+  - Reminders (commitments with `metadata.kind=reminder`).
+  - Captures with `needs_review=true`.
+  - Files where `status='needs_review'` or `metadata.document_type` missing.
+  - Actions with `status='proposed'|'staged'`.
+- Each row shows source chip and links back to its surface.
+- Mobile-first: full-width cards, large tap targets.
 
-**Captures view** — unified feed pulling from `messages` (role=user), `ingested_files`, `field_notes`, recent `commitments`/`notes` created via capture, and `audit_log` entries tagged `capture.*`. Each row is a `CaptureCard`:
+### Stage 8 — Daily briefing (cheap, no AI by default)
+- New `DailyBriefingCard` rendered at top of Cockpit and inside Schedule → Today.
+- Generated client-side from counts: "Today: 3 reminders, 2 commitments, 4 captures waiting, 1 file needs review."
+- Then a short list of the top items.
+- Optional "Polish with Vanta" button → calls `vanta-converse` once with the briefing as input; default off.
+- Audit: `briefing.generated`, `briefing.ai_polished`.
 
-```
-[source-icon] "Quick line of what came in…"
-Source: Telegram · Detected as: Possible commitment · Confidence: Medium
-Linked: Nikki · GroundStay         Status: Needs review
-[Confirm commitment] [Save as note] [Send to Sherlock] [Correct label] [Ignore]
-```
+### Stage 9 — Companion time queries (no AI when avoidable)
+- Add intent handlers in `useIntentHandler`: `query_due_today`, `query_upcoming`, `query_waiting`, `query_files_needing_review`.
+- Each runs a direct DB query, formats a plain-English answer, posts it as an assistant message. AI only invoked for summarization if user asks "summarize my week" style.
 
-Filters (chip row): All · Telegram · Companion · Files · Notes · Field notes · Needs review · Last 24h.
+### Settings — Time & Reminders section
+- New section in `Settings.tsx`: timezone picker (searchable, common zones first), auto-detect toggle, default morning/afternoon/evening times, quiet hours start/end, delivery preferences (in-app on; Telegram + Push shown as "Coming soon" / staged toggle that writes preference but does not deliver yet).
+- Drift banner if browser TZ ≠ saved TZ.
+- Persists to `profiles.timezone` and new `profiles.metadata` (or a tiny `user_preferences` JSON column — see Technical).
+- Audit: `timezone.updated`, `timezone.autodetected`.
 
-**Ambiguous view** — same card shape but only items where detected_type is null/low-confidence, or where `metadata.needs_review = true`. Empty state uses Vanta voice ("Nothing waiting on you. Clean desk."). Each card forces a lane pick before it leaves the queue.
+### Audit coverage
+- Add events listed in the prompt where missing. All UI changes use Vanta voice.
 
-Routing is implemented client-side first (no new edge fn): the action buttons call existing flows — insert into `commitments`, update `notes`, invoke `sherlock-investigate`, etc. Each route writes an `audit_log` row with event `capture.routed` so we get audit coverage for free.
-
-### Stage 2 — Telegram + Companion capture visibility
-
-- `messages` rows from telegram get `metadata.source = "telegram"` and `metadata.detected_type` already partly set by `telegram-webhook` — extend the webhook to also write `metadata.confidence` and `metadata.needs_review` when classification is fuzzy. (Small server-side edit, no behavior change for existing routes.)
-- Companion-created captures already emit receipt cards; extend `useIntentHandler` to also stamp `metadata.detected_type` and emit an `audit_log` row `capture.routed` with the destination surface.
-- The Captures lane reads these fields and renders the source/type/confidence/route chips uniformly across both channels.
-
-### Capture Log rename (small, ships in this pass)
-
-- `SurfaceTabs.tsx`: rename `Log` → `Capture Log` (label only; key stays `conversation`).
-- `ConversationSurface`: add a slim banner at top: *"Capture only. Nothing here executes. Approvals live in Actions."* Add status chips next to user messages when `metadata.detected_type` is present (Captured · Routed · Needs review · Draft created).
-
-### Voice + mobile polish (touched surfaces only)
-
-- File ingest status copy: `pending → "Looking at it…"`, `done → "Saved"`, `failed → "Couldn't read this one"`, etc.
-- Capture card stacks vertically <420px; chip row scrolls horizontally with snap; primary action button stays full-width on mobile.
-- All copy reviewed for Vanta voice — no "Classification complete" anywhere.
-
-## Part 3 — Staged but NOT built this pass
-
-These are scoped so the next pass is one-shot:
-- **Stage 3** — File pipeline visibility (per-file detected document type chip, summary preview, route suggestions). Needs `files-ingest` to write `metadata.document_type` and `metadata.summary`.
-- **Stage 4** — Capture Log route/status chip layer beyond the banner.
-- **Stage 5** — Memory grouping (People/Projects/Places/Files) using `notes.tags` + `note_links`.
-- **Stage 6** — Notes type field + "convert to reminder/commitment" inline buttons. Needs `notes.type` column (migration).
-- **Stage 7** — Audit events expansion (`capture.received`, `capture.classified`, `capture.routed`, `ambiguous.resolved`) wired into every channel.
-- **Stage 8** — Typed-confirm destructive actions (DISABLE), Awareness chip polish.
-- **Stage 9** — Full mobile validation pass on every touched surface at 390x844.
+### Staged (not built this pass)
+- Stage 5 — Telegram reminder delivery (delivery toggle exists in Settings as "Coming soon"; audit events reserved).
+- Stage 6 — PWA push (settings stub only).
+- Stage 11 — Google Calendar (not touched).
 
 ## Technical notes
 
-Files I'll touch in this pass:
-- `src/components/surfaces/MemorySurface.tsx` — add view toggle, mount new `CapturesView` + `AmbiguousView`.
-- `src/components/memory/CapturesView.tsx` *(new)* — unified feed + filters.
-- `src/components/memory/AmbiguousView.tsx` *(new)* — lane-picker cards.
-- `src/components/memory/CaptureCard.tsx` *(new)* — shared card with source/type/confidence/route chips and action row.
-- `src/components/shell/SurfaceTabs.tsx` — label rename.
-- `src/components/surfaces/ConversationSurface.tsx` — banner + per-message status chips.
-- `src/hooks/useIntentHandler.ts` — stamp `detected_type` + audit row.
-- `supabase/functions/telegram-webhook/index.ts` — write `confidence` + `needs_review` into message metadata (additive, no behavior change for existing flows).
-- `src/lib/vantaVoice.ts` — add capture/file status copy helpers.
+- **No schema migration needed** for Stages 1–4 + 7–9 if we use:
+  - `commitments.metadata` (jsonb) for `kind:"reminder"`, `links:[]`, `timezone`.
+  - `notes.metadata.links`, `ingested_files.metadata.links`, `metadata.archived`, `metadata.document_type`.
+  - `profiles.timezone` (existing column).
+- **One small migration** for user preferences: add `profiles.preferences jsonb default '{}'` to hold `default_morning_time`, `default_evening_time`, `quiet_hours_start/end`, `telegram_reminders_enabled`, `push_reminders_enabled`. Cheaper than a new table; profile is already per-user.
+- **Dependency**: add `date-fns-tz` for timezone-correct formatting.
+- **No new edge functions** required this pass; existing `commitment-reminders` cron continues to work and will pick up reminders since they're just commitments with `metadata.kind="reminder"`.
+- **No automatic AI calls.** All AI is behind explicit user taps.
+- **Files**: no real classifier yet — `metadata.document_type` is set by user "Correct type" action or by a cheap keyword heuristic at ingest time (already partially present from earlier pass). UI clearly says "Needs review" until set.
 
-No schema changes in this pass. No new tables. No deletions. No executions. Everything reads from tables that already exist and routes through existing edge fns. Audit gets new event names but uses existing `audit_log` schema.
+## Files touched (approx)
 
-Acceptance check before marking complete:
-- Captures view renders real data from your seeded rows.
-- Ambiguous view shows at least one item after seeding a low-confidence message.
-- Telegram message shows source chip in both Capture Log and Captures view.
-- Companion-created reminder shows up in Captures with route="commitments".
-- "Log" tab reads "Capture Log" with the law banner visible.
-- Mobile 390px pass on Memory + Capture Log.
+New:
+- `src/components/memory/MemoryFilesView.tsx`
+- `src/components/memory/FileCard.tsx`
+- `src/components/links/LinkChips.tsx`
+- `src/components/reminders/ReminderComposer.tsx`
+- `src/components/surfaces/ScheduleSurface.tsx`
+- `src/components/cockpit/DailyBriefingCard.tsx`
+- `src/hooks/useUserTimezone.ts`
+- `src/hooks/useUserPreferences.ts`
+- `src/lib/timeRules.ts` (vague-time parser + AM/PM disambiguation)
+- `src/components/settings/TimeRemindersSection.tsx`
+
+Edited:
+- `src/components/surfaces/MemorySurface.tsx` (Files tab, link chips, "Create reminder")
+- `src/components/surfaces/CommitmentsSurface.tsx` (TZ-correct display, link chips, reminder kind)
+- `src/components/memory/CapturesView.tsx` (Create reminder action)
+- `src/components/surfaces/CommandCenterSurface.tsx` (DailyBriefingCard mount)
+- `src/components/shell/SurfaceTabs.tsx` (Schedule tab)
+- `src/hooks/useIntentHandler.ts` (time query intents, TZ-aware add_commitment)
+- `src/pages/Settings.tsx` (Time & Reminders section)
+- `src/lib/vantaVoice.ts` (new copy)
+- One migration: `profiles.preferences jsonb`.
