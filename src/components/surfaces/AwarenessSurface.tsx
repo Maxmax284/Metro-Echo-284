@@ -16,6 +16,7 @@ import { classifyPlaceBadness } from "@/lib/locationSanity";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
+import { resolveLocationState, SOURCE_BADGE_LABEL, SOURCE_BADGE_TONE, logLocationDecision } from "@/lib/awarenessLocation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { HelpCircle } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
