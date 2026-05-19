@@ -69,10 +69,12 @@ function eventTone(event: string): DotTone {
 }
 
 export function AuditSurface() {
+  const { timezone } = useUserTimezone();
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [events, setEvents] = useState<ActionEvent[]>([]);
   const [filter, setFilter] = useState("");
   const [quick, setQuick] = useState("");
+  const [eventClass, setEventClass] = useState("");
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
@@ -92,6 +94,10 @@ export function AuditSurface() {
     const f = filter.trim().toLowerCase();
     let rows = audit;
     if (quick) rows = rows.filter((r) => r.entity_type.toLowerCase().includes(quick));
+    if (eventClass) {
+      const cls = EVENT_CLASSES.find((c) => c.id === eventClass);
+      if (cls) rows = rows.filter((r) => cls.match(r.event.toLowerCase()));
+    }
     if (f) {
       rows = rows.filter((r) =>
         r.event.toLowerCase().includes(f) ||
@@ -100,9 +106,11 @@ export function AuditSurface() {
         JSON.stringify(r.payload ?? {}).toLowerCase().includes(f));
     }
     return rows;
-  }, [audit, filter, quick]);
+  }, [audit, filter, quick, eventClass]);
 
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
+  const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
+  const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
