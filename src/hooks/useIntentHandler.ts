@@ -130,28 +130,47 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           const endOfTomorrow = new Date(endOfToday.getTime() + 24 * 3600 * 1000);
           const endOfWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
 
-          let query = supabase.from("commitments")
+          const { data: rows } = await supabase.from("commitments")
             .select("id, summary, due_at, remind_at, status, priority")
             .eq("status", "open")
-            .order("due_at", { ascending: true, nullsFirst: false })
-            .limit(50);
-
-          const { data: rows } = await query;
+            .or("due_at.not.is.null,remind_at.not.is.null")
+            .limit(100);
           const all = (rows ?? []) as any[];
-          const dueAt = (c: any) => c.due_at || c.remind_at;
-          let filtered = all;
-          if (window === "today") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) <= endOfToday);
-          else if (window === "tomorrow") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) > endOfToday && new Date(dueAt(c)) <= endOfTomorrow);
-          else if (window === "week") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) <= endOfWeek);
-          else if (window === "overdue") filtered = all.filter((c) => c.due_at && new Date(c.due_at) < now);
-          else if (window === "next") filtered = all.filter((c) => dueAt(c) && new Date(dueAt(c)) > now).slice(0, 1);
+
+          // Doctrine: time is real. Each row has up to two trigger moments —
+          // due_at (deadline) and remind_at (poke). Pick the soonest still
+          // meaningful one per row and tag what it is so the user knows
+          // whether they're looking at a deadline or a reminder.
+          type Slot = { row: any; at: Date; kind: "due" | "remind" };
+          const slots: Slot[] = [];
+          for (const c of all) {
+            if (c.due_at)    slots.push({ row: c, at: new Date(c.due_at),    kind: "due" });
+            if (c.remind_at) slots.push({ row: c, at: new Date(c.remind_at), kind: "remind" });
+          }
+          slots.sort((a, b) => a.at.getTime() - b.at.getTime());
+
+          let picked: Slot[] = [];
+          if (window === "today")        picked = slots.filter((s) => s.at <= endOfToday && s.at >= new Date(endOfToday.getTime() - 24 * 3600 * 1000));
+          else if (window === "tomorrow") picked = slots.filter((s) => s.at > endOfToday && s.at <= endOfTomorrow);
+          else if (window === "week")     picked = slots.filter((s) => s.at <= endOfWeek && s.at >= now);
+          else if (window === "overdue")  picked = slots.filter((s) => s.at < now);
+          else if (window === "next")     picked = slots.filter((s) => s.at > now).slice(0, 1);
+
+          // Dedupe: if a row has both due+remind in the same window, keep the
+          // deadline (kind=due) since that's the harder ground truth.
+          const seen = new Map<string, Slot>();
+          for (const s of picked) {
+            const prev = seen.get(s.row.id);
+            if (!prev || (prev.kind === "remind" && s.kind === "due")) seen.set(s.row.id, s);
+          }
+          const filtered = Array.from(seen.values());
 
           const lines = filtered.length
-            ? filtered.map((c) => {
-                const d = dueAt(c);
-                const stamp = d ? formatInTimeZone(new Date(d), tz, "EEE MMM d · h:mm a") : "no time";
-                const tag = c.remind_at && !c.due_at ? "⏰" : "•";
-                return `${tag} **${c.summary}** — ${stamp} ${tz}`;
+            ? filtered.map(({ row, at, kind }) => {
+                const stamp = formatInTimeZone(at, tz, "EEE MMM d · h:mm a");
+                const tag = kind === "remind" ? "⏰" : "•";
+                const label = kind === "remind" ? "remind" : "due";
+                return `${tag} **${row.summary}** — ${label} ${stamp} ${tz}`;
               }).join("\n")
             : `Nothing on the board for ${window}.`;
 
