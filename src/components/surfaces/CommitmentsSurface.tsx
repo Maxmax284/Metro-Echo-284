@@ -8,6 +8,8 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow, formatDistanceToNowStrict, isPast } from "date-fns";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { formatTzLine } from "@/lib/timeRules";
 
 type Commitment = {
   id: string;
@@ -24,6 +26,7 @@ const PRIORITIES = ["low", "normal", "high"] as const;
 
 export function CommitmentsSurface() {
   const { session } = useAuth();
+  const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
@@ -211,8 +214,9 @@ export function CommitmentsSurface() {
                       <p className={cn("text-sm", c.status === "done" && "line-through")}>{c.summary}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
                         {c.due_at && (
-                          <span className={cn(overdue && "text-danger")}>
-                            {overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}
+                          <span className={cn("flex flex-wrap items-baseline gap-x-1.5", overdue && "text-danger")}>
+                            <span>{overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}</span>
+                            <span className="text-muted-foreground/70">· {formatTzLine(new Date(c.due_at), timezone)}</span>
                           </span>
                         )}
                         {c.priority !== "normal" && <span className="uppercase tracking-wider">{c.priority}</span>}

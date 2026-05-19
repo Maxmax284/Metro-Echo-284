@@ -5,34 +5,44 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { buildLocalDate, formatTzLine, parseTimeHint, vagueToTime } from "@/lib/timeRules";
 import { Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type ReminderResult = {
-  due_at: string;     // ISO UTC
-  remind_at: string;  // ISO UTC (same as due_at for now)
-  timezone: string;   // IANA
+  due_at: string;      // ISO UTC
+  remind_at: string;   // ISO UTC (may precede due_at)
+  timezone: string;    // IANA
+  title?: string;      // optional editable title (when initialTitle provided)
 };
 
+const OFFSETS: { label: string; minutes: number }[] = [
+  { label: "At due time", minutes: 0 },
+  { label: "5 min before", minutes: 5 },
+  { label: "30 min before", minutes: 30 },
+  { label: "1 hr before", minutes: 60 },
+  { label: "1 day before", minutes: 60 * 24 },
+];
+
 /**
- * Compact, mobile-friendly reminder composer. Implements Vanta's time rules:
- * - specific time → schedule directly
- * - vague time → suggest default ("Tonight usually means 7 PM. Use that?")
- * - ambiguous AM/PM → ask
- * - no time → ask
- * Returns chosen result to onConfirm; never schedules silently.
+ * Compact, mobile-friendly reminder composer. Implements Vanta's time rules
+ * and the doctrine's aftermath rule: title is the next-life verb, and
+ * remind_at can lead due_at so reminders actually nudge before the deadline.
  */
 export function ReminderComposer({
   initialText = "",
+  initialTitle,
   defaultDayOffset = 0,
   onConfirm,
   onCancel,
 }: {
   initialText?: string;
+  initialTitle?: string;            // when provided, renders an editable title input
   defaultDayOffset?: number;
   onConfirm: (r: ReminderResult) => void | Promise<void>;
   onCancel?: () => void;
 }) {
   const { timezone } = useUserTimezone();
   const { prefs } = useUserPreferences();
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [hint, setHint] = useState(initialText);
   const [date, setDate] = useState(() => {
     const d = new Date(Date.now() + defaultDayOffset * 24 * 3600 * 1000);
@@ -41,10 +51,10 @@ export function ReminderComposer({
   const [hh, setHh] = useState<number | null>(null);
   const [mm, setMm] = useState<number>(0);
   const [needsAmPm, setNeedsAmPm] = useState(false);
+  const [offsetMin, setOffsetMin] = useState<number>(0);
 
   const parsed = useMemo(() => parseTimeHint(hint), [hint]);
 
-  // Auto-apply parsed hint
   const applyHint = () => {
     if (parsed.kind === "specific") {
       if (!parsed.ampmKnown && parsed.hh <= 12) {
@@ -70,19 +80,27 @@ export function ReminderComposer({
     setNeedsAmPm(false);
   };
 
-  const preview = useMemo(() => {
+  const dueDate = useMemo(() => {
     if (hh === null) return null;
     const base = new Date(`${date}T12:00:00`);
-    const built = buildLocalDate(base, hh, mm, timezone, false);
-    return built;
+    return buildLocalDate(base, hh, mm, timezone, false);
   }, [hh, mm, date, timezone]);
 
+  const remindDate = useMemo(() => {
+    if (!dueDate) return null;
+    return new Date(dueDate.getTime() - offsetMin * 60 * 1000);
+  }, [dueDate, offsetMin]);
+
+  const titleRequired = initialTitle !== undefined;
+  const canConfirm = !!dueDate && !needsAmPm && (!titleRequired || title.trim().length > 0);
+
   const confirm = async () => {
-    if (!preview) return;
+    if (!dueDate || !remindDate) return;
     await onConfirm({
-      due_at: preview.toISOString(),
-      remind_at: preview.toISOString(),
+      due_at: dueDate.toISOString(),
+      remind_at: remindDate.toISOString(),
       timezone,
+      title: titleRequired ? title.trim() : undefined,
     });
   };
 
@@ -101,12 +119,23 @@ export function ReminderComposer({
 
   return (
     <div className="space-y-2 rounded-xl bg-surface-elevated/60 p-3 ring-1 ring-border/60">
+      {titleRequired && (
+        <div className="space-y-1">
+          <label className="text-[10.5px] uppercase tracking-wide text-muted-foreground">What's the next move?</label>
+          <Input
+            placeholder="e.g. Review receipt before reimbursement"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        <Clock className="h-3 w-3" /> When should I remind you?
+        <Clock className="h-3 w-3" /> When should this be done?
       </div>
 
       <Input
-        autoFocus
+        autoFocus={!titleRequired}
         placeholder='Try "tonight", "tomorrow morning", "5pm Friday"'
         value={hint}
         onChange={(e) => setHint(e.target.value)}
@@ -151,13 +180,37 @@ export function ReminderComposer({
         />
       </div>
 
-      {preview && !needsAmPm && (
-        <div className="text-[11.5px] text-muted-foreground">
-          Scheduled for <span className="text-foreground">{formatTzLine(preview, timezone)}</span>
+      <div className="space-y-1">
+        <label className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Remind me</label>
+        <div className="-mx-1 flex snap-x snap-mandatory gap-1 overflow-x-auto px-1">
+          {OFFSETS.map((o) => (
+            <button
+              key={o.minutes}
+              type="button"
+              onClick={() => setOffsetMin(o.minutes)}
+              className={cn(
+                "shrink-0 snap-start rounded-full border px-2 py-0.5 text-[10.5px] transition-colors",
+                offsetMin === o.minutes
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {dueDate && remindDate && !needsAmPm && (
+        <div className="space-y-0.5 text-[11.5px] text-muted-foreground">
+          <div>Due <span className="text-foreground">{formatTzLine(dueDate, timezone)}</span></div>
+          {offsetMin > 0 && (
+            <div>Nudge <span className="text-foreground">{formatTzLine(remindDate, timezone)}</span></div>
+          )}
         </div>
       )}
 
-      {!preview && (
+      {!dueDate && (
         <div className="text-[11px] text-muted-foreground italic">
           No time yet. Type one above or pick from the time picker.
         </div>
@@ -167,7 +220,7 @@ export function ReminderComposer({
         {onCancel && (
           <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
         )}
-        <Button size="sm" disabled={!preview || needsAmPm} onClick={confirm}>
+        <Button size="sm" disabled={!canConfirm} onClick={confirm}>
           Set reminder
         </Button>
       </div>

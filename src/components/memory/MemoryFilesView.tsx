@@ -143,21 +143,45 @@ export function MemoryFilesView() {
     refresh();
   };
 
-  const createReminderForFile = async (f: FileRow, due: string, remind: string, tz: string) => {
+  const createReminderForFile = async (
+    f: FileRow,
+    due: string,
+    remind: string,
+    tz: string,
+    title?: string,
+  ) => {
     if (!user) return;
+    const summary = (title && title.trim()) || `Review ${f.filename}`;
     const { data } = await supabase.from("commitments").insert({
       user_id: user.id,
-      summary: `Follow up on ${f.filename}`,
+      summary,
       due_at: due,
       remind_at: remind,
       priority: "normal",
     }).select("id").single();
     const meta = { ...(f.metadata ?? {}), reminder_id: data?.id, timezone: tz };
     await supabase.from("ingested_files").update({ metadata: meta }).eq("id", f.id);
-    await audit(f.id, "file.reminder_created", { commitment_id: data?.id, timezone: tz });
+    await audit(f.id, "file.reminder_created", {
+      commitment_id: data?.id,
+      timezone: tz,
+      remind_lead_minutes: Math.round((new Date(due).getTime() - new Date(remind).getTime()) / 60000),
+    });
     toast.success({ title: vantaSay.reminderSet(new Date(due).toLocaleString()) });
     setComposingFor(null);
     refresh();
+  };
+
+  const retryIngest = async (f: FileRow) => {
+    try {
+      await supabase.from("ingested_files").update({ status: "pending", error: null }).eq("id", f.id);
+      const { error } = await supabase.functions.invoke("files-ingest", { body: { ingested_file_id: f.id } });
+      if (error) throw error;
+      await audit(f.id, "file.ingest_retried");
+      toast.success({ title: "Re-reading it." });
+      refresh();
+    } catch (e) {
+      toast.fromError(e);
+    }
   };
 
   const sendToSherlock = async (f: FileRow) => {
@@ -253,6 +277,8 @@ export function MemoryFilesView() {
           const needsType = !docType && f.status === "done";
           const status = STATUS_COPY[f.status] ?? { label: f.status, tone: "muted" as const };
           const links = readLinks(meta);
+          const ageMs = Date.now() - new Date(f.created_at).getTime();
+          const stalePending = f.status === "pending" && ageMs > 5 * 60 * 1000;
           return (
             <li key={f.id} className="space-y-2 rounded-xl surface-elevated p-3 ring-1 ring-border/60">
               <div className="flex items-start gap-2">
@@ -260,9 +286,17 @@ export function MemoryFilesView() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{f.filename}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1", TONE[status.tone])}>
-                      {status.label}
+                    <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 ring-1", TONE[stalePending ? "warn" : status.tone])}>
+                      {stalePending ? "Stuck reading" : status.label}
                     </span>
+                    {stalePending && (
+                      <button
+                        onClick={() => retryIngest(f)}
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] text-primary ring-1 ring-primary/30 hover:bg-primary/20"
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" /> Retry ingest
+                      </button>
+                    )}
                     {docType ? (
                       <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType}</span>
                     ) : needsType ? (
@@ -344,9 +378,10 @@ export function MemoryFilesView() {
               {composingFor === f.id && (
                 <ReminderComposer
                   initialText=""
+                  initialTitle={`Review ${f.filename}`}
                   defaultDayOffset={1}
                   onCancel={() => setComposingFor(null)}
-                  onConfirm={(r) => createReminderForFile(f, r.due_at, r.remind_at, r.timezone)}
+                  onConfirm={(r) => createReminderForFile(f, r.due_at, r.remind_at, r.timezone, r.title)}
                 />
               )}
             </li>
