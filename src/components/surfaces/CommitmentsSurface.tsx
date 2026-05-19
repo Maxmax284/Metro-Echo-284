@@ -214,8 +214,9 @@ export function CommitmentsSurface() {
                       <p className={cn("text-sm", c.status === "done" && "line-through")}>{c.summary}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
                         {c.due_at && (
-                          <span className={cn(overdue && "text-danger")}>
-                            {overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}
+                          <span className={cn("flex flex-wrap items-baseline gap-x-1.5", overdue && "text-danger")}>
+                            <span>{overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}</span>
+                            <span className="text-muted-foreground/70">· {formatTzLine(new Date(c.due_at), timezone)}</span>
                           </span>
                         )}
                         {c.priority !== "normal" && <span className="uppercase tracking-wider">{c.priority}</span>}
