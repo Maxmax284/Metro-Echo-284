@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { runGuarded, adminClient } from "../_shared/apiGuard.ts";
+import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
