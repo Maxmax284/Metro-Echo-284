@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { useEntitySheet } from "./EntityContext";
+import { useCanvas } from "./CanvasContext";
 import { formatDistanceToNow } from "date-fns";
-import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2 } from "lucide-react";
+import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type EntityRow = {
@@ -69,6 +71,7 @@ async function fetchPreview(kind: string, id: string): Promise<string | null> {
 
 export function EntityDetailSheet() {
   const { openEntityId, closeEntity } = useEntitySheet();
+  const { openCanvas } = useCanvas();
   const [entity, setEntity] = useState<EntityRow | null>(null);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,6 +124,16 @@ export function EntityDetailSheet() {
             {entity?.confidence && <span className="rounded-full bg-surface-elevated/60 px-2 py-0.5">confidence: {entity.confidence}</span>}
             {entity?.last_seen_at && <span className="text-muted-foreground/80">last seen {formatDistanceToNow(new Date(entity.last_seen_at), { addSuffix: true })}</span>}
           </SheetDescription>
+          {entity && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 h-7 gap-1.5 text-[11px]"
+              onClick={() => { const id = entity.id; closeEntity(); openCanvas(id); }}
+            >
+              <Network className="h-3 w-3" /> Open in Canvas
+            </Button>
+          )}
         </SheetHeader>
 
         {entity?.aliases && entity.aliases.length > 0 && (

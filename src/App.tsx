@@ -12,6 +12,8 @@ import { SherlockProvider } from "@/components/sherlock/SherlockContext";
 import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
 import { EntityProvider } from "@/components/entities/EntityContext";
 import { EntityDetailSheet } from "@/components/entities/EntityDetailSheet";
+import { CanvasProvider } from "@/components/entities/CanvasContext";
+import { CommandCanvas } from "@/components/entities/CommandCanvas";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -28,21 +30,24 @@ const App = () => (
         <AuthProvider>
           <SherlockProvider>
             <EntityProvider>
-              <CurrentContextProvider>
-                <AwarenessProvider>
-                  <CompanionProvider>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                    <CompanionWidget />
-                    <SherlockOverlay />
-                    <EntityDetailSheet />
-                  </CompanionProvider>
-                </AwarenessProvider>
-              </CurrentContextProvider>
+              <CanvasProvider>
+                <CurrentContextProvider>
+                  <AwarenessProvider>
+                    <CompanionProvider>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                      <CompanionWidget />
+                      <SherlockOverlay />
+                      <EntityDetailSheet />
+                      <CommandCanvas />
+                    </CompanionProvider>
+                  </AwarenessProvider>
+                </CurrentContextProvider>
+              </CanvasProvider>
             </EntityProvider>
           </SherlockProvider>
         </AuthProvider>
