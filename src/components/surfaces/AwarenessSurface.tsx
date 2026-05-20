@@ -206,8 +206,10 @@ export function AwarenessSurface() {
             country: "bg-warn/15 text-warn ring-warn/40",
             unknown: "bg-muted/40 text-muted-foreground ring-border/60",
           };
-          // Limit badges so the strip stays calm.
-          const visibleBadges = locState.sources.slice(0, 4);
+          // Limit badges so the strip stays calm — even tighter on mobile.
+          const badgeCap = isMobile && !showAllBadges ? 2 : 4;
+          const visibleBadges = locState.sources.slice(0, badgeCap);
+          const hiddenBadgeCount = Math.max(0, locState.sources.length - visibleBadges.length);
           return (
             <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
               <div className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 space-y-1.5">
