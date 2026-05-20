@@ -346,23 +346,33 @@ Deno.serve(async (req: Request) => {
             }
           }
 
-          // Google Maps engine for nearby services — only when exact/saved with coords
+          // Google Maps engine for nearby services — only when exact/saved with coords.
+          // Pull richer detail (rating, hours, type, distance) so downstream cards
+          // can cite real venues by name instead of leaning on Reddit chatter.
           if ((tier === "exact" || tier === "saved") && geo?.lat != null && geo?.lon != null) {
             const ll = `@${geo.lat},${geo.lon},14z`;
-            const mapsUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent("ATM pharmacy")}&ll=${encodeURIComponent(ll)}&type=search&api_key=${SERPAPI_KEY}`;
+            const mapsUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent("ATM pharmacy convenience cafe")}&ll=${encodeURIComponent(ll)}&type=search&api_key=${SERPAPI_KEY}`;
             const mr = await fetch(mapsUrl);
             if (mr.ok) {
               const mj = await mr.json();
-              for (const p of (mj.local_results ?? []).slice(0, 5)) {
+              for (const p of (mj.local_results ?? []).slice(0, 8)) {
+                const detailBits = [
+                  p.type,
+                  p.address,
+                  p.open_state,
+                  p.rating != null ? `★${p.rating}${p.reviews ? ` (${p.reviews})` : ""}` : null,
+                  p.price,
+                ].filter(Boolean);
                 items.push({
                   title: String(p.title ?? ""),
-                  snippet: [p.type, p.address, p.open_state].filter(Boolean).join(" · ") || undefined,
+                  snippet: detailBits.join(" · ") || undefined,
                   link: p.website ?? undefined,
                   kind: "place",
                 });
               }
             }
           }
+
 
           return items;
         },
