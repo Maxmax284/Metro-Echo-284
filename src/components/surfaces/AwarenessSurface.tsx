@@ -241,7 +241,7 @@ export function AwarenessSurface() {
                     <span
                       key={b}
                       className={cn(
-                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
                         SOURCE_BADGE_TONE[b],
                       )}
                       title={SOURCE_BADGE_LABEL[b]}
@@ -249,6 +249,16 @@ export function AwarenessSurface() {
                       {SOURCE_BADGE_LABEL[b]}
                     </span>
                   ))}
+                  {hiddenBadgeCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllBadges(true)}
+                      className="inline-flex items-center rounded-full bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                      title="Show all sources"
+                    >
+                      +{hiddenBadgeCount}
+                    </button>
+                  )}
                 </div>
 
                 {/* Line 3 — primary action */}
