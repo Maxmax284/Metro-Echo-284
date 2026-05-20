@@ -77,6 +77,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       summary: item.text.slice(0, 200),
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "commitments");
     await logRoute(user.id, item, "commitments", { commitment_id: data?.id });
     toast.success({ title: "Tracking as a commitment" });
