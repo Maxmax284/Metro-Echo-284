@@ -136,6 +136,7 @@ export function MemorySurface() {
       source_note: n.id,
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: session.user.id, source_kind: "commitment", source_id: data.id, text: (n.title || n.body) });
     await auditNote(n.id, "note.converted_to_reminder", { commitment_id: data?.id });
     toast.success(vantaSay.noteToReminder());
   };
