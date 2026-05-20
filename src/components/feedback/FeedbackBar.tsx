@@ -86,6 +86,7 @@ export function FeedbackBar({
           geohash: gh,
         }).select("id").single();
         if (error) throw error;
+        if (inserted?.id) linkEntities({ userId: u.user.id, source_kind: "field_note", source_id: inserted.id, text: `${label ?? ""}\n${summary.trim()}` });
         // Stage 10 — audit hardening.
         await supabase.from("audit_log").insert({
           user_id: u.user.id,
