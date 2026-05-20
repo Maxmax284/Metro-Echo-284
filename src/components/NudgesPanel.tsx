@@ -30,6 +30,9 @@ const KIND_LABEL: Record<string, string> = {
   arrival_known: "Place",
   synthesis_suggestion: "Synthesis",
   file_insight: "File",
+  sherlock_watch_heat: "Pattern",
+  sherlock_watch_pairing: "Pairing",
+  sherlock_watch_quiet: "Quiet",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
