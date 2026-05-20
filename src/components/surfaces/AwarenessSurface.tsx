@@ -316,7 +316,7 @@ export function AwarenessSurface() {
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/30 px-3 py-2 text-[12px]">
               <Button
                 size="sm"
-                className="h-8 gap-1 text-[11.5px]"
+                className="h-10 gap-1 text-[12px] min-w-[7rem]"
                 disabled={scan.disabled || snapshotLoading}
                 onClick={() => refreshSnapshot(true)}
                 title={scan.helper}
@@ -325,8 +325,8 @@ export function AwarenessSurface() {
                 {snapshotLoading ? "Scanning…" : scan.buttonLabel}
               </Button>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[11.5px] text-foreground/85">{scan.helper}</span>
-                <span className="text-[10.5px] text-muted-foreground">{scan.sourceImpact}</span>
+                <span className="text-[12px] text-foreground/85">{scan.helper}</span>
+                <span className="text-[11px] text-muted-foreground">{scan.sourceImpact}</span>
               </div>
             </div>
           );
