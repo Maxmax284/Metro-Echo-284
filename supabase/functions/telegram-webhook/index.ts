@@ -304,8 +304,6 @@ Deno.serve(async (req) => {
     const text: string = (msg?.text ?? "").trim();
     if (!chatId) return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
 
-    // Service role to operate across users (chat_id maps to a user).
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Pair with /start CODE
     if (text.startsWith("/start")) {
