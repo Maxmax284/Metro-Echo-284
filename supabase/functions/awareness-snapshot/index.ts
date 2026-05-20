@@ -482,7 +482,7 @@ Write a 2-3 sentence operational pulse. Use only the evidence above. If tier isn
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are Vanta's operational awareness layer. Plain English, warm, direct. Summarize only the evidence given. Never invent local detail." },
+              { role: "system", content: `${AWARENESS_VOICE}\n\nSnapshot mode: summarize ONLY the evidence given. Never invent local detail. Plain English, 1-3 short sentences.` },
               { role: "user", content: prompt },
             ],
           }),
