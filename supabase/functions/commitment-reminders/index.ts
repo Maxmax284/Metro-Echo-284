@@ -221,10 +221,10 @@ Deno.serve(async (req: Request) => {
                 noteTitle = cached.title;
                 noteBody = cached.body;
               }
-              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
+              const composed = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
                 noteTitle, noteSnippet: noteBody, commitmentId: c.id,
               });
-              const r = await sendTelegram(chatId, text);
+              const r = await sendTelegram(chatId, composed.text, composed.reply_markup);
               if (r.ok) {
                 telegramSent++;
                 await supabase.from("commitments")
