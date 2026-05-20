@@ -11,6 +11,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
+import { EntityChips } from "@/components/entities/EntityChips";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
@@ -201,17 +202,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           // message-row captures (the row we can persist `metadata.links` against).
           const isMessage = item._raw.kind === "message";
           const meta = isMessage ? (item._raw.row.metadata ?? {}) : {};
-          const linkFooter = isMessage ? (
-            <LinkChips
-              entityKind="message"
-              entityId={item._raw.row.id}
-              links={readLinks(meta)}
-              onChange={refresh}
-              compact
-            />
-          ) : undefined;
+          const rawKind = item._raw.kind;
+          const sourceKind = rawKind === "message" ? "message" as const
+            : rawKind === "field_note" ? "field_note" as const
+            : rawKind === "file" ? "ingested_file" as const
+            : null;
+          const footer = (
+            <div className="space-y-1.5">
+              {sourceKind && <EntityChips sourceKind={sourceKind} sourceId={item._raw.row.id} />}
+              {isMessage && (
+                <LinkChips
+                  entityKind="message"
+                  entityId={item._raw.row.id}
+                  links={readLinks(meta)}
+                  onChange={refresh}
+                  compact
+                />
+              )}
+            </div>
+          );
           return (
-            <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={linkFooter} />
+            <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={footer} />
           );
         })}
       </div>
