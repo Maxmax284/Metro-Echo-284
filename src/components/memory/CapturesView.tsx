@@ -63,6 +63,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       tags: [`source:${item.source}`, "type:note"],
     }).select("id").single();
     if (data) generateEmbedding("note", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "memory");
     await logRoute(user.id, item, "memory", { note_id: data?.id });
     toast.success({ title: "Saved to Memory" });
