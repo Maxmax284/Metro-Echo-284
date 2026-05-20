@@ -10,6 +10,8 @@ import { CompanionProvider } from "@/components/companion/CompanionContext";
 import { CompanionWidget } from "@/components/companion/CompanionWidget";
 import { SherlockProvider } from "@/components/sherlock/SherlockContext";
 import { SherlockOverlay } from "@/components/sherlock/SherlockOverlay";
+import { EntityProvider } from "@/components/entities/EntityContext";
+import { EntityDetailSheet } from "@/components/entities/EntityDetailSheet";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -25,20 +27,23 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SherlockProvider>
-            <CurrentContextProvider>
-              <AwarenessProvider>
-                <CompanionProvider>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <CompanionWidget />
-                  <SherlockOverlay />
-                </CompanionProvider>
-              </AwarenessProvider>
-            </CurrentContextProvider>
+            <EntityProvider>
+              <CurrentContextProvider>
+                <AwarenessProvider>
+                  <CompanionProvider>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <CompanionWidget />
+                    <SherlockOverlay />
+                    <EntityDetailSheet />
+                  </CompanionProvider>
+                </AwarenessProvider>
+              </CurrentContextProvider>
+            </EntityProvider>
           </SherlockProvider>
         </AuthProvider>
       </BrowserRouter>
