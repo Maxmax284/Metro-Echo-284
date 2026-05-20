@@ -35,6 +35,7 @@ async function tg(method: string, body: unknown) {
 
 import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
+import { linkEntities } from "../_shared/entityGraph.ts";
 
 // Telegram shares the exact same voice constants as the in-app surfaces so
 // wording stays identical across Companion (chat), Memory (capture), and
