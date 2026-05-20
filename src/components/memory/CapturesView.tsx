@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
+import { linkEntities } from "@/lib/entityGraph";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
@@ -62,6 +63,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       tags: [`source:${item.source}`, "type:note"],
     }).select("id").single();
     if (data) generateEmbedding("note", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "memory");
     await logRoute(user.id, item, "memory", { note_id: data?.id });
     toast.success({ title: "Saved to Memory" });
@@ -75,6 +77,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       summary: item.text.slice(0, 200),
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "commitments");
     await logRoute(user.id, item, "commitments", { commitment_id: data?.id });
     toast.success({ title: "Tracking as a commitment" });
@@ -92,6 +95,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       priority: "low",
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "reminders");
     await logRoute(user.id, item, "reminders", { commitment_id: data?.id });
     toast.success({ title: "Reminder set" });

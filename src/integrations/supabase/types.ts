@@ -661,6 +661,149 @@ export type Database = {
         }
         Relationships: []
       }
+      entities: {
+        Row: {
+          aliases: string[]
+          confidence: string
+          created_at: string
+          display_name: string
+          embedding: string | null
+          first_seen_at: string
+          id: string
+          kind: string
+          last_seen_at: string
+          metadata: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aliases?: string[]
+          confidence?: string
+          created_at?: string
+          display_name: string
+          embedding?: string | null
+          first_seen_at?: string
+          id?: string
+          kind: string
+          last_seen_at?: string
+          metadata?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aliases?: string[]
+          confidence?: string
+          created_at?: string
+          display_name?: string
+          embedding?: string | null
+          first_seen_at?: string
+          id?: string
+          kind?: string
+          last_seen_at?: string
+          metadata?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      entity_links: {
+        Row: {
+          confidence: string
+          created_at: string
+          entity_id: string
+          id: string
+          metadata: Json
+          role: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          entity_id: string
+          id?: string
+          metadata?: Json
+          role?: string
+          source_id: string
+          source_kind: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          entity_id?: string
+          id?: string
+          metadata?: Json
+          role?: string
+          source_id?: string
+          source_kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_links_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_relations: {
+        Row: {
+          created_at: string
+          evidence_count: number
+          from_entity_id: string
+          id: string
+          last_evidence_at: string
+          metadata: Json
+          relation: string
+          to_entity_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_count?: number
+          from_entity_id: string
+          id?: string
+          last_evidence_at?: string
+          metadata?: Json
+          relation: string
+          to_entity_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence_count?: number
+          from_entity_id?: string
+          id?: string
+          last_evidence_at?: string
+          metadata?: Json
+          relation?: string
+          to_entity_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_relations_from_entity_id_fkey"
+            columns: ["from_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relations_to_entity_id_fkey"
+            columns: ["to_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       field_notes: {
         Row: {
           confidence: string

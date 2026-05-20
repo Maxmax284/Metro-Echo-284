@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
+import { linkEntities } from "@/lib/entityGraph";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
@@ -135,6 +136,7 @@ export function MemorySurface() {
       source_note: n.id,
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: session.user.id, source_kind: "commitment", source_id: data.id, text: (n.title || n.body) });
     await auditNote(n.id, "note.converted_to_reminder", { commitment_id: data?.id });
     toast.success(vantaSay.noteToReminder());
   };
@@ -147,6 +149,7 @@ export function MemorySurface() {
       source_note: n.id,
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: session.user.id, source_kind: "commitment", source_id: data.id, text: (n.title || n.body) });
     await auditNote(n.id, "note.converted_to_commitment", { commitment_id: data?.id });
     toast.success(vantaSay.noteToCommitment());
   };

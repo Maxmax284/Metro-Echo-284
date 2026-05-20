@@ -35,6 +35,7 @@ async function tg(method: string, body: unknown) {
 
 import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
+import { linkEntities } from "../_shared/entityGraph.ts";
 
 // Telegram shares the exact same voice constants as the in-app surfaces so
 // wording stays identical across Companion (chat), Memory (capture), and
@@ -81,6 +82,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
+    if (data?.id) linkEntities({ sb, userId, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
     return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
   }
@@ -106,6 +108,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
       metadata: { kind: "reminder", source: "telegram", timezone: parsed.timezone, when_hint: args.when },
     }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
+    if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments" };
   }
@@ -118,6 +121,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
     const { data } = await sb.from("commitments").insert({ user_id: userId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
+    if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
     return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments" };
   }
