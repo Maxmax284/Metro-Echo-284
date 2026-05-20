@@ -95,6 +95,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       priority: "low",
     }).select("id").single();
     if (data) generateEmbedding("commitment", data.id);
+    if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: item.text });
     await stampMessageRoute(item, "reminders");
     await logRoute(user.id, item, "reminders", { commitment_id: data?.id });
     toast.success({ title: "Reminder set" });
