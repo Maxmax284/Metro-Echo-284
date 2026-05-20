@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatTzLine } from "@/lib/timeRules";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
+import { EntityChips } from "@/components/entities/EntityChips";
 
 type Commitment = {
   id: string;
@@ -251,6 +252,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                         {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
                         {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                       </div>
+                      <EntityChips sourceKind="commitment" sourceId={c.id} className="mt-2" />
                     </div>
                     {c.status === "open" && (
                       <CommitmentActions c={c} onChanged={refresh} />
