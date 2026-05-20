@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
+import { linkEntities } from "@/lib/entityGraph";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
