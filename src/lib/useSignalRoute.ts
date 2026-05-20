@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { SignalRoute, VantaSignal } from "@/lib/vantaSignal";
 import { useCompanion } from "@/components/companion/CompanionContext";
 import { geohashFromGeo } from "@/lib/geohash";
+import { linkEntities } from "@/lib/entityGraph";
 
 export type SignalRouteHandler = (route: SignalRoute, signal: VantaSignal) => void;
 
