@@ -202,11 +202,10 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           // message-row captures (the row we can persist `metadata.links` against).
           const isMessage = item._raw.kind === "message";
           const meta = isMessage ? (item._raw.row.metadata ?? {}) : {};
-          const sourceKind = isMessage ? "message" as const
-            : item._raw.kind === "note" ? "note" as const
-            : item._raw.kind === "commitment" ? "commitment" as const
-            : item._raw.kind === "field_note" ? "field_note" as const
-            : item._raw.kind === "file" ? "ingested_file" as const
+          const rawKind = item._raw.kind;
+          const sourceKind = rawKind === "message" ? "message" as const
+            : rawKind === "field_note" ? "field_note" as const
+            : rawKind === "file" ? "ingested_file" as const
             : null;
           const footer = (
             <div className="space-y-1.5">
