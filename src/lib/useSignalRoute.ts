@@ -208,6 +208,7 @@ export function useSignalRoute(): SignalRouteHandler {
               geohash: geohashFromGeo(place?.geo),
             }).select("id").single();
             if (error) throw error;
+            if (inserted?.id) linkEntities({ userId: u.user.id, source_kind: "field_note", source_id: inserted.id, text: `${title}\n${summary.trim()}` });
             await supabase.from("audit_log").insert({
               user_id: u.user.id,
               entity_type: "field_note",
