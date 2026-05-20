@@ -50,14 +50,14 @@ const SECTION_HINT: Record<typeof SECTION_VALUES[number], string> = {
 // title+snippet; section-relevant ones bubble to the top. Empty score keeps
 // original snapshot order as fallback.
 const SECTION_KEYWORDS: Record<typeof SECTION_VALUES[number], string[]> = {
-  transport:      ["taxi","grab","bolt","uber","tuk","songthaew","scooter","moto","bike","rental","road","traffic","ferry","bus","train","airport","transfer","ride"],
-  infrastructure: ["power","outage","electric","water","plumbing","internet","wifi","fiber","bank","atm","hospital","clinic","pharmacy","construction","blackout"],
-  payments:       ["atm","cash","card","visa","mastercard","promptpay","qr","fx","exchange","baht","currency","fee","wise","revolut","stripe","payment","tip"],
-  etiquette:      ["temple","wat","dress","shoes","monk","respect","custom","greeting","wai","tip","gesture","photo","modest","religion"],
-  hazards:        ["scam","theft","robbery","accident","injury","dengue","snake","jellyfish","rip current","flood","storm","fire","assault","unsafe","warning"],
-  scams:          ["scam","overcharge","fake","rigged","tout","fraud","fake police","gem","tailor","jet ski","grab scam","meter"],
-  connectivity:   ["sim","esim","ais","dtac","truemove","5g","4g","lte","wifi","coverage","dead zone","mbps","signal","network"],
-  timing:         ["rush hour","monsoon","rainy","dry season","holiday","songkran","loy krathong","festival","closed","opening","siesta","peak","low season"],
+  transport:      ["taxi","grab","bolt","uber","tuk","tuktuk","songthaew","baht bus","scooter","moto","motorbike","bike","rental","road","traffic","ferry","longtail","bus","bts","mrt","arl","train","airport","transfer","ride","skytrain","metro"],
+  infrastructure: ["power","outage","electric","water","plumbing","internet","wifi","fiber","bank","atm","hospital","clinic","pharmacy","7-eleven","7eleven","family mart","construction","blackout","brownout"],
+  payments:       ["atm","cash","card","visa","mastercard","promptpay","truemoney","rabbit","qr","fx","exchange","baht","thb","currency","fee","wise","revolut","stripe","payment","tip","service charge"],
+  etiquette:      ["temple","wat","dress","shoes","monk","respect","custom","greeting","wai","tip","gesture","photo","modest","religion","sabai","mai pen rai"],
+  hazards:        ["scam","theft","robbery","accident","injury","dengue","snake","jellyfish","rip current","flood","storm","fire","assault","unsafe","warning","stray dog","food poisoning"],
+  scams:          ["scam","overcharge","fake","rigged","tout","fraud","fake police","gem","tailor","jet ski","grab scam","meter","closed temple","ping pong"],
+  connectivity:   ["sim","esim","ais","dtac","truemove","true 5g","5g","4g","lte","wifi","coverage","dead zone","mbps","signal","network"],
+  timing:         ["rush hour","monsoon","rainy","dry season","holiday","songkran","loy krathong","vegetarian festival","festival","closed","opening","siesta","peak","low season","high season"],
 };
 
 function scoreItem(text: string, keywords: string[]): number {

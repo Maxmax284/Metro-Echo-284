@@ -42,35 +42,55 @@ function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
   } catch { return false; }
 }
 
+type TgInlineButton = { text: string; callback_data?: string; url?: string };
+type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
+
 function composeTelegram(
   summary: string,
   overdue: boolean,
   dueAt: string | null,
   tz: string,
   opts: { noteTitle?: string | null; noteSnippet?: string | null; commitmentId?: string } = {},
-): string {
+): { text: string; reply_markup?: TgReplyMarkup } {
   const when = dueAt ? new Intl.DateTimeFormat("en-US", {
     timeZone: tz, weekday: "short", month: "short", day: "numeric",
     hour: "numeric", minute: "2-digit",
   }).format(new Date(dueAt)) : "";
-  const header = overdue
-    ? `⏰ Overdue — ${summary}`
-    : `Reminder — ${summary}`;
+  const header = overdue ? `Overdue — ${summary}` : `Reminder — ${summary}`;
   const lines: string[] = [header];
-  if (when) lines.push(overdue ? `Was due: ${when} (${tz})` : `Due: ${when} (${tz})`);
-  const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 220);
+  if (when) lines.push(overdue ? `Was due ${when} (${tz})` : `Due ${when} (${tz})`);
+  const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 160);
   if (opts.noteTitle || snippet) {
     const noteLine = [opts.noteTitle, snippet].filter(Boolean).join(" — ");
     if (noteLine) lines.push(`Note: ${noteLine}`);
   }
-  const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
-  if (publicUrl && opts.commitmentId) {
-    lines.push(`Open in Vanta: ${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`);
+
+  const inline_keyboard: TgInlineButton[][] = [];
+  if (opts.commitmentId) {
+    inline_keyboard.push([
+      { text: "Mark done", callback_data: `done:${opts.commitmentId}` },
+      { text: "Snooze 1h", callback_data: `snooze1h:${opts.commitmentId}` },
+    ]);
+    const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
+    if (publicUrl) {
+      inline_keyboard.push([{
+        text: "Open in Vanta",
+        url: `${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`,
+      }]);
+    }
   }
-  return lines.join("\n");
+
+  return {
+    text: lines.join("\n"),
+    reply_markup: inline_keyboard.length ? { inline_keyboard } : undefined,
+  };
 }
 
-async function sendTelegram(chatId: number, text: string): Promise<{ ok: boolean; err?: string }> {
+async function sendTelegram(
+  chatId: number,
+  text: string,
+  reply_markup?: TgReplyMarkup,
+): Promise<{ ok: boolean; err?: string }> {
   try {
     const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
       method: "POST",
@@ -79,7 +99,12 @@ async function sendTelegram(chatId: number, text: string): Promise<{ ok: boolean
         "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        disable_web_page_preview: true,
+        ...(reply_markup ? { reply_markup } : {}),
+      }),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return { ok: false, err: JSON.stringify(j).slice(0, 200) };
@@ -196,10 +221,10 @@ Deno.serve(async (req: Request) => {
                 noteTitle = cached.title;
                 noteBody = cached.body;
               }
-              const text = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
+              const composed = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
                 noteTitle, noteSnippet: noteBody, commitmentId: c.id,
               });
-              const r = await sendTelegram(chatId, text);
+              const r = await sendTelegram(chatId, composed.text, composed.reply_markup);
               if (r.ok) {
                 telegramSent++;
                 await supabase.from("commitments")

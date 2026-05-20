@@ -52,6 +52,8 @@ export function AwarenessSurface() {
   const [recentering, setRecentering] = useState(false);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
@@ -204,8 +206,10 @@ export function AwarenessSurface() {
             country: "bg-warn/15 text-warn ring-warn/40",
             unknown: "bg-muted/40 text-muted-foreground ring-border/60",
           };
-          // Limit badges so the strip stays calm.
-          const visibleBadges = locState.sources.slice(0, 4);
+          // Limit badges so the strip stays calm — even tighter on mobile.
+          const badgeCap = isMobile && !showAllBadges ? 2 : 4;
+          const visibleBadges = locState.sources.slice(0, badgeCap);
+          const hiddenBadgeCount = Math.max(0, locState.sources.length - visibleBadges.length);
           return (
             <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
               <div className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 space-y-1.5">
@@ -237,7 +241,7 @@ export function AwarenessSurface() {
                     <span
                       key={b}
                       className={cn(
-                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
                         SOURCE_BADGE_TONE[b],
                       )}
                       title={SOURCE_BADGE_LABEL[b]}
@@ -245,6 +249,16 @@ export function AwarenessSurface() {
                       {SOURCE_BADGE_LABEL[b]}
                     </span>
                   ))}
+                  {hiddenBadgeCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllBadges(true)}
+                      className="inline-flex items-center rounded-full bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                      title="Show all sources"
+                    >
+                      +{hiddenBadgeCount}
+                    </button>
+                  )}
                 </div>
 
                 {/* Line 3 — primary action */}
@@ -302,7 +316,7 @@ export function AwarenessSurface() {
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/30 px-3 py-2 text-[12px]">
               <Button
                 size="sm"
-                className="h-8 gap-1 text-[11.5px]"
+                className="h-10 gap-1 text-[12px] min-w-[7rem]"
                 disabled={scan.disabled || snapshotLoading}
                 onClick={() => refreshSnapshot(true)}
                 title={scan.helper}
@@ -311,39 +325,60 @@ export function AwarenessSurface() {
                 {snapshotLoading ? "Scanning…" : scan.buttonLabel}
               </Button>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[11.5px] text-foreground/85">{scan.helper}</span>
-                <span className="text-[10.5px] text-muted-foreground">{scan.sourceImpact}</span>
+                <span className="text-[12px] text-foreground/85">{scan.helper}</span>
+                <span className="text-[11px] text-muted-foreground">{scan.sourceImpact}</span>
               </div>
             </div>
           );
         })()}
 
-        {/* HUD: radar hero — receives active layer for ping filtering */}
-        <div className="relative">
-          <AwarenessHUD variant="hero" activeLayer={activeLayer} />
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/70 text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
-                aria-label="What am I seeing?"
-                title="What am I seeing?"
-              >
-                <HelpCircle className="h-3.5 w-3.5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 text-[11.5px] leading-relaxed">
-              <div className="font-medium text-foreground mb-1">What am I seeing?</div>
-              <ul className="space-y-1 text-muted-foreground">
-                <li><span className="text-foreground/85">Pings</span> = real data (source or layer briefing).</li>
-                <li><span className="text-foreground/85">Ring distance</span> = how fresh (closer = newer).</li>
-                <li><span className="text-foreground/85">Layer chips</span> = filter pings to one slice.</li>
-                <li><span className="text-foreground/85">Terrain</span> = backdrop changes by water / urban / region.</li>
-                <li>Tap any chip → quick read. "View full detail" → bottom sheet.</li>
-              </ul>
-            </PopoverContent>
-          </Popover>
-        </div>
+        {/* HUD: radar hero — hidden by default on mobile, expandable. */}
+        {(!isMobile || showRadar) ? (
+          <div className="relative">
+            <AwarenessHUD variant="hero" activeLayer={activeLayer} />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-elevated/70 text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
+                  aria-label="What am I seeing?"
+                  title="What am I seeing?"
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 text-[11.5px] leading-relaxed">
+                <div className="font-medium text-foreground mb-1">What am I seeing?</div>
+                <ul className="space-y-1 text-muted-foreground">
+                  <li><span className="text-foreground/85">Pings</span> = real data (source or layer briefing).</li>
+                  <li><span className="text-foreground/85">Ring distance</span> = how fresh (closer = newer).</li>
+                  <li><span className="text-foreground/85">Layer chips</span> = filter pings to one slice.</li>
+                  <li><span className="text-foreground/85">Terrain</span> = backdrop changes by water / urban / region.</li>
+                  <li>Tap any chip → quick read. "View full detail" → bottom sheet.</li>
+                </ul>
+              </PopoverContent>
+            </Popover>
+            {isMobile && (
+              <div className="mt-1 text-right">
+                <button
+                  type="button"
+                  onClick={() => setShowRadar(false)}
+                  className="text-[10.5px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                >
+                  Hide radar
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowRadar(true)}
+            className="w-full rounded-xl border border-dashed border-border/60 bg-surface-elevated/20 px-3 py-2 text-[11.5px] text-muted-foreground hover:text-foreground"
+          >
+            Show radar
+          </button>
+        )}
 
 
         {/* Attention queue — derived, never alarmist */}
