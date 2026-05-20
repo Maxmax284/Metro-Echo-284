@@ -4,6 +4,7 @@
 // (SendGrid/Postmark/Mailgun-style). No JWT required (public endpoint), but the
 // slug acts as a shared secret.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { linkEntities } from "../_shared/entityGraph.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,6 +116,9 @@ Deno.serve(async (req: Request) => {
     } catch {/* ignore */}
     try {
       await supabase.functions.invoke("memory-autolink", { body: { note_id: note!.id } });
+    } catch {/* ignore */}
+    try {
+      await linkEntities({ sb: supabase, userId: addr.user_id, source_kind: "note", source_id: note!.id, text: `${title}\n${body}` });
     } catch {/* ignore */}
     await supabase.from("audit_log").insert({
       user_id: addr.user_id, entity_type: "note", entity_id: note!.id,

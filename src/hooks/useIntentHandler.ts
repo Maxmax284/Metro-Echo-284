@@ -8,6 +8,7 @@ import { useMode, modeAllows, MODE_LABEL } from "@/hooks/useMode";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { parseReminderHint } from "@/lib/reminderParse";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { linkEntities } from "@/lib/entityGraph";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -48,6 +49,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("note", data.id);
+          if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` });
           await audit("memory", { note_id: data?.id });
           toast.success(vantaSay.capturedToMemory());
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
@@ -78,6 +80,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id")
             .single();
           if (data) generateEmbedding("commitment", data.id);
+          if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" });
           await audit("commitments", { commitment_id: data?.id });
           toast.success(vantaSay.commitmentAdded());
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
@@ -111,6 +114,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             metadata: { kind: "reminder", source: "companion", timezone: parsed.timezone, when_hint: args.when },
           }).select("id").single();
           if (data) generateEmbedding("commitment", data.id);
+          if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" });
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
           toast.success(vantaSay.reminderCreated(parsed.phrasing));
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
