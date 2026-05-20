@@ -148,6 +148,13 @@ export const AUDIT_VOICE     = `${VANTA_CORE_VOICE}\nAudit voice: factual, recei
 // COMPANION_VOICE + MEMORY_VOICE + AWARENESS_VOICE + a thin channel modifier
 // inside telegram-webhook so tone never drifts from in-app surfaces.
 export const INTAKE_VOICE    = `${VANTA_CORE_VOICE}\nIntake voice: clear and workflow-focused.`;
+export const RESEARCH_VOICE  = `${VANTA_CORE_VOICE}
+Research voice: synthesize a concise (4-7 sentence) answer from the provided web sources.
+Cite source numbers like [1]. Be factual, no speculation. If sources contradict, say so.
+Never invent facts beyond the sources. If sources are thin, say that plainly.`;
+export const BRIEFING_VOICE  = `${VANTA_CORE_VOICE}
+Briefing voice: short, scannable, operational. Lead with what changed since last brief.
+Plain English, no headings, no emoji, no markdown bullets unless asked.`;
 
 // ---------- VantaSignal schema ----------------------------------------------
 

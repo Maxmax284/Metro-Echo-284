@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { runGuarded, adminClient } from "../_shared/apiGuard.ts";
+import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,7 +50,7 @@ async function synthesize(question: string, sources: Source[]): Promise<string> 
   const body = {
     model: "google/gemini-2.5-flash",
     messages: [
-      { role: "system", content: "You synthesize a concise (4-7 sentence) research answer from web sources. Cite source numbers like [1]. Be factual, no speculation. If sources contradict, say so." },
+      { role: "system", content: RESEARCH_VOICE },
       { role: "user", content: `Question: ${question}\n\nSources:\n${ctx}` },
     ],
   };
