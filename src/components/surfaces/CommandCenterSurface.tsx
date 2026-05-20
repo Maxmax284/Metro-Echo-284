@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
-  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles } from "lucide-react";
+  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
+import { useCanvas } from "@/components/entities/CanvasContext";
 
 type Counts = {
   pendingApprovals: number;
@@ -42,6 +43,7 @@ const riskTone = { low_reversible: "text-signal", standard: "text-primary", high
 export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { session } = useAuth();
   const { openSherlock } = useSherlock();
+  const { openCanvas } = useCanvas();
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Counts>({
     pendingApprovals: 0, highRisk: 0, openCommitments: 0, overdueCommitments: 0,
@@ -149,6 +151,18 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
         <MiniRadarStrip onOpenAwareness={() => onNavigate("awareness")} />
         <AmbientSummary counts={counts} />
+
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => openCanvas(null)}
+          >
+            <Network className="h-3 w-3" /> Open Canvas
+          </Button>
+        </div>
+
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
