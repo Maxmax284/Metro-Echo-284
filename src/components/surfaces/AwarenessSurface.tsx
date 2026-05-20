@@ -52,6 +52,8 @@ export function AwarenessSurface() {
   const [recentering, setRecentering] = useState(false);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
