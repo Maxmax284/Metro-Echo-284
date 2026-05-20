@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
+import { linkEntities } from "@/lib/entityGraph";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
