@@ -243,6 +243,62 @@ Deno.serve(async (req) => {
     }
 
     const update = await req.json();
+
+    // Service role to operate across users (chat_id maps to a user).
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Inline-button callbacks from reminder messages: Mark done / Snooze 1h.
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const cbId = cb.id;
+      const cbChatId = cb.message?.chat?.id;
+      const data: string = cb.data ?? "";
+      const [action, commitmentId] = data.split(":");
+      if (!cbChatId || !commitmentId) {
+        await tg("answerCallbackQuery", { callback_query_id: cbId });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+      const { data: cbLink } = await admin.from("telegram_chat_links").select("user_id").eq("chat_id", cbChatId).maybeSingle();
+      if (!cbLink) {
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not linked." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+      // Verify the commitment belongs to this user.
+      const { data: comm } = await admin.from("commitments")
+        .select("id, summary, metadata").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+      if (!comm) {
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+      const meta = (comm.metadata ?? {}) as Record<string, unknown>;
+      if (action === "done") {
+        await admin.from("commitments").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", commitmentId);
+        await admin.from("audit_log").insert({
+          user_id: cbLink.user_id, entity_type: "commitment", entity_id: commitmentId,
+          event: "commitment.completed", payload: { source: "telegram_callback" },
+        });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Marked done." });
+        await tg("editMessageReplyMarkup", { chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+        await tg("sendMessage", { chat_id: cbChatId, text: `Done — "${comm.summary}" closed.`, disable_web_page_preview: true });
+      } else if (action === "snooze1h") {
+        const nextRemind = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        await admin.from("commitments").update({
+          remind_at: nextRemind,
+          last_reminded_at: null,
+          metadata: { ...meta, telegram_sent_at: null },
+        }).eq("id", commitmentId);
+        await admin.from("audit_log").insert({
+          user_id: cbLink.user_id, entity_type: "commitment", entity_id: commitmentId,
+          event: "reminder.snoozed", payload: { source: "telegram_callback", minutes: 60 },
+        });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Snoozed 1h." });
+        await tg("editMessageReplyMarkup", { chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+      } else {
+        await tg("answerCallbackQuery", { callback_query_id: cbId });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
     const msg = update.message ?? update.edited_message;
     const chatId = msg?.chat?.id;
     const text: string = (msg?.text ?? "").trim();
