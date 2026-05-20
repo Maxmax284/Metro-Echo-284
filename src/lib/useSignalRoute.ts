@@ -78,12 +78,13 @@ export function useSignalRoute(): SignalRouteHandler {
           try {
             const { data: u } = await supabase.auth.getUser();
             if (!u.user) { toast.error(vantaSay.notSignedIn()); return; }
-            const { error } = await supabase.from("notes").insert({
+            const { data: inserted, error } = await supabase.from("notes").insert({
               user_id: u.user.id,
               title,
               body,
-            });
+            }).select("id").single();
             if (error) throw error;
+            if (inserted?.id) linkEntities({ userId: u.user.id, source_kind: "note", source_id: inserted.id, text: `${title}\n${body}` });
             toast.success(vantaSay.noteSaved());
           } catch (e: any) {
             toast.error(vantaSay.couldntSave());
