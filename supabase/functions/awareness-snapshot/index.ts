@@ -58,22 +58,47 @@ type CommunityItem = {
   created_utc?: number;
 };
 
+const RETRYABLE_STATUS = new Set([400, 408, 425, 429, 500, 502, 503, 504]);
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit | undefined,
+  label: string,
+  maxAttempts = 3,
+): Promise<Response | null> {
+  let lastStatus = 0;
+  let lastBody = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const r = await fetch(url, init);
+      if (r.ok) return r;
+      lastStatus = r.status;
+      lastBody = await r.text().catch(() => "");
+      if (!RETRYABLE_STATUS.has(r.status) || attempt === maxAttempts) {
+        console.warn(`${label} ${r.status} (attempt ${attempt}/${maxAttempts}): ${lastBody.slice(0, 200)}`);
+        return null;
+      }
+      console.warn(`${label} ${r.status} (attempt ${attempt}/${maxAttempts}), retrying`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt === maxAttempts) {
+        console.warn(`${label} network error (attempt ${attempt}/${maxAttempts}): ${msg}`);
+        return null;
+      }
+      console.warn(`${label} network error (attempt ${attempt}/${maxAttempts}): ${msg}, retrying`);
+    }
+    // Exponential backoff with jitter: 250ms, 600ms, ...
+    const delay = 250 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 150);
+    await new Promise((res) => setTimeout(res, delay));
+  }
+  if (lastStatus) console.warn(`${label} gave up after ${maxAttempts} attempts (last ${lastStatus})`);
+  return null;
+}
+
 async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<CommunityItem[]> {
   const url = `https://serpapi.com/search.json?engine=reddit&q=${encodeURIComponent(query)}&api_key=${apiKey}`;
-  let r: Response;
-  try {
-    r = await fetch(url);
-  } catch (e) {
-    console.warn("serpapi-reddit network error", e instanceof Error ? e.message : e);
-    return [];
-  }
-  if (!r.ok) {
-    // SerpApi's reddit engine is flaky (400/429 common). Treat as soft-empty
-    // so the public reddit fallback path can run.
-    const body = await r.text().catch(() => "");
-    console.warn(`serpapi-reddit ${r.status}: ${body.slice(0, 200)}`);
-    return [];
-  }
+  const r = await fetchWithRetry(url, undefined, "serpapi-reddit");
+  if (!r) return [];
   const j = await r.json().catch(() => ({}));
   const rows = (j.posts ?? j.organic_results ?? []).slice(0, 6);
   return rows.map((it: any) => ({
@@ -87,6 +112,7 @@ async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<Com
     comments: typeof it.num_comments === "number" ? it.num_comments : undefined,
   }));
 }
+
 
 async function fetchRedditPublic(query: string): Promise<CommunityItem[]> {
   const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=8&t=week`;
