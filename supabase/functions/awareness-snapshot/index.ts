@@ -60,9 +60,21 @@ type CommunityItem = {
 
 async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<CommunityItem[]> {
   const url = `https://serpapi.com/search.json?engine=reddit&q=${encodeURIComponent(query)}&api_key=${apiKey}`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`serpapi-reddit ${r.status}`);
-  const j = await r.json();
+  let r: Response;
+  try {
+    r = await fetch(url);
+  } catch (e) {
+    console.warn("serpapi-reddit network error", e instanceof Error ? e.message : e);
+    return [];
+  }
+  if (!r.ok) {
+    // SerpApi's reddit engine is flaky (400/429 common). Treat as soft-empty
+    // so the public reddit fallback path can run.
+    const body = await r.text().catch(() => "");
+    console.warn(`serpapi-reddit ${r.status}: ${body.slice(0, 200)}`);
+    return [];
+  }
+  const j = await r.json().catch(() => ({}));
   const rows = (j.posts ?? j.organic_results ?? []).slice(0, 6);
   return rows.map((it: any) => ({
     source: "reddit" as const,
@@ -78,11 +90,20 @@ async function fetchRedditViaSerpApi(apiKey: string, query: string): Promise<Com
 
 async function fetchRedditPublic(query: string): Promise<CommunityItem[]> {
   const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=8&t=week`;
-  const r = await fetch(url, {
-    headers: { "User-Agent": "vanta-awareness/1.0 (street-signal fallback)" },
-  });
-  if (!r.ok) throw new Error(`reddit-public ${r.status}`);
-  const j = await r.json();
+  let r: Response;
+  try {
+    r = await fetch(url, {
+      headers: { "User-Agent": "vanta-awareness/1.0 (street-signal fallback)" },
+    });
+  } catch (e) {
+    console.warn("reddit-public network error", e instanceof Error ? e.message : e);
+    return [];
+  }
+  if (!r.ok) {
+    console.warn(`reddit-public ${r.status}`);
+    return [];
+  }
+  const j = await r.json().catch(() => ({}));
   const children = j?.data?.children ?? [];
   return children.slice(0, 6).map((c: any) => {
     const d = c?.data ?? {};
