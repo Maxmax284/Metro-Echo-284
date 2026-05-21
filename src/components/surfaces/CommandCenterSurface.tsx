@@ -414,22 +414,31 @@ function FilesTile({ onOpen }: { onOpen: () => void }) {
     })();
   }, []);
   const badge = counts.triage > 0 ? `${counts.triage} to triage` : counts.newToday > 0 ? `${counts.newToday} today` : null;
+  const isEmpty = counts.newToday === 0 && counts.triage === 0 && !counts.lastName;
   return (
     <CardShell title="Files" Icon={FileText} badge={badge} onOpen={onOpen} openLabel="Open files">
-      <ul className="space-y-1.5 text-[12.5px]">
-        <li className="flex items-center justify-between">
-          <span className="text-muted-foreground">New today</span>
-          <span className="text-foreground">{counts.newToday}</span>
-        </li>
-        <li className="flex items-center justify-between">
-          <span className="text-muted-foreground">Awaiting triage</span>
-          <span className={cn(counts.triage > 0 ? "text-warn" : "text-foreground")}>{counts.triage}</span>
-        </li>
-      </ul>
-      {counts.lastName && counts.lastWhen && (
-        <div className="mt-2 truncate text-[10.5px] text-muted-foreground">
-          Last: {counts.lastName} · {formatDistanceToNow(new Date(counts.lastWhen), { addSuffix: true })}
+      {isEmpty ? (
+        <div className="rounded-md border border-dashed border-border/50 px-3 py-4 text-center text-[11.5px] text-muted-foreground">
+          No files yet. Drop a PDF, image, or note into the companion to capture it.
         </div>
+      ) : (
+        <>
+          <ul className="space-y-1.5 text-[12.5px]">
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">New today</span>
+              <span className="text-foreground">{counts.newToday}</span>
+            </li>
+            <li className="flex items-center justify-between">
+              <span className="text-muted-foreground">Awaiting triage</span>
+              <span className={cn(counts.triage > 0 ? "text-warn" : "text-foreground")}>{counts.triage}</span>
+            </li>
+          </ul>
+          {counts.lastName && counts.lastWhen && (
+            <div className="mt-2 truncate text-[10.5px] text-muted-foreground">
+              Last: {counts.lastName} · {formatDistanceToNow(new Date(counts.lastWhen), { addSuffix: true })}
+            </div>
+          )}
+        </>
       )}
     </CardShell>
   );
