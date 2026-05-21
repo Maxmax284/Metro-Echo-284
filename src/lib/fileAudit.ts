@@ -36,7 +36,7 @@ export async function logFileEvent(
       entity_type: "file",
       entity_id: entityId,
       event,
-      payload,
+      payload: payload as never,
     });
   } catch {
     // best-effort — never block the UI on an audit insert
