@@ -341,6 +341,16 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
             isMessage && !item.routedTo && item.text && item.text.length > 4;
           const footer = (
             <div className="space-y-1.5">
+              {isMessage && !item.routedTo && (
+                <SherlockChipTrigger
+                  operation="suggest"
+                  entityType="message"
+                  entityId={item._raw.row.id}
+                  text={item.text}
+                  title={item.text.slice(0, 80)}
+                  showWhenEmpty={false}
+                />
+              )}
               {showRecognize && (
                 <RecognizePanel
                   text={item.text}
