@@ -61,6 +61,8 @@ export function SherlockSurface() {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
 
+  const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
+
   const [scope, setScope] = useState<ScopeId>("all");
   const [question, setQuestion] = useState("");
   const [running, setRunning] = useState(false);
