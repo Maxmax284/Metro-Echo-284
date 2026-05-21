@@ -1,5 +1,5 @@
 import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
@@ -52,6 +52,8 @@ type Props = {
   onInitialTextConsumed?: () => void;
   /** Companion Maturity — abort in-flight stream. When provided + busy, send button becomes Stop. */
   onStop?: () => void;
+  /** Rendered inside the sticky dock, directly above the composer (staged chips, trays, etc). */
+  aboveComposer?: ReactNode;
 };
 
 export function ConversationDock({
@@ -67,6 +69,7 @@ export function ConversationDock({
   initialText = null,
   onInitialTextConsumed,
   onStop,
+  aboveComposer,
 }: Props) {
   const [v, setV] = useState("");
 
@@ -208,6 +211,10 @@ export function ConversationDock({
             })}
           </ul>
         </div>
+      )}
+
+      {aboveComposer && (
+        <div className="mx-auto mb-1.5 w-full max-w-3xl">{aboveComposer}</div>
       )}
 
       <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
