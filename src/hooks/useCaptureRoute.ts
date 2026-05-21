@@ -79,7 +79,7 @@ export function useCaptureRoute() {
         new_status: input.newStatus ?? null,
         sherlock_finding_id: input.sherlockFindingId ?? null,
         audit_event_id: audit?.id ?? null,
-        payload: input.payload ?? {},
+        payload: (input.payload ?? {}) as any,
       });
       return audit?.id ?? null;
     },
