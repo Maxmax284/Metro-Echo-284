@@ -200,6 +200,32 @@ export const vantaSay = {
   staged: () => "Staged. Nothing's been sent.",
   approved: () => "Approved. Running now.",
   rejected: () => "Rejected. Nothing happened.",
+
+  // Surface prompts — invitations, not apologies. Used by chat/capture inputs.
+  prompt: {
+    sort: () => "What needs sorting?",
+    structure: () => "Drop the messy version. I'll help structure it.",
+    followThrough: () => "What needs follow-through?",
+    schedule: () => "This has a date and a follow-up. Want me to schedule it?",
+    attach: () => "This looks connected to an existing item. Want me to attach it?",
+    nextAction: () => "I found a possible next action.",
+    draftFirst: () => "I can draft this first so you can approve it.",
+  },
+
+  // Sherlock voice — forensic, calm, names confidence, never executes.
+  sherlock: {
+    looksLike: (kind: string) => `Looks like a ${kind}.`,
+    observed: (kind: string, confidence: "low" | "medium" | "high") =>
+      `Observed: ${kind} (${confidence} confidence).`,
+    suggests: (action: string) => `Suggested next move: ${action}.`,
+    ambiguous: () => "Two possible reads here. Pick one and I'll lock it in.",
+    nothingFound: () => "Nothing to extract.",
+    notExecuting: () => "Suggestion only — nothing runs until you approve.",
+  },
+
+  // Generic error builder — replaces "Something went wrong" everywhere.
+  // Usage: vantaSay.errorWith("Couldn't reach the briefing service", "Try again in a moment.")
+  errorWith: (what: string, doWhat = "Try again in a moment.") => `${what}. ${doWhat}`,
 } as const;
 
 // ---------- i18n hook ------------------------------------------------------
