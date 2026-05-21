@@ -16,6 +16,7 @@ const VOICE_ALLOW = new Set([
   "src/lib/vantaVoice.ts",
   "src/test/voice-guardrail.test.ts",
   "supabase/functions/_shared/vantaVoice.ts",
+  "supabase/functions/_shared/routingRules.ts",
   "supabase/functions/vanta-converse/index.ts",
   "supabase/functions/telegram-webhook/index.ts",
   "supabase/functions/briefing-compose/index.ts",
