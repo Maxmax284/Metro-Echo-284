@@ -250,6 +250,24 @@ export function SherlockSurface() {
           </div>
         </Card>
 
+        {/* Pending suggestions queue — Sherlock 3 durable findings */}
+        {pending.length > 0 && (
+          <div>
+            <p className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span>Pending suggestions · {pending.length}</span>
+              <span className="normal-case tracking-normal text-muted-foreground/70">awaiting your call</span>
+            </p>
+            <div className="space-y-1.5">
+              {pending.slice(0, 8).map((f) => (
+                <SherlockFindingCard key={f.id} finding={f} onChanged={refreshPending} />
+              ))}
+              {pending.length > 8 && (
+                <p className="text-[10.5px] text-muted-foreground">+{pending.length - 8} more queued</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Target cards — tap to seed */}
         {targets.length > 0 && (
           <div>
