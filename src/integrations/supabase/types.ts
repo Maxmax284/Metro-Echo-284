@@ -483,6 +483,54 @@ export type Database = {
         }
         Relationships: []
       }
+      capture_routes: {
+        Row: {
+          audit_event_id: string | null
+          capture_id: string
+          capture_kind: string
+          created_at: string
+          id: string
+          new_status: string | null
+          payload: Json
+          previous_status: string | null
+          sherlock_finding_id: string | null
+          source: string | null
+          suggested_route: string | null
+          user_action: string
+          user_id: string
+        }
+        Insert: {
+          audit_event_id?: string | null
+          capture_id: string
+          capture_kind: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          payload?: Json
+          previous_status?: string | null
+          sherlock_finding_id?: string | null
+          source?: string | null
+          suggested_route?: string | null
+          user_action: string
+          user_id: string
+        }
+        Update: {
+          audit_event_id?: string | null
+          capture_id?: string
+          capture_kind?: string
+          created_at?: string
+          id?: string
+          new_status?: string | null
+          payload?: Json
+          previous_status?: string | null
+          sherlock_finding_id?: string | null
+          source?: string | null
+          suggested_route?: string | null
+          user_action?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       commitments: {
         Row: {
           created_at: string
