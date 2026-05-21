@@ -200,10 +200,99 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const mode = body.mode === "overlay" ? "overlay" : "full";
+    const ALLOWED_MODES = ["overlay", "extract", "suggest", "full"] as const;
+    const mode = (ALLOWED_MODES as readonly string[]).includes(body.mode) ? body.mode : "full";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    // -------- EXTRACT / SUGGEST MODES (capture-to-triage helpers) --------
+    if (mode === "extract" || mode === "suggest") {
+      const scope = body.scope ?? {};
+      const entity_type: string = scope.entity_type ?? "freeform";
+      const entity_id: string | null = scope.entity_id ?? null;
+      const text: string = String(scope.text ?? "").slice(0, 4000);
+      if (!text) {
+        return new Response(JSON.stringify({ error: "scope.text required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const cacheKey = `${mode}:${entity_type}:${entity_id ?? ""}:${text}`;
+      const scopeHash = await sha256(cacheKey);
+      const cacheType = `${mode}:${entity_type}`;
+
+      const { data: cached } = await supabase
+        .from("sherlock_findings_cache")
+        .select("findings, updated_at")
+        .eq("user_id", user.id)
+        .eq("entity_type", cacheType)
+        .eq("scope_hash", scopeHash)
+        .maybeSingle();
+      if (cached && new Date(cached.updated_at).getTime() > Date.now() - 60 * 60 * 1000) {
+        return new Response(JSON.stringify({ findings: cached.findings, cached: true, mode }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let system = EXTRACT_SYSTEM;
+      let schema: any = EXTRACT_SCHEMA;
+      let fnName = "extract";
+      let userMsg = `CAPTURE (${entity_type}):\n${text}`;
+
+      if (mode === "suggest") {
+        system = SUGGEST_SYSTEM;
+        schema = SUGGEST_SCHEMA;
+        fnName = "suggest";
+        // Light recent context so the suggestion isn't blind.
+        const [notesRes, commsRes] = await Promise.all([
+          supabase.from("notes").select("id, title").order("updated_at", { ascending: false }).limit(8),
+          supabase.from("commitments").select("id, summary, due_at, status").eq("status", "open").order("updated_at", { ascending: false }).limit(8),
+        ]);
+        const ctx = [
+          ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""}`),
+          ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
+        ].join("\n");
+        userMsg = `CAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
+      }
+
+      const aiRes = await callGateway(LOVABLE_API_KEY, system, userMsg, fnName, schema);
+      if (aiRes.status === 429 || aiRes.status === 402) {
+        return new Response(JSON.stringify({ error: aiRes.status === 429 ? "rate limited" : "credits exhausted" }),
+          { status: aiRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (!aiRes.ok) {
+        const t = await aiRes.text();
+        return new Response(JSON.stringify({ error: "ai gateway error", detail: t.slice(0, 400) }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const aiJson = await aiRes.json();
+      const argsStr = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+      let findings: any = {};
+      try { findings = argsStr ? JSON.parse(argsStr) : {}; } catch { findings = {}; }
+
+      await supabase.from("sherlock_findings_cache").upsert({
+        user_id: user.id,
+        entity_type: cacheType,
+        entity_id,
+        scope_hash: scopeHash,
+        findings,
+        confidence: findings.confidence ?? null,
+      }, { onConflict: "user_id,entity_type,scope_hash" });
+
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        entity_type: `sherlock_${mode}`,
+        entity_id,
+        event: "analyzed",
+        payload: { entity_type, mode, has_suggestion: mode === "suggest" ? !!findings.suggested_route : undefined },
+      });
+
+      return new Response(JSON.stringify({ findings, cached: false, mode }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
 
     // -------- OVERLAY MODE --------
     if (mode === "overlay") {
