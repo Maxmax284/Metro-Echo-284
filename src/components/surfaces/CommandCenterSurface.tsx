@@ -150,7 +150,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
-        <MiniRadarStrip onOpenAwareness={() => onNavigate("awareness")} />
+        <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
         <AmbientSummary counts={counts} />
 
         <div className="flex justify-end">
