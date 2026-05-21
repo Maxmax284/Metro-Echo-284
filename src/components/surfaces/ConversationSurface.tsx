@@ -32,7 +32,7 @@ type Msg = {
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
-const MAX_BYTES = 20 * 1024 * 1024;
+
 
 const SURFACE_HINTS: Record<string, string> = {
   awareness: "I can read your radar, explain a layer, or stage a draft from a signal.",
