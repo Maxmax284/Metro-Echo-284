@@ -237,12 +237,36 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
     userMeta.needs_review = true;
     userMeta.confidence = "low";
   }
+  let userMsgId: string | null = null;
   if (conv?.id) {
-    await sb.from("messages").insert([
+    const { data: ins } = await sb.from("messages").insert([
       { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
       { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
-    ]);
+    ]).select("id, role");
+    userMsgId = ((ins ?? []) as any[]).find((r) => r.role === "user")?.id ?? null;
   }
+
+  // Phase 8 — when nothing routed automatically, ask Sherlock for a triage
+  // suggestion and cache it against the captured message so the in-app
+  // Capture Inbox surfaces the suggestion chip immediately. Doctrine:
+  // messaging never executes; Sherlock only drafts a recommendation.
+  if (!routedTo && userMsgId) {
+    try {
+      const finding = await runSherlockSuggest({
+        admin: sb,
+        userId,
+        text,
+        entity_type: "message",
+        entity_id: userMsgId,
+        source: "telegram",
+      });
+      if (finding && finding.suggested_route !== "ignore") {
+        const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
+        reply = `${reply}\n\nLooks like ${lane}. Open Vanta to approve — nothing's been done yet.`.trim();
+      }
+    } catch { /* best-effort */ }
+  }
+
   return reply;
 }
 
