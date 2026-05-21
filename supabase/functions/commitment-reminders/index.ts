@@ -198,6 +198,10 @@ Deno.serve(async (req: Request) => {
           const lastTgMs = meta.telegram_sent_at ? new Date(meta.telegram_sent_at).getTime() : 0;
           if (lastTgMs && Date.now() - lastTgMs < TG_THROTTLE_MS) {
             telegramSkipped++;
+            await audit("reminder.telegram_skipped_throttled", {
+              last_sent_at: meta.telegram_sent_at,
+              throttle_ms: TG_THROTTLE_MS,
+            });
           } else {
             let chatId = chatIds.get(c.user_id) ?? undefined;
             if (chatId === undefined) {
@@ -240,9 +244,20 @@ Deno.serve(async (req: Request) => {
                 telegramFailed++;
                 await audit("reminder.telegram_failed", { error: r.err ?? "unknown" });
               }
+            } else {
+              // Opted in but never linked a chat. Trace it loudly so the UI
+              // can surface a "link your Telegram" nudge instead of silence.
+              telegramUnlinked++;
+              await audit("reminder.telegram_skipped_unlinked", {
+                reason: "no_telegram_chat_link",
+                user_action: "link_telegram",
+              });
             }
           }
         }
+      } else {
+        telegramDisabled++;
+        await audit("reminder.telegram_skipped_disabled", { reason: "telegram_reminders_enabled=false" });
       }
       // ----------------------------------------------------------------------
 
