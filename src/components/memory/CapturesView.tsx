@@ -1,18 +1,21 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Inbox, RefreshCw } from "lucide-react";
+import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { vantaToast as toast } from "@/lib/vantaVoice";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { linkEntities } from "@/lib/entityGraph";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { RecognizePanel, type RouteLane } from "./RecognizePanel";
+
+type InboxLane = "now" | "snoozed" | "done";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
