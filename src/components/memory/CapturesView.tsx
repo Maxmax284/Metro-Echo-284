@@ -12,6 +12,7 @@ import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCa
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
+import { RecognizePanel, type RouteLane } from "./RecognizePanel";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
@@ -207,8 +208,42 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
             : rawKind === "field_note" ? "field_note" as const
             : rawKind === "file" ? "ingested_file" as const
             : null;
+          const acceptSuggestion = async (lane: RouteLane) => {
+            // Sherlock drafts. The user accepts. Real routing still flows
+            // through the same handlers as the manual lane buttons.
+            if (lane === "memory") return routeToNote(item);
+            if (lane === "commitment") return routeToCommitment(item);
+            if (lane === "reminder") return routeToReminder(item);
+            if (lane === "sherlock") return sendToSherlock(item);
+            if (lane === "ignore") return ignore(item);
+            if (lane === "action") {
+              if (!user) return;
+              await supabase.from("actions").insert({
+                user_id: user.id,
+                title: item.text.slice(0, 80),
+                description: item.text,
+                risk: "standard",
+                status: "staged",
+                source: "sherlock_suggest",
+              });
+              await stampMessageRoute(item, "actions");
+              await logRoute(user.id, item, "actions", { via: "sherlock_suggest" });
+              toast.success({ title: "Staged as action — review before run" });
+              refresh();
+            }
+          };
+          const showRecognize =
+            isMessage && !item.routedTo && item.text && item.text.length > 4;
           const footer = (
             <div className="space-y-1.5">
+              {showRecognize && (
+                <RecognizePanel
+                  text={item.text}
+                  entityType="message"
+                  entityId={item._raw.row.id}
+                  onAccept={acceptSuggestion}
+                />
+              )}
               {sourceKind && <EntityChips sourceKind={sourceKind} sourceId={item._raw.row.id} />}
               {isMessage && (
                 <LinkChips
