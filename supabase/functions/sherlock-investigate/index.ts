@@ -249,7 +249,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const ALLOWED_MODES = ["overlay", "extract", "suggest", "full"] as const;
+    const ALLOWED_MODES = ["overlay", "extract", "suggest", "observe", "relate", "full"] as const;
     const mode = (ALLOWED_MODES as readonly string[]).includes(body.mode) ? body.mode : "full";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
