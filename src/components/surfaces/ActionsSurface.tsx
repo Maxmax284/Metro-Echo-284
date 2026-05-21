@@ -10,6 +10,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 type Action = {
   id: string;
