@@ -156,7 +156,9 @@ export function EntityDetailSheet() {
               <Network className="h-3 w-3" /> Open in Canvas
             </Button>
           )}
+          {entity && <EmbeddedSherlockFindings sourceType="entity" sourceId={entity.id} className="mt-1" />}
         </SheetHeader>
+
 
         {entity?.aliases && entity.aliases.length > 0 && (
           <div className="mt-4">
