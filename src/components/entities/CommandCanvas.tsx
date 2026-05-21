@@ -354,15 +354,17 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
                   strokeWidth={isDrag || isHover ? 2 : 1.2}
                   strokeOpacity={isDrag || isHover ? 1 : 0.7}
                 />
-                <text
-                  y={r + 11}
-                  textAnchor="middle"
-                  fontSize={10}
-                  className="fill-foreground"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
-                </text>
+                {!hideLabels && (
+                  <text
+                    y={r + 11}
+                    textAnchor="middle"
+                    fontSize={10}
+                    className="fill-foreground"
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
+                  </text>
+                )}
               </g>
             );
           })}
