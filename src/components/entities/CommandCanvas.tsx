@@ -211,8 +211,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
     const ids = entities.map((e) => e.id);
     const { data: rels } = await supabase
       .from("entity_relations")
-      .select("from_entity_id, to_entity_id, relation, evidence_count")
+      .select("from_entity_id, to_entity_id, relation, evidence_count, status, source")
       .eq("user_id", user.id)
+      .neq("status", "dismissed")
       .in("from_entity_id", ids);
     setRelations((rels ?? []) as Relation[]);
   };
