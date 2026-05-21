@@ -308,7 +308,12 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         </svg>
       )}
       <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface-elevated/80 px-3 py-1 text-[10.5px] text-muted-foreground backdrop-blur">
-        <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+          {relations.some((r) => r.status === "suggested") && (
+            <span className="inline-flex items-center gap-1 text-primary/80">· dashed = Sherlock suggested</span>
+          )}
+        </span>
       </div>
     </div>
   );
