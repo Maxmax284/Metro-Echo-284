@@ -255,8 +255,8 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // -------- EXTRACT / SUGGEST MODES (capture-to-triage helpers) --------
-    if (mode === "extract" || mode === "suggest") {
+    // -------- EXTRACT / SUGGEST / OBSERVE / RELATE MODES (capture-to-triage helpers) --------
+    if (mode === "extract" || mode === "suggest" || mode === "observe" || mode === "relate") {
       const scope = body.scope ?? {};
       const entity_type: string = scope.entity_type ?? "freeform";
       const entity_id: string | null = scope.entity_id ?? null;
@@ -292,7 +292,6 @@ Deno.serve(async (req: Request) => {
         system = SUGGEST_SYSTEM;
         schema = SUGGEST_SCHEMA;
         fnName = "suggest";
-        // Light recent context so the suggestion isn't blind.
         const [notesRes, commsRes] = await Promise.all([
           supabase.from("notes").select("id, title").order("updated_at", { ascending: false }).limit(8),
           supabase.from("commitments").select("id, summary, due_at, status").eq("status", "open").order("updated_at", { ascending: false }).limit(8),
@@ -302,7 +301,28 @@ Deno.serve(async (req: Request) => {
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
         ].join("\n");
         userMsg = `CAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
+      } else if (mode === "observe") {
+        system = OBSERVE_SYSTEM;
+        schema = OBSERVE_SCHEMA;
+        fnName = "observe";
+        userMsg = `ITEM (${entity_type}):\n${text}`;
+      } else if (mode === "relate") {
+        system = RELATE_SYSTEM;
+        schema = RELATE_SCHEMA;
+        fnName = "relate";
+        const [notesRes, commsRes, actsRes] = await Promise.all([
+          supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(20),
+          supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(20),
+          supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
+        ]);
+        const ctx = [
+          ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
+          ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
+          ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
+        ].join("\n");
+        userMsg = `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
       }
+
 
       const aiRes = await callGateway(LOVABLE_API_KEY, system, userMsg, fnName, schema);
       if (aiRes.status === 429 || aiRes.status === 402) {
