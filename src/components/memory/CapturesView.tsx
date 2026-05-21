@@ -352,6 +352,9 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   showWhenEmpty={false}
                 />
               )}
+              {isMessage && (
+                <EmbeddedSherlockFindings sourceType="message" sourceId={item._raw.row.id} />
+              )}
               {showRecognize && (
                 <RecognizePanel
                   text={item.text}
