@@ -16,6 +16,7 @@ export type CaptureItem = {
   status?: string | null;
   routedTo?: string | null;
   needsReview?: boolean;
+  sensitive?: boolean;
   ts: string;
   linked?: string[];
   why?: string | null;
