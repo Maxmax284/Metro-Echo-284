@@ -10,6 +10,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { ReminderComposer } from "@/components/reminders/ReminderComposer";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
