@@ -153,6 +153,55 @@ const SUGGEST_SCHEMA = {
   additionalProperties: false,
 };
 
+// -------- OBSERVE mode (quick read — kind + one salient thing) --------
+const OBSERVE_SYSTEM = `${SHERLOCK_VOICE}
+
+Read this item and report what it is and one thing a sharp operator would
+notice on first glance. No analysis, no recommendations, no decisions.
+If nothing's notable, return salient="". Output strict JSON only.`;
+
+const OBSERVE_SCHEMA = {
+  type: "object",
+  properties: {
+    kind: { type: "string", description: "What this item is (one phrase)." },
+    salient: { type: "string", description: "One thing worth noticing, or empty." },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["kind", "confidence"],
+  additionalProperties: false,
+};
+
+// -------- RELATE mode (find connections across substrate) --------
+const RELATE_SYSTEM = `${SHERLOCK_VOICE}
+
+Given a TARGET and recent CONTEXT, find items in the user's memory that are
+genuinely related — same person, same project, same place, follow-up to,
+contradicts, etc. Be specific about why. Don't pad. If nothing connects,
+return related=[]. Output strict JSON only.`;
+
+const RELATE_SCHEMA = {
+  type: "object",
+  properties: {
+    related: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file"] },
+          id: { type: "string" },
+          why: { type: "string" },
+          confidence: { type: "string", enum: ["low", "medium", "high"] },
+        },
+        required: ["kind", "why", "confidence"],
+        additionalProperties: false,
+      },
+    },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["related", "confidence"],
+  additionalProperties: false,
+};
+
 async function sha256(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
