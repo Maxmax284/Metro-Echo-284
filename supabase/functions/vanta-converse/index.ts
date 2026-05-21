@@ -26,6 +26,9 @@ Tool routing rules:
 - "Analyze this" / "what am I missing" / "what risks" / "critique" → call run_sherlock.
 - Location/place question → call query_awareness.
 - "What's on today" / "what's due" / "schedule" → call query_schedule.
+- If recent file context is provided, use it as source material. Do not ask the
+  user to paste the file again. If extraction failed or produced no text, say
+  exactly that and name the file/status.
 
 Voice rules:
 - Warm but grounded. East-coast plain English. Vary phrasing — don't sound canned.
@@ -186,6 +189,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const wantsFileContext = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+
     // Load recent context (last ~30 messages)
     const { data: history } = await supabase
       .from("messages")
@@ -198,7 +203,7 @@ Deno.serve(async (req: Request) => {
     // never repeats mistakes the user already corrected.
     // Also pull timezone + default morning/afternoon/evening so the model can
     // resolve vague reminder times against the user's actual day shape.
-    const [{ data: corrections }, { data: fieldNotes }, { data: profile }] = await Promise.all([
+    const [{ data: corrections }, { data: fieldNotes }, { data: profile }, { data: recentFiles }] = await Promise.all([
       supabase
         .from("corrections")
         .select("surface, target_type, feedback_type, user_note, created_at")
@@ -216,6 +221,14 @@ Deno.serve(async (req: Request) => {
         .select("timezone, preferences")
         .eq("id", user.id)
         .maybeSingle(),
+      wantsFileContext
+        ? supabase
+            .from("ingested_files")
+            .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(3)
+        : Promise.resolve({ data: [] }),
     ]);
 
     const correctionsBlock = (corrections ?? []).length
@@ -240,7 +253,25 @@ Deno.serve(async (req: Request) => {
 - evening / tonight default: ${prefs.default_evening_time ?? "19:00"}
 - quiet hours: ${prefs.quiet_hours_start ?? "22:00"}–${prefs.quiet_hours_end ?? "07:00"}`;
 
-    const sysWithCorrections = [SYSTEM_PROMPT, timeBlock, correctionsBlock, fieldNotesBlock]
+    const fileContextBlock = wantsFileContext && (recentFiles ?? []).length
+      ? "Recent uploaded / inbound files (newest first; use as source context when the user references an uploaded, ingested, Telegram, or receipt file):\n" +
+        (recentFiles ?? []).map((f: any, idx: number) => {
+          const meta = f.metadata ?? {};
+          const extracted = String(f.extracted_text ?? "").slice(0, idx === 0 ? 6000 : 1200);
+          return [
+            `FILE ${idx + 1}: ${f.filename} (${f.id})`,
+            `- source: ${f.source ?? "unknown"}; status: ${f.status ?? "unknown"}; uploaded_at: ${f.created_at}`,
+            `- mime: ${f.mime_type ?? "unknown"}; extraction: ${meta.extraction ?? "unknown"}; chars: ${meta.chars ?? extracted.length}`,
+            `- detected_type: ${f.detected_doc_type ?? "unknown"}; confidence: ${f.confidence ?? "unknown"}; review_status: ${f.review_status ?? "unknown"}; sensitive: ${f.sensitive ? "yes" : "no"}`,
+            f.error ? `- ingestion_error: ${f.error}` : "",
+            f.suggested_summary ? `- intake_summary: ${f.suggested_summary}` : "",
+            f.extracted_entities ? `- extracted_entities: ${JSON.stringify(f.extracted_entities).slice(0, 1200)}` : "",
+            extracted ? `- extracted_text:\n${extracted}` : "- extracted_text: none available",
+          ].filter(Boolean).join("\n");
+        }).join("\n\n")
+      : "";
+
+    const sysWithCorrections = [SYSTEM_PROMPT, timeBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
