@@ -170,6 +170,8 @@ export function EntityDetailSheet() {
           </div>
         )}
 
+        {entity && <RelatedEntitiesSection entityId={entity.id} />}
+
         {(() => {
           const ambiguous = links.filter((l) => (l.confidence ?? "low") === "low");
           const confirmed = links.filter((l) => (l.confidence ?? "low") !== "low");
