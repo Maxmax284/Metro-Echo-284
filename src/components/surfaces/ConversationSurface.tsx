@@ -381,6 +381,40 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           })}
         </div>
       </div>
+      {!readOnly && (stagedUpload.staged.length > 0 || trays.length > 0) && (
+        <div className="border-t border-border/40 bg-surface-elevated/40 px-3 py-2 md:px-4">
+          <div className="mx-auto max-w-3xl space-y-2">
+            {stagedUpload.staged.length > 0 && (
+              <div className="space-y-2">
+                <StagedFileChips
+                  items={stagedUpload.staged}
+                  onRemove={stagedUpload.remove}
+                  onRetry={stagedUpload.retry}
+                  compact
+                />
+                {stagedUpload.staged.some((s) => s.status === "staged") && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void stagedUpload.commitAll()}
+                      className="rounded-md bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Ingest staged
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {trays.map((id) => (
+              <FileAftermathTray
+                key={id}
+                ingestedFileId={id}
+                onDismiss={() => setTrays((prev) => prev.filter((x) => x !== id))}
+              />
+            ))}
+          </div>
+        </div>
+      )}
       {readOnly ? (
         <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
           <div className="mx-auto max-w-3xl rounded-2xl glass px-4 py-2.5 text-center text-xs text-muted-foreground">
