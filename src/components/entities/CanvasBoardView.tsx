@@ -34,7 +34,7 @@ const NEXT: Partial<Record<Action["status"], Action["status"]>> = {
 
 // Phase 6c — Board view. Tap to advance status via actions-transition. No
 // drag-drop on 384px; tap targets stay big. Cancel always available pre-exec.
-export function CanvasBoardView({ seedEntityId }: Props) {
+export function CanvasBoardView({ seedEntityId, windowDays = 30 }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [actions, setActions] = useState<Action[]>([]);
@@ -43,6 +43,7 @@ export function CanvasBoardView({ seedEntityId }: Props) {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
     let ids: string[] | null = null;
     if (seedEntityId) {
       const { data: links } = await supabase
@@ -63,12 +64,13 @@ export function CanvasBoardView({ seedEntityId }: Props) {
       .from("actions")
       .select("id, title, status, risk, created_at")
       .eq("user_id", user.id)
+      .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(60);
     const { data } = ids ? await q.in("id", ids) : await q;
     setActions(((data ?? []) as Action[]));
     setLoading(false);
-  }, [user, seedEntityId]);
+  }, [user, seedEntityId, windowDays]);
 
   useEffect(() => { load(); }, [load]);
 
