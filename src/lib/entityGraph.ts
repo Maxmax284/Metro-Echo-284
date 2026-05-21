@@ -130,20 +130,20 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
     const candidates = extractCandidates(text);
     if (candidates.length === 0) return { linked: 0 };
 
-    const ids: string[] = [];
+    const linked: { id: string; confidence: Candidate["confidence"] }[] = [];
     for (const c of candidates) {
       const id = await resolveOrInsert(userId, c);
-      if (id) ids.push(id);
+      if (id) linked.push({ id, confidence: c.confidence ?? "low" });
     }
-    if (ids.length === 0) return { linked: 0 };
+    if (linked.length === 0) return { linked: 0 };
 
-    const rows = ids.map((entity_id) => ({
+    const rows = linked.map(({ id, confidence }) => ({
       user_id: userId,
-      entity_id,
+      entity_id: id,
       source_kind,
       source_id,
       role,
-      confidence: "low" as const,
+      confidence: (confidence ?? "low") as "low" | "medium" | "high",
     }));
     await supabase.from("entity_links").upsert(rows, {
       onConflict: "source_kind,source_id,entity_id,role",
@@ -155,10 +155,10 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
         user_id: userId,
         entity_type: "entity_graph",
         event: "entity.linked",
-        payload: { source_kind, source_id, entity_count: ids.length, role },
+        payload: { source_kind, source_id, entity_count: linked.length, role },
       });
     }
-    return { linked: ids.length };
+    return { linked: linked.length };
   } catch {
     return { linked: 0 };
   }
