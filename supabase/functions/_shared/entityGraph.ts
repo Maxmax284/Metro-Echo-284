@@ -40,13 +40,27 @@ const STOP = new Set([
   "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday",
   "January","February","March","April","May","June","July","August","September",
   "October","November","December",
+  // Common sentence-starters & generic nouns that produce graph noise
+  "Hi","Hello","Hey","Thanks","Thank","Please","Re","Fwd","Ok","Okay","Yes","No",
+  "Meeting","Call","Email","Note","Notes","Reminder","Task","Idea","Update",
+  "Plan","Plans","Project","Status","Summary","Question","Answer","Action",
+  "Quick","New","Need","Want","Going","Got","Made","Make","Get","See","Send",
 ]);
 
+// 2+ Title-cased words only. Bare single Title-case tokens collapse to
+// sentence-start noise; real one-word entities still surface via @handles,
+// #hashtags, or repeated mentions inside multi-word phrases.
 const TITLE_CASE_PHRASE =
-  /\b([A-Z][a-zA-Z0-9'’-]*(?:\s+[A-Z][a-zA-Z0-9'’-]*){0,3})\b/g;
+  /\b([A-Z][a-zA-Z0-9'’-]+(?:\s+[A-Z][a-zA-Z0-9'’-]+){1,3})\b/g;
 const HANDLE = /(?:^|\s)@([a-zA-Z0-9_]{3,})/g;
 const HASHTAG = /(?:^|\s)#([a-zA-Z][a-zA-Z0-9_-]{1,})/g;
 const URL_RE = /\bhttps?:\/\/([^\s/]+)(?:\/[^\s]*)?/gi;
+
+const COMMON_HOSTS = new Set([
+  "www.google.com","google.com","docs.google.com","drive.google.com",
+  "youtube.com","youtu.be","twitter.com","x.com","github.com","gist.github.com",
+  "apple.com","icloud.com","amazon.com","wikipedia.org","en.wikipedia.org",
+]);
 
 export function extractCandidates(text: string, max = 12): Candidate[] {
   if (!text) return [];
@@ -66,15 +80,20 @@ export function extractCandidates(text: string, max = 12): Candidate[] {
     push({ display_name: `#${m[1]}`.toLowerCase(), kind: "topic", confidence: "medium" });
   }
   for (const m of text.matchAll(URL_RE)) {
-    push({ display_name: m[1].toLowerCase(), kind: "thing", confidence: "low" });
+    const host = m[1].toLowerCase();
+    if (COMMON_HOSTS.has(host)) continue;
+    push({ display_name: host, kind: "thing", confidence: "low" });
   }
   for (const m of text.matchAll(TITLE_CASE_PHRASE)) {
     const phrase = m[1].trim();
     const words = phrase.split(/\s+/);
-    if (words.length === 1 && STOP.has(words[0])) continue;
-    if (words.every((w) => STOP.has(w))) continue;
-    if (phrase.length < 3) continue;
-    push({ display_name: phrase, kind: words.length >= 2 ? "topic" : "topic", confidence: "low" });
+    if (words.length < 2) continue;
+    const stopCount = words.filter((w) => STOP.has(w)).length;
+    if (stopCount * 2 >= words.length) continue;
+    if (phrase.length < 4) continue;
+    // 3+ words → confident topic; 2 words → low confidence, needs review.
+    const confidence: Candidate["confidence"] = words.length >= 3 ? "medium" : "low";
+    push({ display_name: phrase, kind: "topic", confidence });
   }
 
   return out.slice(0, max);
