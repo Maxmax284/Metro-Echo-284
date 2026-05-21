@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
-import { vantaToast as toast } from "@/lib/vantaVoice";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 type Commitment = {
   id: string;
