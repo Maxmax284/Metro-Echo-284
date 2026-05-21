@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network, Check, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
 
 type EntityRow = {
@@ -155,7 +156,9 @@ export function EntityDetailSheet() {
               <Network className="h-3 w-3" /> Open in Canvas
             </Button>
           )}
+          {entity && <EmbeddedSherlockFindings sourceType="entity" sourceId={entity.id} className="mt-1" />}
         </SheetHeader>
+
 
         {entity?.aliases && entity.aliases.length > 0 && (
           <div className="mt-4">

@@ -13,6 +13,7 @@ import { formatTzLine } from "@/lib/timeRules";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 type Commitment = {
   id: string;
@@ -264,6 +265,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                           showWhenEmpty={false}
                         />
                       </div>
+                      <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
                     </div>
                     {c.status === "open" && (
                       <CommitmentActions c={c} onChanged={refresh} />

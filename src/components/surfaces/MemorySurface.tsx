@@ -16,6 +16,7 @@ import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -546,6 +547,7 @@ export function MemorySurface() {
                       />
                     </div>
                   </button>
+                  <EmbeddedSherlockFindings sourceType="note" sourceId={n.id} />
                   {!archived ? (
                     <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>

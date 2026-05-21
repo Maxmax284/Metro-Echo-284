@@ -10,6 +10,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 type Action = {
   id: string;
@@ -154,6 +155,7 @@ export function ActionsSurface() {
                               showWhenEmpty={false}
                             />
                           </div>
+                          <EmbeddedSherlockFindings sourceType="action" sourceId={a.id} />
                           <div className="mt-2 flex items-center gap-1.5">
                             {statusOrder.map((s) => (
                               <span
