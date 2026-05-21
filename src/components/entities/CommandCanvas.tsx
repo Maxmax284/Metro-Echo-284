@@ -126,7 +126,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId]);
+  }, [user, seedEntityId, windowDays, kinds]);
 
   const nodes = useMemo(
     () => layoutCircular(entities, weights, seedEntityId, size.w, size.h),
