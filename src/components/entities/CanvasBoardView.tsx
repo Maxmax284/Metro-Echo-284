@@ -14,7 +14,7 @@ type Action = {
   created_at: string;
 };
 
-type Props = { seedEntityId: string | null };
+type Props = { seedEntityId: string | null; windowDays?: 7 | 30 | 90 };
 
 type Column = { key: string; label: string; statuses: Action["status"][] };
 
