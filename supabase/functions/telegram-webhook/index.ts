@@ -37,6 +37,7 @@ import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from ".
 import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
+import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 
 const ROUTE_LABEL: Record<string, string> = {
   memory: "a note for Memory",
@@ -49,14 +50,14 @@ const ROUTE_LABEL: Record<string, string> = {
 
 // Telegram shares the exact same voice constants as the in-app surfaces so
 // wording stays identical across Companion (chat), Memory (capture), and
-// Awareness (place answers). The only Telegram-specific layer is a thin
-// channel modifier: warmer tone (per user pref) and SMS-length brevity.
-const TELEGRAM_CHANNEL = `Telegram channel rules: warm and approachable, but still grounded.
-Replies must be brief (1–3 sentences), plain prose, no markdown. Occasional emoji
-is fine on a success acknowledgement (⏰ for reminders, 📝 for notes) — never on
-errors, warnings, or anything serious. Vary your phrasing. Messaging feeds the
-system — it does not control it. Never claim to have executed anything risky;
-notes, actions, and commitments surface as drafts inside the app for review.`;
+// Awareness (place answers). Telegram-specific layer: SMS-length brevity +
+// reminder that messaging never executes — drafts land in-app for approval.
+const TELEGRAM_CHANNEL = `Telegram channel rules: replies must be brief (1–3 sentences),
+plain prose, no markdown. Messaging feeds the system — it does not control it.
+Never claim to have executed anything risky; notes, actions, and commitments
+surface as drafts inside the app for review. Sherlock, awareness briefings, and
+schedule lookups are not available from Telegram — if the user asks for those,
+acknowledge the request and tell them to open Vanta to see it.`;
 
 const SYSTEM = `${COMPANION_VOICE}
 
@@ -67,17 +68,10 @@ ${AWARENESS_VOICE}
 ${TELEGRAM_CHANNEL}
 
 You CAN create notes, reminders, commitments, and stage actions for approval.
-NEVER tell the user "I can't directly set reminders" or "I'm unable to add
-notes" — route them. If a detail is missing (like the time for a reminder),
-ask ONE short question. No generic chatbot filler: no "As an AI…", no "Great
-news!", no "Absolutely, I'd be happy to assist!".
 
-Tool routing:
-- "Remind me…" / "Nudge me…" / "Follow up…" → set_reminder.
-- "Note that…" / "Save this…" / "Remember…" → capture_note.
-- "I promised…" / "I committed to…" → add_commitment.
-- External action to draft → stage_action.
-Otherwise answer succinctly.`;
+${ROUTING_RULES}
+
+${VOICE_RULES}`;
 
 const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
