@@ -14,6 +14,7 @@ import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { SherlockFindingCard } from "@/components/sherlock/SherlockFindingCard";
+import { SherlockSettingsPanel } from "@/components/sherlock/SherlockSettingsPanel";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
@@ -184,6 +185,8 @@ export function SherlockSurface() {
             <span className="text-muted-foreground/70">{SCOPES.find((x) => x.id === scope)!.hint}</span>
           </div>
         </header>
+
+        <SherlockSettingsPanel />
 
         <Card className="p-3 space-y-3">
           {/* Scope chips */}
