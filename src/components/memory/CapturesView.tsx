@@ -9,6 +9,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { linkEntities } from "@/lib/entityGraph";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
