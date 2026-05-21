@@ -52,7 +52,7 @@ export function EntityChips({
     (async () => {
       const { data } = await supabase
         .from("entity_links")
-        .select("id, entity_id, entities ( id, kind, display_name )")
+        .select("id, entity_id, confidence, entities ( id, kind, display_name )")
         .eq("source_kind", sourceKind)
         .eq("source_id", sourceId)
         .limit(20);
