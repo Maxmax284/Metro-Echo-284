@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
-  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network } from "lucide-react";
+  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -171,6 +171,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
           <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
           <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
+          <FilesTile onOpen={() => onNavigate("memory")} />
           <SherlockWatchtowerCard items={findings} onOpen={() => onNavigate("sherlock")}
             onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
           <MemoryPulseCard onOpen={() => onNavigate("memory")} />
@@ -387,6 +388,48 @@ function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () =
             </li>
           ))}
         </ul>
+      )}
+    </CardShell>
+  );
+}
+
+function FilesTile({ onOpen }: { onOpen: () => void }) {
+  const [counts, setCounts] = useState<{ newToday: number; triage: number; lastName: string | null; lastWhen: string | null }>({
+    newToday: 0, triage: 0, lastName: null, lastWhen: null,
+  });
+  useEffect(() => {
+    (async () => {
+      const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+      const [today, triage, last] = await Promise.all([
+        supabase.from("ingested_files").select("id", { count: "exact", head: true }).gte("created_at", startOfDay.toISOString()),
+        supabase.from("ingested_files").select("id", { count: "exact", head: true }).in("review_status", ["new", "needs_review"]),
+        supabase.from("ingested_files").select("filename, created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      setCounts({
+        newToday: today.count ?? 0,
+        triage: triage.count ?? 0,
+        lastName: (last.data as any)?.filename ?? null,
+        lastWhen: (last.data as any)?.created_at ?? null,
+      });
+    })();
+  }, []);
+  const badge = counts.triage > 0 ? `${counts.triage} to triage` : counts.newToday > 0 ? `${counts.newToday} today` : null;
+  return (
+    <CardShell title="Files" Icon={FileText} badge={badge} onOpen={onOpen} openLabel="Open files">
+      <ul className="space-y-1.5 text-[12.5px]">
+        <li className="flex items-center justify-between">
+          <span className="text-muted-foreground">New today</span>
+          <span className="text-foreground">{counts.newToday}</span>
+        </li>
+        <li className="flex items-center justify-between">
+          <span className="text-muted-foreground">Awaiting triage</span>
+          <span className={cn(counts.triage > 0 ? "text-warn" : "text-foreground")}>{counts.triage}</span>
+        </li>
+      </ul>
+      {counts.lastName && counts.lastWhen && (
+        <div className="mt-2 truncate text-[10.5px] text-muted-foreground">
+          Last: {counts.lastName} · {formatDistanceToNow(new Date(counts.lastWhen), { addSuffix: true })}
+        </div>
       )}
     </CardShell>
   );

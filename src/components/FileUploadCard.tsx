@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
-import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";
 import { cn } from "@/lib/utils";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
+import { StagedFileChips } from "@/components/files/StagedFileChips";
+import { FileAftermathTray } from "@/components/files/FileAftermathTray";
+import { useStagedUpload } from "@/hooks/useStagedUpload";
 
 type Row = {
   id: string;
@@ -22,14 +25,12 @@ type Row = {
   created_at: string;
 };
 
-const MAX_BYTES = 20 * 1024 * 1024;
-
 export function FileUploadCard() {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const [rows, setRows] = useState<Row[]>([]);
-  const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [trays, setTrays] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
@@ -40,45 +41,22 @@ export function FileUploadCard() {
       .limit(8);
     setRows((data ?? []) as Row[]);
   };
-
   useEffect(() => { refresh(); }, []);
 
-  const handleFiles = async (files: FileList | File[]) => {
-    if (!user) return;
-    const list = Array.from(files);
-    setBusy(true);
-    for (const f of list) {
-      try {
-        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
-        const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
-        const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
-        if (upErr) throw upErr;
-        const { data: rec, error: insErr } = await supabase
-          .from("ingested_files")
-          .insert({
-            user_id: user.id,
-            filename: f.name,
-            mime_type: f.type || null,
-            size_bytes: f.size,
-            storage_path: path,
-            source: "upload",
-            status: "pending",
-          })
-          .select("id")
-          .single();
-        if (insErr) throw insErr;
-        const { error: fnErr } = await supabase.functions.invoke("files-ingest", {
-          body: { ingested_file_id: rec.id },
-        });
-        if (fnErr) throw fnErr;
-        toast.success(vantaSay.fileIngested(f.name));
-      } catch (e) {
-        toast.fromError(e);
+  const staged = useStagedUpload({
+    source: "upload",
+    onSaved: (s) => {
+      if (s.ingestedFileId) {
+        setTrays((prev) => (prev.includes(s.ingestedFileId!) ? prev : [s.ingestedFileId!, ...prev]).slice(0, 3));
       }
-    }
-    setBusy(false);
-    refresh();
-  };
+      void refresh();
+    },
+  });
+
+  const busy = useMemo(
+    () => staged.staged.some((s) => s.status === "uploading" || s.status === "reading"),
+    [staged.staged],
+  );
 
   const counts = useMemo(() => {
     const c = { done: 0, pending: 0, failed: 0 };
@@ -89,6 +67,10 @@ export function FileUploadCard() {
     }
     return c;
   }, [rows]);
+
+  const handleCommit = async () => {
+    await staged.commitAll();
+  };
 
   return (
     <Card>
@@ -127,7 +109,7 @@ export function FileUploadCard() {
         <div
           onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
+          onDrop={(e) => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files) staged.stage(e.dataTransfer.files); }}
           onClick={() => inputRef.current?.click()}
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed p-6 text-xs transition-colors",
@@ -136,22 +118,65 @@ export function FileUploadCard() {
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-5 w-5 text-muted-foreground" />}
           <span className="text-muted-foreground">
-            {busy ? "Ingesting…" : "Drop files or click to upload"}
+            {busy ? "Working on it…" : "Drop files or click to attach"}
           </span>
-          <span className="text-[10px] text-muted-foreground/70">PDF, text, markdown · max 20MB</span>
+          <span className="text-[10px] text-muted-foreground/70">Stage first · review before ingest · max 20MB</span>
           <input
             ref={inputRef}
             type="file"
             multiple
             className="hidden"
-            onChange={(e) => e.target.files && handleFiles(e.target.files)}
+            onChange={(e) => { if (e.target.files) staged.stage(e.target.files); e.currentTarget.value = ""; }}
           />
         </div>
 
+        {staged.staged.length > 0 && (
+          <div className="space-y-2">
+            <StagedFileChips
+              items={staged.staged}
+              onRemove={staged.remove}
+              onRetry={staged.retry}
+              onNote={staged.setNote}
+              showNoteInput
+            />
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px]"
+                onClick={staged.clearCompleted}
+                disabled={busy || !staged.staged.some((s) => s.status === "saved")}
+              >
+                Clear saved
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 text-[11px]"
+                onClick={handleCommit}
+                disabled={busy || !staged.staged.some((s) => s.status === "staged")}
+              >
+                {busy ? "Working…" : "Ingest"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {trays.length > 0 && (
+          <div className="space-y-2">
+            {trays.map((id) => (
+              <FileAftermathTray
+                key={id}
+                ingestedFileId={id}
+                onDismiss={() => setTrays((prev) => prev.filter((x) => x !== id))}
+              />
+            ))}
+          </div>
+        )}
+
         <div className="space-y-1">
-          {rows.length === 0 && (
+          {rows.length === 0 && staged.staged.length === 0 && (
             <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
-              No files yet. Anything you drop here becomes searchable memory.
+              {vantaSay.empty.files()}
             </p>
           )}
           {rows.map((r) => (
