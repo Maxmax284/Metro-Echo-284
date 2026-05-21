@@ -173,8 +173,130 @@ Deno.serve(async (req: Request) => {
 
     await supabase.from("ingested_files").update({
       status: "done", note_id: note.id, error: null,
+      extracted_text: trimmed || null,
       metadata: { ...(rec.metadata ?? {}), extraction: method, chars: trimmed.length },
     }).eq("id", rec.id);
+
+    // ----- Wave 1 / Phase 3: doc-type classifier + sensitive gate -----
+    // Single Lovable AI Gateway call, strict JSON tool schema. Never blocks
+    // the rest of ingestion. Sensitive content forces a cautious posture and
+    // never produces suggested_actions. Everything is a draft — nothing
+    // executes downstream.
+    let classifierUpdate: FileIntakeUpdate | null = null;
+    let classifierAudit: Record<string, unknown> | null = null;
+    if (trimmed.length >= 40) {
+      const sens = detectSensitive(`${rec.filename}\n${trimmed.slice(0, 4000)}`);
+      const apiKey = Deno.env.get("LOVABLE_API_KEY");
+      let classified: any = null;
+      if (apiKey) {
+        try {
+          const SYSTEM = `You are Vanta's file intake classifier. Read the extracted text from one file and return strict JSON. You never execute actions, never speculate, and always cap confidence at low when unsure. Suggested actions are drafts only — they will be reviewed by a human before anything runs.`;
+          const SCHEMA = {
+            type: "object",
+            additionalProperties: false,
+            required: ["detected_doc_type", "confidence", "suggested_summary"],
+            properties: {
+              detected_doc_type: { type: "string", enum: DETECTED_DOC_TYPES as unknown as string[] },
+              confidence: { type: "string", enum: ["low", "medium", "high"] },
+              suggested_summary: { type: "string", maxLength: 600 },
+              extracted_entities: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  dates: { type: "array", items: { type: "string", maxLength: 64 }, maxItems: 32 },
+                  people: { type: "array", items: { type: "string", maxLength: 160 }, maxItems: 32 },
+                  locations: { type: "array", items: { type: "string", maxLength: 200 }, maxItems: 16 },
+                  amounts: {
+                    type: "array", maxItems: 32,
+                    items: {
+                      type: "object", additionalProperties: false, required: ["value"],
+                      properties: {
+                        value: { type: "number" },
+                        currency: { type: "string", maxLength: 8 },
+                        label: { type: "string", maxLength: 120 },
+                      },
+                    },
+                  },
+                  payment_refs: { type: "array", items: { type: "string", maxLength: 120 }, maxItems: 16 },
+                },
+              },
+              suggested_actions: {
+                type: "array", maxItems: 6,
+                items: {
+                  type: "object", additionalProperties: false, required: ["kind", "label"],
+                  properties: {
+                    kind: { type: "string", enum: FILE_SUGGESTED_ACTION_KINDS as unknown as string[] },
+                    label: { type: "string", maxLength: 160 },
+                    rationale: { type: "string", maxLength: 280 },
+                  },
+                },
+              },
+            },
+          };
+          const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: SYSTEM },
+                { role: "user", content: `FILE: ${rec.filename}\nMIME: ${rec.mime_type ?? "?"}\n\nEXTRACTED TEXT (first 6000 chars):\n${trimmed.slice(0, 6000)}` },
+              ],
+              tools: [{
+                type: "function",
+                function: { name: "classify_file", description: "Return structured file intake.", parameters: SCHEMA },
+              }],
+              tool_choice: { type: "function", function: { name: "classify_file" } },
+            }),
+          });
+          if (r.ok) {
+            const j = await r.json();
+            const args = j.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+            if (args) classified = JSON.parse(args);
+          } else {
+            console.warn("classifier non-200", r.status);
+          }
+        } catch (e) {
+          console.warn("classifier error", e);
+        }
+      }
+
+      const detected = classified?.detected_doc_type ?? "unknown";
+      const sensitiveDetected = sens.sensitive || isSensitiveByType(detected);
+      const draft: FileIntakeUpdate = {
+        detected_doc_type: detected,
+        confidence: sensitiveDetected ? "low" : (classified?.confidence ?? "medium"),
+        suggested_summary: sensitiveDetected
+          ? `This file looks sensitive (${[...new Set([...(sens.categories ?? []), detected])].join(", ")}). Held for review — nothing routed.`
+          : (classified?.suggested_summary ?? null),
+        extracted_entities: classified?.extracted_entities ?? undefined,
+        // Sensitive files never carry auto-drafted actions; the user must opt in.
+        suggested_actions: sensitiveDetected ? [] : (classified?.suggested_actions ?? []),
+        sensitive: sensitiveDetected,
+        review_status: sensitiveDetected ? "needs_review" : (classified ? "suggested" : "new"),
+      };
+      try {
+        classifierUpdate = validateFileIntakeUpdate(draft);
+        await supabase.from("ingested_files").update(classifierUpdate as any).eq("id", rec.id);
+        classifierAudit = {
+          detected_doc_type: classifierUpdate.detected_doc_type,
+          confidence: classifierUpdate.confidence,
+          sensitive: classifierUpdate.sensitive,
+          sensitive_categories: sens.categories,
+          had_classifier: !!classified,
+        };
+      } catch (e) {
+        console.warn("classifier update invalid", e);
+      }
+
+      if (sensitiveDetected) {
+        await supabase.from("audit_log").insert({
+          user_id: user.id, entity_type: "ingested_file", entity_id: rec.id,
+          event: "file.sensitive_flagged",
+          payload: { categories: sens.categories, detected_doc_type: detected },
+        });
+      }
+    }
 
     // Background: embed + autolink (do not block response on these)
     (async () => {
@@ -185,8 +307,15 @@ Deno.serve(async (req: Request) => {
     await supabase.from("audit_log").insert({
       user_id: user.id, entity_type: "ingested_file", entity_id: rec.id,
       event: "ingest.success",
-      payload: { method, note_id: note.id, chars: trimmed.length, mime: rec.mime_type },
+      payload: { method, note_id: note.id, chars: trimmed.length, mime: rec.mime_type, classifier: classifierAudit },
     });
+    if (classifierUpdate) {
+      await supabase.from("audit_log").insert({
+        user_id: user.id, entity_type: "ingested_file", entity_id: rec.id,
+        event: "file.classified",
+        payload: classifierAudit ?? {},
+      });
+    }
 
     // Stage 8 — File Intelligence: emit a low-priority nudge suggesting Sherlock
     // when the extracted text is substantive enough to be worth investigating.
