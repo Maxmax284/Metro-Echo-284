@@ -135,9 +135,8 @@ export function DailyBriefingCard() {
         headline?: string;
         best_first_move?: string;
       } | null;
-      const text = d?.narrative
-        ?? [d?.headline, d?.best_first_move ? vantaSay.briefing.bestFirstMove(d.best_first_move.replace(/\.$/, "")) : null]
-            .filter(Boolean).join(" ");
+      setBestFirstMove(d?.best_first_move ?? null);
+      const text = d?.narrative ?? d?.headline ?? null;
       if (text) setPolish(text.trim());
     } catch (e) {
       toast.fromError(e);
