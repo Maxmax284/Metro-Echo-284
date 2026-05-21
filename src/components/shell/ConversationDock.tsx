@@ -213,6 +213,10 @@ export function ConversationDock({
         </div>
       )}
 
+      {aboveComposer && (
+        <div className="mx-auto mb-1.5 w-full max-w-3xl">{aboveComposer}</div>
+      )}
+
       <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
         {onAttach && (
           <>
