@@ -161,6 +161,10 @@ export default function Settings() {
         </ul>
       </section>
 
+      <EcosystemSourcesPanel />
+
+
+
       {/* Limits */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
         <h2 className="text-sm font-semibold">Per-feature limits</h2>
