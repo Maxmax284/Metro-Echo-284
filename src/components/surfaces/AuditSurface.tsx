@@ -90,6 +90,20 @@ export function AuditSurface() {
 
   useEffect(() => { load(); }, []);
 
+  // Wave 5 — live receipts. Every state change emits an audit_log row;
+  // surface them as they happen so the Audit lane reflects reality, not a
+  // snapshot. Debounce to coalesce bursts.
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const nudge = () => { if (t) clearTimeout(t); t = setTimeout(() => load(), 400); };
+    const channel = supabase
+      .channel("audit-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, nudge)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "action_events" }, nudge)
+      .subscribe();
+    return () => { if (t) clearTimeout(t); supabase.removeChannel(channel); };
+  }, []);
+
   const auditFiltered = useMemo(() => {
     const f = filter.trim().toLowerCase();
     let rows = audit;

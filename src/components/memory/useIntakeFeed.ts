@@ -151,5 +151,21 @@ export function useIntakeFeed(limit = 60) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Wave 5 — realtime sync. Telegram captures, file ingests, and field notes
+  // land in different tables; surface them live so the Inbox isn't a stale
+  // snapshot. Debounce bursts (file pipeline writes 3-4 rows in <500ms).
+  useEffect(() => {
+    if (!session) return;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const nudge = () => { if (t) clearTimeout(t); t = setTimeout(() => refresh(), 400); };
+    const channel = supabase
+      .channel("intake-feed")
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, nudge)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ingested_files" }, nudge)
+      .on("postgres_changes", { event: "*", schema: "public", table: "field_notes" }, nudge)
+      .subscribe();
+    return () => { if (t) clearTimeout(t); supabase.removeChannel(channel); };
+  }, [session, refresh]);
+
   return { items, loading, refresh };
 }
