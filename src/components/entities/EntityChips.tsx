@@ -70,15 +70,22 @@ export function EntityChips({
       {visible.map((r) => {
         if (!r.entities) return null;
         const Icon = pickIcon(r.entities.kind, r.entities.display_name);
+        const ambiguous = (r.confidence ?? "low") === "low";
         return (
           <button
             key={r.id}
             onClick={(e) => { e.stopPropagation(); openEntity(r.entity_id); }}
-            className="inline-flex max-w-[160px] items-center gap-1 rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-0.5 text-[10.5px] text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-            title={`${r.entities.kind} · ${r.entities.display_name}`}
+            className={cn(
+              "inline-flex max-w-[160px] items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] transition-colors",
+              ambiguous
+                ? "border-dashed border-border/60 bg-transparent text-muted-foreground/80 hover:border-warn/50 hover:text-warn"
+                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:border-primary/40 hover:bg-primary/10 hover:text-primary",
+            )}
+            title={`${r.entities.kind} · ${r.entities.display_name}${ambiguous ? " · needs review" : ""}`}
           >
             <Icon className="h-2.5 w-2.5 shrink-0" />
             <span className="truncate">{r.entities.display_name}</span>
+            {ambiguous && <span aria-hidden className="text-[9px] opacity-70">?</span>}
           </button>
         );
       })}
