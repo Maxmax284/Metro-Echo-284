@@ -194,13 +194,38 @@ export function DailyBriefingCard() {
           )}
           {bestFirstMove && !polishing && (
             <div className="mt-1 rounded-md bg-primary/5 p-2.5 ring-1 ring-primary/20">
-              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                <Target className="h-3 w-3" />
-                Best first move
+              <div className="mb-1 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  <Target className="h-3 w-3" />
+                  {variantUsed === "wrap" ? "Best wrap" : "Best first move"}
+                </div>
+                {variantUsed && (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-primary/80 ring-1 ring-primary/20">
+                    {variantUsed}
+                  </span>
+                )}
               </div>
               <p className="text-[12.5px] font-medium leading-snug text-foreground/90">
                 {bestFirstMove}
               </p>
+              {variantUsed === "wrap" && wrapCounts && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {vantaSay.briefing.wrap(
+                    wrapCounts.closed_today,
+                    todayList.length - overdue,
+                    wrapCounts.slipped_today,
+                  )}
+                </p>
+              )}
+              {observedSalient.length > 0 && (
+                <ul className="mt-1.5 space-y-0.5">
+                  {observedSalient.map((s, i) => (
+                    <li key={i} className="text-[11px] text-muted-foreground">
+                      {vantaSay.briefing.salientFromObserve(s)}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {polish && (
                 <p className="mt-1 text-[12px] italic leading-snug text-foreground/70">
                   {polish}
