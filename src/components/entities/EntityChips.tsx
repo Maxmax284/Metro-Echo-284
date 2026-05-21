@@ -8,6 +8,7 @@ import type { EntitySourceKind } from "@/lib/entityGraph";
 type Row = {
   id: string;
   entity_id: string;
+  confidence: string | null;
   entities: { id: string; kind: string; display_name: string } | null;
 };
 
