@@ -11,7 +11,7 @@ type Item = {
   created_at: string;
 };
 
-type Props = { seedEntityId: string | null };
+type Props = { seedEntityId: string | null; windowDays?: 7 | 30 | 90 };
 
 const ICON: Record<Item["kind"], any> = {
   commitment: CheckSquare,
