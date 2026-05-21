@@ -345,6 +345,14 @@ export function MemoryFilesView() {
                     ) : null}
                     {f.source && <span className="rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">{f.source}</span>}
                     {f.note_id && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary ring-1 ring-primary/30">→ Memory</span>}
+                    <SherlockChipTrigger
+                      operation="extract"
+                      entityType="file"
+                      entityId={f.id}
+                      text={f.filename}
+                      title={f.filename}
+                      showWhenEmpty={false}
+                    />
                     <span>· {formatDistanceToNow(new Date(f.created_at), { addSuffix: true })}</span>
                   </div>
                   {meta.chars ? (
