@@ -40,14 +40,24 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const timezone: string = body?.timezone || "UTC";
     const partOfDay: "morning" | "midday" | "evening" = body?.part_of_day || "midday";
+    // Variant: explicit > derived from part_of_day. "wrap" is a dedicated
+    // end-of-day debrief; the others tune tone and which counts dominate.
+    const requestedVariant = (body?.variant as string | undefined)?.toLowerCase();
+    const variant: "morning" | "midday" | "evening" | "wrap" =
+      requestedVariant === "morning" || requestedVariant === "midday" ||
+      requestedVariant === "evening" || requestedVariant === "wrap"
+        ? requestedVariant
+        : partOfDay;
 
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
+    const startOfToday = new Date(now); startOfToday.setUTCHours(0, 0, 0, 0);
     const sinceFresh = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
     const staleCutoff = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
 
-    // Parallel queries — keep them tight, cap rows.
-    const [comm, files, actions, fresh, sherlock] = await Promise.all([
+    // Parallel queries — keep them tight, cap rows. Wrap variant additionally
+    // pulls today's closed commitments and recent observe findings.
+    const [comm, files, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
       sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -71,6 +81,18 @@ Deno.serve(async (req: Request) => {
         .select("id, entity_type, updated_at", { count: "exact" })
         .gte("updated_at", sinceFresh)
         .limit(5),
+      sb.from("commitments")
+        .select("id, summary, completed_at")
+        .gte("completed_at", startOfToday.toISOString())
+        .limit(50),
+      // Observe findings give Vanta a "Sherlock noticed…" cue to weave into
+      // the narrative. Pulled fresh-only so the briefing stays current.
+      sb.from("sherlock_findings_cache")
+        .select("findings, entity_type, updated_at")
+        .like("entity_type", "observe:%")
+        .gte("updated_at", sinceFresh)
+        .order("updated_at", { ascending: false })
+        .limit(3),
     ]);
 
     const commitments = comm.data ?? [];
