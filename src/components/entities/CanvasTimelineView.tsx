@@ -22,7 +22,7 @@ const ICON: Record<Item["kind"], any> = {
 
 // Phase 6b — Timeline view. Pure read of recent operational objects ordered
 // chronologically. Scoped by entity when a seed is provided (via entity_links).
-export function CanvasTimelineView({ seedEntityId }: Props) {
+export function CanvasTimelineView({ seedEntityId, windowDays = 30 }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Item[]>([]);
@@ -32,7 +32,7 @@ export function CanvasTimelineView({ seedEntityId }: Props) {
     let alive = true;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
 
       let scopedIds: Record<string, Set<string>> | null = null;
       if (seedEntityId) {
