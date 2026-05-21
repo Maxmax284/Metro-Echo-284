@@ -1,6 +1,19 @@
 // files-ingest: extract text from an uploaded file (PDF, DOCX, image OCR, text),
 // create a note, embed, and trigger memory-autolink. Phase D — Ingestion Hardening.
+// Wave 1 / Phase 3: also runs a single doc-type classifier call against the
+// Lovable AI Gateway, persists structured fields (detected_doc_type,
+// extracted_entities, suggested_summary, suggested_actions, sensitive,
+// confidence, review_status) and writes audit events. Sensitive content is
+// forced to a cautious posture and never auto-routed.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { detectSensitive } from "../_shared/sensitive.ts";
+import {
+  DETECTED_DOC_TYPES,
+  FILE_SUGGESTED_ACTION_KINDS,
+  isSensitiveByType,
+  validateFileIntakeUpdate,
+  type FileIntakeUpdate,
+} from "../_shared/fileIntake.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
