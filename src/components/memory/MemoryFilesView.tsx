@@ -349,13 +349,23 @@ export function MemoryFilesView() {
                         <RefreshCw className="h-2.5 w-2.5" /> Retry ingest
                       </button>
                     )}
-                    {docType ? (
-                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType}</span>
+                    {(docType || f.detected_doc_type) ? (
+                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType ?? f.detected_doc_type}</span>
                     ) : needsType ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-warn ring-1 ring-warn/30">
                         <AlertCircle className="h-3 w-3" /> Needs review
                       </span>
                     ) : null}
+                    {f.sensitive && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted/30 px-2 py-0.5 text-foreground/80 ring-1 ring-border/60" title="May contain personal or financial information">
+                        <AlertCircle className="h-3 w-3" /> Sensitive
+                      </span>
+                    )}
+                    {f.confidence && (
+                      <span className="rounded-full bg-muted/20 px-2 py-0.5 text-muted-foreground ring-1 ring-border/50">
+                        {f.confidence} confidence
+                      </span>
+                    )}
                     {f.source && <span className="rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">{f.source}</span>}
                     {f.note_id && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary ring-1 ring-primary/30">→ Memory</span>}
                     <SherlockChipTrigger
