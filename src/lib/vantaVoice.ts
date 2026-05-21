@@ -248,6 +248,13 @@ export const vantaSay = {
       n === 0
         ? "Scan complete. Nothing new worth flagging."
         : `Scan complete. ${n} new ${n === 1 ? "thing" : "things"} worth a look.`,
+    sensitiveHeld: (cats: string[]) =>
+      cats.length
+        ? `Sensitive content (${cats.join(", ")}). Held for your review — nothing routed.`
+        : "Sensitive content. Held for your review — nothing routed.",
+    sensitiveRevealHint: () => "Details hidden. Tap reveal to inspect.",
+    markedSensitive: () => "Marked sensitive. Future suggestions will stay cautious.",
+    unmarkedSensitive: () => "Sensitivity flag removed.",
     operation: {
       observe: "Observe",
       extract: "Extract",
