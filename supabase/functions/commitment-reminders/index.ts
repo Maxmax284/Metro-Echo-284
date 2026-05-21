@@ -142,9 +142,14 @@ Deno.serve(async (req: Request) => {
     let telegramSent = 0;
     let telegramSkipped = 0;
     let telegramFailed = 0;
+    let telegramUnlinked = 0;
+    let telegramDisabled = 0;
     let pushSent = 0;
     let pushSkipped = 0;
     let pushFailed = 0;
+    let pushUnconfigured = 0;
+    let pushNoSubscription = 0;
+    let pushDisabled = 0;
 
     const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
     const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
@@ -193,6 +198,10 @@ Deno.serve(async (req: Request) => {
           const lastTgMs = meta.telegram_sent_at ? new Date(meta.telegram_sent_at).getTime() : 0;
           if (lastTgMs && Date.now() - lastTgMs < TG_THROTTLE_MS) {
             telegramSkipped++;
+            await audit("reminder.telegram_skipped_throttled", {
+              last_sent_at: meta.telegram_sent_at,
+              throttle_ms: TG_THROTTLE_MS,
+            });
           } else {
             let chatId = chatIds.get(c.user_id) ?? undefined;
             if (chatId === undefined) {
@@ -235,14 +244,34 @@ Deno.serve(async (req: Request) => {
                 telegramFailed++;
                 await audit("reminder.telegram_failed", { error: r.err ?? "unknown" });
               }
+            } else {
+              // Opted in but never linked a chat. Trace it loudly so the UI
+              // can surface a "link your Telegram" nudge instead of silence.
+              telegramUnlinked++;
+              await audit("reminder.telegram_skipped_unlinked", {
+                reason: "no_telegram_chat_link",
+                user_action: "link_telegram",
+              });
             }
           }
         }
+      } else {
+        telegramDisabled++;
+        await audit("reminder.telegram_skipped_disabled", { reason: "telegram_reminders_enabled=false" });
       }
       // ----------------------------------------------------------------------
 
       // Push delivery branch -------------------------------------------------
-      if (pushConfigured && prof.prefs.push_reminders_enabled) {
+      if (!prof.prefs.push_reminders_enabled) {
+        pushDisabled++;
+        await audit("reminder.push_skipped_disabled", { reason: "push_reminders_enabled=false" });
+      } else if (!pushConfigured) {
+        pushUnconfigured++;
+        await audit("reminder.push_skipped_unconfigured", {
+          reason: "vapid_keys_missing",
+          user_action: "contact_support",
+        });
+      } else {
         const urgent = c.priority === "urgent";
         if (!urgent && isInQuietHours(prof.tz, prof.prefs.quiet_hours_start, prof.prefs.quiet_hours_end)) {
           pushSkipped++;
@@ -252,12 +281,22 @@ Deno.serve(async (req: Request) => {
           const lastPushMs = meta.push_sent_at ? new Date(meta.push_sent_at).getTime() : 0;
           if (lastPushMs && Date.now() - lastPushMs < PUSH_THROTTLE_MS) {
             pushSkipped++;
+            await audit("reminder.push_skipped_throttled", {
+              last_sent_at: meta.push_sent_at,
+              throttle_ms: PUSH_THROTTLE_MS,
+            });
           } else {
             const { data: subs } = await supabase
               .from("push_subscriptions")
               .select("id, endpoint, p256dh, auth")
               .eq("user_id", c.user_id);
-            if (subs && subs.length > 0) {
+            if (!subs || subs.length === 0) {
+              pushNoSubscription++;
+              await audit("reminder.push_skipped_no_subscription", {
+                reason: "no_push_subscription_for_user",
+                user_action: "enable_push_on_device",
+              });
+            } else {
               const title = overdue ? "Overdue" : "Heads up";
               const when = c.due_at
                 ? new Intl.DateTimeFormat("en-US", {
@@ -319,8 +358,8 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         swept: due?.length ?? 0,
         emitted,
-        telegramSent, telegramSkipped, telegramFailed,
-        pushSent, pushSkipped, pushFailed,
+        telegramSent, telegramSkipped, telegramFailed, telegramUnlinked, telegramDisabled,
+        pushSent, pushSkipped, pushFailed, pushUnconfigured, pushNoSubscription, pushDisabled,
         pushConfigured,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
