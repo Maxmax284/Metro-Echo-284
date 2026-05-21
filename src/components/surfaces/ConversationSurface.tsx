@@ -224,52 +224,20 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     abortRef.current?.abort();
   };
 
-  // Attach: upload file → ingest → auto-run analyze-file tool
-  const handleAttach = async (files: FileList) => {
-    if (!user) return;
-    const list = Array.from(files);
-    for (const f of list) {
-      try {
-        if (f.size > MAX_BYTES) { toast.error(vantaSay.fileTooLarge(f.name)); continue; }
-        const path = `${user.id}/${Date.now()}-${f.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
-        const { error: upErr } = await supabase.storage.from("memory-uploads").upload(path, f, { contentType: f.type || undefined });
-        if (upErr) throw upErr;
-        const { data: rec, error: insErr } = await supabase
-          .from("ingested_files")
-          .insert({
-            user_id: user.id,
-            filename: f.name,
-            mime_type: f.type || null,
-            size_bytes: f.size,
-            storage_path: path,
-            source: "upload",
-            status: "pending",
-          })
-          .select("id")
-          .single();
-        if (insErr) throw insErr;
-        const { error: fnErr } = await supabase.functions.invoke("files-ingest", {
-          body: { ingested_file_id: rec.id },
-        });
-        if (fnErr) throw fnErr;
-        toast.success(vantaSay.fileIngested(f.name));
-        setMsgs((prev) => [
-          ...prev,
-          {
-            role: "system",
-            content: `File captured: ${f.name}. Ingestion finished; using that file as the source now.`,
-            metadata: { source: "file", detected_type: f.type || "upload", needs_review: true },
-          },
-        ]);
-        // Auto-run analyze-file registry tool
-        const analyze = COMPANION_TOOLS.find((t) => t.id === "analyze-file");
-        if (analyze?.buildPrompt && !busy) {
-          void send(`Analyze uploaded file "${f.name}" (ingested_file_id: ${rec.id}). Use the recent uploaded file context and source-label everything. If extraction failed, say the filename, status, and error instead of asking me to paste it.`);
-        }
-      } catch (e) {
-        toast.fromError(e);
+  // Staged file flow — capture is deliberate. No auto AI on attach.
+  const [trays, setTrays] = useState<string[]>([]);
+  const stagedUpload = useStagedUpload({
+    source: "conversation",
+    onSaved: (s) => {
+      if (s.ingestedFileId) {
+        setTrays((prev) => (prev.includes(s.ingestedFileId!) ? prev : [s.ingestedFileId!, ...prev]).slice(0, 3));
       }
-    }
+    },
+  });
+
+  // Conversation attach → just stage. User must press Ingest.
+  const handleAttach = (files: FileList) => {
+    stagedUpload.stage(files);
   };
 
   // Slash: dispatch a registry tool by id
