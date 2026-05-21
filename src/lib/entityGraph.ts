@@ -27,12 +27,21 @@ const STOP = new Set([
   "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday",
   "January","February","March","April","May","June","July","August","September",
   "October","November","December",
+  "Hi","Hello","Hey","Thanks","Thank","Please","Re","Fwd","Ok","Okay","Yes","No",
+  "Meeting","Call","Email","Note","Notes","Reminder","Task","Idea","Update",
+  "Plan","Plans","Project","Status","Summary","Question","Answer","Action",
+  "Quick","New","Need","Want","Going","Got","Made","Make","Get","See","Send",
 ]);
 
-const TITLE_CASE_PHRASE = /\b([A-Z][a-zA-Z0-9'’-]*(?:\s+[A-Z][a-zA-Z0-9'’-]*){0,3})\b/g;
+const TITLE_CASE_PHRASE = /\b([A-Z][a-zA-Z0-9'’-]+(?:\s+[A-Z][a-zA-Z0-9'’-]+){1,3})\b/g;
 const HANDLE = /(?:^|\s)@([a-zA-Z0-9_]{3,})/g;
 const HASHTAG = /(?:^|\s)#([a-zA-Z][a-zA-Z0-9_-]{1,})/g;
 const URL_RE = /\bhttps?:\/\/([^\s/]+)(?:\/[^\s]*)?/gi;
+const COMMON_HOSTS = new Set([
+  "www.google.com","google.com","docs.google.com","drive.google.com",
+  "youtube.com","youtu.be","twitter.com","x.com","github.com","gist.github.com",
+  "apple.com","icloud.com","amazon.com","wikipedia.org","en.wikipedia.org",
+]);
 
 export function extractCandidates(text: string, max = 12): Candidate[] {
   if (!text) return [];
@@ -46,14 +55,20 @@ export function extractCandidates(text: string, max = 12): Candidate[] {
   };
   for (const m of text.matchAll(HANDLE)) push({ display_name: `@${m[1]}`, kind: "person", confidence: "medium" });
   for (const m of text.matchAll(HASHTAG)) push({ display_name: `#${m[1]}`.toLowerCase(), kind: "topic", confidence: "medium" });
-  for (const m of text.matchAll(URL_RE)) push({ display_name: m[1].toLowerCase(), kind: "thing", confidence: "low" });
+  for (const m of text.matchAll(URL_RE)) {
+    const host = m[1].toLowerCase();
+    if (COMMON_HOSTS.has(host)) continue;
+    push({ display_name: host, kind: "thing", confidence: "low" });
+  }
   for (const m of text.matchAll(TITLE_CASE_PHRASE)) {
     const phrase = m[1].trim();
     const words = phrase.split(/\s+/);
-    if (words.length === 1 && STOP.has(words[0])) continue;
-    if (words.every((w) => STOP.has(w))) continue;
-    if (phrase.length < 3) continue;
-    push({ display_name: phrase, kind: "topic", confidence: "low" });
+    if (words.length < 2) continue;
+    const stopCount = words.filter((w) => STOP.has(w)).length;
+    if (stopCount * 2 >= words.length) continue;
+    if (phrase.length < 4) continue;
+    const confidence: Candidate["confidence"] = words.length >= 3 ? "medium" : "low";
+    push({ display_name: phrase, kind: "topic", confidence });
   }
   return out.slice(0, max);
 }
@@ -115,20 +130,20 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
     const candidates = extractCandidates(text);
     if (candidates.length === 0) return { linked: 0 };
 
-    const ids: string[] = [];
+    const linked: { id: string; confidence: Candidate["confidence"] }[] = [];
     for (const c of candidates) {
       const id = await resolveOrInsert(userId, c);
-      if (id) ids.push(id);
+      if (id) linked.push({ id, confidence: c.confidence ?? "low" });
     }
-    if (ids.length === 0) return { linked: 0 };
+    if (linked.length === 0) return { linked: 0 };
 
-    const rows = ids.map((entity_id) => ({
+    const rows = linked.map(({ id, confidence }) => ({
       user_id: userId,
-      entity_id,
+      entity_id: id,
       source_kind,
       source_id,
       role,
-      confidence: "low" as const,
+      confidence: (confidence ?? "low") as "low" | "medium" | "high",
     }));
     await supabase.from("entity_links").upsert(rows, {
       onConflict: "source_kind,source_id,entity_id,role",
@@ -140,10 +155,10 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
         user_id: userId,
         entity_type: "entity_graph",
         event: "entity.linked",
-        payload: { source_kind, source_id, entity_count: ids.length, role },
+        payload: { source_kind, source_id, entity_count: linked.length, role },
       });
     }
-    return { linked: ids.length };
+    return { linked: linked.length };
   } catch {
     return { linked: 0 };
   }

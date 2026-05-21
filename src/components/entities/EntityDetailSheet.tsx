@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useEntitySheet } from "./EntityContext";
 import { useCanvas } from "./CanvasContext";
 import { formatDistanceToNow } from "date-fns";
-import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network } from "lucide-react";
+import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network, Check, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type EntityRow = {
@@ -24,6 +24,7 @@ type LinkRow = {
   source_kind: string;
   source_id: string;
   role: string;
+  confidence: string | null;
   created_at: string;
   preview?: string | null;
 };
@@ -91,7 +92,7 @@ export function EntityDetailSheet() {
 
       const { data: raw } = await supabase
         .from("entity_links")
-        .select("id, source_kind, source_id, role, created_at")
+        .select("id, source_kind, source_id, role, confidence, created_at")
         .eq("entity_id", openEntityId)
         .order("created_at", { ascending: false })
         .limit(40);
@@ -104,6 +105,15 @@ export function EntityDetailSheet() {
     })();
     return () => { alive = false; };
   }, [openEntityId]);
+
+  async function acceptLink(id: string) {
+    await supabase.from("entity_links").update({ confidence: "medium" }).eq("id", id);
+    setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, confidence: "medium" } : l)));
+  }
+  async function dismissLink(id: string) {
+    await supabase.from("entity_links").delete().eq("id", id);
+    setLinks((ls) => ls.filter((l) => l.id !== id));
+  }
 
   const Icon = entity ? pickKindIcon(entity.kind, entity.display_name) : Tag;
 
@@ -149,39 +159,74 @@ export function EntityDetailSheet() {
           </div>
         )}
 
-        <div className="mt-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Where this shows up</p>
-            <span className="text-[10.5px] text-muted-foreground">{links.length}</span>
-          </div>
-          {loading ? (
-            <div className="py-6 text-center text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
-          ) : links.length === 0 ? (
-            <p className="mt-2 text-[12px] text-muted-foreground">No sources yet.</p>
-          ) : (
-            <ul className="mt-2 space-y-1.5">
-              {links.map((l) => {
-                const SIcon = SOURCE_ICON[l.source_kind] ?? Tag;
-                return (
-                  <li
-                    key={l.id}
-                    className={cn(
-                      "flex items-start gap-2 rounded-md border border-border/60 bg-surface-elevated/30 p-2 text-[12px]",
-                    )}
-                  >
-                    <SIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-foreground">{l.preview ?? `${l.source_kind} ${l.source_id.slice(0, 8)}`}</p>
-                      <p className="text-[10.5px] text-muted-foreground">
-                        {l.source_kind} · {l.role} · {formatDistanceToNow(new Date(l.created_at), { addSuffix: true })}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        {(() => {
+          const ambiguous = links.filter((l) => (l.confidence ?? "low") === "low");
+          const confirmed = links.filter((l) => (l.confidence ?? "low") !== "low");
+          const renderRow = (l: LinkRow, isAmbiguous: boolean) => {
+            const SIcon = SOURCE_ICON[l.source_kind] ?? Tag;
+            return (
+              <li
+                key={l.id}
+                className={cn(
+                  "flex items-start gap-2 rounded-md border p-2 text-[12px]",
+                  isAmbiguous
+                    ? "border-dashed border-warn/40 bg-warn/5"
+                    : "border-border/60 bg-surface-elevated/30",
+                )}
+              >
+                <SIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-foreground">{l.preview ?? `${l.source_kind} ${l.source_id.slice(0, 8)}`}</p>
+                  <p className="text-[10.5px] text-muted-foreground">
+                    {l.source_kind} · {l.role} · {formatDistanceToNow(new Date(l.created_at), { addSuffix: true })}
+                  </p>
+                </div>
+                {isAmbiguous && (
+                  <div className="flex shrink-0 gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" title="Confirm this connection" onClick={() => acceptLink(l.id)}>
+                      <Check className="h-3 w-3 text-primary" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" title="Not related — dismiss" onClick={() => dismissLink(l.id)}>
+                      <X className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                  </div>
+                )}
+              </li>
+            );
+          };
+          return (
+            <>
+              {ambiguous.length > 0 && (
+                <div className="mt-5">
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="h-3 w-3 text-warn" />
+                    <p className="text-[10.5px] uppercase tracking-wider text-warn">Needs review</p>
+                    <span className="ml-auto text-[10.5px] text-muted-foreground">{ambiguous.length}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Auto-linked but low confidence. Confirm to keep, dismiss if it's noise.</p>
+                  {loading ? (
+                    <div className="py-4 text-center text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+                  ) : (
+                    <ul className="mt-2 space-y-1.5">{ambiguous.map((l) => renderRow(l, true))}</ul>
+                  )}
+                </div>
+              )}
+              <div className="mt-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Where this shows up</p>
+                  <span className="text-[10.5px] text-muted-foreground">{confirmed.length}</span>
+                </div>
+                {loading ? (
+                  <div className="py-6 text-center text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+                ) : confirmed.length === 0 ? (
+                  <p className="mt-2 text-[12px] text-muted-foreground">{ambiguous.length > 0 ? "No confirmed sources yet." : "No sources yet."}</p>
+                ) : (
+                  <ul className="mt-2 space-y-1.5">{confirmed.map((l) => renderRow(l, false))}</ul>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </SheetContent>
     </Sheet>
   );
