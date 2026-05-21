@@ -1,129 +1,111 @@
-# Vanta Next-Stage Maturity — Staged Plan
+# Phase 3 — Sherlock Surface-Wide Recognition
 
-The uploaded spec defines 8 phases. Per its own rules ("Do not build everything at once… ship each phase before the next"), this plan locks in the sequence and scopes **Phase 1 (Voice Sweep Completion)** as the first shippable chunk. Later phases get one-paragraph stubs so you can see the whole arc, but each will get its own dedicated plan when we get there.
+## Goal
 
----
+Sherlock stops being a buried feature and becomes visible, useful, and trustworthy across every surface. The five operations — Observe, Extract, Relate, Suggest, Investigate — are explicit, confidence-labeled, and never execute without approval.
 
-## Sequence (locked)
+## What exists already
 
-1. Voice Sweep Completion ← **next**
-2. File Intake Maturity
-3. Sherlock 2 Surface-Wide Recognition
-4. Capture Inbox V2
-5. Relationship & Entity Detail Polish
-6. Briefings V2 Polish
-7. Command Canvas Maturity
-8. Ecosystem Hooks Roadmap Hardening
+- Edge function: `sherlock-investigate` supports `overlay`, `extract`, `suggest`, and `full` modes with caching via `sherlock_findings_cache`
+- Tables: `investigations`, `investigation_findings`, `sherlock_findings_cache`
+- UI: `AnalyzeButton`, `SherlockOverlay` (sheet), `SherlockSurface` (dedicated page), `SherlockContext`
+- Voice: `vantaSay.sherlock.*` phrases already in place
+- Status dots: confidence tones already mapped
 
-No WhatsApp. No new paid APIs. No auto-execution. No dashboard bloat.
+## What's missing / what this phase builds
 
----
+### 1. Complete the 5-operation model in the edge function
 
-## PHASE 1 — Voice Sweep Completion (this PR)
+Add `observe` (lightweight read) and `relate` (find connections across substrate) modes to `sherlock-investigate`:
 
-### Goal
+- `observe`: lightweight scan — what type of thing is this, what's salient, no deep analysis. Returns: `kind`, `salient`, `confidence`. Cached.
+- `relate`: given an entity, find related notes/commitments/actions across the substrate. Returns: `related` array with `kind`, `id`, `why`, `confidence`. Cached.
 
-Every user-facing string reads like the Default Operator Voice already codified in `vantaVoice.ts`. No generic chatbot residue, no productivity-app hype, no robotic apologies.
+`extract` and `suggest` already exist but their results are only cached, never surfaced on cards.
 
-### Approach
+### 2. Surface Sherlock chips on cards across the platform
 
-**1. Extend** `src/lib/vantaVoice.ts` with surface-specific phrase banks the spec calls out:
+Wherever an item has cached Sherlock findings, show a dismissible confidence chip:
 
-- `vantaSay.emptyCaptures()`, `emptyCommitments()`, `emptyFiles()`, `emptyBriefing()`, `emptyActions()`, `emptyMemory()`
-- `vantaSay.errorGeneric(what, doWhat)` — replaces "Something went wrong"
-- `vantaSay.askToSort()`, `askToStructure()`, `askForFollowThrough()` for chat/capture prompts
-- `vantaSay.sherlockObserved(kind)`, `sherlockSuggests(action)` with confidence-aware variants
-- Reminder/Telegram imperatives (verb-first, no cute)
+| Surface | Card | What Sherlock shows |
+|---------|------|---------------------|
+| Memory / Capture Inbox | `CaptureCard` | `suggest` result: route chip ("→ Commitment", "→ Action") with confidence dot |
+| Memory / Files | `MemoryFilesView` file rows | `extract` result: detected type chip with confidence |
+| Commitments | commitment cards | `relate` result: N related items found |
+| Actions | action cards | `relate` result: N related items found |
+| Notes | note cards | `relate` result: N related items found |
+| Briefings | `DailyBriefingCard` | `observe` on briefing content — salient insight chip |
+| Canvas | entity cards | `relate` — linked entities count |
+| Telegram | (deferred to Phase 8) | — |
 
-**2. Audit + rewrite copy across these surfaces** (greps then targeted edits — no logic changes):
+Each chip is dismissible (sets `dismissed_at` in cache or local state). Tapping a chip opens the Sherlock overlay pre-filled with that operation's results.
 
-- Shell: `AmbientHeader`, `SurfaceTabs`, `ConversationDock`, `ModeBadge`, `AwarenessHUD`
-- Capture Inbox: `MemorySurface`, `CapturesView`, `CaptureCard`, `MemoryFilesView`, `RecognizePanel`, `CorrectionsCenter`
-- Commitments / Actions: `CommitmentsSurface`, `CommitmentActions`, `ActionsSurface`, `ReminderComposer`
-- Sherlock: `SherlockSurface`, `SherlockOverlay`, `AnalyzeButton`
-- Aware: `AwarenessSurface`, `SignalCard`, `LayerChips`, `BadLocationRecoveryPanel`, `SectionDrawer`
-- Briefings: `DailyBriefingCard`, `ScheduleQueryChips`, `ScheduleSurface`
-- Canvas: `CommandCanvas`, `CanvasCardsView`, `CanvasTimelineView`, `CanvasBoardView`, `EntityDetailSheet`, `EntityChips`
-- Telegram / push: `TelegramLinkCard`, `telegram-webhook` reply strings, `push-test`, `commitment-reminders`
-- Settings / install: `Settings`, `InstallVantaSection`, `PushReadinessSection`, `TimeRemindersSection`, `FileUploadCard`, `EmailInboxCard`, `ExecutorsCard`
-- Auth + errors: `Auth`, toaster fallbacks, `vantaToast.fromError`
+### 3. Confidence-visible suggestions only
 
-**3. Forbidden-phrase guardrail test**  
-Extend `src/test/voice-guardrail.test.ts`:
+Every Sherlock-derived chip, badge, or inline suggestion must show:
+- Confidence level (`high` / `medium` / `low`) via `StatusDot` tone
+- The operation that produced it (`observe`, `extract`, `relate`, `suggest`, `investigate`)
+- A "Suggestion — tap to review" hint on first render
 
-- Walk `src/` and `supabase/functions/` for the spec's banned strings ("How can I help you today?", "As an AI assistant", "Something went wrong", "Unlock your productivity", "Let's get organized", "Seamless experience", "Boost your workflow", "Certainly!", "I apologize", "I'd be happy to", "Great job staying organized", "Optimize your workflow", "Your productivity journey").
-- Fail the build if any reappear. Allow-list `vantaVoice.ts` itself (where the forbidden list lives as data).
+### 4. "Nothing runs until you approve" wiring
 
-**4. Tone rules per surface** baked into the phrase helpers, so future code defaults to the right register:
+- `Suggest` mode currently proposes routes (memory/commitment/reminder/action/sherlock/ignore). These must surface as **draft chips** on the card, not auto-route.
+- Tapping a suggestion chip opens the Sherlock overlay with an explicit "Approve" / "Dismiss" action.
+- Approve → routes the item, writes `audit_log` event.
+- Dismiss → marks dismissed, writes `audit_log` event.
+- All suggestion chips render `vantaSay.sherlock.notExecuting()` as micro-copy.
 
-- Chat = direct, short
-- Briefings = tight narrative, lead with best first move (already wired)
-- Sherlock = forensic + named confidence, never executes
-- Aware = locational, source-aware, no travel-blog
-- Telegram = compact, verb-first, no link previews
-- Reminders = imperative + context
-- Errors = what broke / what to do
-- Empty states = invitation, not apology
-- Canvas = quiet labels and counts
+### 5. Sherlock overlay operation selector
 
-### Out of scope for Phase 1
+Currently the overlay only runs `investigate` (deep analysis). Extend it to allow switching between the 5 operations when opened manually:
 
-No new features, no schema changes, no edge-function logic changes (only string edits inside functions). Sherlock behavior, file routing, briefing composition logic, Canvas views — all untouched.
+- Observe — quick type read
+- Extract — structured facts
+- Relate — cross-substrate connections
+- Suggest — triage draft
+- Investigate — deep analysis (current behavior)
 
-### Files expected to change
+Default operation depends on context: captures default to `suggest`, files to `extract`, existing entities to `relate`, freeform to `investigate`.
 
-- `src/lib/vantaVoice.ts` (extended)
-- `src/test/voice-guardrail.test.ts` (extended)
-- ~25–35 component files: targeted string replacements only
-- A handful of edge functions for outgoing reply text (Telegram, push)
+## Files expected to change
 
-### Acceptance criteria (from spec)
+- `supabase/functions/sherlock-investigate/index.ts` — add `observe` and `relate` modes
+- `src/components/sherlock/SherlockContext.tsx` — add `operation` to scope, extend types
+- `src/components/sherlock/SherlockOverlay.tsx` — operation selector, explicit approve/dismiss actions
+- `src/components/sherlock/AnalyzeButton.tsx` — pass default operation
+- `src/components/memory/CaptureCard.tsx` — show `suggest` chips
+- `src/components/memory/CapturesView.tsx` — wire suggest chips to cache
+- `src/components/memory/MemoryFilesView.tsx` — show `extract` chips
+- `src/components/schedule/DailyBriefingCard.tsx` — show `observe` chips
+- `src/components/entities/CanvasCardsView.tsx` — show `relate` chips
+- `src/components/entities/EntityDetailSheet.tsx` — Sherlock section with operations
+- `src/lib/vantaVoice.ts` — extend `sherlock.*` phrases for observe/relate/approve/dismiss
+- New: `src/components/sherlock/SherlockSuggestionChip.tsx` — reusable chip component
+- New: `src/hooks/useSherlockCache.ts` — read from `sherlock_findings_cache` with stale logic
 
-- Every major surface uses the Default Operator Voice
-- No banned phrases (enforced by test)
-- Sherlock stays investigative; Aware stays practical; Telegram stays compact; errors stay clear; canvas stays quiet
-- No exclamation-mark happy-talk
+## Out of scope
 
-### Risks
+- No new database tables (uses existing `sherlock_findings_cache`, `investigations`, `investigation_findings`)
+- No changes to `full` investigation mode (legacy, stays as-is)
+- No Telegram surfacing (Phase 8)
+- No WhatsApp
+- No auto-execution — all suggestions remain drafts
 
-- Copy churn touches many files → keep diffs minimal, no refactors riding along
-- Risk of changing a string a test asserts on → run tests after the sweep
-- Some strings live in edge functions; need to redeploy (automatic)
+## Acceptance criteria
 
-### Deferred (intentionally)
+- Every major card type can show a Sherlock-derived chip when cache has findings
+- All chips show confidence via `StatusDot`
+- All suggestions are explicitly dismissible and approvable
+- `audit_log` gets an event on every approve/dismiss
+- Voice stays Vanta-native throughout (`vantaSay.sherlock.*`)
+- Mobile-first: chips don't break 384px layout
 
-- File intake schema/extraction (Phase 2)
-- Sherlock cross-surface recognition (Phase 3)
-- Inbox triage UI upgrades (Phase 4)
-- Relationship reasons/source labels UI (Phase 5)
-- Briefing scope variants — project/person/place (Phase 6)
-- Canvas Flow/Map views (Phase 7)
-- Ecosystem adapters (Phase 8)
+## Deferred to later phases
 
----
+- Phase 4: Inbox state machine integration with suggest chips
+- Phase 5: Relationship graph using `relate` data
+- Phase 6: Briefing variants that leverage `observe`
+- Phase 7: Canvas graph filters using `relate` connections
+- Phase 8: Telegram suggestion surfacing
 
-## Phases 2–8 (stubs, planned separately)
-
-- **Phase 2 — File Intake**: extend files schema with detected type / entities / sensitive flag / review status, add Sherlock-driven extract pass on upload, triage actions in Capture Inbox, sensitive-file caution copy, audit events on every route.
-- **Phase 3 — Sherlock Surface-Wide**: formalize Observe/Extract/Relate/Suggest/Investigate, surface on capture/file/message/commitment/entity/briefing/canvas/Telegram cards, confidence-visible suggestions only.
-- **Phase 4 — Capture Inbox V2**: state machine (New/Needs review/Suggested/Routed/Attached/Archived/Ignored/Waiting/Stale), source + suggested-type + confidence chips, mobile-first scan.
-- **Phase 5 — Relationship Polish**: relation reasons, inbound/outbound grouping, filter by type, manual attach/detach, dismissed-link cooldown, full relation audit trail.
-- **Phase 6 — Briefings V2 Polish**: morning/evening/project/person/place variants, object citations with open-from-briefing, tighten copy further.
-- **Phase 7 — Canvas Maturity**: card metadata expansion, timeline filters, board high-risk approval phrase preserved, graph filters + dashed-suggestion rendering on mobile. Flow/Map stay deferred.
-- **Phase 8 — Ecosystem Roadmap Hardening**: per-source event schemas + read-only adapter strategy + approval rules for Website / GroundStay / CampCore / Fenrir / Calendar / Email / Voice / Maps. Doc-only. No WhatsApp.
-
-After Phase 1 ships, I'll come back with a dedicated plan for Phase 2.
-
-&nbsp;
-
-Proceed with Phase 1 — Voice Sweep Completion only.
-
-Keep this PR limited to centralized voice helpers, user-facing copy cleanup, and the voice guardrail test. No schema changes, no new features, no behavior changes, no refactors riding along.
-
-Use vantaVoice.ts / vantaSay.* as the central source for the Default Operator Voice. Sweep the listed surfaces for generic chatbot/productivity copy and replace it with Vanta-native language.
-
-Extend the guardrail test so banned phrases cannot come back, with vantaVoice.ts allow-listed only where the forbidden list is stored as data.
-
-After Phase 1 ships, return a report showing files changed, phrases replaced, tests added/updated, any remaining copy debt, and whether it is safe to move to Phase 2.
-
-Street version: make Vanta sound like Vanta everywhere, but don’t touch the engine while painting the body.
+Street version: Sherlock becomes a visible co-pilot on every card, not a hidden tool you have to remember to open.
