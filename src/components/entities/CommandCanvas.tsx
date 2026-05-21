@@ -14,7 +14,7 @@ import { CanvasBoardView } from "./CanvasBoardView";
 import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
-type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number };
+type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number; status?: string | null; source?: string | null };
 
 type Node = Entity & { x: number; y: number; weight: number };
 
