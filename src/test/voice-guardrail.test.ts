@@ -53,6 +53,13 @@ const FORBIDDEN: RegExp[] = [
   /let'?s get organi[sz]ed/i,
   /seamless experience/i,
   /boost your workflow/i,
+  // Sherlock 3F — forensic posture: no triumphalism, no high-certainty claims,
+  // no "I executed it" phrasing. Sherlock recognizes; humans decide.
+  /solved the case/i,
+  /i took care of it/i,
+  /definitely belongs/i,
+  /case closed/i,
+  /trust me on this/i,
 ];
 
 describe("vantaVoice guardrail", () => {
