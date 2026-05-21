@@ -127,6 +127,7 @@ export function CanvasCardsView({ seedEntityId, windowDays = 30, kinds }: Props)
     <div className="h-full overflow-y-auto px-3 py-2 space-y-2">
       {entities.map((e) => {
         const refs = counts.get(e.id) ?? 0;
+        const rels = relCounts.get(e.id) ?? 0;
         return (
           <button
             key={e.id}
@@ -142,9 +143,10 @@ export function CanvasCardsView({ seedEntityId, windowDays = 30, kinds }: Props)
               </div>
               <Badge variant="outline" className="shrink-0 text-[10px] capitalize">{e.kind}</Badge>
             </div>
-            {refs > 0 && (
-              <div className="mt-2 text-[11px] text-muted-foreground">
-                {refs} connected item{refs === 1 ? "" : "s"}
+            {(refs > 0 || rels > 0) && (
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                {refs > 0 && <span>{refs} connected item{refs === 1 ? "" : "s"}</span>}
+                {rels > 0 && <span>{rels} relation{rels === 1 ? "" : "s"}</span>}
               </div>
             )}
           </button>
