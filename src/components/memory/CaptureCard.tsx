@@ -75,10 +75,20 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
                 <AlertCircle className="h-3 w-3" /> Needs review
               </span>
             )}
+            {item.sensitive && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted/30 px-2 py-0.5 text-foreground/80 ring-1 ring-border/60" title="May contain personal or financial information">
+                <AlertCircle className="h-3 w-3" /> Sensitive
+              </span>
+            )}
             <span>· {formatDistanceToNow(new Date(item.ts), { addSuffix: true })}</span>
           </div>
           {item.why && (
             <p className="mt-1 text-[10.5px] italic text-muted-foreground/80">{item.why}</p>
+          )}
+          {item.sensitive && (
+            <p className="mt-1 text-[10.5px] text-foreground/70">
+              This may contain personal or financial information. Review before routing.
+            </p>
           )}
           {item.linked && item.linked.length > 0 && (
             <div className="mt-1 text-[10.5px] text-muted-foreground/80">Linked: {item.linked.join(" · ")}</div>
