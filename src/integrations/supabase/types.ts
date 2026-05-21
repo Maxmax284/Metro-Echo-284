@@ -893,47 +893,74 @@ export type Database = {
       }
       ingested_files: {
         Row: {
+          approved_actions: Json
+          confidence: string
           created_at: string
+          detected_doc_type: string
           error: string | null
+          extracted_entities: Json
+          extracted_text: string | null
           filename: string
           id: string
           metadata: Json | null
           mime_type: string | null
           note_id: string | null
+          review_status: string
+          sensitive: boolean
           size_bytes: number | null
           source: string
           status: string
           storage_path: string | null
+          suggested_actions: Json
+          suggested_summary: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          approved_actions?: Json
+          confidence?: string
           created_at?: string
+          detected_doc_type?: string
           error?: string | null
+          extracted_entities?: Json
+          extracted_text?: string | null
           filename: string
           id?: string
           metadata?: Json | null
           mime_type?: string | null
           note_id?: string | null
+          review_status?: string
+          sensitive?: boolean
           size_bytes?: number | null
           source?: string
           status?: string
           storage_path?: string | null
+          suggested_actions?: Json
+          suggested_summary?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          approved_actions?: Json
+          confidence?: string
           created_at?: string
+          detected_doc_type?: string
           error?: string | null
+          extracted_entities?: Json
+          extracted_text?: string | null
           filename?: string
           id?: string
           metadata?: Json | null
           mime_type?: string | null
           note_id?: string | null
+          review_status?: string
+          sensitive?: boolean
           size_bytes?: number | null
           source?: string
           status?: string
           storage_path?: string | null
+          suggested_actions?: Json
+          suggested_summary?: string | null
           updated_at?: string
           user_id?: string
         }
