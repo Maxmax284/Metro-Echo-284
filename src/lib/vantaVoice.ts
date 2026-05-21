@@ -244,6 +244,10 @@ export const vantaSay = {
     dismissed: () => "Dismissed. Not acting on it.",
     relatedCount: (n: number) => `${n} related ${n === 1 ? "item" : "items"}.`,
     salient: (what: string) => `Worth noticing: ${what}`,
+    scanComplete: (n: number) =>
+      n === 0
+        ? "Scan complete. Nothing new worth flagging."
+        : `Scan complete. ${n} new ${n === 1 ? "thing" : "things"} worth a look.`,
     operation: {
       observe: "Observe",
       extract: "Extract",
