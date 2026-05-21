@@ -7,6 +7,7 @@ import { useCanvas } from "./CanvasContext";
 import { formatDistanceToNow } from "date-fns";
 import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network, Check, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 type EntityRow = {
   id: string;
@@ -133,6 +134,15 @@ export function EntityDetailSheet() {
             {entity?.kind && <span className="rounded-full bg-surface-elevated/60 px-2 py-0.5">{entity.kind}</span>}
             {entity?.confidence && <span className="rounded-full bg-surface-elevated/60 px-2 py-0.5">confidence: {entity.confidence}</span>}
             {entity?.last_seen_at && <span className="text-muted-foreground/80">last seen {formatDistanceToNow(new Date(entity.last_seen_at), { addSuffix: true })}</span>}
+            {entity && (
+              <SherlockChipTrigger
+                operation="relate"
+                entityType="freeform"
+                entityId={entity.id}
+                text={entity.display_name}
+                title={entity.display_name}
+              />
+            )}
           </SheetDescription>
           {entity && (
             <Button

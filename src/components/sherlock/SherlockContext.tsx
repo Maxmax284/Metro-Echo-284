@@ -1,22 +1,37 @@
 import { createContext, useCallback, useContext, useState, ReactNode } from "react";
+import type { SherlockOperation } from "@/hooks/useSherlockCache";
 
 export type SherlockScope = {
   entity_type: "message" | "note" | "action" | "commitment" | "briefing" | "file" | "freeform";
   entity_id?: string | null;
   title?: string;
   text?: string;
+  /**
+   * Which Sherlock operation to run by default when the overlay opens.
+   * Defaults to "investigate" (legacy overlay behavior).
+   */
+  operation?: SherlockOperation;
 };
 
 export type SherlockFindings = {
   summary?: string;
   risks?: Array<{ claim: string; severity?: string; rationale?: string; refs?: string[] }>;
   missing_info?: Array<{ claim: string; rationale?: string }>;
-  related?: Array<{ kind: string; id?: string; snippet?: string }>;
+  related?: Array<{ kind: string; id?: string; snippet?: string; why?: string; confidence?: string }>;
   contradictions?: Array<{ claim: string; refs?: string[] }>;
   assumptions?: Array<{ claim: string; rationale?: string }>;
   dependencies?: Array<{ claim: string; refs?: string[] }>;
   blind_spots?: Array<{ claim: string }>;
   confidence?: "low" | "medium" | "high";
+  // observe / suggest / extract shapes
+  kind?: string;
+  salient?: string;
+  suggested_route?: string;
+  rationale?: string;
+  title?: string;
+  due_hint?: string;
+  risk?: string;
+  document_type?: string;
 };
 
 type Ctx = {

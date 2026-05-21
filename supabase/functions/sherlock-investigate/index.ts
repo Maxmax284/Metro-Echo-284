@@ -153,6 +153,55 @@ const SUGGEST_SCHEMA = {
   additionalProperties: false,
 };
 
+// -------- OBSERVE mode (quick read — kind + one salient thing) --------
+const OBSERVE_SYSTEM = `${SHERLOCK_VOICE}
+
+Read this item and report what it is and one thing a sharp operator would
+notice on first glance. No analysis, no recommendations, no decisions.
+If nothing's notable, return salient="". Output strict JSON only.`;
+
+const OBSERVE_SCHEMA = {
+  type: "object",
+  properties: {
+    kind: { type: "string", description: "What this item is (one phrase)." },
+    salient: { type: "string", description: "One thing worth noticing, or empty." },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["kind", "confidence"],
+  additionalProperties: false,
+};
+
+// -------- RELATE mode (find connections across substrate) --------
+const RELATE_SYSTEM = `${SHERLOCK_VOICE}
+
+Given a TARGET and recent CONTEXT, find items in the user's memory that are
+genuinely related — same person, same project, same place, follow-up to,
+contradicts, etc. Be specific about why. Don't pad. If nothing connects,
+return related=[]. Output strict JSON only.`;
+
+const RELATE_SCHEMA = {
+  type: "object",
+  properties: {
+    related: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file"] },
+          id: { type: "string" },
+          why: { type: "string" },
+          confidence: { type: "string", enum: ["low", "medium", "high"] },
+        },
+        required: ["kind", "why", "confidence"],
+        additionalProperties: false,
+      },
+    },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["related", "confidence"],
+  additionalProperties: false,
+};
+
 async function sha256(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -200,14 +249,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const ALLOWED_MODES = ["overlay", "extract", "suggest", "full"] as const;
+    const ALLOWED_MODES = ["overlay", "extract", "suggest", "observe", "relate", "full"] as const;
     const mode = (ALLOWED_MODES as readonly string[]).includes(body.mode) ? body.mode : "full";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // -------- EXTRACT / SUGGEST MODES (capture-to-triage helpers) --------
-    if (mode === "extract" || mode === "suggest") {
+    // -------- EXTRACT / SUGGEST / OBSERVE / RELATE MODES (capture-to-triage helpers) --------
+    if (mode === "extract" || mode === "suggest" || mode === "observe" || mode === "relate") {
       const scope = body.scope ?? {};
       const entity_type: string = scope.entity_type ?? "freeform";
       const entity_id: string | null = scope.entity_id ?? null;
@@ -243,7 +292,6 @@ Deno.serve(async (req: Request) => {
         system = SUGGEST_SYSTEM;
         schema = SUGGEST_SCHEMA;
         fnName = "suggest";
-        // Light recent context so the suggestion isn't blind.
         const [notesRes, commsRes] = await Promise.all([
           supabase.from("notes").select("id, title").order("updated_at", { ascending: false }).limit(8),
           supabase.from("commitments").select("id, summary, due_at, status").eq("status", "open").order("updated_at", { ascending: false }).limit(8),
@@ -253,7 +301,28 @@ Deno.serve(async (req: Request) => {
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
         ].join("\n");
         userMsg = `CAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
+      } else if (mode === "observe") {
+        system = OBSERVE_SYSTEM;
+        schema = OBSERVE_SCHEMA;
+        fnName = "observe";
+        userMsg = `ITEM (${entity_type}):\n${text}`;
+      } else if (mode === "relate") {
+        system = RELATE_SYSTEM;
+        schema = RELATE_SCHEMA;
+        fnName = "relate";
+        const [notesRes, commsRes, actsRes] = await Promise.all([
+          supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(20),
+          supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(20),
+          supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
+        ]);
+        const ctx = [
+          ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
+          ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
+          ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
+        ].join("\n");
+        userMsg = `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
       }
+
 
       const aiRes = await callGateway(LOVABLE_API_KEY, system, userMsg, fnName, schema);
       if (aiRes.status === 429 || aiRes.status === 402) {
