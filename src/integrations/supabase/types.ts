@@ -1537,6 +1537,87 @@ export type Database = {
           },
         ]
       }
+      sherlock_findings: {
+        Row: {
+          audit_event_id: string | null
+          confidence: string
+          cooldown_until: string | null
+          created_at: string
+          evidence_hash: string | null
+          extracted_data: Json
+          finding_type: string
+          id: string
+          mode: string
+          rationale: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sensitive_flag: boolean
+          source_object_id: string | null
+          source_object_type: string
+          status: string
+          suggested_action: string | null
+          suggested_relation_type: string | null
+          summary: string
+          surface_origin: string | null
+          target_object_id: string | null
+          target_object_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audit_event_id?: string | null
+          confidence?: string
+          cooldown_until?: string | null
+          created_at?: string
+          evidence_hash?: string | null
+          extracted_data?: Json
+          finding_type: string
+          id?: string
+          mode: string
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sensitive_flag?: boolean
+          source_object_id?: string | null
+          source_object_type: string
+          status?: string
+          suggested_action?: string | null
+          suggested_relation_type?: string | null
+          summary: string
+          surface_origin?: string | null
+          target_object_id?: string | null
+          target_object_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audit_event_id?: string | null
+          confidence?: string
+          cooldown_until?: string | null
+          created_at?: string
+          evidence_hash?: string | null
+          extracted_data?: Json
+          finding_type?: string
+          id?: string
+          mode?: string
+          rationale?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sensitive_flag?: boolean
+          source_object_id?: string | null
+          source_object_type?: string
+          status?: string
+          suggested_action?: string | null
+          suggested_relation_type?: string | null
+          summary?: string
+          surface_origin?: string | null
+          target_object_id?: string | null
+          target_object_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sherlock_findings_cache: {
         Row: {
           confidence: string | null
@@ -1568,6 +1649,45 @@ export type Database = {
           findings?: Json
           id?: string
           scope_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sherlock_settings: {
+        Row: {
+          ambient_enabled: boolean
+          created_at: string
+          dismissed_cooldown_days: number
+          manual_only_for_sensitive: boolean
+          sensitive_caution: boolean
+          show_in_briefings: boolean
+          show_in_canvas: boolean
+          show_low_confidence: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ambient_enabled?: boolean
+          created_at?: string
+          dismissed_cooldown_days?: number
+          manual_only_for_sensitive?: boolean
+          sensitive_caution?: boolean
+          show_in_briefings?: boolean
+          show_in_canvas?: boolean
+          show_low_confidence?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ambient_enabled?: boolean
+          created_at?: string
+          dismissed_cooldown_days?: number
+          manual_only_for_sensitive?: boolean
+          sensitive_caution?: boolean
+          show_in_briefings?: boolean
+          show_in_canvas?: boolean
+          show_low_confidence?: boolean
           updated_at?: string
           user_id?: string
         }
