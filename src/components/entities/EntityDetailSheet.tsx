@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { AtSign, Hash, Link2, MapPin, Tag, Calendar, Box, User, FileText, CheckSquare, MessageSquare, Inbox, MapPinned, Loader2, Network, Check, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
 
 type EntityRow = {
   id: string;
