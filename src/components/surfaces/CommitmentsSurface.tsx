@@ -12,6 +12,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatTzLine } from "@/lib/timeRules";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { EntityChips } from "@/components/entities/EntityChips";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 type Commitment = {
   id: string;
