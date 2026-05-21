@@ -250,10 +250,18 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         });
         if (fnErr) throw fnErr;
         toast.success(vantaSay.fileIngested(f.name));
+        setMsgs((prev) => [
+          ...prev,
+          {
+            role: "system",
+            content: `File captured: ${f.name}. Ingestion finished; using that file as the source now.`,
+            metadata: { source: "file", detected_type: f.type || "upload", needs_review: true },
+          },
+        ]);
         // Auto-run analyze-file registry tool
         const analyze = COMPANION_TOOLS.find((t) => t.id === "analyze-file");
         if (analyze?.buildPrompt && !busy) {
-          void send(analyze.buildPrompt({ surface: context.surface, placeLabel: place?.label }));
+          void send(`Analyze uploaded file "${f.name}" (ingested_file_id: ${rec.id}). Use the recent uploaded file context and source-label everything. If extraction failed, say the filename, status, and error instead of asking me to paste it.`);
         }
       } catch (e) {
         toast.fromError(e);
