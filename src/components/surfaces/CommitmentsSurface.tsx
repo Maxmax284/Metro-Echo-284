@@ -13,6 +13,7 @@ import { formatTzLine } from "@/lib/timeRules";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
+import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 
 type Commitment = {
   id: string;
