@@ -11,6 +11,7 @@ import { Loader2, Link2, X } from "lucide-react";
 import { CanvasCardsView } from "./CanvasCardsView";
 import { CanvasTimelineView } from "./CanvasTimelineView";
 import { CanvasBoardView } from "./CanvasBoardView";
+import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
 type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number };
