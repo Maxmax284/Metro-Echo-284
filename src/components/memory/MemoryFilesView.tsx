@@ -387,6 +387,47 @@ export function MemoryFilesView() {
                       {meta.error || "Extraction failed."}
                     </p>
                   ) : null}
+                  {f.sensitive ? (
+                    revealed[f.id] ? (
+                      <>
+                        {f.suggested_summary && (
+                          <p className="mt-1 text-[11px] text-foreground/80">{f.suggested_summary}</p>
+                        )}
+                        <button
+                          onClick={() => setRevealed((r) => ({ ...r, [f.id]: false }))}
+                          className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+                        >
+                          <EyeOff className="h-3 w-3" /> Hide preview
+                        </button>
+                      </>
+                    ) : (
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="text-[10.5px] italic text-muted-foreground/80">
+                          {vantaSay.sensitive.minimalPreview()}
+                        </p>
+                        <button
+                          onClick={() => setRevealed((r) => ({ ...r, [f.id]: true }))}
+                          className="inline-flex items-center gap-1 rounded-full bg-muted/20 px-2 py-0.5 text-[10.5px] text-foreground/80 ring-1 ring-border/50 hover:bg-muted/30"
+                        >
+                          <Eye className="h-3 w-3" /> Reveal
+                        </button>
+                      </div>
+                    )
+                  ) : f.suggested_summary ? (
+                    <p className="mt-1 text-[11px] text-foreground/80">{f.suggested_summary}</p>
+                  ) : null}
+                  {!f.sensitive && Array.isArray(f.suggested_actions) && f.suggested_actions.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {f.suggested_actions.slice(0, 4).map((a: any, i: number) => (
+                        <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] text-primary ring-1 ring-primary/30" title={a.rationale ?? ""}>
+                          draft: {a.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-1 flex items-center gap-1">
+                    <CaptureRouteHistory captureKind="file" captureId={f.id} />
+                  </div>
                   <EmbeddedSherlockFindings sourceType="file" sourceId={f.id} />
                 </div>
               </div>
