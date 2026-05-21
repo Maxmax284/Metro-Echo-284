@@ -15,6 +15,7 @@ import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
