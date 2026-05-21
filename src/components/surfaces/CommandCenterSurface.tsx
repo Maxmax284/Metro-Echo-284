@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
-  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network } from "lucide-react";
+  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -171,6 +171,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
           <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
           <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
+          <FilesTile onOpen={() => onNavigate("memory")} />
           <SherlockWatchtowerCard items={findings} onOpen={() => onNavigate("sherlock")}
             onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
           <MemoryPulseCard onOpen={() => onNavigate("memory")} />
