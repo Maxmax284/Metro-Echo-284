@@ -18,6 +18,9 @@ export type SystemControls = {
   deep_research_enabled: boolean;
   local_search_enabled: boolean;
   auto_refresh_enabled: boolean;
+  gth_enabled: boolean;
+  campcore_enabled: boolean;
+  fenrir_enabled: boolean;
   updated_at: string;
 };
 
