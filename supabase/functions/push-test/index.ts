@@ -24,13 +24,13 @@ Deno.serve(async (req: Request) => {
     { global: { headers: { Authorization: authHeader } } },
   );
   const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: authErr } = await userClient.auth.getClaims(token);
-  if (authErr || !claimsData?.claims?.sub) {
+  const { data: claimsData, error: authErr } = await userClient.auth.getUser(token);
+  if (authErr || !claimsData?.user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const userId = claimsData.claims.sub as string;
+  const userId = claimsData.user.id as string;
 
   const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
