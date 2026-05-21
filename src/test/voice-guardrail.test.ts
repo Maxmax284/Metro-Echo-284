@@ -32,4 +32,34 @@ describe("vantaVoice guardrail", () => {
     expect(offenders, `Use vantaToast/vantaSay from @/lib/vantaVoice instead.\nOffenders:\n${offenders.join("\n")}`)
       .toEqual([]);
   });
+
+  it("no forbidden chatbot phrases in component copy", () => {
+    // Skip the voice library and this test — they mention the phrases legitimately to forbid them.
+    const SKIP = new Set([
+      "src/lib/vantaVoice.ts",
+      "src/test/voice-guardrail.test.ts",
+    ]);
+    const FORBIDDEN = [
+      /how can i help you today/i,
+      /how may i assist/i,
+      /as an ai (assistant|language model)/i,
+      /i'?d be happy to/i,
+      /\bcertainly!/i,
+      /unlock your productivity/i,
+      /optimize your workflow/i,
+      /great job staying organized/i,
+      /your productivity journey/i,
+      /something went wrong/i,
+    ];
+    const offenders: string[] = [];
+    for (const file of walk("src")) {
+      const rel = file.replace(/\\/g, "/");
+      if (SKIP.has(rel)) continue;
+      const src = readFileSync(file, "utf8");
+      for (const re of FORBIDDEN) {
+        if (re.test(src)) offenders.push(`${rel}  ::  ${re}`);
+      }
+    }
+    expect(offenders, `Route copy through vantaSay.* instead:\n${offenders.join("\n")}`).toEqual([]);
+  });
 });
