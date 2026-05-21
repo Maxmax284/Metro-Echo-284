@@ -1,35 +1,45 @@
-import { useEffect, useState } from "react";
-import { Bell, BellOff, ShieldAlert, Info, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Bell, BellOff, ShieldAlert, Info, Loader2, Check, X, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { vantaToast as toast } from "@/lib/vantaVoice";
-import { getStatus, pushSupported, subscribeToPush, unsubscribeFromPush, type PushStatus } from "@/lib/pushClient";
+import {
+  getDiagnostics,
+  pushSupported,
+  subscribeToPush,
+  unsubscribeFromPush,
+  type PushDiagnostics,
+} from "@/lib/pushClient";
+
+type RowKind = "ok" | "warn" | "err" | "idle";
+type Row = { kind: RowKind; label: string; detail?: string };
 
 /**
- * Push readiness — live delivery via VAPID Web Push.
- * Permission requested only on explicit tap. Audit every transition.
+ * Push readiness — 5 honest status rows. Never claims "On" unless every axis is green.
  */
 export function PushReadinessSection() {
   const { user } = useAuth();
-  const [status, setStatus] = useState<PushStatus>("unsupported");
+  const [diag, setDiag] = useState<PushDiagnostics | null>(null);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { detect(); }, []);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const d = await getDiagnostics();
+      setDiag(d);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  async function detect() {
-    if (!pushSupported()) return setStatus("unsupported");
-    const s = await getStatus();
-    setStatus(s);
-  }
+  useEffect(() => { refresh(); }, [refresh]);
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
     await supabase.from("audit_log").insert({
-      user_id: user.id,
-      entity_type: "push",
-      event,
-      payload,
+      user_id: user.id, entity_type: "push", event, payload,
     });
   };
 
@@ -39,10 +49,9 @@ export function PushReadinessSection() {
     await audit("push.permission_requested");
     try {
       const r = await subscribeToPush(user.id);
-      setStatus(r.status);
       if (r.ok) {
         await audit("push.permission_granted");
-        toast.success("Push is ready. You'll get reminders here too.");
+        toast.success("Push is ready. Reminders will land here too.");
       } else if (r.status === "blocked") {
         await audit("push.permission_denied");
         toast("Your browser blocked notifications. Change that in browser settings.");
@@ -53,8 +62,23 @@ export function PushReadinessSection() {
       } else {
         toast("Push wasn't enabled. You can try again.");
       }
-    } catch (e) {
+      await refresh();
+    } catch {
       toast("Couldn't enable push. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reEnable = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      await unsubscribeFromPush(user.id);
+      const r = await subscribeToPush(user.id);
+      if (r.ok) toast.success("Push re-enabled on this device.");
+      else toast("Couldn't re-enable. Try toggling browser permission.");
+      await refresh();
     } finally {
       setBusy(false);
     }
@@ -65,8 +89,8 @@ export function PushReadinessSection() {
     setBusy(true);
     try {
       await unsubscribeFromPush(user.id);
-      setStatus("off");
       toast("Push turned off. Telegram and in-app still work.");
+      await refresh();
     } finally {
       setBusy(false);
     }
@@ -78,14 +102,11 @@ export function PushReadinessSection() {
     try {
       const { data, error } = await supabase.functions.invoke("push-test");
       if (error) throw error;
-      const d = (data ?? {}) as { sent?: number; failed?: number; expired?: number; reason?: string };
-      if (d.reason === "no_subscriptions") {
-        toast("No active subscriptions on this account. Enable push first.");
-      } else if (d.sent && d.sent > 0) {
-        toast.success(`Test push sent to ${d.sent} device${d.sent === 1 ? "" : "s"}. Watch for it.`);
-      } else {
-        toast("Sent — but nothing delivered. Check Audit for details.");
-      }
+      const d = (data ?? {}) as { sent?: number; reason?: string };
+      if (d.reason === "no_subscriptions") toast("No active subscriptions. Enable push first.");
+      else if (d.sent && d.sent > 0) toast.success(`Test sent to ${d.sent} device${d.sent === 1 ? "" : "s"}.`);
+      else toast("Sent — but nothing delivered. Check Audit.");
+      await refresh();
     } catch (e: any) {
       toast(e?.message || "Test push failed.");
     } finally {
@@ -93,58 +114,66 @@ export function PushReadinessSection() {
     }
   };
 
+  if (!pushSupported()) {
+    return (
+      <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+        <Header status="off" />
+        {isIosNotInstalled() ? <IosInstallGuidance /> : (
+          <Hint icon={<Info className="h-4 w-4" />}>
+            Push reminders aren't supported in this browser.
+          </Hint>
+        )}
+      </section>
+    );
+  }
 
+  const rows: Row[] = buildRows(diag);
+  const allGreen = !!diag?.allGreen;
+  const headerStatus: "ready" | "off" | "blocked" | "needs-config" =
+    diag?.permission === "denied" ? "blocked"
+    : !diag?.vapidConfigured ? "needs-config"
+    : allGreen ? "ready"
+    : "off";
 
   return (
     <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
-      <div className="flex items-start gap-3">
-        <div className="rounded-md bg-primary/15 p-2 ring-1 ring-primary/30">
-          {status === "ready" ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-primary" />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold">Push notifications</h2>
-            <span className={
-              "rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider ring-1 " +
-              (status === "ready"
-                ? "bg-primary/15 text-primary ring-primary/30"
-                : "bg-muted/30 text-muted-foreground ring-border/50")
-            }>
-              {status === "ready" ? "Live" : status === "needs-config" ? "Setup needed" : status === "blocked" ? "Blocked" : "Off"}
-            </span>
-          </div>
-          <p className="text-[12px] text-muted-foreground">Browser / PWA push for reminders. Respects quiet hours.</p>
-        </div>
-      </div>
+      <Header status={headerStatus} loading={loading} onRefresh={refresh} />
 
-      <div className="mt-4 space-y-2 text-[12px]">
-        {isIosNotInstalled() && status !== "ready" && <IosInstallGuidance />}
-        {status === "unsupported" && (
-          <Hint icon={<Info className="h-4 w-4" />}>
-            Push reminders aren't supported in this browser. On iPhone, Vanta must be installed to the Home Screen first (see steps above).
-          </Hint>
+      {isIosNotInstalled() && !allGreen && <IosInstallGuidance />}
+
+      <ul className="mt-3 space-y-1.5">
+        {rows.map((r, i) => <RowItem key={i} row={r} />)}
+      </ul>
+
+      <div className="mt-3 space-y-2">
+        {diag?.staleSubscription && (
+          <Button size="sm" className="w-full gap-2" disabled={busy} onClick={reEnable}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Re-enable push on this device
+          </Button>
         )}
-        {status === "blocked" && (
-          <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
-            Your browser blocked notifications. Change that in browser settings, then come back.
-          </Hint>
-        )}
-        {status === "needs-config" && (
-          <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
-            Push isn't configured on the server yet. Once VAPID keys are set, this will go live.
-          </Hint>
-        )}
-        {status === "off" && (
+
+        {!allGreen && !diag?.staleSubscription && diag?.permission !== "denied" && diag?.vapidConfigured && (
           <Button size="lg" className="w-full gap-2" disabled={busy} onClick={enable}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
             Enable push reminders
           </Button>
         )}
-        {status === "ready" && (
-          <div className="space-y-2">
-            <Hint icon={<Bell className="h-4 w-4 text-emerald-300" />}>
-              You're subscribed. Reminders fire to this device. Receipts land in Audit.
-            </Hint>
+
+        {diag?.permission === "denied" && (
+          <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
+            Browser permission is blocked. Change it in browser settings, then refresh.
+          </Hint>
+        )}
+
+        {!diag?.vapidConfigured && (
+          <Hint icon={<ShieldAlert className="h-4 w-4 text-warn" />}>
+            Server isn't configured for push yet. Once VAPID keys are set, this goes live.
+          </Hint>
+        )}
+
+        {allGreen && (
+          <>
             <Button size="sm" className="w-full gap-2" disabled={busy} onClick={sendTest}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
               Send test push
@@ -152,10 +181,126 @@ export function PushReadinessSection() {
             <Button size="sm" variant="outline" className="w-full" disabled={busy} onClick={disable}>
               Turn off on this device
             </Button>
-          </div>
+          </>
         )}
       </div>
     </section>
+  );
+}
+
+function buildRows(d: PushDiagnostics | null): Row[] {
+  if (!d) return [];
+  const permKind: RowKind =
+    d.permission === "granted" ? "ok"
+    : d.permission === "denied" ? "err"
+    : "idle";
+  const permLabel =
+    d.permission === "granted" ? "Browser permission granted"
+    : d.permission === "denied" ? "Browser blocked notifications"
+    : "Browser permission not asked yet";
+
+  const swKind: RowKind = d.swRegistered ? "ok" : "warn";
+  const subKind: RowKind =
+    d.subscriptionLocal && d.subscriptionStored ? "ok"
+    : d.subscriptionLocal ? "warn"
+    : "idle";
+  const subLabel =
+    d.subscriptionLocal && d.subscriptionStored ? "Subscription valid"
+    : d.subscriptionLocal ? "Subscribed locally, not stored on server"
+    : "No subscription yet";
+
+  const vapidKind: RowKind = d.vapidConfigured ? "ok" : "err";
+
+  let deliveryKind: RowKind = "idle";
+  let deliveryLabel = "No delivery on record yet";
+  if (d.staleSubscription) {
+    deliveryKind = "err";
+    deliveryLabel = `Recent sends failed (${d.failureCount}) — re-enable below`;
+  } else if (d.lastDeliveryAt) {
+    deliveryKind = "ok";
+    deliveryLabel = `Last activity ${timeAgo(d.lastDeliveryAt)}`;
+  }
+
+  return [
+    { kind: permKind, label: permLabel },
+    { kind: swKind, label: d.swRegistered ? "Service worker registered" : "Service worker not registered" },
+    { kind: subKind, label: subLabel },
+    { kind: vapidKind, label: d.vapidConfigured ? "Server VAPID configured" : "Server VAPID not configured" },
+    { kind: deliveryKind, label: deliveryLabel, detail: d.lastError ?? undefined },
+  ];
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.round(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return `${d}d ago`;
+}
+
+function RowItem({ row }: { row: Row }) {
+  const icon = row.kind === "ok"
+    ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+    : row.kind === "warn"
+    ? <AlertTriangle className="h-3.5 w-3.5 text-warn" />
+    : row.kind === "err"
+    ? <X className="h-3.5 w-3.5 text-destructive" />
+    : <span className="block h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />;
+  return (
+    <li className="flex items-start gap-2 rounded-md bg-background/30 px-2.5 py-1.5 ring-1 ring-border/40">
+      <span className="mt-0.5 flex h-4 w-4 items-center justify-center shrink-0">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12px] text-foreground/90">{row.label}</div>
+        {row.detail && <div className="text-[10.5px] text-muted-foreground truncate">{row.detail}</div>}
+      </div>
+    </li>
+  );
+}
+
+function Header({ status, loading, onRefresh }: {
+  status: "ready" | "off" | "blocked" | "needs-config";
+  loading?: boolean;
+  onRefresh?: () => void;
+}) {
+  const tone =
+    status === "ready" ? "bg-primary/15 text-primary ring-primary/30"
+    : status === "blocked" ? "bg-destructive/15 text-destructive ring-destructive/30"
+    : status === "needs-config" ? "bg-warn/15 text-warn ring-warn/30"
+    : "bg-muted/30 text-muted-foreground ring-border/50";
+  const label =
+    status === "ready" ? "On"
+    : status === "blocked" ? "Blocked"
+    : status === "needs-config" ? "Setup needed"
+    : "Off";
+  return (
+    <div className="flex items-start gap-3">
+      <div className="rounded-md bg-primary/15 p-2 ring-1 ring-primary/30">
+        {status === "ready" ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-primary" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-semibold">Push notifications</h2>
+          <span className={"rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-wider ring-1 " + tone}>
+            {label}
+          </span>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+              aria-label="Re-check status"
+              title="Re-check status"
+            >
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            </button>
+          )}
+        </div>
+        <p className="text-[12px] text-muted-foreground">Browser / PWA push for reminders. Respects quiet hours.</p>
+      </div>
+    </div>
   );
 }
 
@@ -168,8 +313,6 @@ function Hint({ icon, children }: { icon: React.ReactNode; children: React.React
   );
 }
 
-// iOS-specific: Safari only allows Web Push when the site is installed to the Home Screen.
-// We detect iPhone/iPad and surface the Add-to-Home-Screen steps in plain language.
 function isIosNotInstalled(): boolean {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -183,7 +326,7 @@ function isIosNotInstalled(): boolean {
 
 function IosInstallGuidance() {
   return (
-    <div className="rounded-lg bg-amber-500/5 p-3 ring-1 ring-amber-500/30 text-[12px]">
+    <div className="mt-3 rounded-lg bg-amber-500/5 p-3 ring-1 ring-amber-500/30 text-[12px]">
       <div className="flex items-center gap-2 font-medium text-amber-300">
         <Info className="h-4 w-4" />
         Install Vanta first on iPhone
@@ -198,9 +341,6 @@ function IosInstallGuidance() {
         <li>Open Vanta from the new Home Screen icon.</li>
         <li>Come back here and tap <span className="text-foreground">Enable push reminders</span>.</li>
       </ol>
-      <p className="mt-2 text-[11px] text-muted-foreground">
-        Don't want to deal with it? Connect Telegram instead — reminders will go there with no install dance.
-      </p>
     </div>
   );
 }
