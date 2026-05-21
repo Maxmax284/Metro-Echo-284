@@ -101,33 +101,43 @@ export function DailyBriefingCard() {
 
   const line = useMemo(() => {
     if (loading) return "Reading the day…";
+    const needsReview = files; // pending file ingest counts as "needs review"
+    if (!overdue && !todayList.length && !approvals && !files) {
+      return vantaSay.briefing.quiet();
+    }
+    const activeCount = todayList.length - overdue;
     const parts: string[] = [];
-    if (overdue) parts.push(`${overdue} overdue`);
-    if (todayList.length - overdue > 0) parts.push(`${todayList.length - overdue} due today`);
-    if (approvals) parts.push(`${approvals} awaiting approval`);
-    if (files) parts.push(`${files} file${files === 1 ? "" : "s"} still reading`);
-    if (!parts.length) return "Quiet runway. Nothing on the board.";
-    return parts.join(" · ");
+    if (activeCount > 0 || overdue || needsReview) {
+      parts.push(vantaSay.briefing.morning({
+        active: Math.max(activeCount, 0),
+        overdue,
+        review: needsReview,
+      }));
+    }
+    if (approvals) parts.push(`${approvals} awaiting approval.`);
+    return parts.join(" ");
   }, [loading, overdue, todayList.length, approvals, files]);
 
   const polishBriefing = async () => {
     if (!user || polishing) return;
     setPolishing(true);
     try {
-      const top = items.slice(0, 6).map((c) => `- ${c.summary}${c.due_at ? ` (due ${new Date(c.due_at).toISOString()})` : ""}`).join("\n");
-      const prompt = `In one warm, plain-English paragraph (max 3 sentences, no exclamation marks, East Coast tone), brief the user on their day. Counts: ${line}. Top items:\n${top}\nTimezone: ${timezone}.`;
-      const { data, error } = await supabase.functions.invoke("vanta-converse", {
-        body: { message: prompt, intent: "briefing_polish" },
+      const hourStr = formatInTimeZone(new Date(), timezone, "H");
+      const h = Number(hourStr);
+      const part_of_day = h < 12 ? "morning" : h < 18 ? "midday" : "evening";
+      const { data, error } = await supabase.functions.invoke("briefing-compose", {
+        body: { timezone, part_of_day },
       });
       if (error) throw error;
-      const reply = (data as any)?.reply || (data as any)?.content || (data as any)?.message;
-      if (reply && typeof reply === "string") setPolish(reply.trim());
-      await supabase.from("audit_log").insert({
-        user_id: user.id,
-        entity_type: "briefing",
-        event: "briefing.ai_polished",
-        payload: { chars: reply?.length ?? 0 },
-      });
+      const d = data as {
+        narrative?: string | null;
+        headline?: string;
+        best_first_move?: string;
+      } | null;
+      const text = d?.narrative
+        ?? [d?.headline, d?.best_first_move ? vantaSay.briefing.bestFirstMove(d.best_first_move.replace(/\.$/, "")) : null]
+            .filter(Boolean).join(" ");
+      if (text) setPolish(text.trim());
     } catch (e) {
       toast.fromError(e);
     } finally {
