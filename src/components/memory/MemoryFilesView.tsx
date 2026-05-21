@@ -365,6 +365,7 @@ export function MemoryFilesView() {
                       {meta.error || "Extraction failed."}
                     </p>
                   ) : null}
+                  <EmbeddedSherlockFindings sourceType="file" sourceId={f.id} />
                 </div>
               </div>
 
