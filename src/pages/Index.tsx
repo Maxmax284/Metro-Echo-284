@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 import { ExecutorsCard } from "@/components/ExecutorsCard";
 import { FileUploadCard } from "@/components/FileUploadCard";
+import { VoiceCaptureCard } from "@/components/capture/VoiceCaptureCard";
 import { EmailInboxCard } from "@/components/EmailInboxCard";
 import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
@@ -188,6 +189,8 @@ function IndexInner() {
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">owner</span>
                   </a>
                   <TelegramLinkCard />
+                  <Separator />
+                  <VoiceCaptureCard />
                   <Separator />
                   <FileUploadCard />
                   <Separator />

@@ -13,6 +13,7 @@ import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection";
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
 import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
+import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -162,6 +163,8 @@ export default function Settings() {
       </section>
 
       <EcosystemSourcesPanel />
+
+      <CostTelemetryPanel />
 
 
 
