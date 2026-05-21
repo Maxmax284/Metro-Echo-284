@@ -23,13 +23,14 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const { data: userData, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !userData?.user) {
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: authErr } = await userClient.auth.getClaims(token);
+  if (authErr || !claimsData?.claims?.sub) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const userId = userData.user.id;
+  const userId = claimsData.claims.sub as string;
 
   const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
