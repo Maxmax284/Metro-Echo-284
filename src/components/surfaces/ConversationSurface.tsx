@@ -63,7 +63,7 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
 };
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
-  const { session, user } = useAuth();
+  const { session } = useAuth();
   const { context, setContext } = useCurrentContext();
   const { place } = useAwareness();
   const { mode } = useMode();
