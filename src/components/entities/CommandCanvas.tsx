@@ -11,6 +11,7 @@ import { Loader2, Link2, X } from "lucide-react";
 import { CanvasCardsView } from "./CanvasCardsView";
 import { CanvasTimelineView } from "./CanvasTimelineView";
 import { CanvasBoardView } from "./CanvasBoardView";
+import { CanvasFlowView } from "./CanvasFlowView";
 import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
 import { cn } from "@/lib/utils";
 
@@ -384,7 +385,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
 
 export function CommandCanvas() {
   const { open, openCanvasSeed, closeCanvas } = useCanvas();
-  const [tab, setTab] = useState<"cards" | "timeline" | "board" | "graph">("cards");
+  const [tab, setTab] = useState<"cards" | "timeline" | "flow" | "board" | "graph">("cards");
   const [windowDays, setWindowDays] = useState<CanvasWindow>(30);
   const [kinds, setKinds] = useState<Set<CanvasKind>>(new Set());
 
@@ -404,9 +405,10 @@ export function CommandCanvas() {
         </SheetHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-3 grid grid-cols-4 h-8 shrink-0">
+          <TabsList className="mx-3 grid grid-cols-5 h-8 shrink-0">
             <TabsTrigger value="cards" className="text-[11px]">Cards</TabsTrigger>
             <TabsTrigger value="timeline" className="text-[11px]">Timeline</TabsTrigger>
+            <TabsTrigger value="flow" className="text-[11px]">Flow</TabsTrigger>
             <TabsTrigger value="board" className="text-[11px]">Board</TabsTrigger>
             <TabsTrigger value="graph" className="text-[11px]">Graph</TabsTrigger>
           </TabsList>
@@ -416,7 +418,7 @@ export function CommandCanvas() {
             setWindowDays={setWindowDays}
             kinds={kinds}
             setKinds={setKinds}
-            showKinds={tab !== "board"}
+            showKinds={tab !== "board" && tab !== "flow"}
           />
 
           <div className="flex-1 min-h-0 mt-2 bg-gradient-to-br from-background to-surface-elevated/30">
@@ -425,6 +427,9 @@ export function CommandCanvas() {
             </TabsContent>
             <TabsContent value="timeline" className="h-full m-0">
               <CanvasTimelineView seedEntityId={openCanvasSeed} windowDays={windowDays} />
+            </TabsContent>
+            <TabsContent value="flow" className="h-full m-0">
+              <CanvasFlowView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="board" className="h-full m-0">
               <CanvasBoardView seedEntityId={openCanvasSeed} windowDays={windowDays} />
