@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
 import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
@@ -18,6 +18,9 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
 import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
+import { useStagedUpload } from "@/hooks/useStagedUpload";
+import { StagedFileChips } from "@/components/files/StagedFileChips";
+import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 
 type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
 type Msg = {
