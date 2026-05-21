@@ -1,111 +1,138 @@
-# Phase 3 — Sherlock Surface-Wide Recognition
+# Sherlock 3 — Ambient Recognition Layer
 
-## Goal
+Doctrine: Sherlock recognizes. Vanta organizes. The user decides. No silent execution, confidence + rationale always visible, full audit trail.
 
-Sherlock stops being a buried feature and becomes visible, useful, and trustworthy across every surface. The five operations — Observe, Extract, Relate, Suggest, Investigate — are explicit, confidence-labeled, and never execute without approval.
+We already have: `sherlock_findings_cache`, `SherlockOverlay`, `SherlockContext`, `SherlockChipTrigger`, `SherlockSuggestionChip`, `useSherlockCache`, edge functions `sherlock-investigate`, `sherlock-watch`, `_shared/sherlockSuggest`, and chips embedded in Captures, Commitments, Actions, Memory, EntityDetailSheet. This plan upgrades that foundation into a lifecycle-managed, cross-surface, hub-anchored recognition system.
 
-## What exists already
+## Architecture shift
 
-- Edge function: `sherlock-investigate` supports `overlay`, `extract`, `suggest`, and `full` modes with caching via `sherlock_findings_cache`
-- Tables: `investigations`, `investigation_findings`, `sherlock_findings_cache`
-- UI: `AnalyzeButton`, `SherlockOverlay` (sheet), `SherlockSurface` (dedicated page), `SherlockContext`
-- Voice: `vantaSay.sherlock.*` phrases already in place
-- Status dots: confidence tones already mapped
+- Treat Sherlock as a service layer with **5 modes**: `observe | extract | relate | suggest | investigate`.
+- Current cache stays as the fast read layer; add a durable **finding + suggestion lifecycle** table so accept/dismiss/cooldown/audit work everywhere.
+- Sherlock page stays, repurposed as the **Recognition Center** (Hub).
 
-## What's missing / what this phase builds
+## Phasing (6 batches, each shippable)
 
-### 1. Complete the 5-operation model in the edge function
+### Batch 3A — Schema + Lifecycle foundation
 
-Add `observe` (lightweight read) and `relate` (find connections across substrate) modes to `sherlock-investigate`:
+- New table `sherlock_findings` (durable, per-finding):
+id, user_id, source_object_id/type, mode, finding_type, summary, extracted_data jsonb, suggested_action, suggested_relation_type, target_object_id/type, confidence (low/med/high), rationale, status (pending/accepted/edited/dismissed/expired), surface_origin, sensitive_flag, cooldown_until, created_at, updated_at, reviewed_at, reviewed_by, audit_event_id.
+- New table `sherlock_suggested_relations` (or reuse `entity_relations` with `created_by='sherlock'` + `status`).
+- RLS: owner-only. Trigger: `set_updated_at`. Indexes on (user_id,status,updated_at), (source_object_id), (target_object_id).
+- Audit event types added: `sherlock_finding_created`, `sherlock_suggestion_accepted/edited/dismissed`, `sherlock_relation_accepted/dismissed`, `sherlock_investigation_started/completed`, `sherlock_sensitive_file_flagged`, `sherlock_manual_scan_requested`, `sherlock_auto_suggestion_suppressed`.
+- Shared TS helpers in `src/lib/sherlock/` and `supabase/functions/_shared/sherlock/` for: create finding, accept, edit, dismiss (with cooldown), expire, list-by-source, list-pending.
+- Extend `_shared/sherlockSuggest.ts` to persist into `sherlock_findings` in addition to the cache.
 
-- `observe`: lightweight scan — what type of thing is this, what's salient, no deep analysis. Returns: `kind`, `salient`, `confidence`. Cached.
-- `relate`: given an entity, find related notes/commitments/actions across the substrate. Returns: `related` array with `kind`, `id`, `why`, `confidence`. Cached.
+### Batch 3B — Recognition Surfaces (embedded chips/cards)
 
-`extract` and `suggest` already exist but their results are only cached, never surfaced on cards.
+Use a shared `<SherlockFindingCard>` (confidence dot, rationale tooltip, Accept/Edit/Dismiss/Inspect). Mount on:
 
-### 2. Surface Sherlock chips on cards across the platform
+- Capture Inbox items (observe + suggest route).
+- File cards (`FileUploadCard`, `MemoryFilesView`) — extract facts + suggested links/actions.
+- Telegram capture cards (intent + suggested draft).
+- `CommitmentDetail` (stale/snooze loop + "break down").
+- `ReminderDetail` (cluster attach).
+- `EntityDetailSheet` — upgrade `RelatedEntitiesSection` to show pending Sherlock-suggested links with reason + confidence (already partially present).
+- `DailyBriefingCard` — "best first move" rationale line driven by Sherlock signal (already partially present, formalise).
+- Aware results — context attach chip.
 
-Wherever an item has cached Sherlock findings, show a dismissible confidence chip:
+All chips honour `showWhenEmpty={false}`. No high-impact action without confirm modal.
 
-| Surface | Card | What Sherlock shows |
-|---------|------|---------------------|
-| Memory / Capture Inbox | `CaptureCard` | `suggest` result: route chip ("→ Commitment", "→ Action") with confidence dot |
-| Memory / Files | `MemoryFilesView` file rows | `extract` result: detected type chip with confidence |
-| Commitments | commitment cards | `relate` result: N related items found |
-| Actions | action cards | `relate` result: N related items found |
-| Notes | note cards | `relate` result: N related items found |
-| Briefings | `DailyBriefingCard` | `observe` on briefing content — salient insight chip |
-| Canvas | entity cards | `relate` — linked entities count |
-| Telegram | (deferred to Phase 8) | — |
+### Batch 3C — Sherlock Hub upgrade (Recognition Center)
 
-Each chip is dismissible (sets `dismissed_at` in cache or local state). Tapping a chip opens the Sherlock overlay pre-filled with that operation's results.
+Rework `SherlockSurface.tsx` into tabbed Hub:
 
-### 3. Confidence-visible suggestions only
+- **Pending Suggestions** (default) — cross-surface queue with Accept/Edit/Dismiss/Inspect, source link, confidence, rationale, created_at, surface_origin.
+- **Findings** — grouped by source type (Files/Captures/Messages/Commitments/Entities/Aware/Canvas/Briefings).
+- **Low Confidence** — separate triage.
+- **Investigations** — keep current investigate flow here; user-triggered only.
+- **Dismissed** — with cooldown badge + "re-run" action.
+- **Patterns** — recurring topics / stale / snoozed-too-much / no-next-action / duplicate captures / clusters with unresolved items.
+- **Sources** — origin counts and quick filter.
+- **Settings / Rules** — small panel: ambient on/off, low-conf visibility, sensitive caution on, dismissed cooldown days, show in Canvas, show in Briefings. Persist to a `sherlock_settings` row (or user_preferences jsonb).
 
-Every Sherlock-derived chip, badge, or inline suggestion must show:
-- Confidence level (`high` / `medium` / `low`) via `StatusDot` tone
-- The operation that produced it (`observe`, `extract`, `relate`, `suggest`, `investigate`)
-- A "Suggestion — tap to review" hint on first render
+Keep the existing chat-style investigate UX, but as one tab — not the whole page.
 
-### 4. "Nothing runs until you approve" wiring
+### Batch 3D — Canvas integration
 
-- `Suggest` mode currently proposes routes (memory/commitment/reminder/action/sherlock/ignore). These must surface as **draft chips** on the card, not auto-route.
-- Tapping a suggestion chip opens the Sherlock overlay with an explicit "Approve" / "Dismiss" action.
-- Approve → routes the item, writes `audit_log` event.
-- Dismiss → marks dismissed, writes `audit_log` event.
-- All suggestion chips render `vantaSay.sherlock.notExecuting()` as micro-copy.
+- Graph: dashed edges for `status='pending'` suggested relations, solid for accepted/manual; low confidence visually quieter; tap edge → review sheet with Accept/Dismiss.
+- Cards view: Sherlock badge when findings exist, show route/relation.
+- Timeline: render sherlock events (suggestion created / accepted / dismissed).
+- Board: suggested-action lane for med/high confidence; never auto-move.
+- Selection actions: "Ask Sherlock about this cluster" / "Investigate selected" → user-triggered investigate run.
 
-### 5. Sherlock overlay operation selector
+### Batch 3E — Patterns engine
 
-Currently the overlay only runs `investigate` (deep analysis). Extend it to allow switching between the 5 operations when opened manually:
+- New edge function `sherlock-patterns` (cron-friendly, but user-pull as well) that scans:
+recurring topics, snooze-count thresholds, stale commitments, items missing next action, near-duplicate captures (hash + embedding cheap match), clusters with unresolved items.
+- Emits `observe`-mode findings into `sherlock_findings` with rationale. Powers Hub → Patterns tab.
 
-- Observe — quick type read
-- Extract — structured facts
-- Relate — cross-substrate connections
-- Suggest — triage draft
-- Investigate — deep analysis (current behavior)
+### Batch 3F — Sensitive content discipline
 
-Default operation depends on context: captures default to `suggest`, files to `extract`, existing entities to `relate`, freeform to `investigate`.
+- `sensitive_flag` heuristics in extract (financial / medical / legal / ID-like / payment proof / security alert keywords).
+- Cautious preview component: minimal summary, no auto-route, explicit confirm modal for any action.
+- Manual "mark sensitive" on file/capture/note cards.
+- Audit `sherlock_sensitive_file_flagged`.
 
-## Files expected to change
+## Voice & guardrails
 
-- `supabase/functions/sherlock-investigate/index.ts` — add `observe` and `relate` modes
-- `src/components/sherlock/SherlockContext.tsx` — add `operation` to scope, extend types
-- `src/components/sherlock/SherlockOverlay.tsx` — operation selector, explicit approve/dismiss actions
-- `src/components/sherlock/AnalyzeButton.tsx` — pass default operation
-- `src/components/memory/CaptureCard.tsx` — show `suggest` chips
-- `src/components/memory/CapturesView.tsx` — wire suggest chips to cache
-- `src/components/memory/MemoryFilesView.tsx` — show `extract` chips
-- `src/components/schedule/DailyBriefingCard.tsx` — show `observe` chips
-- `src/components/entities/CanvasCardsView.tsx` — show `relate` chips
-- `src/components/entities/EntityDetailSheet.tsx` — Sherlock section with operations
-- `src/lib/vantaVoice.ts` — extend `sherlock.*` phrases for observe/relate/approve/dismiss
-- New: `src/components/sherlock/SherlockSuggestionChip.tsx` — reusable chip component
-- New: `src/hooks/useSherlockCache.ts` — read from `sherlock_findings_cache` with stale logic
+- Extend `vantaVoice.ts` with a `vantaSay.sherlock` bank covering observe/extract/relate/suggest copy (forensic, calm, confidence-aware). Add guardrail test entries banning "solved the case", "I took care of it", "definitely belongs", and any high-certainty phrasing when confidence ≠ high.
 
-## Out of scope
+## Cooldown rule
 
-- No new database tables (uses existing `sherlock_findings_cache`, `investigations`, `investigation_findings`)
-- No changes to `full` investigation mode (legacy, stays as-is)
-- No Telegram surfacing (Phase 8)
-- No WhatsApp
-- No auto-execution — all suggestions remain drafts
+A dismissed suggestion is suppressed until: cooldown_until elapses, OR source object materially changes (hash diff), OR user manually re-runs. Enforced in the shared "create finding" helper — it checks for an existing dismissed finding with same (source_object_id, suggested_action, target_object_id) and either skips or writes `sherlock_auto_suggestion_suppressed`.
 
-## Acceptance criteria
+## Files
 
-- Every major card type can show a Sherlock-derived chip when cache has findings
-- All chips show confidence via `StatusDot`
-- All suggestions are explicitly dismissible and approvable
-- `audit_log` gets an event on every approve/dismiss
-- Voice stays Vanta-native throughout (`vantaSay.sherlock.*`)
-- Mobile-first: chips don't break 384px layout
+**New**
 
-## Deferred to later phases
+- `src/components/sherlock/SherlockFindingCard.tsx` — shared accept/edit/dismiss/inspect card.
+- `src/components/sherlock/SherlockReviewModal.tsx` — high-impact / sensitive confirm.
+- `src/components/sherlock/hub/` — `PendingTab`, `FindingsTab`, `LowConfidenceTab`, `InvestigationsTab`, `DismissedTab`, `PatternsTab`, `SourcesTab`, `SettingsTab`.
+- `src/lib/sherlock/lifecycle.ts` — create/accept/edit/dismiss/expire helpers + cooldown.
+- `src/lib/sherlock/types.ts`.
+- `src/hooks/useSherlockFindings.ts`, `useSherlockPending.ts`, `useSherlockSettings.ts`.
+- `supabase/functions/_shared/sherlock/lifecycle.ts`.
+- `supabase/functions/sherlock-patterns/index.ts`.
 
-- Phase 4: Inbox state machine integration with suggest chips
-- Phase 5: Relationship graph using `relate` data
-- Phase 6: Briefing variants that leverage `observe`
-- Phase 7: Canvas graph filters using `relate` connections
-- Phase 8: Telegram suggestion surfacing
+**Edited**
 
-Street version: Sherlock becomes a visible co-pilot on every card, not a hidden tool you have to remember to open.
+- `src/components/surfaces/SherlockSurface.tsx` → Hub shell with tabs.
+- `src/components/sherlock/SherlockContext.tsx`, `SherlockChipTrigger.tsx`, `SherlockSuggestionChip.tsx`, `useSherlockCache.ts` → write/read through lifecycle.
+- `src/components/entities/RelatedEntitiesSection.tsx`, `EntityDetailSheet.tsx`, `CommandCanvas.tsx`, `CanvasCardsView.tsx`, `CanvasTimelineView.tsx`, `CanvasBoardView.tsx`, Graph view.
+- `src/components/memory/CapturesView.tsx`, `MemoryFilesView.tsx`, `FileUploadCard.tsx`.
+- `src/components/schedule/DailyBriefingCard.tsx`, `CommitmentDetail`, `ReminderDetail`, Telegram capture cards.
+- `src/lib/vantaVoice.ts`, `src/test/voice-guardrail.test.ts`.
+- `supabase/functions/_shared/sherlockSuggest.ts`, `sherlock-investigate`, `sherlock-watch`, `briefing-compose`, `telegram-webhook`, `files-ingest`.
+
+**Schema**
+
+- Migration adding `sherlock_findings`, `sherlock_settings` (or jsonb on profiles), RLS, indexes, audit event types.
+
+## Risk notes
+
+- Big surface area; we ship per-batch with tests so nothing regresses.
+- Cache vs lifecycle table dual-write — lifecycle is source of truth, cache stays for fast reads.
+- Patterns engine cost — bound to cheap heuristics initially, no LLM in the loop until user triggers Investigate.
+- Canvas graph rendering of dashed/quiet edges needs perf check on large graphs.
+
+## Intentionally deferred
+
+- WhatsApp surfaces (per doctrine).
+- Auto-cron for patterns engine (ship on-demand first, add schedule later).
+- Embedding-based duplicate detection (start with hash + token match, upgrade later).
+
+## Testing
+
+Unit + RLS for lifecycle helpers; voice guardrails; cooldown behaviour; sensitive flag suppression; no-auto-execute integration tests for Telegram + briefing + canvas. Manual checklist mirrors PART 13 of the spec.
+
+## Acceptance criteria mapping
+
+Each PART 15 bullet maps to one of batches 3A–3F. Final acceptance after all 6 ship.
+
+---
+
+**Suggested execution order:** 3A → 3B → 3C → 3D → 3E → 3F. Run two together when safe (e.g. 3A+3B, then 3C, then 3D+3E, then 3F).
+
+&nbsp;
+
+“Approve this Sherlock 3 plan. Proceed with Batch 3A first. If safe and the diff stays controlled, include the shared SherlockFindingCard foundation from 3B, but do not implement the full hub, Canvas integration, patterns engine, or sensitive-content expansion until the lifecycle layer is migrated and tested. Keep Sherlock ambient, review-first, confidence-visible, and audit-backed. No silent execution.”
