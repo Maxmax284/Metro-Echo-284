@@ -264,6 +264,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                           showWhenEmpty={false}
                         />
                       </div>
+                      <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
                     </div>
                     {c.status === "open" && (
                       <CommitmentActions c={c} onChanged={refresh} />
