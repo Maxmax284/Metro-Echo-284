@@ -130,7 +130,17 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays, kinds]);
+  }, [user, seedEntityId, windowDays, kinds, density.maxNodes]);
+
+  const visibleRelations = useMemo(() => {
+    return relations.filter((r) => {
+      if (density.hideSuggested && r.status === "suggested") return false;
+      if (density.hideWeak && (r.evidence_count ?? 1) < 2 && r.status !== "suggested") return false;
+      return true;
+    });
+  }, [relations, density.hideWeak, density.hideSuggested]);
+
+  const hideLabels = entities.length > 24;
 
   const nodes = useMemo(
     () => layoutCircular(entities, weights, seedEntityId, size.w, size.h),
