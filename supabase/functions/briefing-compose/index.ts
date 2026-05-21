@@ -138,6 +138,23 @@ Deno.serve(async (req: Request) => {
     }));
     items.push(...sherlockPending);
 
+    // Day's debrief metrics — used by evening/wrap variants.
+    const closedTodayCount = (closedToday.data ?? []).length;
+    // "Slipped today" = items with due_at earlier today that are still open.
+    const slippedToday = items.filter((i) =>
+      (i.kind === "overdue" || i.kind === "stale") &&
+      i.due_at && new Date(i.due_at) >= startOfToday && new Date(i.due_at) < now
+    ).length;
+
+    // Salient observe findings → "Sherlock noticed…" for the narrative.
+    const observedSalient: string[] = [];
+    for (const row of (observed.data ?? [])) {
+      const f: any = row.findings ?? {};
+      const s = f.salient || f.kind || f.summary;
+      if (typeof s === "string" && s.trim()) observedSalient.push(s.trim().slice(0, 140));
+      if (observedSalient.length >= 2) break;
+    }
+
     const counts = {
       overdue,
       due_today: dueToday,
@@ -146,11 +163,29 @@ Deno.serve(async (req: Request) => {
       fresh_captures: freshCaptures.length,
       approvals: actions.count ?? 0,
       sherlock_pending: sherlockPending.length,
+      closed_today: closedTodayCount,
+      slipped_today: slippedToday,
     };
 
     // ---- Best-first-move heuristic (deterministic, no AI) ------------------
+    // Wrap variant biases toward closing the day, not opening new work.
     let best_first_move = "";
-    if (counts.overdue > 0) {
+    if (variant === "wrap") {
+      if (counts.slipped_today > 0) {
+        const first = items.find((i) => i.kind === "overdue" || i.kind === "stale");
+        best_first_move = first
+          ? `Reschedule or close out: ${first.label}`
+          : `Reschedule ${counts.slipped_today} that slipped today.`;
+      } else if (counts.approvals > 0) {
+        best_first_move = `Clear ${counts.approvals} approval${counts.approvals === 1 ? "" : "s"} before signing off.`;
+      } else if (counts.untriaged > 0) {
+        best_first_move = `Triage ${counts.untriaged} so tomorrow starts clean.`;
+      } else if (counts.closed_today > 0) {
+        best_first_move = `Closed ${counts.closed_today} today. Call it.`;
+      } else {
+        best_first_move = "Quiet wrap. Step away.";
+      }
+    } else if (counts.overdue > 0) {
       const first = items.find((i) => i.kind === "overdue" || i.kind === "stale");
       best_first_move = first ? `Close out: ${first.label}` : `Clear ${counts.overdue} overdue.`;
     } else if (counts.approvals > 0) {
@@ -166,15 +201,31 @@ Deno.serve(async (req: Request) => {
       best_first_move = "Nothing urgent. Pick something you've been putting off.";
     }
 
-    // ---- Headline ----------------------------------------------------------
-    const parts: string[] = [];
-    if (counts.overdue) parts.push(`${counts.overdue} overdue`);
-    if (counts.due_today) parts.push(`${counts.due_today} due today`);
-    if (counts.approvals) parts.push(`${counts.approvals} awaiting approval`);
-    if (counts.untriaged) parts.push(`${counts.untriaged} to triage`);
-    const headline = parts.length ? parts.join(" · ") : "Quiet runway.";
+    // ---- Headline (variant-tuned) ------------------------------------------
+    let headline: string;
+    if (variant === "wrap") {
+      const wparts: string[] = [];
+      if (counts.closed_today) wparts.push(`${counts.closed_today} closed`);
+      if (counts.slipped_today) wparts.push(`${counts.slipped_today} slipped`);
+      if (counts.approvals) wparts.push(`${counts.approvals} awaiting approval`);
+      headline = wparts.length ? wparts.join(" · ") : "Quiet wrap.";
+    } else {
+      const parts: string[] = [];
+      if (counts.overdue) parts.push(`${counts.overdue} overdue`);
+      if (counts.due_today) parts.push(`${counts.due_today} due today`);
+      if (counts.approvals) parts.push(`${counts.approvals} awaiting approval`);
+      if (counts.untriaged) parts.push(`${counts.untriaged} to triage`);
+      headline = parts.length ? parts.join(" · ") : "Quiet runway.";
+    }
 
     // ---- AI narrative (server-side, single shot) ---------------------------
+    const VARIANT_TONE: Record<typeof variant, string> = {
+      morning: "Open the day. Lead with what's slipping or what's already pressing.",
+      midday: "Check-in tone. Lead with what moved or what's still open.",
+      evening: "End-of-day check. Lead with what's still hanging.",
+      wrap: "Debrief tone. Lead with what closed and what slipped today. Do not open new threads.",
+    };
+
     let narrative: string | null = null;
     if (LOVABLE_KEY) {
       try {
@@ -188,7 +239,11 @@ Deno.serve(async (req: Request) => {
           return `- [${tag}] ${i.label}${i.due_at ? ` (due ${i.due_at})` : ""}`;
         }).join("\n");
 
-        const prompt = `Compose a ${partOfDay} briefing in two short sentences max. Lead with what changed or what's slipping. End with: "${best_first_move}" verbatim. No greetings, no exclamation marks, no markdown.\n\nCounts: ${headline}.\nTimezone: ${timezone}.\nTop items:\n${top || "- none"}`;
+        const observedBlock = observedSalient.length
+          ? `\nSherlock observe (recent): ${observedSalient.map((s) => `"${s}"`).join("; ")}`
+          : "";
+
+        const prompt = `Compose a ${variant} briefing in two short sentences max. ${VARIANT_TONE[variant]} End with: "${best_first_move}" verbatim. No greetings, no exclamation marks, no markdown.\n\nCounts: ${headline}.\nTimezone: ${timezone}.${observedBlock}\nTop items:\n${top || "- none"}`;
 
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -222,7 +277,7 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       entity_type: "briefing",
       event: "briefing.composed",
-      payload: { counts, part_of_day: partOfDay, ai: !!narrative },
+      payload: { counts, part_of_day: partOfDay, variant, ai: !!narrative, observed_used: observedSalient.length },
     });
 
     return new Response(JSON.stringify({
@@ -230,6 +285,8 @@ Deno.serve(async (req: Request) => {
       counts,
       best_first_move,
       narrative,
+      variant,
+      observed: observedSalient,
       items: items.slice(0, 20),
       generated_at: now.toISOString(),
       timezone,
