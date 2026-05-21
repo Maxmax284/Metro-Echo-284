@@ -96,7 +96,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         .eq("user_id", user.id)
         .gte("last_seen_at", since)
         .order("last_seen_at", { ascending: false })
-        .limit(24);
+        .limit(density.maxNodes);
       let list = (ents ?? []) as Entity[];
       if (kinds.size > 0) list = list.filter((e) => kinds.has(e.kind as CanvasKind));
 
