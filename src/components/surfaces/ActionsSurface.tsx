@@ -9,6 +9,7 @@ import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, B
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 type Action = {
   id: string;
