@@ -142,9 +142,14 @@ Deno.serve(async (req: Request) => {
     let telegramSent = 0;
     let telegramSkipped = 0;
     let telegramFailed = 0;
+    let telegramUnlinked = 0;
+    let telegramDisabled = 0;
     let pushSent = 0;
     let pushSkipped = 0;
     let pushFailed = 0;
+    let pushUnconfigured = 0;
+    let pushNoSubscription = 0;
+    let pushDisabled = 0;
 
     const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
     const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
