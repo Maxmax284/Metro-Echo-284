@@ -12,6 +12,7 @@ import { CanvasCardsView } from "./CanvasCardsView";
 import { CanvasTimelineView } from "./CanvasTimelineView";
 import { CanvasBoardView } from "./CanvasBoardView";
 import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
+import { cn } from "@/lib/utils";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
 type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number; status?: string | null; source?: string | null };
@@ -55,6 +56,8 @@ function kindColor(kind: string): string {
   }
 }
 
+type Density = { maxNodes: 12 | 24 | 48; hideWeak: boolean; hideSuggested: boolean };
+
 function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
@@ -66,6 +69,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   const [dragId, setDragId] = useState<string | null>(null);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [density, setDensity] = useState<Density>({ maxNodes: 24, hideWeak: false, hideSuggested: false });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -93,7 +97,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         .eq("user_id", user.id)
         .gte("last_seen_at", since)
         .order("last_seen_at", { ascending: false })
-        .limit(24);
+        .limit(density.maxNodes);
       let list = (ents ?? []) as Entity[];
       if (kinds.size > 0) list = list.filter((e) => kinds.has(e.kind as CanvasKind));
 
@@ -127,7 +131,17 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays, kinds]);
+  }, [user, seedEntityId, windowDays, kinds, density.maxNodes]);
+
+  const visibleRelations = useMemo(() => {
+    return relations.filter((r) => {
+      if (density.hideSuggested && r.status === "suggested") return false;
+      if (density.hideWeak && (r.evidence_count ?? 1) < 2 && r.status !== "suggested") return false;
+      return true;
+    });
+  }, [relations, density.hideWeak, density.hideSuggested]);
+
+  const hideLabels = entities.length > 24;
 
   const nodes = useMemo(
     () => layoutCircular(entities, weights, seedEntityId, size.w, size.h),
@@ -220,6 +234,53 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+      {/* Anti-spaghetti toolbar — caps density and hides noise without losing data. */}
+      <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2 flex flex-wrap items-center justify-center gap-1 rounded-full bg-surface-elevated/85 px-2 py-1 text-[10px] text-muted-foreground ring-1 ring-border/60 backdrop-blur">
+        <span className="px-1 uppercase tracking-wider text-[9px]">density</span>
+        {[12, 24, 48].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setDensity((d) => ({ ...d, maxNodes: n as Density["maxNodes"] }))}
+            className={cn(
+              "rounded-full px-2 py-0.5 ring-1 transition",
+              density.maxNodes === n
+                ? "bg-primary/15 text-primary ring-primary/40"
+                : "bg-muted/30 ring-border/60 hover:bg-muted/50",
+            )}
+          >
+            {n}
+          </button>
+        ))}
+        <span className="mx-1 h-3 w-px bg-border/60" aria-hidden />
+        <button
+          type="button"
+          onClick={() => setDensity((d) => ({ ...d, hideWeak: !d.hideWeak }))}
+          className={cn(
+            "rounded-full px-2 py-0.5 ring-1 transition",
+            density.hideWeak
+              ? "bg-primary/15 text-primary ring-primary/40"
+              : "bg-muted/30 ring-border/60 hover:bg-muted/50",
+          )}
+          title="Hide edges with only one piece of evidence"
+        >
+          hide weak
+        </button>
+        <button
+          type="button"
+          onClick={() => setDensity((d) => ({ ...d, hideSuggested: !d.hideSuggested }))}
+          className={cn(
+            "rounded-full px-2 py-0.5 ring-1 transition",
+            density.hideSuggested
+              ? "bg-primary/15 text-primary ring-primary/40"
+              : "bg-muted/30 ring-border/60 hover:bg-muted/50",
+          )}
+          title="Hide Sherlock-suggested edges"
+        >
+          hide suggested
+        </button>
+      </div>
+
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -240,7 +301,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          {relations.map((r, i) => {
+          {visibleRelations.map((r, i) => {
             const a = nodeById.get(r.from_entity_id);
             const b = nodeById.get(r.to_entity_id);
             if (!a || !b) return null;
@@ -293,15 +354,17 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
                   strokeWidth={isDrag || isHover ? 2 : 1.2}
                   strokeOpacity={isDrag || isHover ? 1 : 0.7}
                 />
-                <text
-                  y={r + 11}
-                  textAnchor="middle"
-                  fontSize={10}
-                  className="fill-foreground"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
-                </text>
+                {!hideLabels && (
+                  <text
+                    y={r + 11}
+                    textAnchor="middle"
+                    fontSize={10}
+                    className="fill-foreground"
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
+                  </text>
+                )}
               </g>
             );
           })}
