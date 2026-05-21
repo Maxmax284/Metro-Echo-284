@@ -13,6 +13,7 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { MiniRadarStrip } from "@/components/shell/MiniRadarStrip";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { useCanvas } from "@/components/entities/CanvasContext";
+import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCard";
 
 type Counts = {
   pendingApprovals: number;
@@ -163,6 +164,8 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </Button>
         </div>
 
+
+        <ProductivityPulseCard />
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
