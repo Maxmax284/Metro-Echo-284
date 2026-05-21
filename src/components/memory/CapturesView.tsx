@@ -12,6 +12,7 @@ import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCa
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
+import { RecognizePanel, type RouteLane } from "./RecognizePanel";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
