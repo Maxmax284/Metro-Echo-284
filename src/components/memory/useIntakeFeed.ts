@@ -7,7 +7,12 @@ type MsgRow = { id: string; content: string; created_at: string; role: string; m
 type FileRow = { id: string; filename: string; status: string; source: string; created_at: string; note_id: string | null; metadata: any };
 type FieldRow = { id: string; summary: string; note_type: string; created_at: string; confidence: string | null };
 
-export type IntakeRow = CaptureItem & { _raw: { kind: "message" | "file" | "field_note"; row: any } };
+export type IntakeRow = CaptureItem & {
+  snoozedUntil?: string | null;
+  isSnoozed?: boolean;
+  isDone?: boolean;
+  _raw: { kind: "message" | "file" | "field_note"; row: any };
+};
 
 /**
  * Pull the last N captures across channels and normalize them into the same shape.
@@ -67,22 +72,34 @@ export function useIntakeFeed(limit = 60) {
       if (f.note_id) return "Saved to Memory.";
       return "Saved, but I couldn't tell what kind of file it is.";
     };
+    const nowMs = Date.now();
     for (const m of (msgs.data ?? []) as MsgRow[]) {
       const meta = m.metadata ?? {};
       const source: CaptureSource = meta.source === "telegram" ? "telegram" : "companion";
       const routed = meta.routed_to as string | undefined;
+      const snoozedUntil = (meta.snoozed_until as string | undefined) ?? null;
+      const isSnoozed = !!snoozedUntil && new Date(snoozedUntil).getTime() > nowMs;
+      const isDone = !!routed;
+      const baseStatus = routed
+        ? (ROUTE_LABEL[routed] ?? `Routed → ${routed}`)
+        : meta.needs_review
+          ? "Needs review"
+          : "Captured";
       out.push({
         id: `msg:${m.id}`,
         source,
         text: m.content,
         detectedType: meta.detected_type ?? null,
         confidence: meta.confidence ?? null,
-        status: routed ? (ROUTE_LABEL[routed] ?? `Routed → ${routed}`) : meta.needs_review ? "Needs review" : "Captured",
+        status: isSnoozed ? `Snoozed until ${new Date(snoozedUntil!).toLocaleString()}` : baseStatus,
         routedTo: routed ?? null,
         needsReview: !!meta.needs_review || (!meta.detected_type && !routed),
         sensitive: meta.sensitive === true || isSensitive(m.content),
         ts: m.created_at,
-        why: whyForMessage(source, meta, routed),
+        why: isSnoozed ? "Snoozed — I'll bring it back when it's due." : whyForMessage(source, meta, routed),
+        snoozedUntil,
+        isSnoozed,
+        isDone,
         _raw: { kind: "message", row: m },
       });
     }
