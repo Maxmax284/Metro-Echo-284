@@ -33,11 +33,11 @@ export function SherlockChipTrigger({
   const f: any = cached?.findings ?? null;
   const confidence = cached?.confidence ?? f?.confidence ?? null;
 
-  let label = vantaSay.sherlock.operation[operation as keyof typeof vantaSay.sherlock.operation];
+  let label: string = vantaSay.sherlock.operation[operation as keyof typeof vantaSay.sherlock.operation];
   if (f) {
     if (operation === "suggest" && f.suggested_route) label = `→ ${f.suggested_route}`;
-    else if (operation === "observe" && f.kind) label = f.kind;
-    else if (operation === "extract" && (f.document_type || f.summary)) label = f.document_type ?? "Extracted";
+    else if (operation === "observe" && f.kind) label = String(f.kind);
+    else if (operation === "extract" && (f.document_type || f.summary)) label = String(f.document_type ?? "Extracted");
     else if (operation === "relate") label = vantaSay.sherlock.relatedCount(f.related?.length ?? 0);
   } else if (!showWhenEmpty) {
     return null;
