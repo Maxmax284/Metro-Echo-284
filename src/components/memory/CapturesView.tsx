@@ -50,14 +50,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { openSherlock } = useSherlock();
   const { items, loading, refresh } = useIntakeFeed(60);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
+  const [lane, setLane] = useState<InboxLane>("now");
 
   const filtered = useMemo(() => {
     let list = items;
-    if (ambiguousOnly) list = list.filter((i) => i.needsReview);
-    if (filter === "review") list = list.filter((i) => i.needsReview);
-    else if (filter !== "all") list = list.filter((i) => i.source === filter);
+    if (ambiguousOnly) {
+      // Inbox V2 state machine — Now / Snoozed / Done
+      if (lane === "snoozed") {
+        list = list.filter((i) => i.isSnoozed);
+      } else if (lane === "done") {
+        list = list.filter((i) => i.isDone && !i.isSnoozed);
+      } else {
+        // "now" = needs review, not snoozed, not done
+        list = list.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone);
+      }
+    } else {
+      // All-captures view filters
+      if (filter === "review") list = list.filter((i) => i.needsReview);
+      else if (filter !== "all") list = list.filter((i) => i.source === filter);
+    }
     return list;
-  }, [items, filter, ambiguousOnly]);
+  }, [items, filter, ambiguousOnly, lane]);
 
   const routeToNote = async (item: IntakeRow) => {
     if (!user) return;
