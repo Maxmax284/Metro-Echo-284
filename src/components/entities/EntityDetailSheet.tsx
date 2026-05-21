@@ -24,6 +24,7 @@ type LinkRow = {
   source_kind: string;
   source_id: string;
   role: string;
+  confidence: string | null;
   created_at: string;
   preview?: string | null;
 };
