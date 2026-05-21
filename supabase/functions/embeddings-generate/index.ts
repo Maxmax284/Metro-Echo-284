@@ -47,7 +47,13 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
     );
-    const { data: { user } } = await userClient.auth.getUser();
+    const __authHeader = req.headers.get("Authorization") ?? "";
+
+    const __token = __authHeader.replace("Bearer ", "");
+
+    const { data: __claimsData } = await userClient.auth.getClaims(__token);
+
+    const user = __claimsData?.claims?.sub ? { id: __claimsData.claims.sub as string } : null;
 
     const { kind } = parsed.data;
     const def = TABLE_TEXT[kind];
