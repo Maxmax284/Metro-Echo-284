@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { ReminderComposer } from "@/components/reminders/ReminderComposer";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
