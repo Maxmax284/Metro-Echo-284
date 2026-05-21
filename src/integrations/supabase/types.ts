@@ -759,6 +759,8 @@ export type Database = {
           last_evidence_at: string
           metadata: Json
           relation: string
+          source: string
+          status: string
           to_entity_id: string
           updated_at: string
           user_id: string
@@ -771,6 +773,8 @@ export type Database = {
           last_evidence_at?: string
           metadata?: Json
           relation: string
+          source?: string
+          status?: string
           to_entity_id: string
           updated_at?: string
           user_id: string
@@ -783,6 +787,8 @@ export type Database = {
           last_evidence_at?: string
           metadata?: Json
           relation?: string
+          source?: string
+          status?: string
           to_entity_id?: string
           updated_at?: string
           user_id?: string

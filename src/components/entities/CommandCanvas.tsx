@@ -14,7 +14,7 @@ import { CanvasBoardView } from "./CanvasBoardView";
 import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
-type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number };
+type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number; status?: string | null; source?: string | null };
 
 type Node = Entity & { x: number; y: number; weight: number };
 
@@ -115,8 +115,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
 
       const { data: rels } = await supabase
         .from("entity_relations")
-        .select("from_entity_id, to_entity_id, relation, evidence_count")
+        .select("from_entity_id, to_entity_id, relation, evidence_count, status, source")
         .eq("user_id", user.id)
+        .neq("status", "dismissed")
         .in("from_entity_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
       if (!alive) return;
@@ -210,8 +211,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
     const ids = entities.map((e) => e.id);
     const { data: rels } = await supabase
       .from("entity_relations")
-      .select("from_entity_id, to_entity_id, relation, evidence_count")
+      .select("from_entity_id, to_entity_id, relation, evidence_count, status, source")
       .eq("user_id", user.id)
+      .neq("status", "dismissed")
       .in("from_entity_id", ids);
     setRelations((rels ?? []) as Relation[]);
   };
@@ -242,14 +244,18 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
             const a = nodeById.get(r.from_entity_id);
             const b = nodeById.get(r.to_entity_id);
             if (!a || !b) return null;
+            const isSuggested = r.status === "suggested";
             return (
               <line
                 key={`r${i}`}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 stroke="hsl(var(--primary))"
-                strokeOpacity={0.35}
-                strokeWidth={1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
-              />
+                strokeOpacity={isSuggested ? 0.55 : 0.35}
+                strokeDasharray={isSuggested ? "5 4" : undefined}
+                strokeWidth={isSuggested ? 1.25 : 1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
+              >
+                {isSuggested && <title>Sherlock suggested · tap entity to review</title>}
+              </line>
             );
           })}
           {dragId && pointer && nodeById.get(dragId) && (
@@ -302,7 +308,12 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         </svg>
       )}
       <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface-elevated/80 px-3 py-1 text-[10.5px] text-muted-foreground backdrop-blur">
-        <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+        <span className="inline-flex items-center gap-2">
+          <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+          {relations.some((r) => r.status === "suggested") && (
+            <span className="inline-flex items-center gap-1 text-primary/80">· dashed = Sherlock suggested</span>
+          )}
+        </span>
       </div>
     </div>
   );

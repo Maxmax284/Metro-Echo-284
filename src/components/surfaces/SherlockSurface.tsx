@@ -251,12 +251,30 @@ export function SherlockSurface() {
         </Card>
 
         {/* Pending suggestions queue — Sherlock 3 durable findings */}
-        {pending.length > 0 && (
-          <div>
-            <p className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span>Pending suggestions · {pending.length}</span>
-              <span className="normal-case tracking-normal text-muted-foreground/70">awaiting your call</span>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span>Pending suggestions{pending.length > 0 ? ` · ${pending.length}` : ""}</span>
+            <button
+              onClick={async () => {
+                try {
+                  const { data, error } = await supabase.functions.invoke("sherlock-patterns", {});
+                  if (error) throw error;
+                  toast.success(vantaSay.sherlock.scanComplete(data?.written ?? 0));
+                  refreshPending();
+                } catch (e) {
+                  toast.fromError(e, vantaSay.sherlockFailed());
+                }
+              }}
+              className="rounded-full bg-surface-elevated/60 px-2 py-0.5 text-[10px] normal-case tracking-normal text-foreground/80 ring-1 ring-border/60 transition hover:bg-surface-elevated"
+            >
+              Scan for patterns
+            </button>
+          </div>
+          {pending.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border/60 py-4 text-center text-[11px] text-muted-foreground">
+              Nothing waiting. Sherlock will surface things as they emerge.
             </p>
+          ) : (
             <div className="space-y-1.5">
               {pending.slice(0, 8).map((f) => (
                 <SherlockFindingCard key={f.id} finding={f} onChanged={refreshPending} />
@@ -265,8 +283,8 @@ export function SherlockSurface() {
                 <p className="text-[10.5px] text-muted-foreground">+{pending.length - 8} more queued</p>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Target cards — tap to seed */}
         {targets.length > 0 && (
