@@ -32,6 +32,9 @@ export function DailyBriefingCard() {
   const [loading, setLoading] = useState(true);
   const [polish, setPolish] = useState<string | null>(null);
   const [bestFirstMove, setBestFirstMove] = useState<string | null>(null);
+  const [observedSalient, setObservedSalient] = useState<string[]>([]);
+  const [variantUsed, setVariantUsed] = useState<string | null>(null);
+  const [wrapCounts, setWrapCounts] = useState<{ closed_today: number; slipped_today: number } | null>(null);
   const [polishing, setPolishing] = useState(false);
   const auditedRef = useRef(false);
 
@@ -126,16 +129,29 @@ export function DailyBriefingCard() {
       const hourStr = formatInTimeZone(new Date(), timezone, "H");
       const h = Number(hourStr);
       const part_of_day = h < 12 ? "morning" : h < 18 ? "midday" : "evening";
+      // After 21h local → "wrap" variant: debrief tone, biases toward closing the day.
+      const variant = h >= 21 ? "wrap" : part_of_day;
       const { data, error } = await supabase.functions.invoke("briefing-compose", {
-        body: { timezone, part_of_day },
+        body: { timezone, part_of_day, variant },
       });
       if (error) throw error;
       const d = data as {
         narrative?: string | null;
         headline?: string;
         best_first_move?: string;
+        observed?: string[];
+        variant?: string;
+        counts?: { closed_today?: number; slipped_today?: number };
       } | null;
       setBestFirstMove(d?.best_first_move ?? null);
+      setObservedSalient(Array.isArray(d?.observed) ? d!.observed! : []);
+      setVariantUsed(d?.variant ?? variant);
+      if (d?.counts && typeof d.counts.closed_today === "number") {
+        setWrapCounts({
+          closed_today: d.counts.closed_today ?? 0,
+          slipped_today: d.counts.slipped_today ?? 0,
+        });
+      }
       const text = d?.narrative ?? d?.headline ?? null;
       if (text) setPolish(text.trim());
     } catch (e) {
