@@ -167,28 +167,29 @@ export function resolveLocationState(
     sources.push("external_off");
   }
 
-  // ---- message -------------------------------------------------------
-  const placeLabel = place?.label || [city, region, country].filter(Boolean).join(", ");
+  // ---- message — source-first, honest, no false certainty ----------
+  const placeLabel = place?.label || [city, region, country].filter(Boolean).join(", ") || "this place";
+  const regionLabel = [city, region, country].filter(Boolean).join(", ") || placeLabel;
   let message = "";
   if (placeStatus === "unresolved" || placeStatus === "unknown") {
     if (pinQuality === "offshore") {
       message = "GPS pin looks offshore. Search a place or pick one on the map.";
-    } else if (!place) {
-      message = "Search a place, pick on map, or enable GPS.";
     } else {
-      message = "Place isn't resolved yet. Try a search or recenter.";
+      message = "Location unknown — tap to set.";
     }
   } else if (advisorMode === "exact_local") {
-    const a = acc != null ? `${Math.round(acc)}m` : "good";
-    message = `Using exact phone location. Accuracy: ${a}.`;
-  } else if (pinQuality === "offshore") {
-    message = `Exact GPS looks off, so I'll use ${placeLabel} as broader context.`;
-  } else if (deviceLocationStatus === "weak" || deviceLocationStatus === "stale") {
-    message = `Phone GPS is ${deviceLocationStatus === "stale" ? "stale" : "weak"} right now. Using ${placeLabel} as broader context.`;
+    const a = acc != null ? `${Math.round(acc)}m accuracy` : "good accuracy";
+    message = `Using your current location · ${a}.`;
+  } else if (source === "manual" || source === "map_pick") {
+    message = `Manually set to ${placeLabel}.`;
+  } else if (source === "manual_search") {
+    message = `Using ${placeLabel} (searched).`;
+  } else if (pinQuality === "offshore" || deviceLocationStatus === "weak" || deviceLocationStatus === "stale") {
+    message = `Approximate — ${regionLabel} area.`;
   } else if (deviceLocationStatus === "denied" || deviceLocationStatus === "unavailable") {
-    message = `Location permission is off. Using ${placeLabel} instead.`;
+    message = `Location off — using ${placeLabel}.`;
   } else {
-    message = `${placeLabel} confirmed. Using broad-area context.`;
+    message = `Using ${placeLabel}.`;
   }
 
   return {
