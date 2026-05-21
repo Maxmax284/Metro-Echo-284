@@ -31,6 +31,7 @@ export function DailyBriefingCard() {
   const [approvals, setApprovals] = useState(0);
   const [loading, setLoading] = useState(true);
   const [polish, setPolish] = useState<string | null>(null);
+  const [bestFirstMove, setBestFirstMove] = useState<string | null>(null);
   const [polishing, setPolishing] = useState(false);
   const auditedRef = useRef(false);
 
