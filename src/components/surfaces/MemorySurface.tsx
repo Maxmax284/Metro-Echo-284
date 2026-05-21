@@ -547,6 +547,7 @@ export function MemorySurface() {
                       />
                     </div>
                   </button>
+                  <EmbeddedSherlockFindings sourceType="note" sourceId={n.id} />
                   {!archived ? (
                     <div className="-mx-1 mt-2 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 sm:flex-wrap sm:overflow-visible">
                       <Button size="sm" variant="outline" className="h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]" onClick={(e) => { e.stopPropagation(); noteToReminder(n); }}>Reminder</Button>
