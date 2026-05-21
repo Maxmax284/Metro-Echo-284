@@ -55,6 +55,8 @@ function kindColor(kind: string): string {
   }
 }
 
+type Density = { maxNodes: 12 | 24 | 48; hideWeak: boolean; hideSuggested: boolean };
+
 function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
@@ -66,6 +68,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   const [dragId, setDragId] = useState<string | null>(null);
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [density, setDensity] = useState<Density>({ maxNodes: 24, hideWeak: false, hideSuggested: false });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
