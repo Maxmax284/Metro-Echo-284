@@ -201,8 +201,67 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     ];
   };
 
+  const snoozedCount = useMemo(() => items.filter((i) => i.isSnoozed).length, [items]);
+  const nowCount = useMemo(
+    () => items.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone).length,
+    [items],
+  );
+  const doneCount = useMemo(
+    () => items.filter((i) => i.isDone && !i.isSnoozed).length,
+    [items],
+  );
+
+  const LANES: { id: InboxLane; label: string; Icon: typeof Inbox; count: number }[] = [
+    { id: "now", label: vantaSay.inbox.tabNow(), Icon: Inbox, count: nowCount },
+    { id: "snoozed", label: vantaSay.inbox.tabSnoozed(), Icon: Clock, count: snoozedCount },
+    { id: "done", label: vantaSay.inbox.tabDone(), Icon: CheckCircle2, count: doneCount },
+  ];
+
+  const emptyCopy =
+    ambiguousOnly
+      ? lane === "snoozed"
+        ? vantaSay.inbox.emptySnoozed()
+        : lane === "done"
+          ? vantaSay.inbox.emptyDone()
+          : vantaSay.inbox.emptyNow()
+      : "Nothing captured yet.";
+
   return (
     <div className="space-y-3">
+      {ambiguousOnly && (
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+          {LANES.map((l) => {
+            const Icon = l.Icon;
+            const active = lane === l.id;
+            return (
+              <button
+                key={l.id}
+                onClick={() => setLane(l.id)}
+                className={cn(
+                  "inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={active}
+              >
+                <Icon className="h-3 w-3" />
+                {l.label}
+                <span className="opacity-70">· {l.count}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={refresh}
+            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {!ambiguousOnly && (
         <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
           {FILTERS.map((f) => (
@@ -239,7 +298,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       {!loading && filtered.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
           <Inbox className="h-5 w-5 opacity-50" />
-          {ambiguousOnly ? "Nothing waiting on you. Clean desk." : "Nothing captured yet."}
+          {emptyCopy}
         </div>
       )}
 
