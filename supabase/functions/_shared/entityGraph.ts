@@ -198,16 +198,3 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
   }
 
   return { linked: linked.length };
-}
-
-  if (emitAudit) {
-    await sb.from("audit_log").insert({
-      user_id: userId,
-      entity_type: "entity_graph",
-      event: "entity.linked",
-      payload: { source_kind, source_id, entity_count: ids.length, role },
-    });
-  }
-
-  return { linked: ids.length };
-}
