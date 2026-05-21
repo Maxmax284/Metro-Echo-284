@@ -1,63 +1,86 @@
-## Wave 1 + Wave 2 — Parallel Execution Plan
+# Vanta Upload Flow Polish — Plan
 
-Two surgical fixes running together. No new systems, no duplicates, no scope creep beyond what Wave 0 flagged.
+Front-end UX pass over the existing `ingested_files` pipeline. No new tables, no new storage system, no auto AI. Reuses `files-ingest`, `fileIntake.ts` schemas, and `MemoryFilesView`.
 
----
+## Audit findings (current state)
 
-### Wave 1 — Awareness Truth + Recovery Consolidation
+- `FileUploadCard` and `ConversationSurface.handleAttach` both upload immediately on file pick — no stage step, no remove, no per-file progress, no inline retry.
+- `ConversationSurface` auto-fires `analyze-file` AI tool right after ingest — violates "no auto AI on upload".
+- No `CaptureToast` primitive exists. Telegram file ingest writes to `ingested_files` but produces no in-app surfacing beyond the realtime list.
+- `MemoryFilesView` exists and is the right home for the file detail. No aftermath tray today.
+- `fileIntake.ts` already defines `suggested_actions`, `review_status`, `detected_doc_type`, `sensitive` — aftermath tray can render from these directly.
+- Audit events for `file.*` are sparse — only ingest start/finish.
 
-**Goal:** One active-place line. One recovery panel. Honest fallback copy.
+## Wave A — Staged chip row + per-file progress
 
-**Files touched**
-- `src/hooks/useActivePlace.ts` *(new)* — single source of truth. Resolves in priority: GPS → saved primary → manual → last-confirmed → fallback (city/region) → none. Returns `{ source, label, confidence, lastConfirmedAt }`.
-- `src/components/awareness/LocationRecoveryPanel.tsx` *(new)* — collapses today's three surfaces (fix-location chip, recovery card, unresolved-saved warning) into one panel. Shows only when `confidence < ok` or source is `fallback`/`none`.
-- `src/components/surfaces/AwarenessSurface.tsx` — replace the three scattered banners with `<ActivePlaceLine />` + conditional `<LocationRecoveryPanel />`. Remove duplicate warning logic.
-- `src/lib/awarenessPlainTalk.ts` — rewrite copy strings:
-  - GPS: "Using your current location"
-  - Saved: "Using {name}"
-  - Manual: "Manually set to {name}"
-  - Fallback: "Approximate — {region} area"
-  - None: "Location unknown — tap to set"
-- `src/components/awareness/SourceStatusPill.tsx` — isolate Reddit/community failures so one provider down doesn't poison the whole awareness state.
+Shared component, reused everywhere.
 
-**Acceptance**
-- 384px viewport: one active-place line at top, one recovery panel max.
-- No duplicate "broad/offshore" warnings after a place is selected.
-- Reddit outage shows pill-level red, not surface-level red.
+- New `src/components/files/StagedFileChips.tsx` — chip per file with name, size, type icon, remove (✕), optional note input.
+- New `src/hooks/useStagedUpload.ts` — owns staged[], per-file state `queued | uploading | reading | saved | failed`, per-file progress where the upload helper exposes it, retry per file, cancel before commit. Emits audit events `file.staged`, `file.upload_started`, `file.uploaded`, `file.upload_failed`, `file.extraction_started`, `file.extracted`, `file.extraction_failed`.
+- Rewire `FileUploadCard` to use the hook + chips (drop the immediate upload path).
+- Rewire `ConversationSurface.handleAttach` to use the same chips above the composer. **Remove the auto `analyze-file` send.** Replaced by an aftermath suggestion "Ask about this file" the user can tap.
+- Paste support: image paste in conversation composer stages as chip.
+- Error copy via `vantaSay` ("This one did not upload. Try again." / "I could not read this file yet.").
+- Mobile: chip row scrolls horizontally with `flex-wrap`, ✕ has ≥40px hit target, fits 384px.
 
----
+## Wave B — Aftermath tray
 
-### Wave 2 — Push/VAPID Diagnostics
+- New `src/components/files/FileAftermathTray.tsx` — renders for a just-completed file. Shows filename, `detected_doc_type`, confidence, "Saved to Memory → Files", `needs_review` tag if unrouted, and suggested-action buttons sourced from `suggested_actions` (fallback to a small default set: Ask, Summarize, Extract tasks, Extract dates, Link, Create reminder, Create commitment, Send to Sherlock, Archive).
+- Appears inline under chips in both surfaces. Stays visible until dismissed (per doctrine).
+- Action handlers: each emits its audit event (`file.summarize_requested`, `file.linked`, `file.reminder_created`, etc.) and routes through existing draft/Plan→Approve flow. No silent execution; AI calls only behind explicit tap.
+- Sensitive doc types (`fileIntake.isSensitiveByType`) hide preview, mark `needs_review`, and require explicit tap to open.
+- Untouched files remain in `MemoryFilesView` with `review_status = needs_review`.
 
-**Goal:** Never claim "Push ON" unless it's actually deliverable.
+## Wave C — Unified CaptureToast
 
-**Files touched**
-- `supabase/functions/push-diagnose/index.ts` *(new)* — returns `{ vapidConfigured, subscriptionValid, swActive, lastDeliveryAt, staleSubscription }`. Emits audit event.
-- `src/lib/pushClient.ts` — replace single `isLive` boolean with `usePushDiagnostics()` calling the new function. Detect stale subscription (server 410/404 on last send) → set `needsReEnable`.
-- `src/components/settings/PushReadinessSection.tsx` — split into 5 status rows:
-  1. Browser permission
-  2. Service worker registered
-  3. Subscription valid
-  4. Server VAPID configured
-  5. Last delivery confirmed
-- All-green required before showing "Push ON". Otherwise show actionable row-level CTA (Grant permission / Re-register / Re-enable).
+- New `src/components/capture/CaptureToast.tsx` + `useCaptureToast` provider mounted near root (Index.tsx). Listens to `ingested_files` realtime inserts/updates (channel already exists in `useIntakeFeed`) and dedupes by `id`.
+- Toast shape: source pill (Upload / Conversation / Telegram / Email), filename, status verb ("Reading it" / "Saved" / "Needs review"), "Open" → routes to Memory → Files filtered to that file with aftermath tray expanded.
+- Silent by default, no sound. Single toast per file id.
+- Telegram file ingest already writes rows → no edge function changes needed; the toast picks them up. If app was closed, an unseen-captures badge on the Memory tab surfaces on next open (count from `review_status in ('new','needs_review')` since last seen `localStorage` timestamp).
+- Audit: `capture.toast_shown`, `capture.toast_opened`.
 
-**Acceptance**
-- VAPID misconfigured server-side → UI says "Server not configured", not "Push ON".
-- Stale subscription → "Re-enable push" CTA appears.
-- Each state change emits an audit event.
+## Wave D — Files tile in Command layer
 
----
+- Add a Files tile to `CommandCenterSurface` showing three counts pulled from `ingested_files`:
+  - New today (`created_at >= today`).
+  - Awaiting triage (`review_status in ('new','needs_review')`).
+  - Linked to active project (join via existing entity links if cheap; otherwise hide the third row).
+- Tap → opens Memory → Files (existing view, no new route).
+- Tile includes a small drag-drop zone that delegates to the same `useStagedUpload` hook. No duplicate upload code.
 
-### Out of scope (deferred to Wave 3+)
-Telegram delivery trace, conversational routing sweep, voice/emoji rules, realtime sync, mobile retest pass, final validation PDF.
+## Audit events
 
-### Guardrails
-- No paid AI calls on render.
-- No notifications without opt-in.
-- Plan→Approve→Execute preserved.
-- No duplicate Memory/Notes/Files/Reminder/Audit systems.
-- All copy passes Vanta voice (warm, no exclamations, no robotic phrasing).
+Centralize in `src/lib/fileAudit.ts` — single helper `logFileEvent(kind, payload)` writing to `audit_log`. Event vocabulary matches spec.
 
-### Deliverable
-Both waves land in a single commit set. Brief in-chat summary on completion. No PDF for this pass — save the report for Wave 6.
+## Voice
+
+All copy goes through `vantaSay.*`. Extend it with: `fileQueued`, `fileUploading`, `fileReading`, `fileSaved`, `fileNeedsReview`, `fileUploadFailed`, `fileUnreadable`, `fileArchived`. Voice-guardrail test allow-listed.
+
+## Out of scope (per spec)
+
+New storage backend, Drive/Dropbox, document editor, auto-summarize, hard delete, new OCR provider, Sherlock rebuild, Calendar.
+
+## Build order
+
+A → B → C → D, each shippable independently. Mobile 384px validated at end of each wave.
+
+## Files
+
+**New**
+- `src/components/files/StagedFileChips.tsx`
+- `src/components/files/FileAftermathTray.tsx`
+- `src/components/capture/CaptureToast.tsx`
+- `src/hooks/useStagedUpload.ts`
+- `src/hooks/useCaptureToast.ts`
+- `src/lib/fileAudit.ts`
+
+**Edited**
+- `src/components/FileUploadCard.tsx` (use hook + chips + tray)
+- `src/components/surfaces/ConversationSurface.tsx` (chips + tray; remove auto-analyze)
+- `src/components/surfaces/CommandCenterSurface.tsx` (Files tile)
+- `src/pages/Index.tsx` (mount CaptureToast provider)
+- `src/lib/vantaVoice.ts` (new copy)
+- `src/test/voice-guardrail.test.ts` (allow new files)
+
+**Untouched (intentionally)**
+- `supabase/functions/files-ingest/*`, `telegram-webhook/*`, `email-inbound/*`, `ingested_files` schema, `fileIntake.ts` schemas.
