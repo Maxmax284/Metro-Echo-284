@@ -186,14 +186,32 @@ export const vantaSay = {
     routeWarning: () => "Looks sensitive. I'll keep it private unless you tell me otherwise.",
   },
 
-  // Briefing voice (Phase 5 — short operator summaries)
+  // Briefing voice (Phase 6 — variant-aware operator summaries)
   briefing: {
     morning: (counts: { active: number; overdue: number; review: number }) =>
       `Today: ${counts.active} active, ${counts.overdue} overdue, ${counts.review} needs review.`,
-    bestFirstMove: (what: string) => `Best first move: ${what}.`,
+    midday: (counts: { active: number; overdue: number; review: number }) =>
+      `Midday check: ${counts.active} still open, ${counts.overdue} overdue, ${counts.review} to triage.`,
     evening: (done: number, open: number, slipped: number) =>
       `Wrap-up: ${done} done, ${open} still open, ${slipped} slipped.`,
+    wrap: (done: number, open: number, slipped: number) =>
+      `Day's done: ${done} closed, ${open} carrying over, ${slipped} slipped.`,
+    bestFirstMove: (what: string) => `Best first move: ${what}.`,
+    salientFromObserve: (what: string) => `Sherlock noticed: ${what}`,
     quiet: () => "Quiet day. Nothing pressing.",
+    composing: () => "Composing briefing…",
+  },
+
+  // Inbox voice (Phase 4 — capture state machine)
+  inbox: {
+    tabNow: () => "Now",
+    tabSnoozed: () => "Snoozed",
+    tabDone: () => "Done",
+    emptyNow: () => "Nothing waiting on you. Clean desk.",
+    emptySnoozed: () => "Nothing snoozed.",
+    emptyDone: () => "Nothing routed yet.",
+    snoozedUntil: (when: string) => `Snoozed until ${when}.`,
+    unsnoozed: () => "Back on the desk.",
   },
 
   // Confirmations

@@ -1,18 +1,21 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Inbox, RefreshCw } from "lucide-react";
+import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { vantaToast as toast } from "@/lib/vantaVoice";
+import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { linkEntities } from "@/lib/entityGraph";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { CaptureCard, type CaptureAction, type CaptureSource } from "./CaptureCard";
 import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { RecognizePanel, type RouteLane } from "./RecognizePanel";
+
+type InboxLane = "now" | "snoozed" | "done";
 
 const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
   { id: "all", label: "All" },
@@ -47,14 +50,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { openSherlock } = useSherlock();
   const { items, loading, refresh } = useIntakeFeed(60);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
+  const [lane, setLane] = useState<InboxLane>("now");
 
   const filtered = useMemo(() => {
     let list = items;
-    if (ambiguousOnly) list = list.filter((i) => i.needsReview);
-    if (filter === "review") list = list.filter((i) => i.needsReview);
-    else if (filter !== "all") list = list.filter((i) => i.source === filter);
+    if (ambiguousOnly) {
+      // Inbox V2 state machine — Now / Snoozed / Done
+      if (lane === "snoozed") {
+        list = list.filter((i) => i.isSnoozed);
+      } else if (lane === "done") {
+        list = list.filter((i) => i.isDone && !i.isSnoozed);
+      } else {
+        // "now" = needs review, not snoozed, not done
+        list = list.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone);
+      }
+    } else {
+      // All-captures view filters
+      if (filter === "review") list = list.filter((i) => i.needsReview);
+      else if (filter !== "all") list = list.filter((i) => i.source === filter);
+    }
     return list;
-  }, [items, filter, ambiguousOnly]);
+  }, [items, filter, ambiguousOnly, lane]);
 
   const routeToNote = async (item: IntakeRow) => {
     if (!user) return;
@@ -136,11 +152,39 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     refresh();
   };
 
+  const snooze = async (item: IntakeRow, hours: number) => {
+    if (!user || item._raw.kind !== "message") return;
+    const row = item._raw.row;
+    const prevMeta = row.metadata ?? {};
+    const until = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    await supabase.from("messages").update({
+      metadata: { ...prevMeta, snoozed_until: until, needs_review: true },
+    }).eq("id", row.id);
+    await logRoute(user.id, item, "snoozed", { until, hours });
+    toast.message({ title: vantaSay.inbox.snoozedUntil(new Date(until).toLocaleString()) });
+    refresh();
+  };
+
+  const unsnooze = async (item: IntakeRow) => {
+    if (!user || item._raw.kind !== "message") return;
+    const row = item._raw.row;
+    const prevMeta = row.metadata ?? {};
+    await supabase.from("messages").update({
+      metadata: { ...prevMeta, snoozed_until: null },
+    }).eq("id", row.id);
+    await logRoute(user.id, item, "unsnoozed");
+    toast.message({ title: vantaSay.inbox.unsnoozed() });
+    refresh();
+  };
+
   const actionsFor = (item: IntakeRow): CaptureAction[] => {
     if (item._raw.kind !== "message") {
       return [
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       ];
+    }
+    if (item.isSnoozed) {
+      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }];
     }
     if (item.routedTo === "ignored") {
       return [{ label: "Undo", onClick: () => undoIgnore(item) }];
@@ -150,13 +194,74 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       { label: "Track as commitment", onClick: () => routeToCommitment(item), primary: true },
       { label: "Save as note", onClick: () => routeToNote(item) },
       { label: "Reminder", onClick: () => routeToReminder(item) },
+      { label: "Snooze 1h", onClick: () => snooze(item, 1) },
+      { label: "Snooze tomorrow", onClick: () => snooze(item, 24) },
       { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       { label: "Ignore", onClick: () => ignore(item) },
     ];
   };
 
+  const snoozedCount = useMemo(() => items.filter((i) => i.isSnoozed).length, [items]);
+  const nowCount = useMemo(
+    () => items.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone).length,
+    [items],
+  );
+  const doneCount = useMemo(
+    () => items.filter((i) => i.isDone && !i.isSnoozed).length,
+    [items],
+  );
+
+  const LANES: { id: InboxLane; label: string; Icon: typeof Inbox; count: number }[] = [
+    { id: "now", label: vantaSay.inbox.tabNow(), Icon: Inbox, count: nowCount },
+    { id: "snoozed", label: vantaSay.inbox.tabSnoozed(), Icon: Clock, count: snoozedCount },
+    { id: "done", label: vantaSay.inbox.tabDone(), Icon: CheckCircle2, count: doneCount },
+  ];
+
+  const emptyCopy =
+    ambiguousOnly
+      ? lane === "snoozed"
+        ? vantaSay.inbox.emptySnoozed()
+        : lane === "done"
+          ? vantaSay.inbox.emptyDone()
+          : vantaSay.inbox.emptyNow()
+      : "Nothing captured yet.";
+
   return (
     <div className="space-y-3">
+      {ambiguousOnly && (
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+          {LANES.map((l) => {
+            const Icon = l.Icon;
+            const active = lane === l.id;
+            return (
+              <button
+                key={l.id}
+                onClick={() => setLane(l.id)}
+                className={cn(
+                  "inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={active}
+              >
+                <Icon className="h-3 w-3" />
+                {l.label}
+                <span className="opacity-70">· {l.count}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={refresh}
+            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {!ambiguousOnly && (
         <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
           {FILTERS.map((f) => (
@@ -193,7 +298,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       {!loading && filtered.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
           <Inbox className="h-5 w-5 opacity-50" />
-          {ambiguousOnly ? "Nothing waiting on you. Clean desk." : "Nothing captured yet."}
+          {emptyCopy}
         </div>
       )}
 
@@ -236,6 +341,16 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
             isMessage && !item.routedTo && item.text && item.text.length > 4;
           const footer = (
             <div className="space-y-1.5">
+              {isMessage && !item.routedTo && (
+                <SherlockChipTrigger
+                  operation="suggest"
+                  entityType="message"
+                  entityId={item._raw.row.id}
+                  text={item.text}
+                  title={item.text.slice(0, 80)}
+                  showWhenEmpty={false}
+                />
+              )}
               {showRecognize && (
                 <RecognizePanel
                   text={item.text}

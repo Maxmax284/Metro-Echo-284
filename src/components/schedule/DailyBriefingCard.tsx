@@ -32,6 +32,9 @@ export function DailyBriefingCard() {
   const [loading, setLoading] = useState(true);
   const [polish, setPolish] = useState<string | null>(null);
   const [bestFirstMove, setBestFirstMove] = useState<string | null>(null);
+  const [observedSalient, setObservedSalient] = useState<string[]>([]);
+  const [variantUsed, setVariantUsed] = useState<string | null>(null);
+  const [wrapCounts, setWrapCounts] = useState<{ closed_today: number; slipped_today: number } | null>(null);
   const [polishing, setPolishing] = useState(false);
   const auditedRef = useRef(false);
 
@@ -126,16 +129,29 @@ export function DailyBriefingCard() {
       const hourStr = formatInTimeZone(new Date(), timezone, "H");
       const h = Number(hourStr);
       const part_of_day = h < 12 ? "morning" : h < 18 ? "midday" : "evening";
+      // After 21h local → "wrap" variant: debrief tone, biases toward closing the day.
+      const variant = h >= 21 ? "wrap" : part_of_day;
       const { data, error } = await supabase.functions.invoke("briefing-compose", {
-        body: { timezone, part_of_day },
+        body: { timezone, part_of_day, variant },
       });
       if (error) throw error;
       const d = data as {
         narrative?: string | null;
         headline?: string;
         best_first_move?: string;
+        observed?: string[];
+        variant?: string;
+        counts?: { closed_today?: number; slipped_today?: number };
       } | null;
       setBestFirstMove(d?.best_first_move ?? null);
+      setObservedSalient(Array.isArray(d?.observed) ? d!.observed! : []);
+      setVariantUsed(d?.variant ?? variant);
+      if (d?.counts && typeof d.counts.closed_today === "number") {
+        setWrapCounts({
+          closed_today: d.counts.closed_today ?? 0,
+          slipped_today: d.counts.slipped_today ?? 0,
+        });
+      }
       const text = d?.narrative ?? d?.headline ?? null;
       if (text) setPolish(text.trim());
     } catch (e) {
@@ -178,13 +194,38 @@ export function DailyBriefingCard() {
           )}
           {bestFirstMove && !polishing && (
             <div className="mt-1 rounded-md bg-primary/5 p-2.5 ring-1 ring-primary/20">
-              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                <Target className="h-3 w-3" />
-                Best first move
+              <div className="mb-1 flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  <Target className="h-3 w-3" />
+                  {variantUsed === "wrap" ? "Best wrap" : "Best first move"}
+                </div>
+                {variantUsed && (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-primary/80 ring-1 ring-primary/20">
+                    {variantUsed}
+                  </span>
+                )}
               </div>
               <p className="text-[12.5px] font-medium leading-snug text-foreground/90">
                 {bestFirstMove}
               </p>
+              {variantUsed === "wrap" && wrapCounts && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {vantaSay.briefing.wrap(
+                    wrapCounts.closed_today,
+                    todayList.length - overdue,
+                    wrapCounts.slipped_today,
+                  )}
+                </p>
+              )}
+              {observedSalient.length > 0 && (
+                <ul className="mt-1.5 space-y-0.5">
+                  {observedSalient.map((s, i) => (
+                    <li key={i} className="text-[11px] text-muted-foreground">
+                      {vantaSay.briefing.salientFromObserve(s)}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {polish && (
                 <p className="mt-1 text-[12px] italic leading-snug text-foreground/70">
                   {polish}
