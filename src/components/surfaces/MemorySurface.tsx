@@ -58,7 +58,7 @@ export function MemorySurface() {
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
-  const [view, setView] = useState<"notes" | "captures" | "files" | "ambiguous" | "corrections">("notes");
+  const [view, setView] = useState<"inbox" | "notes" | "captures" | "files" | "corrections">("inbox");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
