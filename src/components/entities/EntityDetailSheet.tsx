@@ -92,7 +92,7 @@ export function EntityDetailSheet() {
 
       const { data: raw } = await supabase
         .from("entity_links")
-        .select("id, source_kind, source_id, role, created_at")
+        .select("id, source_kind, source_id, role, confidence, created_at")
         .eq("entity_id", openEntityId)
         .order("created_at", { ascending: false })
         .limit(40);
@@ -105,6 +105,15 @@ export function EntityDetailSheet() {
     })();
     return () => { alive = false; };
   }, [openEntityId]);
+
+  async function acceptLink(id: string) {
+    await supabase.from("entity_links").update({ confidence: "medium" }).eq("id", id);
+    setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, confidence: "medium" } : l)));
+  }
+  async function dismissLink(id: string) {
+    await supabase.from("entity_links").delete().eq("id", id);
+    setLinks((ls) => ls.filter((l) => l.id !== id));
+  }
 
   const Icon = entity ? pickKindIcon(entity.kind, entity.display_name) : Tag;
 
