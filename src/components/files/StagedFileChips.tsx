@@ -46,7 +46,7 @@ export function StagedFileChips({
   return (
     <ul
       className={cn(
-        "flex flex-wrap gap-1.5",
+        "flex flex-col gap-1.5",
         compact ? "text-[11px]" : "text-[12px]",
       )}
       aria-label="Staged files"
@@ -60,7 +60,7 @@ export function StagedFileChips({
           <li
             key={s.key}
             className={cn(
-              "group flex max-w-full flex-col gap-1 rounded-xl border px-2.5 py-1.5 ring-1",
+              "group flex w-full flex-col gap-1 rounded-xl border px-2.5 py-1.5 ring-1",
               isFailed
                 ? "border-destructive/30 bg-destructive/5 ring-destructive/20"
                 : isSaved
@@ -68,42 +68,47 @@ export function StagedFileChips({
                   : "border-border/60 bg-surface-elevated/60 ring-border/40",
             )}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2">
               {isBusy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
               ) : isSaved ? (
-                <Check className="h-3.5 w-3.5 text-primary" />
+                <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
               ) : (
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               )}
-              <span className="max-w-[180px] truncate font-medium text-foreground/90" title={s.file.name}>
-                {s.file.name}
-              </span>
-              <span className="text-[10.5px] text-muted-foreground">{fmtSize(s.file.size)}</span>
               <span
-                className={cn(
-                  "text-[10.5px]",
-                  isFailed ? "text-destructive" : isSaved ? "text-primary" : "text-muted-foreground",
-                )}
+                className="min-w-0 flex-1 truncate font-medium text-foreground/90"
+                title={s.file.name}
               >
-                · {STATUS_COPY[s.status]}
+                {s.file.name}
               </span>
               {!isSaved && !isBusy && (
                 <button
                   type="button"
                   onClick={() => onRemove(s.key)}
-                  className="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  className="-mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                   aria-label={`Remove ${s.file.name}`}
                   title="Remove"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pl-[22px] text-[10.5px] text-muted-foreground">
+              <span>{fmtSize(s.file.size)}</span>
+              <span aria-hidden>·</span>
+              <span
+                className={cn(
+                  isFailed ? "text-destructive" : isSaved ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                {STATUS_COPY[s.status]}
+              </span>
               {isFailed && onRetry && (
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-7 gap-1 px-2 text-[11px]"
+                  className="ml-1 h-6 gap-1 px-1.5 text-[10.5px]"
                   onClick={() => onRetry(s.key)}
                 >
                   <RotateCw className="h-3 w-3" /> Retry
@@ -111,7 +116,7 @@ export function StagedFileChips({
               )}
             </div>
             {isFailed && s.errorLabel && (
-              <div className="text-[10.5px] text-destructive">{s.errorLabel}</div>
+              <div className="pl-[22px] text-[10.5px] text-destructive">{s.errorLabel}</div>
             )}
             {showNoteInput && onNote && s.status === "staged" && (
               <input
