@@ -221,6 +221,18 @@ export const vantaSay = {
     ambiguous: () => "Two possible reads here. Pick one and I'll lock it in.",
     nothingFound: () => "Nothing to extract.",
     notExecuting: () => "Suggestion only — nothing runs until you approve.",
+    chipHint: () => "Tap to review.",
+    approved: () => "Approved. Routing now.",
+    dismissed: () => "Dismissed. Not acting on it.",
+    relatedCount: (n: number) => `${n} related ${n === 1 ? "item" : "items"}.`,
+    salient: (what: string) => `Worth noticing: ${what}`,
+    operation: {
+      observe: "Observe",
+      extract: "Extract",
+      relate: "Relate",
+      suggest: "Suggest",
+      investigate: "Investigate",
+    },
   },
 
   // Generic error builder — replaces "Something went wrong" everywhere.
