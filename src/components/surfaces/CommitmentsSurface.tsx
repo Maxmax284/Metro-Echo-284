@@ -12,6 +12,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatTzLine } from "@/lib/timeRules";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { EntityChips } from "@/components/entities/EntityChips";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 type Commitment = {
   id: string;
@@ -252,7 +253,17 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                         {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
                         {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                       </div>
-                      <EntityChips sourceKind="commitment" sourceId={c.id} className="mt-2" />
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <EntityChips sourceKind="commitment" sourceId={c.id} />
+                        <SherlockChipTrigger
+                          operation="relate"
+                          entityType="commitment"
+                          entityId={c.id}
+                          text={c.summary}
+                          title={c.summary}
+                          showWhenEmpty={false}
+                        />
+                      </div>
                     </div>
                     {c.status === "open" && (
                       <CommitmentActions c={c} onChanged={refresh} />

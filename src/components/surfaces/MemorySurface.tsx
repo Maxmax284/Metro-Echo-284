@@ -15,6 +15,7 @@ import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -535,6 +536,14 @@ export function MemorySurface() {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
                       <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{SOURCE_CHIP[src] ?? src}</span>
                       {why && <span className="italic opacity-80">{why}</span>}
+                      <SherlockChipTrigger
+                        operation="relate"
+                        entityType="note"
+                        entityId={n.id}
+                        text={`${n.title ?? ""}\n${n.body ?? ""}`}
+                        title={n.title ?? "Untitled"}
+                        showWhenEmpty={false}
+                      />
                     </div>
                   </button>
                   {!archived ? (
