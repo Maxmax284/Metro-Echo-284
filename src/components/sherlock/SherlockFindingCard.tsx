@@ -2,7 +2,7 @@
 // Shows confidence + rationale + source, exposes Accept/Edit/Dismiss/Inspect.
 // Never executes anything itself — callers provide accept/edit/dismiss flows.
 import { useMemo, useState } from "react";
-import { Sparkles, Check, X, Pencil, Eye, ShieldAlert } from "lucide-react";
+import { Sparkles, Check, X, Pencil, Eye, ShieldAlert, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
@@ -45,14 +45,28 @@ export function SherlockFindingCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   const needsConfirm = useMemo(
     () => finding.sensitive_flag || (finding.suggested_action && HIGH_IMPACT_ACTIONS.has(finding.suggested_action)),
     [finding.sensitive_flag, finding.suggested_action],
   );
 
+  // Sensitive findings render a minimal preview: hide rationale + suggested
+  // action + extracted data behind a reveal toggle. No auto-route. Every
+  // action (accept, edit, dismiss) routes through the confirm modal.
+  const hideDetails = finding.sensitive_flag && !revealed;
+  const sensitiveCats: string[] = Array.isArray((finding.extracted_data as any)?.sensitive_categories)
+    ? ((finding.extracted_data as any).sensitive_categories as string[])
+    : [];
+
   const modeLabel = MODE_LABEL[finding.mode] ?? finding.mode;
   const created = finding.created_at ? formatDistanceToNow(new Date(finding.created_at), { addSuffix: true }) : "";
+
+  async function runWithConfirm(fn: () => Promise<void>) {
+    if (finding.sensitive_flag) { setConfirming(true); return; }
+    await fn();
+  }
 
   async function doAccept() {
     if (needsConfirm) { setConfirming(true); return; }
@@ -61,28 +75,30 @@ export function SherlockFindingCard({
       await acceptFinding(finding);
       vantaToast.success(vantaSay.sherlock.approved());
       onChanged?.();
-    } catch (e: any) {
+    } catch {
       vantaToast.error(vantaSay.errorWith("Couldn't accept", "Try again."));
     } finally { setBusy(false); }
   }
   async function doDismiss() {
-    setBusy(true);
-    try {
-      await dismissFinding(finding, cooldownDays);
-      vantaToast.success(vantaSay.sherlock.dismissed());
-      onChanged?.();
-    } catch {
-      vantaToast.error(vantaSay.errorWith("Couldn't dismiss", "Try again."));
-    } finally { setBusy(false); }
+    await runWithConfirm(async () => {
+      setBusy(true);
+      try {
+        await dismissFinding(finding, cooldownDays);
+        vantaToast.success(vantaSay.sherlock.dismissed());
+        onChanged?.();
+      } catch {
+        vantaToast.error(vantaSay.errorWith("Couldn't dismiss", "Try again."));
+      } finally { setBusy(false); }
+    });
   }
   async function doEdit() {
-    // Minimal edit: open inspect callback so the host can present an editor.
-    // Default behaviour records an "edited" event with no payload changes.
-    setBusy(true);
-    try {
-      await editFinding(finding, { note: "edited from card" });
-      onChanged?.();
-    } finally { setBusy(false); }
+    await runWithConfirm(async () => {
+      setBusy(true);
+      try {
+        await editFinding(finding, { note: "edited from card" });
+        onChanged?.();
+      } finally { setBusy(false); }
+    });
   }
 
   return (
@@ -102,7 +118,7 @@ export function SherlockFindingCard({
                 <>
                   <span aria-hidden>·</span>
                   <span className="inline-flex items-center gap-0.5 text-amber-500">
-                    <ShieldAlert className="h-2.5 w-2.5" /> sensitive
+                    <ShieldAlert className="h-2.5 w-2.5" /> sensitive{sensitiveCats.length ? ` · ${sensitiveCats.join(", ")}` : ""}
                   </span>
                 </>
               )}
@@ -113,17 +129,37 @@ export function SherlockFindingCard({
                 </>
               )}
             </div>
-            <div className="text-sm text-foreground/90">{finding.summary}</div>
-            {!compact && finding.rationale && (
-              <div className="text-xs text-muted-foreground">{finding.rationale}</div>
-            )}
-            {finding.suggested_action && (
-              <div className="text-[11px] text-primary/80">→ {finding.suggested_action.replace(/_/g, " ")}</div>
+            {hideDetails ? (
+              <>
+                <div className="text-sm text-foreground/90">{vantaSay.sherlock.sensitiveHeld(sensitiveCats)}</div>
+                <div className="text-xs text-muted-foreground">{vantaSay.sherlock.sensitiveRevealHint()}</div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm text-foreground/90">{finding.summary}</div>
+                {!compact && finding.rationale && (
+                  <div className="text-xs text-muted-foreground">{finding.rationale}</div>
+                )}
+                {finding.suggested_action && (
+                  <div className="text-[11px] text-primary/80">→ {finding.suggested_action.replace(/_/g, " ")}</div>
+                )}
+              </>
             )}
           </div>
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1.5">
+          {finding.sensitive_flag && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => setRevealed((r) => !r)}
+            >
+              {revealed ? <EyeOff className="mr-1 h-3 w-3" /> : <Eye className="mr-1 h-3 w-3" />}
+              {revealed ? "Hide" : "Reveal"}
+            </Button>
+          )}
           <Button size="sm" variant="default" className="h-7 px-2 text-xs" disabled={busy} onClick={doAccept}>
             <Check className="mr-1 h-3 w-3" /> Accept
           </Button>
@@ -133,7 +169,7 @@ export function SherlockFindingCard({
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={busy} onClick={doDismiss}>
             <X className="mr-1 h-3 w-3" /> Dismiss
           </Button>
-          {onInspect && (
+          {onInspect && !finding.sensitive_flag && (
             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onInspect(finding)}>
               <Eye className="mr-1 h-3 w-3" /> Inspect
             </Button>

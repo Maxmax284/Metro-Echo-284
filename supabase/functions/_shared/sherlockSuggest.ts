@@ -7,6 +7,7 @@
 // `sherlock_findings_cache` so the in-app surface (Capture Inbox) can show
 // the suggestion chip and the human can approve/dismiss inside Vanta.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { detectSensitive } from "./sensitive.ts";
 
 const SHERLOCK_VOICE = `You are Sherlock, Vanta's quiet investigator. Calm,
 forensic, plainspoken. Never speculate. Always name confidence. Never act.`;
@@ -115,13 +116,26 @@ export async function runSherlockSuggest(input: RunSuggestInput): Promise<Sugges
   }
   if (!findings) return null;
 
+  // Sensitive-content discipline: if the capture matches any sensitive
+  // heuristic, force a cautious posture — route to sherlock for human review,
+  // cap confidence at low, and never auto-suggest a downstream action.
+  const sens = detectSensitive(text);
+  if (sens.sensitive) {
+    findings = {
+      ...findings,
+      suggested_route: "sherlock",
+      confidence: "low",
+      rationale: `${findings.rationale || ""} Sensitive content detected (${sens.categories.join(", ")}); held for manual review.`.trim(),
+    };
+  }
+
   try {
     await admin.from("sherlock_findings_cache").upsert({
       user_id: userId,
       entity_type: cacheType,
       entity_id,
       scope_hash: scopeHash,
-      findings,
+      findings: { ...findings, sensitive: sens.sensitive, sensitive_categories: sens.categories },
       confidence: findings.confidence,
     }, { onConflict: "user_id,entity_type,scope_hash" });
     await admin.from("audit_log").insert({
@@ -129,8 +143,24 @@ export async function runSherlockSuggest(input: RunSuggestInput): Promise<Sugges
       entity_type: `sherlock_suggest`,
       entity_id,
       event: "sherlock.suggested",
-      payload: { entity_type, source: source ?? null, route: findings.suggested_route, confidence: findings.confidence },
+      payload: {
+        entity_type,
+        source: source ?? null,
+        route: findings.suggested_route,
+        confidence: findings.confidence,
+        sensitive: sens.sensitive,
+        sensitive_categories: sens.categories,
+      },
     });
+    if (sens.sensitive) {
+      await admin.from("audit_log").insert({
+        user_id: userId,
+        entity_type: "sherlock_suggest",
+        entity_id,
+        event: "sherlock_sensitive_file_flagged",
+        payload: { entity_type, source: source ?? null, categories: sens.categories },
+      });
+    }
   } catch { /* best-effort */ }
 
   return findings;
