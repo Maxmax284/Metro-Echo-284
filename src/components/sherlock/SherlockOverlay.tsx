@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, HelpCircle, Link2, Sparkles, ShieldAlert, GitBranch, EyeOff, MessageSquarePlus, NotebookPen, ListPlus, BellPlus, CheckSquare } from "lucide-react";
+import { Loader2, AlertTriangle, HelpCircle, Link2, Sparkles, ShieldAlert, GitBranch, EyeOff, MessageSquarePlus, NotebookPen, ListPlus, BellPlus, CheckSquare, Check, X } from "lucide-react";
 import { useSherlock, SherlockFindings } from "./SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
+import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
 
 const sections: Array<{
   key: keyof SherlockFindings;
@@ -25,12 +26,16 @@ const sections: Array<{
   { key: "blind_spots", label: "Blind Spots", Icon: EyeOff },
 ];
 
+const SINGLE_OPS = new Set(["observe", "extract", "relate", "suggest"]);
+
 export function SherlockOverlay() {
   const { open, scope, findings, loading, closeSherlock, setFindings, setLoading } = useSherlock();
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.key, !!s.defaultOpen]))
   );
+  const operation = scope?.operation;
+  const isSingleOp = !!operation && SINGLE_OPS.has(operation);
 
   useEffect(() => {
     if (!open || !scope || findings) return;
@@ -38,9 +43,11 @@ export function SherlockOverlay() {
     (async () => {
       setLoading(true);
       try {
+        // Single-op modes call their own mode directly; legacy overlay uses overlay mode.
+        const mode = isSingleOp ? operation! : "overlay";
         const { data, error } = await supabase.functions.invoke("sherlock-investigate", {
           body: {
-            mode: "overlay",
+            mode,
             scope: {
               entity_type: scope.entity_type,
               entity_id: scope.entity_id ?? null,
@@ -59,7 +66,63 @@ export function SherlockOverlay() {
     return () => {
       cancelled = true;
     };
-  }, [open, scope, findings, setFindings, setLoading]);
+  }, [open, scope, findings, setFindings, setLoading, isSingleOp, operation]);
+
+  const writeAudit = async (event: "approved" | "dismissed") => {
+    if (!user || !scope) return;
+    await supabase.from("audit_log").insert({
+      user_id: user.id,
+      entity_type: `sherlock_${operation ?? "overlay"}`,
+      entity_id: scope.entity_id ?? null,
+      event,
+      payload: {
+        operation,
+        target_entity_type: scope.entity_type,
+        suggested_route: findings?.suggested_route,
+        confidence: findings?.confidence,
+      },
+    });
+  };
+
+  const approveSuggestion = async () => {
+    if (!user || !scope || !findings) return;
+    const route = findings.suggested_route;
+    const text = findings.title || scope.text || scope.title || "";
+    try {
+      if (route === "commitment") {
+        const { data } = await supabase.from("commitments").insert({
+          user_id: user.id, summary: text.slice(0, 200),
+        }).select("id").single();
+        if (data) generateEmbedding("commitment", data.id);
+      } else if (route === "action") {
+        await supabase.from("actions").insert({
+          user_id: user.id, title: text.slice(0, 80), description: text,
+          risk: (findings.risk as any) || "standard", status: "staged", source: "sherlock",
+        });
+      } else if (route === "reminder") {
+        const remind_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        await supabase.from("commitments").insert({
+          user_id: user.id, summary: text.slice(0, 200), remind_at, priority: "high",
+        });
+      } else if (route === "memory") {
+        const { data } = await supabase.from("notes").insert({
+          user_id: user.id, title: text.slice(0, 80), body: text,
+        }).select("id").single();
+        if (data) generateEmbedding("note", data.id);
+      }
+      await writeAudit("approved");
+      toast.success(vantaSay.sherlock.approved());
+      closeSherlock();
+    } catch (e) {
+      toast.fromError(e);
+    }
+  };
+
+  const dismissSuggestion = async () => {
+    await writeAudit("dismissed");
+    toast.message(vantaSay.sherlock.dismissed());
+    closeSherlock();
+  };
 
   const saveToNotes = async (text: string) => {
     if (!user) return;
@@ -108,6 +171,8 @@ export function SherlockOverlay() {
     toast.success("Reminder set for tomorrow.");
   };
 
+  const opLabel = operation ? vantaSay.sherlock.operation[operation as keyof typeof vantaSay.sherlock.operation] : null;
+
   return (
     <Sheet open={open} onOpenChange={(v) => !v && closeSherlock()}>
       <SheetContent
@@ -118,9 +183,15 @@ export function SherlockOverlay() {
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <SheetTitle className="text-base">Sherlock</SheetTitle>
+            {opLabel && (
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                {opLabel}
+              </Badge>
+            )}
             {findings?.confidence && (
               <Badge variant="outline" className="ml-auto text-[10px]">
-                confidence: {findings.confidence}
+                <StatusDot tone={confidenceTone(findings.confidence)} className="mr-1.5" />
+                {findings.confidence} confidence
               </Badge>
             )}
           </div>
@@ -137,12 +208,86 @@ export function SherlockOverlay() {
             </div>
           )}
 
-          {!loading && findings?.summary && (
+          {/* Single-op result panels (observe / extract / relate / suggest) */}
+          {!loading && findings && isSingleOp && (
+            <div className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3 space-y-2">
+              {operation === "observe" && (
+                <>
+                  {findings.kind && (
+                    <p className="text-sm">{vantaSay.sherlock.looksLike(findings.kind)}</p>
+                  )}
+                  {findings.salient && (
+                    <p className="text-xs text-muted-foreground">{vantaSay.sherlock.salient(findings.salient)}</p>
+                  )}
+                </>
+              )}
+              {operation === "extract" && (
+                <>
+                  {findings.document_type && (
+                    <p className="text-sm">Detected: <strong>{findings.document_type}</strong></p>
+                  )}
+                  {findings.summary && (
+                    <p className="text-xs text-foreground/85 leading-relaxed">{findings.summary}</p>
+                  )}
+                </>
+              )}
+              {operation === "relate" && (
+                <>
+                  <p className="text-sm">
+                    {vantaSay.sherlock.relatedCount(findings.related?.length ?? 0)}
+                  </p>
+                  {findings.related && findings.related.length > 0 && (
+                    <ul className="space-y-1">
+                      {findings.related.slice(0, 8).map((r, i) => (
+                        <li key={i} className="rounded-md bg-surface-elevated/60 p-2 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            {r.confidence && <StatusDot tone={confidenceTone(r.confidence)} />}
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{r.kind}</span>
+                          </div>
+                          {r.why && <p className="mt-0.5 text-foreground/85">{r.why}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+              {operation === "suggest" && (
+                <>
+                  {findings.suggested_route && (
+                    <p className="text-sm">
+                      {vantaSay.sherlock.suggests(findings.suggested_route)}
+                    </p>
+                  )}
+                  {findings.rationale && (
+                    <p className="text-xs text-muted-foreground leading-relaxed">{findings.rationale}</p>
+                  )}
+                  {findings.due_hint && (
+                    <p className="text-[10.5px] text-muted-foreground">When: {findings.due_hint}</p>
+                  )}
+                </>
+              )}
+              <p className="text-[10px] italic text-muted-foreground/80">
+                {vantaSay.sherlock.notExecuting()}
+              </p>
+              <div className="flex gap-1.5 pt-1">
+                {operation === "suggest" && findings.suggested_route &&
+                  ["commitment", "action", "reminder", "memory"].includes(findings.suggested_route) && (
+                  <Button size="sm" className="h-7 gap-1 px-2 text-[11px]" onClick={approveSuggestion}>
+                    <Check className="h-3 w-3" /> Approve
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-[11px]" onClick={dismissSuggestion}>
+                  <X className="h-3 w-3" /> Dismiss
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!loading && !isSingleOp && findings?.summary && (
             <p className="text-sm leading-relaxed text-foreground/90">{findings.summary}</p>
           )}
 
-          {!loading &&
-            findings &&
+          {!loading && !isSingleOp && findings &&
             sections.map(({ key, label, Icon }) => {
               const items = (findings[key] as any[]) || [];
               if (!items.length) return null;
@@ -186,9 +331,9 @@ export function SherlockOverlay() {
               );
             })}
 
-          {!loading && findings && Object.values(findings).every((v) => !v || (Array.isArray(v) && !v.length)) && (
+          {!loading && !isSingleOp && findings && Object.values(findings).every((v) => !v || (Array.isArray(v) && !v.length)) && (
             <p className="text-xs text-muted-foreground text-center py-8">
-              Nothing notable. Sherlock didn't find risks, gaps, or contradictions in this context.
+              {vantaSay.sherlock.nothingFound()}
             </p>
           )}
         </div>
