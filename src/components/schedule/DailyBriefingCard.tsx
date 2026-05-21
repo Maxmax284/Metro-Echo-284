@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2, Target } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
