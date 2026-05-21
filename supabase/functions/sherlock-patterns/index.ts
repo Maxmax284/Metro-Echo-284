@@ -33,127 +33,151 @@ serve(async (req) => {
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
     const auth = req.headers.get("Authorization") ?? "";
+    const cronHeader = req.headers.get("x-cron-scan");
     if (!auth) return json({ error: "no auth" }, 401);
 
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    // Cron path: pg_cron sends `x-cron-scan: sherlock-patterns`. We iterate
+    // every user that has ambient recognition enabled.
+    if (cronHeader === "sherlock-patterns") {
+      const { data: optedIn } = await admin
+        .from("sherlock_settings")
+        .select("user_id")
+        .eq("ambient_enabled", true);
+      const ids = (optedIn ?? []).map((r: any) => r.user_id as string);
+      let totalDrafts = 0, totalWritten = 0, totalSuppressed = 0;
+      for (const uid of ids) {
+        const r = await runForUser(admin, uid);
+        totalDrafts += r.drafts; totalWritten += r.written; totalSuppressed += r.suppressed;
+      }
+      return json({
+        ok: true, mode: "cron",
+        users: ids.length, drafts: totalDrafts,
+        written: totalWritten, suppressed: totalSuppressed,
+      });
+    }
+
+    // User-triggered: scope to the caller.
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: auth } },
     });
     const { data: u, error: ue } = await userClient.auth.getUser();
     if (ue || !u?.user) return json({ error: "unauthorized" }, 401);
-    const userId = u.user.id;
-
-    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    const drafts: FindingDraft[] = [];
-
-    // ---- 1) Stale commitments: open, due in the past by >2d, no recent reminder
-    const twoDaysAgo = new Date(Date.now() - 2 * 86400_000).toISOString();
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
-    const { data: stale } = await admin
-      .from("commitments")
-      .select("id, summary, due_at, last_reminded_at, updated_at")
-      .eq("user_id", userId)
-      .eq("status", "open")
-      .lt("due_at", twoDaysAgo)
-      .limit(50);
-    for (const c of stale ?? []) {
-      const lastTouch = c.last_reminded_at ?? c.updated_at;
-      if (lastTouch && new Date(lastTouch) > new Date(sevenDaysAgo)) continue;
-      drafts.push({
-        source_object_type: "commitment",
-        source_object_id: c.id,
-        finding_type: "stale_commitment",
-        summary: `Still open past due: "${truncate(c.summary, 60)}"`,
-        rationale: `Due ${human(c.due_at)} · no nudge since ${human(lastTouch)}.`,
-        confidence: "medium",
-        suggested_action: "renegotiate_or_close",
-        extracted_data: { due_at: c.due_at, last_touch: lastTouch },
-      });
-    }
-
-    // ---- 2) Near-duplicate notes: same lowercased title in last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString();
-    const { data: notes } = await admin
-      .from("notes")
-      .select("id, title, body, created_at")
-      .eq("user_id", userId)
-      .gte("created_at", thirtyDaysAgo)
-      .limit(300);
-    const seen = new Map<string, { id: string; title: string }>();
-    for (const n of notes ?? []) {
-      const key = (n.title?.toLowerCase().trim() || n.body?.slice(0, 60).toLowerCase().trim() || "").trim();
-      if (!key || key.length < 8) continue;
-      const prev = seen.get(key);
-      if (prev) {
-        drafts.push({
-          source_object_type: "note",
-          source_object_id: n.id,
-          finding_type: "near_duplicate_note",
-          summary: `Looks like a duplicate of "${truncate(prev.title || key, 50)}"`,
-          rationale: `Two recent notes share the same opening. Worth merging or linking.`,
-          confidence: "low",
-          suggested_action: "merge_or_link",
-          target_object_type: "note",
-          target_object_id: prev.id,
-        });
-      } else {
-        seen.set(key, { id: n.id, title: n.title ?? "" });
-      }
-    }
-
-    // ---- 3) Recurring entity activity: entity with ≥4 links in last 14d
-    const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000).toISOString();
-    const { data: links } = await admin
-      .from("entity_links")
-      .select("entity_id, created_at")
-      .eq("user_id", userId)
-      .gte("created_at", fourteenDaysAgo)
-      .limit(500);
-    const counts = new Map<string, number>();
-    for (const l of links ?? []) counts.set(l.entity_id, (counts.get(l.entity_id) ?? 0) + 1);
-    const recurring = [...counts.entries()].filter(([, n]) => n >= 4).slice(0, 10);
-    if (recurring.length > 0) {
-      const ids = recurring.map(([id]) => id);
-      const { data: ents } = await admin
-        .from("entities")
-        .select("id, display_name, kind")
-        .in("id", ids);
-      for (const [id, n] of recurring) {
-        const e = ents?.find((x) => x.id === id);
-        if (!e) continue;
-        drafts.push({
-          source_object_type: "entity",
-          source_object_id: id,
-          finding_type: "recurring_entity",
-          summary: `"${e.display_name}" keeps showing up — ${n} mentions in 14 days`,
-          rationale: `Recurring across your captures. Might be worth a dedicated thread or commitment.`,
-          confidence: "medium",
-          suggested_action: "promote_to_topic",
-          extracted_data: { mention_count: n, kind: e.kind },
-        });
-      }
-    }
-
-    // Persist drafts via createFinding (cooldown-aware)
-    let written = 0;
-    let suppressed = 0;
-    for (const d of drafts) {
-      const r = await createFinding(admin, userId, d);
-      if (r) written++; else suppressed++;
-    }
-
-    await admin.from("audit_log").insert({
-      user_id: userId,
-      entity_type: "sherlock_patterns",
-      event: "sherlock_patterns_scanned",
-      payload: { drafts: drafts.length, written, suppressed },
-    });
-
-    return json({ ok: true, drafts: drafts.length, written, suppressed });
+    const r = await runForUser(admin, u.user.id);
+    return json({ ok: true, mode: "manual", ...r });
   } catch (e) {
     console.error("[sherlock-patterns]", e);
     return json({ error: String((e as Error).message ?? e) }, 500);
   }
 });
+
+async function runForUser(admin: any, userId: string) {
+  const drafts: FindingDraft[] = [];
+
+  // ---- 1) Stale commitments: open, due in the past by >2d, no recent reminder
+  const twoDaysAgo = new Date(Date.now() - 2 * 86400_000).toISOString();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const { data: stale } = await admin
+    .from("commitments")
+    .select("id, summary, due_at, last_reminded_at, updated_at")
+    .eq("user_id", userId)
+    .eq("status", "open")
+    .lt("due_at", twoDaysAgo)
+    .limit(50);
+  for (const c of stale ?? []) {
+    const lastTouch = c.last_reminded_at ?? c.updated_at;
+    if (lastTouch && new Date(lastTouch) > new Date(sevenDaysAgo)) continue;
+    drafts.push({
+      source_object_type: "commitment",
+      source_object_id: c.id,
+      finding_type: "stale_commitment",
+      summary: `Still open past due: "${truncate(c.summary, 60)}"`,
+      rationale: `Due ${human(c.due_at)} · no nudge since ${human(lastTouch)}.`,
+      confidence: "medium",
+      suggested_action: "renegotiate_or_close",
+      extracted_data: { due_at: c.due_at, last_touch: lastTouch },
+    });
+  }
+
+  // ---- 2) Near-duplicate notes: same lowercased title in last 30 days
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const { data: notes } = await admin
+    .from("notes")
+    .select("id, title, body, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", thirtyDaysAgo)
+    .limit(300);
+  const seen = new Map<string, { id: string; title: string }>();
+  for (const n of notes ?? []) {
+    const key = (n.title?.toLowerCase().trim() || n.body?.slice(0, 60).toLowerCase().trim() || "").trim();
+    if (!key || key.length < 8) continue;
+    const prev = seen.get(key);
+    if (prev) {
+      drafts.push({
+        source_object_type: "note",
+        source_object_id: n.id,
+        finding_type: "near_duplicate_note",
+        summary: `Looks like a duplicate of "${truncate(prev.title || key, 50)}"`,
+        rationale: `Two recent notes share the same opening. Worth merging or linking.`,
+        confidence: "low",
+        suggested_action: "merge_or_link",
+        target_object_type: "note",
+        target_object_id: prev.id,
+      });
+    } else {
+      seen.set(key, { id: n.id, title: n.title ?? "" });
+    }
+  }
+
+  // ---- 3) Recurring entity activity: entity with ≥4 links in last 14d
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000).toISOString();
+  const { data: links } = await admin
+    .from("entity_links")
+    .select("entity_id, created_at")
+    .eq("user_id", userId)
+    .gte("created_at", fourteenDaysAgo)
+    .limit(500);
+  const counts = new Map<string, number>();
+  for (const l of links ?? []) counts.set(l.entity_id, (counts.get(l.entity_id) ?? 0) + 1);
+  const recurring = [...counts.entries()].filter(([, n]) => n >= 4).slice(0, 10);
+  if (recurring.length > 0) {
+    const ids = recurring.map(([id]) => id);
+    const { data: ents } = await admin
+      .from("entities")
+      .select("id, display_name, kind")
+      .in("id", ids);
+    for (const [id, n] of recurring) {
+      const e = ents?.find((x: any) => x.id === id);
+      if (!e) continue;
+      drafts.push({
+        source_object_type: "entity",
+        source_object_id: id,
+        finding_type: "recurring_entity",
+        summary: `"${e.display_name}" keeps showing up — ${n} mentions in 14 days`,
+        rationale: `Recurring across your captures. Might be worth a dedicated thread or commitment.`,
+        confidence: "medium",
+        suggested_action: "promote_to_topic",
+        extracted_data: { mention_count: n, kind: e.kind },
+      });
+    }
+  }
+
+  let written = 0, suppressed = 0;
+  for (const d of drafts) {
+    const r = await createFinding(admin, userId, d);
+    if (r) written++; else suppressed++;
+  }
+
+  await admin.from("audit_log").insert({
+    user_id: userId,
+    entity_type: "sherlock_patterns",
+    event: "sherlock_patterns_scanned",
+    payload: { drafts: drafts.length, written, suppressed },
+  });
+
+  return { drafts: drafts.length, written, suppressed };
+}
 
 async function createFinding(admin: any, userId: string, d: FindingDraft) {
   // Cooldown enforcement (mirror of client-side lifecycle helper)
