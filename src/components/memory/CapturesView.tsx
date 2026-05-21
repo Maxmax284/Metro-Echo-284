@@ -152,11 +152,39 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     refresh();
   };
 
+  const snooze = async (item: IntakeRow, hours: number) => {
+    if (!user || item._raw.kind !== "message") return;
+    const row = item._raw.row;
+    const prevMeta = row.metadata ?? {};
+    const until = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    await supabase.from("messages").update({
+      metadata: { ...prevMeta, snoozed_until: until, needs_review: true },
+    }).eq("id", row.id);
+    await logRoute(user.id, item, "snoozed", { until, hours });
+    toast.message({ title: vantaSay.inbox.snoozedUntil(new Date(until).toLocaleString()) });
+    refresh();
+  };
+
+  const unsnooze = async (item: IntakeRow) => {
+    if (!user || item._raw.kind !== "message") return;
+    const row = item._raw.row;
+    const prevMeta = row.metadata ?? {};
+    await supabase.from("messages").update({
+      metadata: { ...prevMeta, snoozed_until: null },
+    }).eq("id", row.id);
+    await logRoute(user.id, item, "unsnoozed");
+    toast.message({ title: vantaSay.inbox.unsnoozed() });
+    refresh();
+  };
+
   const actionsFor = (item: IntakeRow): CaptureAction[] => {
     if (item._raw.kind !== "message") {
       return [
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       ];
+    }
+    if (item.isSnoozed) {
+      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }];
     }
     if (item.routedTo === "ignored") {
       return [{ label: "Undo", onClick: () => undoIgnore(item) }];
@@ -166,6 +194,8 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       { label: "Track as commitment", onClick: () => routeToCommitment(item), primary: true },
       { label: "Save as note", onClick: () => routeToNote(item) },
       { label: "Reminder", onClick: () => routeToReminder(item) },
+      { label: "Snooze 1h", onClick: () => snooze(item, 1) },
+      { label: "Snooze tomorrow", onClick: () => snooze(item, 24) },
       { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       { label: "Ignore", onClick: () => ignore(item) },
     ];
