@@ -96,9 +96,82 @@ function itemSchema(extra: string[] = []) {
   };
 }
 
+// -------- EXTRACT mode (recognition only — never decides) --------
+const EXTRACT_SYSTEM = `${SHERLOCK_VOICE}
+
+You read a single capture (a message, file name, or freeform text) and pull
+out the structured facts a human would want at a glance. You do NOT decide
+what to do with it. You do NOT recommend medical, legal, or financial
+conclusions. If a field isn't clearly present, omit it. No guessing.
+Output strict JSON only.`;
+
+const EXTRACT_SCHEMA = {
+  type: "object",
+  properties: {
+    document_type: { type: "string" },
+    summary: { type: "string" },
+    people: { type: "array", items: { type: "string" } },
+    places: { type: "array", items: { type: "string" } },
+    orgs: { type: "array", items: { type: "string" } },
+    dates: { type: "array", items: { type: "string" } },
+    amounts: { type: "array", items: { type: "string" } },
+    intents: { type: "array", items: { type: "string" } },
+    sensitive: { type: "boolean" },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["summary", "confidence"],
+  additionalProperties: false,
+};
+
+// -------- SUGGEST mode (drafts a triage route — never routes) --------
+const SUGGEST_SYSTEM = `${SHERLOCK_VOICE}
+
+You look at a single capture plus recent context and propose ONE next move
+for triage: where it belongs and why. You are not the operator — you are
+drafting a recommendation the human will accept or reject. Be specific and
+brief. Output strict JSON only.
+
+Allowed lanes:
+  - memory      (just file it — reference)
+  - commitment  (an obligation to track)
+  - reminder    (a poke at a specific time)
+  - action      (a draft action to stage; never auto-run)
+  - sherlock    (worth a deeper look first)
+  - ignore      (noise, file away)`;
+
+const SUGGEST_SCHEMA = {
+  type: "object",
+  properties: {
+    suggested_route: { type: "string", enum: ["memory", "commitment", "reminder", "action", "sherlock", "ignore"] },
+    title: { type: "string" },
+    rationale: { type: "string" },
+    due_hint: { type: "string" },
+    risk: { type: "string", enum: ["low", "standard", "high"] },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
+  },
+  required: ["suggested_route", "rationale", "confidence"],
+  additionalProperties: false,
+};
+
 async function sha256(s: string) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function callGateway(apiKey: string, system: string, userMsg: string, fnName: string, schema: any) {
+  return await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userMsg },
+      ],
+      tools: [{ type: "function", function: { name: fnName, description: "Return structured output.", parameters: schema } }],
+      tool_choice: { type: "function", function: { name: fnName } },
+    }),
+  });
 }
 
 Deno.serve(async (req: Request) => {
