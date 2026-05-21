@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2, Target } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -31,6 +31,7 @@ export function DailyBriefingCard() {
   const [approvals, setApprovals] = useState(0);
   const [loading, setLoading] = useState(true);
   const [polish, setPolish] = useState<string | null>(null);
+  const [bestFirstMove, setBestFirstMove] = useState<string | null>(null);
   const [polishing, setPolishing] = useState(false);
   const auditedRef = useRef(false);
 
@@ -134,9 +135,8 @@ export function DailyBriefingCard() {
         headline?: string;
         best_first_move?: string;
       } | null;
-      const text = d?.narrative
-        ?? [d?.headline, d?.best_first_move ? vantaSay.briefing.bestFirstMove(d.best_first_move.replace(/\.$/, "")) : null]
-            .filter(Boolean).join(" ");
+      setBestFirstMove(d?.best_first_move ?? null);
+      const text = d?.narrative ?? d?.headline ?? null;
       if (text) setPolish(text.trim());
     } catch (e) {
       toast.fromError(e);
@@ -166,12 +166,33 @@ export function DailyBriefingCard() {
               </span>
             </p>
           )}
-          {polish && (
-            <p className="mt-1 rounded-md bg-primary/5 p-2 text-[12px] italic text-foreground/85 ring-1 ring-primary/20">
-              {polish}
-            </p>
+          {polishing && (
+            <div className="mt-1 space-y-1.5 rounded-md bg-muted/30 p-2.5">
+              <div className="flex items-center gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground">Composing briefing…</span>
+              </div>
+              <div className="h-2.5 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-2.5 w-1/2 animate-pulse rounded bg-muted" />
+            </div>
           )}
-          {!loading && !polish && (overdue + todayList.length + approvals + files > 0) && (
+          {bestFirstMove && !polishing && (
+            <div className="mt-1 rounded-md bg-primary/5 p-2.5 ring-1 ring-primary/20">
+              <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                <Target className="h-3 w-3" />
+                Best first move
+              </div>
+              <p className="text-[12.5px] font-medium leading-snug text-foreground/90">
+                {bestFirstMove}
+              </p>
+              {polish && (
+                <p className="mt-1 text-[12px] italic leading-snug text-foreground/70">
+                  {polish}
+                </p>
+              )}
+            </div>
+          )}
+          {!loading && !polishing && !bestFirstMove && (overdue + todayList.length + approvals + files > 0) && (
             <Button
               size="sm"
               variant="ghost"
@@ -179,7 +200,7 @@ export function DailyBriefingCard() {
               onClick={polishBriefing}
               disabled={polishing}
             >
-              {polishing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wand2 className="mr-1 h-3 w-3" />}
+              <Wand2 className="mr-1 h-3 w-3" />
               Polish with Vanta
             </Button>
           )}
