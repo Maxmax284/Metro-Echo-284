@@ -55,7 +55,7 @@ function kindColor(kind: string): string {
   }
 }
 
-function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
+function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
     let alive = true;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
       const { data: ents } = await supabase
         .from("entities")
         .select("id, display_name, kind, last_seen_at")
@@ -94,7 +94,8 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
         .gte("last_seen_at", since)
         .order("last_seen_at", { ascending: false })
         .limit(24);
-      const list = (ents ?? []) as Entity[];
+      let list = (ents ?? []) as Entity[];
+      if (kinds.size > 0) list = list.filter((e) => kinds.has(e.kind as CanvasKind));
 
       const ids = list.map((e) => e.id);
       const w = new Map<string, number>();
