@@ -11,7 +11,7 @@ import type {
   SherlockStatus,
 } from "./types";
 
-type Json = Record<string, unknown>;
+type Json = Record<string, any>;
 
 async function writeAudit(params: {
   userId: string;
