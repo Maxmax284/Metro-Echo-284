@@ -28,12 +28,35 @@ const FILTERS: { id: "all" | CaptureSource | "review"; label: string }[] = [
 ];
 
 async function logRoute(userId: string, item: IntakeRow, destination: string, extra: Record<string, any> = {}) {
-  await supabase.from("audit_log").insert({
+  // Doctrine: every route writes an audit event + a capture_routes row so the
+  // inbox always has receipts. Best-effort — never throw inside a toast path.
+  const captureKind = item._raw.kind;
+  const captureId = item._raw.row.id;
+  const userAction = extra.user_action ?? (
+    destination === "ignored" ? "ignored"
+    : destination === "snoozed" ? "snoozed"
+    : destination === "unsnoozed" ? "unsnoozed"
+    : destination === "undo_ignore" ? "undo"
+    : "routed"
+  );
+  const { data: audit } = await supabase.from("audit_log").insert({
     user_id: userId,
     entity_type: "capture",
     entity_id: null,
     event: "capture.routed",
-    payload: { capture_id: item.id, source: item.source, destination, ...extra },
+    payload: { capture_id: captureId, source: item.source, destination, ...extra },
+  }).select("id").single();
+  await supabase.from("capture_routes").insert({
+    user_id: userId,
+    capture_kind: captureKind,
+    capture_id: captureId,
+    source: item.source,
+    suggested_route: extra.via ? destination : null,
+    user_action: userAction,
+    previous_status: item.routedTo ?? null,
+    new_status: destination,
+    audit_event_id: audit?.id ?? null,
+    payload: extra as any,
   });
 }
 
