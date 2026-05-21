@@ -47,6 +47,11 @@ export function useIntakeFeed(limit = 60) {
       ignored: "Filed away",
     };
 
+    // Heuristic only — neutral chip + cautionary copy, never blocks routing.
+    const SENSITIVE_RE = /\b(passport|visa|ssn|social.security|medical|prescription|invoice|receipt|bank|iban|account.?number|tax|w-?2|w-?9|salary|payslip|contract|nda|waiver|insurance|dob|date.of.birth)\b/i;
+    const isSensitive = (...parts: (string | undefined | null)[]) =>
+      parts.some((p) => p && SENSITIVE_RE.test(p));
+
     const whyForMessage = (source: CaptureSource, meta: any, routed?: string) => {
       if (routed === "ignored") return "Filed away — undo to bring it back.";
       if (routed) return `Already ${ROUTE_LABEL[routed]?.toLowerCase() ?? routed}.`;
