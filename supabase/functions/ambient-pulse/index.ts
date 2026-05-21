@@ -37,13 +37,20 @@ Deno.serve(async (req: Request) => {
 
   try {
     const auth = req.headers.get("Authorization") ?? "";
+    if (!auth.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: auth } } }
     );
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const token = auth.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const user = { id: claimsData.claims.sub as string };
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "ambient-pulse", _limit: 12, _window_seconds: 60 });
