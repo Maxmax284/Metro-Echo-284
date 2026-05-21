@@ -13,23 +13,28 @@ type Entity = {
   last_seen_at: string;
 };
 
-type Props = { seedEntityId: string | null };
+type Props = {
+  seedEntityId: string | null;
+  windowDays?: 7 | 30 | 90;
+  kinds?: Set<string>;
+};
 
 // Phase 6a — Relationship cards. Read-only stacks of entity cards with
 // connected-items counts. Tap opens the existing entity sheet. No new writes.
-export function CanvasCardsView({ seedEntityId }: Props) {
+export function CanvasCardsView({ seedEntityId, windowDays = 30, kinds }: Props) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(true);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
+  const [relCounts, setRelCounts] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!user) return;
     let alive = true;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
       let ids: string[] = [];
       if (seedEntityId) {
         // Pull related entities via entity_relations (both directions)
@@ -55,29 +60,53 @@ export function CanvasCardsView({ seedEntityId }: Props) {
       const { data: ents } = ids.length
         ? await q.in("id", ids)
         : await q.gte("last_seen_at", since);
-      const list = (ents ?? []) as Entity[];
+      let list = (ents ?? []) as Entity[];
+      if (kinds && kinds.size > 0) list = list.filter((e) => kinds.has(e.kind));
 
       const cnt = new Map<string, number>();
+      const rc = new Map<string, number>();
       if (list.length > 0) {
-        const { data: links } = await supabase
-          .from("entity_links")
-          .select("entity_id, source_kind, source_id")
-          .in("entity_id", list.map((e) => e.id))
-          .limit(2000);
+        const entIds = list.map((e) => e.id);
+        const [{ data: links }, { data: rels2 }] = await Promise.all([
+          supabase
+            .from("entity_links")
+            .select("entity_id, source_kind, source_id")
+            .in("entity_id", entIds)
+            .limit(2000),
+          supabase
+            .from("entity_relations")
+            .select("from_entity_id, to_entity_id")
+            .eq("user_id", user.id)
+            .or(`from_entity_id.in.(${entIds.join(",")}),to_entity_id.in.(${entIds.join(",")})`),
+        ]);
         const buckets = new Map<string, Set<string>>();
         for (const l of (links ?? []) as any[]) {
           if (!buckets.has(l.entity_id)) buckets.set(l.entity_id, new Set());
           buckets.get(l.entity_id)!.add(`${l.source_kind}:${l.source_id}`);
         }
         for (const [k, v] of buckets) cnt.set(k, v.size);
+        for (const r of (rels2 ?? []) as any[]) {
+          for (const id of [r.from_entity_id, r.to_entity_id]) {
+            rc.set(id, (rc.get(id) ?? 0) + 1);
+          }
+        }
       }
       if (!alive) return;
+      // Rank: relation count desc, then link count, then last_seen
+      list.sort((a, b) => {
+        const dr = (rc.get(b.id) ?? 0) - (rc.get(a.id) ?? 0);
+        if (dr) return dr;
+        const dc = (cnt.get(b.id) ?? 0) - (cnt.get(a.id) ?? 0);
+        if (dc) return dc;
+        return +new Date(b.last_seen_at) - +new Date(a.last_seen_at);
+      });
       setEntities(list);
       setCounts(cnt);
+      setRelCounts(rc);
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId]);
+  }, [user, seedEntityId, windowDays, kinds]);
 
   if (loading) {
     return (
@@ -98,6 +127,7 @@ export function CanvasCardsView({ seedEntityId }: Props) {
     <div className="h-full overflow-y-auto px-3 py-2 space-y-2">
       {entities.map((e) => {
         const refs = counts.get(e.id) ?? 0;
+        const rels = relCounts.get(e.id) ?? 0;
         return (
           <button
             key={e.id}
@@ -113,9 +143,10 @@ export function CanvasCardsView({ seedEntityId }: Props) {
               </div>
               <Badge variant="outline" className="shrink-0 text-[10px] capitalize">{e.kind}</Badge>
             </div>
-            {refs > 0 && (
-              <div className="mt-2 text-[11px] text-muted-foreground">
-                {refs} connected item{refs === 1 ? "" : "s"}
+            {(refs > 0 || rels > 0) && (
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                {refs > 0 && <span>{refs} connected item{refs === 1 ? "" : "s"}</span>}
+                {rels > 0 && <span>{rels} relation{rels === 1 ? "" : "s"}</span>}
               </div>
             )}
           </button>

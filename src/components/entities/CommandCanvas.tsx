@@ -11,6 +11,7 @@ import { Loader2, Link2, X } from "lucide-react";
 import { CanvasCardsView } from "./CanvasCardsView";
 import { CanvasTimelineView } from "./CanvasTimelineView";
 import { CanvasBoardView } from "./CanvasBoardView";
+import { CanvasFilters, type CanvasKind, type CanvasWindow } from "./CanvasFilters";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
 type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number };
@@ -54,7 +55,7 @@ function kindColor(kind: string): string {
   }
 }
 
-function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
+function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(false);
@@ -85,7 +86,7 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
     let alive = true;
     (async () => {
       setLoading(true);
-      const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+      const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
       const { data: ents } = await supabase
         .from("entities")
         .select("id, display_name, kind, last_seen_at")
@@ -93,7 +94,8 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
         .gte("last_seen_at", since)
         .order("last_seen_at", { ascending: false })
         .limit(24);
-      const list = (ents ?? []) as Entity[];
+      let list = (ents ?? []) as Entity[];
+      if (kinds.size > 0) list = list.filter((e) => kinds.has(e.kind as CanvasKind));
 
       const ids = list.map((e) => e.id);
       const w = new Map<string, number>();
@@ -124,7 +126,7 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId]);
+  }, [user, seedEntityId, windowDays, kinds]);
 
   const nodes = useMemo(
     () => layoutCircular(entities, weights, seedEntityId, size.w, size.h),
@@ -309,6 +311,8 @@ function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
 export function CommandCanvas() {
   const { open, openCanvasSeed, closeCanvas } = useCanvas();
   const [tab, setTab] = useState<"cards" | "timeline" | "board" | "graph">("cards");
+  const [windowDays, setWindowDays] = useState<CanvasWindow>(30);
+  const [kinds, setKinds] = useState<Set<CanvasKind>>(new Set());
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) closeCanvas(); }}>
@@ -333,18 +337,26 @@ export function CommandCanvas() {
             <TabsTrigger value="graph" className="text-[11px]">Graph</TabsTrigger>
           </TabsList>
 
+          <CanvasFilters
+            windowDays={windowDays}
+            setWindowDays={setWindowDays}
+            kinds={kinds}
+            setKinds={setKinds}
+            showKinds={tab !== "board"}
+          />
+
           <div className="flex-1 min-h-0 mt-2 bg-gradient-to-br from-background to-surface-elevated/30">
             <TabsContent value="cards" className="h-full m-0">
-              <CanvasCardsView seedEntityId={openCanvasSeed} />
+              <CanvasCardsView seedEntityId={openCanvasSeed} windowDays={windowDays} kinds={kinds} />
             </TabsContent>
             <TabsContent value="timeline" className="h-full m-0">
-              <CanvasTimelineView seedEntityId={openCanvasSeed} />
+              <CanvasTimelineView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="board" className="h-full m-0">
-              <CanvasBoardView seedEntityId={openCanvasSeed} />
+              <CanvasBoardView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="graph" className="h-full m-0">
-              <GraphView seedEntityId={openCanvasSeed} />
+              <GraphView seedEntityId={openCanvasSeed} windowDays={windowDays} kinds={kinds} />
             </TabsContent>
           </div>
         </Tabs>
@@ -352,3 +364,4 @@ export function CommandCanvas() {
     </Sheet>
   );
 }
+
