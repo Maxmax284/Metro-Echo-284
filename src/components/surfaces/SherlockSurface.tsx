@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
+import { useSherlockPending } from "@/hooks/useSherlockPending";
+import { SherlockFindingCard } from "@/components/sherlock/SherlockFindingCard";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
