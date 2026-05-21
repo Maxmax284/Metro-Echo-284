@@ -69,6 +69,7 @@ export function ConversationDock({
   initialText = null,
   onInitialTextConsumed,
   onStop,
+  aboveComposer,
 }: Props) {
   const [v, setV] = useState("");
 
