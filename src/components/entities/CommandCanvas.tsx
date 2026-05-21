@@ -3,20 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useCanvas } from "./CanvasContext";
 import { useEntitySheet } from "./EntityContext";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { Loader2, Link2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CanvasCardsView } from "./CanvasCardsView";
+import { CanvasTimelineView } from "./CanvasTimelineView";
+import { CanvasBoardView } from "./CanvasBoardView";
 
 type Entity = { id: string; display_name: string; kind: string; last_seen_at: string };
 type Relation = { from_entity_id: string; to_entity_id: string; relation: string; evidence_count: number };
 
 type Node = Entity & { x: number; y: number; weight: number };
 
-// Doctrine: Canvas is additive. It reads the graph, never invents it. Drag to
-// relate drafts an `entity_relation` row for the user — review happens by
-// looking at the line that just appeared, no separate approval screen needed.
+// Doctrine: Canvas is additive. Cards (6a) and Timeline (6b) are pure reads.
+// Board (6c) advances actions through the existing actions-transition guard.
+// Graph stays available for power use but is not the default surface.
 function layoutCircular(entities: Entity[], weights: Map<string, number>, seedId: string | null, w: number, h: number): Node[] {
   const cx = w / 2; const cy = h / 2;
   const seed = seedId ? entities.find((e) => e.id === seedId) : null;
@@ -51,11 +54,9 @@ function kindColor(kind: string): string {
   }
 }
 
-export function CommandCanvas() {
-  const { open, openCanvasSeed, closeCanvas } = useCanvas();
+function GraphView({ seedEntityId }: { seedEntityId: string | null }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
-
   const [loading, setLoading] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
   const [relations, setRelations] = useState<Relation[]>([]);
@@ -77,14 +78,13 @@ export function CommandCanvas() {
     });
     ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, [open]);
+  }, []);
 
   useEffect(() => {
-    if (!open || !user) return;
+    if (!user) return;
     let alive = true;
     (async () => {
       setLoading(true);
-      // Pull recently-touched entities (last 30 days). Bounded for 384px.
       const since = new Date(Date.now() - 30 * 86400_000).toISOString();
       const { data: ents } = await supabase
         .from("entities")
@@ -95,7 +95,6 @@ export function CommandCanvas() {
         .limit(24);
       const list = (ents ?? []) as Entity[];
 
-      // Weights from how many distinct sources reference each
       const ids = list.map((e) => e.id);
       const w = new Map<string, number>();
       if (ids.length > 0) {
@@ -125,11 +124,11 @@ export function CommandCanvas() {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [open, user, openCanvasSeed]);
+  }, [user, seedEntityId]);
 
   const nodes = useMemo(
-    () => layoutCircular(entities, weights, openCanvasSeed, size.w, size.h),
-    [entities, weights, openCanvasSeed, size.w, size.h],
+    () => layoutCircular(entities, weights, seedEntityId, size.w, size.h),
+    [entities, weights, seedEntityId, size.w, size.h],
   );
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
@@ -139,7 +138,6 @@ export function CommandCanvas() {
     const r = svg.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
-
   const findHover = (x: number, y: number, exceptId?: string): Node | null => {
     for (const n of nodes) {
       if (exceptId && n.id === exceptId) continue;
@@ -149,7 +147,6 @@ export function CommandCanvas() {
     }
     return null;
   };
-
   const onPointerDown = (id: string) => (e: React.PointerEvent) => {
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -179,7 +176,6 @@ export function CommandCanvas() {
     if (!user) return;
     const a = nodeById.get(fromId); const b = nodeById.get(toId);
     if (!a || !b) return;
-    // Check for existing relation
     const { data: existing } = await supabase
       .from("entity_relations")
       .select("id, evidence_count")
@@ -209,7 +205,6 @@ export function CommandCanvas() {
       payload: { from: fromId, to: toId, source: "canvas_drag" },
     });
     toast.success({ title: `Linked ${a.display_name} → ${b.display_name}` });
-    // Refresh just the relations
     const ids = entities.map((e) => e.id);
     const { data: rels } = await supabase
       .from("entity_relations")
@@ -220,13 +215,109 @@ export function CommandCanvas() {
   };
 
   return (
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      )}
+      {!loading && entities.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center text-center text-[12px] text-muted-foreground px-6">
+          Nothing on the canvas yet. Capture a few things and the graph will fill in.
+        </div>
+      )}
+      {entities.length > 0 && (
+        <svg
+          ref={svgRef}
+          width={size.w}
+          height={size.h}
+          className="touch-none select-none"
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          {relations.map((r, i) => {
+            const a = nodeById.get(r.from_entity_id);
+            const b = nodeById.get(r.to_entity_id);
+            if (!a || !b) return null;
+            return (
+              <line
+                key={`r${i}`}
+                x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                stroke="hsl(var(--primary))"
+                strokeOpacity={0.35}
+                strokeWidth={1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
+              />
+            );
+          })}
+          {dragId && pointer && nodeById.get(dragId) && (
+            <line
+              x1={nodeById.get(dragId)!.x}
+              y1={nodeById.get(dragId)!.y}
+              x2={pointer.x}
+              y2={pointer.y}
+              stroke="hsl(var(--primary))"
+              strokeDasharray="4 3"
+              strokeWidth={1.5}
+            />
+          )}
+          {nodes.map((n) => {
+            const r = 14 + Math.min(8, n.weight);
+            const isDrag = dragId === n.id;
+            const isHover = hoverId === n.id && dragId && dragId !== n.id;
+            return (
+              <g
+                key={n.id}
+                transform={`translate(${n.x}, ${n.y})`}
+                onPointerDown={onPointerDown(n.id)}
+                onClick={(e) => {
+                  if (dragId) return;
+                  e.stopPropagation();
+                  openEntity(n.id);
+                }}
+                style={{ cursor: "pointer" }}
+              >
+                <circle
+                  r={r}
+                  fill={kindColor(n.kind)}
+                  fillOpacity={isHover ? 0.45 : 0.22}
+                  stroke={kindColor(n.kind)}
+                  strokeWidth={isDrag || isHover ? 2 : 1.2}
+                  strokeOpacity={isDrag || isHover ? 1 : 0.7}
+                />
+                <text
+                  y={r + 11}
+                  textAnchor="middle"
+                  fontSize={10}
+                  className="fill-foreground"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      )}
+      <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface-elevated/80 px-3 py-1 text-[10.5px] text-muted-foreground backdrop-blur">
+        <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+      </div>
+    </div>
+  );
+}
+
+export function CommandCanvas() {
+  const { open, openCanvasSeed, closeCanvas } = useCanvas();
+  const [tab, setTab] = useState<"cards" | "timeline" | "board" | "graph">("cards");
+
+  return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) closeCanvas(); }}>
-      <SheetContent side="bottom" className="h-[88vh] rounded-t-2xl p-0">
-        <SheetHeader className="flex flex-row items-center justify-between gap-2 px-4 pt-3">
-          <div>
+      <SheetContent side="bottom" className="h-[88vh] rounded-t-2xl p-0 flex flex-col">
+        <SheetHeader className="flex flex-row items-center justify-between gap-2 px-4 pt-3 pb-2 shrink-0">
+          <div className="min-w-0">
             <SheetTitle className="text-sm">Command Canvas</SheetTitle>
-            <p className="text-[11px] text-muted-foreground">
-              Tap a node to open. Drag one onto another to link them.
+            <p className="text-[11px] text-muted-foreground truncate">
+              {openCanvasSeed ? "Scoped to entity" : "Recent operational view"}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={closeCanvas} className="h-7 w-7 p-0">
@@ -234,98 +325,29 @@ export function CommandCanvas() {
           </Button>
         </SheetHeader>
 
-        <div ref={containerRef} className="relative h-[calc(88vh-60px)] w-full overflow-hidden bg-gradient-to-br from-background to-surface-elevated/30">
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-            </div>
-          )}
-          {!loading && entities.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-center text-[12px] text-muted-foreground px-6">
-              Nothing on the canvas yet. Capture a few things and the graph will fill in.
-            </div>
-          )}
-          {entities.length > 0 && (
-            <svg
-              ref={svgRef}
-              width={size.w}
-              height={size.h}
-              className="touch-none select-none"
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerUp}
-            >
-              {/* relation edges */}
-              {relations.map((r, i) => {
-                const a = nodeById.get(r.from_entity_id);
-                const b = nodeById.get(r.to_entity_id);
-                if (!a || !b) return null;
-                return (
-                  <line
-                    key={`r${i}`}
-                    x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                    stroke="hsl(var(--primary))"
-                    strokeOpacity={0.35}
-                    strokeWidth={1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
-                  />
-                );
-              })}
-              {/* drag preview line */}
-              {dragId && pointer && nodeById.get(dragId) && (
-                <line
-                  x1={nodeById.get(dragId)!.x}
-                  y1={nodeById.get(dragId)!.y}
-                  x2={pointer.x}
-                  y2={pointer.y}
-                  stroke="hsl(var(--primary))"
-                  strokeDasharray="4 3"
-                  strokeWidth={1.5}
-                />
-              )}
-              {/* nodes */}
-              {nodes.map((n) => {
-                const r = 14 + Math.min(8, n.weight);
-                const isDrag = dragId === n.id;
-                const isHover = hoverId === n.id && dragId && dragId !== n.id;
-                return (
-                  <g
-                    key={n.id}
-                    transform={`translate(${n.x}, ${n.y})`}
-                    onPointerDown={onPointerDown(n.id)}
-                    onClick={(e) => {
-                      // Treat as tap only if we didn't drag far
-                      if (dragId) return;
-                      e.stopPropagation();
-                      openEntity(n.id);
-                    }}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <circle
-                      r={r}
-                      fill={kindColor(n.kind)}
-                      fillOpacity={isHover ? 0.45 : 0.22}
-                      stroke={kindColor(n.kind)}
-                      strokeWidth={isDrag || isHover ? 2 : 1.2}
-                      strokeOpacity={isDrag || isHover ? 1 : 0.7}
-                    />
-                    <text
-                      y={r + 11}
-                      textAnchor="middle"
-                      fontSize={10}
-                      className="fill-foreground"
-                      style={{ pointerEvents: "none" }}
-                    >
-                      {n.display_name.length > 14 ? n.display_name.slice(0, 13) + "…" : n.display_name}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          )}
-          <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-surface-elevated/80 px-3 py-1 text-[10.5px] text-muted-foreground backdrop-blur">
-            <span className="inline-flex items-center gap-1"><Link2 className="h-3 w-3" /> drag to relate · tap to open</span>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="mx-3 grid grid-cols-4 h-8 shrink-0">
+            <TabsTrigger value="cards" className="text-[11px]">Cards</TabsTrigger>
+            <TabsTrigger value="timeline" className="text-[11px]">Timeline</TabsTrigger>
+            <TabsTrigger value="board" className="text-[11px]">Board</TabsTrigger>
+            <TabsTrigger value="graph" className="text-[11px]">Graph</TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 min-h-0 mt-2 bg-gradient-to-br from-background to-surface-elevated/30">
+            <TabsContent value="cards" className="h-full m-0">
+              <CanvasCardsView seedEntityId={openCanvasSeed} />
+            </TabsContent>
+            <TabsContent value="timeline" className="h-full m-0">
+              <CanvasTimelineView seedEntityId={openCanvasSeed} />
+            </TabsContent>
+            <TabsContent value="board" className="h-full m-0">
+              <CanvasBoardView seedEntityId={openCanvasSeed} />
+            </TabsContent>
+            <TabsContent value="graph" className="h-full m-0">
+              <GraphView seedEntityId={openCanvasSeed} />
+            </TabsContent>
           </div>
-        </div>
+        </Tabs>
       </SheetContent>
     </Sheet>
   );
