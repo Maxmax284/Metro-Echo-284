@@ -198,3 +198,5 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
   }
 
   return { linked: linked.length };
+}
+
