@@ -311,6 +311,8 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
 export function CommandCanvas() {
   const { open, openCanvasSeed, closeCanvas } = useCanvas();
   const [tab, setTab] = useState<"cards" | "timeline" | "board" | "graph">("cards");
+  const [windowDays, setWindowDays] = useState<CanvasWindow>(30);
+  const [kinds, setKinds] = useState<Set<CanvasKind>>(new Set());
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) closeCanvas(); }}>
@@ -335,18 +337,26 @@ export function CommandCanvas() {
             <TabsTrigger value="graph" className="text-[11px]">Graph</TabsTrigger>
           </TabsList>
 
+          <CanvasFilters
+            windowDays={windowDays}
+            setWindowDays={setWindowDays}
+            kinds={kinds}
+            setKinds={setKinds}
+            showKinds={tab !== "board"}
+          />
+
           <div className="flex-1 min-h-0 mt-2 bg-gradient-to-br from-background to-surface-elevated/30">
             <TabsContent value="cards" className="h-full m-0">
-              <CanvasCardsView seedEntityId={openCanvasSeed} />
+              <CanvasCardsView seedEntityId={openCanvasSeed} windowDays={windowDays} kinds={kinds} />
             </TabsContent>
             <TabsContent value="timeline" className="h-full m-0">
-              <CanvasTimelineView seedEntityId={openCanvasSeed} />
+              <CanvasTimelineView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="board" className="h-full m-0">
-              <CanvasBoardView seedEntityId={openCanvasSeed} />
+              <CanvasBoardView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="graph" className="h-full m-0">
-              <GraphView seedEntityId={openCanvasSeed} />
+              <GraphView seedEntityId={openCanvasSeed} windowDays={windowDays} kinds={kinds} />
             </TabsContent>
           </div>
         </Tabs>
@@ -354,3 +364,4 @@ export function CommandCanvas() {
     </Sheet>
   );
 }
+
