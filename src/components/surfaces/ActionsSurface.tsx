@@ -155,6 +155,7 @@ export function ActionsSurface() {
                               showWhenEmpty={false}
                             />
                           </div>
+                          <EmbeddedSherlockFindings sourceType="action" sourceId={a.id} />
                           <div className="mt-2 flex items-center gap-1.5">
                             {statusOrder.map((s) => (
                               <span
