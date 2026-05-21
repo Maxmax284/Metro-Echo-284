@@ -1,126 +1,91 @@
-# Vanta Wave 1 — Remaining Maturity Work
+## Vanta Final Wiring + Trust Cleanup — Execution Plan
 
-Three phases, staged and production-safe. No Wave 2/3 work, no WhatsApp, no new ecosystem hooks, no silent execution. Capture feeds the system, the user decides, every route writes audit.
-
----
-
-## Phase 1 — Voice Sweep Completion
-
-Goal: every long-tail string sounds like the Default Operator Voice. Centralize through `vantaSay.*`, harden the guardrail.
-
-**Audit pass**
-- Grep `src/` and `supabase/functions/` for hardcoded toasts/strings outside `vantaVoice.ts`: `toast.success(`, `toast.error(`, `alert(`, raw `"Something went wrong"`, `placeholder=`, empty-state copy, button labels with apology/cheerleader tone.
-- Areas to sweep (priority order):
-  - Capture/Inbox: `CapturesView`, `CaptureCard`, `RecognizePanel`, `MemoryFilesView`, `EmailInboxCard`, `FileUploadCard`, `CorrectionsCenter`, `PrivacySettingsPanel`.
-  - Sherlock: `SherlockFindingCard`, `SherlockReviewModal`, `SherlockOverlay`, `EmbeddedSherlockFindings`, `MarkSensitiveButton`, `AnalyzeButton`.
-  - Schedule/Commitments/Actions: `DailyBriefingCard`, `ReminderComposer`, `CommitmentsSurface`, `ActionsSurface`, `CommitmentActions`.
-  - Entities/Canvas: `EntityDetailSheet`, `RelatedEntitiesSection`, `EntityChips`, `CommandCanvas`, `CanvasCardsView`, `CanvasTimelineView`, `CanvasBoardView`, `CanvasFilters`.
-  - Aware: `AwarenessSurface`, `AwarenessHUD`, `AttentionQueue`, `SignalCard`, `SourceStatusPill`, `BadLocationRecoveryPanel`, `MapPickerDialog`, `SectionDrawer`.
-  - Settings: `TelegramLinkCard`, `PushReadinessSection`, `TimeRemindersSection`, `InstallVantaSection`.
-  - Shell: `AmbientHeader`, `ConversationDock`, `ModeBadge`, `SurfaceTabs`.
-  - Edge functions (Telegram replies, briefing, push-test): keep compact, verb-first, no detective cosplay.
-
-**Phrase library additions (`src/lib/vantaVoice.ts` + edge mirror)**
-- New groups: `inbox.*` (empty/needsReview/routed/stale/snoozed/ignored), `file.*` (reading/readAs/cantRead/sensitiveHold/extractedFacts), `sensitive.*` (mayContain/minimalPreview/reviewBeforeActing), `errors.*` (network/save/permission), `empty.*` (briefing/commitments/files/inbox/captures), `telegram.*` (paired/notPaired/sendFailed), `push.*` (notReady/blocked/sent).
-
-**Guardrail expansion (`src/test/voice-guardrail.test.ts`)**
-- Add forbidden patterns from the prompt that aren't yet covered: "How may I assist", "I'd be happy to", "Certainly!", "Great job staying organized", "Your productivity journey", "Let's get organized", "Boost your workflow".
-- Add a positive-rule test: no `toast.success(` / `toast.error(` with bare string literals outside `VOICE_ALLOW`; they must call a `vantaSay.*` function.
-- Confirm sensitive copy stays neutral (no "shady", "suspicious"-style words outside Sherlock rationales).
-
-**Acceptance**: guardrail green; manual scan of each listed surface; Telegram + push messages remain under ~120 chars; sensitive copy stays cautionary.
+This is a wiring/trust pass, not a feature build. No new mansions. The plan mirrors the 8 stages in your brief, sequenced as safe waves so we can stop, verify, and validate at each checkpoint.
 
 ---
 
-## Phase 2 — Capture Inbox V2
+### Wave 0 — Audit (no code changes)
 
-Goal: turn `CapturesView` (ambiguous mode) into the real triage hub. Source-aware, status-aware, route history visible, no auto-routing.
+Produce a short findings doc covering all 14 audit areas. For each: what works, what's miswired, what's UI confusion, what's backend failure, what's config failure, what should be staged-labeled, what to fix now vs defer.
 
-**Schema (minimal migration)**
-- New table `capture_routes` (audit-grade route history, in addition to `audit_log` events):
-  - `id uuid pk`, `user_id uuid not null`, `capture_kind text` (message|file|field_note), `capture_id text`, `source text`, `suggested_route text`, `user_action text` (accepted|edited|dismissed|archived|attached|ignored), `previous_status text`, `new_status text`, `sherlock_finding_id uuid null`, `audit_event_id uuid null`, `created_at timestamptz default now()`.
-  - RLS: owner-only `select/insert`.
-- Extend `messages.metadata` and `ingested_files.metadata` conventions (no DDL needed): `triage_status` ∈ {new, needs_review, suggested, routed, attached, archived, ignored, waiting, stale}, `stale_since`, `last_action_at`. Backfill defaults in the hook.
+Key files to read end-to-end:
+- Awareness: `AwarenessSurface`, `AttentionQueue`, `BadLocationRecoveryPanel`, `LayerChips`, `SignalCard`, `SourceStatusPill`, `MiniRadarStrip`, `AwarenessProvider`, `awarenessLocation.ts`, `awarenessPlainTalk.ts`, `locationSanity.ts`, `awareness-*` edge functions.
+- Push/VAPID: `PushReadinessSection`, `pushClient.ts`, `push-config`, `push-test`, `_shared/webpush.ts`, service worker `public/sw.js`, VAPID secrets check.
+- Telegram reminders: `TelegramLinkCard`, `TimeRemindersSection`, `commitment-reminders`, `telegram-webhook`, `telegram-link`, `telegram-test`, reminder cron + dedupe.
+- Conversation: `vanta-converse`, `telegram-webhook` prompt, `useIntentHandler`, `ReminderComposer`, `companionTools.ts`, `vantaVoice.ts`, `_shared/vantaVoice.ts`.
+- Mobile: surfaces above @ 384px.
 
-**New components**
-- `src/components/memory/CaptureInbox.tsx` — replaces ambiguous-mode of `CapturesView` (keep `CapturesView` as the read-only feed for Memory surface). Sections: Now / Needs review / Suggested / Waiting / Stale / Done. Filter chips: source, type, sensitive, sherlock-confidence.
-- `src/components/memory/CaptureInboxItem.tsx` — single row with: source pill, time, title/summary, suggested-type chip, Sherlock confidence chip, suggested-route chip, related-entity chips, sensitive flag, status chip, last-action chip, action menu.
-- `src/components/memory/CaptureRouteHistory.tsx` — drawer/sheet listing rows from `capture_routes` for that capture.
-- `src/components/memory/CaptureBulkBar.tsx` — appears on multi-select; only safe bulk ops: Archive, Ignore, Mark reviewed, Send to Sherlock. No bulk route to commitment/reminder/action.
-
-**Triage actions** (every action: optimistic state, audit_log insert, capture_routes insert)
-- Save as note / Create reminder / Create commitment / Create action / Attach to existing item / Attach to person / Attach to place / Add to briefing / Send to Sherlock / Open in Canvas / Archive / Ignore / Mark reviewed / Dismiss suggestion / Edit route.
-- Sherlock SUGGEST chip stays a draft; accept = route + history row; dismiss = history row with `user_action='dismissed'`.
-
-**Stale logic**
-- Client-side derivation in `useIntakeFeed`: `triage_status='stale'` if `new`/`needs_review`/`suggested` AND `created_at < now - 72h` (configurable in `useSherlockSettings`-style hook). Surface quietly in its own section; no toasts.
-
-**Hook changes**
-- Extend `useIntakeFeed` to read `triage_status`, `last_action_at`, related entities (already partially via `entityGraph`), and `capture_routes` count per capture.
-- New `useCaptureRoute()` hook: wraps route action → status patch → audit_log → capture_routes insert.
-
-**Sources covered**: manual, chat widget, Telegram, email inbound, files, screenshots, links, Aware signals, Sherlock findings. Voice notes + ecosystem events stubbed as future sources only.
-
-**Acceptance**: prompt's 9-state model rendered; route history visible; every action writes audit + route row; nothing routes silently; mobile-friendly (chip wrap, sticky filter bar).
+Deliverable: in-chat findings summary + a small downloadable PDF audit so we have a receipt before we start touching wires.
 
 ---
 
-## Phase 3 — File Intake Maturity
+### Wave 1 — Awareness truth + recovery consolidation (Stage 1)
 
-Goal: files become structured operational objects with doc-type detection, extracted entities, suggested actions, sensitive discipline, and Sherlock integration.
-
-**Edge function changes (`files-ingest`)**
-- After text extraction, add **doc-type classifier** call (LLM, single Lovable AI Gateway request, strict JSON tool schema):
-  - Output: `doc_type` ∈ {receipt, invoice, booking_confirmation, schedule, contract, waiver, id_passport, payment_proof, medical_note, travel_admin, screenshot, generic, unknown}; `confidence`; `extracted_entities` {dates, people, amounts, locations, payment_refs}; `summary` (one paragraph, neutral); `suggested_actions` (drafts only).
-- Pre-classifier: run `_shared/sensitive.ts` `detectSensitive` on extracted text + filename. If sensitive: skip rich summary, store `minimal_summary` only, force `triage_status='needs_review'`, never produce `suggested_actions` with high confidence.
-- Persist on `ingested_files.metadata`: `document_type`, `doc_confidence`, `extracted_entities`, `summary`/`minimal_summary`, `suggested_actions`, `sensitive`, `sensitive_categories`, `review_status` (pending|reviewed|ignored).
-- Then call existing `sherlock-investigate` (extract mode) for the file's note so findings land in the normal Sherlock lifecycle.
-- Audit events: `file.classified`, `file.sensitive_flagged`.
-
-**No new edge function, no new paid API** — reuses Lovable AI Gateway.
-
-**Client changes**
-- `MemoryFilesView.tsx`: show doc-type chip, extracted-entity chips, sensitive Reveal toggle (already exists for Sherlock — reuse `SherlockFindingCard` pattern via `MarkSensitiveButton` + a `<RevealableSummary>` helper).
-- `FileUploadCard.tsx`: voice-sweep only.
-- `CaptureInboxItem` (Phase 2): file rows show doc-type + extracted-fact chip + suggested-action chip.
-- New `src/components/memory/FileDetailSheet.tsx`: full file view with Summarize / Extract dates / Extract people / Extract amounts / Create reminder / Create commitment / Create action / Attach / Add to briefing / Send to Sherlock / Open in Canvas / Archive / Mark reviewed / Ignore / Mark sensitive / Reveal preview.
-- Every action goes through Phase 2's `useCaptureRoute()` so file routes appear in `capture_routes` history.
-
-**Sensitive rules**
-- Reveal toggle hides summary, entities, suggested actions until tapped.
-- All routing actions on sensitive files open `SherlockReviewModal`-style confirmation before commit.
-- Sensitive copy uses `vantaSay.sensitive.*` from Phase 1.
-
-**Acceptance**: receipt/booking/PDF/image/payment-proof uploads all classify; sensitive files render minimal preview; reminders/commitments can be drafted from extracted dates with explicit user approval; audit + route history written; no auto-route.
+- Single source-of-truth for active place (`useActivePlace`): GPS / saved / manual / last-confirmed / fallback / none. Computes the one-line banner.
+- Collapse Fix-Location chip + recovery card + unresolved-saved + confirm-place into one `LocationRecoveryPanel` shown only when truly bad.
+- Rewrite plain-talk strings in `awarenessPlainTalk.ts`: kill "critical / hazard / hampered / specificity unavailable". Replace with human copy from the brief.
+- Source chips reflect *actual* per-provider state (live / cached / failed / off).
+- Reddit/community provider: isolate failure so it can't poison the whole layer; degrade with "Community source unavailable right now." Audit the SerpApi engine/params/quota path.
+- Acceptance: one active-place line, one recovery panel, no duplicate warnings, layered fallback copy, clean degradation.
 
 ---
 
-## Testing
+### Wave 2 — Push/VAPID diagnostics (Stage 2)
 
-- Extend `src/test/voice-guardrail.test.ts` (Phase 1).
-- New `src/test/capture-inbox.test.ts`: state transitions (new→suggested→routed→done), stale derivation, route history insert.
-- Extend `src/test/file-intake.test.ts`: doc-type detection branches, sensitive forced-review, suggested-action drafting never auto-executes.
-- Smoke test: `bunx vitest run`.
+- Split `PushReadinessSection` into 5 status rows: device permission · subscription · server delivery (VAPID) · reminder channel · last push.
+- Add `push-diagnose` edge function: validates VAPID pair format, checks secret presence, attempts dry sign, returns structured reasons (no secret leakage).
+- Client never claims "Push ON" unless all four prerequisites are green; otherwise "Push permission is on, but delivery still needs setup."
+- Detect stale subscription (key mismatch) → prompt re-enable on device.
+- Emit the audit events listed in Stage 2 (push.*, reminder.push_*).
+- Acceptance: no contradictory ON/Setup-Needed; reasons are human; private key never reaches the client.
 
-## Manual QA (after build)
+---
 
-The 20-point checklist from the prompt: dashboard voice → inbox sources → route to note/reminder/commitment/action → archive → file uploads (PDF/image) → Sherlock extract → mark sensitive → reminder from file → attach file to commitment → audit trail → forbidden-phrase grep → confirm zero surprise automation.
+### Wave 3 — Telegram delivery trace (Stage 3)
 
-## Non-Goals (explicitly deferred)
+- Diagnostic block under Time & Reminders: Telegram on/off, link state, last cron check, last sent, last skipped (with reason), last failure (human).
+- `commitment-reminders` cron: emit structured audit per reminder (`reminder.tg_scheduled/sent/failed/skipped_*`) with reason codes; only set `metadata.telegram_sent_at` after API success.
+- "Send test Telegram reminder" button → calls `telegram-test` with explicit user tap, logs `reminder.telegram_test_sent/failed`.
+- Verify dedupe and quiet-hours logic don't false-skip; fix if so.
+- Acceptance: every missed/sent reminder can be explained from the UI without reading logs.
 
-- WhatsApp, ecosystem adapters (GroundStay/CampCore/Fenrir), Canvas Flow/Map, productivity scoring, dashboard expansion, new paid APIs, voice-note ingestion, Sherlock hub settings (Wave 2), patterns cron (Wave 2), Canvas anti-spaghetti (Wave 2).
+---
 
-## Risks
+### Wave 4 — Conversational routing + voice (Stages 4 & 5)
 
-- LLM doc-type classification can mislabel — mitigated by always surfacing confidence and never auto-routing.
-- Capture state machine touches metadata across three tables — keep status derivation in one hook so we don't fragment truth.
-- Guardrail tightening may flag existing copy — Phase 1 sweep must land before tightening tests or CI breaks.
+- Sweep `vanta-converse`, `telegram-webhook`, fallback strings, `vantaVoice.ts` for "I can't directly…" / "As an AI…" — replace with routing for supported intents.
+- Extend `useIntentHandler` + `reminderParse.ts` to cover the full intent list (in/at/tomorrow/tonight/weekend/before-after/AM-PM ambiguity → ask).
+- Add response pools (reminder created / needs time / note saved / commitment detected / fallback). Telegram = short; Companion = slightly more explanatory.
+- Emoji rules baked into voice helpers (allow on confirmations, forbid on failures/security).
+- Acceptance: supported asks route, ambiguous asks clarify, no generic refusals on supported lanes.
 
-## Technical Details
+---
 
-- Migrations: 1 new table `capture_routes` with RLS. No `auth.users` FK.
-- Edge functions affected: `files-ingest` (classifier + sensitive gate + sherlock-investigate trigger). Others untouched.
-- New files: `CaptureInbox.tsx`, `CaptureInboxItem.tsx`, `CaptureRouteHistory.tsx`, `CaptureBulkBar.tsx`, `FileDetailSheet.tsx`, `useCaptureRoute.ts`, `capture-inbox.test.ts`.
-- Edited: `vantaVoice.ts` (+ edge mirror), `voice-guardrail.test.ts`, `useIntakeFeed.ts`, `CapturesView.tsx`, `MemoryFilesView.tsx`, `FileUploadCard.tsx`, `MemorySurface.tsx`, plus voice-only edits across the surfaces listed in Phase 1.
+### Wave 5 — State sync + mobile polish (Stages 6 & 7)
 
-Implementation order: Phase 1 sweep → Phase 2 schema + Inbox V2 → Phase 3 file classifier + detail sheet → tests → manual QA → Wave 2 readiness call.
+- Realtime/refetch on: reminders insert/update, push state changes, place changes, source status, audit events for Telegram/push.
+- Awareness, Settings, Today, ReminderComposer, Companion all retested at 384px: kill stacked warnings, hidden controls, keyboard overlap, Companion bubble blocking.
+- Acceptance: no stale "broad/offshore" after place selection; Schedule shows chat-created reminders without reload; primary actions visible on mobile.
+
+---
+
+### Wave 6 — Final validation report (Stage 8)
+
+- What was fixed · what's staged · push live/blocked · VAPID valid? · Telegram test result · Awareness clean? · Conversation routes? · mobile notes · honest score delta (target 86–88 overall).
+- Delivered as a short downloadable PDF receipt.
+
+---
+
+### Guardrails (applied to every wave)
+
+- No paid AI/API calls on render.
+- No notifications without opt-in + due reminder.
+- Plan → Approve → Execute preserved; capture never executes.
+- No duplicate Memory/Notes/Files/Telegram/Sherlock/Actions/Audit/Reminder systems.
+- Out of scope: Google Calendar, ecosystem bridges, deep Sherlock, WhatsApp, new providers, autonomous actions.
+
+---
+
+### How I'd like to run it
+
+Default cadence: **Wave 0 (audit) on its own**, then **2 waves per turn** if checks stay green. If you want a faster lane, say "audit + Wave 1 in one shot." If you want me to skip the audit PDF and just post findings inline, say so.
