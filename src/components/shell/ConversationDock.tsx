@@ -52,6 +52,8 @@ type Props = {
   onInitialTextConsumed?: () => void;
   /** Companion Maturity — abort in-flight stream. When provided + busy, send button becomes Stop. */
   onStop?: () => void;
+  /** Rendered inside the sticky dock, directly above the composer (staged chips, trays, etc). */
+  aboveComposer?: React.ReactNode;
 };
 
 export function ConversationDock({
