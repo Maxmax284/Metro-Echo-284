@@ -312,10 +312,10 @@ export function MemorySurface() {
         </div>
         <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1 overflow-x-auto px-1">
           {([
+            { id: "inbox", label: "Inbox", Icon: HelpCircle },
             { id: "notes", label: "Notes", Icon: Inbox },
             { id: "captures", label: "Captures", Icon: Inbox },
             { id: "files", label: "Files", Icon: Inbox },
-            { id: "ambiguous", label: "Ambiguous", Icon: HelpCircle },
             { id: "corrections", label: "Corrections", Icon: AlertTriangle },
           ] as const).map((v) => {
             const Icon = v.Icon;
@@ -347,9 +347,9 @@ export function MemorySurface() {
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
           <MemoryFilesView />
         </div>
-      ) : view === "captures" || view === "ambiguous" ? (
+      ) : view === "captures" || view === "inbox" ? (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
-          <CapturesView ambiguousOnly={view === "ambiguous"} />
+          <CapturesView ambiguousOnly={view === "inbox"} />
         </div>
       ) : (
       <>
