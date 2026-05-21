@@ -1752,13 +1752,16 @@ export type Database = {
           auto_refresh_enabled: boolean
           background_awareness_enabled: boolean
           calendar_sync_enabled: boolean
+          campcore_enabled: boolean
           community_public_fallback_enabled: boolean
           community_reddit_enabled: boolean
           deep_research_enabled: boolean
           external_apis_enabled: boolean
+          fenrir_enabled: boolean
           file_analysis_enabled: boolean
           gemini_enabled: boolean
           global_usage_mode: string
+          gth_enabled: boolean
           local_search_enabled: boolean
           owner_id: string
           proactive_synthesis_enabled: boolean
@@ -1773,13 +1776,16 @@ export type Database = {
           auto_refresh_enabled?: boolean
           background_awareness_enabled?: boolean
           calendar_sync_enabled?: boolean
+          campcore_enabled?: boolean
           community_public_fallback_enabled?: boolean
           community_reddit_enabled?: boolean
           deep_research_enabled?: boolean
           external_apis_enabled?: boolean
+          fenrir_enabled?: boolean
           file_analysis_enabled?: boolean
           gemini_enabled?: boolean
           global_usage_mode?: string
+          gth_enabled?: boolean
           local_search_enabled?: boolean
           owner_id: string
           proactive_synthesis_enabled?: boolean
@@ -1794,13 +1800,16 @@ export type Database = {
           auto_refresh_enabled?: boolean
           background_awareness_enabled?: boolean
           calendar_sync_enabled?: boolean
+          campcore_enabled?: boolean
           community_public_fallback_enabled?: boolean
           community_reddit_enabled?: boolean
           deep_research_enabled?: boolean
           external_apis_enabled?: boolean
+          fenrir_enabled?: boolean
           file_analysis_enabled?: boolean
           gemini_enabled?: boolean
           global_usage_mode?: string
+          gth_enabled?: boolean
           local_search_enabled?: boolean
           owner_id?: string
           proactive_synthesis_enabled?: boolean

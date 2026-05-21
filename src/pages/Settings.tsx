@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection";
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
+import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -159,6 +160,10 @@ export default function Settings() {
           ))}
         </ul>
       </section>
+
+      <EcosystemSourcesPanel />
+
+
 
       {/* Limits */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
