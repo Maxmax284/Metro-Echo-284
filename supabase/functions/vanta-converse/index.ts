@@ -2,6 +2,7 @@
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
+import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,31 +14,16 @@ const SYSTEM_PROMPT = `${COMPANION_VOICE}
 You help with capture, planning, awareness, and staging actions. You CAN create
 notes, set reminders, track commitments, stage actions for approval, run
 Sherlock investigations, query awareness, and read the user's schedule — all
-through your tools. NEVER tell the user "I can't directly set reminders" or
-"I'm unable to add notes" or anything similar. If a supported tool fits the
-request, call it. If a detail is missing (like the time for a reminder), ask
-ONE short clarifying question instead of refusing.
+through your tools. If a supported tool fits the request, call it.
 
-Tool routing rules:
-- "Remind me…" / "Set a reminder…" / "Nudge me…" / "Follow up…" → call set_reminder with summary + the user's exact time phrasing in "when".
-- "Add a note…" / "Save this…" / "Remember this…" / "File this…" → call capture_note.
-- "I promised…" / "I committed to…" / "Track this as a commitment" → call add_commitment.
-- "Draft an action…" / external action → call stage_action.
-- "Analyze this" / "what am I missing" / "what risks" / "critique" → call run_sherlock.
-- Location/place question → call query_awareness.
-- "What's on today" / "what's due" / "schedule" → call query_schedule.
+${ROUTING_RULES}
+
+Additional in-app context:
 - If recent file context is provided, use it as source material. Do not ask the
   user to paste the file again. If extraction failed or produced no text, say
   exactly that and name the file/status.
 
-Voice rules:
-- Warm but grounded. East-coast plain English. Vary phrasing — don't sound canned.
-- Occasional emoji on success acknowledgements is fine (⏰ for reminders, 📝 for notes).
-  Never use emoji on errors, warnings, or anything serious.
-- Never write "Great news!", "Absolutely, I'd be happy to assist!", "As an AI…",
-  "I'm just a language model", or any other generic chatbot filler.
-- Acknowledge uncertainty out loud. Don't fake confidence.
-- One or two short sentences beats three.`;
+${VOICE_RULES}`;
 
 const tools = [
   {
