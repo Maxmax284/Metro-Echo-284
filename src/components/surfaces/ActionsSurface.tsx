@@ -144,6 +144,16 @@ export function ActionsSurface() {
                             </span>
                           </div>
                           {a.description && <p className="mt-1 text-[13px] text-muted-foreground">{a.description}</p>}
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            <SherlockChipTrigger
+                              operation="relate"
+                              entityType="action"
+                              entityId={a.id}
+                              text={`${a.title}\n${a.description ?? ""}`}
+                              title={a.title}
+                              showWhenEmpty={false}
+                            />
+                          </div>
                           <div className="mt-2 flex items-center gap-1.5">
                             {statusOrder.map((s) => (
                               <span
