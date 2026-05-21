@@ -55,7 +55,7 @@ export function CaptureToastProvider({
           if (seen.current.has(row.id)) return;
           seen.current.add(row.id);
           const source = LABELS[row.source ?? ""] ?? "Capture";
-          toast(`${source} · ${row.filename}`, { description: statusVerb(row.status, row.review_status) });
+          toast({ title: `${source} · ${row.filename}`, description: statusVerb(row.status, row.review_status) });
           void logFileEvent(user.id, "capture.toast_shown", row.id, { source: row.source });
           lastStatusByFile.current.set(row.id, row.status ?? "");
         },
@@ -72,7 +72,8 @@ export function CaptureToastProvider({
           // Only re-toast on terminal transitions.
           if (now === "done" || now === "failed" || now === "error") {
             const source = LABELS[row.source ?? ""] ?? "Capture";
-            toast(`${source} · ${row.filename}`, {
+            const sonner = (toast as unknown as (m: string, o?: Record<string, unknown>) => unknown);
+            sonner(`${source} · ${row.filename}`, {
               description: statusVerb(row.status, row.review_status),
               action: onOpenFile
                 ? {
