@@ -175,6 +175,25 @@ export const vantaSay = {
     conversation: () => "Say something — I'm listening.",
     telegram: () => "Telegram isn't linked. Generate a pairing code below.",
     notifications: () => "All quiet.",
+    inbox: () => "Inbox is clear. Nothing waiting on a decision.",
+    files: () => "No files waiting. Clean for now.",
+    briefing: () => "No briefing yet. Add a few commitments or captures, and I'll summarize what matters.",
+  },
+
+  // Sensitive content — careful, neutral, no judgement
+  sensitive: {
+    fileWarning: () => "This may contain personal or financial information. Review before routing.",
+    routeWarning: () => "Looks sensitive. I'll keep it private unless you tell me otherwise.",
+  },
+
+  // Briefing voice (Phase 5 — short operator summaries)
+  briefing: {
+    morning: (counts: { active: number; overdue: number; review: number }) =>
+      `Today: ${counts.active} active, ${counts.overdue} overdue, ${counts.review} needs review.`,
+    bestFirstMove: (what: string) => `Best first move: ${what}.`,
+    evening: (done: number, open: number, slipped: number) =>
+      `Wrap-up: ${done} done, ${open} still open, ${slipped} slipped.`,
+    quiet: () => "Quiet day. Nothing pressing.",
   },
 
   // Confirmations

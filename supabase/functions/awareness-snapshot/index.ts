@@ -154,9 +154,9 @@ Deno.serve(async (req: Request) => {
 
     const __token = __authHeader.replace("Bearer ", "");
 
-    const { data: __claimsData } = await userClient.auth.getClaims(__token);
+    const { data: __claimsData } = await userClient.auth.getUser(__token);
 
-    const user = __claimsData?.claims?.sub ? { id: __claimsData.claims.sub as string } : null;
+    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
     if (!user) {
       return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },

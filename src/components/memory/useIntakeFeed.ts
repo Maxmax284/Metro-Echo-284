@@ -47,6 +47,11 @@ export function useIntakeFeed(limit = 60) {
       ignored: "Filed away",
     };
 
+    // Heuristic only — neutral chip + cautionary copy, never blocks routing.
+    const SENSITIVE_RE = /\b(passport|visa|ssn|social.security|medical|prescription|invoice|receipt|bank|iban|account.?number|tax|w-?2|w-?9|salary|payslip|contract|nda|waiver|insurance|dob|date.of.birth)\b/i;
+    const isSensitive = (...parts: (string | undefined | null)[]) =>
+      parts.some((p) => p && SENSITIVE_RE.test(p));
+
     const whyForMessage = (source: CaptureSource, meta: any, routed?: string) => {
       if (routed === "ignored") return "Filed away — undo to bring it back.";
       if (routed) return `Already ${ROUTE_LABEL[routed]?.toLowerCase() ?? routed}.`;
@@ -75,6 +80,7 @@ export function useIntakeFeed(limit = 60) {
         status: routed ? (ROUTE_LABEL[routed] ?? `Routed → ${routed}`) : meta.needs_review ? "Needs review" : "Captured",
         routedTo: routed ?? null,
         needsReview: !!meta.needs_review || (!meta.detected_type && !routed),
+        sensitive: meta.sensitive === true || isSensitive(m.content),
         ts: m.created_at,
         why: whyForMessage(source, meta, routed),
         _raw: { kind: "message", row: m },
@@ -97,6 +103,7 @@ export function useIntakeFeed(limit = 60) {
         status: statusCopy,
         routedTo: f.note_id ? "Memory" : null,
         needsReview: !meta.document_type && f.status === "done",
+        sensitive: meta.sensitive === true || isSensitive(f.filename, meta.document_type, meta.summary),
         ts: f.created_at,
         why: whyForFile(f, meta),
         _raw: { kind: "file", row: f },
@@ -113,6 +120,7 @@ export function useIntakeFeed(limit = 60) {
         status: "Saved",
         routedTo: "Awareness",
         needsReview: false,
+        sensitive: isSensitive(fn.summary),
         ts: fn.created_at,
         why: fn.note_type ? `Logged as a ${fn.note_type}.` : "Tied to a place you logged.",
         _raw: { kind: "field_note", row: fn },

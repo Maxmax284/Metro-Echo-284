@@ -51,9 +51,9 @@ Deno.serve(async (req: Request) => {
 
     const __token = __authHeader.replace("Bearer ", "");
 
-    const { data: __claimsData } = await userClient.auth.getClaims(__token);
+    const { data: __claimsData } = await userClient.auth.getUser(__token);
 
-    const user = __claimsData?.claims?.sub ? { id: __claimsData.claims.sub as string } : null;
+    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
 
     const { kind } = parsed.data;
     const def = TABLE_TEXT[kind];
