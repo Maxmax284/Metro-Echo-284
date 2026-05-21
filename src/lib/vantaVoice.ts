@@ -184,6 +184,26 @@ export const vantaSay = {
   sensitive: {
     fileWarning: () => "This may contain personal or financial information. Review before routing.",
     routeWarning: () => "Looks sensitive. I'll keep it private unless you tell me otherwise.",
+    mayContain: () => "This may contain personal or financial information.",
+    minimalPreview: () => "Keeping the preview minimal. Tap reveal to inspect.",
+    reviewBeforeActing: () => "I found possible dates and details. Confirm before creating anything.",
+    officialDocument: () => "This looks like an official document. I'll keep the preview minimal unless you ask for more.",
+    held: () => "Held for review — nothing routed.",
+  },
+
+  // File intake — operational, neutral. Used by MemoryFilesView + Inbox.
+  file: {
+    reading: () => "Reading it…",
+    classifying: () => "Working out what this is…",
+    readAs: (kind: string) => `Read as a ${kind}.`,
+    cantRead: () => "Couldn't read this one.",
+    extractedFacts: (n: number) =>
+      n === 0 ? "No facts extracted." : `${n} fact${n === 1 ? "" : "s"} extracted.`,
+    sensitiveHold: () => "Sensitive content. Keeping the preview minimal.",
+    reminderDrafted: () => "Reminder drafted. Confirm before it's set.",
+    attached: () => "Attached.",
+    reviewed: () => "Marked reviewed.",
+    routeRecorded: () => "Route recorded.",
   },
 
   // Briefing voice (Phase 6 — variant-aware operator summaries)

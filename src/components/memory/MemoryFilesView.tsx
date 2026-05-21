@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, Inbox, Upload } from "lucide-react";
+import { FileText, Loader2, RefreshCw, AlertCircle, Search as SearchIcon, ExternalLink, Bell, ListChecks, Archive, Eye, EyeOff, Inbox, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -11,6 +11,8 @@ import { ReminderComposer } from "@/components/reminders/ReminderComposer";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
+import { CaptureRouteHistory } from "@/components/memory/CaptureRouteHistory";
+import { useCaptureRoute } from "@/hooks/useCaptureRoute";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -24,6 +26,14 @@ export type FileRow = {
   note_id: string | null;
   metadata: any;
   created_at: string;
+  // Wave 1 / Phase 3 — Phase 2 schema columns surfaced
+  detected_doc_type?: string | null;
+  suggested_summary?: string | null;
+  suggested_actions?: any[] | null;
+  extracted_entities?: any;
+  sensitive?: boolean | null;
+  review_status?: string | null;
+  confidence?: string | null;
 };
 
 const DOC_TYPES = [
@@ -50,6 +60,7 @@ const TONE: Record<string, string> = {
 export function MemoryFilesView() {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
+  const { record: recordRoute } = useCaptureRoute();
   const [files, setFiles] = useState<FileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "review" | "archived">("all");
@@ -57,13 +68,14 @@ export function MemoryFilesView() {
   const [typeMenuFor, setTypeMenuFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("ingested_files")
-      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at")
+      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at, detected_doc_type, suggested_summary, suggested_actions, extracted_entities, sensitive, review_status, confidence")
       .order("created_at", { ascending: false })
       .limit(100);
     setFiles((data ?? []) as FileRow[]);
@@ -337,13 +349,23 @@ export function MemoryFilesView() {
                         <RefreshCw className="h-2.5 w-2.5" /> Retry ingest
                       </button>
                     )}
-                    {docType ? (
-                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType}</span>
+                    {(docType || f.detected_doc_type) ? (
+                      <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{docType ?? f.detected_doc_type}</span>
                     ) : needsType ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-warn ring-1 ring-warn/30">
                         <AlertCircle className="h-3 w-3" /> Needs review
                       </span>
                     ) : null}
+                    {f.sensitive && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted/30 px-2 py-0.5 text-foreground/80 ring-1 ring-border/60" title="May contain personal or financial information">
+                        <AlertCircle className="h-3 w-3" /> Sensitive
+                      </span>
+                    )}
+                    {f.confidence && (
+                      <span className="rounded-full bg-muted/20 px-2 py-0.5 text-muted-foreground ring-1 ring-border/50">
+                        {f.confidence} confidence
+                      </span>
+                    )}
                     {f.source && <span className="rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">{f.source}</span>}
                     {f.note_id && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary ring-1 ring-primary/30">→ Memory</span>}
                     <SherlockChipTrigger
@@ -365,6 +387,47 @@ export function MemoryFilesView() {
                       {meta.error || "Extraction failed."}
                     </p>
                   ) : null}
+                  {f.sensitive ? (
+                    revealed[f.id] ? (
+                      <>
+                        {f.suggested_summary && (
+                          <p className="mt-1 text-[11px] text-foreground/80">{f.suggested_summary}</p>
+                        )}
+                        <button
+                          onClick={() => setRevealed((r) => ({ ...r, [f.id]: false }))}
+                          className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+                        >
+                          <EyeOff className="h-3 w-3" /> Hide preview
+                        </button>
+                      </>
+                    ) : (
+                      <div className="mt-1 flex items-center gap-2">
+                        <p className="text-[10.5px] italic text-muted-foreground/80">
+                          {vantaSay.sensitive.minimalPreview()}
+                        </p>
+                        <button
+                          onClick={() => setRevealed((r) => ({ ...r, [f.id]: true }))}
+                          className="inline-flex items-center gap-1 rounded-full bg-muted/20 px-2 py-0.5 text-[10.5px] text-foreground/80 ring-1 ring-border/50 hover:bg-muted/30"
+                        >
+                          <Eye className="h-3 w-3" /> Reveal
+                        </button>
+                      </div>
+                    )
+                  ) : f.suggested_summary ? (
+                    <p className="mt-1 text-[11px] text-foreground/80">{f.suggested_summary}</p>
+                  ) : null}
+                  {!f.sensitive && Array.isArray(f.suggested_actions) && f.suggested_actions.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {f.suggested_actions.slice(0, 4).map((a: any, i: number) => (
+                        <span key={i} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] text-primary ring-1 ring-primary/30" title={a.rationale ?? ""}>
+                          draft: {a.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-1 flex items-center gap-1">
+                    <CaptureRouteHistory captureKind="file" captureId={f.id} />
+                  </div>
                   <EmbeddedSherlockFindings sourceType="file" sourceId={f.id} />
                 </div>
               </div>

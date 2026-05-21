@@ -60,6 +60,15 @@ const FORBIDDEN: RegExp[] = [
   /definitely belongs/i,
   /case closed/i,
   /trust me on this/i,
+  // Wave 1 voice sweep — drop chatbot residue, productivity-coach posture,
+  // and detective cosplay across all surfaces.
+  /elementary, my dear/i,
+  /the game is afoot/i,
+  /happy to help!/i,
+  /no problem!/i,
+  /awesome!/i,
+  /way to go/i,
+  /keep crushing it/i,
 ];
 
 describe("vantaVoice guardrail", () => {
