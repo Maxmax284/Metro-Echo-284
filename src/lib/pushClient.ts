@@ -51,6 +51,65 @@ export async function getStatus(): Promise<PushStatus> {
   return "off";
 }
 
+export type PushDiagnostics = {
+  permission: NotificationPermission | "unsupported";
+  swRegistered: boolean;
+  subscriptionLocal: boolean;
+  subscriptionStored: boolean;
+  vapidConfigured: boolean;
+  staleSubscription: boolean;
+  failureCount: number;
+  lastError: string | null;
+  lastDeliveryAt: string | null;
+  endpoint: string | null;
+  allGreen: boolean;
+};
+
+export async function getDiagnostics(): Promise<PushDiagnostics> {
+  const base: PushDiagnostics = {
+    permission: "unsupported",
+    swRegistered: false,
+    subscriptionLocal: false,
+    subscriptionStored: false,
+    vapidConfigured: false,
+    staleSubscription: false,
+    failureCount: 0,
+    lastError: null,
+    lastDeliveryAt: null,
+    endpoint: null,
+    allGreen: false,
+  };
+  if (!pushSupported()) return base;
+  base.permission = Notification.permission;
+
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  base.swRegistered = !!reg;
+  const sub = await reg?.pushManager.getSubscription();
+  base.subscriptionLocal = !!sub;
+  base.endpoint = sub?.endpoint ?? null;
+
+  const { data, error } = await supabase.functions.invoke("push-diagnose", {
+    body: { endpoint: base.endpoint },
+  });
+  if (!error && data) {
+    const d = data as any;
+    base.vapidConfigured = !!d.vapidConfigured;
+    base.subscriptionStored = !!d.subscriptionStored;
+    base.staleSubscription = !!d.staleSubscription;
+    base.failureCount = d.failureCount ?? 0;
+    base.lastError = d.lastError ?? null;
+    base.lastDeliveryAt = d.lastDeliveryAt ?? null;
+  }
+  base.allGreen =
+    base.permission === "granted" &&
+    base.swRegistered &&
+    base.subscriptionLocal &&
+    base.subscriptionStored &&
+    base.vapidConfigured &&
+    !base.staleSubscription;
+  return base;
+}
+
 export async function subscribeToPush(userId: string): Promise<{
   ok: boolean;
   status: PushStatus;
