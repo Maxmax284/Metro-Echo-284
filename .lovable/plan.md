@@ -1,86 +1,114 @@
-# Vanta Upload Flow Polish — Plan
 
-Front-end UX pass over the existing `ingested_files` pipeline. No new tables, no new storage system, no auto AI. Reuses `files-ingest`, `fileIntake.ts` schemas, and `MemoryFilesView`.
+# Vanta Companion Horizon — H1 File Intelligence Pass
 
-## Audit findings (current state)
+Scoped to **Horizon 1** of your prompt. H2/H3 seams noted at the end but not built. No new tables, no auto-AI, no auto-execute. Drafts only. 384px first.
 
-- `FileUploadCard` and `ConversationSurface.handleAttach` both upload immediately on file pick — no stage step, no remove, no per-file progress, no inline retry.
-- `ConversationSurface` auto-fires `analyze-file` AI tool right after ingest — violates "no auto AI on upload".
-- No `CaptureToast` primitive exists. Telegram file ingest writes to `ingested_files` but produces no in-app surfacing beyond the realtime list.
-- `MemoryFilesView` exists and is the right home for the file detail. No aftermath tray today.
-- `fileIntake.ts` already defines `suggested_actions`, `review_status`, `detected_doc_type`, `sensitive` — aftermath tray can render from these directly.
-- Audit events for `file.*` are sparse — only ingest start/finish.
+## Phase 0 — Audit (deliverable first, no code)
 
-## Wave A — Staged chip row + per-file progress
+Before any edits I'll produce a short audit document (`/mnt/documents/vanta-file-intel-audit.md`) covering current state of:
 
-Shared component, reused everywhere.
+- File upload + staging (`FileUploadCard`, `useStagedUpload`, `StagedFileChips`)
+- Conversation attachment flow (`ConversationDock`, `ConversationSurface`, in-composer attach)
+- Telegram file ingestion (`telegram-webhook`)
+- Email attachment ingestion (`email-inbound`)
+- `files-ingest` extraction pipeline + doc-type detection currently in place
+- `FileAftermathTray` (already exists — gaps vs. doctrine)
+- `CaptureToast` (already exists — coverage by source)
+- Memory → Files (`MemoryFilesView`), intake feed, capture route history
+- Audit events emitted via `logFileEvent`
+- Sensitive handling (`SENSITIVE_DOC_TYPES`, preview gating)
+- Briefing inclusion (`briefing-compose`, `DailyBriefingCard`)
+- Canvas inclusion paths
+- Mobile behavior at 384px for each surface above
+- Cost-trigger surfaces (any place that calls AI on render)
 
-- New `src/components/files/StagedFileChips.tsx` — chip per file with name, size, type icon, remove (✕), optional note input.
-- New `src/hooks/useStagedUpload.ts` — owns staged[], per-file state `queued | uploading | reading | saved | failed`, per-file progress where the upload helper exposes it, retry per file, cancel before commit. Emits audit events `file.staged`, `file.upload_started`, `file.uploaded`, `file.upload_failed`, `file.extraction_started`, `file.extracted`, `file.extraction_failed`.
-- Rewire `FileUploadCard` to use the hook + chips (drop the immediate upload path).
-- Rewire `ConversationSurface.handleAttach` to use the same chips above the composer. **Remove the auto `analyze-file` send.** Replaced by an aftermath suggestion "Ask about this file" the user can tap.
-- Paste support: image paste in conversation composer stages as chip.
-- Error copy via `vantaSay` ("This one did not upload. Try again." / "I could not read this file yet.").
-- Mobile: chip row scrolls horizontally with `flex-wrap`, ✕ has ≥40px hit target, fits 384px.
+Output: a one-page "what exists / what's wired / what's missing / what's risky" map. **You approve before I touch code.**
 
-## Wave B — Aftermath tray
+## Phase 1 — Aftermath + Action Menu hardening
 
-- New `src/components/files/FileAftermathTray.tsx` — renders for a just-completed file. Shows filename, `detected_doc_type`, confidence, "Saved to Memory → Files", `needs_review` tag if unrouted, and suggested-action buttons sourced from `suggested_actions` (fallback to a small default set: Ask, Summarize, Extract tasks, Extract dates, Link, Create reminder, Create commitment, Send to Sherlock, Archive).
-- Appears inline under chips in both surfaces. Stays visible until dismissed (per doctrine).
-- Action handlers: each emits its audit event (`file.summarize_requested`, `file.linked`, `file.reminder_created`, etc.) and routes through existing draft/Plan→Approve flow. No silent execution; AI calls only behind explicit tap.
-- Sensitive doc types (`fileIntake.isSensitiveByType`) hide preview, mark `needs_review`, and require explicit tap to open.
-- Untouched files remain in `MemoryFilesView` with `review_status = needs_review`.
+`FileAftermathTray` already exists but is uneven. Tighten it:
 
-## Wave C — Unified CaptureToast
+- Show: filename, source channel, doc type, confidence, sensitive flag, saved location, needs-review state — in one calm header row.
+- Suggested actions become a **primary row (2–3 most relevant)** + **"More" disclosure** for the rest. No button soup.
+- AI-tagged actions get an explicit `AI` chip and never fire on mount.
+- Sensitive files: hide preview, swap copy to "Hidden by default. Tap to open."
+- Add a dedicated `FileActionMenu` component reused in: aftermath tray, file detail in Memory, capture inbox row, and conversation attachment chip — single source of truth.
 
-- New `src/components/capture/CaptureToast.tsx` + `useCaptureToast` provider mounted near root (Index.tsx). Listens to `ingested_files` realtime inserts/updates (channel already exists in `useIntakeFeed`) and dedupes by `id`.
-- Toast shape: source pill (Upload / Conversation / Telegram / Email), filename, status verb ("Reading it" / "Saved" / "Needs review"), "Open" → routes to Memory → Files filtered to that file with aftermath tray expanded.
-- Silent by default, no sound. Single toast per file id.
-- Telegram file ingest already writes rows → no edge function changes needed; the toast picks them up. If app was closed, an unseen-captures badge on the Memory tab surfaces on next open (count from `review_status in ('new','needs_review')` since last seen `localStorage` timestamp).
-- Audit: `capture.toast_shown`, `capture.toast_opened`.
+## Phase 2 — File → operational object drafts
 
-## Wave D — Files tile in Command layer
+Polish/finish the draft routes. Each one is a **draft + approve**, never silent:
 
-- Add a Files tile to `CommandCenterSurface` showing three counts pulled from `ingested_files`:
-  - New today (`created_at >= today`).
-  - Awaiting triage (`review_status in ('new','needs_review')`).
-  - Linked to active project (join via existing entity links if cheap; otherwise hide the third row).
-- Tap → opens Memory → Files (existing view, no new route).
-- Tile includes a small drag-drop zone that delegates to the same `useStagedUpload` hook. No duplicate upload code.
+- **File → Reminder**: prefill `ReminderComposer` with extracted date if `extracted_entities.dates[0]` present, else open empty with file context. Always show source file, timezone, confidence.
+- **File → Commitment**: switch current insert-immediately path to a draft sheet (title, due, linked entity), approve before insert.
+- **File → Note**: draft from `suggested_summary` if present; otherwise prompt user.
+- **File → Entity link**: open a small picker (person/project/place) seeded by `extracted_entities.people / locations`. Accepted → write `file_entity_links` (already exists if present; otherwise reuse `linked_*` fields on `ingested_files`).
+- **File → Sherlock**: already wired; ensure suggestion-only, never auto-run.
+- **File → Briefing candidate**: a "add to tomorrow's briefing" toggle on the aftermath tray, writes a lightweight `briefing_candidate` flag (reuse `aftermath_status` metadata if available; otherwise add a single nullable column — only if no existing field fits).
+- **File → Canvas**: explicit "Add to Canvas" action, never automatic.
 
-## Audit events
+## Phase 3 — Doc-type intelligence + per-type suggestions
 
-Centralize in `src/lib/fileAudit.ts` — single helper `logFileEvent(kind, payload)` writing to `audit_log`. Event vocabulary matches spec.
+`DETECTED_DOC_TYPES` already covers the taxonomy. Add a **per-type suggested-action map** in `src/lib/fileIntake.ts` so the aftermath tray + `files-ingest` agree on which 2–3 actions to surface first:
 
-## Voice
+- receipt → extract amount, link to expenses, archive
+- invoice → extract due date, payment reminder, link to vendor
+- booking → extract check-in/out, travel reminder, link to place
+- waiver → send/review reminder, link to person
+- visa/id_doc/medical → sensitive guard, extract expiry, reminder
+- screenshot → extract people/dates, ask, link
+- unknown → "What is this?" prompt + manual type picker
 
-All copy goes through `vantaSay.*`. Extend it with: `fileQueued`, `fileUploading`, `fileReading`, `fileSaved`, `fileNeedsReview`, `fileUploadFailed`, `fileUnreadable`, `fileArchived`. Voice-guardrail test allow-listed.
+No new ML — pure rule mapping over the existing `detected_doc_type`.
 
-## Out of scope (per spec)
+## Phase 4 — Batch handling
 
-New storage backend, Drive/Dropbox, document editor, auto-summarize, hard delete, new OCR provider, Sherlock rebuild, Calendar.
+Add a `batch_id` concept (reuse if it already exists; otherwise a single nullable column on `ingested_files`) — set when multiple files arrive in one upload event from any source. Then:
 
-## Build order
+- `StagedFileChips` + aftermath tray group by `batch_id`.
+- Show a batch header with batch-level routes ("Link all to GroundStay", "Mark all needs review").
+- Individual file actions still work.
 
-A → B → C → D, each shippable independently. Mobile 384px validated at end of each wave.
+## Phase 5 — CaptureToast unification
 
-## Files
+`CaptureToast` already exists. Make every source go through it:
 
-**New**
-- `src/components/files/StagedFileChips.tsx`
-- `src/components/files/FileAftermathTray.tsx`
-- `src/components/capture/CaptureToast.tsx`
-- `src/hooks/useStagedUpload.ts`
-- `src/hooks/useCaptureToast.ts`
-- `src/lib/fileAudit.ts`
+- In-app upload ✓
+- Conversation attach — wire if missing
+- Telegram file — confirm `telegram-webhook` writes a capture row that surfaces in the same toast/inbox
+- Email attachment — same
+- Default: silent toast + badge, no sound, tap → aftermath tray
 
-**Edited**
-- `src/components/FileUploadCard.tsx` (use hook + chips + tray)
-- `src/components/surfaces/ConversationSurface.tsx` (chips + tray; remove auto-analyze)
-- `src/components/surfaces/CommandCenterSurface.tsx` (Files tile)
-- `src/pages/Index.tsx` (mount CaptureToast provider)
-- `src/lib/vantaVoice.ts` (new copy)
-- `src/test/voice-guardrail.test.ts` (allow new files)
+Copy: "File captured · Reading it · Saved to Files · Needs review · Open aftermath."
 
-**Untouched (intentionally)**
-- `supabase/functions/files-ingest/*`, `telegram-webhook/*`, `email-inbound/*`, `ingested_files` schema, `fileIntake.ts` schemas.
+## Phase 6 — Search/memory polish (light)
+
+`MemoryFilesView`: add filters for source, doc type, sensitive, needs-review, linked/unlinked. Use existing columns — no new tables. Results show source, matched reason, linked objects, last action.
+
+## Phase 7 — Audit replay (light)
+
+`logFileEvent` already exists. Add a small "Activity" disclosure in file detail that lists events for that file in plain English ("Uploaded from Telegram · Linked to GroundStay · Reminder created · Archived").
+
+## Phase 8 — 384px sweep
+
+Validate every touched surface at 384px: staged chips, batch header, aftermath tray, action menu, sensitive preview, reminder/commitment drafts from file, link picker, search filters. Fix any overflow, dense rows, or bubble collisions.
+
+## Out of scope (H2/H3 — prepared seams only)
+
+- Morning/evening/weekly briefing integration of file-derived items — leave hooks via existing `briefing-compose` selecting where `review_status='needs_review' AND deadline_today`.
+- PWA share target, desktop drop zone, ecosystem adapters — not in this pass.
+- Entity profile traits, voice triage loop — not in this pass.
+
+## Hard rules I will not break
+
+- No auto-AI on render. Every AI action requires explicit tap.
+- No new top-level surfaces. Everything lands in Inbox / Memory / Aftermath.
+- No new tables unless a field genuinely doesn't exist.
+- Sensitive previews hidden by default.
+- Plan → Approve → Execute for every file-derived object.
+- No robotic copy. Vanta voice only.
+
+## Open questions before I start
+
+1. Should I deliver Phase 0 (audit doc) as a single step and wait for your sign-off before touching code, or run audit → Phase 1–2 in one pass?
+2. Are batches already tracked somewhere (column or convention) or should I introduce `batch_id`?
+3. For "File → Briefing candidate" — do you have an existing briefing-eligibility flag I should reuse, or is a new boolean field acceptable?
