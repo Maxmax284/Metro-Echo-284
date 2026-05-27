@@ -232,6 +232,21 @@ export function DailyBriefingCard() {
                   ))}
                 </ul>
               )}
+              {briefingCandidates.length > 0 && (
+                <div className="mt-2 rounded-md bg-muted/20 p-2 ring-1 ring-border/40">
+                  <div className="mb-1 flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <FileText className="h-2.5 w-2.5" />
+                    Files for today
+                  </div>
+                  <ul className="space-y-0.5">
+                    {briefingCandidates.slice(0, 5).map((c) => (
+                      <li key={c.id} className="truncate text-[11.5px] text-foreground/80">
+                        · {c.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {polish && (
                 <p className="mt-1 text-[12px] italic leading-snug text-foreground/70">
                   {polish}
