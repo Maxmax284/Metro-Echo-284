@@ -49,9 +49,11 @@ export function CaptureToastProvider({
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ingested_files", filter: `user_id=eq.${user.id}` },
         (payload) => {
-          const row = payload.new as Row;
-          // Skip rows created before mount (i.e. backfill).
-          if (new Date((payload as any).commit_timestamp ?? Date.now()).getTime() < startedAt.current - 5000) return;
+          const row = payload.new as Row & { created_at?: string };
+          // Skip rows created before mount (i.e. backfill). Prefer row.created_at over
+          // commit_timestamp which can be stale on Telegram/email realtime replays.
+          const createdMs = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+          if (createdMs < startedAt.current - 5000) return;
           if (seen.current.has(row.id)) return;
           seen.current.add(row.id);
           const source = LABELS[row.source ?? ""] ?? "Capture";
