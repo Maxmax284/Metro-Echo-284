@@ -68,6 +68,14 @@ Deno.serve(async (req: Request) => {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(20),
+      // Briefing candidates — files the user explicitly flagged for the next briefing
+      // via the aftermath tray. review_status='suggested' AND metadata.briefing_candidate=true.
+      sb.from("ingested_files")
+        .select("id, filename, metadata, created_at")
+        .eq("review_status", "suggested")
+        .contains("metadata", { briefing_candidate: true })
+        .order("created_at", { ascending: false })
+        .limit(10),
       sb.from("actions")
         .select("id, title, status", { count: "exact" })
         .in("status", ["proposed", "staged"])
