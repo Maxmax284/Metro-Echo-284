@@ -294,33 +294,6 @@ export function MemoryFilesView() {
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
       </div>
-      <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
-        {([
-          { id: "all", label: "All" },
-          { id: "review", label: "Needs review" },
-          { id: "archived", label: "Archived" },
-        ] as const).map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={cn(
-              "shrink-0 snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors",
-              filter === f.id
-                ? "border-primary/40 bg-primary/15 text-primary"
-                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-        <button
-          onClick={refresh}
-          className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
-          aria-label="Refresh"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </button>
-      </div>
 
       <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
         {([
