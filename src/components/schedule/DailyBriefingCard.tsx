@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2, Target } from "lucide-react";
+import { Sunrise, Sun, Moon, Sparkles, Wand2, Loader2, Target, FileText } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNowStrict } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -35,6 +35,7 @@ export function DailyBriefingCard() {
   const [observedSalient, setObservedSalient] = useState<string[]>([]);
   const [variantUsed, setVariantUsed] = useState<string | null>(null);
   const [wrapCounts, setWrapCounts] = useState<{ closed_today: number; slipped_today: number } | null>(null);
+  const [briefingCandidates, setBriefingCandidates] = useState<Array<{ id: string; label: string }>>([]);
   const [polishing, setPolishing] = useState(false);
   const auditedRef = useRef(false);
 
@@ -142,6 +143,7 @@ export function DailyBriefingCard() {
         observed?: string[];
         variant?: string;
         counts?: { closed_today?: number; slipped_today?: number };
+        items?: Array<{ kind?: string; id?: string; label?: string }>;
       } | null;
       setBestFirstMove(d?.best_first_move ?? null);
       setObservedSalient(Array.isArray(d?.observed) ? d!.observed! : []);
@@ -152,6 +154,10 @@ export function DailyBriefingCard() {
           slipped_today: d.counts.slipped_today ?? 0,
         });
       }
+      const candidates = (d?.items ?? [])
+        .filter((i) => i.kind === "briefing_candidate" && i.id && i.label)
+        .map((i) => ({ id: i.id!, label: i.label! }));
+      setBriefingCandidates(candidates);
       const text = d?.narrative ?? d?.headline ?? null;
       if (text) setPolish(text.trim());
     } catch (e) {
@@ -225,6 +231,21 @@ export function DailyBriefingCard() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {briefingCandidates.length > 0 && (
+                <div className="mt-2 rounded-md bg-muted/20 p-2 ring-1 ring-border/40">
+                  <div className="mb-1 flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <FileText className="h-2.5 w-2.5" />
+                    Files for today
+                  </div>
+                  <ul className="space-y-0.5">
+                    {briefingCandidates.slice(0, 5).map((c) => (
+                      <li key={c.id} className="truncate text-[11.5px] text-foreground/80">
+                        · {c.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
               {polish && (
                 <p className="mt-1 text-[12px] italic leading-snug text-foreground/70">
