@@ -253,10 +253,21 @@ export function MemoryFilesView() {
     if (filter === "archived") return archived;
     if (archived) return false;
     if (filter === "review") {
-      return !f.metadata?.document_type || f.status === "failed" || f.status === "error";
+      if (!(f.review_status === "needs_review" || !f.metadata?.document_type || f.status === "failed" || f.status === "error")) return false;
+    }
+    if (filter === "sensitive" && !f.sensitive) return false;
+    if (filter === "linked" && !f.note_id) return false;
+    if (filter === "unlinked" && f.note_id) return false;
+    if (sourceFilter !== "all" && f.source !== sourceFilter) return false;
+    if (docTypeFilter !== "all") {
+      const dt = (f.metadata?.document_type as string | undefined) ?? f.detected_doc_type ?? "unknown";
+      if (dt !== docTypeFilter) return false;
     }
     return true;
   });
+
+  const availableSources = Array.from(new Set(files.map((f) => f.source).filter(Boolean))) as string[];
+  const availableDocTypes = Array.from(new Set(files.map((f) => (f.metadata?.document_type as string | undefined) ?? f.detected_doc_type ?? null).filter(Boolean))) as string[];
 
   return (
     <div className="space-y-3">
