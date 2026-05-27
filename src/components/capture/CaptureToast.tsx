@@ -22,6 +22,7 @@ const LABELS: Record<string, string> = {
   telegram: "Telegram",
   email: "Email",
   voice: "Voice",
+  share: "Shared in",
 };
 
 function statusVerb(status: string | null, review: string | null): string {

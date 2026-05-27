@@ -55,9 +55,11 @@ export function FileUploadCard() {
   });
 
   // PWA share target: drain any files the OS share sheet handed us into staging.
+  // Tag them with source="share" so CaptureToast labels them distinctly and the
+  // audit trail shows the true origin.
   useSharedTargetIntake((files, ctx) => {
     if (files.length > 0) {
-      const keys = staged.stage(files);
+      const keys = staged.stage(files, { sourceOverride: "share" });
       if (ctx.text || ctx.url) {
         const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
         for (const k of keys) staged.setNote(k, note);

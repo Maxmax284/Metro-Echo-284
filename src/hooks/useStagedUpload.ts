@@ -28,6 +28,7 @@ export type StagedFile = {
   ingestedFileId?: string;
   errorLabel?: string;    // human copy via vantaSay
   batchId?: string;       // set when >1 file staged in one stage() call
+  sourceOverride?: string; // per-stage override (e.g. "share" from PWA share target)
 };
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -58,10 +59,11 @@ export function useStagedUpload(opts?: {
   }, []);
 
   const stage = useCallback(
-    (files: FileList | File[]) => {
+    (files: FileList | File[], stageOpts?: { sourceOverride?: string }) => {
       const list = Array.from(files);
       // Only mint a batch when there's more than one file in this stage call.
       const batchId = list.length > 1 ? newBatchId() : undefined;
+      const sourceOverride = stageOpts?.sourceOverride;
       const next: StagedFile[] = [];
       for (const f of list) {
         if (f.size > MAX_BYTES) {
@@ -71,10 +73,11 @@ export function useStagedUpload(opts?: {
             status: "failed",
             errorLabel: vantaSay.fileTooLarge(f.name),
             batchId,
+            sourceOverride,
           });
           continue;
         }
-        next.push({ key: newKey(), file: f, status: "staged", batchId });
+        next.push({ key: newKey(), file: f, status: "staged", batchId, sourceOverride });
       }
       setStaged((prev) => [...prev, ...next]);
       if (user) {
@@ -84,7 +87,7 @@ export function useStagedUpload(opts?: {
               filename: s.file.name,
               size: s.file.size,
               mime: s.file.type || null,
-              source: opts?.source ?? "upload",
+              source: sourceOverride ?? opts?.source ?? "upload",
               batch_id: batchId ?? null,
             });
           }
@@ -115,9 +118,10 @@ export function useStagedUpload(opts?: {
       if (!s) return;
       if (s.status === "uploading" || s.status === "reading" || s.status === "saved") return;
       patch(key, { status: "uploading", progress: undefined, errorLabel: undefined });
+      const effectiveSource = s.sourceOverride ?? opts?.source ?? "upload";
       void logFileEvent(user.id, "file.upload_started", null, {
         filename: s.file.name,
-        source: opts?.source ?? "upload",
+        source: effectiveSource,
       });
       const path = `${user.id}/${Date.now()}-${s.file.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
       try {
@@ -133,7 +137,7 @@ export function useStagedUpload(opts?: {
             mime_type: s.file.type || null,
             size_bytes: s.file.size,
             storage_path: path,
-            source: opts?.source ?? "upload",
+            source: effectiveSource,
             status: "pending",
             batch_id: s.batchId ?? null,
             metadata: s.note ? { note: s.note } : {},
