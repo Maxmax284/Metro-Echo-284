@@ -63,7 +63,9 @@ export function MemoryFilesView() {
   const { record: recordRoute } = useCaptureRoute();
   const [files, setFiles] = useState<FileRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "review" | "archived">("all");
+  const [filter, setFilter] = useState<"all" | "review" | "sensitive" | "linked" | "unlinked" | "archived">("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [docTypeFilter, setDocTypeFilter] = useState<string>("all");
   const [composingFor, setComposingFor] = useState<string | null>(null);
   const [typeMenuFor, setTypeMenuFor] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
