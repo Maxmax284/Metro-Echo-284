@@ -27,12 +27,20 @@ export type StagedFile = {
   progress?: number;      // 0..1 — only set when known
   ingestedFileId?: string;
   errorLabel?: string;    // human copy via vantaSay
+  batchId?: string;       // set when >1 file staged in one stage() call
 };
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function newKey() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function newBatchId() {
+  // RFC4122 v4-ish — random enough for client-generated grouping.
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function useStagedUpload(opts?: {
@@ -52,6 +60,8 @@ export function useStagedUpload(opts?: {
   const stage = useCallback(
     (files: FileList | File[]) => {
       const list = Array.from(files);
+      // Only mint a batch when there's more than one file in this stage call.
+      const batchId = list.length > 1 ? newBatchId() : undefined;
       const next: StagedFile[] = [];
       for (const f of list) {
         if (f.size > MAX_BYTES) {
@@ -60,10 +70,11 @@ export function useStagedUpload(opts?: {
             file: f,
             status: "failed",
             errorLabel: vantaSay.fileTooLarge(f.name),
+            batchId,
           });
           continue;
         }
-        next.push({ key: newKey(), file: f, status: "staged" });
+        next.push({ key: newKey(), file: f, status: "staged", batchId });
       }
       setStaged((prev) => [...prev, ...next]);
       if (user) {
@@ -74,6 +85,7 @@ export function useStagedUpload(opts?: {
               size: s.file.size,
               mime: s.file.type || null,
               source: opts?.source ?? "upload",
+              batch_id: batchId ?? null,
             });
           }
         }
@@ -123,8 +135,9 @@ export function useStagedUpload(opts?: {
             storage_path: path,
             source: opts?.source ?? "upload",
             status: "pending",
+            batch_id: s.batchId ?? null,
             metadata: s.note ? { note: s.note } : {},
-          })
+          } as any)
           .select("id")
           .single();
         if (insErr) throw insErr;
