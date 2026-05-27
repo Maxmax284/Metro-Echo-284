@@ -13,8 +13,9 @@ import { Button } from "@/components/ui/button";
 import {
   FileText, MessageSquare, Sparkles, ListChecks, CalendarClock,
   Link2, BellRing, CheckSquare, Search, Archive, X, MoreHorizontal,
-  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users,
+  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
