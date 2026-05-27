@@ -13,8 +13,9 @@ import { Button } from "@/components/ui/button";
 import {
   FileText, MessageSquare, Sparkles, ListChecks, CalendarClock,
   Link2, BellRing, CheckSquare, Search, Archive, X, MoreHorizontal,
-  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users,
+  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -91,6 +92,35 @@ function firstPerson(entities: unknown): string | null {
   return null;
 }
 
+const ACTIVITY_LABELS: Record<string, string> = {
+  "file.staged": "Staged for upload",
+  "file.upload_started": "Upload started",
+  "file.uploaded": "Uploaded",
+  "file.upload_failed": "Upload failed",
+  "file.extraction_started": "Reading started",
+  "file.extracted": "Read and classified",
+  "file.extraction_failed": "Couldn't read it",
+  "file.needs_review": "Marked needs review",
+  "file.aftermath_opened": "Opened aftermath",
+  "file.action_suggested": "Action chosen",
+  "file.summarize_requested": "Summary drafted",
+  "file.extract_requested": "Extraction drafted",
+  "file.linked": "Linked",
+  "file.reminder_created": "Reminder created",
+  "file.reminder_drafted": "Reminder drafted",
+  "file.commitment_created": "Commitment created",
+  "file.canvas_drafted": "Canvas draft started",
+  "file.briefing_marked": "Added to briefing",
+  "file.briefing_removed": "Removed from briefing",
+  "file.marked_reviewed": "Marked reviewed",
+  "file.ignored": "Set aside",
+  "file.sent_to_sherlock": "Sent to Sherlock",
+  "file.archived": "Archived",
+  "file.restored": "Restored",
+  "capture.toast_shown": "Capture toast shown",
+  "capture.toast_opened": "Opened from toast",
+};
+
 // ---------- component ------------------------------------------------------
 
 export function FileAftermathTray({
@@ -111,6 +141,8 @@ export function FileAftermathTray({
   const [draftCommitment, setDraftCommitment] = useState<string | null>(null);
   const [previewRevealed, setPreviewRevealed] = useState(false);
   const [briefingPending, setBriefingPending] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [activity, setActivity] = useState<Array<{ id: string; event: string; created_at: string }> | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -126,6 +158,22 @@ export function FileAftermathTray({
     })();
     return () => { alive = false; };
   }, [ingestedFileId, user]);
+
+  const loadActivity = async () => {
+    const { data } = await supabase
+      .from("audit_log")
+      .select("id, event, created_at")
+      .eq("entity_type", "file")
+      .eq("entity_id", ingestedFileId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setActivity((data as any) ?? []);
+  };
+  const toggleActivity = () => {
+    const next = !activityOpen;
+    setActivityOpen(next);
+    if (next && activity === null) void loadActivity();
+  };
 
   const sensitive = !!row?.sensitive || isSensitiveByType(row?.detected_doc_type ?? null);
   const isBriefingCandidate = !!(row?.metadata as any)?.briefing_candidate;
@@ -465,6 +513,39 @@ export function FileAftermathTray({
           })}
         </div>
       )}
+
+      {/* Activity disclosure (Phase 7) */}
+      <div className="mt-2 border-t border-border/40 pt-1.5">
+        <button
+          type="button"
+          onClick={toggleActivity}
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+          aria-expanded={activityOpen}
+        >
+          <History className="h-3 w-3" />
+          {activityOpen ? "Hide activity" : "Activity"}
+        </button>
+        {activityOpen && (
+          <ul className="mt-1.5 space-y-0.5">
+            {activity === null && (
+              <li className="text-[10.5px] text-muted-foreground">Loading…</li>
+            )}
+            {activity && activity.length === 0 && (
+              <li className="text-[10.5px] text-muted-foreground">No activity yet.</li>
+            )}
+            {activity?.map((e) => (
+              <li key={e.id} className="flex items-baseline justify-between gap-2 text-[10.5px]">
+                <span className="truncate text-foreground/80">
+                  {ACTIVITY_LABELS[e.event] ?? e.event.replace(/^file\./, "").replace(/_/g, " ")}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
