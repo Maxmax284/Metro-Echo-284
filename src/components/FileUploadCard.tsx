@@ -12,6 +12,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
+import { useSharedTargetIntake } from "@/hooks/useSharedTargetIntake";
 
 type Row = {
   id: string;
@@ -51,6 +52,18 @@ export function FileUploadCard() {
       }
       void refresh();
     },
+  });
+
+  // PWA share target: drain any files the OS share sheet handed us into staging.
+  useSharedTargetIntake((files, ctx) => {
+    if (files.length > 0) {
+      const keys = staged.stage(files);
+      if (ctx.text || ctx.url) {
+        const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
+        for (const k of keys) staged.setNote(k, note);
+      }
+      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`);
+    }
   });
 
   const busy = useMemo(

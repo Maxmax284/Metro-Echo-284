@@ -12,8 +12,8 @@ const corsHeaders = {
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-type Item = {
-  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock";
+    type Item = {
+  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate";
   id: string;
   label: string;
   due_at?: string | null;
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
       sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -68,6 +68,14 @@ Deno.serve(async (req: Request) => {
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(20),
+      // Briefing candidates — files the user explicitly flagged for the next briefing
+      // via the aftermath tray. review_status='suggested' AND metadata.briefing_candidate=true.
+      sb.from("ingested_files")
+        .select("id, filename, metadata, created_at")
+        .eq("review_status", "suggested")
+        .contains("metadata", { briefing_candidate: true })
+        .order("created_at", { ascending: false })
+        .limit(10),
       sb.from("actions")
         .select("id, title, status", { count: "exact" })
         .in("status", ["proposed", "staged"])
@@ -138,6 +146,14 @@ Deno.serve(async (req: Request) => {
     }));
     items.push(...sherlockPending);
 
+    // Files the user flagged for inclusion in this briefing — explicit signal.
+    const briefingCandidates = (candidates.data ?? []).map((f) => ({
+      kind: "briefing_candidate" as const,
+      id: f.id,
+      label: f.filename ?? "Flagged file",
+    }));
+    items.push(...briefingCandidates);
+
     // Day's debrief metrics — used by evening/wrap variants.
     const closedTodayCount = (closedToday.data ?? []).length;
     // "Slipped today" = items with due_at earlier today that are still open.
@@ -163,6 +179,7 @@ Deno.serve(async (req: Request) => {
       fresh_captures: freshCaptures.length,
       approvals: actions.count ?? 0,
       sherlock_pending: sherlockPending.length,
+      briefing_candidates: briefingCandidates.length,
       closed_today: closedTodayCount,
       slipped_today: slippedToday,
     };
@@ -215,6 +232,7 @@ Deno.serve(async (req: Request) => {
       if (counts.due_today) parts.push(`${counts.due_today} due today`);
       if (counts.approvals) parts.push(`${counts.approvals} awaiting approval`);
       if (counts.untriaged) parts.push(`${counts.untriaged} to triage`);
+      if (counts.briefing_candidates) parts.push(`${counts.briefing_candidates} flagged file${counts.briefing_candidates === 1 ? "" : "s"}`);
       headline = parts.length ? parts.join(" · ") : "Quiet runway.";
     }
 
@@ -235,6 +253,7 @@ Deno.serve(async (req: Request) => {
             : i.kind === "due_today" ? "due today"
             : i.kind === "untriaged" ? "untriaged file"
             : i.kind === "sherlock" ? "Sherlock finding"
+            : i.kind === "briefing_candidate" ? "flagged file"
             : "fresh capture";
           return `- [${tag}] ${i.label}${i.due_at ? ` (due ${i.due_at})` : ""}`;
         }).join("\n");
