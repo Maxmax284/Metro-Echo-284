@@ -92,6 +92,35 @@ function firstPerson(entities: unknown): string | null {
   return null;
 }
 
+const ACTIVITY_LABELS: Record<string, string> = {
+  "file.staged": "Staged for upload",
+  "file.upload_started": "Upload started",
+  "file.uploaded": "Uploaded",
+  "file.upload_failed": "Upload failed",
+  "file.extraction_started": "Reading started",
+  "file.extracted": "Read and classified",
+  "file.extraction_failed": "Couldn't read it",
+  "file.needs_review": "Marked needs review",
+  "file.aftermath_opened": "Opened aftermath",
+  "file.action_suggested": "Action chosen",
+  "file.summarize_requested": "Summary drafted",
+  "file.extract_requested": "Extraction drafted",
+  "file.linked": "Linked",
+  "file.reminder_created": "Reminder created",
+  "file.reminder_drafted": "Reminder drafted",
+  "file.commitment_created": "Commitment created",
+  "file.canvas_drafted": "Canvas draft started",
+  "file.briefing_marked": "Added to briefing",
+  "file.briefing_removed": "Removed from briefing",
+  "file.marked_reviewed": "Marked reviewed",
+  "file.ignored": "Set aside",
+  "file.sent_to_sherlock": "Sent to Sherlock",
+  "file.archived": "Archived",
+  "file.restored": "Restored",
+  "capture.toast_shown": "Capture toast shown",
+  "capture.toast_opened": "Opened from toast",
+};
+
 // ---------- component ------------------------------------------------------
 
 export function FileAftermathTray({
