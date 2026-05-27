@@ -253,6 +253,7 @@ Deno.serve(async (req: Request) => {
             : i.kind === "due_today" ? "due today"
             : i.kind === "untriaged" ? "untriaged file"
             : i.kind === "sherlock" ? "Sherlock finding"
+            : i.kind === "briefing_candidate" ? "flagged file"
             : "fresh capture";
           return `- [${tag}] ${i.label}${i.due_at ? ` (due ${i.due_at})` : ""}`;
         }).join("\n");
