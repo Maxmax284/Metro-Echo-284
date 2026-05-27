@@ -194,3 +194,43 @@ export function assertTransitionReview(from: FileReviewStatus, to: FileReviewSta
     throw new Error(`Can't move file from "${from}" to "${to}".`);
   }
 }
+
+// ---------- Per-type default action map ------------------------------------
+// Deterministic suggested actions per detected doc type, used by the aftermath
+// tray when the classifier returned nothing usable. Order = priority (primary
+// row picks the first 2-3, the rest go behind a "More" disclosure).
+// Sensitive types deliberately get *fewer* AI-tagged actions — review first.
+
+export const PER_TYPE_DEFAULT_ACTIONS: Record<DetectedDocType, FileSuggestedActionKind[]> = {
+  receipt:         ["extract_payments", "attach_to_entity", "create_reminder", "archive"],
+  invoice:         ["extract_dates", "create_reminder", "attach_to_entity", "summarize"],
+  booking:         ["extract_dates", "create_reminder", "attach_to_entity", "add_to_briefing"],
+  contract:        ["summarize", "create_commitment", "attach_to_entity", "send_to_sherlock"],
+  schedule:        ["extract_dates", "add_to_briefing", "attach_to_entity"],
+  waiver:          ["create_reminder", "attach_to_entity", "send_to_sherlock"],
+  visa:            ["extract_dates", "create_reminder", "mark_reviewed", "archive"],
+  id_doc:          ["mark_reviewed", "archive"],
+  medical:         ["mark_reviewed", "create_reminder", "archive"],
+  screenshot:      ["extract_people", "extract_dates", "attach_to_entity", "summarize"],
+  image:           ["attach_to_entity", "send_to_canvas", "summarize"],
+  voice_note:      ["summarize", "extract_dates", "create_reminder"],
+  payment_proof:   ["extract_payments", "attach_to_entity", "mark_reviewed"],
+  platform_export: ["summarize", "attach_to_entity", "archive"],
+  other:           ["summarize", "attach_to_entity", "create_reminder"],
+  unknown:         ["summarize", "attach_to_entity", "mark_reviewed"],
+};
+
+/** Return suggested-action kinds for a doc type, sensitivity-aware. */
+export function suggestedActionsForType(
+  type: DetectedDocType | string | null | undefined,
+  opts?: { sensitive?: boolean },
+): FileSuggestedActionKind[] {
+  const t = (type && (DETECTED_DOC_TYPES as readonly string[]).includes(type) ? type : "unknown") as DetectedDocType;
+  const base = PER_TYPE_DEFAULT_ACTIONS[t] ?? PER_TYPE_DEFAULT_ACTIONS.unknown;
+  if (!opts?.sensitive) return base;
+  // Sensitive: strip AI-heavy actions, keep only review/reminder/archive/link
+  const allowOnSensitive = new Set<FileSuggestedActionKind>([
+    "mark_reviewed", "create_reminder", "attach_to_entity", "archive", "ignore",
+  ]);
+  return base.filter((k) => allowOnSensitive.has(k));
+}
