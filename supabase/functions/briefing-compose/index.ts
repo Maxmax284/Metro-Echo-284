@@ -12,8 +12,8 @@ const corsHeaders = {
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-type Item = {
-  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock";
+    type Item = {
+  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate";
   id: string;
   label: string;
   due_at?: string | null;
