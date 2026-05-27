@@ -322,6 +322,64 @@ export function MemoryFilesView() {
         </button>
       </div>
 
+      <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+        {([
+          { id: "all", label: "All" },
+          { id: "review", label: "Needs review" },
+          { id: "sensitive", label: "Sensitive" },
+          { id: "linked", label: "Linked" },
+          { id: "unlinked", label: "Unlinked" },
+          { id: "archived", label: "Archived" },
+        ] as const).map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              "shrink-0 snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+              filter === f.id
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+        <button
+          onClick={refresh}
+          className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+          aria-label="Refresh"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {(availableSources.length > 1 || availableDocTypes.length > 1) && (
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+          {availableSources.length > 1 && (
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="shrink-0 snap-start rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-1 text-[11px] text-muted-foreground"
+              aria-label="Filter by source"
+            >
+              <option value="all">All sources</option>
+              {availableSources.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          )}
+          {availableDocTypes.length > 1 && (
+            <select
+              value={docTypeFilter}
+              onChange={(e) => setDocTypeFilter(e.target.value)}
+              className="shrink-0 snap-start rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-1 text-[11px] text-muted-foreground"
+              aria-label="Filter by type"
+            >
+              <option value="all">All types</option>
+              {availableDocTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+
       {loading && (
         <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
           <Loader2 className="mx-auto h-4 w-4 animate-spin" />
@@ -331,7 +389,7 @@ export function MemoryFilesView() {
       {!loading && filtered.length === 0 && (
         <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
           <Inbox className="h-5 w-5 opacity-50" />
-          {filter === "archived" ? "Nothing archived." : "No files yet. Upload one from Settings."}
+          {filter === "archived" ? "Nothing archived." : "No files match these filters."}
         </div>
       )}
 
