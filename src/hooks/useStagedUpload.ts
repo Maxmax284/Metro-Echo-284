@@ -60,6 +60,8 @@ export function useStagedUpload(opts?: {
   const stage = useCallback(
     (files: FileList | File[]) => {
       const list = Array.from(files);
+      // Only mint a batch when there's more than one file in this stage call.
+      const batchId = list.length > 1 ? newBatchId() : undefined;
       const next: StagedFile[] = [];
       for (const f of list) {
         if (f.size > MAX_BYTES) {
@@ -68,10 +70,11 @@ export function useStagedUpload(opts?: {
             file: f,
             status: "failed",
             errorLabel: vantaSay.fileTooLarge(f.name),
+            batchId,
           });
           continue;
         }
-        next.push({ key: newKey(), file: f, status: "staged" });
+        next.push({ key: newKey(), file: f, status: "staged", batchId });
       }
       setStaged((prev) => [...prev, ...next]);
       if (user) {
@@ -82,6 +85,7 @@ export function useStagedUpload(opts?: {
               size: s.file.size,
               mime: s.file.type || null,
               source: opts?.source ?? "upload",
+              batch_id: batchId ?? null,
             });
           }
         }
