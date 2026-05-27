@@ -135,8 +135,9 @@ export function useStagedUpload(opts?: {
             storage_path: path,
             source: opts?.source ?? "upload",
             status: "pending",
+            batch_id: s.batchId ?? null,
             metadata: s.note ? { note: s.note } : {},
-          })
+          } as any)
           .select("id")
           .single();
         if (insErr) throw insErr;
