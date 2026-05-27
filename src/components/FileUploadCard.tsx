@@ -54,6 +54,18 @@ export function FileUploadCard() {
     },
   });
 
+  // PWA share target: drain any files the OS share sheet handed us into staging.
+  useSharedTargetIntake((files, ctx) => {
+    if (files.length > 0) {
+      const keys = staged.stage(files);
+      if (ctx.text || ctx.url) {
+        const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
+        for (const k of keys) staged.setNote(k, note);
+      }
+      toast.success(vantaSay.success?.(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`) ?? `${files.length} shared in.`);
+    }
+  });
+
   const busy = useMemo(
     () => staged.staged.some((s) => s.status === "uploading" || s.status === "reading"),
     [staged.staged],
