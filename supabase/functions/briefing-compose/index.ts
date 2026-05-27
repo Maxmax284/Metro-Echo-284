@@ -179,6 +179,7 @@ Deno.serve(async (req: Request) => {
       fresh_captures: freshCaptures.length,
       approvals: actions.count ?? 0,
       sherlock_pending: sherlockPending.length,
+      briefing_candidates: briefingCandidates.length,
       closed_today: closedTodayCount,
       slipped_today: slippedToday,
     };
