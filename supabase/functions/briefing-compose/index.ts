@@ -232,6 +232,7 @@ Deno.serve(async (req: Request) => {
       if (counts.due_today) parts.push(`${counts.due_today} due today`);
       if (counts.approvals) parts.push(`${counts.approvals} awaiting approval`);
       if (counts.untriaged) parts.push(`${counts.untriaged} to triage`);
+      if (counts.briefing_candidates) parts.push(`${counts.briefing_candidates} flagged file${counts.briefing_candidates === 1 ? "" : "s"}`);
       headline = parts.length ? parts.join(" · ") : "Quiet runway.";
     }
 
