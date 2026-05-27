@@ -146,6 +146,14 @@ Deno.serve(async (req: Request) => {
     }));
     items.push(...sherlockPending);
 
+    // Files the user flagged for inclusion in this briefing — explicit signal.
+    const briefingCandidates = (candidates.data ?? []).map((f) => ({
+      kind: "briefing_candidate" as const,
+      id: f.id,
+      label: f.filename ?? "Flagged file",
+    }));
+    items.push(...briefingCandidates);
+
     // Day's debrief metrics — used by evening/wrap variants.
     const closedTodayCount = (closedToday.data ?? []).length;
     // "Slipped today" = items with due_at earlier today that are still open.
