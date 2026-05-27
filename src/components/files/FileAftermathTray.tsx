@@ -513,6 +513,39 @@ export function FileAftermathTray({
           })}
         </div>
       )}
+
+      {/* Activity disclosure (Phase 7) */}
+      <div className="mt-2 border-t border-border/40 pt-1.5">
+        <button
+          type="button"
+          onClick={toggleActivity}
+          className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+          aria-expanded={activityOpen}
+        >
+          <History className="h-3 w-3" />
+          {activityOpen ? "Hide activity" : "Activity"}
+        </button>
+        {activityOpen && (
+          <ul className="mt-1.5 space-y-0.5">
+            {activity === null && (
+              <li className="text-[10.5px] text-muted-foreground">Loading…</li>
+            )}
+            {activity && activity.length === 0 && (
+              <li className="text-[10.5px] text-muted-foreground">No activity yet.</li>
+            )}
+            {activity?.map((e) => (
+              <li key={e.id} className="flex items-baseline justify-between gap-2 text-[10.5px]">
+                <span className="truncate text-foreground/80">
+                  {ACTIVITY_LABELS[e.event] ?? e.event.replace(/^file\./, "").replace(/_/g, " ")}
+                </span>
+                <span className="shrink-0 text-muted-foreground">
+                  {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
