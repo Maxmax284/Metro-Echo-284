@@ -130,6 +130,22 @@ export function FileAftermathTray({
     return () => { alive = false; };
   }, [ingestedFileId, user]);
 
+  const loadActivity = async () => {
+    const { data } = await supabase
+      .from("audit_log")
+      .select("id, event, created_at")
+      .eq("entity_type", "file")
+      .eq("entity_id", ingestedFileId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setActivity((data as any) ?? []);
+  };
+  const toggleActivity = () => {
+    const next = !activityOpen;
+    setActivityOpen(next);
+    if (next && activity === null) void loadActivity();
+  };
+
   const sensitive = !!row?.sensitive || isSensitiveByType(row?.detected_doc_type ?? null);
   const isBriefingCandidate = !!(row?.metadata as any)?.briefing_candidate;
 
