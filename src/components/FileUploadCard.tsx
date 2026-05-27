@@ -62,7 +62,7 @@ export function FileUploadCard() {
         const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
         for (const k of keys) staged.setNote(k, note);
       }
-      toast.success(vantaSay.success?.(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`) ?? `${files.length} shared in.`);
+      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`);
     }
   });
 
