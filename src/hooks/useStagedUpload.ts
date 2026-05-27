@@ -27,12 +27,20 @@ export type StagedFile = {
   progress?: number;      // 0..1 — only set when known
   ingestedFileId?: string;
   errorLabel?: string;    // human copy via vantaSay
+  batchId?: string;       // set when >1 file staged in one stage() call
 };
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function newKey() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function newBatchId() {
+  // RFC4122 v4-ish — random enough for client-generated grouping.
+  return crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function useStagedUpload(opts?: {
