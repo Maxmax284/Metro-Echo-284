@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
       sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
