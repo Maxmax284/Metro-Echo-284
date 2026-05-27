@@ -12,6 +12,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
+import { useSharedTargetIntake } from "@/hooks/useSharedTargetIntake";
 
 type Row = {
   id: string;
