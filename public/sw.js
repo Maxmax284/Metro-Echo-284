@@ -48,3 +48,62 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// ---- PWA share target ------------------------------------------------------
+// Receives shared files/text from the OS share sheet. Stashes the payload in a
+// dedicated Cache keyed by a one-shot id, then redirects the user into the
+// platform with ?shared=<id>. The client reads + clears the cache and feeds the
+// files into the normal staged-upload flow. Doctrine: capture only — no AI,
+// no auto-ingest, the user still taps "Ingest" in the platform.
+const SHARED_CACHE = "vanta-shared-inbox-v1";
+
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method === "POST" && url.pathname === "/share-target") {
+    event.respondWith(handleShareTarget(event.request));
+  }
+});
+
+async function handleShareTarget(request) {
+  try {
+    const form = await request.formData();
+    const id = (self.crypto && self.crypto.randomUUID) ? self.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const cache = await caches.open(SHARED_CACHE);
+
+    const meta = {
+      id,
+      title: form.get("title") || "",
+      text: form.get("text") || "",
+      url: form.get("url") || "",
+      receivedAt: Date.now(),
+      files: [],
+    };
+
+    const files = form.getAll("files");
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!f || typeof f === "string") continue;
+      const cacheKey = `/__shared/${id}/${i}`;
+      const headers = new Headers();
+      if (f.type) headers.set("Content-Type", f.type);
+      headers.set("X-Vanta-Filename", encodeURIComponent(f.name || `file-${i}`));
+      await cache.put(new Request(cacheKey), new Response(f, { headers }));
+      meta.files.push({
+        cacheKey,
+        name: f.name || `file-${i}`,
+        type: f.type || "",
+        size: f.size || 0,
+      });
+    }
+
+    await cache.put(
+      new Request(`/__shared/${id}/_meta`),
+      new Response(JSON.stringify(meta), { headers: { "Content-Type": "application/json" } }),
+    );
+
+    return Response.redirect(`/?shared=${encodeURIComponent(id)}`, 303);
+  } catch (e) {
+    return Response.redirect(`/?shared_error=1`, 303);
+  }
+}
+
