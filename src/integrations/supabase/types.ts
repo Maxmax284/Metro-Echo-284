@@ -948,6 +948,7 @@ export type Database = {
       ingested_files: {
         Row: {
           approved_actions: Json
+          batch_id: string | null
           confidence: string
           created_at: string
           detected_doc_type: string
@@ -972,6 +973,7 @@ export type Database = {
         }
         Insert: {
           approved_actions?: Json
+          batch_id?: string | null
           confidence?: string
           created_at?: string
           detected_doc_type?: string
@@ -996,6 +998,7 @@ export type Database = {
         }
         Update: {
           approved_actions?: Json
+          batch_id?: string | null
           confidence?: string
           created_at?: string
           detected_doc_type?: string
