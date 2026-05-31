@@ -267,6 +267,21 @@ export function FileUploadCard() {
           ))}
         </div>
       </CardContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ingest {stagedCount} file{stagedCount === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will upload and extract the staged file{stagedCount === 1 ? "" : "s"} into memory. You can still review the result afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCommit}>Ingest</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
