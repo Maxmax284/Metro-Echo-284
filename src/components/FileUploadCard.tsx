@@ -195,7 +195,7 @@ export function FileUploadCard() {
               <Button
                 size="sm"
                 className="h-7 text-[11px]"
-                onClick={handleCommit}
+                onClick={() => setConfirmOpen(true)}
                 disabled={busy || !staged.staged.some((s) => s.status === "staged")}
               >
                 {busy ? "Working…" : "Ingest"}
