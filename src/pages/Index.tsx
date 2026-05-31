@@ -28,6 +28,7 @@ import { EmailInboxCard } from "@/components/EmailInboxCard";
 import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
 import { CaptureToastProvider } from "@/components/capture/CaptureToast";
+import { GlobalDropZone } from "@/components/files/GlobalDropZone";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { useAwareness } from "@/providers/AwarenessProvider";
@@ -228,6 +229,7 @@ function IndexInner() {
 
       <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
+      <GlobalDropZone />
     </div>
   );
 }

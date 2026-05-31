@@ -13,6 +13,7 @@ import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { useSharedTargetIntake } from "@/hooks/useSharedTargetIntake";
+import { VANTA_STAGE_FILES_EVENT, type VantaStageFilesDetail } from "@/components/files/GlobalDropZone";
 
 type Row = {
   id: string;
@@ -67,6 +68,19 @@ export function FileUploadCard() {
       toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`);
     }
   });
+
+  // Global desktop drop zone: any file dropped on the window stages here.
+  // Tagged source="drop" so the audit trail distinguishes it from picker uploads.
+  useEffect(() => {
+    const onStage = (e: Event) => {
+      const detail = (e as CustomEvent<VantaStageFilesDetail>).detail;
+      if (!detail?.files?.length) return;
+      staged.stage(detail.files, { sourceOverride: detail.source });
+      toast.success(`${detail.files.length} file${detail.files.length === 1 ? "" : "s"} staged. Review and ingest.`);
+    };
+    window.addEventListener(VANTA_STAGE_FILES_EVENT, onStage);
+    return () => window.removeEventListener(VANTA_STAGE_FILES_EVENT, onStage);
+  }, [staged]);
 
   const busy = useMemo(
     () => staged.staged.some((s) => s.status === "uploading" || s.status === "reading"),
