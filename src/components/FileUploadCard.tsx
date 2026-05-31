@@ -43,6 +43,7 @@ export function FileUploadCard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [drag, setDrag] = useState(false);
   const [trays, setTrays] = useState<string[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
