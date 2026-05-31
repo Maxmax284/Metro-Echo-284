@@ -109,8 +109,11 @@ export function FileUploadCard() {
   }, [rows]);
 
   const handleCommit = async () => {
+    setConfirmOpen(false);
     await staged.commitAll();
   };
+
+  const stagedCount = staged.staged.filter((s) => s.status === "staged").length;
 
   return (
     <Card>
