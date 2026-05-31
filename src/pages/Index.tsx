@@ -229,6 +229,7 @@ function IndexInner() {
 
       <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
+      <GlobalDropZone />
     </div>
   );
 }
