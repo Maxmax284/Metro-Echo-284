@@ -13,6 +13,7 @@ import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { useSharedTargetIntake } from "@/hooks/useSharedTargetIntake";
+import { VANTA_STAGE_FILES_EVENT, type VantaStageFilesDetail } from "@/components/files/GlobalDropZone";
 
 type Row = {
   id: string;
