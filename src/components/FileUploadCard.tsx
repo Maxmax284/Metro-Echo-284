@@ -3,6 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -33,6 +43,7 @@ export function FileUploadCard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [drag, setDrag] = useState(false);
   const [trays, setTrays] = useState<string[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const refresh = async () => {
@@ -98,8 +109,11 @@ export function FileUploadCard() {
   }, [rows]);
 
   const handleCommit = async () => {
+    setConfirmOpen(false);
     await staged.commitAll();
   };
+
+  const stagedCount = staged.staged.filter((s) => s.status === "staged").length;
 
   return (
     <Card>
@@ -181,7 +195,7 @@ export function FileUploadCard() {
               <Button
                 size="sm"
                 className="h-7 text-[11px]"
-                onClick={handleCommit}
+                onClick={() => setConfirmOpen(true)}
                 disabled={busy || !staged.staged.some((s) => s.status === "staged")}
               >
                 {busy ? "Working…" : "Ingest"}
@@ -253,6 +267,21 @@ export function FileUploadCard() {
           ))}
         </div>
       </CardContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ingest {stagedCount} file{stagedCount === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will upload and extract the staged file{stagedCount === 1 ? "" : "s"} into memory. You can still review the result afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCommit}>Ingest</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
