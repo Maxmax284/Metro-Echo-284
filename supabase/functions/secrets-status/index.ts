@@ -70,6 +70,20 @@ Deno.serve(async (req) => {
     }
     if (names.length === 0) names = Array.from(ALLOWED);
 
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const allowedNames = names.filter((name) => ALLOWED.has(name));
+    const { data: savedSecrets } = allowedNames.length > 0
+      ? await admin
+        .from("integration_webhook_secrets")
+        .select("secret_name")
+        .eq("owner_id", userData.user.id)
+        .in("secret_name", allowedNames)
+      : { data: [] as Array<{ secret_name: string }> };
+    const saved = new Set((savedSecrets ?? []).map((row) => row.secret_name));
+
     const result: Record<string, { present: boolean; allowed: boolean }> = {};
     for (const raw of names) {
       const name = String(raw);
@@ -79,7 +93,7 @@ Deno.serve(async (req) => {
         continue;
       }
       const v = Deno.env.get(name);
-      result[name] = { present: !!v && v.length > 0, allowed: true };
+      result[name] = { present: (!!v && v.length > 0) || saved.has(name), allowed: true };
     }
 
     return new Response(JSON.stringify({ secrets: result }), {
