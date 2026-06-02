@@ -1,139 +1,127 @@
-# Platform Integrations — settings pass
+## Goal
 
-One job: put the wiring map in one place. Read existing state, surface it clean. Don't build bridges, don't add execution, don't duplicate toggles.
+Turn the dashboard from a tile grid of counts into a calm shift-report:
+**Pulse → Aware (collapsed) → Operations Briefing → Live Capture → everything else.** No new integrations, no autonomous actions, no Audit/Aware rewrites.
 
-## Where it lives
-
-Add a new route `Settings → Integrations` inside the existing Settings page (`src/pages/Settings.tsx`). Reuse the current `EcosystemSourcesPanel` logic — that panel becomes one section inside the new, larger Integrations view (not deleted, absorbed). System Controls page keeps its kill switches; Integrations is the human-readable front door that reads/writes the same `system_controls` row.
-
-No new top-level nav. New section anchor in Settings sidebar/tabs: **Integrations**.
-
-## Page structure
-
-```text
-┌─ Doctrine banner ─────────────────────────────────┐
-│ Signals land. Vanta drafts. Humans approve.       │
-│ Each source has its own kill switch + audit.      │
-└───────────────────────────────────────────────────┘
-
-[ Global pause ] (only if backed by existing control; else "Planned")
-
-── Connected now ──────────────────────────────────
-  • Vanta Core         Live
-  • Telegram           Live / Partial (reads tg tables)
-  • Email              Live (reads email_inbound_addresses)
-
-── Planned next ───────────────────────────────────
-  • Ground Truth Hub   Partially live (gth-inbound exists)
-  • CampCore           Planned
-  • Calendar           Planned, read-only first
-  • Fenrir Lock        Planned
-  • Website / Forms    Planned
-
-── Deferred ───────────────────────────────────────
-  • WhatsApp           Deferred until Telegram proven
-
-── Event registry ─────────────────────────────────
-── Callback registry ──────────────────────────────
-── Secrets & webhooks ─────────────────────────────
-── Future adapter template ────────────────────────
-```
-
-Mobile (384px): stacked cards, diagnostics collapsed, kill switch + status always visible. Desktop: grid for cards, tables for registries.
-
-## Card anatomy (same shape for every platform)
-
-- Name + role one-liner
-- Status pill: Live / Partially live / Configured / Needs setup / Planned / Deferred / Disabled / Blocked
-- Direction: Inbound / Outbound / Inbound+approved outbound / Read-only / Capture only / Deferred
-- Kill switch (bound to existing `system_controls.<x>_enabled` where it exists; otherwise marked "Planned control")
-- Allowed inbound events (static list, from spec)
-- Allowed outbound callbacks (static list, from spec)
-- Approval rule (plain English)
-- Setup checklist (documentation, not tasks)
-- Collapsible diagnostics: last event at, 7d count, last error, signature status
-- Webhook URL (copy button) — only when one exists
-- Secret status: Configured / Not configured / Unknown (masked, never raw)
-- Audit link (filters Audit surface by source prefix, e.g. `ecosystem.gth.`)
-
-## Per-platform truth table
-
-| Platform | Kill switch source | Webhook fn | Real status to show |
-|---|---|---|---|
-| Vanta Core | n/a | n/a | Live |
-| Ground Truth Hub | `gth_enabled` | `gth-inbound` | Partially live |
-| CampCore | `campcore_enabled` | none | Planned |
-| Telegram | (none yet — mark "Always on if linked") | `telegram-webhook` | Live if `telegram_chat_links` row exists, else Needs setup |
-| WhatsApp | none | none | Deferred |
-| Email | none yet | `email-inbound` | Live if `email_inbound_addresses` row exists |
-| Calendar | `calendar_sync_enabled` | none | Planned, read-only first |
-| Fenrir Lock | `fenrir_enabled` | none | Planned |
-| Website / Forms | none | none | Planned |
-
-Status is computed from real signals (function existence, table rows, control flags). Never hardcode "Live" without backing evidence.
-
-## Registries
-
-**Event registry** — single static `registry.ts` exported as data; render as filterable table on desktop, accordion on mobile. Columns: Platform · Event · Direction · Status · Creates in Vanta · Requires approval · Sensitive · Last received (joined from `audit_log` where prefix matches).
-
-**Callback registry** — same shape, outbound. Columns: Platform · Callback · Status · Approval · Risk · Last called. All entries marked Planned/Deferred unless code path exists.
-
-## Secrets section
-
-Reads `system_controls` + a curated list of expected secret names (GTH_WEBHOOK_SECRET, TELEGRAM_API_KEY, VAPID_*). Shows **status only** (Configured / Missing). Never values. "Rotate" button only where backend supports it — otherwise hidden. Copy-to-clipboard only for webhook URLs.
-
-## Doctrine guardrails enforced in copy
-
-Every card carries the same approval rule line. No "auto-sync", no "orchestration", no "mesh". Banner pins the doctrine at the top so it can't get lost.
-
-## Out of scope (explicit non-goals)
-
-- No new tables
-- No new edge functions
-- No new automation, callbacks, or executors
-- No WhatsApp wiring
-- No CampCore wiring
-- No Ground Truth Hub outbound
-- No test-event button unless trivially safe and read-only (deferred this pass — show "Test event not available yet")
-- No changes to `system_controls` schema (use existing flags only)
-- No duplication of the System Controls kill-switch list — Integrations links over to it where flags don't have a per-card switch
+Scope is `src/components/surfaces/CommandCenterSurface.tsx` + a new briefing panel + a thin reuse of the existing `briefing-compose` edge function. Roles already exist (`user_roles` + `has_role`, `useIsOwner`), so role gating is real — not staged.
 
 ---
 
-## Technical section
+## What changes
 
-**New files**
-- `src/pages/IntegrationsSettings.tsx` (or new tab inside `Settings.tsx`) — top-level page
-- `src/components/integrations/IntegrationCard.tsx` — generic card
-- `src/components/integrations/IntegrationStatusPill.tsx`
-- `src/components/integrations/IntegrationDiagnostics.tsx` — collapsible, reads `audit_log` by prefix
-- `src/components/integrations/EventRegistryTable.tsx`
-- `src/components/integrations/CallbackRegistryTable.tsx`
-- `src/components/integrations/SecretsStatusPanel.tsx`
-- `src/components/integrations/AdapterTemplateCard.tsx`
-- `src/lib/integrations/registry.ts` — static event + callback definitions, per-platform metadata, audit prefix, kill-switch key, expected secrets
-- `src/lib/integrations/status.ts` — pure functions: `computeStatus(platform, controls, signals)` returning the status label
+### 1. Dashboard layout (CommandCenterSurface)
 
-**Reuse / refactor**
-- Absorb `EcosystemSourcesPanel.tsx` logic into `IntegrationCard` + diagnostics. Keep the existing audit-prefix count query pattern (`audit_log` like `<prefix>%`, 7d window).
-- Read `system_controls` via existing `useSystemControls` hook — no new RPC.
-- Telegram status: `select 1 from telegram_chat_links where user_id = auth.uid()`.
-- Email status: `select 1 from email_inbound_addresses where user_id = auth.uid() and active`.
+New top-to-bottom order:
 
-**Routing**
-- Add route or tab `/settings/integrations` (match existing settings pattern in `Settings.tsx`).
-- Link from Settings index and from System Controls page ("See all integrations →").
+```text
+[ Productivity Pulse ]
+[ Aware bubble — collapsed by default ]
+[ Operations Briefing — NEW, plain English ]
+[ Live Capture — unchanged content, just relocated above the tile grid ]
+[ Approvals / Today / Sherlock / Memory / Files / Receipts ]   ← existing tiles, demoted
+```
 
-**Styling**
-- Semantic tokens only. Reuse existing card surfaces, ring/border tokens, muted text classes from current Settings panels for visual continuity.
-- Mobile: single column, sticky status pill + kill switch on each card header.
-- Desktop: 2-col grid for cards, full-width tables for registries.
+- Remove the current `AmbientSummary` "counts string" card (its job is taken over by Operations Briefing).
+- Pull `LiveCaptureCard` out of the grid into its own row labeled **Live Capture · receipt roll** so the receipt-roll role is visually distinct.
+- Tile grid stays as the "deep dive" layer below.
 
-**Audit links**
-- Each card's "View audit" button deep-links to the Audit surface with a source filter query param (audit prefix from registry). If the Audit surface doesn't yet support a query-param filter, link to `/audit` and show a small hint — do not add filter logic this pass.
+### 2. Aware bubble — collapsible
 
-**Security**
-- No raw secret values in client. Secret status fetched server-side only via existing patterns (or shown as "Configured"/"Missing" based on a server-trusted list — defer the lookup to a follow-up if no safe path exists today; for now mark all as "Status check available in Lovable Cloud").
+- Refactor `AwareCockpitCard` into a compact one-liner: `Ko Samui · Search on · cached · Open Aware`.
+- `Collapsible` (shadcn) wrapper, collapsed by default, state persisted in `localStorage` (`vanta.aware.expanded`).
+- Expanded view keeps current content but trims long Timing/Hazards paragraphs — those stay in the Aware surface.
+- Reads from the same `useAwareness()` provider. No duplicate state.
 
-**Acceptance check**
-Walk the 20-point criteria list at the end of the spec against the rendered page before declaring done.
+### 3. Operations Briefing panel (new)
+
+New file: `src/components/cockpit/OperationsBriefingPanel.tsx`.
+
+Renders:
+
+- Headline (1 line, Vanta voice).
+- 1–2 sentence narrative.
+- "Based on:" source-grounding line with chip counts (`2 captures · 1 commitment overdue · 1 file to triage`).
+- Best-first-move pill.
+- Actions: **Review** (opens related surface), **Why this matters** (expands a panel listing the source rows), **Refresh briefing**, **Dismiss** (session-only).
+- Footer: `Updated 8 min ago · 3 new signals since last viewed` + mode switch (Quick / Full / Mobile compact).
+
+Modes:
+
+- **Quick** (default on mobile and small screens): headline + best-first-move + source line. ≤3 sentences.
+- **Full**: above + per-source sections (GTH, CampCore, Telegram, Files, Sherlock, etc., shown only when role permits and signals exist).
+- **Mobile compact**: identical to Quick at <480px, one primary button.
+
+Manager/Admin/Coach/Viewer "modes" are framed as **role filters applied automatically**, not a mode dropdown — Owner sees integration-health line, others don't.
+
+### 4. AI + caching (reuse `briefing-compose`)
+
+The existing `supabase/functions/briefing-compose/index.ts` already produces `{ headline, counts, best_first_move, narrative, items }` with Vanta voice and source counts. We extend it minimally:
+
+- Add `role` and `scope` to the input. Server resolves role via `has_role(auth.uid(), …)` and drops sources the role can't see **before** querying (permission-safe-first, not redact-after).
+- Add a `signals_hash` (sha256 of `{latest commitment updated_at, latest file id, latest message id, latest sherlock id, role}`) to the response.
+- Client cache (`react-query` or local state) keyed on `signals_hash`. If the hash matches the last view, **do not call AI** — show cached narrative + "No new signals since last briefing."
+- Triggers: surface open (once per session if hash changed), manual Refresh tap, role switch. Never on render or focus.
+- AI-unavailable fallback already exists (deterministic `headline` + `best_first_move`) — surface it explicitly: `AI summary unavailable. Showing basic counts.`
+- Audit row already emitted (`briefing.composed`). Add `briefing.viewed`, `briefing.refreshed`, `briefing.dismissed` from the client.
+
+### 5. Role gating (uses what's there)
+
+- `useIsOwner()` already exists. Add `useRole()` hook returning `'owner' | 'manager' | 'worker' | 'viewer' | 'personal'` by reading `user_roles`. Falls back to `'personal'`.
+- Owner sees: integration-health hint in briefing, ROS Pulse tile, system-receipts tile.
+- Manager sees: workspace signals only, no secrets/integration health.
+- Coach/Viewer: narrowed briefing, no Approvals tile, no Receipts tile.
+- Today, the project is effectively single-user/owner, so non-owner branches render but mostly stay empty until workspaces exist. **No new role rows are created in this pass.**
+
+### 6. Live Capture rule
+
+Zero changes to `LiveCaptureCard` content/behavior or `messages`/`ingested_files` queries. Only its position in the layout changes.
+
+### 7. Mobile (384px target)
+
+- Briefing panel: single column, headline truncates at 2 lines, best-first-move is the only primary CTA.
+- Aware bubble stays collapsed.
+- Tile grid collapses to 1 column (already true).
+- No horizontal overflow; verify with the 384px viewport.
+
+---
+
+## Technical notes
+
+**Files added**
+
+- `src/components/cockpit/OperationsBriefingPanel.tsx`
+- `src/hooks/useRole.ts`
+
+**Files edited**
+
+- `src/components/surfaces/CommandCenterSurface.tsx` — reorder, drop `AmbientSummary`, hoist Live Capture, mount briefing panel.
+- `src/components/shell/AwareCockpitCard.tsx` — collapsible wrapper + trimmed expanded content.
+- `supabase/functions/briefing-compose/index.ts` — accept `role`, filter sources by role, return `signals_hash`, accept `if_match` to short-circuit when hash unchanged.
+
+**Untouched**
+
+- Live Capture data path.
+- Audit surface.
+- Aware surface (full tab).
+- Integration secrets / webhook code (the GTH thread we just finished).
+- Plan→Approve→Execute flow. All briefing actions open drafts or surfaces; nothing executes.
+
+**Out of scope (explicitly)**
+
+- Workspaces table, org switcher, invites.
+- WhatsApp, calendar write-back, payment execution.
+- New autonomous actions.
+- Productivity scores / streaks / gamification.
+
+---
+
+## Acceptance
+
+- Dashboard order is Pulse → Aware (collapsed) → Briefing → Live Capture → tiles.
+- Briefing renders headline, narrative, "Based on:", best-first-move, last-updated, refresh.
+- Refresh does not call AI unless `signals_hash` changed.
+- AI-off path shows the deterministic fallback, not a blank card.
+- Owner sees integration-health line; non-owner does not.
+- Live Capture content unchanged.
+- 384px: no overflow, one primary CTA visible.
+- Audit log gets `briefing.composed/viewed/refreshed/dismissed` rows.
