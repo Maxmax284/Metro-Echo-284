@@ -20,6 +20,7 @@ export default function IntegrationsSettings() {
   const isOwner = useIsOwner();
   const { controls, loading } = useSystemControls();
   const [signals, setSignals] = useState<RuntimeSignals>({});
+  const { status: secretStatus } = useSecretsStatus(!!session);
 
   useEffect(() => {
     if (!session) return;
