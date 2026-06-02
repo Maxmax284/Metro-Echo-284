@@ -78,6 +78,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { items, loading, refresh } = useIntakeFeed(60);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
   const [lane, setLane] = useState<InboxLane>("now");
+  const [aftermathFileId, setAftermathFileId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let list = items;
