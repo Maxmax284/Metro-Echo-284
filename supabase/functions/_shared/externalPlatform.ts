@@ -355,7 +355,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   }
 
   const { error: eventInsertErr } = await admin.from("external_platform_webhook_events").insert({
-    owner_id: userId,
+    owner_id: ownerId,
     source_platform: config.sourcePlatform,
     event_type: eventType,
     idempotency_key: idempotencyKey,
@@ -374,7 +374,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   const { data: conv } = await admin
     .from("conversations")
     .select("id")
-    .eq("user_id", userId)
+    .eq("user_id", ownerId)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -382,7 +382,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   if (!convId) {
     const { data: newConv } = await admin
       .from("conversations")
-      .insert({ user_id: userId, title: "Captures" })
+      .insert({ user_id: ownerId, title: "Captures" })
       .select("id")
       .maybeSingle();
     convId = newConv?.id ?? null;
@@ -393,7 +393,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   const { data: ins, error: insErr } = await admin
     .from("messages")
     .insert({
-      user_id: userId,
+      user_id: ownerId,
       conversation_id: convId,
       role: "user",
       content,
@@ -415,7 +415,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   }
 
   await admin.from("capture_routes").insert({
-    user_id: userId,
+    user_id: ownerId,
     capture_kind: "message",
     capture_id: ins.id,
     source: config.sourcePlatform,
@@ -425,7 +425,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   });
 
   await admin.from("audit_log").insert({
-    user_id: userId,
+    user_id: ownerId,
     entity_type: "capture",
     entity_id: ins.id,
     event: `${config.auditPrefix}captured`,
