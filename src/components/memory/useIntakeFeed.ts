@@ -4,7 +4,12 @@ import { useAuth } from "@/lib/auth";
 import type { CaptureItem, CaptureSource } from "./CaptureCard";
 
 type MsgRow = { id: string; content: string; created_at: string; role: string; metadata: any };
-type FileRow = { id: string; filename: string; status: string; source: string; created_at: string; note_id: string | null; metadata: any };
+type FileRow = {
+  id: string; filename: string; status: string; source: string; created_at: string;
+  note_id: string | null; metadata: any;
+  detected_doc_type: string | null; confidence: string | null;
+  sensitive: boolean | null; review_status: string | null;
+};
 type FieldRow = { id: string; summary: string; note_type: string; created_at: string; confidence: string | null };
 
 export type IntakeRow = CaptureItem & {
@@ -33,7 +38,7 @@ export function useIntakeFeed(limit = 60) {
         .order("created_at", { ascending: false })
         .limit(limit),
       supabase.from("ingested_files")
-        .select("id, filename, status, source, created_at, note_id, metadata")
+        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status")
         .order("created_at", { ascending: false })
         .limit(limit),
       supabase.from("field_notes")
@@ -65,13 +70,7 @@ export function useIntakeFeed(limit = 60) {
       if (meta.detected_type) return `Looks like a ${meta.detected_type}.`;
       return source === "telegram" ? "Came in from Telegram — needs a home." : "Captured — needs a home.";
     };
-    const whyForFile = (f: any, meta: any) => {
-      if (f.status === "failed" || f.status === "error") return "I couldn't read this one.";
-      if (f.status === "pending") return "Still reading it.";
-      if (meta.document_type) return `Read as a ${meta.document_type}.`;
-      if (f.note_id) return "Saved to Memory.";
-      return "Saved, but I couldn't tell what kind of file it is.";
-    };
+    // file `why` copy is derived inline from review_status below.
     const nowMs = Date.now();
     for (const m of (msgs.data ?? []) as MsgRow[]) {
       const meta = m.metadata ?? {};
@@ -106,23 +105,58 @@ export function useIntakeFeed(limit = 60) {
 
     for (const f of (files.data ?? []) as FileRow[]) {
       const meta = f.metadata ?? {};
+      const reviewStatus = f.review_status ?? "needs_review";
+      // Track B: review_status is the source of truth for file lanes.
+      //   needs_review / new / suggested → Now
+      //   waiting                        → Now (still needs operator attention)
+      //   attached / routed              → Done (handled)
+      //   archived / ignored             → Done (filed)
+      const needsReview =
+        reviewStatus === "needs_review" ||
+        reviewStatus === "new" ||
+        reviewStatus === "suggested" ||
+        reviewStatus === "waiting";
+      const isDone =
+        reviewStatus === "attached" ||
+        reviewStatus === "routed" ||
+        reviewStatus === "archived" ||
+        reviewStatus === "ignored";
+      const routedLabel =
+        reviewStatus === "attached" ? "Memory"
+        : reviewStatus === "routed" ? "Routed"
+        : reviewStatus === "archived" ? "Archived"
+        : reviewStatus === "ignored" ? "Ignored"
+        : null;
+      const detected = f.detected_doc_type ?? meta.document_type ?? null;
       const statusCopy =
-        f.status === "done" ? "Saved"
-        : f.status === "failed" || f.status === "error" ? "Couldn't read this one"
-        : f.status === "pending" ? "Looking at it…"
-        : f.status;
+        f.status === "failed" || f.status === "error" ? "Couldn't read this one"
+        : f.status === "pending" || f.status === "processing" ? "Looking at it…"
+        : reviewStatus === "needs_review" ? "Needs review"
+        : reviewStatus === "suggested" ? "Drafted — review"
+        : reviewStatus === "attached" ? "Saved"
+        : reviewStatus === "archived" ? "Archived"
+        : reviewStatus === "ignored" ? "Set aside"
+        : "Saved";
+      const why =
+        f.status === "failed" || f.status === "error" ? "I couldn't read this one."
+        : f.status === "pending" || f.status === "processing" ? "Still reading it."
+        : reviewStatus === "suggested" && detected ? `Looks like a ${detected}. Open to confirm.`
+        : reviewStatus === "needs_review" ? "Saved to Memory — pick what it becomes."
+        : reviewStatus === "attached" ? "Reviewed and filed."
+        : "Saved.";
       out.push({
         id: `file:${f.id}`,
         source: "file",
         text: f.filename,
-        detectedType: meta.document_type ?? null,
-        confidence: meta.confidence ?? null,
+        detectedType: detected,
+        confidence: (f.confidence as any) ?? meta.confidence ?? null,
         status: statusCopy,
-        routedTo: f.note_id ? "Memory" : null,
-        needsReview: !meta.document_type && f.status === "done",
-        sensitive: meta.sensitive === true || isSensitive(f.filename, meta.document_type, meta.summary),
+        routedTo: routedLabel ?? (f.note_id ? "Memory" : null),
+        needsReview,
+        sensitive: f.sensitive === true || meta.sensitive === true || isSensitive(f.filename, detected, meta.summary),
         ts: f.created_at,
-        why: whyForFile(f, meta),
+        why,
+        isDone,
         _raw: { kind: "file", row: f },
       });
     }

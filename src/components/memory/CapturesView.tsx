@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -15,6 +16,8 @@ import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { RecognizePanel, type RouteLane } from "./RecognizePanel";
+import { FileAftermathTray } from "@/components/files/FileAftermathTray";
+import { logFileEvent } from "@/lib/fileAudit";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -75,6 +78,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { items, loading, refresh } = useIntakeFeed(60);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
   const [lane, setLane] = useState<InboxLane>("now");
+  const [aftermathFileId, setAftermathFileId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let list = items;
@@ -201,7 +205,59 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     refresh();
   };
 
+  // File-row actions: open the full aftermath tray, or run quick triage
+  // (mark reviewed / archive / ignore / Sherlock). All routes flip
+  // ingested_files.review_status — the source of truth the Inbox reads off.
+  const setFileReview = async (item: IntakeRow, next: "attached" | "archived" | "ignored", event: Parameters<typeof logFileEvent>[1]) => {
+    if (!user || item._raw.kind !== "file") return;
+    const row = item._raw.row;
+    await supabase.from("ingested_files").update({ review_status: next } as any).eq("id", row.id);
+    void logFileEvent(user.id, event, row.id, { from: row.review_status ?? null });
+    await logRoute(user.id, item, next === "attached" ? "memory" : next);
+    refresh();
+  };
+
+  const sendFileToSherlock = async (item: IntakeRow) => {
+    if (item._raw.kind !== "file") return;
+    const row = item._raw.row;
+    openSherlock({
+      entity_type: "file",
+      entity_id: row.note_id ?? row.id,
+      title: row.filename,
+      text: "",
+    });
+    if (user) {
+      void logFileEvent(user.id, "file.sent_to_sherlock", row.id, {});
+      await logRoute(user.id, item, "sherlock");
+    }
+  };
+
   const actionsFor = (item: IntakeRow): CaptureAction[] => {
+    if (item._raw.kind === "file") {
+      const row = item._raw.row;
+      const status = row.review_status as string | null;
+      if (status === "archived" || status === "ignored") {
+        return [
+          { label: "Bring back", onClick: () => setFileReview(item, "attached", "file.restored") },
+          { label: "Open aftermath", onClick: () => setAftermathFileId(row.id) },
+        ];
+      }
+      if (status === "attached") {
+        return [
+          { label: "Open aftermath", onClick: () => setAftermathFileId(row.id) },
+          { label: "Send to Sherlock", onClick: () => sendFileToSherlock(item) },
+          { label: "Archive", onClick: () => setFileReview(item, "archived", "file.archived") },
+        ];
+      }
+      // needs_review / suggested / waiting / new — full triage menu
+      return [
+        { label: "Open aftermath", onClick: () => setAftermathFileId(row.id), primary: true },
+        { label: "Mark reviewed", onClick: () => setFileReview(item, "attached", "file.marked_reviewed") },
+        { label: "Send to Sherlock", onClick: () => sendFileToSherlock(item) },
+        { label: "Archive", onClick: () => setFileReview(item, "archived", "file.archived") },
+        { label: "Ignore", onClick: () => setFileReview(item, "ignored", "file.ignored") },
+      ];
+    }
     if (item._raw.kind !== "message") {
       return [
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
@@ -403,6 +459,20 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           );
         })}
       </div>
+
+      <Dialog open={!!aftermathFileId} onOpenChange={(o) => !o && setAftermathFileId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[13px]">What's next for this file?</DialogTitle>
+          </DialogHeader>
+          {aftermathFileId && (
+            <FileAftermathTray
+              ingestedFileId={aftermathFileId}
+              onDismiss={() => { setAftermathFileId(null); refresh(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

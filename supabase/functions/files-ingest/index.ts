@@ -171,9 +171,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: noteErr?.message ?? "note insert failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Track B doctrine: every ingested file lands as a draft needing review.
+    // The classifier branch below may upgrade review_status to 'suggested' or
+    // hold sensitive content at 'needs_review'. Nothing routes silently.
     await supabase.from("ingested_files").update({
       status: "done", note_id: note.id, error: null,
       extracted_text: trimmed || null,
+      review_status: "needs_review",
       metadata: { ...(rec.metadata ?? {}), extraction: method, chars: trimmed.length },
     }).eq("id", rec.id);
 
@@ -273,7 +277,10 @@ Deno.serve(async (req: Request) => {
         // Sensitive files never carry auto-drafted actions; the user must opt in.
         suggested_actions: sensitiveDetected ? [] : (classified?.suggested_actions ?? []),
         sensitive: sensitiveDetected,
-        review_status: sensitiveDetected ? "needs_review" : (classified ? "suggested" : "new"),
+        // Doctrine: even when the classifier is confident, the file remains a
+        // draft until the operator confirms. 'suggested' surfaces it in the
+        // Inbox; 'needs_review' is the hold lane for sensitive content.
+        review_status: sensitiveDetected ? "needs_review" : (classified ? "suggested" : "needs_review"),
       };
       try {
         classifierUpdate = validateFileIntakeUpdate(draft);
