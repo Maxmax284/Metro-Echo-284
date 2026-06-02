@@ -260,6 +260,14 @@ Deno.serve(async (req: Request) => {
       best_first_move = first ? `Close out: ${first.label}` : `Clear ${counts.overdue} overdue.`;
     } else if (counts.approvals > 0) {
       best_first_move = `Review ${counts.approvals} action${counts.approvals === 1 ? "" : "s"} waiting on you.`;
+    } else if (counts.external_signals > 0) {
+      const srcEntries = Object.entries(externalBySource);
+      if (srcEntries.length === 1) {
+        const [src, n] = srcEntries[0];
+        best_first_move = `Open inbox — ${n} new from ${displayPlatform(src)}.`;
+      } else {
+        best_first_move = `Open inbox — ${counts.external_signals} new signal${counts.external_signals === 1 ? "" : "s"}.`;
+      }
     } else if (counts.due_today > 0) {
       const first = items.find((i) => i.kind === "due_today");
       best_first_move = first ? `Tee up: ${first.label}` : `Knock out ${counts.due_today} due today.`;
