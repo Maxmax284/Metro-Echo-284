@@ -153,8 +153,21 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
+        {/* 1. Productivity Pulse — quick-health layer */}
+        <ProductivityPulseCard />
+
+        {/* 2. Aware bubble — sleeker, collapsed by default */}
         <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
-        <AmbientSummary counts={counts} />
+
+        {/* 3. Operations Briefing — plain-English situation report.
+            Replaces the old AmbientSummary counts card. */}
+        <OperationsBriefingPanel onNavigate={onNavigate} />
+
+        {/* 4. Live Capture — receipt roll. Unchanged content, just hoisted
+            above the deep-dive tile grid. */}
+        <div className="grid grid-cols-1 gap-3">
+          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
+        </div>
 
         <div className="flex justify-end">
           <Button
@@ -167,18 +180,18 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </Button>
         </div>
 
-
-        <ProductivityPulseCard />
-
+        {/* 5. Deep-dive tiles — demoted below the briefing.
+            System receipts is owner-only (engine-room view). */}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
           <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
-          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
           <FilesTile onOpen={() => onNavigate("memory")} />
           <SherlockWatchtowerCard items={findings} onOpen={() => onNavigate("sherlock")}
             onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
           <MemoryPulseCard onOpen={() => onNavigate("memory")} />
-          <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("audit")} />
+          {isOwner && (
+            <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("audit")} />
+          )}
         </div>
 
         <ResearchPanel />
