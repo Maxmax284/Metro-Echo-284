@@ -160,28 +160,38 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
                     </span>
                   </div>
                   {!present && /(_SECRET|_TOKEN)$/.test(name) && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 gap-1 px-1.5 text-[11px]"
-                      onClick={async () => {
-                        const v = generateSharedSecret();
-                        try {
-                          await navigator.clipboard.writeText(v);
-                          toast.success("Shared secret copied.", {
-                            description:
-                              "Paste it into the other platform's outbound config, then add it here as " +
-                              name +
-                              " via Cloud → Secrets. Vanta does not store it for you.",
-                            duration: 9000,
-                          });
-                        } catch {
-                          toast.message("Generated secret (copy manually):", { description: v, duration: 15000 });
-                        }
-                      }}
-                    >
-                      <KeyRound className="h-3 w-3" /> Generate
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 gap-1 px-1.5 text-[11px]"
+                        onClick={() => setPasteFor(name)}
+                      >
+                        <ClipboardPaste className="h-3 w-3" /> Paste secret
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 gap-1 px-1.5 text-[11px]"
+                        onClick={async () => {
+                          const v = generateSharedSecret();
+                          try {
+                            await navigator.clipboard.writeText(v);
+                            toast.success("Shared secret copied.", {
+                              description:
+                                "Paste it into the other platform's outbound config, then click Paste secret to store it in Vanta as " +
+                                name +
+                                ".",
+                              duration: 9000,
+                            });
+                          } catch {
+                            toast.message("Generated secret (copy manually):", { description: v, duration: 15000 });
+                          }
+                        }}
+                      >
+                        <KeyRound className="h-3 w-3" /> Generate
+                      </Button>
+                    </div>
                   )}
                 </li>
               );
