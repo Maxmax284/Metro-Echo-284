@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
@@ -9,6 +9,20 @@ export function useSecretsStatus(enabled: boolean) {
   const [status, setStatus] = useState<SecretStatus>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!enabled || !session) return;
+    setLoading(true);
+    setError(null);
+    const { data, error } = await supabase.functions.invoke("secrets-status", { body: {} });
+    if (error) {
+      setError(error.message);
+      setStatus({});
+    } else {
+      setStatus((data?.secrets ?? {}) as SecretStatus);
+    }
+    setLoading(false);
+  }, [enabled, session]);
 
   useEffect(() => {
     if (!enabled || !session) return;
@@ -34,5 +48,5 @@ export function useSecretsStatus(enabled: boolean) {
     };
   }, [enabled, session]);
 
-  return { status, loading, error };
+  return { status, loading, error, refresh };
 }
