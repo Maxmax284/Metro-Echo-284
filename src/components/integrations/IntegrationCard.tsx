@@ -194,38 +194,26 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
                       {unknown ? "Unknown" : present ? "Present" : "Missing"}
                     </span>
                   </div>
-                  {!present && /(_SECRET|_TOKEN)$/.test(name) && (
+                  {/(_SECRET|_TOKEN)$/.test(name) && (
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-6 gap-1 px-1.5 text-[11px]"
-                        onClick={() => setPasteFor(name)}
+                        onClick={() => openSecretEditor(name)}
                       >
-                        <ClipboardPaste className="h-3 w-3" /> Paste secret
+                        <Save className="h-3 w-3" /> {present ? "Replace" : "Add secret"}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 gap-1 px-1.5 text-[11px]"
-                        onClick={async () => {
-                          const v = generateSharedSecret();
-                          try {
-                            await navigator.clipboard.writeText(v);
-                            toast.success("Shared secret copied.", {
-                              description:
-                                "Paste it into the other platform's outbound config, then click Paste secret to store it in Vanta as " +
-                                name +
-                                ".",
-                              duration: 9000,
-                            });
-                          } catch {
-                            toast.message("Generated secret (copy manually):", { description: v, duration: 15000 });
-                          }
-                        }}
-                      >
-                        <KeyRound className="h-3 w-3" /> Generate
-                      </Button>
+                      {!present && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 gap-1 px-1.5 text-[11px]"
+                          onClick={() => openSecretEditor(name, generateSharedSecret())}
+                        >
+                          <KeyRound className="h-3 w-3" /> Generate
+                        </Button>
+                      )}
                     </div>
                   )}
                 </li>
@@ -233,7 +221,7 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
             })}
           </ul>
           <p className="mt-1.5 text-[10.5px] text-muted-foreground">
-            Add or rotate secrets in Cloud → Secrets. Vanta only checks presence, never values.
+            Add or rotate webhook secrets here. Values are never shown again after saving.
           </p>
         </div>
       )}
