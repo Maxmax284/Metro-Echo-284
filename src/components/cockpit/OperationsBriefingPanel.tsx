@@ -94,9 +94,8 @@ function saveCache(b: Briefing) {
 function scopeLabel(role: Role): string {
   switch (role) {
     case "owner": return "Admin · all workspaces";
-    case "admin": return "Admin · all workspaces";
     case "manager": return "Manager";
-    case "staff": return "Staff";
+    case "coach": return "Coach";
     case "viewer": return "Viewer · read-only";
     case "personal":
     default: return "Personal";
