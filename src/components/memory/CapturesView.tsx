@@ -205,7 +205,59 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     refresh();
   };
 
+  // File-row actions: open the full aftermath tray, or run quick triage
+  // (mark reviewed / archive / ignore / Sherlock). All routes flip
+  // ingested_files.review_status — the source of truth the Inbox reads off.
+  const setFileReview = async (item: IntakeRow, next: "attached" | "archived" | "ignored", event: Parameters<typeof logFileEvent>[1]) => {
+    if (!user || item._raw.kind !== "file") return;
+    const row = item._raw.row;
+    await supabase.from("ingested_files").update({ review_status: next } as any).eq("id", row.id);
+    void logFileEvent(user.id, event, row.id, { from: row.review_status ?? null });
+    await logRoute(user.id, item, next === "attached" ? "memory" : next);
+    refresh();
+  };
+
+  const sendFileToSherlock = async (item: IntakeRow) => {
+    if (item._raw.kind !== "file") return;
+    const row = item._raw.row;
+    openSherlock({
+      entity_type: "file",
+      entity_id: row.note_id ?? row.id,
+      title: row.filename,
+      text: "",
+    });
+    if (user) {
+      void logFileEvent(user.id, "file.sent_to_sherlock", row.id, {});
+      await logRoute(user.id, item, "sherlock");
+    }
+  };
+
   const actionsFor = (item: IntakeRow): CaptureAction[] => {
+    if (item._raw.kind === "file") {
+      const row = item._raw.row;
+      const status = row.review_status as string | null;
+      if (status === "archived" || status === "ignored") {
+        return [
+          { label: "Bring back", onClick: () => setFileReview(item, "attached", "file.restored") },
+          { label: "Open aftermath", onClick: () => setAftermathFileId(row.id) },
+        ];
+      }
+      if (status === "attached") {
+        return [
+          { label: "Open aftermath", onClick: () => setAftermathFileId(row.id) },
+          { label: "Send to Sherlock", onClick: () => sendFileToSherlock(item) },
+          { label: "Archive", onClick: () => setFileReview(item, "archived", "file.archived") },
+        ];
+      }
+      // needs_review / suggested / waiting / new — full triage menu
+      return [
+        { label: "Open aftermath", onClick: () => setAftermathFileId(row.id), primary: true },
+        { label: "Mark reviewed", onClick: () => setFileReview(item, "attached", "file.marked_reviewed") },
+        { label: "Send to Sherlock", onClick: () => sendFileToSherlock(item) },
+        { label: "Archive", onClick: () => setFileReview(item, "archived", "file.archived") },
+        { label: "Ignore", onClick: () => setFileReview(item, "ignored", "file.ignored") },
+      ];
+    }
     if (item._raw.kind !== "message") {
       return [
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
