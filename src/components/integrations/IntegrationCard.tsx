@@ -300,12 +300,17 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
         </CollapsibleContent>
       </Collapsible>
 
-      <Dialog open={!!pasteFor} onOpenChange={(v) => !v && setPasteFor(null)}>
+      <Dialog open={!!pasteFor} onOpenChange={(v) => {
+        if (!v) {
+          setPasteFor(null);
+          setSecretValue("");
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Save secret to Vanta vault</DialogTitle>
+            <DialogTitle>{secretStatus[pasteFor ?? ""]?.present ? "Replace webhook secret" : "Add webhook secret"}</DialogTitle>
             <DialogDescription>
-              Secrets live in Lovable Cloud's encrypted vault, not in the database — that's why this can't be a normal text input.
+              Paste the shared secret for this platform. Vanta stores it for webhook checks and never displays it again.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-[12.5px]">
@@ -313,29 +318,44 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
               <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Secret name</div>
               <code className="mt-1 block break-all text-[12px]">{pasteFor}</code>
             </div>
-            <ol className="list-decimal space-y-1 pl-4 text-muted-foreground">
-              <li>Copy the chat command below.</li>
-              <li>Paste it into Vanta chat and send.</li>
-              <li>A secure form opens. Paste the secret value there — never in chat.</li>
-              <li>This row flips to <span className="text-emerald-300">Present</span> on reload.</li>
-            </ol>
-            <div className="flex items-center gap-2 rounded-lg bg-background/60 p-2 ring-1 ring-border/40">
-              <code className="flex-1 truncate text-[12px]">Save {pasteFor} to Vanta</code>
+            <div className="space-y-1.5">
+              <Label htmlFor="integration-secret-value" className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Secret value
+              </Label>
+              <Textarea
+                id="integration-secret-value"
+                value={secretValue}
+                onChange={(e) => setSecretValue(e.target.value)}
+                placeholder="Paste the webhook secret here"
+                className="min-h-24 font-mono text-[12px]"
+                autoFocus
+              />
+            </div>
+            <div className="rounded-lg bg-background/60 p-2 text-[11.5px] text-muted-foreground ring-1 ring-border/40">
+              Use the same value in the other platform's webhook settings. Incoming events that do not match this secret are rejected.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => {
+              setPasteFor(null);
+              setSecretValue("");
+            }} disabled={savingSecret}>Cancel</Button>
+            {secretValue && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1 px-2 text-[11px]"
+                className="gap-1"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(`Save ${pasteFor} to Vanta`);
-                  toast.success("Chat command copied.");
+                  await navigator.clipboard.writeText(secretValue);
+                  toast.success("Secret copied.");
                 }}
               >
                 <Copy className="h-3 w-3" /> Copy
               </Button>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPasteFor(null)}>Close</Button>
+            )}
+            <Button onClick={saveSecret} disabled={savingSecret || secretValue.trim().length < 16}>
+              {savingSecret ? "Saving…" : "Save secret"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
