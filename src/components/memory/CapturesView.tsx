@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -15,6 +16,8 @@ import { useIntakeFeed, type IntakeRow } from "./useIntakeFeed";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { RecognizePanel, type RouteLane } from "./RecognizePanel";
+import { FileAftermathTray } from "@/components/files/FileAftermathTray";
+import { logFileEvent } from "@/lib/fileAudit";
 
 type InboxLane = "now" | "snoozed" | "done";
 
