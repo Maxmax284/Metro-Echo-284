@@ -135,13 +135,19 @@ Deno.serve(async (req: Request) => {
       // External platform signals (GTH, CampCore, Fenrir, Website Forms) that
       // landed via signed webhooks as signal-only drafts. These never executed,
       // they sit in the inbox waiting for review.
-      sb.from("messages")
-        .select("id, content, metadata, created_at")
-        .gte("created_at", sinceFresh)
-        .filter("metadata->>signal_only", "eq", "true")
-        .filter("metadata->>needs_review", "eq", "true")
-        .order("created_at", { ascending: false })
-        .limit(20),
+      (() => {
+        const q = sb.from("messages")
+          .select("id, content, metadata, created_at")
+          .gte("created_at", sinceOverride ?? sinceFresh)
+          .filter("metadata->>signal_only", "eq", "true")
+          .filter("metadata->>needs_review", "eq", "true");
+        if (untilOverride) q.lte("created_at", untilOverride);
+        if (sourcesFilter?.length) {
+          const conds = sourcesFilter.map((s) => `metadata->>source_platform.eq.${s}`).join(",");
+          q.or(conds);
+        }
+        return q.order("created_at", { ascending: false }).limit(20);
+      })(),
     ]);
 
     const commitments = comm.data ?? [];
