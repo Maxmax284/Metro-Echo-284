@@ -11,3 +11,15 @@ verify_jwt = false
 
 [functions.email-inbound]
 verify_jwt = false
+
+[functions.gth-inbound]
+verify_jwt = false
+
+[functions.campcore-inbound]
+verify_jwt = false
+
+[functions.fenrir-inbound]
+verify_jwt = false
+
+[functions.website-forms-inbound]
+verify_jwt = false
