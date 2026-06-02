@@ -349,7 +349,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return rejectWithDiagnostic(
       admin,
       { ...baseDiagnostic, signatureStatus: "invalid" },
-      "signature mismatch; expected HMAC SHA-256 over the exact raw JSON request body",
+      "signature_invalid",
       401,
     );
   }
