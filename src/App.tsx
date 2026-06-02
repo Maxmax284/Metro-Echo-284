@@ -41,6 +41,7 @@ const App = () => (
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/settings/integrations" element={<IntegrationsSettings />} />
+                        <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       <CompanionWidget />
