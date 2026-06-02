@@ -70,13 +70,7 @@ export function useIntakeFeed(limit = 60) {
       if (meta.detected_type) return `Looks like a ${meta.detected_type}.`;
       return source === "telegram" ? "Came in from Telegram — needs a home." : "Captured — needs a home.";
     };
-    const whyForFile = (f: any, meta: any) => {
-      if (f.status === "failed" || f.status === "error") return "I couldn't read this one.";
-      if (f.status === "pending") return "Still reading it.";
-      if (meta.document_type) return `Read as a ${meta.document_type}.`;
-      if (f.note_id) return "Saved to Memory.";
-      return "Saved, but I couldn't tell what kind of file it is.";
-    };
+    // file `why` copy is derived inline from review_status below.
     const nowMs = Date.now();
     for (const m of (msgs.data ?? []) as MsgRow[]) {
       const meta = m.metadata ?? {};
