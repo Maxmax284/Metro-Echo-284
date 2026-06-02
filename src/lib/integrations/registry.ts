@@ -44,6 +44,7 @@ export type CallbackDef = {
 
 export type IntegrationDef = {
   key: string;
+  sourcePlatform?: string;
   name: string;
   role: string;
   description: string;
@@ -135,6 +136,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     key: "gth",
+    sourcePlatform: "ground_truth_hub",
     name: "Ground Truth Hub",
     role: "Property and hotel operations.",
     description: "Bookings, guest requests, room notes, payments, accommodation files.",
@@ -147,14 +149,11 @@ export const INTEGRATIONS: IntegrationDef[] = [
     inboundEvents: [
       "booking.created",
       "booking.updated",
+      "booking.state_changed",
       "guest_request.created",
       "guest_message.received",
-      "room_issue.created",
       "payment.received",
       "payment.failed",
-      "room_note.created",
-      "accommodation_file.added",
-      "maintenance_request.created",
     ],
     outboundCallbacks: [
       "create_guest_reply",
