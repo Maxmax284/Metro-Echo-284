@@ -28,9 +28,10 @@ export function MissingSecretsBanner() {
   if (missing.length === 0) return null;
 
   return (
-    <section className="mx-3 mb-2 rounded-xl bg-warning/10 p-3 ring-1 ring-warning/40 md:mx-4">
+    <section className="mx-3 mb-2 rounded-xl bg-destructive/10 p-3 ring-1 ring-destructive/30 md:mx-4">
       <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-[12.5px] font-medium">
