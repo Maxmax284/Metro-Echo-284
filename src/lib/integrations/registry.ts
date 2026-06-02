@@ -166,7 +166,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     setupChecklist: [
       "Copy the Vanta webhook URL.",
-      "Add the shared secret to GTH.",
+      "Add or generate GTH_WEBHOOK_SECRET here.",
+      "Use the same secret in GTH's outbound webhook settings.",
       "Pick allowed event types on the GTH side.",
       "Enable GTH source here.",
       "Send a test event.",
@@ -208,7 +209,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     setupChecklist: [
       "Copy the Vanta webhook URL (when adapter ships).",
-      "Add the shared secret to CampCore.",
+      "Add or generate CAMPCORE_WEBHOOK_SECRET here.",
+      "Use the same secret in CampCore's outbound webhook settings.",
       "Define the role map.",
       "Pick allowed events.",
       "Enable CampCore source here.",
@@ -268,7 +270,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
     outboundCallbacks: ["create_review_task", "mark_event_reviewed", "notify_owner"],
     setupChecklist: [
       "Copy the Vanta webhook URL (when adapter ships).",
-      "Add the shared secret in Fenrir.",
+      "Add or generate FENRIR_WEBHOOK_SECRET here.",
+      "Use the same secret in Fenrir's outbound webhook settings.",
       "Map severity levels.",
       "Enable source here.",
     ],
@@ -293,7 +296,8 @@ export const INTEGRATIONS: IntegrationDef[] = [
     outboundCallbacks: ["draft_reply", "mark_reviewed", "create_followup"],
     setupChecklist: [
       "Pick form endpoint (when adapter ships).",
-      "Configure shared secret or anti-spam token.",
+      "Add or generate WEBSITE_FORMS_SECRET here.",
+      "Use the same secret in the form sender.",
       "Pick allowed form types.",
     ],
     expectedSecrets: ["WEBSITE_FORMS_SECRET"],
