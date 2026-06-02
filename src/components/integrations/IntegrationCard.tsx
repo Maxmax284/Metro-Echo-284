@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, ClipboardPaste } from "lucide-react";
+import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
@@ -24,7 +26,7 @@ import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type Runtime
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import { toast } from "sonner";
 
-type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus };
+type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; onSecretsChanged?: () => void | Promise<void> };
 
 function generateSharedSecret(): string {
   const bytes = new Uint8Array(32);
@@ -33,13 +35,15 @@ function generateSharedSecret(): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function IntegrationCard({ def, signals, secretStatus }: Props) {
+export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }: Props) {
   const { session } = useAuth();
   const { controls, update } = useSystemControls();
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
   const [count7d, setCount7d] = useState<number>(0);
   const [open, setOpen] = useState(false);
   const [pasteFor, setPasteFor] = useState<string | null>(null);
+  const [secretValue, setSecretValue] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
 
   const status = computeStatus(def, controls, signals);
   const webhookUrl = def.webhookFunction
@@ -74,6 +78,33 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
     } catch {
       toast.error("Couldn't update that switch.");
     }
+  };
+
+  const openSecretEditor = (name: string, value = "") => {
+    setPasteFor(name);
+    setSecretValue(value);
+  };
+
+  const saveSecret = async () => {
+    if (!pasteFor) return;
+    const value = secretValue.trim();
+    if (value.length < 16) {
+      toast.error("Secret needs at least 16 characters.");
+      return;
+    }
+    setSavingSecret(true);
+    const { data, error } = await supabase.functions.invoke("integration-secret-save", {
+      body: { secretName: pasteFor, secretValue: value },
+    });
+    setSavingSecret(false);
+    if (error || data?.error) {
+      toast.error("Couldn't save secret.", { description: data?.error ?? error?.message });
+      return;
+    }
+    toast.success("Secret saved.");
+    setPasteFor(null);
+    setSecretValue("");
+    await onSecretsChanged?.();
   };
 
   return (
