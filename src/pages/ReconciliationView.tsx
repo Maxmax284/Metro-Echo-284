@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const PLATFORM_DISPLAY: Record<string, string> = {
