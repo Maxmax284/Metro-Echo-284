@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.website-forms-inbound]
 verify_jwt = false
+
+[functions.external-platform-inbound]
+verify_jwt = false
