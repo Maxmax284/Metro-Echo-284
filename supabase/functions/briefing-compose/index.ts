@@ -325,6 +325,7 @@ Deno.serve(async (req: Request) => {
     // sends the previous hash via if_match; if they match, we skip the AI call.
     const hashSeed = JSON.stringify({
       role, variant,
+      since: sinceOverride, until: untilOverride, sources: sourcesFilter,
       counts,
       items: items.slice(0, 12).map((i) => `${i.kind}:${i.id}:${i.due_at ?? ""}`),
       observed: observedSalient,
