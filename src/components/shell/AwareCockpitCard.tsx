@@ -104,14 +104,60 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
   const serpError = !!(snapshot?.full_data && (snapshot.full_data as any)?.errors?.serpapi);
   if (serpError) contextLine = "Some sources failed. Open Aware for details.";
 
+  // Collapsed one-liner: place · tier · source · open. Stays out of the way.
+  if (!expanded) {
+    return (
+      <Card className={cn("border-border/60 bg-surface-elevated/40 px-3 py-2", className)}>
+        <div className="flex items-center justify-between gap-2 text-[12px]">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-foreground/85 hover:text-foreground"
+            aria-label="Expand Aware"
+          >
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Radar className="h-3.5 w-3.5 shrink-0 text-primary/80" />
+            <span className="truncate font-medium">{place.label}</span>
+            <span className="shrink-0 text-muted-foreground">·</span>
+            <span className="shrink-0 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              {TIER_LABEL[tier.tier]}
+            </span>
+            {generated ? (
+              <>
+                <span className="shrink-0 text-muted-foreground">·</span>
+                <span className="shrink-0 text-[10.5px] text-muted-foreground">cached</span>
+              </>
+            ) : null}
+          </button>
+          {onOpenAwareness && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 shrink-0 gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+              onClick={onOpenAwareness}
+            >
+              Open Aware <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("border-border/60 bg-surface-elevated/40 p-3 space-y-2", className)}>
-      {/* Header row — title + chips */}
+      {/* Header row — title + chips + collapse */}
       <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
-        <span className="inline-flex items-center gap-1 text-foreground/90">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="inline-flex items-center gap-1 text-foreground/90 hover:text-foreground"
+          aria-label="Collapse Aware"
+        >
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           <Radar className="h-3.5 w-3.5 text-primary/80" />
           <span className="font-medium">Aware</span>
-        </span>
+        </button>
         <span className="inline-flex items-center gap-1 text-foreground/85">
           <MapPin className="h-3 w-3 text-muted-foreground" />
           <span className="truncate max-w-[140px]">{place.label}</span>
@@ -128,12 +174,10 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
         <SourceStatusPill />
       </div>
 
-      {/* One short context line */}
       {contextLine && (
         <p className="text-[12px] leading-snug text-foreground/75">{contextLine}</p>
       )}
 
-      {/* Optional tiny weather row */}
       {weather && (weather.tempC != null || weather.condition) && (
         <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
           <Thermometer className="h-3 w-3" />
@@ -142,7 +186,6 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
         </div>
       )}
 
-      {/* Actions */}
       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
         <Button
           size="sm"
