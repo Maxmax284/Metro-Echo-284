@@ -8,16 +8,24 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Copy, ChevronDown, ExternalLink } from "lucide-react";
+import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
 import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
+import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import { toast } from "sonner";
 
-type Props = { def: IntegrationDef; signals: RuntimeSignals };
+type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus };
 
-export function IntegrationCard({ def, signals }: Props) {
+function generateSharedSecret(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let b64 = btoa(String.fromCharCode(...bytes));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function IntegrationCard({ def, signals, secretStatus }: Props) {
   const { session } = useAuth();
   const { controls, update } = useSystemControls();
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
@@ -112,14 +120,67 @@ export function IntegrationCard({ def, signals }: Props) {
       )}
 
       {def.expectedSecrets.length > 0 && (
-        <div className="mt-2 text-[11px] text-muted-foreground">
-          Secrets expected:{" "}
-          {def.expectedSecrets.map((s) => (
-            <code key={s} className="mr-1 rounded bg-background/60 px-1 py-0.5 ring-1 ring-border/40">
-              {s}
-            </code>
-          ))}
-          <span className="ml-1 opacity-70">— status check in Lovable Cloud.</span>
+        <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Secrets</span>
+            <span className="text-[10px] text-muted-foreground/70">Names only — values never leave the backend.</span>
+          </div>
+          <ul className="space-y-1">
+            {def.expectedSecrets.map((name) => {
+              const s = secretStatus[name];
+              const present = !!s?.present;
+              const unknown = !s;
+              return (
+                <li key={name} className="flex flex-wrap items-center justify-between gap-2 text-[11.5px]">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {unknown ? (
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : present ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
+                    )}
+                    <code className="truncate rounded bg-background/60 px-1 py-0.5 ring-1 ring-border/40">{name}</code>
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-wider",
+                        unknown ? "text-muted-foreground" : present ? "text-emerald-300" : "text-amber-300",
+                      )}
+                    >
+                      {unknown ? "Unknown" : present ? "Present" : "Missing"}
+                    </span>
+                  </div>
+                  {!present && /(_SECRET|_TOKEN)$/.test(name) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 gap-1 px-1.5 text-[11px]"
+                      onClick={async () => {
+                        const v = generateSharedSecret();
+                        try {
+                          await navigator.clipboard.writeText(v);
+                          toast.success("Shared secret copied.", {
+                            description:
+                              "Paste it into the other platform's outbound config, then add it here as " +
+                              name +
+                              " via Cloud → Secrets. Vanta does not store it for you.",
+                            duration: 9000,
+                          });
+                        } catch {
+                          toast.message("Generated secret (copy manually):", { description: v, duration: 15000 });
+                        }
+                      }}
+                    >
+                      <KeyRound className="h-3 w-3" /> Generate
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+            Add or rotate secrets in Cloud → Secrets. Vanta only checks presence, never values.
+          </p>
         </div>
       )}
 

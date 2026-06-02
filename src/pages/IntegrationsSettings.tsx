@@ -13,12 +13,14 @@ import {
   EventRegistryTable,
 } from "@/components/integrations/RegistryTables";
 import type { RuntimeSignals } from "@/lib/integrations/status";
+import { useSecretsStatus } from "@/hooks/useSecretsStatus";
 
 export default function IntegrationsSettings() {
   const { session } = useAuth();
   const isOwner = useIsOwner();
   const { controls, loading } = useSystemControls();
   const [signals, setSignals] = useState<RuntimeSignals>({});
+  const { status: secretStatus } = useSecretsStatus(!!session);
 
   useEffect(() => {
     if (!session) return;
@@ -87,21 +89,21 @@ export default function IntegrationsSettings() {
       <SectionHeader title="Connected now" subtitle="Live or partially live sources." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {connected.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} />
         ))}
       </div>
 
       <SectionHeader title="Planned next" subtitle="Configured or staged. Not live until you flip the switch and the adapter ships." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {planned.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} />
         ))}
       </div>
 
       <SectionHeader title="Deferred" subtitle="On the roadmap. Not now." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {deferred.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} />
         ))}
       </div>
 
