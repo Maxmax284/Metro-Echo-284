@@ -13,6 +13,7 @@ import {
   EventRegistryTable,
 } from "@/components/integrations/RegistryTables";
 import type { RuntimeSignals } from "@/lib/integrations/status";
+import { useSecretsStatus } from "@/hooks/useSecretsStatus";
 
 export default function IntegrationsSettings() {
   const { session } = useAuth();
