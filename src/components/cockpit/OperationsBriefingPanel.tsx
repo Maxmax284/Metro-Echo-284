@@ -79,7 +79,7 @@ function saveCache(b: Briefing) {
 
 export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { session, user } = useAuth();
-  const timezone = useUserTimezone();
+  const { timezone } = useUserTimezone();
   const role = useRole();
 
   const [briefing, setBriefing] = useState<Briefing | null>(() => loadCache());
