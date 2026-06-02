@@ -48,6 +48,20 @@ Deno.serve(async (req: Request) => {
       requestedVariant === "evening" || requestedVariant === "wrap"
         ? requestedVariant
         : partOfDay;
+    // Role gates which sources we even query (permission-safe before
+    // summarization, never redact after). Resolve from user_roles, highest wins.
+    const { data: roleRows } = await sb
+      .from("user_roles").select("role").eq("user_id", user.id);
+    const rolesHeld = new Set<string>((roleRows ?? []).map((r: any) => r.role));
+    const role: "owner" | "manager" | "coach" | "viewer" | "personal" =
+      rolesHeld.has("owner") ? "owner"
+      : rolesHeld.has("manager") ? "manager"
+      : rolesHeld.has("coach") ? "coach"
+      : rolesHeld.has("viewer") ? "viewer"
+      : "personal";
+    // Client passes the previous signals_hash; if nothing changed we skip the
+    // paid AI call entirely.
+    const ifMatch: string | null = typeof body?.if_match === "string" ? body.if_match : null;
 
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
@@ -244,8 +258,25 @@ Deno.serve(async (req: Request) => {
       wrap: "Debrief tone. Lead with what closed and what slipped today. Do not open new threads.",
     };
 
+    // ---- Signals hash ------------------------------------------------------
+    // Cheap fingerprint of the inputs that would change the briefing. Client
+    // sends the previous hash via if_match; if they match, we skip the AI call.
+    const hashSeed = JSON.stringify({
+      role, variant,
+      counts,
+      items: items.slice(0, 12).map((i) => `${i.kind}:${i.id}:${i.due_at ?? ""}`),
+      observed: observedSalient,
+    });
+    const hashBytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(hashSeed));
+    const signals_hash = Array.from(new Uint8Array(hashBytes))
+      .map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+    const unchanged = ifMatch !== null && ifMatch === signals_hash;
+
     let narrative: string | null = null;
-    if (LOVABLE_KEY) {
+    let ai_skipped = false;
+    if (unchanged) {
+      ai_skipped = true;
+    } else if (LOVABLE_KEY) {
       try {
         const top = items.slice(0, 8).map((i) => {
           const tag = i.kind === "stale" ? "stale"
@@ -296,7 +327,11 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       entity_type: "briefing",
       event: "briefing.composed",
-      payload: { counts, part_of_day: partOfDay, variant, ai: !!narrative, observed_used: observedSalient.length },
+      payload: {
+        counts, part_of_day: partOfDay, variant, role,
+        ai: !!narrative, ai_skipped, observed_used: observedSalient.length,
+        signals_hash,
+      },
     });
 
     return new Response(JSON.stringify({
@@ -305,8 +340,11 @@ Deno.serve(async (req: Request) => {
       best_first_move,
       narrative,
       variant,
+      role,
       observed: observedSalient,
       items: items.slice(0, 20),
+      signals_hash,
+      ai_skipped,
       generated_at: now.toISOString(),
       timezone,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
