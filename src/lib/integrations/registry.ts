@@ -205,13 +205,9 @@ export const INTEGRATIONS: IntegrationDef[] = [
       "create_coach_note",
     ],
     setupChecklist: [
-      "Copy the Vanta webhook URL.",
-      "Add or generate CAMPCORE_WEBHOOK_SECRET here.",
-      "Use the same secret in CampCore's outbound webhook settings.",
-      "Define the role map.",
-      "Pick allowed events.",
-      "Enable CampCore source here.",
-      "Send a test event.",
+      "Copy the webhook URL and generated secret from this card.",
+      "Paste both into CampCore's outbound webhook settings.",
+      "Hit Test webhook here — green means done.",
     ],
     expectedSecrets: ["CAMPCORE_WEBHOOK_SECRET"],
     roles: [
