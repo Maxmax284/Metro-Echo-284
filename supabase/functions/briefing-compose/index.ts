@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals] = await Promise.all([
       sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -126,6 +126,16 @@ Deno.serve(async (req: Request) => {
         .gte("updated_at", sinceFresh)
         .order("updated_at", { ascending: false })
         .limit(3),
+      // External platform signals (GTH, CampCore, Fenrir, Website Forms) that
+      // landed via signed webhooks as signal-only drafts. These never executed,
+      // they sit in the inbox waiting for review.
+      sb.from("messages")
+        .select("id, content, metadata, created_at")
+        .gte("created_at", sinceFresh)
+        .filter("metadata->>signal_only", "eq", "true")
+        .filter("metadata->>needs_review", "eq", "true")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     const commitments = comm.data ?? [];
