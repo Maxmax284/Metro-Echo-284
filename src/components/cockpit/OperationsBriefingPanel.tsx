@@ -32,6 +32,8 @@ type Counts = {
   briefing_candidates: number;
   closed_today: number;
   slipped_today: number;
+  external_signals: number;
+  external_by_source: Record<string, number>;
 };
 
 type Item = {
@@ -39,7 +41,18 @@ type Item = {
   id: string;
   label: string;
   due_at?: string | null;
+  source?: string;
 };
+
+const PLATFORM_DISPLAY: Record<string, string> = {
+  ground_truth_hub: "Ground Truth Hub",
+  campcore: "CampCore",
+  fenrir_lock: "Fenrir Lock",
+  website_forms: "Website Forms",
+  telegram: "Telegram",
+  email: "Email",
+};
+const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
 type Briefing = {
   headline: string;
@@ -238,7 +251,9 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               {briefing.items.slice(0, 8).map((i) => (
                 <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
                   <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                    {i.kind.replace("_", " ")}
+                    {i.kind === "external_signal" && i.source
+                      ? displayPlatform(i.source)
+                      : i.kind.replace("_", " ")}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-foreground/85">{i.label}</span>
                 </li>
@@ -273,16 +288,22 @@ function buildSourceLine(c: Counts): string {
   if (c.untriaged) parts.push(`${c.untriaged} file${c.untriaged === 1 ? "" : "s"} to triage`);
   if (c.fresh_captures) parts.push(`${c.fresh_captures} fresh capture${c.fresh_captures === 1 ? "" : "s"}`);
   if (c.sherlock_pending) parts.push(`${c.sherlock_pending} Sherlock finding${c.sherlock_pending === 1 ? "" : "s"}`);
+  for (const [src, n] of Object.entries(c.external_by_source ?? {})) {
+    parts.push(`${n} from ${displayPlatform(src)}`);
+  }
   return parts.length ? parts.join(" · ") : "no active signals";
 }
 
 function fullBreakdown(c: Counts): string {
+  const ext = Object.entries(c.external_by_source ?? {})
+    .map(([s, n]) => `${displayPlatform(s)}: ${n}`).join(", ") || "none";
   return [
     `Commitments: ${c.overdue} overdue, ${c.due_today} due today, ${c.stale} stale`,
     `Actions: ${c.approvals} awaiting approval`,
     `Files: ${c.untriaged} to triage, ${c.briefing_candidates} flagged`,
     `Captures: ${c.fresh_captures} fresh in last 24h`,
     `Sherlock: ${c.sherlock_pending} recent finding${c.sherlock_pending === 1 ? "" : "s"}`,
+    `External signals: ${c.external_signals} (${ext})`,
     `Closed today: ${c.closed_today} · slipped today: ${c.slipped_today}`,
   ].join(" · ");
 }
@@ -291,6 +312,7 @@ function routeForBestMove(b: Briefing): SurfaceKey {
   const c = b.counts;
   if (c.overdue || c.due_today || c.stale) return "commitments";
   if (c.approvals) return "actions";
+  if (c.external_signals) return "memory";
   if (c.untriaged || c.briefing_candidates) return "memory";
   if (c.sherlock_pending) return "sherlock";
   if (c.fresh_captures) return "memory";
@@ -301,6 +323,7 @@ function labelForBestMove(b: Briefing): string {
   const c = b.counts;
   if (c.overdue || c.stale) return "Review overdue";
   if (c.approvals) return "Review approvals";
+  if (c.external_signals) return "Open new signals";
   if (c.due_today) return "Open today";
   if (c.untriaged || c.briefing_candidates) return "Triage files";
   if (c.sherlock_pending) return "Open Sherlock";

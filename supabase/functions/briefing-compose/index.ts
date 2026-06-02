@@ -13,12 +13,23 @@ const corsHeaders = {
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     type Item = {
-  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate";
+  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate" | "external_signal";
   id: string;
   label: string;
   due_at?: string | null;
   age_hours?: number;
+  source?: string;
 };
+
+const PLATFORM_DISPLAY: Record<string, string> = {
+  ground_truth_hub: "Ground Truth Hub",
+  campcore: "CampCore",
+  fenrir_lock: "Fenrir Lock",
+  website_forms: "Website Forms",
+  telegram: "Telegram",
+  email: "Email",
+};
+const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -71,7 +82,7 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed] = await Promise.all([
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals] = await Promise.all([
       sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -115,6 +126,16 @@ Deno.serve(async (req: Request) => {
         .gte("updated_at", sinceFresh)
         .order("updated_at", { ascending: false })
         .limit(3),
+      // External platform signals (GTH, CampCore, Fenrir, Website Forms) that
+      // landed via signed webhooks as signal-only drafts. These never executed,
+      // they sit in the inbox waiting for review.
+      sb.from("messages")
+        .select("id, content, metadata, created_at")
+        .gte("created_at", sinceFresh)
+        .filter("metadata->>signal_only", "eq", "true")
+        .filter("metadata->>needs_review", "eq", "true")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     const commitments = comm.data ?? [];
@@ -168,6 +189,22 @@ Deno.serve(async (req: Request) => {
     }));
     items.push(...briefingCandidates);
 
+    // External-platform inbox drafts (GTH, CampCore, Fenrir, Website Forms).
+    // These were created by signed webhooks via `handleExternalPlatformWebhook`
+    // — capture-only, awaiting review.
+    const externalBySource: Record<string, number> = {};
+    const externalItems = (externals.data ?? []).map((m: any) => {
+      const src = String(m?.metadata?.source_platform ?? m?.metadata?.source ?? "external");
+      externalBySource[src] = (externalBySource[src] ?? 0) + 1;
+      return {
+        kind: "external_signal" as const,
+        id: m.id,
+        label: (m.content ?? "Signal received").slice(0, 120),
+        source: src,
+      };
+    });
+    items.push(...externalItems);
+
     // Day's debrief metrics — used by evening/wrap variants.
     const closedTodayCount = (closedToday.data ?? []).length;
     // "Slipped today" = items with due_at earlier today that are still open.
@@ -196,6 +233,8 @@ Deno.serve(async (req: Request) => {
       briefing_candidates: briefingCandidates.length,
       closed_today: closedTodayCount,
       slipped_today: slippedToday,
+      external_signals: externalItems.length,
+      external_by_source: externalBySource,
     };
 
     // ---- Best-first-move heuristic (deterministic, no AI) ------------------
@@ -221,6 +260,14 @@ Deno.serve(async (req: Request) => {
       best_first_move = first ? `Close out: ${first.label}` : `Clear ${counts.overdue} overdue.`;
     } else if (counts.approvals > 0) {
       best_first_move = `Review ${counts.approvals} action${counts.approvals === 1 ? "" : "s"} waiting on you.`;
+    } else if (counts.external_signals > 0) {
+      const srcEntries = Object.entries(externalBySource);
+      if (srcEntries.length === 1) {
+        const [src, n] = srcEntries[0];
+        best_first_move = `Open inbox — ${n} new from ${displayPlatform(src)}.`;
+      } else {
+        best_first_move = `Open inbox — ${counts.external_signals} new signal${counts.external_signals === 1 ? "" : "s"}.`;
+      }
     } else if (counts.due_today > 0) {
       const first = items.find((i) => i.kind === "due_today");
       best_first_move = first ? `Tee up: ${first.label}` : `Knock out ${counts.due_today} due today.`;
@@ -247,6 +294,9 @@ Deno.serve(async (req: Request) => {
       if (counts.approvals) parts.push(`${counts.approvals} awaiting approval`);
       if (counts.untriaged) parts.push(`${counts.untriaged} to triage`);
       if (counts.briefing_candidates) parts.push(`${counts.briefing_candidates} flagged file${counts.briefing_candidates === 1 ? "" : "s"}`);
+      for (const [src, n] of Object.entries(externalBySource)) {
+        parts.push(`${n} from ${displayPlatform(src)}`);
+      }
       headline = parts.length ? parts.join(" · ") : "Quiet runway.";
     }
 
@@ -285,9 +335,11 @@ Deno.serve(async (req: Request) => {
             : i.kind === "untriaged" ? "untriaged file"
             : i.kind === "sherlock" ? "Sherlock finding"
             : i.kind === "briefing_candidate" ? "flagged file"
+            : i.kind === "external_signal" ? `signal · ${displayPlatform(i.source ?? "external")}`
             : "fresh capture";
           return `- [${tag}] ${i.label}${i.due_at ? ` (due ${i.due_at})` : ""}`;
         }).join("\n");
+
 
         const observedBlock = observedSalient.length
           ? `\nSherlock observe (recent): ${observedSalient.map((s) => `"${s}"`).join("; ")}`
