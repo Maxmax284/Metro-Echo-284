@@ -19,6 +19,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     aliases: ["ground_truth_hub", "gth", "ground_truth", "ground-truth-hub", "GroundTruthHub"],
     secretName: "GTH_WEBHOOK_SECRET",
     allowedEvents: [
+      "integration.test",
       "booking.created",
       "booking.updated",
       "booking.state_changed",
@@ -123,6 +124,19 @@ async function hmacSha256Hex(secret: string, rawBody: string): Promise<string> {
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
   return hex(sig);
+}
+
+async function signatureMatches(secret: string, rawBody: string, provided: string, timestamp?: unknown): Promise<boolean> {
+  const candidates = [rawBody];
+  if (timestamp !== undefined && timestamp !== null && String(timestamp).trim()) {
+    candidates.unshift(`${String(timestamp).trim()}.${rawBody}`);
+  }
+
+  for (const candidate of candidates) {
+    const expected = await hmacSha256Hex(secret, candidate);
+    if (safeEqual(provided.toLowerCase(), expected.toLowerCase())) return true;
+  }
+  return false;
 }
 
 function safeEqual(a: string, b: string): boolean {
@@ -344,8 +358,8 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   }
 
   const provided = parseSignature(signature.value);
-  const expected = await hmacSha256Hex(secret.value, raw);
-  if (!/^[a-f0-9]{64}$/i.test(provided) || !safeEqual(provided.toLowerCase(), expected.toLowerCase())) {
+  const validSignature = /^[a-f0-9]{64}$/i.test(provided) && await signatureMatches(secret.value, raw, provided, timestamp);
+  if (!validSignature) {
     return rejectWithDiagnostic(
       admin,
       { ...baseDiagnostic, signatureStatus: "invalid" },
