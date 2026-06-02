@@ -36,6 +36,22 @@ export default function IntegrationsSettings() {
     })();
   }, [session]);
 
+  // Scroll to #integration-<key> on first render and after secret status loads.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.slice(1);
+    const tries = [50, 200, 600, 1200];
+    tries.forEach((ms) =>
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, ms),
+    );
+  }, [secretStatus]);
+
+
   if (!session) return <div className="p-8 text-sm text-muted-foreground">Sign in required.</div>;
   if (isOwner === null || loading) return <div className="p-8 text-sm text-muted-foreground">Loading integrations…</div>;
   if (!isOwner) {

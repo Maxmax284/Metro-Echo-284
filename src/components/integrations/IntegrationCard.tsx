@@ -77,7 +77,11 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
   };
 
   return (
-    <section className="rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+    <section
+      id={`integration-${def.key}`}
+      className="scroll-mt-24 rounded-xl surface-elevated p-4 ring-1 ring-border/60 target:ring-2 target:ring-primary/70"
+    >
+
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

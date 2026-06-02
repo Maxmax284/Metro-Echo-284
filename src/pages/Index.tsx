@@ -29,6 +29,8 @@ import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
 import { CaptureToastProvider } from "@/components/capture/CaptureToast";
 import { GlobalDropZone } from "@/components/files/GlobalDropZone";
+import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBanner";
+
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { useAwareness } from "@/providers/AwarenessProvider";
@@ -215,6 +217,8 @@ function IndexInner() {
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
           </div>
+          <MissingSecretsBanner />
+
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
           {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
