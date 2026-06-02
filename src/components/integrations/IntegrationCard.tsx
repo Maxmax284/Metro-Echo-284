@@ -24,9 +24,10 @@ import { useSystemControls, type SystemControls } from "@/hooks/useSystemControl
 import type { IntegrationDef } from "@/lib/integrations/registry";
 import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
+import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
 import { toast } from "sonner";
 
-type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; onSecretsChanged?: () => void | Promise<void> };
+type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; diagnostic?: ExternalPlatformDiagnostic; onSecretsChanged?: () => void | Promise<void> };
 
 function generateSharedSecret(): string {
   const bytes = new Uint8Array(32);
@@ -35,7 +36,7 @@ function generateSharedSecret(): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }: Props) {
+export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecretsChanged }: Props) {
   const { session } = useAuth();
   const { controls, update } = useSystemControls();
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
@@ -224,6 +225,34 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
           <p className="mt-1.5 text-[10.5px] text-muted-foreground">
             Add or rotate webhook secrets here. Values are never shown again after saving.
           </p>
+        </div>
+      )}
+
+      {diagnostic && (
+        <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Webhook diagnostic</span>
+            <span className={cn(
+              "rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
+              diagnostic.last_health_status === "healthy" ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" :
+                diagnostic.last_health_status === "error" ? "bg-destructive/15 text-destructive ring-destructive/30" :
+                  "bg-muted/40 text-muted-foreground ring-border/60",
+            )}>
+              {diagnostic.last_health_status}
+            </span>
+          </div>
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-[11px] md:grid-cols-2">
+            <div><dt className="text-muted-foreground">Source key</dt><dd><code>{diagnostic.source_platform}</code></dd></div>
+            <div><dt className="text-muted-foreground">Webhook configured</dt><dd>{diagnostic.webhook_configured ? "yes" : "no"}</dd></div>
+            <div><dt className="text-muted-foreground">Secret fingerprint</dt><dd><code>{diagnostic.secret_fingerprint ?? "—"}</code></dd></div>
+            <div><dt className="text-muted-foreground">Signature</dt><dd>{diagnostic.signature_status}</dd></div>
+            <div><dt className="text-muted-foreground">Last received</dt><dd>{diagnostic.last_received_at ? new Date(diagnostic.last_received_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last accepted</dt><dd>{diagnostic.last_accepted_at ? new Date(diagnostic.last_accepted_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last rejected</dt><dd>{diagnostic.last_rejected_at ? new Date(diagnostic.last_rejected_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last event</dt><dd><code>{diagnostic.last_event_type ?? "—"}</code></dd></div>
+            <div className="md:col-span-2"><dt className="text-muted-foreground">Last idempotency key</dt><dd><code className="break-all">{diagnostic.last_idempotency_key ?? "—"}</code></dd></div>
+            <div className="md:col-span-2"><dt className="text-muted-foreground">Last rejection</dt><dd>{diagnostic.last_rejection_reason ?? "—"}</dd></div>
+          </dl>
         </div>
       )}
 

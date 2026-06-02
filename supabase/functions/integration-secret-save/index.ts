@@ -4,9 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const ALLOWED: Record<string, string> = {
-  GTH_WEBHOOK_SECRET: "gth",
+  GTH_WEBHOOK_SECRET: "ground_truth_hub",
   CAMPCORE_WEBHOOK_SECRET: "campcore",
-  FENRIR_WEBHOOK_SECRET: "fenrir",
+  FENRIR_WEBHOOK_SECRET: "fenrir_lock",
   WEBSITE_FORMS_SECRET: "website_forms",
   WHATSAPP_PROVIDER_TOKEN: "whatsapp",
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: "whatsapp",

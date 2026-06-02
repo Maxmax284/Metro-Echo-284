@@ -44,6 +44,7 @@ export type CallbackDef = {
 
 export type IntegrationDef = {
   key: string;
+  sourcePlatform?: string;
   name: string;
   role: string;
   description: string;
@@ -135,6 +136,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     key: "gth",
+    sourcePlatform: "ground_truth_hub",
     name: "Ground Truth Hub",
     role: "Property and hotel operations.",
     description: "Bookings, guest requests, room notes, payments, accommodation files.",
@@ -147,14 +149,11 @@ export const INTEGRATIONS: IntegrationDef[] = [
     inboundEvents: [
       "booking.created",
       "booking.updated",
+      "booking.state_changed",
       "guest_request.created",
       "guest_message.received",
-      "room_issue.created",
       "payment.received",
       "payment.failed",
-      "room_note.created",
-      "accommodation_file.added",
-      "maintenance_request.created",
     ],
     outboundCallbacks: [
       "create_guest_reply",
@@ -178,11 +177,13 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     key: "campcore",
+    sourcePlatform: "campcore",
     name: "CampCore",
     role: "Gym operations.",
     description: "Members, coaches, schedules, waivers, payments. Role-gated by design.",
     direction: "inbound_approved_outbound",
     killSwitchKey: "campcore_enabled",
+    webhookFunction: "campcore-inbound",
     auditPrefix: "ecosystem.campcore.",
     bucket: "planned",
     approvalRule: "Members can ask. Coaches read. Managers approve. Nothing books or charges from chat.",
@@ -208,7 +209,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
       "create_coach_note",
     ],
     setupChecklist: [
-      "Copy the Vanta webhook URL (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate CAMPCORE_WEBHOOK_SECRET here.",
       "Use the same secret in CampCore's outbound webhook settings.",
       "Define the role map.",
@@ -252,11 +253,13 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     key: "fenrir",
+    sourcePlatform: "fenrir_lock",
     name: "Fenrir Lock",
     role: "Security signals.",
     description: "Security alerts land as high-priority captures. Sensitive by default.",
     direction: "inbound",
     killSwitchKey: "fenrir_enabled",
+    webhookFunction: "fenrir-inbound",
     auditPrefix: "ecosystem.fenrir.",
     bucket: "planned",
     approvalRule: "Security signals never auto-respond. You review, you decide.",
@@ -269,7 +272,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     outboundCallbacks: ["create_review_task", "mark_event_reviewed", "notify_owner"],
     setupChecklist: [
-      "Copy the Vanta webhook URL (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate FENRIR_WEBHOOK_SECRET here.",
       "Use the same secret in Fenrir's outbound webhook settings.",
       "Map severity levels.",
@@ -279,10 +282,12 @@ export const INTEGRATIONS: IntegrationDef[] = [
   },
   {
     key: "website_forms",
+    sourcePlatform: "website_forms",
     name: "Website / Public Forms",
     role: "Public capture.",
     description: "Contact forms, intake, support requests, lead forms feed the Inbox.",
     direction: "inbound",
+    webhookFunction: "website-forms-inbound",
     auditPrefix: "website.",
     bucket: "planned",
     approvalRule: "Forms feed the Inbox. No auto-replies. You draft, you send.",
@@ -295,7 +300,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     outboundCallbacks: ["draft_reply", "mark_reviewed", "create_followup"],
     setupChecklist: [
-      "Pick form endpoint (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate WEBSITE_FORMS_SECRET here.",
       "Use the same secret in the form sender.",
       "Pick allowed form types.",
