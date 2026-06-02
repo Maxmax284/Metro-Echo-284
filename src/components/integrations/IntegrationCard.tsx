@@ -291,6 +291,46 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
             <div className="md:col-span-2"><dt className="text-muted-foreground">Last idempotency key</dt><dd><code className="break-all">{diagnostic.last_idempotency_key ?? "—"}</code></dd></div>
             <div className="md:col-span-2"><dt className="text-muted-foreground">Last rejection</dt><dd>{diagnostic.last_rejection_reason ?? "—"}</dd></div>
           </dl>
+          {def.sourcePlatform && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/40 pt-2.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 gap-1 text-[11.5px]"
+                onClick={runSelftest}
+                disabled={testing || !diagnostic.webhook_configured}
+              >
+                <Zap className="h-3 w-3" />
+                {testing ? "Sending test…" : "Test webhook"}
+              </Button>
+              <span className="text-[10.5px] text-muted-foreground">
+                Sends a signed <code>integration.test</code> from Vanta to its own inbound endpoint and confirms the draft row landed.
+              </span>
+            </div>
+          )}
+          {testResult && (
+            <div className={cn(
+              "mt-2 rounded-lg p-2.5 text-[11px] ring-1",
+              testResult.ok ? "bg-emerald-500/10 ring-emerald-500/30 text-emerald-200" : "bg-destructive/10 ring-destructive/30 text-destructive-foreground/90",
+            )}>
+              <div className="font-medium">
+                {testResult.ok ? "End-to-end OK — draft review row created." : `Failed at: ${testResult.stage}`}
+              </div>
+              <div className="mt-1 text-muted-foreground">
+                Inbound status: <code>{testResult.inbound_status ?? "—"}</code>
+                {testResult.event_id && <> · event_id: <code className="break-all">{testResult.event_id}</code></>}
+              </div>
+              {testResult.message_row && (
+                <div className="mt-1">Message row: <code className="break-all">{testResult.message_row.id}</code> — "{testResult.message_row.content}"</div>
+              )}
+              {testResult.capture_route_row && (
+                <div className="mt-0.5">Capture route: <code className="break-all">{testResult.capture_route_row.id}</code> → <code>{testResult.capture_route_row.new_status}</code></div>
+              )}
+              {!testResult.ok && testResult.inbound_response && (
+                <pre className="mt-1 max-h-32 overflow-auto rounded bg-background/60 p-1.5 text-[10.5px]">{typeof testResult.inbound_response === "object" ? JSON.stringify(testResult.inbound_response, null, 2) : String(testResult.inbound_response)}</pre>
+              )}
+            </div>
+          )}
         </div>
       )}
 
