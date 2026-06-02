@@ -73,6 +73,12 @@ Deno.serve(async (req: Request) => {
     // Client passes the previous signals_hash; if nothing changed we skip the
     // paid AI call entirely.
     const ifMatch: string | null = typeof body?.if_match === "string" ? body.if_match : null;
+    // Optional reconciliation overrides for external-signals window.
+    const sinceOverride: string | null = typeof body?.since === "string" ? body.since : null;
+    const untilOverride: string | null = typeof body?.until === "string" ? body.until : null;
+    const sourcesFilter: string[] | null = Array.isArray(body?.sources)
+      ? body.sources.filter((s: any) => typeof s === "string")
+      : null;
 
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
