@@ -202,7 +202,7 @@ async function recordDiagnostic(admin: any, input: {
     last_received_at: now,
     last_accepted_at: input.accepted ? now : existing?.last_accepted_at ?? null,
     last_rejected_at: input.accepted ? existing?.last_rejected_at ?? null : now,
-    last_rejection_reason: input.accepted ? existing?.last_rejection_reason ?? null : input.rejectionReason ?? "unknown rejection",
+    last_rejection_reason: input.accepted ? null : input.rejectionReason ?? "unknown rejection",
     last_event_type: input.eventType ?? null,
     last_idempotency_key: input.idempotencyKey ?? null,
     signature_status: input.signatureStatus,
