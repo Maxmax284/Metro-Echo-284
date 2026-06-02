@@ -29,17 +29,19 @@ const SOURCES: Source[] = [
     key: "campcore_enabled",
     label: "CampCore",
     icon: Dumbbell,
-    hint: "Role-gated: members ask, coaches read-only, managers get drafts. Adapter not yet shipped.",
+    hint: "Role-gated: members ask, coaches read-only, managers get drafts.",
+    webhook: "campcore-inbound",
     auditPrefix: "ecosystem.campcore.",
-    ready: false,
+    ready: true,
   },
   {
     key: "fenrir_enabled",
     label: "Fenrir Lock",
     icon: ShieldCheck,
-    hint: "Security alerts surface as high-priority captures + draft actions. Adapter not yet shipped.",
+    hint: "Security alerts surface as high-priority captures and review items.",
+    webhook: "fenrir-inbound",
     auditPrefix: "ecosystem.fenrir.",
-    ready: false,
+    ready: true,
   },
 ];
 
