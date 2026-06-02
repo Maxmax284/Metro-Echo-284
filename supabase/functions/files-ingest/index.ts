@@ -277,7 +277,10 @@ Deno.serve(async (req: Request) => {
         // Sensitive files never carry auto-drafted actions; the user must opt in.
         suggested_actions: sensitiveDetected ? [] : (classified?.suggested_actions ?? []),
         sensitive: sensitiveDetected,
-        review_status: sensitiveDetected ? "needs_review" : (classified ? "suggested" : "new"),
+        // Doctrine: even when the classifier is confident, the file remains a
+        // draft until the operator confirms. 'suggested' surfaces it in the
+        // Inbox; 'needs_review' is the hold lane for sensitive content.
+        review_status: sensitiveDetected ? "needs_review" : (classified ? "suggested" : "needs_review"),
       };
       try {
         classifierUpdate = validateFileIntakeUpdate(draft);
