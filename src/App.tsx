@@ -17,6 +17,7 @@ import { CommandCanvas } from "@/components/entities/CommandCanvas";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
+import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
                         <Route path="/" element={<Index />} />
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/settings/integrations" element={<IntegrationsSettings />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       <CompanionWidget />
