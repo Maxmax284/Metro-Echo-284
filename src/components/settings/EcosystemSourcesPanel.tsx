@@ -140,10 +140,11 @@ export function EcosystemSourcesPanel() {
         })}
       </ul>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Ground Truth Hub uses HMAC SHA-256. Sign the raw body with{" "}
+        Ground Truth Hub uses source key <code className="rounded bg-background/60 px-1 py-0.5 ring-1 ring-border/40">ground_truth_hub</code>{" "}
+        and HMAC SHA-256. Sign the exact raw JSON body with{" "}
         <code className="rounded bg-background/60 px-1 py-0.5 ring-1 ring-border/40">GTH_WEBHOOK_SECRET</code>{" "}
         and send as <code className="rounded bg-background/60 px-1 py-0.5 ring-1 ring-border/40">x-gth-signature: sha256=&lt;hex&gt;</code>.
-        Body must include <code>user_id</code>, <code>event</code>, and <code>payload</code>.
+        Body must include <code>source_platform</code>, <code>event_type</code>, <code>event_id</code>, <code>user_id</code>, and <code>payload</code>.
       </p>
     </section>
   );
