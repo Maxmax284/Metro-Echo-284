@@ -251,7 +251,9 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               {briefing.items.slice(0, 8).map((i) => (
                 <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
                   <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                    {i.kind.replace("_", " ")}
+                    {i.kind === "external_signal" && i.source
+                      ? displayPlatform(i.source)
+                      : i.kind.replace("_", " ")}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-foreground/85">{i.label}</span>
                 </li>
