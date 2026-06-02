@@ -1,114 +1,139 @@
+# Platform Integrations — settings pass
 
-# Vanta Companion Horizon — H1 File Intelligence Pass
+One job: put the wiring map in one place. Read existing state, surface it clean. Don't build bridges, don't add execution, don't duplicate toggles.
 
-Scoped to **Horizon 1** of your prompt. H2/H3 seams noted at the end but not built. No new tables, no auto-AI, no auto-execute. Drafts only. 384px first.
+## Where it lives
 
-## Phase 0 — Audit (deliverable first, no code)
+Add a new route `Settings → Integrations` inside the existing Settings page (`src/pages/Settings.tsx`). Reuse the current `EcosystemSourcesPanel` logic — that panel becomes one section inside the new, larger Integrations view (not deleted, absorbed). System Controls page keeps its kill switches; Integrations is the human-readable front door that reads/writes the same `system_controls` row.
 
-Before any edits I'll produce a short audit document (`/mnt/documents/vanta-file-intel-audit.md`) covering current state of:
+No new top-level nav. New section anchor in Settings sidebar/tabs: **Integrations**.
 
-- File upload + staging (`FileUploadCard`, `useStagedUpload`, `StagedFileChips`)
-- Conversation attachment flow (`ConversationDock`, `ConversationSurface`, in-composer attach)
-- Telegram file ingestion (`telegram-webhook`)
-- Email attachment ingestion (`email-inbound`)
-- `files-ingest` extraction pipeline + doc-type detection currently in place
-- `FileAftermathTray` (already exists — gaps vs. doctrine)
-- `CaptureToast` (already exists — coverage by source)
-- Memory → Files (`MemoryFilesView`), intake feed, capture route history
-- Audit events emitted via `logFileEvent`
-- Sensitive handling (`SENSITIVE_DOC_TYPES`, preview gating)
-- Briefing inclusion (`briefing-compose`, `DailyBriefingCard`)
-- Canvas inclusion paths
-- Mobile behavior at 384px for each surface above
-- Cost-trigger surfaces (any place that calls AI on render)
+## Page structure
 
-Output: a one-page "what exists / what's wired / what's missing / what's risky" map. **You approve before I touch code.**
+```text
+┌─ Doctrine banner ─────────────────────────────────┐
+│ Signals land. Vanta drafts. Humans approve.       │
+│ Each source has its own kill switch + audit.      │
+└───────────────────────────────────────────────────┘
 
-## Phase 1 — Aftermath + Action Menu hardening
+[ Global pause ] (only if backed by existing control; else "Planned")
 
-`FileAftermathTray` already exists but is uneven. Tighten it:
+── Connected now ──────────────────────────────────
+  • Vanta Core         Live
+  • Telegram           Live / Partial (reads tg tables)
+  • Email              Live (reads email_inbound_addresses)
 
-- Show: filename, source channel, doc type, confidence, sensitive flag, saved location, needs-review state — in one calm header row.
-- Suggested actions become a **primary row (2–3 most relevant)** + **"More" disclosure** for the rest. No button soup.
-- AI-tagged actions get an explicit `AI` chip and never fire on mount.
-- Sensitive files: hide preview, swap copy to "Hidden by default. Tap to open."
-- Add a dedicated `FileActionMenu` component reused in: aftermath tray, file detail in Memory, capture inbox row, and conversation attachment chip — single source of truth.
+── Planned next ───────────────────────────────────
+  • Ground Truth Hub   Partially live (gth-inbound exists)
+  • CampCore           Planned
+  • Calendar           Planned, read-only first
+  • Fenrir Lock        Planned
+  • Website / Forms    Planned
 
-## Phase 2 — File → operational object drafts
+── Deferred ───────────────────────────────────────
+  • WhatsApp           Deferred until Telegram proven
 
-Polish/finish the draft routes. Each one is a **draft + approve**, never silent:
+── Event registry ─────────────────────────────────
+── Callback registry ──────────────────────────────
+── Secrets & webhooks ─────────────────────────────
+── Future adapter template ────────────────────────
+```
 
-- **File → Reminder**: prefill `ReminderComposer` with extracted date if `extracted_entities.dates[0]` present, else open empty with file context. Always show source file, timezone, confidence.
-- **File → Commitment**: switch current insert-immediately path to a draft sheet (title, due, linked entity), approve before insert.
-- **File → Note**: draft from `suggested_summary` if present; otherwise prompt user.
-- **File → Entity link**: open a small picker (person/project/place) seeded by `extracted_entities.people / locations`. Accepted → write `file_entity_links` (already exists if present; otherwise reuse `linked_*` fields on `ingested_files`).
-- **File → Sherlock**: already wired; ensure suggestion-only, never auto-run.
-- **File → Briefing candidate**: a "add to tomorrow's briefing" toggle on the aftermath tray, writes a lightweight `briefing_candidate` flag (reuse `aftermath_status` metadata if available; otherwise add a single nullable column — only if no existing field fits).
-- **File → Canvas**: explicit "Add to Canvas" action, never automatic.
+Mobile (384px): stacked cards, diagnostics collapsed, kill switch + status always visible. Desktop: grid for cards, tables for registries.
 
-## Phase 3 — Doc-type intelligence + per-type suggestions
+## Card anatomy (same shape for every platform)
 
-`DETECTED_DOC_TYPES` already covers the taxonomy. Add a **per-type suggested-action map** in `src/lib/fileIntake.ts` so the aftermath tray + `files-ingest` agree on which 2–3 actions to surface first:
+- Name + role one-liner
+- Status pill: Live / Partially live / Configured / Needs setup / Planned / Deferred / Disabled / Blocked
+- Direction: Inbound / Outbound / Inbound+approved outbound / Read-only / Capture only / Deferred
+- Kill switch (bound to existing `system_controls.<x>_enabled` where it exists; otherwise marked "Planned control")
+- Allowed inbound events (static list, from spec)
+- Allowed outbound callbacks (static list, from spec)
+- Approval rule (plain English)
+- Setup checklist (documentation, not tasks)
+- Collapsible diagnostics: last event at, 7d count, last error, signature status
+- Webhook URL (copy button) — only when one exists
+- Secret status: Configured / Not configured / Unknown (masked, never raw)
+- Audit link (filters Audit surface by source prefix, e.g. `ecosystem.gth.`)
 
-- receipt → extract amount, link to expenses, archive
-- invoice → extract due date, payment reminder, link to vendor
-- booking → extract check-in/out, travel reminder, link to place
-- waiver → send/review reminder, link to person
-- visa/id_doc/medical → sensitive guard, extract expiry, reminder
-- screenshot → extract people/dates, ask, link
-- unknown → "What is this?" prompt + manual type picker
+## Per-platform truth table
 
-No new ML — pure rule mapping over the existing `detected_doc_type`.
+| Platform | Kill switch source | Webhook fn | Real status to show |
+|---|---|---|---|
+| Vanta Core | n/a | n/a | Live |
+| Ground Truth Hub | `gth_enabled` | `gth-inbound` | Partially live |
+| CampCore | `campcore_enabled` | none | Planned |
+| Telegram | (none yet — mark "Always on if linked") | `telegram-webhook` | Live if `telegram_chat_links` row exists, else Needs setup |
+| WhatsApp | none | none | Deferred |
+| Email | none yet | `email-inbound` | Live if `email_inbound_addresses` row exists |
+| Calendar | `calendar_sync_enabled` | none | Planned, read-only first |
+| Fenrir Lock | `fenrir_enabled` | none | Planned |
+| Website / Forms | none | none | Planned |
 
-## Phase 4 — Batch handling
+Status is computed from real signals (function existence, table rows, control flags). Never hardcode "Live" without backing evidence.
 
-Add a `batch_id` concept (reuse if it already exists; otherwise a single nullable column on `ingested_files`) — set when multiple files arrive in one upload event from any source. Then:
+## Registries
 
-- `StagedFileChips` + aftermath tray group by `batch_id`.
-- Show a batch header with batch-level routes ("Link all to GroundStay", "Mark all needs review").
-- Individual file actions still work.
+**Event registry** — single static `registry.ts` exported as data; render as filterable table on desktop, accordion on mobile. Columns: Platform · Event · Direction · Status · Creates in Vanta · Requires approval · Sensitive · Last received (joined from `audit_log` where prefix matches).
 
-## Phase 5 — CaptureToast unification
+**Callback registry** — same shape, outbound. Columns: Platform · Callback · Status · Approval · Risk · Last called. All entries marked Planned/Deferred unless code path exists.
 
-`CaptureToast` already exists. Make every source go through it:
+## Secrets section
 
-- In-app upload ✓
-- Conversation attach — wire if missing
-- Telegram file — confirm `telegram-webhook` writes a capture row that surfaces in the same toast/inbox
-- Email attachment — same
-- Default: silent toast + badge, no sound, tap → aftermath tray
+Reads `system_controls` + a curated list of expected secret names (GTH_WEBHOOK_SECRET, TELEGRAM_API_KEY, VAPID_*). Shows **status only** (Configured / Missing). Never values. "Rotate" button only where backend supports it — otherwise hidden. Copy-to-clipboard only for webhook URLs.
 
-Copy: "File captured · Reading it · Saved to Files · Needs review · Open aftermath."
+## Doctrine guardrails enforced in copy
 
-## Phase 6 — Search/memory polish (light)
+Every card carries the same approval rule line. No "auto-sync", no "orchestration", no "mesh". Banner pins the doctrine at the top so it can't get lost.
 
-`MemoryFilesView`: add filters for source, doc type, sensitive, needs-review, linked/unlinked. Use existing columns — no new tables. Results show source, matched reason, linked objects, last action.
+## Out of scope (explicit non-goals)
 
-## Phase 7 — Audit replay (light)
+- No new tables
+- No new edge functions
+- No new automation, callbacks, or executors
+- No WhatsApp wiring
+- No CampCore wiring
+- No Ground Truth Hub outbound
+- No test-event button unless trivially safe and read-only (deferred this pass — show "Test event not available yet")
+- No changes to `system_controls` schema (use existing flags only)
+- No duplication of the System Controls kill-switch list — Integrations links over to it where flags don't have a per-card switch
 
-`logFileEvent` already exists. Add a small "Activity" disclosure in file detail that lists events for that file in plain English ("Uploaded from Telegram · Linked to GroundStay · Reminder created · Archived").
+---
 
-## Phase 8 — 384px sweep
+## Technical section
 
-Validate every touched surface at 384px: staged chips, batch header, aftermath tray, action menu, sensitive preview, reminder/commitment drafts from file, link picker, search filters. Fix any overflow, dense rows, or bubble collisions.
+**New files**
+- `src/pages/IntegrationsSettings.tsx` (or new tab inside `Settings.tsx`) — top-level page
+- `src/components/integrations/IntegrationCard.tsx` — generic card
+- `src/components/integrations/IntegrationStatusPill.tsx`
+- `src/components/integrations/IntegrationDiagnostics.tsx` — collapsible, reads `audit_log` by prefix
+- `src/components/integrations/EventRegistryTable.tsx`
+- `src/components/integrations/CallbackRegistryTable.tsx`
+- `src/components/integrations/SecretsStatusPanel.tsx`
+- `src/components/integrations/AdapterTemplateCard.tsx`
+- `src/lib/integrations/registry.ts` — static event + callback definitions, per-platform metadata, audit prefix, kill-switch key, expected secrets
+- `src/lib/integrations/status.ts` — pure functions: `computeStatus(platform, controls, signals)` returning the status label
 
-## Out of scope (H2/H3 — prepared seams only)
+**Reuse / refactor**
+- Absorb `EcosystemSourcesPanel.tsx` logic into `IntegrationCard` + diagnostics. Keep the existing audit-prefix count query pattern (`audit_log` like `<prefix>%`, 7d window).
+- Read `system_controls` via existing `useSystemControls` hook — no new RPC.
+- Telegram status: `select 1 from telegram_chat_links where user_id = auth.uid()`.
+- Email status: `select 1 from email_inbound_addresses where user_id = auth.uid() and active`.
 
-- Morning/evening/weekly briefing integration of file-derived items — leave hooks via existing `briefing-compose` selecting where `review_status='needs_review' AND deadline_today`.
-- PWA share target, desktop drop zone, ecosystem adapters — not in this pass.
-- Entity profile traits, voice triage loop — not in this pass.
+**Routing**
+- Add route or tab `/settings/integrations` (match existing settings pattern in `Settings.tsx`).
+- Link from Settings index and from System Controls page ("See all integrations →").
 
-## Hard rules I will not break
+**Styling**
+- Semantic tokens only. Reuse existing card surfaces, ring/border tokens, muted text classes from current Settings panels for visual continuity.
+- Mobile: single column, sticky status pill + kill switch on each card header.
+- Desktop: 2-col grid for cards, full-width tables for registries.
 
-- No auto-AI on render. Every AI action requires explicit tap.
-- No new top-level surfaces. Everything lands in Inbox / Memory / Aftermath.
-- No new tables unless a field genuinely doesn't exist.
-- Sensitive previews hidden by default.
-- Plan → Approve → Execute for every file-derived object.
-- No robotic copy. Vanta voice only.
+**Audit links**
+- Each card's "View audit" button deep-links to the Audit surface with a source filter query param (audit prefix from registry). If the Audit surface doesn't yet support a query-param filter, link to `/audit` and show a small hint — do not add filter logic this pass.
 
-## Open questions before I start
+**Security**
+- No raw secret values in client. Secret status fetched server-side only via existing patterns (or shown as "Configured"/"Missing" based on a server-trusted list — defer the lookup to a follow-up if no safe path exists today; for now mark all as "Status check available in Lovable Cloud").
 
-1. Should I deliver Phase 0 (audit doc) as a single step and wait for your sign-off before touching code, or run audit → Phase 1–2 in one pass?
-2. Are batches already tracked somewhere (column or convention) or should I introduce `batch_id`?
-3. For "File → Briefing candidate" — do you have an existing briefing-eligibility flag I should reuse, or is a new boolean field acceptable?
+**Acceptance check**
+Walk the 20-point criteria list at the end of the spec against the rendered page before declaring done.

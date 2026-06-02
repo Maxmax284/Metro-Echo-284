@@ -162,6 +162,23 @@ export default function Settings() {
         </ul>
       </section>
 
+      <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Platform Integrations</h2>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
+              GTH, CampCore, Telegram, Email, Calendar, Fenrir, WhatsApp. One place for status, doctrine, and kill switches.
+            </p>
+          </div>
+          <Link
+            to="/settings/integrations"
+            className="shrink-0 rounded-md bg-primary/15 px-3 py-1.5 text-[11.5px] font-medium text-primary ring-1 ring-primary/30 hover:bg-primary/20"
+          >
+            Open →
+          </Link>
+        </div>
+      </section>
+
       <EcosystemSourcesPanel />
 
       <CostTelemetryPanel />
