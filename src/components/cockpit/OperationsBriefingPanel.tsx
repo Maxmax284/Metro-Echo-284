@@ -32,6 +32,8 @@ type Counts = {
   briefing_candidates: number;
   closed_today: number;
   slipped_today: number;
+  external_signals: number;
+  external_by_source: Record<string, number>;
 };
 
 type Item = {
@@ -39,7 +41,18 @@ type Item = {
   id: string;
   label: string;
   due_at?: string | null;
+  source?: string;
 };
+
+const PLATFORM_DISPLAY: Record<string, string> = {
+  ground_truth_hub: "Ground Truth Hub",
+  campcore: "CampCore",
+  fenrir_lock: "Fenrir Lock",
+  website_forms: "Website Forms",
+  telegram: "Telegram",
+  email: "Email",
+};
+const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
 type Briefing = {
   headline: string;
