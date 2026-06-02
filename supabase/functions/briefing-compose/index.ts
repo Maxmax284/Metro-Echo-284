@@ -48,6 +48,20 @@ Deno.serve(async (req: Request) => {
       requestedVariant === "evening" || requestedVariant === "wrap"
         ? requestedVariant
         : partOfDay;
+    // Role gates which sources we even query (permission-safe before
+    // summarization, never redact after). Resolve from user_roles, highest wins.
+    const { data: roleRows } = await sb
+      .from("user_roles").select("role").eq("user_id", user.id);
+    const rolesHeld = new Set<string>((roleRows ?? []).map((r: any) => r.role));
+    const role: "owner" | "manager" | "coach" | "viewer" | "personal" =
+      rolesHeld.has("owner") ? "owner"
+      : rolesHeld.has("manager") ? "manager"
+      : rolesHeld.has("coach") ? "coach"
+      : rolesHeld.has("viewer") ? "viewer"
+      : "personal";
+    // Client passes the previous signals_hash; if nothing changed we skip the
+    // paid AI call entirely.
+    const ifMatch: string | null = typeof body?.if_match === "string" ? body.if_match : null;
 
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
