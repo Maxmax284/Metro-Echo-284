@@ -14,6 +14,8 @@ import { AwareCockpitCard } from "@/components/shell/AwareCockpitCard";
 import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { useCanvas } from "@/components/entities/CanvasContext";
 import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCard";
+import { OperationsBriefingPanel } from "@/components/cockpit/OperationsBriefingPanel";
+import { useIsOwner } from "@/hooks/useIsOwner";
 
 type Counts = {
   pendingApprovals: number;
