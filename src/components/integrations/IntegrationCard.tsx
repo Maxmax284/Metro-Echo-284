@@ -8,7 +8,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, ClipboardPaste } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
