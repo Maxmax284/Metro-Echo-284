@@ -38,7 +38,7 @@ export function useIntakeFeed(limit = 60) {
         .order("created_at", { ascending: false })
         .limit(limit),
       supabase.from("ingested_files")
-        .select("id, filename, status, source, created_at, note_id, metadata")
+        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status")
         .order("created_at", { ascending: false })
         .limit(limit),
       supabase.from("field_notes")
