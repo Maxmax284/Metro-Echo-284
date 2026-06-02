@@ -163,6 +163,16 @@ function parseSignature(raw: string): string {
   return raw.replace(/^sha256=/i, "").replace(/^hmac-sha256=/i, "").replace(/^v1=/i, "").trim();
 }
 
+function parseWebhookTime(value: unknown): number {
+  const raw = String(value ?? "").trim();
+  if (!raw) return Number.NaN;
+  if (/^\d+$/.test(raw)) {
+    const numeric = Number(raw);
+    return raw.length <= 10 ? numeric * 1000 : numeric;
+  }
+  return Date.parse(raw);
+}
+
 async function recordDiagnostic(admin: any, input: {
   ownerId: string;
   config: PlatformConfig;
@@ -338,9 +348,9 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return rejectWithDiagnostic(admin, baseDiagnostic, "webhook_secret_missing", 401);
   }
 
-  const timestamp = body?.timestamp ?? body?.created_at ?? req.headers.get("x-webhook-timestamp");
+  const timestamp = body?.timestamp ?? body?.created_at ?? req.headers.get("x-vanta-timestamp") ?? req.headers.get("x-webhook-timestamp");
   if (timestamp) {
-    const parsed = Date.parse(String(timestamp));
+    const parsed = parseWebhookTime(timestamp);
     if (Number.isNaN(parsed)) return rejectWithDiagnostic(admin, baseDiagnostic, "malformed timestamp", 400);
     if (Math.abs(Date.now() - parsed) > 24 * 60 * 60 * 1000) {
       return rejectWithDiagnostic(admin, baseDiagnostic, "stale timestamp", 400);
