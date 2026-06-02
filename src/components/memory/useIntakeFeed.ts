@@ -4,7 +4,12 @@ import { useAuth } from "@/lib/auth";
 import type { CaptureItem, CaptureSource } from "./CaptureCard";
 
 type MsgRow = { id: string; content: string; created_at: string; role: string; metadata: any };
-type FileRow = { id: string; filename: string; status: string; source: string; created_at: string; note_id: string | null; metadata: any };
+type FileRow = {
+  id: string; filename: string; status: string; source: string; created_at: string;
+  note_id: string | null; metadata: any;
+  detected_doc_type: string | null; confidence: string | null;
+  sensitive: boolean | null; review_status: string | null;
+};
 type FieldRow = { id: string; summary: string; note_type: string; created_at: string; confidence: string | null };
 
 export type IntakeRow = CaptureItem & {
