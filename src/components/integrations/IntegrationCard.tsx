@@ -40,6 +40,9 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
   const [count7d, setCount7d] = useState<number>(0);
   const [open, setOpen] = useState(false);
 
+  const [open, setOpen] = useState(false);
+  const [pasteFor, setPasteFor] = useState<string | null>(null);
+
   const status = computeStatus(def, controls, signals);
   const webhookUrl = def.webhookFunction
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${def.webhookFunction}`
