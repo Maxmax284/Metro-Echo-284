@@ -57,14 +57,35 @@ Deno.serve(async (req) => {
     });
   }
 
-  const secret = Deno.env.get("GTH_WEBHOOK_SECRET");
+  const raw = await req.text();
+  let body: any;
+  try { body = JSON.parse(raw); } catch {
+    return new Response(JSON.stringify({ error: "invalid json" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const userId: string | undefined = body?.user_id;
+  if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
+    return new Response(JSON.stringify({ error: "user_id required (uuid)" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data: savedSecret } = await admin
+    .from("integration_webhook_secrets")
+    .select("secret_value")
+    .eq("owner_id", userId)
+    .eq("secret_name", "GTH_WEBHOOK_SECRET")
+    .maybeSingle();
+  const secret = savedSecret?.secret_value || Deno.env.get("GTH_WEBHOOK_SECRET");
   if (!secret) {
     return new Response(JSON.stringify({ error: "webhook secret not configured" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const raw = await req.text();
   const sigHeader = req.headers.get("x-gth-signature") ?? "";
   const provided = sigHeader.startsWith("sha256=") ? sigHeader.slice(7) : sigHeader;
   const expected = await hmacSha256Hex(secret, raw);
@@ -74,31 +95,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  let body: any;
-  try { body = JSON.parse(raw); } catch {
-    return new Response(JSON.stringify({ error: "invalid json" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const userId: string | undefined = body?.user_id;
   const event: string | undefined = body?.event;
   const payload = body?.payload ?? {};
   const externalId: string | undefined = body?.external_id;
 
-  if (!userId || !/^[0-9a-f-]{36}$/i.test(userId)) {
-    return new Response(JSON.stringify({ error: "user_id required (uuid)" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
   if (!event || !ALLOWED_EVENTS.has(event)) {
     return new Response(JSON.stringify({ error: `event must be one of ${[...ALLOWED_EVENTS].join(",")}` }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
   // Owner check + kill-switch
   const { data: roleRow } = await admin
     .from("user_roles").select("user_id").eq("user_id", userId).eq("role", "owner").maybeSingle();

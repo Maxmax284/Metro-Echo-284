@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, ClipboardPaste } from "lucide-react";
+import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
@@ -24,7 +26,7 @@ import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type Runtime
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import { toast } from "sonner";
 
-type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus };
+type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; onSecretsChanged?: () => void | Promise<void> };
 
 function generateSharedSecret(): string {
   const bytes = new Uint8Array(32);
@@ -33,13 +35,15 @@ function generateSharedSecret(): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function IntegrationCard({ def, signals, secretStatus }: Props) {
+export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }: Props) {
   const { session } = useAuth();
   const { controls, update } = useSystemControls();
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
   const [count7d, setCount7d] = useState<number>(0);
   const [open, setOpen] = useState(false);
   const [pasteFor, setPasteFor] = useState<string | null>(null);
+  const [secretValue, setSecretValue] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
 
   const status = computeStatus(def, controls, signals);
   const webhookUrl = def.webhookFunction
@@ -74,6 +78,33 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
     } catch {
       toast.error("Couldn't update that switch.");
     }
+  };
+
+  const openSecretEditor = (name: string, value = "") => {
+    setPasteFor(name);
+    setSecretValue(value);
+  };
+
+  const saveSecret = async () => {
+    if (!pasteFor) return;
+    const value = secretValue.trim();
+    if (value.length < 16) {
+      toast.error("Secret needs at least 16 characters.");
+      return;
+    }
+    setSavingSecret(true);
+    const { data, error } = await supabase.functions.invoke("integration-secret-save", {
+      body: { secretName: pasteFor, secretValue: value },
+    });
+    setSavingSecret(false);
+    if (error || data?.error) {
+      toast.error("Couldn't save secret.", { description: data?.error ?? error?.message });
+      return;
+    }
+    toast.success("Secret saved.");
+    setPasteFor(null);
+    setSecretValue("");
+    await onSecretsChanged?.();
   };
 
   return (
@@ -143,6 +174,7 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
               const s = secretStatus[name];
               const present = !!s?.present;
               const unknown = !s;
+              const editableSecret = /(_SECRET|_TOKEN)$/.test(name);
               return (
                 <li key={name} className="flex flex-wrap items-center justify-between gap-2 text-[11.5px]">
                   <div className="flex min-w-0 items-center gap-1.5">
@@ -163,38 +195,26 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
                       {unknown ? "Unknown" : present ? "Present" : "Missing"}
                     </span>
                   </div>
-                  {!present && /(_SECRET|_TOKEN)$/.test(name) && (
+                  {editableSecret && (
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-6 gap-1 px-1.5 text-[11px]"
-                        onClick={() => setPasteFor(name)}
+                        onClick={() => openSecretEditor(name)}
                       >
-                        <ClipboardPaste className="h-3 w-3" /> Paste secret
+                        <Save className="h-3 w-3" /> {present ? "Replace" : "Add secret"}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 gap-1 px-1.5 text-[11px]"
-                        onClick={async () => {
-                          const v = generateSharedSecret();
-                          try {
-                            await navigator.clipboard.writeText(v);
-                            toast.success("Shared secret copied.", {
-                              description:
-                                "Paste it into the other platform's outbound config, then click Paste secret to store it in Vanta as " +
-                                name +
-                                ".",
-                              duration: 9000,
-                            });
-                          } catch {
-                            toast.message("Generated secret (copy manually):", { description: v, duration: 15000 });
-                          }
-                        }}
-                      >
-                        <KeyRound className="h-3 w-3" /> Generate
-                      </Button>
+                      {!present && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 gap-1 px-1.5 text-[11px]"
+                          onClick={() => openSecretEditor(name, generateSharedSecret())}
+                        >
+                          <KeyRound className="h-3 w-3" /> Generate
+                        </Button>
+                      )}
                     </div>
                   )}
                 </li>
@@ -202,7 +222,7 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
             })}
           </ul>
           <p className="mt-1.5 text-[10.5px] text-muted-foreground">
-            Add or rotate secrets in Cloud → Secrets. Vanta only checks presence, never values.
+            Add or rotate webhook secrets here. Values are never shown again after saving.
           </p>
         </div>
       )}
@@ -281,12 +301,17 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
         </CollapsibleContent>
       </Collapsible>
 
-      <Dialog open={!!pasteFor} onOpenChange={(v) => !v && setPasteFor(null)}>
+      <Dialog open={!!pasteFor} onOpenChange={(v) => {
+        if (!v) {
+          setPasteFor(null);
+          setSecretValue("");
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Save secret to Vanta vault</DialogTitle>
+            <DialogTitle>{secretStatus[pasteFor ?? ""]?.present ? "Replace webhook secret" : "Add webhook secret"}</DialogTitle>
             <DialogDescription>
-              Secrets live in Lovable Cloud's encrypted vault, not in the database — that's why this can't be a normal text input.
+              Paste the shared secret for this platform. Vanta stores it for webhook checks and never displays it again.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-[12.5px]">
@@ -294,29 +319,44 @@ export function IntegrationCard({ def, signals, secretStatus }: Props) {
               <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Secret name</div>
               <code className="mt-1 block break-all text-[12px]">{pasteFor}</code>
             </div>
-            <ol className="list-decimal space-y-1 pl-4 text-muted-foreground">
-              <li>Copy the chat command below.</li>
-              <li>Paste it into Vanta chat and send.</li>
-              <li>A secure form opens. Paste the secret value there — never in chat.</li>
-              <li>This row flips to <span className="text-emerald-300">Present</span> on reload.</li>
-            </ol>
-            <div className="flex items-center gap-2 rounded-lg bg-background/60 p-2 ring-1 ring-border/40">
-              <code className="flex-1 truncate text-[12px]">Save {pasteFor} to Vanta</code>
+            <div className="space-y-1.5">
+              <Label htmlFor="integration-secret-value" className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Secret value
+              </Label>
+              <Textarea
+                id="integration-secret-value"
+                value={secretValue}
+                onChange={(e) => setSecretValue(e.target.value)}
+                placeholder="Paste the webhook secret here"
+                className="min-h-24 font-mono text-[12px]"
+                autoFocus
+              />
+            </div>
+            <div className="rounded-lg bg-background/60 p-2 text-[11.5px] text-muted-foreground ring-1 ring-border/40">
+              Use the same value in the other platform's webhook settings. Incoming events that do not match this secret are rejected.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => {
+              setPasteFor(null);
+              setSecretValue("");
+            }} disabled={savingSecret}>Cancel</Button>
+            {secretValue && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1 px-2 text-[11px]"
+                className="gap-1"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(`Save ${pasteFor} to Vanta`);
-                  toast.success("Chat command copied.");
+                  await navigator.clipboard.writeText(secretValue);
+                  toast.success("Secret copied.");
                 }}
               >
                 <Copy className="h-3 w-3" /> Copy
               </Button>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPasteFor(null)}>Close</Button>
+            )}
+            <Button onClick={saveSecret} disabled={savingSecret || secretValue.trim().length < 16}>
+              {savingSecret ? "Saving…" : "Save secret"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
