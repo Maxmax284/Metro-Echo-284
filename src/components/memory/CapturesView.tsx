@@ -459,6 +459,20 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           );
         })}
       </div>
+
+      <Dialog open={!!aftermathFileId} onOpenChange={(o) => !o && setAftermathFileId(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-[13px]">What's next for this file?</DialogTitle>
+          </DialogHeader>
+          {aftermathFileId && (
+            <FileAftermathTray
+              ingestedFileId={aftermathFileId}
+              onDismiss={() => { setAftermathFileId(null); refresh(); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
