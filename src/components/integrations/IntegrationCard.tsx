@@ -228,6 +228,34 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
         </div>
       )}
 
+      {diagnostic && (
+        <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Webhook diagnostic</span>
+            <span className={cn(
+              "rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
+              diagnostic.last_health_status === "healthy" ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" :
+                diagnostic.last_health_status === "error" ? "bg-destructive/15 text-destructive ring-destructive/30" :
+                  "bg-muted/40 text-muted-foreground ring-border/60",
+            )}>
+              {diagnostic.last_health_status}
+            </span>
+          </div>
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-[11px] md:grid-cols-2">
+            <div><dt className="text-muted-foreground">Source key</dt><dd><code>{diagnostic.source_platform}</code></dd></div>
+            <div><dt className="text-muted-foreground">Webhook configured</dt><dd>{diagnostic.webhook_configured ? "yes" : "no"}</dd></div>
+            <div><dt className="text-muted-foreground">Secret fingerprint</dt><dd><code>{diagnostic.secret_fingerprint ?? "—"}</code></dd></div>
+            <div><dt className="text-muted-foreground">Signature</dt><dd>{diagnostic.signature_status}</dd></div>
+            <div><dt className="text-muted-foreground">Last received</dt><dd>{diagnostic.last_received_at ? new Date(diagnostic.last_received_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last accepted</dt><dd>{diagnostic.last_accepted_at ? new Date(diagnostic.last_accepted_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last rejected</dt><dd>{diagnostic.last_rejected_at ? new Date(diagnostic.last_rejected_at).toLocaleString() : "—"}</dd></div>
+            <div><dt className="text-muted-foreground">Last event</dt><dd><code>{diagnostic.last_event_type ?? "—"}</code></dd></div>
+            <div className="md:col-span-2"><dt className="text-muted-foreground">Last idempotency key</dt><dd><code className="break-all">{diagnostic.last_idempotency_key ?? "—"}</code></dd></div>
+            <div className="md:col-span-2"><dt className="text-muted-foreground">Last rejection</dt><dd>{diagnostic.last_rejection_reason ?? "—"}</dd></div>
+          </dl>
+        </div>
+      )}
+
       <Collapsible open={open} onOpenChange={setOpen} className="mt-3">
         <CollapsibleTrigger asChild>
           <button className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
