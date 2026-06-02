@@ -189,6 +189,22 @@ Deno.serve(async (req: Request) => {
     }));
     items.push(...briefingCandidates);
 
+    // External-platform inbox drafts (GTH, CampCore, Fenrir, Website Forms).
+    // These were created by signed webhooks via `handleExternalPlatformWebhook`
+    // — capture-only, awaiting review.
+    const externalBySource: Record<string, number> = {};
+    const externalItems = (externals.data ?? []).map((m: any) => {
+      const src = String(m?.metadata?.source_platform ?? m?.metadata?.source ?? "external");
+      externalBySource[src] = (externalBySource[src] ?? 0) + 1;
+      return {
+        kind: "external_signal" as const,
+        id: m.id,
+        label: (m.content ?? "Signal received").slice(0, 120),
+        source: src,
+      };
+    });
+    items.push(...externalItems);
+
     // Day's debrief metrics — used by evening/wrap variants.
     const closedTodayCount = (closedToday.data ?? []).length;
     // "Slipped today" = items with due_at earlier today that are still open.
@@ -217,6 +233,8 @@ Deno.serve(async (req: Request) => {
       briefing_candidates: briefingCandidates.length,
       closed_today: closedTodayCount,
       slipped_today: slippedToday,
+      external_signals: externalItems.length,
+      external_by_source: externalBySource,
     };
 
     // ---- Best-first-move heuristic (deterministic, no AI) ------------------
