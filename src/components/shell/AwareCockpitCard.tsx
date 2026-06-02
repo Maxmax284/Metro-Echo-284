@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Loader2, MapPin, Radar, Sparkles, Thermometer } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight, Loader2, MapPin, Radar, Sparkles, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useSystemControls } from "@/hooks/useSystemControls";
