@@ -1,127 +1,63 @@
-## Goal
+## Why the briefing said "no active signals"
 
-Turn the dashboard from a tile grid of counts into a calm shift-report:
-**Pulse → Aware (collapsed) → Operations Briefing → Live Capture → everything else.** No new integrations, no autonomous actions, no Audit/Aware rewrites.
+Your GTH test signal landed correctly — it's in `messages` (signal-only draft) and `capture_routes` (`source = ground_truth_hub`, `new_status = inbox`). `external_platform_webhook_events` also has the receipt with `accepted = true`.
 
-Scope is `src/components/surfaces/CommandCenterSurface.tsx` + a new briefing panel + a thin reuse of the existing `briefing-compose` edge function. Roles already exist (`user_roles` + `has_role`, `useIsOwner`), so role gating is real — not staged.
+But `briefing-compose` queries only: commitments, ingested_files, actions, notes, sherlock cache. **External-platform inbox drafts are never read.** That's the only reason the briefing showed nothing. The webhook contract is working.
 
----
+## Part 1 — Make briefings see external signals (the real fix)
 
-## What changes
+**`supabase/functions/briefing-compose/index.ts`**
+- Add one more parallel query: pull recent unreviewed external signals.
+  - From `messages` where `metadata->>signal_only = 'true'` AND `metadata->>needs_review = 'true'` AND `created_at >= sinceFresh`, ordered desc, limit 20.
+  - Group by `metadata->>source_platform` for the count breakdown (gth, campcore, fenrir_lock, website_forms).
+- New item kind: `external_signal` with `source` field (which platform), label = message content (truncated).
+- New counts field: `external_signals` (total) plus `external_by_source` (`{ ground_truth_hub: 1, ... }`).
+- Headline picks it up: e.g. `"1 from Ground Truth Hub"` joined into the parts list when nonzero.
+- Best-first-move heuristic: insert a branch — if `external_signals > 0` and nothing higher priority (overdue/approvals), suggest `"Open inbox — 1 new from Ground Truth Hub"`.
+- Hash seed includes the new counts/items so the cache invalidates when a new signal lands.
+- Role gating: owner/manager see all sources; coach/viewer see only sources their role would normally see (for now: same as today since you're solo — gate scaffold only).
 
-### 1. Dashboard layout (CommandCenterSurface)
+**`src/components/cockpit/OperationsBriefingPanel.tsx`**
+- Extend `Counts` type with `external_signals: number` and `external_by_source: Record<string, number>`.
+- `buildSourceLine`: append `"N from {platform display name}"` segments.
+- `routeForBestMove`: new branch — when `external_signals > 0`, route to `memory` surface (inbox). 
+- `labelForBestMove`: `"Open new signals"`.
+- "Why this matters" list: external_signal items render with a platform badge instead of the generic kind chip.
 
-New top-to-bottom order:
+**Verification path (no new UI):**
+1. You fire the GTH self-test from Integrations settings (already wired).
+2. The webhook lands → message + capture_route row created (already happens).
+3. Open dashboard → briefing's "Refresh" → headline shows `1 from Ground Truth Hub`, narrative mentions it, "Why this matters" lists the test event. That's the closed loop.
 
-```text
-[ Productivity Pulse ]
-[ Aware bubble — collapsed by default ]
-[ Operations Briefing — NEW, plain English ]
-[ Live Capture — unchanged content, just relocated above the tile grid ]
-[ Approvals / Today / Sherlock / Memory / Files / Receipts ]   ← existing tiles, demoted
-```
+## Part 2 — Collapse setup for Website Forms, Fenrir Lock, CampCore
 
-- Remove the current `AmbientSummary` "counts string" card (its job is taken over by Operations Briefing).
-- Pull `LiveCaptureCard` out of the grid into its own row labeled **Live Capture · receipt roll** so the receipt-roll role is visually distinct.
-- Tile grid stays as the "deep dive" layer below.
+All three already use the **same** `external-platform-inbound` plumbing as GTH — same signature contract, same diagnostics table, same self-test endpoint. The current 5–7 step checklists in `registry.ts` are misleading; the real flow is 3 steps.
 
-### 2. Aware bubble — collapsible
+**`src/lib/integrations/registry.ts`** — replace the `setupChecklist` arrays for `website_forms`, `fenrir`, `campcore` with the unified 3-step:
+1. "Copy the webhook URL and generated secret from this card."
+2. "Paste both into the sender's outbound webhook settings."
+3. "Hit Test webhook here — green means done."
 
-- Refactor `AwareCockpitCard` into a compact one-liner: `Ko Samui · Search on · cached · Open Aware`.
-- `Collapsible` (shadcn) wrapper, collapsed by default, state persisted in `localStorage` (`vanta.aware.expanded`).
-- Expanded view keeps current content but trims long Timing/Hazards paragraphs — those stay in the Aware surface.
-- Reads from the same `useAwareness()` provider. No duplicate state.
+**`src/components/integrations/IntegrationCard.tsx`** — the existing "Test webhook" button (the GTH self-test) already works generically because `external-platform-selftest` accepts any registered source. Confirm it's shown for all three (not just GTH) and that the result block renders the same way. Small tweak only — no new component.
 
-### 3. Operations Briefing panel (new)
+**No changes to:** signing contract, envelope shape, X-Vanta-Owner header, allowed events, or any edge-function behavior. The simplification is purely UI copy + making the existing test button visible across all platform cards.
 
-New file: `src/components/cockpit/OperationsBriefingPanel.tsx`.
+## What I will NOT touch
 
-Renders:
+- Live Capture, Aware bubble, Pulse — unchanged.
+- GTH/CampCore/Fenrir/Forms edge-function code — already correct.
+- AI summarization model or pricing path — same `if_match` hash skip still applies.
+- Any execute/outbound path — capture-only stays capture-only.
 
-- Headline (1 line, Vanta voice).
-- 1–2 sentence narrative.
-- "Based on:" source-grounding line with chip counts (`2 captures · 1 commitment overdue · 1 file to triage`).
-- Best-first-move pill.
-- Actions: **Review** (opens related surface), **Why this matters** (expands a panel listing the source rows), **Refresh briefing**, **Dismiss** (session-only).
-- Footer: `Updated 8 min ago · 3 new signals since last viewed` + mode switch (Quick / Full / Mobile compact).
+## Files
 
-Modes:
-
-- **Quick** (default on mobile and small screens): headline + best-first-move + source line. ≤3 sentences.
-- **Full**: above + per-source sections (GTH, CampCore, Telegram, Files, Sherlock, etc., shown only when role permits and signals exist).
-- **Mobile compact**: identical to Quick at <480px, one primary button.
-
-Manager/Admin/Coach/Viewer "modes" are framed as **role filters applied automatically**, not a mode dropdown — Owner sees integration-health line, others don't.
-
-### 4. AI + caching (reuse `briefing-compose`)
-
-The existing `supabase/functions/briefing-compose/index.ts` already produces `{ headline, counts, best_first_move, narrative, items }` with Vanta voice and source counts. We extend it minimally:
-
-- Add `role` and `scope` to the input. Server resolves role via `has_role(auth.uid(), …)` and drops sources the role can't see **before** querying (permission-safe-first, not redact-after).
-- Add a `signals_hash` (sha256 of `{latest commitment updated_at, latest file id, latest message id, latest sherlock id, role}`) to the response.
-- Client cache (`react-query` or local state) keyed on `signals_hash`. If the hash matches the last view, **do not call AI** — show cached narrative + "No new signals since last briefing."
-- Triggers: surface open (once per session if hash changed), manual Refresh tap, role switch. Never on render or focus.
-- AI-unavailable fallback already exists (deterministic `headline` + `best_first_move`) — surface it explicitly: `AI summary unavailable. Showing basic counts.`
-- Audit row already emitted (`briefing.composed`). Add `briefing.viewed`, `briefing.refreshed`, `briefing.dismissed` from the client.
-
-### 5. Role gating (uses what's there)
-
-- `useIsOwner()` already exists. Add `useRole()` hook returning `'owner' | 'manager' | 'worker' | 'viewer' | 'personal'` by reading `user_roles`. Falls back to `'personal'`.
-- Owner sees: integration-health hint in briefing, ROS Pulse tile, system-receipts tile.
-- Manager sees: workspace signals only, no secrets/integration health.
-- Coach/Viewer: narrowed briefing, no Approvals tile, no Receipts tile.
-- Today, the project is effectively single-user/owner, so non-owner branches render but mostly stay empty until workspaces exist. **No new role rows are created in this pass.**
-
-### 6. Live Capture rule
-
-Zero changes to `LiveCaptureCard` content/behavior or `messages`/`ingested_files` queries. Only its position in the layout changes.
-
-### 7. Mobile (384px target)
-
-- Briefing panel: single column, headline truncates at 2 lines, best-first-move is the only primary CTA.
-- Aware bubble stays collapsed.
-- Tile grid collapses to 1 column (already true).
-- No horizontal overflow; verify with the 384px viewport.
-
----
-
-## Technical notes
-
-**Files added**
-
-- `src/components/cockpit/OperationsBriefingPanel.tsx`
-- `src/hooks/useRole.ts`
-
-**Files edited**
-
-- `src/components/surfaces/CommandCenterSurface.tsx` — reorder, drop `AmbientSummary`, hoist Live Capture, mount briefing panel.
-- `src/components/shell/AwareCockpitCard.tsx` — collapsible wrapper + trimmed expanded content.
-- `supabase/functions/briefing-compose/index.ts` — accept `role`, filter sources by role, return `signals_hash`, accept `if_match` to short-circuit when hash unchanged.
-
-**Untouched**
-
-- Live Capture data path.
-- Audit surface.
-- Aware surface (full tab).
-- Integration secrets / webhook code (the GTH thread we just finished).
-- Plan→Approve→Execute flow. All briefing actions open drafts or surfaces; nothing executes.
-
-**Out of scope (explicitly)**
-
-- Workspaces table, org switcher, invites.
-- WhatsApp, calendar write-back, payment execution.
-- New autonomous actions.
-- Productivity scores / streaks / gamification.
-
----
+- edit `supabase/functions/briefing-compose/index.ts`
+- edit `src/components/cockpit/OperationsBriefingPanel.tsx`
+- edit `src/lib/integrations/registry.ts`
+- edit `src/components/integrations/IntegrationCard.tsx` (visibility tweak only)
 
 ## Acceptance
 
-- Dashboard order is Pulse → Aware (collapsed) → Briefing → Live Capture → tiles.
-- Briefing renders headline, narrative, "Based on:", best-first-move, last-updated, refresh.
-- Refresh does not call AI unless `signals_hash` changed.
-- AI-off path shows the deterministic fallback, not a blank card.
-- Owner sees integration-health line; non-owner does not.
-- Live Capture content unchanged.
-- 384px: no overflow, one primary CTA visible.
-- Audit log gets `briefing.composed/viewed/refreshed/dismissed` rows.
+- Send a GTH `integration.test` via the existing Test button → within one Refresh, briefing headline includes `1 from Ground Truth Hub`, "Why this matters" lists it, best-first-move CTA opens the inbox.
+- Same flow works for Website Forms, Fenrir, CampCore using the same 3-step card.
+- No change in cost when nothing new arrives (`if_match` still short-circuits the AI).
