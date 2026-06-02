@@ -415,7 +415,7 @@ export default function ReconciliationView() {
             )}
             {lastRun && (
               <span className="text-xs text-muted-foreground ml-auto">
-                Checked {formatDistanceToNowIntl(lastRun.toISOString())}
+                Checked {formatDistanceToNow(lastRun, { addSuffix: true })}
               </span>
             )}
           </div>
