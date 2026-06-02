@@ -290,10 +290,9 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     outboundCallbacks: ["draft_reply", "mark_reviewed", "create_followup"],
     setupChecklist: [
-      "Copy the Vanta webhook URL.",
-      "Add or generate WEBSITE_FORMS_SECRET here.",
-      "Use the same secret in the form sender.",
-      "Pick allowed form types.",
+      "Copy the webhook URL and generated secret from this card.",
+      "Paste both into the form sender's webhook settings.",
+      "Hit Test webhook here — green means done.",
     ],
     expectedSecrets: ["WEBSITE_FORMS_SECRET"],
   },
