@@ -405,7 +405,7 @@ export default function ReconciliationView() {
             {briefing && (
               <>
                 <span className="text-xs text-muted-foreground">
-                  Briefing generated {formatDistanceToNowIntl(briefing.generated_at)}
+                  Briefing generated {formatDistanceToNow(new Date(briefing.generated_at), { addSuffix: true })}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   hash: <code className="font-mono">{briefing.signals_hash?.slice(0, 8)}</code>
