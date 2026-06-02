@@ -41,6 +41,18 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
   const { place, snapshot, snapshotLoading, refreshSnapshot, overall } = useAwareness();
   const { controls } = useSystemControls();
 
+  // Aware bubble is seasoning, not the meal. Collapsed by default; remembered
+  // per device. The full Aware tab remains the deep intelligence room.
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("vanta.aware.expanded") === "1";
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("vanta.aware.expanded", expanded ? "1" : "0");
+    }
+  }, [expanded]);
+
   const tier = useMemo(() => classifyTier(place), [place]);
   const weather = snapshot?.compact?.weather;
   const generated = snapshot?.generated_at;
