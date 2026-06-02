@@ -1023,6 +1023,36 @@ export type Database = {
         }
         Relationships: []
       }
+      integration_webhook_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          integration_key: string
+          owner_id: string
+          secret_name: string
+          secret_value: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_key: string
+          owner_id: string
+          secret_name: string
+          secret_value: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_key?: string
+          owner_id?: string
+          secret_name?: string
+          secret_value?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       investigation_findings: {
         Row: {
           claim: string
