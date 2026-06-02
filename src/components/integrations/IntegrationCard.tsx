@@ -174,6 +174,7 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
               const s = secretStatus[name];
               const present = !!s?.present;
               const unknown = !s;
+              const editableSecret = /(_SECRET|_TOKEN)$/.test(name);
               return (
                 <li key={name} className="flex flex-wrap items-center justify-between gap-2 text-[11.5px]">
                   <div className="flex min-w-0 items-center gap-1.5">
@@ -194,7 +195,7 @@ export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }
                       {unknown ? "Unknown" : present ? "Present" : "Missing"}
                     </span>
                   </div>
-                  {/(_SECRET|_TOKEN)$/.test(name) && (
+                  {editableSecret && (
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
