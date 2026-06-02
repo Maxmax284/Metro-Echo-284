@@ -13,12 +13,23 @@ const corsHeaders = {
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     type Item = {
-  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate";
+  kind: "overdue" | "due_today" | "untriaged" | "stale" | "fresh_capture" | "sherlock" | "briefing_candidate" | "external_signal";
   id: string;
   label: string;
   due_at?: string | null;
   age_hours?: number;
+  source?: string;
 };
+
+const PLATFORM_DISPLAY: Record<string, string> = {
+  ground_truth_hub: "Ground Truth Hub",
+  campcore: "CampCore",
+  fenrir_lock: "Fenrir Lock",
+  website_forms: "Website Forms",
+  telegram: "Telegram",
+  email: "Email",
+};
+const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
