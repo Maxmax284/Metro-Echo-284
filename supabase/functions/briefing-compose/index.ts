@@ -73,6 +73,12 @@ Deno.serve(async (req: Request) => {
     // Client passes the previous signals_hash; if nothing changed we skip the
     // paid AI call entirely.
     const ifMatch: string | null = typeof body?.if_match === "string" ? body.if_match : null;
+    // Optional reconciliation overrides for external-signals window.
+    const sinceOverride: string | null = typeof body?.since === "string" ? body.since : null;
+    const untilOverride: string | null = typeof body?.until === "string" ? body.until : null;
+    const sourcesFilter: string[] | null = Array.isArray(body?.sources)
+      ? body.sources.filter((s: any) => typeof s === "string")
+      : null;
 
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
@@ -129,13 +135,19 @@ Deno.serve(async (req: Request) => {
       // External platform signals (GTH, CampCore, Fenrir, Website Forms) that
       // landed via signed webhooks as signal-only drafts. These never executed,
       // they sit in the inbox waiting for review.
-      sb.from("messages")
-        .select("id, content, metadata, created_at")
-        .gte("created_at", sinceFresh)
-        .filter("metadata->>signal_only", "eq", "true")
-        .filter("metadata->>needs_review", "eq", "true")
-        .order("created_at", { ascending: false })
-        .limit(20),
+      (() => {
+        const q = sb.from("messages")
+          .select("id, content, metadata, created_at")
+          .gte("created_at", sinceOverride ?? sinceFresh)
+          .filter("metadata->>signal_only", "eq", "true")
+          .filter("metadata->>needs_review", "eq", "true");
+        if (untilOverride) q.lte("created_at", untilOverride);
+        if (sourcesFilter?.length) {
+          const conds = sourcesFilter.map((s) => `metadata->>source_platform.eq.${s}`).join(",");
+          q.or(conds);
+        }
+        return q.order("created_at", { ascending: false }).limit(20);
+      })(),
     ]);
 
     const commitments = comm.data ?? [];
@@ -313,6 +325,7 @@ Deno.serve(async (req: Request) => {
     // sends the previous hash via if_match; if they match, we skip the AI call.
     const hashSeed = JSON.stringify({
       role, variant,
+      since: sinceOverride, until: untilOverride, sources: sourcesFilter,
       counts,
       items: items.slice(0, 12).map((i) => `${i.kind}:${i.id}:${i.due_at ?? ""}`),
       observed: observedSalient,

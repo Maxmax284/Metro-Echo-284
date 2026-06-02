@@ -1,16 +1,29 @@
 // Reconciliation view — compares raw external-platform signals (messages +
-// capture_routes) against what briefing-compose surfaces. Flags any mismatch
+// capture_routes) against what briefing-compose surfaced. Flags any mismatch
 // so we can catch the briefing missing a platform, miscounting, or going stale.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
+  Loader2,
+  CalendarDays,
+  Filter,
+  X,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { formatDistanceToNow } from "date-fns";
+import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const PLATFORM_DISPLAY: Record<string, string> = {
   ground_truth_hub: "Ground Truth Hub",
@@ -20,7 +33,45 @@ const PLATFORM_DISPLAY: Record<string, string> = {
   telegram: "Telegram",
   email: "Email",
 };
+const ALL_PLATFORMS = Object.keys(PLATFORM_DISPLAY);
 const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
+
+function DatePickerButton({
+  date,
+  onSelect,
+  placeholder,
+}: {
+  date: Date | undefined;
+  onSelect: (d: Date | undefined) => void;
+  placeholder: string;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "w-[150px] justify-start text-left font-normal",
+            !date && "text-muted-foreground"
+          )}
+        >
+          <CalendarDays className="mr-2 h-4 w-4" />
+          {date ? format(date, "MMM d, yyyy") : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={onSelect}
+          initialFocus
+          className="p-3 pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 type SignalRow = {
   id: string;
@@ -28,7 +79,7 @@ type SignalRow = {
   needs_review: boolean;
   signal_only: boolean;
   created_at: string;
-  in_briefing_window: boolean;
+  in_window: boolean;
 };
 
 type RouteRow = {
@@ -60,7 +111,7 @@ type PlatformRow = {
   detail: string;
 };
 
-const BRIEFING_WINDOW_HOURS = 48; // briefing-compose uses ~48h fresh window for external signals
+const DEFAULT_WINDOW_DAYS = 2;
 
 export default function ReconciliationView() {
   const { session } = useAuth();
@@ -72,12 +123,54 @@ export default function ReconciliationView() {
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [lastRun, setLastRun] = useState<Date | null>(null);
 
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    startOfDay(subDays(new Date(), DEFAULT_WINDOW_DAYS - 1))
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(endOfDay(new Date()));
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
+    new Set(ALL_PLATFORMS)
+  );
+
+  const togglePlatform = (key: string) => {
+    setSelectedPlatforms((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const resetFilters = useCallback(() => {
+    setStartDate(startOfDay(subDays(new Date(), DEFAULT_WINDOW_DAYS - 1)));
+    setEndDate(endOfDay(new Date()));
+    setSelectedPlatforms(new Set(ALL_PLATFORMS));
+  }, []);
+
+  const sinceIso = useMemo(
+    () => (startDate ? startOfDay(startDate).toISOString() : undefined),
+    [startDate]
+  );
+  const untilIso = useMemo(
+    () => (endDate ? endOfDay(endDate).toISOString() : undefined),
+    [endDate]
+  );
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedPlatforms.size !== ALL_PLATFORMS.length) count++;
+    const defaultStart = startOfDay(subDays(new Date(), DEFAULT_WINDOW_DAYS - 1));
+    if (startDate && startDate.getTime() !== defaultStart.getTime()) count++;
+    const defaultEnd = endOfDay(new Date());
+    if (endDate && endDate.getTime() !== defaultEnd.getTime()) count++;
+    return count;
+  }, [selectedPlatforms, startDate, endDate]);
+
   const run = useCallback(async () => {
     if (!session) return;
     setLoading(true);
     setError(null);
     try {
-      const sinceIso = new Date(Date.now() - BRIEFING_WINDOW_HOURS * 3600 * 1000).toISOString();
+      const sourcesArr = selectedPlatforms.size === ALL_PLATFORMS.length ? undefined : Array.from(selectedPlatforms);
 
       const [msgRes, routeRes, briefRes] = await Promise.all([
         supabase
@@ -86,16 +179,23 @@ export default function ReconciliationView() {
           .eq("user_id", session.user.id)
           .filter("metadata->>signal_only", "eq", "true")
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(1000),
         supabase
           .from("capture_routes")
           .select("id, source, user_action, created_at")
           .eq("user_id", session.user.id)
           .not("source", "is", null)
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(1000),
         supabase.functions.invoke("briefing-compose", {
-          body: { timezone, part_of_day: "midday", if_match: null },
+          body: {
+            timezone,
+            part_of_day: "midday",
+            if_match: null,
+            since: sinceIso,
+            until: untilIso,
+            sources: sourcesArr,
+          },
         }),
       ]);
 
@@ -107,20 +207,27 @@ export default function ReconciliationView() {
         .map((m: any) => {
           const meta = m.metadata ?? {};
           const sp = meta.source_platform ?? meta.source ?? "unknown";
+          const created = m.created_at;
+          const inWindow =
+            (!sinceIso || created >= sinceIso) && (!untilIso || created <= untilIso);
           return {
             id: m.id,
             source_platform: String(sp),
             needs_review: meta.needs_review === true || meta.needs_review === "true",
             signal_only: true,
-            created_at: m.created_at,
-            in_briefing_window: m.created_at >= sinceIso,
+            created_at: created,
+            in_window: inWindow,
           };
-        });
+        })
+        .filter((s: SignalRow) => selectedPlatforms.has(s.source_platform));
 
-      const knownPlatforms = new Set(Object.keys(PLATFORM_DISPLAY));
-      const routeRows: RouteRow[] = (routeRes.data ?? []).filter((r: any) =>
-        knownPlatforms.has(r.source) || ["ground_truth_hub", "campcore", "fenrir_lock", "website_forms"].includes(r.source),
-      );
+      const knownPlatforms = new Set(ALL_PLATFORMS);
+      const routeRows: RouteRow[] = (routeRes.data ?? [])
+        .filter((r: any) => knownPlatforms.has(r.source) && selectedPlatforms.has(r.source))
+        .filter((r: any) => {
+          const created = r.created_at;
+          return (!sinceIso || created >= sinceIso) && (!untilIso || created <= untilIso);
+        });
 
       setSignals(sigRows);
       setRoutes(routeRows);
@@ -132,7 +239,7 @@ export default function ReconciliationView() {
     } finally {
       setLoading(false);
     }
-  }, [session, timezone]);
+  }, [session, timezone, sinceIso, untilIso, selectedPlatforms]);
 
   useEffect(() => {
     if (session) run();
@@ -150,7 +257,7 @@ export default function ReconciliationView() {
 
     const rawByPlatform = new Map<string, number>();
     for (const s of signals) {
-      if (!s.in_briefing_window || !s.needs_review) continue;
+      if (!s.in_window || !s.needs_review) continue;
       rawByPlatform.set(s.source_platform, (rawByPlatform.get(s.source_platform) ?? 0) + 1);
     }
     const routesByPlatform = new Map<string, number>();
@@ -175,7 +282,7 @@ export default function ReconciliationView() {
       let detail = "Counts match.";
       if (raw > 0 && brief === 0) {
         status = "missing";
-        detail = `${raw} raw signal(s) in last ${BRIEFING_WINDOW_HOURS}h, but briefing shows none.`;
+        detail = `${raw} raw signal(s) in window, but briefing shows none.`;
       } else if (raw === 0 && brief > 0) {
         status = "extra";
         detail = `Briefing claims ${brief} but no raw signal rows match.`;
@@ -200,16 +307,21 @@ export default function ReconciliationView() {
     return out;
   }, [briefing, signals, routes]);
 
-  const mismatches = rows.filter(r => r.status !== "ok");
+  const mismatches = rows.filter((r) => r.status !== "ok");
   const totalRaw = rows.reduce((s, r) => s + r.rawMessages, 0);
   const totalBrief = briefing?.counts?.external_signals ?? 0;
   const totalMismatch = totalRaw !== totalBrief;
+
+  const rawTotalAll = signals.filter((s) => s.in_window && s.needs_review).length;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <Link to="/settings/integrations" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/settings/integrations"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Integrations
           </Link>
           <Button size="sm" variant="outline" onClick={run} disabled={loading}>
@@ -221,11 +333,62 @@ export default function ReconciliationView() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Briefing reconciliation</h1>
           <p className="text-sm text-muted-foreground">
-            Compares raw external-platform signals (messages + capture_routes) against what
-            briefing-compose surfaced. Flags anything the briefing missed, mis-counted, or went stale on.
-            Window: last {BRIEFING_WINDOW_HOURS}h.
+            Compares raw external-platform signals against what briefing-compose surfaced.
+            Flags anything the briefing missed, mis-counted, or went stale on.
           </p>
         </div>
+
+        {/* Filters */}
+        <Card className="p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge variant="secondary" className="ml-1">
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">From</span>
+              <DatePickerButton
+                date={startDate}
+                onSelect={setStartDate}
+                placeholder="Start date"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <DatePickerButton
+                date={endDate}
+                onSelect={setEndDate}
+                placeholder="End date"
+              />
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="gap-1 text-muted-foreground">
+                <X className="h-3.5 w-3.5" /> Reset
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide">Platforms</span>
+            {ALL_PLATFORMS.map((key) => (
+              <label
+                key={key}
+                className="inline-flex items-center gap-1.5 text-sm cursor-pointer select-none"
+              >
+                <Checkbox
+                  checked={selectedPlatforms.has(key)}
+                  onCheckedChange={() => togglePlatform(key)}
+                />
+                <span className={cn(!selectedPlatforms.has(key) && "text-muted-foreground")}>
+                  {displayPlatform(key)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </Card>
 
         {error && (
           <Card className="p-4 border-destructive/50 bg-destructive/5 text-sm text-destructive">
@@ -259,6 +422,12 @@ export default function ReconciliationView() {
           <p className="text-xs text-muted-foreground">
             Headline: <span className="text-foreground">{briefing?.headline ?? "—"}</span>
           </p>
+          <p className="text-xs text-muted-foreground">
+            Window: {startDate ? format(startDate, "MMM d") : "—"} →{" "}
+            {endDate ? format(endDate, "MMM d, yyyy") : "—"} ·{" "}
+            {selectedPlatforms.size} of {ALL_PLATFORMS.length} platforms ·{" "}
+            {rawTotalAll} raw signal-only messages in window
+          </p>
         </Card>
 
         <Card className="overflow-hidden">
@@ -275,11 +444,13 @@ export default function ReconciliationView() {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">
-                  {loading ? "Loading…" : "No external signals or briefing data in window."}
-                </td></tr>
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">
+                    {loading ? "Loading…" : "No external signals or briefing data in window."}
+                  </td>
+                </tr>
               )}
-              {rows.map(r => (
+              {rows.map((r) => (
                 <tr key={r.platform} className="border-t border-border/60">
                   <td className="p-3 font-medium">{displayPlatform(r.platform)}</td>
                   <td className="p-3 text-right tabular-nums">{r.rawMessages}</td>
@@ -312,7 +483,7 @@ export default function ReconciliationView() {
               <AlertTriangle className="h-4 w-4" /> {mismatches.length} mismatch(es) detected
             </div>
             <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
-              {mismatches.map(m => (
+              {mismatches.map((m) => (
                 <li key={m.platform}>
                   <span className="text-foreground">{displayPlatform(m.platform)}</span> — {m.detail}
                 </li>
@@ -328,18 +499,21 @@ export default function ReconciliationView() {
         <Card className="p-4 space-y-2">
           <div className="text-sm font-medium">Recent raw signals (last 20)</div>
           <ul className="text-xs space-y-1 font-mono">
-            {signals.slice(0, 20).map(s => (
+            {signals.slice(0, 20).map((s) => (
               <li key={s.id} className="flex justify-between gap-2 text-muted-foreground">
                 <span className="text-foreground">{displayPlatform(s.source_platform)}</span>
                 <span>{s.needs_review ? "needs_review" : "—"}</span>
-                <span>{s.in_briefing_window ? "in-window" : "stale"}</span>
+                <span>{s.in_window ? "in-window" : "stale"}</span>
                 <span>{new Date(s.created_at).toLocaleString()}</span>
               </li>
             ))}
-            {signals.length === 0 && <li className="text-muted-foreground">No signal-only messages found.</li>}
+            {signals.length === 0 && (
+              <li className="text-muted-foreground">No signal-only messages found.</li>
+            )}
           </ul>
         </Card>
       </div>
     </div>
   );
 }
+
