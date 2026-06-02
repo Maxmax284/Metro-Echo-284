@@ -858,6 +858,102 @@ export type Database = {
           },
         ]
       }
+      external_platform_webhook_diagnostics: {
+        Row: {
+          display_name: string
+          enabled: boolean
+          last_accepted_at: string | null
+          last_event_type: string | null
+          last_health_status: string
+          last_idempotency_key: string | null
+          last_received_at: string | null
+          last_rejected_at: string | null
+          last_rejection_reason: string | null
+          owner_id: string
+          secret_fingerprint: string | null
+          signature_status: string
+          source_platform: string
+          updated_at: string
+          webhook_configured: boolean
+        }
+        Insert: {
+          display_name: string
+          enabled?: boolean
+          last_accepted_at?: string | null
+          last_event_type?: string | null
+          last_health_status?: string
+          last_idempotency_key?: string | null
+          last_received_at?: string | null
+          last_rejected_at?: string | null
+          last_rejection_reason?: string | null
+          owner_id: string
+          secret_fingerprint?: string | null
+          signature_status?: string
+          source_platform: string
+          updated_at?: string
+          webhook_configured?: boolean
+        }
+        Update: {
+          display_name?: string
+          enabled?: boolean
+          last_accepted_at?: string | null
+          last_event_type?: string | null
+          last_health_status?: string
+          last_idempotency_key?: string | null
+          last_received_at?: string | null
+          last_rejected_at?: string | null
+          last_rejection_reason?: string | null
+          owner_id?: string
+          secret_fingerprint?: string | null
+          signature_status?: string
+          source_platform?: string
+          updated_at?: string
+          webhook_configured?: boolean
+        }
+        Relationships: []
+      }
+      external_platform_webhook_events: {
+        Row: {
+          accepted: boolean
+          created_at: string
+          event_type: string
+          id: string
+          idempotency_key: string
+          owner_id: string
+          payload: Json
+          received_at: string
+          rejection_reason: string | null
+          signature_status: string
+          source_platform: string
+        }
+        Insert: {
+          accepted?: boolean
+          created_at?: string
+          event_type: string
+          id?: string
+          idempotency_key: string
+          owner_id: string
+          payload?: Json
+          received_at?: string
+          rejection_reason?: string | null
+          signature_status?: string
+          source_platform: string
+        }
+        Update: {
+          accepted?: boolean
+          created_at?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          owner_id?: string
+          payload?: Json
+          received_at?: string
+          rejection_reason?: string | null
+          signature_status?: string
+          source_platform?: string
+        }
+        Relationships: []
+      }
       field_notes: {
         Row: {
           confidence: string
