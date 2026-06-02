@@ -209,7 +209,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
       "create_coach_note",
     ],
     setupChecklist: [
-      "Copy the Vanta webhook URL (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate CAMPCORE_WEBHOOK_SECRET here.",
       "Use the same secret in CampCore's outbound webhook settings.",
       "Define the role map.",
@@ -272,7 +272,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     outboundCallbacks: ["create_review_task", "mark_event_reviewed", "notify_owner"],
     setupChecklist: [
-      "Copy the Vanta webhook URL (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate FENRIR_WEBHOOK_SECRET here.",
       "Use the same secret in Fenrir's outbound webhook settings.",
       "Map severity levels.",
@@ -300,7 +300,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     ],
     outboundCallbacks: ["draft_reply", "mark_reviewed", "create_followup"],
     setupChecklist: [
-      "Pick form endpoint (when adapter ships).",
+      "Copy the Vanta webhook URL.",
       "Add or generate WEBSITE_FORMS_SECRET here.",
       "Use the same secret in the form sender.",
       "Pick allowed form types.",
