@@ -24,9 +24,10 @@ import { useSystemControls, type SystemControls } from "@/hooks/useSystemControl
 import type { IntegrationDef } from "@/lib/integrations/registry";
 import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
+import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
 import { toast } from "sonner";
 
-type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; onSecretsChanged?: () => void | Promise<void> };
+type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; diagnostic?: ExternalPlatformDiagnostic; onSecretsChanged?: () => void | Promise<void> };
 
 function generateSharedSecret(): string {
   const bytes = new Uint8Array(32);
@@ -35,7 +36,7 @@ function generateSharedSecret(): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function IntegrationCard({ def, signals, secretStatus, onSecretsChanged }: Props) {
+export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecretsChanged }: Props) {
   const { session } = useAuth();
   const { controls, update } = useSystemControls();
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
