@@ -19,6 +19,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     aliases: ["ground_truth_hub", "gth", "ground_truth", "ground-truth-hub", "GroundTruthHub"],
     secretName: "GTH_WEBHOOK_SECRET",
     allowedEvents: [
+      "integration.test",
       "booking.created",
       "booking.updated",
       "booking.state_changed",
@@ -125,6 +126,19 @@ async function hmacSha256Hex(secret: string, rawBody: string): Promise<string> {
   return hex(sig);
 }
 
+async function signatureMatches(secret: string, rawBody: string, provided: string, timestamp?: unknown): Promise<boolean> {
+  const candidates = [rawBody];
+  if (timestamp !== undefined && timestamp !== null && String(timestamp).trim()) {
+    candidates.unshift(`${String(timestamp).trim()}.${rawBody}`);
+  }
+
+  for (const candidate of candidates) {
+    const expected = await hmacSha256Hex(secret, candidate);
+    if (safeEqual(provided.toLowerCase(), expected.toLowerCase())) return true;
+  }
+  return false;
+}
+
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -147,6 +161,16 @@ function getSignature(req: Request, config: PlatformConfig): { value: string; he
 
 function parseSignature(raw: string): string {
   return raw.replace(/^sha256=/i, "").replace(/^hmac-sha256=/i, "").replace(/^v1=/i, "").trim();
+}
+
+function parseWebhookTime(value: unknown): number {
+  const raw = String(value ?? "").trim();
+  if (!raw) return Number.NaN;
+  if (/^\d+$/.test(raw)) {
+    const numeric = Number(raw);
+    return raw.length <= 10 ? numeric * 1000 : numeric;
+  }
+  return Date.parse(raw);
 }
 
 async function recordDiagnostic(admin: any, input: {
@@ -178,7 +202,7 @@ async function recordDiagnostic(admin: any, input: {
     last_received_at: now,
     last_accepted_at: input.accepted ? now : existing?.last_accepted_at ?? null,
     last_rejected_at: input.accepted ? existing?.last_rejected_at ?? null : now,
-    last_rejection_reason: input.accepted ? existing?.last_rejection_reason ?? null : input.rejectionReason ?? "unknown rejection",
+    last_rejection_reason: input.accepted ? null : input.rejectionReason ?? "unknown rejection",
     last_event_type: input.eventType ?? null,
     last_idempotency_key: input.idempotencyKey ?? null,
     signature_status: input.signatureStatus,
@@ -324,9 +348,9 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return rejectWithDiagnostic(admin, baseDiagnostic, "webhook_secret_missing", 401);
   }
 
-  const timestamp = body?.timestamp ?? body?.created_at ?? req.headers.get("x-webhook-timestamp");
+  const timestamp = body?.timestamp ?? body?.created_at ?? req.headers.get("x-vanta-timestamp") ?? req.headers.get("x-webhook-timestamp");
   if (timestamp) {
-    const parsed = Date.parse(String(timestamp));
+    const parsed = parseWebhookTime(timestamp);
     if (Number.isNaN(parsed)) return rejectWithDiagnostic(admin, baseDiagnostic, "malformed timestamp", 400);
     if (Math.abs(Date.now() - parsed) > 24 * 60 * 60 * 1000) {
       return rejectWithDiagnostic(admin, baseDiagnostic, "stale timestamp", 400);
@@ -344,8 +368,8 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   }
 
   const provided = parseSignature(signature.value);
-  const expected = await hmacSha256Hex(secret.value, raw);
-  if (!/^[a-f0-9]{64}$/i.test(provided) || !safeEqual(provided.toLowerCase(), expected.toLowerCase())) {
+  const validSignature = /^[a-f0-9]{64}$/i.test(provided) && await signatureMatches(secret.value, raw, provided, timestamp);
+  if (!validSignature) {
     return rejectWithDiagnostic(
       admin,
       { ...baseDiagnostic, signatureStatus: "invalid" },
