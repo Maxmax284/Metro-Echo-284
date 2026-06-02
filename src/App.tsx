@@ -18,6 +18,7 @@ import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
+import ReconciliationView from "./pages/ReconciliationView.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/settings/integrations" element={<IntegrationsSettings />} />
+                        <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       <CompanionWidget />

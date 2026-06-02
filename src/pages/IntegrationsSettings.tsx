@@ -81,12 +81,18 @@ export default function IntegrationsSettings() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-lg font-semibold tracking-tight">Platform Integrations</h1>
           <p className="text-xs text-muted-foreground">
             Manage how Vanta receives signals from other systems and what it is allowed to draft.
           </p>
         </div>
+        <Link
+          to="/settings/integrations/reconciliation"
+          className="ml-auto text-xs rounded-md px-2 py-1 ring-1 ring-border/60 hover:bg-surface-elevated"
+        >
+          Reconciliation
+        </Link>
       </header>
 
       <section className="mb-6 rounded-xl bg-primary/10 p-4 ring-1 ring-primary/30">
