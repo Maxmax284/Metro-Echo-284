@@ -14,6 +14,7 @@ import {
 } from "@/components/integrations/RegistryTables";
 import type { RuntimeSignals } from "@/lib/integrations/status";
 import { useSecretsStatus } from "@/hooks/useSecretsStatus";
+import { useExternalPlatformDiagnostics } from "@/hooks/useExternalPlatformDiagnostics";
 
 export default function IntegrationsSettings() {
   const { session } = useAuth();
@@ -21,6 +22,7 @@ export default function IntegrationsSettings() {
   const { controls, loading } = useSystemControls();
   const [signals, setSignals] = useState<RuntimeSignals>({});
   const { status: secretStatus, refresh: refreshSecrets } = useSecretsStatus(!!session);
+  const { diagnostics, refresh: refreshDiagnostics } = useExternalPlatformDiagnostics(!!session && isOwner === true);
 
   useEffect(() => {
     if (!session) return;
@@ -66,6 +68,9 @@ export default function IntegrationsSettings() {
   const connected = INTEGRATIONS.filter((i) => i.bucket === "connected");
   const planned = INTEGRATIONS.filter((i) => i.bucket === "planned");
   const deferred = INTEGRATIONS.filter((i) => i.bucket === "deferred");
+  const refreshIntegrationState = async () => {
+    await Promise.all([refreshSecrets(), refreshDiagnostics()]);
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
@@ -105,21 +110,21 @@ export default function IntegrationsSettings() {
       <SectionHeader title="Connected now" subtitle="Live or partially live sources." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {connected.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} onSecretsChanged={refreshSecrets} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} diagnostic={def.sourcePlatform ? diagnostics[def.sourcePlatform] : undefined} onSecretsChanged={refreshIntegrationState} />
         ))}
       </div>
 
       <SectionHeader title="Planned next" subtitle="Configured or staged. Not live until you flip the switch and the adapter ships." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {planned.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} onSecretsChanged={refreshSecrets} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} diagnostic={def.sourcePlatform ? diagnostics[def.sourcePlatform] : undefined} onSecretsChanged={refreshIntegrationState} />
         ))}
       </div>
 
       <SectionHeader title="Deferred" subtitle="On the roadmap. Not now." />
       <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
         {deferred.map((def) => (
-          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} onSecretsChanged={refreshSecrets} />
+          <IntegrationCard key={def.key} def={def} signals={signals} secretStatus={secretStatus} diagnostic={def.sourcePlatform ? diagnostics[def.sourcePlatform] : undefined} onSecretsChanged={refreshIntegrationState} />
         ))}
       </div>
 
