@@ -18,6 +18,7 @@ import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
+import ReconciliationView from "./pages/ReconciliationView.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
