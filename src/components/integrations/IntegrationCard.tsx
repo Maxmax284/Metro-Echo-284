@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, Save } from "lucide-react";
+import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, Save, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
@@ -45,6 +45,44 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const [pasteFor, setPasteFor] = useState<string | null>(null);
   const [secretValue, setSecretValue] = useState("");
   const [savingSecret, setSavingSecret] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<null | {
+    ok: boolean;
+    stage: string;
+    inbound_status?: number;
+    inbound_response?: unknown;
+    event_id?: string;
+    message_row?: { id: string; content: string } | null;
+    capture_route_row?: { id: string; new_status: string } | null;
+  }>(null);
+
+  const runSelftest = async () => {
+    if (!def.sourcePlatform) return;
+    setTesting(true);
+    setTestResult(null);
+    const { data, error } = await supabase.functions.invoke("external-platform-selftest", {
+      body: { source_platform: def.sourcePlatform },
+    });
+    setTesting(false);
+    if (error) {
+      toast.error("Test failed.", { description: error.message });
+      setTestResult({ ok: false, stage: "invoke_error", inbound_response: error.message });
+      return;
+    }
+    setTestResult(data);
+    if (data?.ok) {
+      toast.success("Test signal received and stored as draft.", {
+        description: `event_id ${String(data.event_id).slice(0, 8)}… → message ${String(data.message_row?.id).slice(0, 8)}…`,
+      });
+      await onSecretsChanged?.();
+    } else {
+      toast.error(`Test failed at ${data?.stage ?? "unknown"}`, {
+        description: typeof data?.inbound_response === "object"
+          ? JSON.stringify(data.inbound_response)
+          : String(data?.inbound_response ?? "see details below"),
+      });
+    }
+  };
 
   const status = computeStatus(def, controls, signals);
   const webhookUrl = def.webhookFunction
