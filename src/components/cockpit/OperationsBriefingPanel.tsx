@@ -5,8 +5,8 @@
 // response and re-uses it when `signals_hash` matches — no paid AI calls on
 // render, focus, or refresh-without-change.
 //
-// Live Capture stays the receipt roll; this card answers "what does it mean".
-import { useCallback, useEffect, useRef, useState } from "react";
+// Live Capture stays the receipt roll; this card is the story.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ import { useRole, type Role } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
-  Compass, RefreshCw, X, ChevronDown, ChevronUp, Loader2, ArrowRight, Info,
+  Compass, RefreshCw, X, ChevronDown, ChevronUp, Loader2, ArrowRight, Info, ShieldCheck,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 
@@ -45,10 +45,10 @@ type Item = {
 };
 
 const PLATFORM_DISPLAY: Record<string, string> = {
-  ground_truth_hub: "Ground Truth Hub",
+  ground_truth_hub: "GroundStay",
   campcore: "CampCore",
-  fenrir_lock: "Fenrir Lock",
-  website_forms: "Website Forms",
+  fenrir_lock: "Fenrir",
+  website_forms: "Website",
   telegram: "Telegram",
   email: "Email",
 };
@@ -68,6 +68,7 @@ type Briefing = {
 };
 
 const CACHE_KEY = "vanta.briefing.cache.v1";
+const LAST_SEEN_KEY = "vanta.briefing.lastSeenHash.v1";
 
 function partOfDay(now = new Date()): "morning" | "midday" | "evening" {
   const h = now.getHours();
@@ -88,6 +89,17 @@ function loadCache(): Briefing | null {
 
 function saveCache(b: Briefing) {
   try { window.localStorage.setItem(CACHE_KEY, JSON.stringify(b)); } catch { /* noop */ }
+}
+
+function scopeLabel(role: Role): string {
+  switch (role) {
+    case "owner": return "Admin · all workspaces";
+    case "manager": return "Manager";
+    case "coach": return "Coach";
+    case "viewer": return "Viewer · read-only";
+    case "personal":
+    default: return "Personal";
+  }
 }
 
 export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
@@ -117,8 +129,6 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
       });
       if (invokeErr) throw invokeErr;
       const next = data as Briefing;
-      // When the server short-circuits (ai_skipped + matching hash), keep the
-      // narrative we already have — counts/items still update from the new row.
       if (next.ai_skipped && briefing && briefing.signals_hash === next.signals_hash) {
         const merged: Briefing = { ...next, narrative: briefing.narrative };
         setBriefing(merged);
@@ -143,8 +153,6 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
     }
   }, [session, user, timezone, role, briefing]);
 
-  // Compose once per session — relies on if_match to avoid paid AI when nothing
-  // changed. Role switch re-triggers (different permission scope).
   useEffect(() => {
     if (!session) return;
     if (fetchedThisSession.current) return;
@@ -152,30 +160,64 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
     compose(false);
   }, [session, role, compose]);
 
+  // Track "new since last viewed" for trust footer.
+  const newSinceLastSeen = useMemo(() => {
+    if (!briefing || typeof window === "undefined") return 0;
+    try {
+      const lastSeen = window.localStorage.getItem(LAST_SEEN_KEY);
+      if (lastSeen === briefing.signals_hash) return 0;
+      // count net "fresh" signals as the delta proxy.
+      return (briefing.counts.fresh_captures ?? 0) + (briefing.counts.external_signals ?? 0);
+    } catch { return 0; }
+  }, [briefing]);
+
+  useEffect(() => {
+    if (!briefing || typeof window === "undefined") return;
+    const t = setTimeout(() => {
+      try { window.localStorage.setItem(LAST_SEEN_KEY, briefing.signals_hash); } catch { /* noop */ }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [briefing]);
+
   if (dismissed) return null;
 
   const counts = briefing?.counts;
+  const chips = counts ? buildChips(counts) : [];
   const sourceLine = counts ? buildSourceLine(counts) : null;
-  const newSignals = briefing && !briefing.ai_skipped;
   const updatedAgo = briefing ? formatDistanceToNow(new Date(briefing.generated_at), { addSuffix: true }) : null;
+  const quiet = counts ? isQuiet(counts) : false;
 
   return (
-    <Card className="border-border/60 bg-surface-elevated/60 p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <Compass className="h-3 w-3" /> Operations briefing
-          {role !== "personal" && (
-            <Badge variant="secondary" className="text-[9.5px] uppercase">{role}</Badge>
-          )}
+    <Card
+      className={cn(
+        "relative overflow-hidden border-border/60 bg-surface-elevated/70 p-4 space-y-3",
+        "shadow-[0_1px_0_0_hsl(var(--border)/0.4),0_8px_24px_-12px_hsl(var(--background)/0.6)]",
+        "motion-safe:animate-fade-in",
+      )}
+      aria-label="Operations briefing"
+    >
+      {/* faint operator texture, kept very subtle */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(hsl(var(--foreground))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--foreground))_1px,transparent_1px)] [background-size:24px_24px]"
+      />
+
+      <div className="relative flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <Compass className="h-3 w-3 shrink-0" />
+          <span className="truncate">Operations briefing</span>
+          <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
+            {scopeLabel(role)}
+          </Badge>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             size="sm" variant="ghost" className="h-7 gap-1 text-[11px]"
             onClick={() => compose(true)} disabled={loading}
             aria-label="Refresh briefing"
           >
             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-            Refresh
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
           <Button
             size="icon" variant="ghost" className="h-7 w-7"
@@ -194,23 +236,32 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
       </div>
 
       {!briefing && loading && (
-        <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading your signals…
+        <div className="relative space-y-2">
+          <div className="h-4 w-1/2 animate-pulse rounded bg-muted/40" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-muted/30" />
+          <div className="h-3 w-2/3 animate-pulse rounded bg-muted/20" />
         </div>
       )}
 
       {!briefing && !loading && error && (
-        <p className="text-[12.5px] text-muted-foreground">
+        <p className="relative text-[12.5px] text-muted-foreground">
           Briefing unavailable. {error}
         </p>
       )}
 
       {briefing && (
-        <>
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground">{briefing.headline}</div>
+        <div className="relative space-y-3">
+          {/* Headline strip */}
+          <div className="space-y-1.5 motion-safe:animate-fade-in">
+            <div className="text-[15px] font-medium leading-snug text-foreground">
+              {briefing.headline || (quiet ? "Quiet so far." : "Here's the shift.")}
+            </div>
             {briefing.narrative ? (
-              <p className="text-[13px] leading-snug text-foreground/85">{briefing.narrative}</p>
+              <p className="text-[13px] leading-relaxed text-foreground/85">{briefing.narrative}</p>
+            ) : quiet ? (
+              <p className="text-[12.5px] text-muted-foreground">
+                Nothing important in your lane right now. Live Capture is still watching.
+              </p>
             ) : (
               <p className="text-[12px] text-muted-foreground">
                 AI summary unavailable. Showing basic counts.
@@ -218,15 +269,30 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             )}
           </div>
 
-          {sourceLine && (
-            <div className="text-[11px] text-muted-foreground">
-              Based on: {sourceLine}
+          {/* Source chips */}
+          {chips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 motion-safe:animate-fade-in">
+              {chips.map((chip, i) => (
+                <span
+                  key={chip.key}
+                  style={{ animationDelay: `${Math.min(i * 40, 240)}ms` }}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] motion-safe:animate-fade-in",
+                    chipTone(chip.tone),
+                  )}
+                >
+                  <span className="font-medium">{chip.label}</span>
+                  <span className="text-foreground/60">·</span>
+                  <span className="tabular-nums">{chip.value}</span>
+                </span>
+              ))}
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <Button
-              size="sm" className="h-8 gap-1 text-[11.5px]"
+              size="sm" className="h-8 gap-1 text-[11.5px] motion-safe:animate-fade-in"
               onClick={() => onNavigate(routeForBestMove(briefing))}
             >
               {labelForBestMove(briefing)} <ArrowRight className="h-3 w-3" />
@@ -234,6 +300,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             <Button
               size="sm" variant="ghost" className="h-8 gap-1 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={() => setShowSources((s) => !s)}
+              aria-expanded={showSources}
             >
               <Info className="h-3 w-3" /> Why this matters
               {showSources ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
@@ -241,43 +308,98 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             <Button
               size="sm" variant="ghost" className="h-8 text-[11px] text-muted-foreground hover:text-foreground"
               onClick={() => setShowFull((s) => !s)}
+              aria-expanded={showFull}
             >
-              {showFull ? "Quick" : "Full"}
+              {showFull ? "Quick" : "Full report"}
             </Button>
           </div>
 
-          {showSources && briefing.items.length > 0 && (
-            <ul className="space-y-1 rounded-md border border-border/50 bg-background/30 p-2 text-[12px]">
-              {briefing.items.slice(0, 8).map((i) => (
-                <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
-                  <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                    {i.kind === "external_signal" && i.source
-                      ? displayPlatform(i.source)
-                      : i.kind.replace("_", " ")}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-foreground/85">{i.label}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Source trail */}
+          {showSources && (
+            <div className="motion-safe:animate-fade-in">
+              {briefing.items.length > 0 ? (
+                <ul className="space-y-1 rounded-md border border-border/50 bg-background/30 p-2 text-[12px]">
+                  {briefing.items.slice(0, 8).map((i) => (
+                    <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
+                      <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                        {i.kind === "external_signal" && i.source
+                          ? displayPlatform(i.source)
+                          : i.kind.replace(/_/g, " ")}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-foreground/85">{i.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] text-muted-foreground">
+                  No tracked items behind this summary yet.
+                </p>
+              )}
+            </div>
           )}
 
           {showFull && (
-            <div className="rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] text-muted-foreground">
+            <div className="motion-safe:animate-fade-in rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] leading-relaxed text-muted-foreground">
               {fullBreakdown(briefing.counts)}
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 pt-1 text-[10.5px] text-muted-foreground">
-            <span>
-              {updatedAgo ? `Updated ${updatedAgo}` : "Updated just now"}
-              {briefing.ai_skipped ? " · no new signals" : newSignals ? " · fresh" : ""}
+          {/* Trust footer */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-border/40 pt-2 text-[10.5px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" />
+              Based on signals you can access
             </span>
-            <span className="truncate">Best move: {briefing.best_first_move}</span>
+            <span className="tabular-nums">
+              {updatedAgo ? `Updated ${updatedAgo}` : "Updated just now"}
+              {briefing.ai_skipped
+                ? " · cached"
+                : newSinceLastSeen > 0
+                  ? ` · ${newSinceLastSeen} new`
+                  : ""}
+            </span>
           </div>
-        </>
+        </div>
       )}
     </Card>
   );
+}
+
+type Chip = { key: string; label: string; value: string | number; tone: "calm" | "active" | "warn" | "quiet" };
+
+function buildChips(c: Counts): Chip[] {
+  const chips: Chip[] = [];
+  for (const [src, n] of Object.entries(c.external_by_source ?? {})) {
+    if (!n) continue;
+    chips.push({ key: `ext:${src}`, label: displayPlatform(src), value: n, tone: "active" });
+  }
+  if (c.overdue) chips.push({ key: "overdue", label: "Overdue", value: c.overdue, tone: "warn" });
+  if (c.due_today) chips.push({ key: "due", label: "Due today", value: c.due_today, tone: "active" });
+  if (c.approvals) chips.push({ key: "approvals", label: "Approvals", value: c.approvals, tone: "active" });
+  if (c.untriaged) chips.push({ key: "files", label: "Files", value: c.untriaged, tone: "active" });
+  if (c.sherlock_pending) chips.push({ key: "sherlock", label: "Sherlock", value: c.sherlock_pending, tone: "active" });
+  if (c.fresh_captures && chips.length < 6) {
+    chips.push({ key: "captures", label: "Captures", value: c.fresh_captures, tone: "calm" });
+  }
+  return chips.slice(0, 8);
+}
+
+function chipTone(tone: Chip["tone"]): string {
+  switch (tone) {
+    case "warn":
+      return "border-destructive/40 bg-destructive/10 text-destructive";
+    case "active":
+      return "border-primary/30 bg-primary/10 text-foreground";
+    case "calm":
+      return "border-border/60 bg-muted/30 text-muted-foreground";
+    case "quiet":
+    default:
+      return "border-border/50 bg-background/40 text-muted-foreground";
+  }
+}
+
+function isQuiet(c: Counts): boolean {
+  return !(c.overdue || c.due_today || c.approvals || c.untriaged || c.sherlock_pending || c.external_signals || c.fresh_captures);
 }
 
 function buildSourceLine(c: Counts): string {
