@@ -244,17 +244,30 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return json({ ok: false, error: "malformed payload; request body must be valid JSON" }, 400);
   }
 
+  // 1. Canonical source resolution. Reject anything that isn't a known canonical key or registered alias.
   const sourceValue = typeof body?.source_platform === "string" ? body.source_platform : forcedSource;
-  if (!sourceValue) return json({ ok: false, error: "missing required field: source_platform" }, 400);
+  if (!sourceValue) return json({ ok: false, error: "source_unknown", detail: "missing source_platform" }, 400);
 
   const config = SOURCE_LOOKUP.get(normalizeSourceKey(sourceValue));
-  if (!config) return json({ ok: false, error: `unknown source platform: ${sourceValue}` }, 400);
+  if (!config) return json({ ok: false, error: "source_unknown", detail: `unrecognized source_platform: ${sourceValue}` }, 400);
   if (forcedSource && config.sourcePlatform !== forcedSource) {
-    return json({ ok: false, error: `source platform mismatch; expected ${forcedSource}` }, 400);
+    return json({ ok: false, error: "source_unknown", detail: `source_platform mismatch; endpoint expects ${forcedSource}` }, 400);
   }
 
-  const userId = body?.user_id;
-  if (!isUuid(userId)) return json({ ok: false, error: "missing required field: user_id must be a uuid" }, 400);
+  // 2. Owner identity. Authorize against the root user_id / X-Vanta-Owner header — NEVER payload.user_id.
+  const headerOwner = (req.headers.get("x-vanta-owner") ?? "").trim();
+  const rootUserId = typeof body?.user_id === "string" ? body.user_id.trim() : "";
+  const ownerCandidate = headerOwner || rootUserId;
+  if (!ownerCandidate) {
+    return json({ ok: false, error: "owner_identifier_unknown", detail: "missing X-Vanta-Owner header or root user_id" }, 400);
+  }
+  if (!isUuid(ownerCandidate)) {
+    return json({ ok: false, error: "owner_identifier_unknown", detail: "owner identifier must be a uuid" }, 400);
+  }
+  if (headerOwner && rootUserId && headerOwner.toLowerCase() !== rootUserId.toLowerCase()) {
+    return json({ ok: false, error: "source_owner_mismatch", detail: "X-Vanta-Owner does not match root user_id" }, 403);
+  }
+  const ownerId = ownerCandidate;
 
   const eventType = typeof body?.event_type === "string" ? body.event_type : typeof body?.event === "string" ? body.event : null;
   const idempotencyKey = String(
@@ -262,25 +275,29 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   ).trim();
   const payload = body?.payload;
 
+  // Owner identifier must map to a Vanta workspace owner.
   const { data: roleRow } = await admin
     .from("user_roles")
     .select("user_id")
-    .eq("user_id", userId)
+    .eq("user_id", ownerId)
     .eq("role", "owner")
     .maybeSingle();
-  if (!roleRow) return json({ ok: false, error: "user not authorized as owner" }, 403);
+  if (!roleRow) {
+    return json({ ok: false, error: "owner_identifier_unknown", detail: "owner identifier does not map to a Vanta workspace owner" }, 403);
+  }
 
   const { data: controls } = await admin
     .from("system_controls")
     .select("gth_enabled,campcore_enabled,fenrir_enabled")
-    .eq("owner_id", userId)
+    .eq("owner_id", ownerId)
     .maybeSingle();
   const enabled = config.killSwitchKey ? !!controls?.[config.killSwitchKey] : true;
 
-  const secret = await loadSecret(admin, userId, config);
+  // 3. Secret load. Source must be configured for THIS owner under THIS canonical key.
+  const secret = await loadSecret(admin, ownerId, config);
   const secretFingerprint = secret.value ? await fingerprintSecret(secret.value) : null;
   const baseDiagnostic = {
-    ownerId: userId,
+    ownerId,
     config,
     webhookConfigured: !!secret.value,
     secretFingerprint,
@@ -300,11 +317,11 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return rejectWithDiagnostic(admin, baseDiagnostic, `unsupported event type: ${eventType}`, 400);
   }
   if (!enabled) return rejectWithDiagnostic(admin, baseDiagnostic, "source platform disabled", 403);
+  if (secret.wrongSource && !secret.value) {
+    return rejectWithDiagnostic(admin, baseDiagnostic, "source_owner_mismatch", 403);
+  }
   if (!secret.value) {
-    const reason = secret.wrongSource
-      ? `webhook secret saved under wrong source platform: ${secret.wrongSource}`
-      : "webhook secret missing for source platform";
-    return rejectWithDiagnostic(admin, baseDiagnostic, reason, 500);
+    return rejectWithDiagnostic(admin, baseDiagnostic, "webhook_secret_missing", 401);
   }
 
   const timestamp = body?.timestamp ?? body?.created_at ?? req.headers.get("x-webhook-timestamp");
