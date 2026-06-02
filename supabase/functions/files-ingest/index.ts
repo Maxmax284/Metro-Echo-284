@@ -171,9 +171,13 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: noteErr?.message ?? "note insert failed" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Track B doctrine: every ingested file lands as a draft needing review.
+    // The classifier branch below may upgrade review_status to 'suggested' or
+    // hold sensitive content at 'needs_review'. Nothing routes silently.
     await supabase.from("ingested_files").update({
       status: "done", note_id: note.id, error: null,
       extracted_text: trimmed || null,
+      review_status: "needs_review",
       metadata: { ...(rec.metadata ?? {}), extraction: method, chars: trimmed.length },
     }).eq("id", rec.id);
 
