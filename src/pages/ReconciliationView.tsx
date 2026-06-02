@@ -517,22 +517,3 @@ export default function ReconciliationView() {
   );
 }
 
-// Helper that mimics date-fns formatDistanceToNow without importing it (it may not be available in this build)
-// If it is available, replace this with the real import.
-function formatDistanceToNowIntl(iso: string) {
-  try {
-    const d = new Date(iso);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffSec = Math.floor(diffMs / 1000);
-    if (diffSec < 60) return "just now";
-    const diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
-    const diffDay = Math.floor(diffHr / 24);
-    return `${diffDay}d ago`;
-  } catch {
-    return iso;
-  }
-}
