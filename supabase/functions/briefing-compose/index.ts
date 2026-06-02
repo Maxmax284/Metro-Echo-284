@@ -335,9 +335,11 @@ Deno.serve(async (req: Request) => {
             : i.kind === "untriaged" ? "untriaged file"
             : i.kind === "sherlock" ? "Sherlock finding"
             : i.kind === "briefing_candidate" ? "flagged file"
+            : i.kind === "external_signal" ? `signal · ${displayPlatform(i.source ?? "external")}`
             : "fresh capture";
           return `- [${tag}] ${i.label}${i.due_at ? ` (due ${i.due_at})` : ""}`;
         }).join("\n");
+
 
         const observedBlock = observedSalient.length
           ? `\nSherlock observe (recent): ${observedSalient.map((s) => `"${s}"`).join("; ")}`
