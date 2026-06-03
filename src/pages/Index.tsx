@@ -166,6 +166,7 @@ function IndexInner() {
         onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1.5">
+            <WorkspaceSwitcher />
             <ModeBadge />
             <Button
               variant="ghost"
