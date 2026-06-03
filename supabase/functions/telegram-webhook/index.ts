@@ -82,7 +82,7 @@ const tools = [
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
 
-async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults) {
+async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
