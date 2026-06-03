@@ -435,8 +435,9 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       entity_type: "briefing",
       event: "briefing.composed",
+      organization_id: scopeOrgId,
       payload: {
-        counts, part_of_day: partOfDay, variant, role,
+        counts, part_of_day: partOfDay, variant, role, scope: scope.kind,
         ai: !!narrative, ai_skipped, observed_used: observedSalient.length,
         signals_hash,
       },
