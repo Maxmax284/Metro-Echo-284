@@ -355,6 +355,22 @@ Deno.serve(async (req) => {
         { user_id: row.user_id, chat_id: chatId, tg_username: msg.from?.username ?? null },
         { onConflict: "chat_id" },
       );
+      // Also register the per-user channel link so Connected Accounts can
+      // surface this pairing and the user can set a default route. Defaults
+      // to 'personal' — they explicitly opt into workspace routing later.
+      await admin.from("user_channel_links").upsert(
+        {
+          user_id: row.user_id,
+          channel: "telegram",
+          external_channel_id: String(chatId),
+          provider_user_id: msg.from?.id ? String(msg.from.id) : null,
+          status: "active",
+          default_route: "personal",
+          last_seen_at: new Date().toISOString(),
+          metadata: { username: msg.from?.username ?? null },
+        },
+        { onConflict: "user_id,channel,external_channel_id" },
+      );
       await admin.from("telegram_link_codes").update({ used_at: new Date().toISOString() }).eq("code", code);
       await admin.from("audit_log").insert({ user_id: row.user_id, entity_type: "telegram", event: "telegram.linked", payload: { chat_id: chatId, username: msg.from?.username ?? null } });
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.linked() });
