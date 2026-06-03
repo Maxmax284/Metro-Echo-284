@@ -1502,31 +1502,40 @@ export type Database = {
       }
       organizations: {
         Row: {
+          accent_hsl: string | null
           created_at: string
           id: string
           kind: string
+          logo_url: string | null
           name: string
           owner_id: string
+          short_code: string | null
           slug: string
           type: string
           updated_at: string
         }
         Insert: {
+          accent_hsl?: string | null
           created_at?: string
           id?: string
           kind?: string
+          logo_url?: string | null
           name: string
           owner_id: string
+          short_code?: string | null
           slug: string
           type?: string
           updated_at?: string
         }
         Update: {
+          accent_hsl?: string | null
           created_at?: string
           id?: string
           kind?: string
+          logo_url?: string | null
           name?: string
           owner_id?: string
+          short_code?: string | null
           slug?: string
           type?: string
           updated_at?: string

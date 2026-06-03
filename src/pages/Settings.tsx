@@ -179,6 +179,23 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Workspaces & branding</h2>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
+              Create lanes, manage members, give each workspace its own short code and accent.
+            </p>
+          </div>
+          <Link
+            to="/settings/workspaces"
+            className="shrink-0 rounded-md bg-primary/15 px-3 py-1.5 text-[11.5px] font-medium text-primary ring-1 ring-primary/30 hover:bg-primary/20"
+          >
+            Open →
+          </Link>
+        </div>
+      </section>
+
       <EcosystemSourcesPanel />
 
       <CostTelemetryPanel />
