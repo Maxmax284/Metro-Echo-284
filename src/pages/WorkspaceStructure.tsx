@@ -175,7 +175,7 @@ function WorkspaceCard({
   };
 
   const setStatus = async (memberId: string, status: "active" | "suspended" | "removed") => {
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: typeof status; removed_at?: string } = { status };
     if (status === "removed") patch.removed_at = new Date().toISOString();
     const { error } = await supabase.from("organization_members").update(patch).eq("id", memberId);
     if (error) { toast.fromError(error); return; }
