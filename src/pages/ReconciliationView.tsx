@@ -263,7 +263,7 @@ export default function ReconciliationView() {
     } finally {
       setLoading(false);
     }
-  }, [session, timezone, sinceIso, untilIso, selectedPlatforms]);
+  }, [session, timezone, sinceIso, untilIso, selectedPlatforms, scopeOrgId, scope.kind]);
 
   useEffect(() => {
     if (session) run();
