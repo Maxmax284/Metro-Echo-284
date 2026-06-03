@@ -117,6 +117,9 @@ const DEFAULT_WINDOW_DAYS = 2;
 export default function ReconciliationView() {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
+  const { scope, activeMembership } = useWorkspace();
+  const scopeOrgId = scope.kind === "workspace" ? scope.organization_id : null;
+  const scopeChip = scopeLabel(scope, activeMembership);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signals, setSignals] = useState<SignalRow[]>([]);
