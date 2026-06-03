@@ -125,6 +125,7 @@ export type Database = {
           description: string | null
           executed_at: string | null
           id: string
+          organization_id: string | null
           payload: Json
           result: Json | null
           risk: Database["public"]["Enums"]["action_risk"]
@@ -144,6 +145,7 @@ export type Database = {
           description?: string | null
           executed_at?: string | null
           id?: string
+          organization_id?: string | null
           payload?: Json
           result?: Json | null
           risk?: Database["public"]["Enums"]["action_risk"]
@@ -163,6 +165,7 @@ export type Database = {
           description?: string | null
           executed_at?: string | null
           id?: string
+          organization_id?: string | null
           payload?: Json
           result?: Json | null
           risk?: Database["public"]["Enums"]["action_risk"]
@@ -329,6 +332,7 @@ export type Database = {
           entity_type: string
           event: string
           id: string
+          organization_id: string | null
           payload: Json | null
           user_id: string
         }
@@ -338,6 +342,7 @@ export type Database = {
           entity_type: string
           event: string
           id?: string
+          organization_id?: string | null
           payload?: Json | null
           user_id: string
         }
@@ -347,6 +352,7 @@ export type Database = {
           entity_type?: string
           event?: string
           id?: string
+          organization_id?: string | null
           payload?: Json | null
           user_id?: string
         }
@@ -491,6 +497,7 @@ export type Database = {
           created_at: string
           id: string
           new_status: string | null
+          organization_id: string | null
           payload: Json
           previous_status: string | null
           sherlock_finding_id: string | null
@@ -506,6 +513,7 @@ export type Database = {
           created_at?: string
           id?: string
           new_status?: string | null
+          organization_id?: string | null
           payload?: Json
           previous_status?: string | null
           sherlock_finding_id?: string | null
@@ -521,6 +529,7 @@ export type Database = {
           created_at?: string
           id?: string
           new_status?: string | null
+          organization_id?: string | null
           payload?: Json
           previous_status?: string | null
           sherlock_finding_id?: string | null
@@ -539,6 +548,7 @@ export type Database = {
           id: string
           last_reminded_at: string | null
           metadata: Json
+          organization_id: string | null
           priority: string
           remind_at: string | null
           source_note: string | null
@@ -554,6 +564,7 @@ export type Database = {
           id?: string
           last_reminded_at?: string | null
           metadata?: Json
+          organization_id?: string | null
           priority?: string
           remind_at?: string | null
           source_note?: string | null
@@ -569,6 +580,7 @@ export type Database = {
           id?: string
           last_reminded_at?: string | null
           metadata?: Json
+          organization_id?: string | null
           priority?: string
           remind_at?: string | null
           source_note?: string | null
@@ -1056,6 +1068,7 @@ export type Database = {
           metadata: Json | null
           mime_type: string | null
           note_id: string | null
+          organization_id: string | null
           review_status: string
           sensitive: boolean
           size_bytes: number | null
@@ -1081,6 +1094,7 @@ export type Database = {
           metadata?: Json | null
           mime_type?: string | null
           note_id?: string | null
+          organization_id?: string | null
           review_status?: string
           sensitive?: boolean
           size_bytes?: number | null
@@ -1106,6 +1120,7 @@ export type Database = {
           metadata?: Json | null
           mime_type?: string | null
           note_id?: string | null
+          organization_id?: string | null
           review_status?: string
           sensitive?: boolean
           size_bytes?: number | null
@@ -1243,6 +1258,7 @@ export type Database = {
           embedding: string | null
           id: string
           metadata: Json | null
+          organization_id: string | null
           role: Database["public"]["Enums"]["message_role"]
           tool_calls: Json | null
           user_id: string
@@ -1254,6 +1270,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          organization_id?: string | null
           role: Database["public"]["Enums"]["message_role"]
           tool_calls?: Json | null
           user_id: string
@@ -1265,6 +1282,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          organization_id?: string | null
           role?: Database["public"]["Enums"]["message_role"]
           tool_calls?: Json | null
           user_id?: string
@@ -1329,6 +1347,7 @@ export type Database = {
           embedding: string | null
           id: string
           metadata: Json | null
+          organization_id: string | null
           tags: string[]
           title: string | null
           updated_at: string
@@ -1341,6 +1360,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          organization_id?: string | null
           tags?: string[]
           title?: string | null
           updated_at?: string
@@ -1353,6 +1373,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          organization_id?: string | null
           tags?: string[]
           title?: string | null
           updated_at?: string
@@ -1434,24 +1455,39 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          accepted_at: string | null
           created_at: string
           id: string
+          invited_by: string | null
           organization_id: string
+          removed_at: string | null
           role: string
+          status: string
+          updated_at: string
           user_id: string
         }
         Insert: {
+          accepted_at?: string | null
           created_at?: string
           id?: string
+          invited_by?: string | null
           organization_id: string
+          removed_at?: string | null
           role?: string
+          status?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
+          accepted_at?: string | null
           created_at?: string
           id?: string
+          invited_by?: string | null
           organization_id?: string
+          removed_at?: string | null
           role?: string
+          status?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -1471,6 +1507,8 @@ export type Database = {
           kind: string
           name: string
           owner_id: string
+          slug: string
+          type: string
           updated_at: string
         }
         Insert: {
@@ -1479,6 +1517,8 @@ export type Database = {
           kind?: string
           name: string
           owner_id: string
+          slug: string
+          type?: string
           updated_at?: string
         }
         Update: {
@@ -1487,6 +1527,8 @@ export type Database = {
           kind?: string
           name?: string
           owner_id?: string
+          slug?: string
+          type?: string
           updated_at?: string
         }
         Relationships: []
@@ -2053,6 +2095,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_channel_links: {
+        Row: {
+          channel: string
+          created_at: string
+          default_route: string
+          external_channel_id: string | null
+          id: string
+          last_seen_at: string | null
+          linked_at: string
+          metadata: Json
+          organization_id: string | null
+          provider_user_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          default_route?: string
+          external_channel_id?: string | null
+          id?: string
+          last_seen_at?: string | null
+          linked_at?: string
+          metadata?: Json
+          organization_id?: string | null
+          provider_user_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          default_route?: string
+          external_channel_id?: string | null
+          id?: string
+          last_seen_at?: string | null
+          linked_at?: string
+          metadata?: Json
+          organization_id?: string | null
+          provider_user_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_modes: {
         Row: {
           mode: Database["public"]["Enums"]["app_mode"]
@@ -2138,6 +2228,7 @@ export type Database = {
           title: string
         }[]
       }
+      org_role: { Args: { _org_id: string; _user_id: string }; Returns: string }
       rate_limit_hit: {
         Args: {
           _bucket: string

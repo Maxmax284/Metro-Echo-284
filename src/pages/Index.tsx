@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
 import { ModeBadge } from "@/components/shell/ModeBadge";
+import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
@@ -165,6 +166,7 @@ function IndexInner() {
         onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1.5">
+            <WorkspaceSwitcher />
             <ModeBadge />
             <Button
               variant="ghost"
@@ -191,6 +193,20 @@ function IndexInner() {
                   >
                     <span className="font-medium">Control Room</span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">owner</span>
+                  </a>
+                  <a
+                    href="/settings/connected-accounts"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Connected accounts</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">your channels</span>
+                  </a>
+                  <a
+                    href="/settings/workspaces"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Workspaces</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">members &amp; roles</span>
                   </a>
                   <TelegramLinkCard />
                   <Separator />

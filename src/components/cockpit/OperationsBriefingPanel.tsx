@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { useRole, type Role } from "@/hooks/useRole";
+import { useWorkspace, scopeLabel as workspaceScopeLabel } from "@/providers/WorkspaceProvider";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -106,6 +107,8 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
   const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const role = useRole();
+  const { scope, activeMembership } = useWorkspace();
+  const scopeText = workspaceScopeLabel(scope, activeMembership);
 
   const [briefing, setBriefing] = useState<Briefing | null>(() => loadCache());
   const [loading, setLoading] = useState(false);
@@ -125,6 +128,9 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           timezone,
           part_of_day: partOfDay(),
           if_match: manual ? null : (briefing?.signals_hash ?? null),
+          scope: scope.kind === "workspace"
+            ? { kind: "workspace", organization_id: scope.organization_id }
+            : { kind: scope.kind },
         },
       });
       if (invokeErr) throw invokeErr;
@@ -142,7 +148,8 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           user_id: user.id,
           entity_type: "briefing",
           event: manual ? "briefing.refreshed" : "briefing.viewed",
-          payload: { signals_hash: next.signals_hash, ai_skipped: next.ai_skipped, role },
+          payload: { signals_hash: next.signals_hash, ai_skipped: next.ai_skipped, role, scope: scope.kind },
+          organization_id: scope.kind === "workspace" ? scope.organization_id : null,
         });
       }
     } catch (e: any) {
@@ -151,14 +158,20 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
     } finally {
       setLoading(false);
     }
-  }, [session, user, timezone, role, briefing]);
+  }, [session, user, timezone, role, briefing, scope]);
+
+  useEffect(() => {
+    if (!session) return;
+    // Re-fetch whenever scope changes so we never show another lane's data.
+    fetchedThisSession.current = false;
+  }, [scope]);
 
   useEffect(() => {
     if (!session) return;
     if (fetchedThisSession.current) return;
     fetchedThisSession.current = true;
     compose(false);
-  }, [session, role, compose]);
+  }, [session, role, compose, scope]);
 
   // Track "new since last viewed" for trust footer.
   const newSinceLastSeen = useMemo(() => {
@@ -207,7 +220,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           <Compass className="h-3 w-3 shrink-0" />
           <span className="truncate">Operations briefing</span>
           <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
-            {scopeLabel(role)}
+            {scopeText}
           </Badge>
         </div>
         <div className="flex shrink-0 items-center gap-1">

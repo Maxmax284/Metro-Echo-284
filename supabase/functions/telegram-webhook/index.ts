@@ -82,23 +82,23 @@ const tools = [
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
 
-async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults) {
+async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
-    const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
+    const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
     return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
   }
   if (name === "set_reminder") {
     const tz = args.timezone || defaults.timezone;
     const parsed = parseReminderHint(String(args.when ?? ""), { ...defaults, timezone: tz });
     if (parsed.status === "needs_time") {
-      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "telegram", summary: args.summary, when: args.when } });
       return { reply: VANTA_PHRASES.reminderNeedsTime(), detectedType: "reminder", routedTo: null };
     }
     if (parsed.status === "needs_ampm") {
-      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "telegram", summary: args.summary, when: args.when } });
       return { reply: VANTA_PHRASES.reminderAmPmAsk(parsed.hh, parsed.mm), detectedType: "reminder", routedTo: null };
     }
     if (parsed.status === "needs_tz") {
@@ -106,6 +106,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
     }
     const { data } = await sb.from("commitments").insert({
       user_id: userId,
+      organization_id: orgId,
       summary: args.summary,
       due_at: parsed.due_at,
       remind_at: parsed.remind_at,
@@ -113,26 +114,26 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
     }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments" };
   }
   if (name === "stage_action") {
-    const { data } = await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
+    const { data } = await sb.from("actions").insert({ user_id: userId, organization_id: orgId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions" };
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
-    const { data } = await sb.from("commitments").insert({ user_id: userId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
+    const { data } = await sb.from("commitments").insert({ user_id: userId, organization_id: orgId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
     return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments" };
   }
   return null;
 }
 
-async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
+async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null) {
   // pull a little context from the user's most recent conversation
   const { data: conv } = await sb.from("conversations").select("id").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   let history: any[] = [];
@@ -196,7 +197,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const res = await applyIntent(sb, userId, tc.function.name, args, defaults);
+      const res = await applyIntent(sb, userId, tc.function.name, args, defaults, orgId);
       if (res) {
         intents.push(res.reply);
         detectedType = res.detectedType;
@@ -213,6 +214,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   if (!routedTo) {
     await sb.from("audit_log").insert({
       user_id: userId,
+      organization_id: orgId,
       entity_type: "capture",
       event: "capture.needs_review",
       payload: { source: "telegram", text: text.slice(0, 200) },
@@ -234,8 +236,8 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
   let userMsgId: string | null = null;
   if (conv?.id) {
     const { data: ins } = await sb.from("messages").insert([
-      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
-      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
+      { user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
+      { user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
     ]).select("id, role");
     userMsgId = ((ins ?? []) as any[]).find((r) => r.role === "user")?.id ?? null;
   }
@@ -355,6 +357,22 @@ Deno.serve(async (req) => {
         { user_id: row.user_id, chat_id: chatId, tg_username: msg.from?.username ?? null },
         { onConflict: "chat_id" },
       );
+      // Also register the per-user channel link so Connected Accounts can
+      // surface this pairing and the user can set a default route. Defaults
+      // to 'personal' — they explicitly opt into workspace routing later.
+      await admin.from("user_channel_links").upsert(
+        {
+          user_id: row.user_id,
+          channel: "telegram",
+          external_channel_id: String(chatId),
+          provider_user_id: msg.from?.id ? String(msg.from.id) : null,
+          status: "active",
+          default_route: "personal",
+          last_seen_at: new Date().toISOString(),
+          metadata: { username: msg.from?.username ?? null },
+        },
+        { onConflict: "user_id,channel,external_channel_id" },
+      );
       await admin.from("telegram_link_codes").update({ used_at: new Date().toISOString() }).eq("code", code);
       await admin.from("audit_log").insert({ user_id: row.user_id, entity_type: "telegram", event: "telegram.linked", payload: { chat_id: chatId, username: msg.from?.username ?? null } });
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.linked() });
@@ -382,6 +400,9 @@ Deno.serve(async (req) => {
     // /unlink — remove the chat→user link
     if (text === "/unlink" || text.startsWith("/unlink ")) {
       await admin.from("telegram_chat_links").delete().eq("chat_id", chatId);
+      await admin.from("user_channel_links")
+        .update({ status: "disconnected" })
+        .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId));
       await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.unlinked", payload: { chat_id: chatId } });
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.unlinked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
@@ -396,12 +417,40 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Audit inbound
-    await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in", payload: { chat_id: chatId, text } });
+    // Touch last_seen on the per-user channel link and resolve the default
+    // route — captures from this chat get tagged with the right org_id (or
+    // null for personal). RLS still enforces membership downstream.
+    const { data: channelLink } = await admin.from("user_channel_links")
+      .select("default_route")
+      .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId))
+      .maybeSingle();
+    admin.from("user_channel_links")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId))
+      .then(() => {}, () => {});
+
+    // Resolve workspace_id from default_route ('personal' | 'ask_each_time' | 'workspace:<uuid>').
+    // Workspace routing requires an active membership — fall back to personal silently otherwise.
+    let routeOrgId: string | null = null;
+    const route = channelLink?.default_route ?? "personal";
+    if (typeof route === "string" && route.startsWith("workspace:")) {
+      const orgId = route.slice("workspace:".length);
+      const { data: mem } = await admin.from("organization_members")
+        .select("role").eq("organization_id", orgId).eq("user_id", link.user_id).eq("status", "active")
+        .maybeSingle();
+      if (mem) routeOrgId = orgId;
+    }
+
+    // Audit inbound (tagged with the workspace it was routed to, if any).
+    await admin.from("audit_log").insert({
+      user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in",
+      organization_id: routeOrgId,
+      payload: { chat_id: chatId, text, route },
+    });
 
     let reply = VANTA_PHRASES.gotIt();
     try {
-      reply = await aiRespond(admin, link.user_id, text);
+      reply = await aiRespond(admin, link.user_id, text, routeOrgId);
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
