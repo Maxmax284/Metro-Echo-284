@@ -197,7 +197,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const res = await applyIntent(sb, userId, tc.function.name, args, defaults);
+      const res = await applyIntent(sb, userId, tc.function.name, args, defaults, orgId);
       if (res) {
         intents.push(res.reply);
         detectedType = res.detectedType;
