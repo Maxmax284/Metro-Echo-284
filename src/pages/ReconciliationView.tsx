@@ -176,21 +176,38 @@ export default function ReconciliationView() {
     try {
       const sourcesArr = selectedPlatforms.size === ALL_PLATFORMS.length ? undefined : Array.from(selectedPlatforms);
 
-      const [msgRes, routeRes, briefRes] = await Promise.all([
+      // Mirror briefing-compose's lane rule: personal/admin = org_id IS NULL,
+      // workspace = matching org_id. Without this the raw counts mix lanes
+      // while the briefing only sees its own, producing false mismatches.
+      const applyLane = <T,>(q: T): T => {
+        const anyQ = q as any;
+        if (scopeOrgId) anyQ.eq("organization_id", scopeOrgId);
+        else anyQ.is("organization_id", null);
+        return q;
+      };
+
+      const msgQ = applyLane(
         supabase
           .from("messages")
-          .select("id, created_at, metadata")
+          .select("id, created_at, metadata, organization_id")
           .eq("user_id", session.user.id)
           .filter("metadata->>signal_only", "eq", "true")
           .order("created_at", { ascending: false })
-          .limit(1000),
+          .limit(1000)
+      );
+      const routeQ = applyLane(
         supabase
           .from("capture_routes")
-          .select("id, source, user_action, created_at")
+          .select("id, source, user_action, created_at, organization_id")
           .eq("user_id", session.user.id)
           .not("source", "is", null)
           .order("created_at", { ascending: false })
-          .limit(1000),
+          .limit(1000)
+      );
+
+      const [msgRes, routeRes, briefRes] = await Promise.all([
+        msgQ,
+        routeQ,
         supabase.functions.invoke("briefing-compose", {
           body: {
             timezone,
@@ -199,6 +216,9 @@ export default function ReconciliationView() {
             since: sinceIso,
             until: untilIso,
             sources: sourcesArr,
+            scope: scopeOrgId
+              ? { kind: "workspace", organization_id: scopeOrgId }
+              : { kind: scope.kind === "admin" ? "admin" : "personal" },
           },
         }),
       ]);
