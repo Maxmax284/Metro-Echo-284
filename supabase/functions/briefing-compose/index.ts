@@ -80,6 +80,34 @@ Deno.serve(async (req: Request) => {
       ? body.sources.filter((s: any) => typeof s === "string")
       : null;
 
+    // Workspace scope. `personal` = rows with organization_id null and user_id = caller.
+    // `workspace` = rows tagged with that org_id AND caller is an active member (RLS-enforced).
+    // `admin` = treated like personal here; admin-wide aggregation is a separate pass.
+    type Scope = { kind: "personal" | "admin" } | { kind: "workspace"; organization_id: string };
+    let scope: Scope = { kind: "personal" };
+    if (body?.scope && typeof body.scope === "object") {
+      const k = body.scope.kind;
+      if (k === "workspace" && typeof body.scope.organization_id === "string") {
+        // Verify membership before we read a single byte of workspace data.
+        const { data: mem } = await sb
+          .from("organization_members")
+          .select("role")
+          .eq("organization_id", body.scope.organization_id)
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+        if (!mem) {
+          return new Response(JSON.stringify({ error: "not a workspace member" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        scope = { kind: "workspace", organization_id: body.scope.organization_id };
+      } else if (k === "admin") {
+        scope = { kind: "admin" };
+      }
+    }
+    const scopeOrgId = scope.kind === "workspace" ? scope.organization_id : null;
+
     const now = new Date();
     const endOfToday = new Date(now); endOfToday.setUTCHours(23, 59, 59, 999);
     const startOfToday = new Date(now); startOfToday.setUTCHours(0, 0, 0, 0);
