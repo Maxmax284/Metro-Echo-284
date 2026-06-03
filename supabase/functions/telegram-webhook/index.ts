@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
 
     let reply = VANTA_PHRASES.gotIt();
     try {
-      reply = await aiRespond(admin, link.user_id, text);
+      reply = await aiRespond(admin, link.user_id, text, routeOrgId);
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
