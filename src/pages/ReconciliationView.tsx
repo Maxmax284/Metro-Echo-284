@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace, scopeLabel } from "@/providers/WorkspaceProvider";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date-fns";
