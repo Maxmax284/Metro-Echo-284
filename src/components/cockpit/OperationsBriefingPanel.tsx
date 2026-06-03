@@ -107,6 +107,8 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
   const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const role = useRole();
+  const { scope, activeMembership } = useWorkspace();
+  const scopeText = workspaceScopeLabel(scope, activeMembership);
 
   const [briefing, setBriefing] = useState<Briefing | null>(() => loadCache());
   const [loading, setLoading] = useState(false);
