@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { useRole, type Role } from "@/hooks/useRole";
+import { useWorkspace, scopeLabel as workspaceScopeLabel } from "@/providers/WorkspaceProvider";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
