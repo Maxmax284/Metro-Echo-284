@@ -235,8 +235,8 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let userMsgId: string | null = null;
   if (conv?.id) {
     const { data: ins } = await sb.from("messages").insert([
-      { user_id: userId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
-      { user_id: userId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
+      { user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
+      { user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "assistant", content: reply, metadata: { source: "telegram", routed_to: routedTo } },
     ]).select("id, role");
     userMsgId = ((ins ?? []) as any[]).find((r) => r.role === "user")?.id ?? null;
   }
