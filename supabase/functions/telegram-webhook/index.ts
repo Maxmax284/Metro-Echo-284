@@ -398,6 +398,9 @@ Deno.serve(async (req) => {
     // /unlink — remove the chat→user link
     if (text === "/unlink" || text.startsWith("/unlink ")) {
       await admin.from("telegram_chat_links").delete().eq("chat_id", chatId);
+      await admin.from("user_channel_links")
+        .update({ status: "disconnected" })
+        .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId));
       await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.unlinked", payload: { chat_id: chatId } });
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.unlinked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
@@ -412,8 +415,36 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Audit inbound
-    await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in", payload: { chat_id: chatId, text } });
+    // Touch last_seen on the per-user channel link and resolve the default
+    // route — captures from this chat get tagged with the right org_id (or
+    // null for personal). RLS still enforces membership downstream.
+    const { data: channelLink } = await admin.from("user_channel_links")
+      .select("default_route")
+      .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId))
+      .maybeSingle();
+    admin.from("user_channel_links")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId))
+      .then(() => {}, () => {});
+
+    // Resolve workspace_id from default_route ('personal' | 'ask_each_time' | 'workspace:<uuid>').
+    // Workspace routing requires an active membership — fall back to personal silently otherwise.
+    let routeOrgId: string | null = null;
+    const route = channelLink?.default_route ?? "personal";
+    if (typeof route === "string" && route.startsWith("workspace:")) {
+      const orgId = route.slice("workspace:".length);
+      const { data: mem } = await admin.from("organization_members")
+        .select("role").eq("organization_id", orgId).eq("user_id", link.user_id).eq("status", "active")
+        .maybeSingle();
+      if (mem) routeOrgId = orgId;
+    }
+
+    // Audit inbound (tagged with the workspace it was routed to, if any).
+    await admin.from("audit_log").insert({
+      user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in",
+      organization_id: routeOrgId,
+      payload: { chat_id: chatId, text, route },
+    });
 
     let reply = VANTA_PHRASES.gotIt();
     try {
