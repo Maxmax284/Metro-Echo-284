@@ -38,20 +38,24 @@ const App = () => (
               <CanvasProvider>
                 <CurrentContextProvider>
                   <AwarenessProvider>
-                    <CompanionProvider>
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/auth" element={<Auth />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/settings/integrations" element={<IntegrationsSettings />} />
-                        <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                      <CompanionWidget />
-                      <SherlockOverlay />
-                      <EntityDetailSheet />
-                      <CommandCanvas />
-                    </CompanionProvider>
+                    <WorkspaceProvider>
+                      <CompanionProvider>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/auth" element={<Auth />} />
+                          <Route path="/settings" element={<Settings />} />
+                          <Route path="/settings/integrations" element={<IntegrationsSettings />} />
+                          <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
+                          <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
+                          <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                        <CompanionWidget />
+                        <SherlockOverlay />
+                        <EntityDetailSheet />
+                        <CommandCanvas />
+                      </CompanionProvider>
+                    </WorkspaceProvider>
                   </AwarenessProvider>
                 </CurrentContextProvider>
               </CanvasProvider>
