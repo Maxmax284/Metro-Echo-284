@@ -220,7 +220,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           <Compass className="h-3 w-3 shrink-0" />
           <span className="truncate">Operations briefing</span>
           <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
-            {scopeLabel(role)}
+            {scopeText}
           </Badge>
         </div>
         <div className="flex shrink-0 items-center gap-1">
