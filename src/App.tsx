@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { CurrentContextProvider } from "@/providers/CurrentContextProvider";
 import { AwarenessProvider } from "@/providers/AwarenessProvider";
+import { WorkspaceProvider } from "@/providers/WorkspaceProvider";
 import { CompanionProvider } from "@/components/companion/CompanionContext";
 import { CompanionWidget } from "@/components/companion/CompanionWidget";
 import { SherlockProvider } from "@/components/sherlock/SherlockContext";
@@ -19,6 +20,8 @@ import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
 import ReconciliationView from "./pages/ReconciliationView.tsx";
+import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
+import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
