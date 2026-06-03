@@ -214,6 +214,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (!routedTo) {
     await sb.from("audit_log").insert({
       user_id: userId,
+      organization_id: orgId,
       entity_type: "capture",
       event: "capture.needs_review",
       payload: { source: "telegram", text: text.slice(0, 200) },
