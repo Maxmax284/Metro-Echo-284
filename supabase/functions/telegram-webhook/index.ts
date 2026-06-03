@@ -133,7 +133,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
   return null;
 }
 
-async function aiRespond(sb: SupabaseClient, userId: string, text: string) {
+async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null) {
   // pull a little context from the user's most recent conversation
   const { data: conv } = await sb.from("conversations").select("id").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   let history: any[] = [];
