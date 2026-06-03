@@ -114,52 +114,64 @@ Deno.serve(async (req: Request) => {
     const sinceFresh = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
     const staleCutoff = new Date(now.getTime() - 7 * 24 * 3600 * 1000).toISOString();
 
+    // Helper: apply the active scope to any query that has an organization_id column.
+    // Personal/admin = organization_id IS NULL; workspace = matching organization_id.
+    const applyScope = <T>(q: T): T => {
+      const anyQ = q as any;
+      if (scopeOrgId) anyQ.eq("organization_id", scopeOrgId);
+      else anyQ.is("organization_id", null);
+      return q;
+    };
+
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
     const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals] = await Promise.all([
-      sb.from("commitments")
+      applyScope(sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
         .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(50),
-      sb.from("ingested_files")
+        .limit(50)),
+      applyScope(sb.from("ingested_files")
         .select("id, filename, status, created_at")
         .eq("status", "pending")
         .order("created_at", { ascending: false })
-        .limit(20),
+        .limit(20)),
       // Briefing candidates — files the user explicitly flagged for the next briefing
       // via the aftermath tray. review_status='suggested' AND metadata.briefing_candidate=true.
-      sb.from("ingested_files")
+      applyScope(sb.from("ingested_files")
         .select("id, filename, metadata, created_at")
         .eq("review_status", "suggested")
         .contains("metadata", { briefing_candidate: true })
         .order("created_at", { ascending: false })
-        .limit(10),
-      sb.from("actions")
+        .limit(10)),
+      applyScope(sb.from("actions")
         .select("id, title, status", { count: "exact" })
         .in("status", ["proposed", "staged"])
-        .limit(10),
-      sb.from("notes")
+        .limit(10)),
+      applyScope(sb.from("notes")
         .select("id, title, body, created_at")
         .gte("created_at", sinceFresh)
         .order("created_at", { ascending: false })
-        .limit(10),
-      sb.from("sherlock_findings_cache")
-        .select("id, entity_type, updated_at", { count: "exact" })
-        .gte("updated_at", sinceFresh)
-        .limit(5),
-      sb.from("commitments")
+        .limit(10)),
+      // sherlock_findings_cache is not workspace-scoped yet — keep personal only.
+      scopeOrgId
+        ? Promise.resolve({ data: [], count: 0 } as any)
+        : sb.from("sherlock_findings_cache")
+            .select("id, entity_type, updated_at", { count: "exact" })
+            .gte("updated_at", sinceFresh)
+            .limit(5),
+      applyScope(sb.from("commitments")
         .select("id, summary, completed_at")
         .gte("completed_at", startOfToday.toISOString())
-        .limit(50),
-      // Observe findings give Vanta a "Sherlock noticed…" cue to weave into
-      // the narrative. Pulled fresh-only so the briefing stays current.
-      sb.from("sherlock_findings_cache")
-        .select("findings, entity_type, updated_at")
-        .like("entity_type", "observe:%")
-        .gte("updated_at", sinceFresh)
-        .order("updated_at", { ascending: false })
-        .limit(3),
+        .limit(50)),
+      scopeOrgId
+        ? Promise.resolve({ data: [] } as any)
+        : sb.from("sherlock_findings_cache")
+            .select("findings, entity_type, updated_at")
+            .like("entity_type", "observe:%")
+            .gte("updated_at", sinceFresh)
+            .order("updated_at", { ascending: false })
+            .limit(3),
       // External platform signals (GTH, CampCore, Fenrir, Website Forms) that
       // landed via signed webhooks as signal-only drafts. These never executed,
       // they sit in the inbox waiting for review.
@@ -174,9 +186,11 @@ Deno.serve(async (req: Request) => {
           const conds = sourcesFilter.map((s) => `metadata->>source_platform.eq.${s}`).join(",");
           q.or(conds);
         }
+        applyScope(q);
         return q.order("created_at", { ascending: false }).limit(20);
       })(),
     ]);
+
 
     const commitments = comm.data ?? [];
     const items: Item[] = [];
