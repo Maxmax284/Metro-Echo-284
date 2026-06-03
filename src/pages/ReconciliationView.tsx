@@ -355,10 +355,15 @@ export default function ReconciliationView() {
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Briefing reconciliation</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">Briefing reconciliation</h1>
+            <Badge variant="outline" className="text-[11px]">
+              Scope: {scopeChip}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Compares raw external-platform signals against what briefing-compose surfaced.
-            Flags anything the briefing missed, mis-counted, or went stale on.
+            Compares raw external-platform signals against what briefing-compose surfaced,
+            inside the active lane. Switch scope in the cockpit header to reconcile a different workspace.
           </p>
         </div>
 
