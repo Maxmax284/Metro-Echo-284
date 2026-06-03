@@ -84,21 +84,21 @@ type UserDefaults = { timezone: string; morning: string; afternoon: string; even
 
 async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
-    const { data } = await sb.from("notes").insert({ user_id: userId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
+    const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
     return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
   }
   if (name === "set_reminder") {
     const tz = args.timezone || defaults.timezone;
     const parsed = parseReminderHint(String(args.when ?? ""), { ...defaults, timezone: tz });
     if (parsed.status === "needs_time") {
-      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", event: "reminder.needs_time", payload: { source: "telegram", summary: args.summary, when: args.when } });
       return { reply: VANTA_PHRASES.reminderNeedsTime(), detectedType: "reminder", routedTo: null };
     }
     if (parsed.status === "needs_ampm") {
-      await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "telegram", summary: args.summary, when: args.when } });
+      await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", event: "reminder.needs_ampm", payload: { source: "telegram", summary: args.summary, when: args.when } });
       return { reply: VANTA_PHRASES.reminderAmPmAsk(parsed.hh, parsed.mm), detectedType: "reminder", routedTo: null };
     }
     if (parsed.status === "needs_tz") {
@@ -106,6 +106,7 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
     }
     const { data } = await sb.from("commitments").insert({
       user_id: userId,
+      organization_id: orgId,
       summary: args.summary,
       due_at: parsed.due_at,
       remind_at: parsed.remind_at,
@@ -113,20 +114,20 @@ async function applyIntent(sb: SupabaseClient, userId: string, name: string, arg
     }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments" };
   }
   if (name === "stage_action") {
-    const { data } = await sb.from("actions").insert({ user_id: userId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
+    const { data } = await sb.from("actions").insert({ user_id: userId, organization_id: orgId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions" };
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
-    const { data } = await sb.from("commitments").insert({ user_id: userId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
+    const { data } = await sb.from("commitments").insert({ user_id: userId, organization_id: orgId, summary: args.summary, due_at: args.due_at ?? null, remind_at: remind }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
-    await sb.from("audit_log").insert({ user_id: userId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
     return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments" };
   }
   return null;
