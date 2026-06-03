@@ -20,6 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { useWorkspace, scopeLabel } from "@/providers/WorkspaceProvider";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date-fns";
@@ -116,6 +117,9 @@ const DEFAULT_WINDOW_DAYS = 2;
 export default function ReconciliationView() {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
+  const { scope, activeMembership } = useWorkspace();
+  const scopeOrgId = scope.kind === "workspace" ? scope.organization_id : null;
+  const scopeChip = scopeLabel(scope, activeMembership);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signals, setSignals] = useState<SignalRow[]>([]);
@@ -172,21 +176,38 @@ export default function ReconciliationView() {
     try {
       const sourcesArr = selectedPlatforms.size === ALL_PLATFORMS.length ? undefined : Array.from(selectedPlatforms);
 
-      const [msgRes, routeRes, briefRes] = await Promise.all([
+      // Mirror briefing-compose's lane rule: personal/admin = org_id IS NULL,
+      // workspace = matching org_id. Without this the raw counts mix lanes
+      // while the briefing only sees its own, producing false mismatches.
+      const applyLane = <T,>(q: T): T => {
+        const anyQ = q as any;
+        if (scopeOrgId) anyQ.eq("organization_id", scopeOrgId);
+        else anyQ.is("organization_id", null);
+        return q;
+      };
+
+      const msgQ = applyLane(
         supabase
           .from("messages")
-          .select("id, created_at, metadata")
+          .select("id, created_at, metadata, organization_id")
           .eq("user_id", session.user.id)
           .filter("metadata->>signal_only", "eq", "true")
           .order("created_at", { ascending: false })
-          .limit(1000),
+          .limit(1000)
+      );
+      const routeQ = applyLane(
         supabase
           .from("capture_routes")
-          .select("id, source, user_action, created_at")
+          .select("id, source, user_action, created_at, organization_id")
           .eq("user_id", session.user.id)
           .not("source", "is", null)
           .order("created_at", { ascending: false })
-          .limit(1000),
+          .limit(1000)
+      );
+
+      const [msgRes, routeRes, briefRes] = await Promise.all([
+        msgQ,
+        routeQ,
         supabase.functions.invoke("briefing-compose", {
           body: {
             timezone,
@@ -195,6 +216,9 @@ export default function ReconciliationView() {
             since: sinceIso,
             until: untilIso,
             sources: sourcesArr,
+            scope: scopeOrgId
+              ? { kind: "workspace", organization_id: scopeOrgId }
+              : { kind: scope.kind === "admin" ? "admin" : "personal" },
           },
         }),
       ]);
@@ -239,7 +263,7 @@ export default function ReconciliationView() {
     } finally {
       setLoading(false);
     }
-  }, [session, timezone, sinceIso, untilIso, selectedPlatforms]);
+  }, [session, timezone, sinceIso, untilIso, selectedPlatforms, scopeOrgId, scope.kind]);
 
   useEffect(() => {
     if (session) run();
@@ -331,10 +355,15 @@ export default function ReconciliationView() {
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Briefing reconciliation</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">Briefing reconciliation</h1>
+            <Badge variant="outline" className="text-[11px]">
+              Scope: {scopeChip}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Compares raw external-platform signals against what briefing-compose surfaced.
-            Flags anything the briefing missed, mis-counted, or went stale on.
+            Compares raw external-platform signals against what briefing-compose surfaced,
+            inside the active lane. Switch scope in the cockpit header to reconcile a different workspace.
           </p>
         </div>
 
