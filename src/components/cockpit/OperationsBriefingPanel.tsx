@@ -21,6 +21,8 @@ import {
   Compass, RefreshCw, X, ChevronDown, ChevronUp, Loader2, ArrowRight, Info, ShieldCheck,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { humanizeBriefingItem, renderPlainLine, displayKind, displayPlatform as displayPlatformPE } from "@/lib/plainEnglish";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 
 type Counts = {
   overdue: number;
