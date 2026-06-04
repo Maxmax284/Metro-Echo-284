@@ -61,6 +61,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [captures, setCaptures] = useState<CaptureRow[]>([]);
   const [findings, setFindings] = useState<{ id: string; entity_type: string; summary: string; confidence: string | null; updated_at: string }[]>([]);
   const [receipts, setReceipts] = useState<AuditRow[]>([]);
+  const [pendingById, setPendingById] = useState<Map<string, SherlockFinding>>(new Map());
 
   useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
 
