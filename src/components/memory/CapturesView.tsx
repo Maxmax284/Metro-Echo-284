@@ -420,8 +420,38 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           };
           const showRecognize =
             isMessage && !item.routedTo && item.text && item.text.length > 4;
+          const nextMove: NextMove | null = (() => {
+            if (item._raw.kind === "file" && item.needsReview) {
+              return {
+                label: "Open file aftermath",
+                onClick: () => setAftermathFileId(item._raw.row.id),
+                hint: "Pick what this file becomes — nothing is filed yet.",
+              };
+            }
+            if (item.needsReview) {
+              return {
+                label: "Pick a lane",
+                onClick: () => {
+                  // Scrolls the inline RecognizePanel into view; no execution.
+                  document.getElementById(`capture-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                },
+                hint: item.why ?? "Tell Vanta what this is so it stops asking.",
+              };
+            }
+            if (item.routedTo) {
+              return {
+                label: `Open in ${item.routedTo}`,
+                onClick: () => {
+                  // No-op nav: stays on Memory. Audit keeps the receipt.
+                  toast.info?.({ title: `Routed to ${item.routedTo}`, description: item.why ?? "Filed away." });
+                },
+                hint: `Already ${item.routedTo.toLowerCase()}.`,
+              };
+            }
+            return null;
+          })();
           const footer = (
-            <div className="space-y-1.5">
+            <div id={`capture-${item.id}`} className="space-y-1.5">
               {isMessage && !item.routedTo && (
                 <SherlockChipTrigger
                   operation="suggest"
@@ -451,6 +481,12 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   links={readLinks(meta)}
                   onChange={refresh}
                   compact
+                />
+              )}
+              {nextMove && (
+                <AftermathFooter
+                  next={nextMove}
+                  whatHappensIfTap="Opens — nothing runs."
                 />
               )}
             </div>
