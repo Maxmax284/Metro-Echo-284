@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
 
 type ChannelLink = {
   id: string;
