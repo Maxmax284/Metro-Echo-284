@@ -139,6 +139,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
     }));
     setReceipts((audit.data ?? []) as AuditRow[]);
 
+    const pendingMap = new Map<string, SherlockFinding>();
+    for (const f of (sherlockPending.data ?? []) as SherlockFinding[]) {
+      if (f.source_object_id) pendingMap.set(f.source_object_id, f);
+    }
+    setPendingById(pendingMap);
+
     setCounts({
       pendingApprovals: actions.length,
       highRisk: actions.filter(a => a.risk === "high").length,
