@@ -330,21 +330,44 @@ function TodayCard({ today, overdue, onOpen }: { today: CommitmentRow[]; overdue
   );
 }
 
-function LiveCaptureCard({ items, onOpen }: { items: CaptureRow[]; onOpen: () => void }) {
+function LiveCaptureCard({ items, onOpen, findingsMap }: { items: CaptureRow[]; onOpen: () => void; findingsMap: Map<string, SherlockFinding> }) {
+  const { openSherlock } = useSherlock();
   return (
     <CardShell title="Live Capture" Icon={Inbox}
       badge={items.length ? String(items.length) : null}
       onOpen={onOpen} openLabel="Open memory">
       {items.length === 0 ? <Empty>Nothing captured recently.</Empty> : (
         <ul className="space-y-2">
-          {items.map(c => (
-            <li key={c.id} className="text-[12.5px]">
-              <div className="truncate text-foreground">{c.label}</div>
-              <div className="text-[10.5px] text-muted-foreground">
-                {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
-              </div>
-            </li>
-          ))}
+          {items.map(c => {
+            const finding = findingsMap.get(c.id);
+            return (
+              <li key={c.id} className="text-[12.5px]">
+                <div className="truncate text-foreground">{c.label}</div>
+                <div className="text-[10.5px] text-muted-foreground">
+                  {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
+                </div>
+                {finding && (
+                  <SherlockHintChip
+                    hint={{
+                      id: finding.id,
+                      mode: finding.mode,
+                      summary: finding.summary,
+                      confidence: finding.confidence,
+                      suggested_action: finding.suggested_action,
+                    }}
+                    onOpen={() => {
+                      openSherlock({
+                        entity_type: c.kind === "message" ? "message" : c.kind === "file" ? "file" : "freeform",
+                        entity_id: c.id,
+                        title: finding.summary.slice(0, 80),
+                        text: "",
+                      });
+                    }}
+                  />
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </CardShell>
