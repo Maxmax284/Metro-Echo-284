@@ -18,6 +18,7 @@ import { EntityChips } from "@/components/entities/EntityChips";
 import { RecognizePanel, type RouteLane } from "./RecognizePanel";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { logFileEvent } from "@/lib/fileAudit";
+import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 
 type InboxLane = "now" | "snoozed" | "done";
 
