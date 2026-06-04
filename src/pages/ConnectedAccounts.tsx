@@ -16,7 +16,8 @@ import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { SherlockHintChip, type SherlockHint } from "@/components/sherlock/SherlockHintChip";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import type { SherlockFinding } from "@/lib/sherlock/types";
-import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
+import { humanizeChannel, renderPlainLine, displayPlatform } from "@/lib/plainEnglish";
+import { voice } from "@/lib/vantaVoice";
 
 type ChannelLink = {
   id: string;
