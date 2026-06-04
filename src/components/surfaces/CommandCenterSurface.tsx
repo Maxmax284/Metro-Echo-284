@@ -181,7 +181,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 4. Live Capture — receipt roll. Unchanged content, just hoisted
             above the deep-dive tile grid. */}
         <div className="grid grid-cols-1 gap-3">
-          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
+          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
         </div>
 
         <div className="flex justify-end">
