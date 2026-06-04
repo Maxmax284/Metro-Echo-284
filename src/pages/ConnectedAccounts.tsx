@@ -31,8 +31,10 @@ type ChannelLink = {
 export default function ConnectedAccounts() {
   const { session } = useAuth();
   const { memberships } = useWorkspace();
+  const { openSherlock } = useSherlock();
   const [links, setLinks] = useState<ChannelLink[]>([]);
   const [activity, setActivity] = useState<Record<string, { today: number; pending: number }>>({});
+  const [hintsByChannel, setHintsByChannel] = useState<Record<string, SherlockHint[]>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
