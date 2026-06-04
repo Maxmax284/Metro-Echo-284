@@ -287,23 +287,6 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
 
       {briefing && (
         <div className="relative space-y-3">
-          {/* Headline strip */}
-          <div className="space-y-1.5 motion-safe:animate-fade-in">
-            <div className="text-[15px] font-medium leading-snug text-foreground">
-              {briefing.headline || (quiet ? "Quiet so far." : "Here's the shift.")}
-            </div>
-            {briefing.narrative ? (
-              <p className="text-[13px] leading-relaxed text-foreground/85">{briefing.narrative}</p>
-            ) : quiet ? (
-              <p className="text-[12.5px] text-muted-foreground">
-                Nothing important in your lane right now. Live Capture is still watching.
-              </p>
-            ) : (
-              <p className="text-[12px] text-muted-foreground">
-                AI summary unavailable. Showing basic counts.
-              </p>
-            )}
-          </div>
 
           {/* Verdict (doctrine: lead with meaning, never counts) */}
           <div className="space-y-1.5 motion-safe:animate-fade-in">
