@@ -305,9 +305,69 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             )}
           </div>
 
-          {/* Source chips */}
+          {/* Verdict (doctrine: lead with meaning, never counts) */}
+          <div className="space-y-1.5 motion-safe:animate-fade-in">
+            <div className="text-[15px] font-medium leading-snug text-foreground">
+              {briefing.verdict || briefing.headline || (quiet ? "Everything is calm." : "Here's the shift.")}
+            </div>
+            {briefing.what_changed && briefing.what_changed.length > 0 ? (
+              <ul className="space-y-0.5 text-[12.5px] leading-relaxed text-foreground/85">
+                {briefing.what_changed.map((line, i) => (
+                  <li key={i} className="before:mr-1.5 before:text-muted-foreground/60 before:content-['·']">{line}</li>
+                ))}
+              </ul>
+            ) : briefing.narrative ? (
+              <p className="text-[13px] leading-relaxed text-foreground/85">{briefing.narrative}</p>
+            ) : quiet ? (
+              <p className="text-[12.5px] text-muted-foreground">
+                Nothing important in your lane right now. Live Capture is still watching.
+              </p>
+            ) : null}
+            {briefing.what_matters && briefing.what_matters.length > 0 && (
+              <div className="mt-1 rounded-md border border-border/40 bg-background/30 p-2">
+                <div className="mb-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">Why it matters</div>
+                <ul className="space-y-0.5 text-[12px] text-foreground/85">
+                  {briefing.what_matters.map((line, i) => (<li key={i}>{line}</li>))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Useful connections (Sherlock, plain English, no jargon) */}
+          {briefing.useful_connections && briefing.useful_connections.length > 0 && (
+            <div className="space-y-1 rounded-md border border-primary/20 bg-primary/5 p-2 motion-safe:animate-fade-in">
+              <div className="flex items-center justify-between gap-2 text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                <span>Possible connections</span>
+                <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Detected by Sherlock</span>
+              </div>
+              <ul className="space-y-1">
+                {briefing.useful_connections.map((u) => (
+                  <li key={u.id} className="flex items-start gap-2 text-[12px]">
+                    <span className="mt-0.5 shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-primary/80">
+                      {u.confidence}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate("sherlock")}
+                      className="min-w-0 flex-1 text-left text-foreground/90 hover:text-foreground"
+                    >
+                      <span className="block truncate">{u.summary}</span>
+                      <span className="block text-[10.5px] text-muted-foreground">
+                        Next: review in Sherlock — nothing applies yet.
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Source-grounding chips — receipts, smaller and below verdict */}
           {chips.length > 0 && (
             <div className="flex flex-wrap gap-1.5 motion-safe:animate-fade-in">
+              <span className="self-center text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                Based on
+              </span>
               {chips.map((chip, i) => (
                 <span
                   key={chip.key}
