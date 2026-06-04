@@ -21,6 +21,8 @@ import {
   Compass, RefreshCw, X, ChevronDown, ChevronUp, Loader2, ArrowRight, Info, ShieldCheck,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { humanizeBriefingItem, renderPlainLine, displayKind, displayPlatform as displayPlatformPE } from "@/lib/plainEnglish";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 
 type Counts = {
   overdue: number;
@@ -331,17 +333,30 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           {showSources && (
             <div className="motion-safe:animate-fade-in">
               {briefing.items.length > 0 ? (
-                <ul className="space-y-1 rounded-md border border-border/50 bg-background/30 p-2 text-[12px]">
-                  {briefing.items.slice(0, 8).map((i) => (
-                    <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
-                      <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                        {i.kind === "external_signal" && i.source
-                          ? displayPlatform(i.source)
-                          : i.kind.replace(/_/g, " ")}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-foreground/85">{i.label}</span>
-                    </li>
-                  ))}
+                <ul className="space-y-1.5 rounded-md border border-border/50 bg-background/30 p-2 text-[12px]">
+                  {briefing.items.slice(0, 8).map((i) => {
+                    const ev = humanizeBriefingItem(i);
+                    const dest = routeForKind(i.kind);
+                    return (
+                      <li key={`${i.kind}:${i.id}`} className="flex items-start gap-2">
+                        <span className="mt-0.5 shrink-0 rounded bg-muted/40 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">
+                          {i.kind === "external_signal" && i.source ? displayPlatformPE(i.source) : displayKind(i.kind)}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-foreground/90">{renderPlainLine(ev)}</div>
+                          <button
+                            type="button"
+                            onClick={() => onNavigate(dest)}
+                            className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground"
+                          >
+                            <span className="text-[9.5px] uppercase tracking-wider">Next</span>
+                            <span>Open in {labelForSurface(dest)}</span>
+                            <ArrowRight className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] text-muted-foreground">
@@ -464,4 +479,33 @@ function labelForBestMove(b: Briefing): string {
   if (c.sherlock_pending) return "Open Sherlock";
   if (c.fresh_captures) return "Open captures";
   return "Open commitments";
+}
+
+function routeForKind(kind: string): SurfaceKey {
+  switch (kind) {
+    case "commitment": return "commitments";
+    case "action": return "actions";
+    case "sherlock_finding": return "sherlock";
+    case "file":
+    case "capture":
+    case "message":
+    case "external_signal": return "memory";
+    case "reminder": return "schedule";
+    default: return "command";
+  }
+}
+
+function labelForSurface(s: SurfaceKey): string {
+  switch (s) {
+    case "commitments": return "Commitments";
+    case "actions": return "Actions";
+    case "sherlock": return "Sherlock";
+    case "memory": return "Memory";
+    case "schedule": return "Schedule";
+    case "audit": return "Audit";
+    case "awareness": return "Awareness";
+    case "conversation": return "Conversation";
+    case "command":
+    default: return "Command";
+  }
 }

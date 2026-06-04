@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
 
 type ChannelLink = {
   id: string;
@@ -114,7 +116,10 @@ export default function ConnectedAccounts() {
       )}
 
       <div className="space-y-3">
-        {links.map((link) => (
+        {links.map((link) => {
+          const ev = humanizeChannel(link);
+          const needsRoute = link.default_route === "ask_each_time" || !link.default_route;
+          return (
           <Card key={link.id} className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -126,6 +131,8 @@ export default function ConnectedAccounts() {
                 {link.last_seen_at ? `Active ${formatDistanceToNow(new Date(link.last_seen_at), { addSuffix: true })}` : "Not used yet"}
               </span>
             </div>
+
+            <p className="text-[12px] text-foreground/85">{renderPlainLine(ev)}</p>
 
             <div>
               <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Default route</div>
@@ -175,8 +182,27 @@ export default function ConnectedAccounts() {
                 <Unlink className="h-3 w-3" /> Disconnect
               </Button>
             </div>
+
+            <AftermathFooter
+              next={{
+                label: needsRoute ? "Pick a default route" : "Review routing options",
+                onClick: () => {
+                  document.querySelector(`[data-link-id="${link.id}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                },
+                hint: needsRoute
+                  ? "Every capture from this channel will ask where to land until you set one."
+                  : `Captures from ${link.channel} land in ${
+                      link.default_route === "personal" ? "Personal"
+                      : link.default_route.startsWith("workspace:")
+                        ? (memberships.find((m) => `workspace:${m.organization_id}` === link.default_route)?.name ?? "a workspace")
+                        : "Ask each time"
+                    }.`,
+              }}
+              whatHappensIfTap="Opens routing options — nothing sends."
+            />
           </Card>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

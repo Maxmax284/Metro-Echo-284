@@ -12,6 +12,8 @@ import type { SherlockFinding } from "@/lib/sherlock/types";
 import { acceptFinding, dismissFinding, editFinding } from "@/lib/sherlock/lifecycle";
 import { vantaSay, vantaToast } from "@/lib/vantaVoice";
 import { SherlockReviewModal } from "./SherlockReviewModal";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { sherlockWhyFallback } from "@/lib/plainEnglish";
 
 const MODE_LABEL: Record<string, string> = {
   observe: "Observed",
@@ -175,6 +177,16 @@ export function SherlockFindingCard({
             </Button>
           )}
         </div>
+        <AftermathFooter
+          next={{
+            label: onInspect ? "Review in Sherlock" : "Open this finding",
+            onClick: () => { if (onInspect) onInspect(finding); else setConfirming(true); },
+            hint: finding.sensitive_flag
+              ? "Sensitive — review before anything is applied."
+              : sherlockWhyFallback(finding),
+          }}
+          whatHappensIfTap="Opens the review screen — nothing applies yet."
+        />
       </Card>
 
       <SherlockReviewModal
