@@ -224,6 +224,16 @@ export default function ConnectedAccounts() {
               );
             })()}
 
+            {hintsByChannel[link.channel]?.slice(0, 2).map((hint) => (
+              <SherlockHintChip
+                key={hint.id}
+                hint={hint}
+                onOpen={() => {
+                  openSherlock({ entity_type: "freeform", title: hint.summary ?? "Review", text: "" });
+                }}
+              />
+            ))}
+
 
             <div>
               <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Default route</div>
