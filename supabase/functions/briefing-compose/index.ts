@@ -587,6 +587,7 @@ Deno.serve(async (req: Request) => {
     });
 
     return new Response(JSON.stringify({
+      // legacy fields (kept for back-compat with existing UI)
       headline,
       counts,
       best_first_move,
@@ -599,6 +600,13 @@ Deno.serve(async (req: Request) => {
       ai_skipped,
       generated_at: now.toISOString(),
       timezone,
+      // doctrine v2 fields
+      verdict,
+      what_changed,
+      what_matters,
+      useful_connections,
+      source_grounding,
+      sections,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("briefing-compose error", e);
