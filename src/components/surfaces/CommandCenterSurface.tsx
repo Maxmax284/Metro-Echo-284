@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockHintChip } from "@/components/sherlock/SherlockHintChip";
+import type { SherlockFinding } from "@/lib/sherlock/types";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
   Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
