@@ -156,6 +156,24 @@ export default function ConnectedAccounts() {
 
             <p className="text-[12px] text-foreground/85">{renderPlainLine(ev)}</p>
 
+            {(() => {
+              const a = activity[link.channel] ?? { today: 0, pending: 0 };
+              if (a.today === 0) {
+                return (
+                  <p className="text-[11px] text-muted-foreground">
+                    Quiet today. Nothing captured from {link.channel} since midnight.
+                  </p>
+                );
+              }
+              return (
+                <p className="text-[11px] text-foreground/85">
+                  Captured {a.today} item{a.today === 1 ? "" : "s"} today
+                  {a.pending > 0 ? ` · ${a.pending} still needs routing` : " · all routed"}.
+                </p>
+              );
+            })()}
+
+
             <div>
               <div className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Default route</div>
               <div className="flex flex-wrap gap-1.5">
