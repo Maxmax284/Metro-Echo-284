@@ -57,6 +57,20 @@ const PLATFORM_DISPLAY: Record<string, string> = {
 };
 const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
+type UsefulConnection = {
+  id: string;
+  summary: string;
+  confidence: string;
+  suggested_action: string | null;
+  source_kind: string | null;
+  target_kind: string | null;
+};
+
+type Sections = {
+  people: number; operations: number; time: number; files: number;
+  notes: number; sherlock: number; integrations: number; system: number;
+};
+
 type Briefing = {
   headline: string;
   narrative: string | null;
@@ -68,6 +82,13 @@ type Briefing = {
   ai_skipped: boolean;
   generated_at: string;
   variant: string;
+  // doctrine v2
+  verdict?: string;
+  what_changed?: string[];
+  what_matters?: string[];
+  useful_connections?: UsefulConnection[];
+  source_grounding?: Record<string, unknown>;
+  sections?: Sections;
 };
 
 const CACHE_KEY = "vanta.briefing.cache.v1";
