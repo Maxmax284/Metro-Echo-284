@@ -6,6 +6,7 @@
 import { ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { voice, type TapKind } from "@/lib/vantaVoice";
 
 export type NextMove = {
   /** Short verb-led label. e.g. "Open this capture", "Review in Sherlock" */
