@@ -6,6 +6,7 @@
 import { ChevronDown, ChevronRight, ArrowRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { voice, type TapKind } from "@/lib/vantaVoice";
 
 export type NextMove = {
   /** Short verb-led label. e.g. "Open this capture", "Review in Sherlock" */
@@ -20,19 +21,22 @@ export function AftermathFooter({
   next,
   more,
   whatHappensIfTap,
+  tapKind,
   className,
   children,
 }: {
   next: NextMove;
   /** Optional secondary moves, hidden behind a tap. Also non-executing. */
   more?: NextMove[];
-  /** Tiny "what happens if I tap" hint. Defaults to "Opens — nothing runs." */
+  /** Tiny "what happens if I tap" hint. Defaults to voice.tapHint("review"). */
   whatHappensIfTap?: string;
+  /** Pick a doctrine tap kind to derive the default hint. */
+  tapKind?: TapKind;
   className?: string;
   children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const tapHint = whatHappensIfTap ?? "Opens — nothing runs.";
+  const tapHint = whatHappensIfTap ?? voice.tapHint(tapKind ?? "review");
   return (
     <div className={cn("mt-2 border-t border-border/40 pt-2 text-[11.5px]", className)}>
       <div className="flex items-center justify-between gap-2">

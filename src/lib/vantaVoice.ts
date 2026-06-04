@@ -391,3 +391,168 @@ export const vantaToast = Object.assign(say, {
 
 // Re-export raw sonner toast for legacy call sites that still need it.
 export { sonnerToast as toast };
+
+// ---------- Doctrine voice layer ───────────────────────────────────────────
+// Centralized phrase builders from the Vanta Voice + Plain-English doctrine.
+// Use these instead of inlining strings so future tone modes / locales can
+// override one place. Meaning lives in PlainItem; wording lives here.
+//
+// Default tone is plain + warm + direct. Tone modes are scaffolded but not
+// surfaced yet — every key returns the plain variant for now.
+
+export type VoiceTone = "plain" | "warm" | "direct" | "bodega" | "professional" | "minimal";
+export type VoiceSurface =
+  | "briefing" | "capture" | "sherlock" | "file" | "note"
+  | "reminder" | "connected_account" | "error" | "empty";
+
+export type TapKind =
+  | "review" | "draft" | "compare" | "source_trail" | "link_file" | "approval";
+
+const TAP_HINTS: Record<TapKind, string> = {
+  review: "Opens review. Nothing changes yet.",
+  draft: "Opens a draft. Nothing is sent automatically.",
+  compare: "Opens source comparison. Nothing changes yet.",
+  source_trail: "Opens the source trail. Read-only.",
+  link_file: "Opens the file picker. Nothing routes yet.",
+  approval: "Approval needed before anything is sent.",
+};
+
+const CONFIDENCE_COPY: Record<string, string> = {
+  high: "Likely match",
+  likely: "Likely match",
+  "likely match": "Likely match",
+  medium: "Possible match",
+  possible: "Possible match",
+  "possible match": "Possible match",
+  low: "Weak match — needs review",
+  weak: "Weak match — needs review",
+  "weak match": "Weak match — needs review",
+  pattern: "Repeated pattern",
+  "repeated pattern": "Repeated pattern",
+  none: "No action needed",
+  "no action needed": "No action needed",
+  "needs review": "Needs review",
+};
+
+export const voice = {
+  // Capture / events
+  bookingStateChanged: (v: { from?: string; to?: string; unit?: string; dates?: string }) => {
+    const move = v.from && v.to ? `from ${v.from} to ${v.to}` : "to a new state";
+    const tail = [v.unit, v.dates].filter(Boolean).join(", ");
+    return tail ? `Booking moved ${move} for ${tail}.` : `Booking moved ${move}.`;
+  },
+  bookingConfirmed: (unit?: string) =>
+    unit ? `Booking confirmed for ${unit}.` : "Booking confirmed.",
+  guestMessageNeedsReview: (tiedTo?: string) =>
+    tiedTo
+      ? `Guest message needs review before you reply. Tied to ${tiedTo}.`
+      : "Guest message needs review before you reply.",
+  maintenanceTicketNeedsReview: () => "Maintenance ticket needs review.",
+  paymentReceived: (amount?: string) =>
+    amount ? `Payment received — ${amount}.` : "Payment received.",
+
+  // Files
+  fileNeedsRouting: (kind?: string) =>
+    kind ? `${kind} still needs a place to go.` : "This file still needs a place to go.",
+  fileSensitivePreviewLimited: () =>
+    "Sensitive document. Preview is limited until you review it.",
+  fileLooksLike: (kind: string) => `This looks like a ${kind}.`,
+  fileMayBelongTo: (platform: string) => `This may belong to ${platform}.`,
+
+  // Sherlock / relationships
+  possibleConnectionFound: () => "Possible connection found.",
+  patternNoticed: () => "Pattern noticed.",
+  reviewBeforeLinking: () => "Review before linking.",
+  mayBelongWith: (what: string) => `This may belong with ${what}.`,
+  detectedBySherlock: () => "Detected by Sherlock.",
+
+  // Reminders
+  reminderOverdue: (summary?: string) =>
+    summary ? `Reminder is overdue: ${summary}.` : "This reminder is overdue.",
+  reminderDueToday: (summary?: string) =>
+    summary ? `Due today: ${summary}.` : "Due today.",
+  reminderSnoozed: (n: number) => (n > 1 ? `Snoozed ${n} times.` : "Snoozed."),
+  remindersNoneDue: () => "Nothing due right now.",
+  reminderTiedTo: (platform: string) => `This reminder is tied to ${platform}.`,
+
+  // Notes
+  noteAdded: () => "Note added.",
+  noteLooksLikeFollowup: () => "This note looks like a follow-up.",
+  noteMayBecomeReminder: () => "This note may become a reminder.",
+  noteMayConnect: () => "This note may connect to an open action.",
+
+  // Connected accounts — usefulness, not just status
+  channelSummary: (
+    platform: string,
+    a: { today: number; pending?: number; routed?: boolean },
+  ) => {
+    if (a.today === 0) return `${platform} is calm. Nothing captured today.`;
+    const tail =
+      typeof a.pending === "number" && a.pending > 0
+        ? ` ${a.pending} still needs routing.`
+        : a.routed === false ? "" : " All routed.";
+    return `${platform} captured ${a.today} item${a.today === 1 ? "" : "s"} today.${tail}`;
+  },
+  channelQuiet: (platform: string) => `${platform} is calm. Nothing captured today.`,
+  channelConnected: (platform: string) => `${platform} is connected.`,
+  channelPaused: (platform: string) => `${platform} is paused.`,
+
+  // Empty / calm states
+  emptyInLane: () => "Nothing important in your lane right now.",
+  emptyCalmCapture: () => "Quiet so far. Live Capture is still watching.",
+  emptyPlatformsCalm: () => "Connected platforms are calm.",
+  emptySherlock: () => "Sherlock found no useful connections.",
+  emptyNoAction: () => "Nothing needs action.",
+  emptyNoFiles: () => "No files need routing.",
+
+  // Errors — honest, calm
+  lookupFailed: () => "Couldn't fetch those details yet. The original system may be unavailable.",
+  cannotRefresh: () => "Couldn't refresh this yet. Try again.",
+  integrationPaused: (name?: string) =>
+    name ? `${name} is paused.` : "This integration is paused.",
+  needsApproval: () => "This action needs approval first.",
+
+  // Access / role
+  notInWorkspace: () => "Vanta can't access that workspace.",
+  notInLane: () => "Nothing important in your lane right now.",
+  notInRole: () => "Your role does not include this setting.",
+  adminOnly: () => "Admin controls are not available for your role.",
+  viewingScope: (scopeLabel: string) => `You're viewing ${scopeLabel}.`,
+
+  // Tap / action safety
+  tapHint: (k: TapKind) => TAP_HINTS[k],
+  tapToReview: () => "Tap to review.",
+  tapToDraft: () => "Tap to draft reply.",
+  tapToCompare: () => "Tap to compare sources.",
+  tapToOpenTrail: () => "Tap to open source trail.",
+  tapToLink: () => "Tap to link file.",
+  opensReview: () => TAP_HINTS.review,
+  opensDraft: () => TAP_HINTS.draft,
+  requiresApproval: () => TAP_HINTS.approval,
+
+  // Confidence
+  confidenceCopy: (raw?: string | null) => {
+    const k = (raw ?? "").toLowerCase().trim();
+    return CONFIDENCE_COPY[k] ?? "Needs review";
+  },
+} as const;
+
+// PlainItem renderer — wraps the meaning object in human wording.
+export function renderVantaCopy(
+  item: {
+    title?: string;
+    subject?: string;
+    verb?: string;
+    object?: string;
+    when?: string;
+    whyItMatters?: string;
+    nextMove?: string;
+    confidence?: string;
+  },
+  _opts?: { tone?: VoiceTone; surface?: VoiceSurface; locale?: string },
+): string {
+  if (item.title) return item.title;
+  const head = [item.subject, item.verb, item.object].filter(Boolean).join(" ").trim();
+  const tail = item.when ? ` · ${item.when}` : "";
+  return head ? `${head}${tail}` : "—";
+}

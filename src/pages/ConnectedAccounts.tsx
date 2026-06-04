@@ -16,7 +16,8 @@ import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { SherlockHintChip, type SherlockHint } from "@/components/sherlock/SherlockHintChip";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import type { SherlockFinding } from "@/lib/sherlock/types";
-import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
+import { humanizeChannel, renderPlainLine, displayPlatform } from "@/lib/plainEnglish";
+import { voice } from "@/lib/vantaVoice";
 
 type ChannelLink = {
   id: string;
@@ -209,17 +210,10 @@ export default function ConnectedAccounts() {
 
             {(() => {
               const a = activity[link.channel] ?? { today: 0, pending: 0 };
-              if (a.today === 0) {
-                return (
-                  <p className="text-[11px] text-muted-foreground">
-                    Quiet today. Nothing captured from {link.channel} since midnight.
-                  </p>
-                );
-              }
+              const platform = displayPlatform(link.channel);
               return (
-                <p className="text-[11px] text-foreground/85">
-                  Captured {a.today} item{a.today === 1 ? "" : "s"} today
-                  {a.pending > 0 ? ` · ${a.pending} still needs routing` : " · all routed"}.
+                <p className={`text-[11px] ${a.today === 0 ? "text-muted-foreground" : "text-foreground/85"}`}>
+                  {voice.channelSummary(platform, { today: a.today, pending: a.pending })}
                 </p>
               );
             })()}
