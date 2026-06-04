@@ -125,7 +125,9 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals] = await Promise.all([
+    // sherlock_findings is user-scoped only (no org column) — pull only when
+    // not in a workspace lane. Doctrine: filter before analyze.
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals, pendingFindings] = await Promise.all([
       applyScope(sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -189,6 +191,17 @@ Deno.serve(async (req: Request) => {
         applyScope(q);
         return q.order("created_at", { ascending: false }).limit(20);
       })(),
+      // Pending Sherlock findings → feed useful_connections in the briefing.
+      // Doctrine: filter first. Only user-owned findings, surface non-sensitive.
+      // Workspace lane: skip (table not yet org-scoped).
+      scopeOrgId
+        ? Promise.resolve({ data: [] } as any)
+        : sb.from("sherlock_findings")
+            .select("id, mode, summary, confidence, suggested_action, source_object_type, target_object_type, sensitive_flag, updated_at")
+            .eq("status", "pending")
+            .eq("sensitive_flag", false)
+            .order("updated_at", { ascending: false })
+            .limit(8),
     ]);
 
 
