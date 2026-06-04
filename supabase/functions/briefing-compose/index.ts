@@ -304,6 +304,57 @@ Deno.serve(async (req: Request) => {
       external_by_source: externalBySource,
     };
 
+    // ── Doctrine v2 fields ────────────────────────────────────────────────
+    // Verdict-first briefing: lead with meaning, not counts. Never start with
+    // "10 from X". Sections group by operational meaning.
+    const findings = (pendingFindings.data ?? []) as any[];
+
+    // Useful connections (max 3) from Sherlock — plain English, no jargon.
+    const useful_connections = findings.slice(0, 3).map((f) => ({
+      id: f.id as string,
+      summary: String(f.summary ?? "Possible connection found"),
+      confidence: confidenceWord(f.confidence),
+      suggested_action: f.suggested_action ?? null,
+      source_kind: f.source_object_type ?? null,
+      target_kind: f.target_object_type ?? null,
+    }));
+
+    // Source grounding — what the briefing is computed from (receipts).
+    const source_grounding = {
+      external_signals: counts.external_signals,
+      external_by_source: counts.external_by_source,
+      commitments_open: commitments.length,
+      files_pending: untriagedFiles.length,
+      fresh_captures: counts.fresh_captures,
+      sherlock_pending: findings.length,
+      closed_today: counts.closed_today,
+    };
+
+    // Sections — operational meaning, not source.
+    const guestFacingExternal = externalItems.filter((e: any) => {
+      const src = e.source ?? "";
+      return src === "ground_truth_hub" || src === "gth" || src === "campcore";
+    }).length;
+    const sections = {
+      people: guestFacingExternal,            // guest/member messages-ish
+      operations: counts.approvals,
+      time: counts.overdue + counts.due_today + counts.stale,
+      files: counts.untriaged + counts.briefing_candidates,
+      notes: counts.fresh_captures,
+      sherlock: useful_connections.length,
+      integrations: counts.external_signals,
+      // System/admin only populated for elevated roles.
+      system: role === "owner" || role === "manager" ? 0 : 0,
+    };
+
+    // Verdict — one plain-English line. Deterministic, never count-led.
+    const verdict = composeVerdict(counts, variant, role, useful_connections.length);
+
+    // What changed / what matters — 1-3 lines each, sourced from already-
+    // filtered rows. We do not let the model see anything outside this set.
+    const what_changed = composeWhatChanged(counts, externalBySource, findings.length);
+    const what_matters = composeWhatMatters(counts, items, useful_connections);
+
     // ---- Best-first-move heuristic (deterministic, no AI) ------------------
     // Wrap variant biases toward closing the day, not opening new work.
     let best_first_move = "";
