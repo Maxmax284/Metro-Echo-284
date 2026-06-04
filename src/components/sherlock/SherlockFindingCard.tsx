@@ -15,12 +15,14 @@ import { SherlockReviewModal } from "./SherlockReviewModal";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { sherlockWhyFallback } from "@/lib/plainEnglish";
 
+// Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
+// "Detected by Sherlock" appears as a small trailing label elsewhere.
 const MODE_LABEL: Record<string, string> = {
-  observe: "Observed",
-  extract: "Extracted",
-  relate: "Possible link",
-  suggest: "Suggested",
-  investigate: "Investigation",
+  observe: "Pattern noticed",
+  extract: "Detail extracted",
+  relate: "Possible connection",
+  suggest: "Suggestion",
+  investigate: "Worth a look",
 };
 
 const HIGH_IMPACT_ACTIONS = new Set([
