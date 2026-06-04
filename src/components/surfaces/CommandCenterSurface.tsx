@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
+import { SherlockHintChip } from "@/components/sherlock/SherlockHintChip";
+import type { SherlockFinding } from "@/lib/sherlock/types";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
   Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -59,6 +61,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [captures, setCaptures] = useState<CaptureRow[]>([]);
   const [findings, setFindings] = useState<{ id: string; entity_type: string; summary: string; confidence: string | null; updated_at: string }[]>([]);
   const [receipts, setReceipts] = useState<AuditRow[]>([]);
+  const [pendingById, setPendingById] = useState<Map<string, SherlockFinding>>(new Map());
 
   useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
 
@@ -68,7 +71,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
     const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
 
-    const [acts, commits, recentMsgs, recentFiles, sherlock, audit] = await Promise.all([
+    const [acts, commits, recentMsgs, recentFiles, sherlock, audit, sherlockPending] = await Promise.all([
       supabase.from("actions")
         .select("id, title, risk, status, updated_at")
         .in("status", ["staged", "proposed"])
@@ -95,6 +98,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         .select("id, event, entity_type, created_at")
         .order("created_at", { ascending: false })
         .limit(15),
+      supabase.from("sherlock_findings")
+        .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
+        .eq("user_id", session.user.id)
+        .eq("status", "pending")
+        .order("updated_at", { ascending: false })
+        .limit(100),
     ]);
 
     const actions = (acts.data ?? []) as ActionRow[];
@@ -129,6 +138,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
       };
     }));
     setReceipts((audit.data ?? []) as AuditRow[]);
+
+    const pendingMap = new Map<string, SherlockFinding>();
+    for (const f of (sherlockPending.data ?? []) as SherlockFinding[]) {
+      if (f.source_object_id) pendingMap.set(f.source_object_id, f);
+    }
+    setPendingById(pendingMap);
 
     setCounts({
       pendingApprovals: actions.length,
@@ -166,7 +181,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 4. Live Capture — receipt roll. Unchanged content, just hoisted
             above the deep-dive tile grid. */}
         <div className="grid grid-cols-1 gap-3">
-          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} />
+          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
         </div>
 
         <div className="flex justify-end">
@@ -315,21 +330,44 @@ function TodayCard({ today, overdue, onOpen }: { today: CommitmentRow[]; overdue
   );
 }
 
-function LiveCaptureCard({ items, onOpen }: { items: CaptureRow[]; onOpen: () => void }) {
+function LiveCaptureCard({ items, onOpen, findingsMap }: { items: CaptureRow[]; onOpen: () => void; findingsMap: Map<string, SherlockFinding> }) {
+  const { openSherlock } = useSherlock();
   return (
     <CardShell title="Live Capture" Icon={Inbox}
       badge={items.length ? String(items.length) : null}
       onOpen={onOpen} openLabel="Open memory">
       {items.length === 0 ? <Empty>Nothing captured recently.</Empty> : (
         <ul className="space-y-2">
-          {items.map(c => (
-            <li key={c.id} className="text-[12.5px]">
-              <div className="truncate text-foreground">{c.label}</div>
-              <div className="text-[10.5px] text-muted-foreground">
-                {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
-              </div>
-            </li>
-          ))}
+          {items.map(c => {
+            const finding = findingsMap.get(c.id);
+            return (
+              <li key={c.id} className="text-[12.5px]">
+                <div className="truncate text-foreground">{c.label}</div>
+                <div className="text-[10.5px] text-muted-foreground">
+                  {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
+                </div>
+                {finding && (
+                  <SherlockHintChip
+                    hint={{
+                      id: finding.id,
+                      mode: finding.mode,
+                      summary: finding.summary,
+                      confidence: finding.confidence,
+                      suggested_action: finding.suggested_action,
+                    }}
+                    onOpen={() => {
+                      openSherlock({
+                        entity_type: c.kind === "message" ? "message" : c.kind === "file" ? "file" : "freeform",
+                        entity_id: c.id,
+                        title: finding.summary.slice(0, 80),
+                        text: "",
+                      });
+                    }}
+                  />
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </CardShell>

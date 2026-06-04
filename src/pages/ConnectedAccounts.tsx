@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { SherlockHintChip, type SherlockHint } from "@/components/sherlock/SherlockHintChip";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
+import type { SherlockFinding } from "@/lib/sherlock/types";
 import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
 
 type ChannelLink = {
@@ -28,8 +31,10 @@ type ChannelLink = {
 export default function ConnectedAccounts() {
   const { session } = useAuth();
   const { memberships } = useWorkspace();
+  const { openSherlock } = useSherlock();
   const [links, setLinks] = useState<ChannelLink[]>([]);
   const [activity, setActivity] = useState<Record<string, { today: number; pending: number }>>({});
+  const [hintsByChannel, setHintsByChannel] = useState<Record<string, SherlockHint[]>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -64,6 +69,52 @@ export default function ConnectedAccounts() {
       }
     }
     setActivity(acc);
+
+    // Sherlock hints matched to channel via their source objects
+    const { data: pendingFindings } = await supabase
+      .from("sherlock_findings")
+      .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
+      .eq("user_id", session.user.id)
+      .eq("status", "pending")
+      .order("updated_at", { ascending: false })
+      .limit(100);
+    const msgIds = (pendingFindings ?? [])
+      .filter((f: any) => f.source_object_type === "message" && f.source_object_id)
+      .map((f: any) => f.source_object_id);
+    const fileIds = (pendingFindings ?? [])
+      .filter((f: any) => f.source_object_type === "file" && f.source_object_id)
+      .map((f: any) => f.source_object_id);
+    const [{ data: msgs }, { data: files }] = await Promise.all([
+      msgIds.length > 0
+        ? supabase.from("messages").select("id, metadata").in("id", msgIds)
+        : Promise.resolve({ data: [] }),
+      fileIds.length > 0
+        ? supabase.from("ingested_files").select("id, source").in("id", fileIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const idToChannel = new Map<string, string>();
+    for (const m of msgs ?? []) {
+      const ch = (m as any).metadata?.source ?? "companion";
+      idToChannel.set((m as any).id, ch);
+    }
+    for (const f of files ?? []) {
+      idToChannel.set((f as any).id, (f as any).source ?? "unknown");
+    }
+    const byChannel: Record<string, SherlockHint[]> = {};
+    for (const f of (pendingFindings ?? []) as SherlockFinding[]) {
+      const ch = idToChannel.get(f.source_object_id ?? "");
+      if (!ch) continue;
+      if (!byChannel[ch]) byChannel[ch] = [];
+      byChannel[ch].push({
+        id: f.id,
+        mode: f.mode,
+        summary: f.summary,
+        confidence: f.confidence,
+        suggested_action: f.suggested_action,
+      });
+    }
+    setHintsByChannel(byChannel);
+
     setLoading(false);
   };
 
@@ -172,6 +223,16 @@ export default function ConnectedAccounts() {
                 </p>
               );
             })()}
+
+            {hintsByChannel[link.channel]?.slice(0, 2).map((hint) => (
+              <SherlockHintChip
+                key={hint.id}
+                hint={hint}
+                onOpen={() => {
+                  openSherlock({ entity_type: "freeform", title: hint.summary ?? "Review", text: "" });
+                }}
+              />
+            ))}
 
 
             <div>
