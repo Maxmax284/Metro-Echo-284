@@ -71,7 +71,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
     const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
 
-    const [acts, commits, recentMsgs, recentFiles, sherlock, audit] = await Promise.all([
+    const [acts, commits, recentMsgs, recentFiles, sherlock, audit, sherlockPending] = await Promise.all([
       supabase.from("actions")
         .select("id, title, risk, status, updated_at")
         .in("status", ["staged", "proposed"])
@@ -98,6 +98,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         .select("id, event, entity_type, created_at")
         .order("created_at", { ascending: false })
         .limit(15),
+      supabase.from("sherlock_findings")
+        .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
+        .eq("user_id", session.user.id)
+        .eq("status", "pending")
+        .order("updated_at", { ascending: false })
+        .limit(100),
     ]);
 
     const actions = (acts.data ?? []) as ActionRow[];
