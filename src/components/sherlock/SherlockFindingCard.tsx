@@ -12,6 +12,8 @@ import type { SherlockFinding } from "@/lib/sherlock/types";
 import { acceptFinding, dismissFinding, editFinding } from "@/lib/sherlock/lifecycle";
 import { vantaSay, vantaToast } from "@/lib/vantaVoice";
 import { SherlockReviewModal } from "./SherlockReviewModal";
+import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { sherlockWhyFallback } from "@/lib/plainEnglish";
 
 const MODE_LABEL: Record<string, string> = {
   observe: "Observed",
