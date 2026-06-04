@@ -480,3 +480,32 @@ function labelForBestMove(b: Briefing): string {
   if (c.fresh_captures) return "Open captures";
   return "Open commitments";
 }
+
+function routeForKind(kind: string): SurfaceKey {
+  switch (kind) {
+    case "commitment": return "commitments";
+    case "action": return "actions";
+    case "sherlock_finding": return "sherlock";
+    case "file":
+    case "capture":
+    case "message":
+    case "external_signal": return "memory";
+    case "reminder": return "schedule";
+    default: return "command";
+  }
+}
+
+function labelForSurface(s: SurfaceKey): string {
+  switch (s) {
+    case "commitments": return "Commitments";
+    case "actions": return "Actions";
+    case "sherlock": return "Sherlock";
+    case "memory": return "Memory";
+    case "schedule": return "Schedule";
+    case "audit": return "Audit";
+    case "awareness": return "Awareness";
+    case "conversation": return "Conversation";
+    case "command":
+    default: return "Command";
+  }
+}
