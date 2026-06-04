@@ -31,6 +31,85 @@ const PLATFORM_DISPLAY: Record<string, string> = {
 };
 const displayPlatform = (k: string) => PLATFORM_DISPLAY[k] ?? k;
 
+// ── Plain-English helpers (doctrine: verdict-first, never count-led) ────────
+function confidenceWord(raw: string | null | undefined): string {
+  const v = (raw ?? "").toLowerCase();
+  if (v === "high") return "likely match";
+  if (v === "medium") return "possible match";
+  if (v === "low") return "weak match";
+  return "needs review";
+}
+
+type CountsLite = {
+  overdue: number; due_today: number; stale: number; approvals: number;
+  untriaged: number; fresh_captures: number; external_signals: number;
+  closed_today: number; slipped_today: number;
+  external_by_source: Record<string, number>;
+};
+
+function composeVerdict(
+  c: CountsLite,
+  variant: string,
+  _role: string,
+  usefulConnections: number,
+): string {
+  // Wrap: end-of-day debrief tone.
+  if (variant === "wrap") {
+    if (c.slipped_today > 0) return "Day's nearly done — a few items slipped.";
+    if (c.closed_today > 0 && c.approvals === 0) return "Solid wrap. The day closed clean.";
+    if (c.approvals > 0) return "One thing to clear before signing off.";
+    return "Everything is calm. Call it a day.";
+  }
+  // Workspace-noisy verdicts come from operational meaning, never source counts.
+  const guestFacing = (c.external_by_source.ground_truth_hub ?? 0) +
+    (c.external_by_source.gth ?? 0) + (c.external_by_source.campcore ?? 0);
+  if (c.overdue > 0 && c.overdue >= 3) return "A few things have slipped — worth a sweep.";
+  if (c.overdue > 0) return "One thing is overdue — worth a quick close-out.";
+  if (c.approvals > 0 && c.approvals >= 3) return "Several actions are waiting on your approval.";
+  if (c.approvals > 0) return "An action is waiting on your approval.";
+  if (guestFacing > 0) return "Guest-facing work needs a quick review.";
+  if (c.external_signals > 0) return "New signals landed — a quick scan is enough.";
+  if (c.due_today > 0) return "A few items land today — nothing urgent.";
+  if (c.untriaged > 0) return "Inbox has files waiting to be routed.";
+  if (usefulConnections > 0) return "Quiet — but a possible connection is worth a look.";
+  if (c.fresh_captures > 0) return "Quiet — only fresh notes since last check.";
+  return "Everything is calm.";
+}
+
+function composeWhatChanged(
+  c: CountsLite,
+  bySource: Record<string, number>,
+  sherlockNew: number,
+): string[] {
+  const lines: string[] = [];
+  const srcs = Object.entries(bySource);
+  if (srcs.length === 1) {
+    const [s, n] = srcs[0];
+    lines.push(`${displayPlatform(s)} sent ${n} new signal${n === 1 ? "" : "s"}.`);
+  } else if (srcs.length > 1) {
+    lines.push(srcs.map(([s, n]) => `${displayPlatform(s)}: ${n}`).join(" · "));
+  }
+  if (c.fresh_captures > 0) lines.push(`${c.fresh_captures} fresh capture${c.fresh_captures === 1 ? "" : "s"} landed.`);
+  if (c.untriaged > 0) lines.push(`${c.untriaged} file${c.untriaged === 1 ? "" : "s"} waiting to be routed.`);
+  if (sherlockNew > 0) lines.push(`${sherlockNew} possible connection${sherlockNew === 1 ? "" : "s"} found.`);
+  return lines.slice(0, 3);
+}
+
+function composeWhatMatters(
+  c: CountsLite,
+  items: { kind: string; label: string }[],
+  useful: { summary: string }[],
+): string[] {
+  const lines: string[] = [];
+  if (c.overdue > 0) {
+    const first = items.find((i) => i.kind === "overdue" || i.kind === "stale");
+    lines.push(first ? `Overdue: ${first.label}.` : `${c.overdue} overdue item${c.overdue === 1 ? "" : "s"}.`);
+  }
+  if (c.approvals > 0) lines.push(`${c.approvals} action${c.approvals === 1 ? "" : "s"} waiting on you.`);
+  if (useful[0]) lines.push(useful[0].summary);
+  return lines.slice(0, 3);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -125,7 +204,9 @@ Deno.serve(async (req: Request) => {
 
     // Parallel queries — keep them tight, cap rows. Wrap variant additionally
     // pulls today's closed commitments and recent observe findings.
-    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals] = await Promise.all([
+    // sherlock_findings is user-scoped only (no org column) — pull only when
+    // not in a workspace lane. Doctrine: filter before analyze.
+    const [comm, files, candidates, actions, fresh, sherlock, closedToday, observed, externals, pendingFindings] = await Promise.all([
       applyScope(sb.from("commitments")
         .select("id, summary, due_at, remind_at, status, created_at")
         .eq("status", "open")
@@ -189,6 +270,17 @@ Deno.serve(async (req: Request) => {
         applyScope(q);
         return q.order("created_at", { ascending: false }).limit(20);
       })(),
+      // Pending Sherlock findings → feed useful_connections in the briefing.
+      // Doctrine: filter first. Only user-owned findings, surface non-sensitive.
+      // Workspace lane: skip (table not yet org-scoped).
+      scopeOrgId
+        ? Promise.resolve({ data: [] } as any)
+        : sb.from("sherlock_findings")
+            .select("id, mode, summary, confidence, suggested_action, source_object_type, target_object_type, sensitive_flag, updated_at")
+            .eq("status", "pending")
+            .eq("sensitive_flag", false)
+            .order("updated_at", { ascending: false })
+            .limit(8),
     ]);
 
 
@@ -290,6 +382,57 @@ Deno.serve(async (req: Request) => {
       external_signals: externalItems.length,
       external_by_source: externalBySource,
     };
+
+    // ── Doctrine v2 fields ────────────────────────────────────────────────
+    // Verdict-first briefing: lead with meaning, not counts. Never start with
+    // "10 from X". Sections group by operational meaning.
+    const findings = (pendingFindings.data ?? []) as any[];
+
+    // Useful connections (max 3) from Sherlock — plain English, no jargon.
+    const useful_connections = findings.slice(0, 3).map((f) => ({
+      id: f.id as string,
+      summary: String(f.summary ?? "Possible connection found"),
+      confidence: confidenceWord(f.confidence),
+      suggested_action: f.suggested_action ?? null,
+      source_kind: f.source_object_type ?? null,
+      target_kind: f.target_object_type ?? null,
+    }));
+
+    // Source grounding — what the briefing is computed from (receipts).
+    const source_grounding = {
+      external_signals: counts.external_signals,
+      external_by_source: counts.external_by_source,
+      commitments_open: commitments.length,
+      files_pending: untriagedFiles.length,
+      fresh_captures: counts.fresh_captures,
+      sherlock_pending: findings.length,
+      closed_today: counts.closed_today,
+    };
+
+    // Sections — operational meaning, not source.
+    const guestFacingExternal = externalItems.filter((e: any) => {
+      const src = e.source ?? "";
+      return src === "ground_truth_hub" || src === "gth" || src === "campcore";
+    }).length;
+    const sections = {
+      people: guestFacingExternal,            // guest/member messages-ish
+      operations: counts.approvals,
+      time: counts.overdue + counts.due_today + counts.stale,
+      files: counts.untriaged + counts.briefing_candidates,
+      notes: counts.fresh_captures,
+      sherlock: useful_connections.length,
+      integrations: counts.external_signals,
+      // System/admin only populated for elevated roles.
+      system: role === "owner" || role === "manager" ? 0 : 0,
+    };
+
+    // Verdict — one plain-English line. Deterministic, never count-led.
+    const verdict = composeVerdict(counts, variant, role, useful_connections.length);
+
+    // What changed / what matters — 1-3 lines each, sourced from already-
+    // filtered rows. We do not let the model see anything outside this set.
+    const what_changed = composeWhatChanged(counts, externalBySource, findings.length);
+    const what_matters = composeWhatMatters(counts, items, useful_connections);
 
     // ---- Best-first-move heuristic (deterministic, no AI) ------------------
     // Wrap variant biases toward closing the day, not opening new work.
@@ -444,6 +587,7 @@ Deno.serve(async (req: Request) => {
     });
 
     return new Response(JSON.stringify({
+      // legacy fields (kept for back-compat with existing UI)
       headline,
       counts,
       best_first_move,
@@ -456,6 +600,13 @@ Deno.serve(async (req: Request) => {
       ai_skipped,
       generated_at: now.toISOString(),
       timezone,
+      // doctrine v2 fields
+      verdict,
+      what_changed,
+      what_matters,
+      useful_connections,
+      source_grounding,
+      sections,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("briefing-compose error", e);
