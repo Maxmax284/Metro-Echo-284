@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { SherlockHintChip, type SherlockHint } from "@/components/sherlock/SherlockHintChip";
+import { useSherlock } from "@/components/sherlock/SherlockContext";
+import type { SherlockFinding } from "@/lib/sherlock/types";
 import { humanizeChannel, renderPlainLine } from "@/lib/plainEnglish";
 
 type ChannelLink = {
