@@ -29,6 +29,7 @@ export default function ConnectedAccounts() {
   const { session } = useAuth();
   const { memberships } = useWorkspace();
   const [links, setLinks] = useState<ChannelLink[]>([]);
+  const [activity, setActivity] = useState<Record<string, { today: number; pending: number }>>({});
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -42,6 +43,27 @@ export default function ConnectedAccounts() {
       .eq("user_id", session.user.id)
       .order("linked_at", { ascending: false });
     setLinks((data ?? []) as ChannelLink[]);
+    // Activity counts per channel (today's captures + pending-route count).
+    // Plain receipt counts, scoped by RLS to the current user.
+    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+    const { data: routes } = await supabase
+      .from("capture_routes")
+      .select("source, user_action, created_at")
+      .eq("user_id", session.user.id)
+      .gte("created_at", startOfToday.toISOString())
+      .limit(500);
+    const acc: Record<string, { today: number; pending: number }> = {};
+    for (const r of routes ?? []) {
+      const k = String((r as any).source ?? "unknown");
+      const slot = (acc[k] ??= { today: 0, pending: 0 });
+      slot.today += 1;
+      if ((r as any).user_action === "routed" || (r as any).user_action === "accepted") {
+        // landed cleanly — not pending
+      } else if ((r as any).user_action === "reviewed" || (r as any).user_action === "snoozed") {
+        slot.pending += 1;
+      }
+    }
+    setActivity(acc);
     setLoading(false);
   };
 
