@@ -177,6 +177,16 @@ export function SherlockFindingCard({
             </Button>
           )}
         </div>
+        <AftermathFooter
+          next={{
+            label: onInspect ? "Review in Sherlock" : "Open this finding",
+            onClick: () => { if (onInspect) onInspect(finding); else setConfirming(true); },
+            hint: finding.sensitive_flag
+              ? "Sensitive — review before anything is applied."
+              : sherlockWhyFallback(finding),
+          }}
+          whatHappensIfTap="Opens the review screen — nothing applies yet."
+        />
       </Card>
 
       <SherlockReviewModal
