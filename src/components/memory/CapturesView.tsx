@@ -508,7 +508,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                     <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
                   </div>
                 );
-              })()
+              })()}
               {nextMove && (
                 <AftermathFooter
                   next={nextMove}
