@@ -226,7 +226,7 @@ export async function suggestForItem(input: {
       const { data } = await supabase.functions.invoke("memory-search", {
         body: { query: sourceText.slice(0, 1200), match_count: 6, min_similarity: 0.68 },
       });
-      const hits: any[] = (data as any)?.hits ?? [];
+      const hits: any[] = (data as any)?.results ?? (data as any)?.hits ?? [];
       for (const h of hits) {
         if (!h?.id || !h?.kind) continue;
         const kind = h.kind as CrossKind;
