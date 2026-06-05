@@ -114,6 +114,67 @@ async function resolveOrInsert(userId: string, c: Candidate): Promise<string | n
   return ins?.id ?? null;
 }
 
+// Token shapes used by the "known entity recall" pass — catches single-word
+// brands (Vanta, Fenrir, CampCore), ALL-CAPS acronyms (GTH, AWS, CC), and
+// any multi-word title-case phrase the existing regex might skip. Whether
+// each token actually links is decided by matching against the user's
+// existing entity index — we never invent new entities from this pass.
+const SINGLE_TITLE = /\b([A-Z][a-zA-Z0-9'’-]{2,})\b/g;
+const ACRONYM = /\b([A-Z]{2,6})\b/g;
+
+function buildTokenSet(text: string): Set<string> {
+  const out = new Set<string>();
+  if (!text) return out;
+  for (const m of text.matchAll(SINGLE_TITLE)) {
+    const w = m[1];
+    if (STOP.has(w)) continue;
+    out.add(w.toLowerCase());
+  }
+  for (const m of text.matchAll(ACRONYM)) out.add(m[1].toLowerCase());
+  for (const m of text.matchAll(TITLE_CASE_PHRASE)) out.add(m[1].toLowerCase());
+  return out;
+}
+
+type KnownEntity = { id: string; display_name: string; aliases: string[] | null; kind: string };
+
+async function recallKnownEntities(
+  userId: string,
+  text: string,
+): Promise<{ id: string; confidence: "high" }[]> {
+  const tokens = buildTokenSet(text);
+  if (tokens.size === 0) return [];
+  // Pull the user's recent entities once; in-memory match is far cheaper
+  // than N round-trips. 500 covers active users; older entities still
+  // resolve via resolveOrInsert when they reappear as full title-case.
+  const { data } = await supabase
+    .from("entities")
+    .select("id, display_name, aliases, kind")
+    .eq("user_id", userId)
+    .order("last_seen_at", { ascending: false })
+    .limit(500);
+  if (!data || data.length === 0) return [];
+  const hits: { id: string; confidence: "high" }[] = [];
+  const seen = new Set<string>();
+  for (const e of data as KnownEntity[]) {
+    const name = (e.display_name ?? "").toLowerCase();
+    const aliases = (e.aliases ?? []).map((a) => (a ?? "").toLowerCase());
+    const candidates = [name, ...aliases].filter(Boolean);
+    if (candidates.some((c) => tokens.has(c))) {
+      if (seen.has(e.id)) continue;
+      seen.add(e.id);
+      hits.push({ id: e.id, confidence: "high" });
+    }
+  }
+  if (hits.length > 0) {
+    const ids = hits.map((h) => h.id);
+    await supabase
+      .from("entities")
+      .update({ last_seen_at: new Date().toISOString() })
+      .in("id", ids);
+  }
+  return hits;
+}
+
 export type LinkEntitiesInput = {
   userId: string;
   source_kind: EntitySourceKind;
@@ -127,13 +188,19 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
   try {
     const { userId, source_kind, source_id, text, role = "mentions", emitAudit = true } = input;
     if (!userId || !source_id) return { linked: 0 };
-    const candidates = extractCandidates(text);
-    if (candidates.length === 0) return { linked: 0 };
 
-    const linked: { id: string; confidence: Candidate["confidence"] }[] = [];
+    // Pass 1 — known-entity recall (catches single-token brands + aliases).
+    const recalled = await recallKnownEntities(userId, text);
+    const linked: { id: string; confidence: Candidate["confidence"] }[] = [...recalled];
+    const linkedIds = new Set(recalled.map((r) => r.id));
+
+    // Pass 2 — rule-based extraction → resolve or insert new entities.
+    const candidates = extractCandidates(text);
     for (const c of candidates) {
       const id = await resolveOrInsert(userId, c);
-      if (id) linked.push({ id, confidence: c.confidence ?? "low" });
+      if (!id || linkedIds.has(id)) continue;
+      linkedIds.add(id);
+      linked.push({ id, confidence: c.confidence ?? "low" });
     }
     if (linked.length === 0) return { linked: 0 };
 
@@ -155,7 +222,7 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
         user_id: userId,
         entity_type: "entity_graph",
         event: "entity.linked",
-        payload: { source_kind, source_id, entity_count: linked.length, role },
+        payload: { source_kind, source_id, entity_count: linked.length, role, recalled: recalled.length },
       });
     }
     return { linked: linked.length };
@@ -163,3 +230,4 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
     return { linked: 0 };
   }
 }
+
