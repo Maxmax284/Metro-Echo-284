@@ -694,6 +694,57 @@ export type Database = {
           },
         ]
       }
+      cross_links: {
+        Row: {
+          confidence: string
+          created_at: string
+          created_by: string
+          id: string
+          metadata: Json
+          reason: string | null
+          relation: string
+          removed_at: string | null
+          source_id: string
+          source_kind: string
+          target_id: string
+          target_kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          relation?: string
+          removed_at?: string | null
+          source_id: string
+          source_kind: string
+          target_id: string
+          target_kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+          relation?: string
+          removed_at?: string | null
+          source_id?: string
+          source_kind?: string
+          target_id?: string
+          target_kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_inbound_addresses: {
         Row: {
           active: boolean
@@ -2216,6 +2267,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cross_links_create: {
+        Args: {
+          _confidence?: string
+          _created_by?: string
+          _reason?: string
+          _relation?: string
+          _source_id: string
+          _source_kind: string
+          _target_id: string
+          _target_kind: string
+        }
+        Returns: string
+      }
+      cross_links_for_item: {
+        Args: { _id: string; _kind: string }
+        Returns: {
+          confidence: string
+          created_at: string
+          created_by: string
+          direction: string
+          id: string
+          other_id: string
+          other_kind: string
+          reason: string
+          relation: string
+        }[]
+      }
+      cross_links_remove: {
+        Args: { _id: string; _reason?: string }
+        Returns: boolean
+      }
       entities_semantic_match: {
         Args: {
           _kinds?: string[]
