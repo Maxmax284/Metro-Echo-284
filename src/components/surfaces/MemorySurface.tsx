@@ -657,6 +657,13 @@ export function MemorySurface() {
               )}
             </div>
 
+            <div className="mt-3 space-y-1.5 rounded-lg ring-1 ring-border/60 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Manual connections</p>
+                <ConnectButton source={{ kind: "note", id: active.id, label: active.title ?? active.body.slice(0, 60) }} />
+              </div>
+              <LinkedChipsBar source={{ kind: "note", id: active.id }} />
+
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2">
                 <Button variant="secondary" size="sm" disabled={aiBusy} onClick={() => aiAssist("summarize")} className="gap-1">
