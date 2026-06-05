@@ -19,7 +19,7 @@ export type EntitySourceKind =
   | "note" | "commitment" | "message" | "signal" | "field_note"
   | "research_object" | "ingested_file" | "reminder" | "action" | "investigation";
 
-export type EntityKind = "person" | "place" | "org" | "topic" | "thing" | "event";
+export type EntityKind = "person" | "place" | "org" | "topic" | "thing" | "event" | "project";
 
 export type Candidate = {
   display_name: string;
