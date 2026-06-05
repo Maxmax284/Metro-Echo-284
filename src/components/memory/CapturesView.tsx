@@ -496,6 +496,19 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   compact
                 />
               )}
+              {(() => {
+                const crossKind: CrossKind | null =
+                  item._raw.kind === "message" ? "capture"
+                  : item._raw.kind === "file" ? "file"
+                  : null;
+                if (!crossKind) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ConnectButton source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }} />
+                    <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
+                  </div>
+                );
+              })()
               {nextMove && (
                 <AftermathFooter
                   next={nextMove}
