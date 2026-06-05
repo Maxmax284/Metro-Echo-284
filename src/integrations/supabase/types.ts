@@ -733,6 +733,10 @@ export type Database = {
           kind: string
           last_seen_at: string
           metadata: Json
+          parent_entity_id: string | null
+          pinned: boolean
+          slug: string | null
+          summary: string | null
           updated_at: string
           user_id: string
         }
@@ -747,6 +751,10 @@ export type Database = {
           kind: string
           last_seen_at?: string
           metadata?: Json
+          parent_entity_id?: string | null
+          pinned?: boolean
+          slug?: string | null
+          summary?: string | null
           updated_at?: string
           user_id: string
         }
@@ -761,10 +769,22 @@ export type Database = {
           kind?: string
           last_seen_at?: string
           metadata?: Json
+          parent_entity_id?: string | null
+          pinned?: boolean
+          slug?: string | null
+          summary?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entities_parent_entity_id_fkey"
+            columns: ["parent_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       entity_links: {
         Row: {
