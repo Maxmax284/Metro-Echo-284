@@ -264,6 +264,10 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                           title={c.summary}
                           showWhenEmpty={false}
                         />
+                        <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
+                      </div>
+                      <div className="mt-1.5">
+                        <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
                       </div>
                       <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
                     </div>

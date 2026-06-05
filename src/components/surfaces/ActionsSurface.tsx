@@ -154,6 +154,10 @@ export function ActionsSurface() {
                               title={a.title}
                               showWhenEmpty={false}
                             />
+                            <ConnectButton source={{ kind: "action", id: a.id, label: a.title }} />
+                          </div>
+                          <div className="mt-1.5">
+                            <LinkedChipsBar source={{ kind: "action", id: a.id }} />
                           </div>
                           <EmbeddedSherlockFindings sourceType="action" sourceId={a.id} />
                           <div className="mt-2 flex items-center gap-1.5">

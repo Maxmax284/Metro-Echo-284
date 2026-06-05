@@ -20,6 +20,9 @@ import { RecognizePanel, type RouteLane } from "./RecognizePanel";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
 
