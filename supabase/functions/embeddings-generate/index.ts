@@ -11,14 +11,15 @@ const corsHeaders = {
 };
 
 const Body = z.union([
-  z.object({ mode: z.literal("single"), kind: z.enum(["note", "message", "commitment"]), id: z.string().uuid() }),
-  z.object({ mode: z.literal("backfill"), kind: z.enum(["note", "message", "commitment"]), limit: z.number().int().min(1).max(200).default(50) }),
+  z.object({ mode: z.literal("single"), kind: z.enum(["note", "message", "commitment", "entity"]), id: z.string().uuid() }),
+  z.object({ mode: z.literal("backfill"), kind: z.enum(["note", "message", "commitment", "entity"]), limit: z.number().int().min(1).max(200).default(50) }),
 ]);
 
 const TABLE_TEXT: Record<string, { table: string; textCols: string[] }> = {
   note:       { table: "notes",       textCols: ["title", "body"] },
   message:    { table: "messages",    textCols: ["content"] },
   commitment: { table: "commitments", textCols: ["summary"] },
+  entity:     { table: "entities",    textCols: ["display_name", "summary"] },
 };
 
 async function embed(text: string, apiKey: string): Promise<number[]> {
