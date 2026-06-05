@@ -17,6 +17,8 @@ import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",

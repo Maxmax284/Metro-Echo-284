@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 type EntityRow = {
   id: string;
