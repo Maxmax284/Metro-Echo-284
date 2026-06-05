@@ -663,6 +663,8 @@ export function MemorySurface() {
                 <ConnectButton source={{ kind: "note", id: active.id, label: active.title ?? active.body.slice(0, 60) }} />
               </div>
               <LinkedChipsBar source={{ kind: "note", id: active.id }} />
+            </div>
+
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2">
