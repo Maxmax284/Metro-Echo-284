@@ -20,6 +20,9 @@ import { RecognizePanel, type RouteLane } from "./RecognizePanel";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -493,6 +496,19 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   compact
                 />
               )}
+              {(() => {
+                const crossKind: CrossKind | null =
+                  item._raw.kind === "message" ? "capture"
+                  : item._raw.kind === "file" ? "file"
+                  : null;
+                if (!crossKind) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <ConnectButton source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }} />
+                    <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
+                  </div>
+                );
+              })()}
               {nextMove && (
                 <AftermathFooter
                   next={nextMove}

@@ -14,6 +14,8 @@ import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { EntityChips } from "@/components/entities/EntityChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 type Commitment = {
   id: string;
@@ -264,6 +266,10 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                           title={c.summary}
                           showWhenEmpty={false}
                         />
+                        <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
+                      </div>
+                      <div className="mt-1.5">
+                        <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
                       </div>
                       <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
                     </div>

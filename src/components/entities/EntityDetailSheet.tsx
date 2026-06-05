@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 type EntityRow = {
   id: string;
@@ -174,6 +176,15 @@ export function EntityDetailSheet() {
         )}
 
         {entity && <RelatedEntitiesSection entityId={entity.id} />}
+        {entity && (
+          <div className="mt-4 space-y-1.5 rounded-lg border border-border/60 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Manual connections</p>
+              <ConnectButton source={{ kind: "entity", id: entity.id, label: entity.display_name }} />
+            </div>
+            <LinkedChipsBar source={{ kind: "entity", id: entity.id }} />
+          </div>
+        )}
 
         {(() => {
           const ambiguous = links.filter((l) => (l.confidence ?? "low") === "low");

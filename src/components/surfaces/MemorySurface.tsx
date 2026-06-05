@@ -17,6 +17,8 @@ import { StatusDot, similarityTone } from "@/components/ui/status-dot";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -654,6 +656,15 @@ export function MemorySurface() {
                 </ul>
               )}
             </div>
+
+            <div className="mt-3 space-y-1.5 rounded-lg ring-1 ring-border/60 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Manual connections</p>
+                <ConnectButton source={{ kind: "note", id: active.id, label: active.title ?? active.body.slice(0, 60) }} />
+              </div>
+              <LinkedChipsBar source={{ kind: "note", id: active.id }} />
+            </div>
+
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2">

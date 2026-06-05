@@ -13,6 +13,8 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { CaptureRouteHistory } from "@/components/memory/CaptureRouteHistory";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -527,6 +529,10 @@ export function MemoryFilesView() {
                       onClick={() => archive(f)}>
                       <Archive className="mr-1 h-3 w-3" /> Archive
                     </Button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <ConnectButton source={{ kind: "file", id: f.id, label: f.filename }} />
+                    <LinkedChipsBar source={{ kind: "file", id: f.id }} />
                   </div>
                 </>
               )}

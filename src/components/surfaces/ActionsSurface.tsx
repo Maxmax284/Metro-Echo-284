@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
+import { ConnectButton } from "@/components/links/ConnectButton";
+import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 
 type Action = {
   id: string;
@@ -154,6 +156,10 @@ export function ActionsSurface() {
                               title={a.title}
                               showWhenEmpty={false}
                             />
+                            <ConnectButton source={{ kind: "action", id: a.id, label: a.title }} />
+                          </div>
+                          <div className="mt-1.5">
+                            <LinkedChipsBar source={{ kind: "action", id: a.id }} />
                           </div>
                           <EmbeddedSherlockFindings sourceType="action" sourceId={a.id} />
                           <div className="mt-2 flex items-center gap-1.5">
