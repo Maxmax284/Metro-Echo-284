@@ -217,6 +217,48 @@ export async function suggestForItem(input: {
     }
   }
 
-  // 2. memory_search for similar notes/messages/commitments by the item's text — caller passes text via the sheet.
-  return out;
+  // 2. Semantic similars via memory-search edge function (uses the same
+  //    pipeline Sherlock relies on). This is the user's tap-to-open
+  //    surface — no automatic linking. Sherlock suggests; user approves.
+  try {
+    const sourceText = await fetchSourceText(input.source_kind, input.source_id);
+    if (sourceText && sourceText.length > 6) {
+      const { data } = await supabase.functions.invoke("memory-search", {
+        body: { query: sourceText.slice(0, 1200), match_count: 6, min_similarity: 0.68 },
+      });
+      const hits: any[] = (data as any)?.hits ?? [];
+      for (const h of hits) {
+        if (!h?.id || !h?.kind) continue;
+        const kind = h.kind as CrossKind;
+        if (kind === input.source_kind && h.id === input.source_id) continue;
+        const sim = typeof h.similarity === "number" ? h.similarity : 0;
+        out.push({
+          target_kind: kind,
+          target_id: h.id,
+          target_label: (h.title || h.snippet || `${kind} ${h.id.slice(0, 6)}`).slice(0, 80),
+          relation: "related",
+          confidence: sim >= 0.82 ? "high" : sim >= 0.72 ? "medium" : "low",
+          why: `Looks similar · ${Math.round(sim * 100)}%`,
+        });
+      }
+    }
+  } catch { /* best-effort */ }
+
+  // Dedup by target.
+  const seen = new Set<string>();
+  return out.filter((s) => {
+    const k = `${s.target_kind}:${s.target_id}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+async function fetchSourceText(kind: CrossKind, id: string): Promise<string | null> {
+  const def = KIND_TABLE[kind];
+  const cols = def.preview ? `${def.label}, ${def.preview}` : def.label;
+  const { data } = await (supabase as any).from(def.table).select(cols).eq("id", id).maybeSingle();
+  if (!data) return null;
+  const parts = [data[def.label], def.preview ? data[def.preview] : null].filter(Boolean);
+  return parts.join("\n").trim() || null;
 }
