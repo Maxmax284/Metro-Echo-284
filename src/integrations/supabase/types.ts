@@ -2216,6 +2216,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      entities_semantic_match: {
+        Args: {
+          _kinds?: string[]
+          _match_count?: number
+          _min_similarity?: number
+          _query_embedding: string
+          _user_id: string
+        }
+        Returns: {
+          display_name: string
+          id: string
+          kind: string
+          parent_entity_id: string
+          similarity: number
+          slug: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
