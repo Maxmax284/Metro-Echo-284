@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { linkEntities } from "@/lib/entityGraph";
+import { resolveEntities } from "@/lib/entityResolve";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
