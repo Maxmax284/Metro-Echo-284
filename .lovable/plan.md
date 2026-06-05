@@ -123,10 +123,10 @@ No data loss at any step; every change is additive until the final cleanup.
 
 ## 9. Execution order (recommended)
 
-1. **Extractor fix (Wave 0, no migration)** — loosen `entityGraph` to catch single-token known brands via a user-scoped alias seed list + cosine fallback. Immediate fragmentation relief.
-2. **Wave A migration** — project kind, slug, parent, summary.
-3. **Entity-resolve edge function** + capture-route integration.
-4. **Project page (read-only)** — tabs over existing data, no new writes needed beyond Wave A.
+1. ✅ **Wave 0** — extractor recall pass for single-token brands/acronyms (`recallKnownEntities`).
+2. ✅ **Wave A migration** — project kind, slug, parent, summary; Ground Stay backfilled & embedded.
+3. ✅ **Entity-resolve edge function** — embedding + RPC `entities_semantic_match` + LLM tiebreak (Gemini Flash) when top-2 within 0.05; persists `entity_links` + audit `entity.resolved`. Wired into note/commitment/reminder capture routes via `resolveEntities()`.
+4. **Project page (read-only)** — tabs over existing data (next).
 5. **Knowledge home** behind flag.
 6. **Wave B + C migrations** — aliases table, timeline events, health scores.
 7. **Sherlock synthesize + organize** edge functions; Memory Health surface.
