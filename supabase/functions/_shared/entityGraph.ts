@@ -161,17 +161,76 @@ export type LinkEntitiesInput = {
   emitAudit?: boolean;
 };
 
+// Known-entity recall — single-token brands, ALL-CAPS acronyms, and any
+// title-case phrase that matches an entity the user already has. Catches
+// "Vanta", "Fenrir", "CampCore", "GTH" — the fragmentation root cause.
+const SINGLE_TITLE = /\b([A-Z][a-zA-Z0-9'’-]{2,})\b/g;
+const ACRONYM = /\b([A-Z]{2,6})\b/g;
+
+function buildTokenSet(text: string): Set<string> {
+  const out = new Set<string>();
+  if (!text) return out;
+  for (const m of text.matchAll(SINGLE_TITLE)) {
+    const w = m[1];
+    if (STOP.has(w)) continue;
+    out.add(w.toLowerCase());
+  }
+  for (const m of text.matchAll(ACRONYM)) out.add(m[1].toLowerCase());
+  for (const m of text.matchAll(TITLE_CASE_PHRASE)) out.add(m[1].toLowerCase());
+  return out;
+}
+
+async function recallKnownEntities(
+  sb: SupabaseClient,
+  userId: string,
+  text: string,
+): Promise<{ id: string; confidence: "high" }[]> {
+  const tokens = buildTokenSet(text);
+  if (tokens.size === 0) return [];
+  const { data } = await sb
+    .from("entities")
+    .select("id, display_name, aliases")
+    .eq("user_id", userId)
+    .order("last_seen_at", { ascending: false })
+    .limit(500);
+  if (!data || data.length === 0) return [];
+  const hits: { id: string; confidence: "high" }[] = [];
+  const seen = new Set<string>();
+  for (const e of data as { id: string; display_name: string; aliases: string[] | null }[]) {
+    const name = (e.display_name ?? "").toLowerCase();
+    const aliases = (e.aliases ?? []).map((a) => (a ?? "").toLowerCase());
+    const all = [name, ...aliases].filter(Boolean);
+    if (all.some((c) => tokens.has(c))) {
+      if (seen.has(e.id)) continue;
+      seen.add(e.id);
+      hits.push({ id: e.id, confidence: "high" });
+    }
+  }
+  if (hits.length > 0) {
+    await sb
+      .from("entities")
+      .update({ last_seen_at: new Date().toISOString() })
+      .in("id", hits.map((h) => h.id));
+  }
+  return hits;
+}
+
 export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: number }> {
   const { sb, userId, source_kind, source_id, text, role = "mentions", emitAudit = true } = input;
   if (!userId || !source_id) return { linked: 0 };
 
-  const candidates = extractCandidates(text);
-  if (candidates.length === 0) return { linked: 0 };
+  // Pass 1 — known-entity recall.
+  const recalled = await recallKnownEntities(sb, userId, text);
+  const linked: { id: string; confidence: Candidate["confidence"] }[] = [...recalled];
+  const linkedIds = new Set(recalled.map((r) => r.id));
 
-  const linked: { id: string; confidence: Candidate["confidence"] }[] = [];
+  // Pass 2 — rule-based extraction → resolve or insert.
+  const candidates = extractCandidates(text);
   for (const c of candidates) {
     const id = await resolveOrInsert(sb, userId, c);
-    if (id) linked.push({ id, confidence: c.confidence ?? "low" });
+    if (!id || linkedIds.has(id)) continue;
+    linkedIds.add(id);
+    linked.push({ id, confidence: c.confidence ?? "low" });
   }
   if (linked.length === 0) return { linked: 0 };
 
@@ -193,10 +252,11 @@ export async function linkEntities(input: LinkEntitiesInput): Promise<{ linked: 
       user_id: userId,
       entity_type: "entity_graph",
       event: "entity.linked",
-      payload: { source_kind, source_id, entity_count: linked.length, role },
+      payload: { source_kind, source_id, entity_count: linked.length, role, recalled: recalled.length },
     });
   }
 
   return { linked: linked.length };
 }
+
 
