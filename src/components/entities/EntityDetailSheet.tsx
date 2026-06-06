@@ -192,6 +192,71 @@ export function EntityDetailSheet() {
           {entity && <EmbeddedSherlockFindings sourceType="entity" sourceId={entity.id} className="mt-1" />}
         </SheetHeader>
 
+        {entity?.kind === "project" && (
+          <div className="mt-4 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10.5px] uppercase tracking-wider text-primary/80">Project</p>
+              {entity.slug && (
+                <code className="rounded bg-surface-elevated/50 px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                  {entity.slug}
+                </code>
+              )}
+            </div>
+            {parent && (
+              <button
+                type="button"
+                onClick={() => openEntity(parent.id)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                title={`Open parent · ${parent.kind}`}
+              >
+                ↳ part of <span className="underline-offset-2 hover:underline">{parent.display_name}</span>
+              </button>
+            )}
+            {entity.summary && (
+              <p className="text-[12px] leading-snug text-foreground/85">{entity.summary}</p>
+            )}
+            {Object.keys(counts).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  ["note", "notes"],
+                  ["commitment", "commitments"],
+                  ["message", "messages"],
+                  ["ingested_file", "files"],
+                  ["action", "actions"],
+                  ["reminder", "reminders"],
+                ].map(([k, label]) => {
+                  const n = counts[k] ?? 0;
+                  if (!n) return null;
+                  return (
+                    <span key={k} className="rounded-full bg-surface-elevated/60 px-2 py-0.5 text-[10.5px] text-muted-foreground">
+                      {n} {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {children.length > 0 && (
+              <div className="pt-1">
+                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Sub-topics</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {children.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => openEntity(c.id)}
+                      className="rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-0.5 text-[11px] text-foreground/85 hover:border-primary/40 hover:text-primary"
+                    >
+                      {c.display_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
+
 
         {entity?.aliases && entity.aliases.length > 0 && (
           <div className="mt-4">
