@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
+import { Inbox, RefreshCw, Clock, CheckCircle2, Link2, X, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -22,6 +23,7 @@ import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
@@ -84,6 +86,9 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
   const [lane, setLane] = useState<InboxLane>("now");
   const [aftermathFileId, setAftermathFileId] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = items;
@@ -383,6 +388,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         </div>
       )}
 
+      {/* Bulk-select toolbar — available in both lanes. Lets the user
+          connect many captures to one place in a single tap. */}
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <button
+          type="button"
+          onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            selectMode
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <CheckSquare className="h-3 w-3" />
+          {selectMode ? "Done selecting" : "Select multiple"}
+        </button>
+        {selectMode && selectedIds.size > 0 && (
+          <span className="text-muted-foreground">{selectedIds.size} picked</span>
+        )}
+      </div>
+
       {loading && (
         <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
           Looking at the front desk…
@@ -517,11 +543,89 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
               )}
             </div>
           );
-          return (
+          // Which captures support bulk-linking (must map to a CrossKind).
+          const bulkKind: CrossKind | null =
+            item._raw.kind === "message" ? "capture"
+            : item._raw.kind === "file" ? "file"
+            : null;
+          const isSelected = selectedIds.has(item.id);
+          const toggleSelected = () => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(item.id)) next.delete(item.id);
+              else next.add(item.id);
+              return next;
+            });
+          };
+          const card = (
             <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={footer} />
+          );
+          if (!selectMode || !bulkKind) {
+            return <div key={item.id}>{card}</div>;
+          }
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-start gap-2 rounded-md p-1 transition-colors",
+                isSelected && "bg-primary/5 ring-1 ring-primary/30",
+              )}
+            >
+              <button
+                type="button"
+                onClick={toggleSelected}
+                className="mt-2 shrink-0"
+                aria-label={isSelected ? "Unselect" : "Select"}
+              >
+                <Checkbox checked={isSelected} onCheckedChange={toggleSelected} />
+              </button>
+              <div className="min-w-0 flex-1">{card}</div>
+            </div>
           );
         })}
       </div>
+
+      {/* Sticky bulk-action bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="sticky bottom-2 z-20 mx-auto flex max-w-md items-center gap-2 rounded-full border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+          <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
+          <Button
+            size="sm"
+            className="ml-auto h-8 gap-1 text-[11.5px]"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Link2 className="h-3 w-3" /> Connect to…
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="rounded-full p-1.5 text-muted-foreground hover:text-foreground"
+            aria-label="Clear selection"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      <BulkConnectSheet
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        sources={(() => {
+          const map = new Map(filtered.map((i) => [i.id, i]));
+          const out: { kind: CrossKind; id: string; label?: string }[] = [];
+          for (const id of selectedIds) {
+            const it = map.get(id);
+            if (!it) continue;
+            const k: CrossKind | null =
+              it._raw.kind === "message" ? "capture"
+              : it._raw.kind === "file" ? "file"
+              : null;
+            if (k) out.push({ kind: k, id: it._raw.row.id, label: it.text.slice(0, 60) });
+          }
+          return out;
+        })()}
+        onLinked={() => { setSelectedIds(new Set()); setSelectMode(false); refresh(); }}
+      />
 
       <Dialog open={!!aftermathFileId} onOpenChange={(o) => !o && setAftermathFileId(null)}>
         <DialogContent className="max-w-lg">

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
+import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 
 type AuditRow = {
   id: string;
@@ -77,6 +78,8 @@ export function AuditSurface() {
   const [quick, setQuick] = useState("");
   const [eventClass, setEventClass] = useState("");
   const [loading, setLoading] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -123,6 +126,9 @@ export function AuditSurface() {
     return rows;
   }, [audit, filter, quick, eventClass]);
 
+  // Reset pagination whenever filters change.
+  useEffect(() => { setVisibleCount(30); }, [filter, quick, eventClass]);
+
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
@@ -136,7 +142,7 @@ export function AuditSurface() {
             <ScrollText className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-medium">Receipts</h2>
             <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              what happened, when, and why you can trust it
+              every change, who did it, and when
             </span>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
@@ -245,42 +251,52 @@ export function AuditSurface() {
                 Nothing matches. Clear filters above.
               </p>
             )}
-            {auditFiltered.map((r) => (
-              <Card key={r.id} className="p-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot tone={eventTone(r.event)} title={r.event} />
-                  <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
-                  <span
-                    className="min-w-0 flex-1 truncate font-medium text-foreground"
-                    title={r.event}
-                  >
-                    {humanizeEvent(r.event)}
-                  </span>
-                  <span
-                    className="ml-auto shrink-0 text-[10px] text-muted-foreground"
-                    title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
-                  >
-                    {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-                <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
-                  {trustNote(r.event)}
-                </div>
-                {r.payload && Object.keys(r.payload).length > 0 && (
-                  <details className="ml-5 mt-1">
-                    <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
-                      Raw payload · for developers
-                    </summary>
-                    <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
-                      {JSON.stringify(r.payload, null, 2)}
-                    </pre>
-                  </details>
-                )}
+            {auditFiltered.slice(0, visibleCount).map((r) => (
+              <Card key={r.id} className="p-0 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDrawerRow(r)}
+                  className="block w-full p-2 text-left hover:bg-muted/30 rounded-md transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <StatusDot tone={eventTone(r.event)} title={r.event} />
+                    <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
+                    <span
+                      className="min-w-0 flex-1 truncate font-medium text-foreground"
+                      title={r.event}
+                    >
+                      {humanizeEvent(r.event)}
+                    </span>
+                    <span
+                      className="ml-auto shrink-0 text-[10px] text-muted-foreground"
+                      title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
+                    >
+                      {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
+                    {trustNote(r.event)} · tap to open
+                  </div>
+                </button>
               </Card>
             ))}
+            {auditFiltered.length > visibleCount && (
+              <div className="pt-1 text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[11px] text-muted-foreground"
+                  onClick={() => setVisibleCount((c) => c + 30)}
+                >
+                  Show 30 more · {auditFiltered.length - visibleCount} left
+                </Button>
+              </div>
+            )}
           </div>
         </section>
       </div>
+
+      <AuditDetailDrawer row={drawerRow} open={!!drawerRow} onOpenChange={(o) => !o && setDrawerRow(null)} />
     </div>
   );
 }
