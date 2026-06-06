@@ -19,6 +19,7 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { ManualLinkSheet } from "@/components/links/ManualLinkSheet";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
