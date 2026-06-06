@@ -361,7 +361,7 @@ function ApprovalsCard({ items, highRisk, onOpen }: { items: ActionRow[]; highRi
       )}
       {highRisk > 0 && (
         <div className="mt-2 rounded border border-warn/30 bg-warn/5 px-2 py-1 text-[11px] text-warn">
-          {highRisk} high-risk requires typed approval in the Actions room.
+          {highRisk} high-risk needs your typed OK over in Actions.
         </div>
       )}
     </CardShell>
