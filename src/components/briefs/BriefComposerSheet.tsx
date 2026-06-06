@@ -27,31 +27,45 @@ type Props = {
   defaultScope: "system" | "entity";
   entityId?: string | null;
   entityLabel?: string | null;
+  /** Pre-select a format (used by one-tap actions like Weekly Review). */
+  defaultFormat?: BriefFormat;
+  /** Auto-tap Draft once when the sheet opens. */
+  autoDraft?: boolean;
 };
 
 const FORMATS: BriefFormat[] = ["operator", "client", "audit_packet", "weekly_review", "audio_script"];
 
-export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId, entityLabel }: Props) {
+export function BriefComposerSheet({
+  open, onOpenChange, defaultScope, entityId, entityLabel, defaultFormat, autoDraft,
+}: Props) {
   const { scope } = useWorkspace();
   const { toast } = useToast();
-  const [format, setFormat] = useState<BriefFormat>("operator");
+  const [format, setFormat] = useState<BriefFormat>(defaultFormat ?? "operator");
   const [scopeKind, setScopeKind] = useState<"system" | "entity">(defaultScope);
   const [drafting, setDrafting] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [savedRow, setSavedRow] = useState<BriefExportRow | null>(null);
   const [exporting, setExporting] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [sensitivityAck, setSensitivityAck] = useState(false);
 
   useEffect(() => {
     if (open) {
       setScopeKind(defaultScope);
+      if (defaultFormat) setFormat(defaultFormat);
       setBrief(null);
       setSavedRow(null);
+      setSensitivityAck(false);
+      if (autoDraft) {
+        // Defer so format/scope state settles first.
+        setTimeout(() => { void handleDraft(); }, 50);
+      }
     } else {
       window.speechSynthesis?.cancel();
       setSpeaking(false);
     }
-  }, [open, defaultScope]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultScope, defaultFormat, autoDraft]);
 
   const orgId = scope.kind === "workspace" ? scope.organization_id : null;
 
