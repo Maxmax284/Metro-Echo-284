@@ -108,17 +108,17 @@ export function ActionsSurface() {
   };
 
   const groups = {
-    "Ready to act": actions.filter((a) => a.status === "approved"),
-    "Awaiting review": actions.filter((a) => a.status === "proposed" || a.status === "staged"),
-    "Recently executed": actions.filter((a) => a.status === "executed" || a.status === "audited"),
-    "Cancelled / rolled back": actions.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
+    "Ready to run": actions.filter((a) => a.status === "approved"),
+    "Needs your eye": actions.filter((a) => a.status === "proposed" || a.status === "staged"),
+    "Just ran": actions.filter((a) => a.status === "executed" || a.status === "audited"),
+    "Cancelled or undone": actions.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
   };
 
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 pt-3 pb-2">
         <h2 className="text-lg font-semibold tracking-tight">Actions</h2>
-        <p className="text-xs text-muted-foreground">What you can do right now. Nothing executes silently.</p>
+        <p className="text-xs text-muted-foreground">What you can do right now. Nothing runs without your OK.</p>
       </div>
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
