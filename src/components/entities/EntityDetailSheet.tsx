@@ -12,6 +12,8 @@ import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlock
 import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
+import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 
 type EntityRow = {
   id: string;
