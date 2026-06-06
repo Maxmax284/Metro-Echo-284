@@ -39,6 +39,24 @@ export default function ProjectBriefPage() {
   const [summaryDraft, setSummaryDraft] = useState("");
   const [savingSummary, setSavingSummary] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("audit_log")
+        .select("id,event,created_at,payload")
+        .eq("entity_type", "project")
+        .eq("entity_id", id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (!cancelled) setReceipts((data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [id, project?.updated_at]);
 
   useEffect(() => {
     if (!id) return;
