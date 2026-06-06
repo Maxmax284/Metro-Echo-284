@@ -194,6 +194,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </div>
         </div>
 
+        {/* 0. Daily checklist — needs you / what changed / suggested next */}
+        <DailyChecklistCard onNavigate={onNavigate} />
+
         {/* 1. Productivity Pulse — quick-health layer */}
         <ProductivityPulseCard />
 
@@ -213,10 +216,19 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button
+            variant="default"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => openBrief({ format: "weekly_review", auto: true })}
+            title="Generate a client-facing weekly summary across all projects"
+          >
+            <FileText className="h-3 w-3" /> Weekly review
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             className="h-7 gap-1.5 text-[11px]"
-            onClick={() => setBriefOpen(true)}
+            onClick={() => openBrief()}
           >
             <FileText className="h-3 w-3" /> Create brief
           </Button>
