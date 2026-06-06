@@ -620,7 +620,7 @@ export function MemorySurface() {
       {active && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-background/60 backdrop-blur-sm md:items-center" onClick={() => setActive(null)}>
           <div
-            className="m-0 w-full max-w-2xl rounded-t-2xl glass p-5 md:m-4 md:rounded-2xl animate-slide-up"
+            className="scrollbar-thin m-0 flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto overscroll-contain rounded-t-2xl glass p-5 md:m-4 md:max-h-[85vh] md:rounded-2xl animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
