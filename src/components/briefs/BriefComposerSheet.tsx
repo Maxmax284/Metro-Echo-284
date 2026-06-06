@@ -74,6 +74,9 @@ export function BriefComposerSheet({
     return "Whole system";
   }, [scopeKind, entityLabel]);
 
+  const sensitivity = useMemo(() => (brief ? scanBriefSensitivity(brief) : null), [brief]);
+  const exportBlocked = !!sensitivity?.any && !sensitivityAck;
+
   async function handleDraft() {
     setDrafting(true);
     setBrief(null);
