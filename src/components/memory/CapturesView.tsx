@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Inbox, RefreshCw, Clock, CheckCircle2 } from "lucide-react";
+import { Inbox, RefreshCw, Clock, CheckCircle2, Link2, X, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -22,6 +23,7 @@ import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
