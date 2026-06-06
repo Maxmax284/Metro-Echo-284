@@ -18,10 +18,12 @@ import { useCanvas } from "@/components/entities/CanvasContext";
 import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCard";
 import { OperationsBriefingPanel } from "@/components/cockpit/OperationsBriefingPanel";
 import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
+import { DailyChecklistCard } from "@/components/cockpit/DailyChecklistCard";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
+import type { BriefFormat } from "@/lib/briefs";
 
 type Counts = {
   pendingApprovals: number;
