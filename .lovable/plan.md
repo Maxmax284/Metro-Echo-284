@@ -1,123 +1,165 @@
-# Project-First Living Brief
+# Vanta Unified Operations Flow — Implementation Plan
 
-Four moves, sequenced so each one stands on its own. We approve and ship in order — not all at once.
-
----
-
-## 1. Projects table + Living Brief data model
-
-A project is the new anchor. Everything (captures, notes, files, Sherlock findings) can attach to one.
-
-New tables (single migration):
-
-- `projects` — id, user_id, organization_id (nullable, scope-aware), title, summary, status (`active|paused|archived`), pinned, created_at, updated_at.
-- `project_items` — id, project_id, item_type (`capture|note|file|finding|commitment|action`), item_id, added_at, added_by, position (for ordering inside the brief), note (optional inline annotation).
-
-Both get GRANTs + RLS scoped via `useActiveScope` rules (personal: `user_id = auth.uid()`; workspace: `organization_id` + `organization_members`).
-
-No edge functions, no AI calls. Pure data + UI.
+This plan executes the audit you uploaded. The architecture stays as-is. We only change navigation, labels, surface roles, and a few glue components so Vanta feels like **one daily desk**, not 9 tabs.
 
 ---
 
-## 2. Living Brief page
+## Current state (1-line audit)
 
-Route: `/projects` (list) and `/projects/:id` (the brief).
+You already have all the engines (Capture, Memory, Notes, Files, Sherlock, Commitments, Actions, Audit, Briefs, Projects/Living Brief). They're surfaced as **9 sibling tabs of equal weight** in `SurfaceTabs.tsx`. That's the whole problem.
 
-The brief is one scrollable page, top-to-bottom:
+## Target mental model
 
 ```text
-[ Project title ]                       [ pin ] [ status ] [ ⋯ ]
-Plain-English summary (editable, free text)
-─────────────────────────────────────────────
-Latest                what changed in last 7d
-Captures              chronological, grouped by day
-Notes                 attached notes, full body inline
-Files                 attached files w/ extract preview
-Signals               Sherlock findings tied to this project
-Commitments & Actions live state pulled from existing tables
-─────────────────────────────────────────────
-[ + Attach items ]  [ Open in Memory ]
+Capture (any source) → Inbox → Project / Living Brief → Cockpit → Brief/PDF → Receipts
 ```
 
-No new fancy AI synthesis in v1 — the "living" part is that attached items render inline and stay in sync. The top summary is hand-edited; we can add an AI draft button later.
+Five primary surfaces. Everything else becomes a **support layer** that lives inside one of them.
+
+
+| Today's tab    | Becomes                                               |
+| -------------- | ----------------------------------------------------- |
+| Capture (chat) | **Inbox** (primary) — unified intake                  |
+| Memory         | folded into Inbox + Projects (notes/files = sections) |
+| Commitments    | section inside Project + Cockpit                      |
+| Actions        | section inside Project + Cockpit                      |
+| Sherlock       | "Signals" section inside Project + Cockpit            |
+| Awareness      | demoted to header chip (already half-there)           |
+| Audit          | renamed **Receipts** (primary)                        |
+| Schedule/Today | merged into Cockpit "Today" strip                     |
+| Cockpit        | **Cockpit** (primary, home)                           |
+| Projects       | **Projects** (primary)                                |
+| Briefs/exports | **Briefs** (primary)                                  |
+
 
 ---
 
-## 3. Project-first navigation
+## Scope of this pass
 
-Mobile surface order stays (per Core rule) but `Projects` becomes the default home tab. Existing surfaces don't disappear — they become filters into the brief:
+Five focused steps. No new engines. No schema changes (the existing `projects`, `project_links`, `briefs`, `audit_events`, `sherlock_findings` tables cover everything).
 
-- Capture card → action menu gains **"Attach to project…"**
-- Note editor → footer gains **"Part of project: [picker]"**
-- File row → same attach action
-- Sherlock finding → same
+### Step 1 — Collapse navigation to 5 primary surfaces
 
-Tapping any attached item from inside a Living Brief opens it in its native surface with a back-to-brief breadcrumb. No new modals.
+- Rewrite `src/components/shell/SurfaceTabs.tsx`:
+  - Primary rail + bottom bar: **Cockpit, Inbox, Projects, Briefs, Receipts**.
+  - Move Commitments, Actions, Sherlock, Awareness, Conversation into the "More" overflow sheet, labelled "Advanced surfaces — these live inside Projects & Cockpit too."
+- Add `SurfaceKey` entries: `inbox`, `projects`, `briefs`, `receipts`. Keep old keys functional for deep links.
+- Default landing surface stays Cockpit.
+
+### Step 2 — Inbox surface (rename + reframe, no rebuild)
+
+- New `src/components/surfaces/InboxSurface.tsx` that **composes existing pieces**:
+  - `CapturesView` (already exists) as the main feed.
+  - `MemoryFilesView` as a "Files" tab inside Inbox.
+  - Notes list (extract from `MemorySurface`) as a "Notes" tab.
+  - Telegram/email/voice cards collapse into a single "Sources" chip row.
+- Every row already has `AttachToProjectMenu` — promote it to a primary button labelled **"Attach to project"** with hover hint "Send this into a project's Living Brief."
+- Add multi-select toolbar (checkbox per row) → bulk **Attach to project** + bulk **Summarize together** (calls existing `compose-brief` edge function scoped to selected items).
+
+### Step 3 — Projects = the real workspace
+
+- `ProjectBrief.tsx` already exists. Restructure it into the canonical Living Brief layout from the audit:
+  1. Header: name, status, "Create brief" + "Attach items" buttons.
+  2. **Recent changes** (audit_events filtered by project) — top.
+  3. **What needs me** (open commitments + staged actions).
+  4. **Signals** (Sherlock findings linked to project).
+  5. **Notes / Files / Captures** tabs (project_links filtered).
+  6. **Saved exports** (briefs).
+  7. **Receipts** drawer link.
+- Each section has the same affordance: select → Attach more / Summarize / Export.
+
+### Step 4 — Cockpit = "Here is what is going on today"
+
+- Edit `CommandCenterSurface.tsx`: keep the sticky Today + Live Briefing you just pinned. Add a **project rollup** that reads:
+  > "Ground Stay needs attention · CampCore waiting on review · 3 commitments overdue · 1 export yesterday"
+- Driven by existing `ProjectRollupCards` + `useProductivityPulse`. No new data.
+- Demote tiles that duplicate Inbox/Projects — collapse into one "Jump to…" row.
+
+### Step 5 — Briefs + Receipts as first-class
+
+- **Briefs surface**: thin wrapper around existing `BriefComposerSheet` + `BriefExportsList`. Entry point: "Create brief" from any Project or selection.
+- **Receipts surface**: rename Audit. Same data. Add **"Why am I seeing this?"** popover on Project/Cockpit cards that opens the receipt drawer pre-filtered to that object's `audit_events` + `project_links`.
+
+### Step 6 — Plain-English layer
+
+- New `src/lib/glossary.ts` mapping internal labels → plain English (already partially in `plainLabels.ts` — extend it).
+- Add `<WhatIsThis term="…">` tooltip component (reuse `src/components/tutorial/WhatIsThis.tsx`) next to every ambiguous label: "Living Brief", "Signals", "Receipts", "Attach to project", "Compose brief".
+- Purge surface-visible tech terms: RPC, entity_rollup, cross_links, embeddings, source_grounding.
 
 ---
 
-## 4. Multi-select + glossary
+## What we are NOT doing this pass
 
-**Multi-select** (the linking pain point):
-
-- Long-press / checkbox on Capture, Note, and File lists turns into multi-select mode.
-- Floating bar at the bottom: `N selected — Attach to project ▾  •  Cancel`
-- One write per attach, batched into `project_items`.
-
-**Glossary / tooltips** (the "what does this do" pain point):
-
-- New `mem://design/glossary` doc + a `<HelpTip term="..." />` component reading from a single `src/lib/glossary.ts` map.
-- Plain-English entries for: Living Brief, Capture, Note, Memory, Attach, Pin, Status, Sherlock signal, Commitment, Action, Workspace scope, Linking toggles.
-- A "?" icon next to each toggle/label in Memory's related-panel, the project picker, and the surface tabs.
+- No DB migrations. No new engines. No AI prompt rewrites.
+- Not deleting Commitments / Actions / Sherlock / Awareness surfaces — they remain reachable via overflow + deep links so muscle memory and existing notification routes (`/?commitment=…`) still work.
+- No mobile redesign beyond keeping 384px tap targets honest in the new bottom bar.
+- No changes to capture pipelines, Telegram bridge, or Sherlock logic.
 
 ---
 
-## Build order (each step is reviewable on its own)
+## Implementation order
 
-1. Migration: `projects` + `project_items` with RLS/GRANTs.
-2. Projects list + Living Brief page (read-only render of attached items).
-3. "Attach to project" action on Capture / Note / File / Finding rows.
-4. Multi-select mode + bulk attach.
-5. Glossary map + `HelpTip` component, wired into Memory's related-panel first, then surfaces.
-6. Promote `/projects` to default route, add nav entry, soft-demote competing surfaces.
+1. SurfaceTabs collapse + new route keys (Step 1) — unblocks everything else.
+2. Inbox surface composition (Step 2).
+3. Project/Living Brief restructure (Step 3).
+4. Cockpit project rollup tightening (Step 4).
+5. Briefs + Receipts wrappers + "Why am I seeing this?" (Step 5).
+6. Glossary tooltip sweep (Step 6).
+
+Each step is shippable on its own and leaves the app in a working state.
 
 ---
 
-## What this does NOT do (on purpose)
+## Acceptance check (from your audit doc)
 
-- No AI auto-summary of the brief (yet). Living = items stay in sync, not magic synthesis.
-- No new capture surface. Capture stays where it is.
-- No deletion or restructuring of existing surfaces — they stay as support layers.
-- No changes to messaging/Telegram bridge.
+After this pass, you should be able to:
 
-Approve and I'll start with step 1 (the migration).  
+1. Capture → see it land in **Inbox**.
+2. Multi-select 3 captures → **Attach to project** → they appear in the Living Brief.
+3. Open the project → see Recent changes, Needs me, Signals, Notes/Files, Exports, Receipts.
+4. Tap **Summarize** → brief appears under Saved exports + surfaces in Cockpit.
+5. Open Cockpit → one screen tells you what changed and what needs you.
+6. Tap **Why am I seeing this?** on any card → receipts drawer explains it.
+
+If any of those break, the step that owns it gets revisited before moving on.
+
+---
+
+Want me to start with Step 1 (collapse nav to the 5 primaries) or jump straight to Step 3 (Project/Living Brief restructure) since that's where most of the daily-flow pain lives?  
   
-Approved.
+Start with Step 1: collapse navigation to the 5 primary surfaces.
 
-Proceed with the Project-First Living Brief plan exactly in the proposed build order.
+Proceed in the proposed order.
 
-Start with Step 1:
+Do not jump to the Project/Living Brief restructure yet.
 
-Migration for `projects` and `project_items` with proper RLS/GRANTs using the existing active scope rules.
+Reason:  
+The navigation is the first source of confusion. If the app still presents 9 sibling tabs of equal weight, the user will continue feeling lost even after the Project page improves.
 
-Keep this sequenced and reviewable. Do not bundle all four moves together.
+Approved direction:
 
-Important confirmations:
+Primary surfaces:
 
-- Projects are the new anchor.
-- Living Brief is the main project case file.
-- No AI summaries in v1.
-- No new edge functions.
-- No Telegram or capture bridge changes.
-- Existing surfaces stay as support layers.
-- Attach-to-project comes after the migration and read-only brief page.
-- Multi-select and glossary come after the core project flow works.
+- Cockpit
+- Inbox
+- Projects
+- Briefs
+- Receipts
 
-The goal is simplicity first:
+Move the old advanced surfaces into More:
 
-Capture / Note / File / Sherlock finding  
-→ Attach to Project  
-→ Appears inside Living Brief  
-→ User understands where it lives and why.
+- Commitments
+- Actions
+- Sherlock
+- Awareness
+- Conversation
+- any legacy/deep-link-only surfaces
 
-Begin with the migration only.
+Keep old deep links functional.
+
+Default landing surface remains Cockpit.
+
+Make the “More” sheet clearly explain:  
+“Advanced surfaces — these also live inside Projects and Cockpit.”
+
+After Step 1 is complete and reviewed, proceed to Step 2: Inbox surface composition.
