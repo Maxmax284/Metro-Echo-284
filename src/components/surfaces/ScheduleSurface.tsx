@@ -247,7 +247,7 @@ function QuickJump({ onNavigate, captures, actions }: { onNavigate?: (k: Surface
         <ListChecks className="h-4 w-4 text-primary" />
         <div>
           <div className="font-medium">Approvals</div>
-          <div className="text-[10.5px] text-muted-foreground">{actions} pending</div>
+          <div className="text-[10.5px] text-muted-foreground">{actions} waiting on your OK</div>
         </div>
       </button>
     </div>
