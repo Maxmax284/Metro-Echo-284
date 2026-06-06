@@ -271,7 +271,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         </Card>
 
         <div className="text-center text-[11px] text-muted-foreground">
-          Command Center is read-only. Approvals route into the existing Actions room. Capture lanes remain capture-only.
+          This is the rollup — nothing runs from here. Tap into a card to actually do something.
         </div>
       </div>
 
