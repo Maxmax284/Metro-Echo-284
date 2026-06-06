@@ -383,7 +383,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               onClick={() => setShowSources((s) => !s)}
               aria-expanded={showSources}
             >
-              <Info className="h-3 w-3" /> Why this matters
+              <Info className="h-3 w-3" /> Why this appears here
               {showSources ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
             <Button
