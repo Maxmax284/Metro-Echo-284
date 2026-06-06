@@ -48,7 +48,8 @@ export function BriefExportsList({ entityId }: { entityId?: string | null }) {
   if (rows.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
-        No saved exports yet. Tap <span className="text-foreground/90">Create brief</span> to draft and export your first one.
+        <div className="text-foreground/85">No exports yet.</div>
+        <div className="mt-1">Drafts stay private. Tap <span className="text-foreground/90">Create brief</span> → review → <span className="text-foreground/90">Approve &amp; export</span>. The PDF will appear here and you can re-download anytime.</div>
       </div>
     );
   }
