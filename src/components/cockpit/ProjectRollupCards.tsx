@@ -146,14 +146,7 @@ function RollupCard({
 }) {
   const c = rollup?.counts;
   const recentChange = rollup?.recent_changes?.[0];
-  const needs =
-    (c?.commitments_overdue ?? 0) > 0
-      ? `${c?.commitments_overdue} overdue commitment${(c?.commitments_overdue ?? 0) === 1 ? "" : "s"}`
-      : (c?.actions_high_risk ?? 0) > 0
-      ? `${c?.actions_high_risk} high-risk action${(c?.actions_high_risk ?? 0) === 1 ? "" : "s"}`
-      : (c?.sherlock_pending ?? 0) > 0
-      ? `${c?.sherlock_pending} Sherlock finding${(c?.sherlock_pending ?? 0) === 1 ? "" : "s"} pending`
-      : null;
+
 
   const linkedSummary = c
     ? [
