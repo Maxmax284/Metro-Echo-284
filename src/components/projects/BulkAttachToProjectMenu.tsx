@@ -78,7 +78,7 @@ export function BulkAttachToProjectMenu({
       entity_type: "project",
       entity_id: projectId,
       event: "inbox.bulk_attached",
-      payload: { project_id: projectId, count: items.length, items: items.map((it) => ({ type: it.type, id: it.id })) },
+      payload: { project_id: projectId, count: items.length, items: items.map((it) => ({ type: it.type, id: it.id })) } as any,
     });
     toast.success(`${items.length} pushed to "${projectTitle}"`);
   }
