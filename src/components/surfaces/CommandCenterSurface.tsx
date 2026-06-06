@@ -197,11 +197,16 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
 
-        {/* 2. Today — what needs you, what changed, what's next. */}
-        <DailyChecklistCard onNavigate={onNavigate} />
+        {/* Pinned: Today + Live Briefing stay visible while you scroll, always interactive. */}
+        <div className="sticky top-0 z-30 -mx-3 space-y-3 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:-mx-6 md:px-6">
+          {/* Today — what needs you, what changed, what's next. */}
+          <DailyChecklistCard onNavigate={onNavigate} />
 
-        {/* 3. Live Briefing — plain-English situation report, visible and interactive. */}
-        <OperationsBriefingPanel onNavigate={onNavigate} />
+          {/* Live Briefing — plain-English situation report, visible and interactive. */}
+          <div className="pointer-events-auto">
+            <OperationsBriefingPanel onNavigate={onNavigate} />
+          </div>
+        </div>
 
         {/* 4. Aware bubble — environment context. */}
         <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
