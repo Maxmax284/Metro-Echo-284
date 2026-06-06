@@ -223,8 +223,8 @@ function SummaryStrip({ reminders, commitments, captures, files, actions }: { re
   if (reminders) parts.push(`${reminders} reminder${reminders === 1 ? "" : "s"}`);
   if (commitments) parts.push(`${commitments} commitment${commitments === 1 ? "" : "s"}`);
   if (captures) parts.push(`${captures} capture${captures === 1 ? "" : "s"} waiting`);
-  if (files) parts.push(`${files} file${files === 1 ? "" : "s"} need review`);
-  if (actions) parts.push(`${actions} action${actions === 1 ? "" : "s"} need approval`);
+  if (files) parts.push(`${files} file${files === 1 ? "" : "s"} need a label`);
+  if (actions) parts.push(`${actions} action${actions === 1 ? "" : "s"} waiting on your OK`);
   const line = parts.length ? `Today: ${parts.join(", ")}.` : "Today: nothing on the board.";
   return (
     <Card className="border-border/60 bg-surface-elevated/60 p-3 text-[13px] text-foreground/90">
