@@ -125,7 +125,7 @@ export function ActionsSurface() {
         {loading && <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>}
         {!loading && actions.length === 0 && (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            No actions yet. Stage one from the conversation.
+            Nothing here yet. Drafts show up when Vanta proposes something.
           </div>
         )}
         {!loading && Object.entries(groups).map(([label, list]) =>
