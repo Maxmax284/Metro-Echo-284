@@ -16,6 +16,7 @@ import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPan
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { useTutorial } from "@/components/tutorial/TutorialProvider";
 import { SystemMap } from "@/components/tutorial/SystemMap";
+import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
