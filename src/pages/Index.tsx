@@ -12,6 +12,8 @@ import { SherlockSurface } from "@/components/surfaces/SherlockSurface";
 import { AuditSurface } from "@/components/surfaces/AuditSurface";
 import { CommandCenterSurface } from "@/components/surfaces/CommandCenterSurface";
 import { ScheduleSurface } from "@/components/surfaces/ScheduleSurface";
+import { BriefsSurface } from "@/components/surfaces/BriefsSurface";
+import { ProjectsSurface } from "@/components/surfaces/ProjectsSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -246,6 +248,10 @@ function IndexInner() {
           <MissingSecretsBanner />
 
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
+          {surface === "inbox" && <MemorySurface />}
+          {surface === "projects" && <ProjectsSurface />}
+          {surface === "briefs" && <BriefsSurface />}
+          {surface === "receipts" && <AuditSurface />}
           {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
           {surface === "memory" && <MemorySurface />}
