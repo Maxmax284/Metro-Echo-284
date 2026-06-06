@@ -21,6 +21,7 @@ import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 
 type Counts = {
   pendingApprovals: number;
