@@ -293,6 +293,11 @@ function ResultRow({ target, onPick }: { target: Picked; onPick: () => void }) {
           {target.preview && (
             <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{target.preview}</p>
           )}
+          {target.updated_at && (
+            <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+              {formatDistanceToNow(new Date(target.updated_at), { addSuffix: true })}
+            </p>
+          )}
         </div>
         <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100" />
       </button>
