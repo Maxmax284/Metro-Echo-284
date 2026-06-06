@@ -26,6 +26,7 @@ import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
+import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
