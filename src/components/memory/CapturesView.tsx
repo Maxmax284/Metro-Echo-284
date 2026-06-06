@@ -635,15 +635,13 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
             <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
               <BulkAttachToProjectMenu
-                items={picks
-                  .map((it) => {
-                    const t: ProjectItemType | null =
-                      it._raw.kind === "message" ? "capture"
-                      : it._raw.kind === "file" ? "file"
-                      : null;
-                    return t ? { type: t, id: it._raw.row.id } : null;
-                  })
-                  .filter((x): x is { type: ProjectItemType; id: string } => x !== null)}
+                items={picks.flatMap((it) => {
+                  const t: ProjectItemType | null =
+                    it._raw.kind === "message" ? "capture"
+                    : it._raw.kind === "file" ? "file"
+                    : null;
+                  return t ? [{ type: t, id: it._raw.row.id as string }] : [];
+                })}
                 label={`Push to project (${picks.length})`}
                 onAttached={() => { setSelectedIds(new Set()); setSelectMode(false); refresh(); }}
               />
