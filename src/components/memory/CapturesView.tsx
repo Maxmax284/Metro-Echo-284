@@ -543,11 +543,89 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
               )}
             </div>
           );
-          return (
+          // Which captures support bulk-linking (must map to a CrossKind).
+          const bulkKind: CrossKind | null =
+            item._raw.kind === "message" ? "capture"
+            : item._raw.kind === "file" ? "file"
+            : null;
+          const isSelected = selectedIds.has(item.id);
+          const toggleSelected = () => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(item.id)) next.delete(item.id);
+              else next.add(item.id);
+              return next;
+            });
+          };
+          const card = (
             <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={footer} />
+          );
+          if (!selectMode || !bulkKind) {
+            return <div key={item.id}>{card}</div>;
+          }
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-start gap-2 rounded-md p-1 transition-colors",
+                isSelected && "bg-primary/5 ring-1 ring-primary/30",
+              )}
+            >
+              <button
+                type="button"
+                onClick={toggleSelected}
+                className="mt-2 shrink-0"
+                aria-label={isSelected ? "Unselect" : "Select"}
+              >
+                <Checkbox checked={isSelected} onCheckedChange={toggleSelected} />
+              </button>
+              <div className="min-w-0 flex-1">{card}</div>
+            </div>
           );
         })}
       </div>
+
+      {/* Sticky bulk-action bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="sticky bottom-2 z-20 mx-auto flex max-w-md items-center gap-2 rounded-full border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+          <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
+          <Button
+            size="sm"
+            className="ml-auto h-8 gap-1 text-[11.5px]"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Link2 className="h-3 w-3" /> Connect to…
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="rounded-full p-1.5 text-muted-foreground hover:text-foreground"
+            aria-label="Clear selection"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      <BulkConnectSheet
+        open={bulkOpen}
+        onOpenChange={setBulkOpen}
+        sources={(() => {
+          const map = new Map(filtered.map((i) => [i.id, i]));
+          const out: { kind: CrossKind; id: string; label?: string }[] = [];
+          for (const id of selectedIds) {
+            const it = map.get(id);
+            if (!it) continue;
+            const k: CrossKind | null =
+              it._raw.kind === "message" ? "capture"
+              : it._raw.kind === "file" ? "file"
+              : null;
+            if (k) out.push({ kind: k, id: it._raw.row.id, label: it.text.slice(0, 60) });
+          }
+          return out;
+        })()}
+        onLinked={() => { setSelectedIds(new Set()); setSelectMode(false); refresh(); }}
+      />
 
       <Dialog open={!!aftermathFileId} onOpenChange={(o) => !o && setAftermathFileId(null)}>
         <DialogContent className="max-w-lg">
