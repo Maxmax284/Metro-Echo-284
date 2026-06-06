@@ -61,6 +61,7 @@ export function MemorySurface() {
   const [active, setActive] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
   const [view, setView] = useState<"inbox" | "notes" | "captures" | "files" | "corrections">("inbox");
