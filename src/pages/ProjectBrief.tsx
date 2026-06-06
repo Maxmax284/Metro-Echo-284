@@ -147,6 +147,29 @@ export default function ProjectBriefPage() {
     }
   }
 
+  async function handleSummarize() {
+    if (!project) return;
+    setSummarizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("project-summarize", {
+        body: { project_id: project.id },
+      });
+      if (error) throw error;
+      const text = (data as any)?.summary ?? "";
+      if (!text) {
+        toast.message("Nothing to summarize yet — attach a few items first.");
+        return;
+      }
+      setSummaryDraft(text);
+      toast.success("Draft ready — review and Save to commit.");
+    } catch (err) {
+      console.error("[brief] summarize failed", err);
+      toast.error("Couldn't summarize right now.");
+    } finally {
+      setSummarizing(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:py-10">
       <header className="mb-4 flex items-start gap-3">
