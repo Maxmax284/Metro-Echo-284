@@ -80,20 +80,23 @@ async function fetchPreview(kind: string, id: string): Promise<string | null> {
 }
 
 export function EntityDetailSheet() {
-  const { openEntityId, closeEntity } = useEntitySheet();
+  const { openEntityId, openEntity, closeEntity } = useEntitySheet();
   const { openCanvas } = useCanvas();
   const [entity, setEntity] = useState<EntityRow | null>(null);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [parent, setParent] = useState<{ id: string; display_name: string; kind: string } | null>(null);
+  const [children, setChildren] = useState<Array<{ id: string; display_name: string; kind: string }>>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!openEntityId) { setEntity(null); setLinks([]); return; }
+    if (!openEntityId) { setEntity(null); setLinks([]); setParent(null); setChildren([]); setCounts({}); return; }
     let alive = true;
     setLoading(true);
     (async () => {
       const { data: ent } = await supabase
         .from("entities")
-        .select("id, kind, display_name, aliases, confidence, first_seen_at, last_seen_at, metadata")
+        .select("id, kind, display_name, aliases, confidence, first_seen_at, last_seen_at, metadata, parent_entity_id, slug, summary, pinned")
         .eq("id", openEntityId)
         .maybeSingle();
       if (!alive) return;
@@ -110,7 +113,31 @@ export function EntityDetailSheet() {
         ...l,
         preview: await fetchPreview(l.source_kind, l.source_id),
       })));
-      if (alive) { setLinks(enriched); setLoading(false); }
+      if (alive) { setLinks(enriched); }
+
+      // Project hierarchy + counts (only meaningful for project kind, but cheap).
+      if (ent) {
+        const e = ent as EntityRow;
+        const tasks: Promise<any>[] = [];
+        if (e.parent_entity_id) {
+          tasks.push(
+            supabase.from("entities").select("id, display_name, kind").eq("id", e.parent_entity_id).maybeSingle()
+              .then(({ data }) => { if (alive && data) setParent(data as any); })
+          );
+        }
+        tasks.push(
+          supabase.from("entities").select("id, display_name, kind").eq("parent_entity_id", e.id).order("display_name").limit(20)
+            .then(({ data }) => { if (alive) setChildren((data ?? []) as any); })
+        );
+        // Counts derived from entity_links roles.
+        tasks.push((async () => {
+          const tally: Record<string, number> = {};
+          for (const l of linkRows) tally[l.source_kind] = (tally[l.source_kind] ?? 0) + 1;
+          if (alive) setCounts(tally);
+        })());
+        await Promise.all(tasks);
+      }
+      if (alive) setLoading(false);
     })();
     return () => { alive = false; };
   }, [openEntityId]);
