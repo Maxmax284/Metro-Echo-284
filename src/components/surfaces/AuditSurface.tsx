@@ -78,6 +78,8 @@ export function AuditSurface() {
   const [quick, setQuick] = useState("");
   const [eventClass, setEventClass] = useState("");
   const [loading, setLoading] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(30);
+  const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
 
   const load = async () => {
     setLoading(true);
