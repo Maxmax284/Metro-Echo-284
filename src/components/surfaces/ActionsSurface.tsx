@@ -281,7 +281,7 @@ export function ActionsSurface() {
                     )}
                     {affectedCount > 0 && (
                       <Badge variant="outline" className="gap-1 text-muted-foreground">
-                        <Boxes className="h-3 w-3" /> {affectedCount} affected
+                        <Boxes className="h-3 w-3" /> touches {affectedCount}
                       </Badge>
                     )}
                     <Badge
@@ -289,7 +289,7 @@ export function ActionsSurface() {
                       className={cn("gap-1", t.rollback_available ? "text-signal" : "text-muted-foreground")}
                     >
                       <RotateCcw className="h-3 w-3" />
-                      {t.rollback_available ? "Rollback available" : "No rollback"}
+                      {t.rollback_available ? "Can be undone" : "Can't be undone"}
                     </Badge>
                   </div>
 
