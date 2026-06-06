@@ -69,8 +69,14 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [receipts, setReceipts] = useState<AuditRow[]>([]);
   const [pendingById, setPendingById] = useState<Map<string, SherlockFinding>>(new Map());
   const [briefOpen, setBriefOpen] = useState(false);
+  const [briefDefault, setBriefDefault] = useState<{ format?: BriefFormat; auto?: boolean }>({});
 
   useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
+
+  function openBrief(opts?: { format?: BriefFormat; auto?: boolean }) {
+    setBriefDefault(opts ?? {});
+    setBriefOpen(true);
+  }
 
   async function refresh() {
     setLoading(true);
