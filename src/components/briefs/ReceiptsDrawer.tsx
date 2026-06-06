@@ -16,12 +16,13 @@ const ICON_FOR_KIND: Record<string, typeof FileText> = {
 };
 
 export function ReceiptsDrawer({
-  open, onOpenChange, refs, sectionLabel,
+  open, onOpenChange, refs, sectionLabel, highlightKey,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   refs: ReceiptRef[];
   sectionLabel?: string;
+  highlightKey?: string;
 }) {
   const [items, setItems] = useState<ResolvedReceipt[]>([]);
   const [audit, setAudit] = useState<Array<{ id: string; event: string; entity_type: string; created_at: string }>>([]);
@@ -91,11 +92,24 @@ export function ReceiptsDrawer({
               <div className="mb-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
                 Source items
               </div>
+              {highlightKey && (
+                <div className="mb-2 rounded-md bg-primary/10 px-2 py-1 text-[10.5px] text-primary ring-1 ring-primary/30">
+                  Highlighted: exact sources behind the claim you tapped.
+                </div>
+              )}
               <ul className="space-y-1.5">
                 {items.map((it, i) => {
                   const Icon = ICON_FOR_KIND[it.kind] ?? FileText;
                   return (
-                    <li key={`${it.kind}-${it.id}-${i}`} className="flex items-start gap-2 rounded-md border border-border/40 bg-surface-elevated/40 p-2.5 text-[12px]">
+                    <li
+                      key={`${it.kind}-${it.id}-${i}`}
+                      className={
+                        "flex items-start gap-2 rounded-md border p-2.5 text-[12px] transition-colors " +
+                        (highlightKey
+                          ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                          : "border-border/40 bg-surface-elevated/40")
+                      }
+                    >
                       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-foreground/95">{it.label}</div>
@@ -111,6 +125,7 @@ export function ReceiptsDrawer({
               </ul>
             </section>
           )}
+
 
           <p className="mt-4 text-center text-[10.5px] text-muted-foreground">
             Every claim in a Vanta brief points back to real items and audit receipts.
