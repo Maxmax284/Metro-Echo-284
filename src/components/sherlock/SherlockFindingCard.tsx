@@ -13,6 +13,7 @@ import { acceptFinding, dismissFinding, editFinding } from "@/lib/sherlock/lifec
 import { vantaSay, vantaToast } from "@/lib/vantaVoice";
 import { SherlockReviewModal } from "./SherlockReviewModal";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { sherlockWhyFallback } from "@/lib/plainEnglish";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
@@ -178,6 +179,11 @@ export function SherlockFindingCard({
               <Eye className="mr-1 h-3 w-3" /> Inspect
             </Button>
           )}
+          <AttachToProjectMenu
+            itemType="finding"
+            itemId={finding.id}
+            itemLabel={finding.summary?.slice(0, 80)}
+          />
         </div>
         <AftermathFooter
           next={{
