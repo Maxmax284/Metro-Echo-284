@@ -104,8 +104,34 @@ export function BriefComposerSheet({
 
   async function handleApproveExport() {
     if (!brief || !savedRow) return;
+    if (sensitivity?.any && !sensitivityAck) {
+      toast({
+        title: "Review flagged content first",
+        description: "Tick the acknowledgement to export anyway.",
+        variant: "destructive",
+      });
+      return;
+    }
     setExporting(true);
     try {
+      // Log sensitivity acknowledgement (if any) as its own receipt.
+      if (sensitivity?.any) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id) {
+          await supabase.from("audit_log").insert({
+            user_id: u.user.id,
+            entity_type: "brief_export",
+            entity_id: savedRow.id,
+            event: "brief.sensitivity_reviewed",
+            payload: {
+              format,
+              categories: sensitivity.category_summary.map((c) => c.category),
+              hit_count: sensitivity.hits.length,
+            },
+          });
+        }
+      }
+
       let pdfBlob: Blob | null = null;
       if (format !== "audio_script") {
         pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
@@ -114,10 +140,9 @@ export function BriefComposerSheet({
       setSavedRow(updated);
       toast({
         title: "Brief exported",
-        description: pdfBlob ? "PDF saved to memory uploads." : "Marked as exported.",
+        description: pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported.",
       });
       if (pdfBlob) {
-        // Offer immediate download
         const url = URL.createObjectURL(pdfBlob);
         const a = document.createElement("a");
         a.href = url;
