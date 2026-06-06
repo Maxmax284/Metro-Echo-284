@@ -39,6 +39,7 @@ export default function Settings() {
   const { controls, loading, update } = useSystemControls();
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [limits, setLimits] = useState<UsageLimit[]>([]);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   useEffect(() => {
     if (!session || !isOwner) return;
