@@ -109,9 +109,9 @@ export function ManualLinkSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-2xl pb-[max(env(safe-area-inset-bottom),12px)]">
         <SheetHeader className="text-left">
-          <SheetTitle className="text-[14px]">Link two things</SheetTitle>
+          <SheetTitle className="text-[14px]">Connect to…</SheetTitle>
           <SheetDescription className="text-[11.5px]">
-            Pick anything for A and B — note, commitment, reminder, action, file. Linking is metadata; nothing runs.
+            Pick any two things — notes, commitments, reminders, files, projects. Connecting is metadata; nothing runs.
           </SheetDescription>
         </SheetHeader>
 
