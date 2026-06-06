@@ -144,9 +144,16 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
           <SheetHeader className="text-left">
             <SheetTitle className="text-[16px]">Create brief</SheetTitle>
             <SheetDescription className="text-[12px]">
-              Vanta drafts the brief. You review. Nothing exports until you approve.
+              Vanta drafts. You review. Nothing exports until you approve.
             </SheetDescription>
           </SheetHeader>
+
+          {/* Plain-English explainer */}
+          <div className="mt-3 rounded-md border border-border/50 bg-surface-elevated/40 p-2.5 text-[11.5px] text-muted-foreground">
+            <span className="text-foreground/90">Drafts stay private.</span>{" "}
+            Approve to save a PDF you can share and re-download from <span className="text-foreground/90">Saved exports</span>.
+            Every export writes a receipt.
+          </div>
 
           {/* Scope */}
           <div className="mt-4 space-y-2">
