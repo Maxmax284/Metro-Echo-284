@@ -532,7 +532,6 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                 const projectKind: ProjectItemType | null =
                   item._raw.kind === "message" ? "capture"
                   : item._raw.kind === "file" ? "file"
-                  : item._raw.kind === "note" ? "note"
                   : null;
                 if (!crossKind && !projectKind) return null;
                 return (
