@@ -16,6 +16,7 @@ import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPan
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { useTutorial } from "@/components/tutorial/TutorialProvider";
 import { SystemMap } from "@/components/tutorial/SystemMap";
+import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -38,6 +39,7 @@ export default function Settings() {
   const { controls, loading, update } = useSystemControls();
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [limits, setLimits] = useState<UsageLimit[]>([]);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   useEffect(() => {
     if (!session || !isOwner) return;
@@ -116,19 +118,32 @@ export default function Settings() {
               The whole flow in plain English. Replay the first-run walkthrough any time.
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 h-8 text-[11.5px]"
-            onClick={startTutorial}
-          >
-            Replay tutorial
-          </Button>
+          <div className="flex shrink-0 flex-col gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-[11.5px]"
+              onClick={startTutorial}
+            >
+              Replay tutorial
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-[11.5px]"
+              onClick={() => setDemoOpen(true)}
+            >
+              Follow one note
+            </Button>
+          </div>
         </div>
         <div className="mt-3">
           <SystemMap />
         </div>
       </section>
+
+      <FollowOneNoteDemo open={demoOpen} onOpenChange={setDemoOpen} />
+
 
       <TimeRemindersSection />
 

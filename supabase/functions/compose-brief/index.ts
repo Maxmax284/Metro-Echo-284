@@ -1,8 +1,8 @@
 // compose-brief — Command Center brief composer.
-// User-tap only. Pulls a small rolled-up snapshot scoped to the requester
-// (entity or whole-system), then one Lovable AI pass produces a structured
-// brief. Emits brief.generated to audit_log. No persistence here — saving and
-// exporting is the client's job (so user can review before export).
+// Doctrine:
+// - User-tap only. No background execution.
+// - Every CLAIM in a brief carries `receipts` pointing to source items / audit events.
+// - System scope pulls a consolidated view across pinned projects + recent activity.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -23,18 +23,21 @@ type Input = {
   range_days?: number;
 };
 
+type Grounding = { kind: string; id: string; label?: string };
+
 type Section = {
   id: string;
   heading?: string;
   kind: "prose" | "list" | "timeline" | "decision" | "receipts" | "pull_quote";
   body: any;
+  receipts?: Grounding[];
 };
 
 type Brief = {
   title: string;
   subtitle: string | null;
   sections: Section[];
-  appendix_receipts: { kind: string; id: string; label?: string }[];
+  appendix_receipts: Grounding[];
   grounding: Record<string, unknown>;
   signals_hash: string;
   format: Format;
@@ -46,14 +49,14 @@ type Brief = {
 async function sha(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
 
 const FORMAT_TONE: Record<Format, string> = {
   operator: "Direct, tactical, in second person. No fluff. Plain English.",
   client: "Clean and professional. Suitable for an external client. Remove any internal reasoning, debug language, or speculation.",
   audit_packet: "Receipts-first. Lead with what happened and when. Minimal prose. Cite timestamps.",
-  weekly_review: "Reflective, scoped to the last seven days. Group by project or entity. Calm tone.",
+  weekly_review: "Reflective, scoped to the last seven days. Group by project or entity. Calm tone. Suitable as a client-facing weekly summary.",
   audio_script: "Spoken-style. Conversational but composed. No headings, no bullet characters. One flowing block.",
 };
 
@@ -65,13 +68,19 @@ const FORMAT_SECTIONS: Record<Format, string[]> = {
   audio_script: ["spoken"],
 };
 
-async function buildEntitySnapshot(supabase: any, uid: string, entity_id: string) {
+async function buildEntitySnapshot(supabase: any, entity_id: string) {
   const { data: rollup, error } = await supabase.rpc("entity_rollup", { _entity_id: entity_id });
   if (error) throw error;
   return rollup;
 }
 
 async function buildSystemSnapshot(supabase: any, uid: string, range_days: number) {
+  // Prefer the system_rollup RPC, fall back to raw queries if unavailable.
+  try {
+    const { data, error } = await supabase.rpc("system_rollup", { _range_days: range_days });
+    if (!error && data) return data;
+  } catch (_e) { /* fall through */ }
+
   const since = new Date(Date.now() - range_days * 86400_000).toISOString();
   const [pinned, commits, actions, sherlock, audit, captures] = await Promise.all([
     supabase.from("entities").select("id, display_name, kind, slug, summary, pinned, parent_entity_id")
@@ -100,15 +109,23 @@ async function buildSystemSnapshot(supabase: any, uid: string, range_days: numbe
   };
 }
 
-function fallbackBrief(format: Format, snapshot: any, scope_label: string): Section[] {
+function fallbackBrief(_format: Format, snapshot: any, scope_label: string): Section[] {
   const counts = snapshot?.counts ?? {};
   const overview = scope_label
-    ? `${scope_label} snapshot. ${counts.cross_links ?? 0} cross-links · ${counts.audit_7d ?? 0} audit events in the last week.`
+    ? `${scope_label} snapshot. ${counts.cross_links ?? counts.audit_7d ?? 0} cross-links · ${counts.audit_7d ?? 0} audit events in the last week.`
     : "System snapshot.";
+  const recent = (snapshot?.recent_audit ?? snapshot?.audit ?? []).slice(0, 6);
   return [
-    { id: "overview", heading: "Overview", kind: "prose", body: overview },
-    { id: "receipts", heading: "Recent receipts", kind: "receipts",
-      body: (snapshot?.recent_audit ?? snapshot?.audit ?? []).slice(0, 6) },
+    {
+      id: "overview", heading: "Overview", kind: "prose",
+      body: overview,
+      receipts: recent.map((a: any) => ({ kind: "audit", id: a.id, label: a.event })),
+    },
+    {
+      id: "receipts", heading: "Recent receipts", kind: "receipts",
+      body: recent.map((a: any) => `${a.created_at?.slice(0, 19).replace("T", " ")} — ${a.event}`),
+      receipts: recent.map((a: any) => ({ kind: "audit", id: a.id, label: a.event })),
+    },
   ];
 }
 
@@ -124,28 +141,30 @@ Tone: ${tone}
 
 Doctrine:
 - Never invent facts. Only describe what is present in the snapshot.
-- Plain English on top. No emojis. No exclamation marks. Not corporate slop.
-- Each fact you state should be grounded in an item from the snapshot.
+- Plain English on top. No emojis. No exclamation marks.
+- EVERY claim you make must be grounded in source ids from the snapshot.
+- For "list" and "timeline" items, return objects: { "text"/"what": "...", "receipts": [{ "kind": "audit"|"note"|"commitment"|"action"|"file"|"message"|"entity", "id": "<id from snapshot>" }] }.
+- For "prose" sections, return { "text": "...", "receipts": [...] }.
+- For "decision" sections, return { "decision": "...", "why": "...", "receipts": [...] }.
 
 Return STRICT JSON in this exact shape:
 {
   "title": "string (max 80 chars)",
   "subtitle": "string or null",
   "sections": [
-    { "id": "string from the requested section list", "heading": "string or null",
+    { "id": "string from the requested section list",
+      "heading": "string or null",
       "kind": "prose|list|timeline|decision|receipts|pull_quote",
-      "body": "string OR array OR object depending on kind" }
+      "body": <see rules above>,
+      "receipts": [{ "kind": "...", "id": "..." }] }
   ]
 }
 
 Requested sections for this format (use these IDs; skip any with no data): ${sectionList.join(", ")}.
-For "audio_script" format, return a single section with id="spoken", kind="prose", no heading, one flowing paragraph.
-For "receipts" sections, body is an array of strings like "2026-06-05 14:22 — commitment.completed (Deposit payment)".
-For "list" sections, body is an array of short strings.
-For "timeline" sections, body is an array of {when, what} objects.
-For "decision" sections, body is {decision, why}.`;
+For "audio_script" format, return one section: id="spoken", kind="prose", no heading, body is { "text": "<one flowing paragraph>", "receipts": [...] }.
+For "receipts" sections, body is an array of strings like "2026-06-05 14:22 — commitment.completed (Deposit payment)".`;
 
-  const userMsg = `Scope: ${scope_label}\nFormat: ${format}\nSnapshot:\n${JSON.stringify(snapshot).slice(0, 12000)}`;
+  const userMsg = `Scope: ${scope_label}\nFormat: ${format}\nSnapshot (use IDs from this for receipts):\n${JSON.stringify(snapshot).slice(0, 14000)}`;
 
   try {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -218,7 +237,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      snapshot = await buildEntitySnapshot(supabase, uid, input.entity_id);
+      snapshot = await buildEntitySnapshot(supabase, input.entity_id);
       scopeLabel = snapshot?.entity?.display_name ?? "Entity";
       entityId = input.entity_id;
     } else {
@@ -232,8 +251,8 @@ Deno.serve(async (req) => {
 
     // Receipts appendix: pull from audit
     const auditSource = (snapshot?.recent_audit ?? snapshot?.audit ?? []) as any[];
-    const appendix_receipts = auditSource.slice(0, 12).map((a) => ({
-      kind: a.entity_type, id: a.entity_id, label: `${a.event} · ${a.created_at}`,
+    const appendix_receipts: Grounding[] = auditSource.slice(0, 12).map((a) => ({
+      kind: "audit", id: a.id, label: `${a.event} · ${a.created_at}`,
     }));
 
     const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format }));
@@ -254,7 +273,6 @@ Deno.serve(async (req) => {
       generated_at: new Date().toISOString(),
     };
 
-    // Audit: brief.generated
     await supabase.from("audit_log").insert({
       user_id: uid,
       entity_type: "brief",

@@ -2443,6 +2443,7 @@ export type Database = {
         Args: { _geohash: string; _note_type: string; _window_days?: number }
         Returns: number
       }
+      system_rollup: { Args: { _range_days?: number }; Returns: Json }
     }
     Enums: {
       action_risk: "low_reversible" | "standard" | "high"

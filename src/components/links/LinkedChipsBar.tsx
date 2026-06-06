@@ -63,7 +63,14 @@ export function LinkedChipsBar({
       </div>
     );
   }
-  if (rows.length === 0) return null;
+  if (rows.length === 0) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border/50 bg-background/30 px-2 py-1 text-[10.5px] text-muted-foreground">
+        <Link2 className="h-3 w-3" />
+        Not connected yet — tap <span className="text-foreground/90">Connect</span> to link this to a project, person, or place.
+      </div>
+    );
+  }
 
   return (
     <div className={cn("flex flex-wrap items-center gap-1", compact && "text-[11px]")}>

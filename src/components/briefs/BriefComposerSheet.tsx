@@ -1,11 +1,12 @@
-// BriefComposerSheet — Draft → Review → Approve & Export.
-// Mobile-first bottom sheet. Doctrine: nothing exports without user tap.
+// BriefComposerSheet — Draft → Sensitivity review → Approve & Export.
+// Mobile-first bottom sheet. Doctrine: nothing exports without user tap, and
+// nothing sensitive exports without an explicit acknowledgment.
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, FileText, Download, Volume2, Pause, Square } from "lucide-react";
+import { Loader2, FileText, Download, Volume2, Square, ShieldCheck } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import {
   composeBrief, saveBriefDraft, approveAndExportBrief,
@@ -14,6 +15,9 @@ import {
 } from "@/lib/briefs";
 import { BriefRenderer } from "./BriefRenderer";
 import { BriefPdfDocument } from "./BriefPdfDocument";
+import { SensitivityReviewStep } from "./SensitivityReviewStep";
+import { scanBriefSensitivity } from "@/lib/briefSensitivity";
+import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/providers/WorkspaceProvider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,31 +27,45 @@ type Props = {
   defaultScope: "system" | "entity";
   entityId?: string | null;
   entityLabel?: string | null;
+  /** Pre-select a format (used by one-tap actions like Weekly Review). */
+  defaultFormat?: BriefFormat;
+  /** Auto-tap Draft once when the sheet opens. */
+  autoDraft?: boolean;
 };
 
 const FORMATS: BriefFormat[] = ["operator", "client", "audit_packet", "weekly_review", "audio_script"];
 
-export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId, entityLabel }: Props) {
+export function BriefComposerSheet({
+  open, onOpenChange, defaultScope, entityId, entityLabel, defaultFormat, autoDraft,
+}: Props) {
   const { scope } = useWorkspace();
   const { toast } = useToast();
-  const [format, setFormat] = useState<BriefFormat>("operator");
+  const [format, setFormat] = useState<BriefFormat>(defaultFormat ?? "operator");
   const [scopeKind, setScopeKind] = useState<"system" | "entity">(defaultScope);
   const [drafting, setDrafting] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [savedRow, setSavedRow] = useState<BriefExportRow | null>(null);
   const [exporting, setExporting] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [sensitivityAck, setSensitivityAck] = useState(false);
 
   useEffect(() => {
     if (open) {
       setScopeKind(defaultScope);
+      if (defaultFormat) setFormat(defaultFormat);
       setBrief(null);
       setSavedRow(null);
+      setSensitivityAck(false);
+      if (autoDraft) {
+        // Defer so format/scope state settles first.
+        setTimeout(() => { void handleDraft(); }, 50);
+      }
     } else {
       window.speechSynthesis?.cancel();
       setSpeaking(false);
     }
-  }, [open, defaultScope]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultScope, defaultFormat, autoDraft]);
 
   const orgId = scope.kind === "workspace" ? scope.organization_id : null;
 
@@ -55,6 +73,9 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
     if (scopeKind === "entity") return entityLabel ?? "Selected entity";
     return "Whole system";
   }, [scopeKind, entityLabel]);
+
+  const sensitivity = useMemo(() => (brief ? scanBriefSensitivity(brief) : null), [brief]);
+  const exportBlocked = !!sensitivity?.any && !sensitivityAck;
 
   async function handleDraft() {
     setDrafting(true);
@@ -83,8 +104,34 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
 
   async function handleApproveExport() {
     if (!brief || !savedRow) return;
+    if (sensitivity?.any && !sensitivityAck) {
+      toast({
+        title: "Review flagged content first",
+        description: "Tick the acknowledgement to export anyway.",
+        variant: "destructive",
+      });
+      return;
+    }
     setExporting(true);
     try {
+      // Log sensitivity acknowledgement (if any) as its own receipt.
+      if (sensitivity?.any) {
+        const { data: u } = await supabase.auth.getUser();
+        if (u?.user?.id) {
+          await supabase.from("audit_log").insert({
+            user_id: u.user.id,
+            entity_type: "brief_export",
+            entity_id: savedRow.id,
+            event: "brief.sensitivity_reviewed",
+            payload: {
+              format,
+              categories: sensitivity.category_summary.map((c) => c.category),
+              hit_count: sensitivity.hits.length,
+            },
+          });
+        }
+      }
+
       let pdfBlob: Blob | null = null;
       if (format !== "audio_script") {
         pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
@@ -93,10 +140,9 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
       setSavedRow(updated);
       toast({
         title: "Brief exported",
-        description: pdfBlob ? "PDF saved to memory uploads." : "Marked as exported.",
+        description: pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported.",
       });
       if (pdfBlob) {
-        // Offer immediate download
         const url = URL.createObjectURL(pdfBlob);
         const a = document.createElement("a");
         a.href = url;
@@ -118,9 +164,9 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
   function handlePlayAudio() {
     if (!brief) return;
     const proseSection = brief.sections.find((s) => s.id === "spoken") ?? brief.sections[0];
-    const text = typeof proseSection?.body === "string"
-      ? proseSection.body
-      : brief.sections.map((s) => (typeof s.body === "string" ? s.body : "")).join(" ");
+    const pick = (b: any) =>
+      typeof b === "string" ? b : (typeof b === "object" && typeof b?.text === "string" ? b.text : "");
+    const text = pick(proseSection?.body) || brief.sections.map((s) => pick(s.body)).join(" ");
     if (!text) return;
     window.speechSynthesis?.cancel();
     const u = new SpeechSynthesisUtterance(text);
@@ -225,13 +271,30 @@ export function BriefComposerSheet({ open, onOpenChange, defaultScope, entityId,
               <Button
                 size="sm" variant="default" className="ml-auto h-9 gap-1.5"
                 onClick={handleApproveExport}
-                disabled={exporting || savedRow?.status === "exported"}
+                disabled={exporting || exportBlocked || savedRow?.status === "exported"}
+                title={exportBlocked ? "Acknowledge sensitive content first" : undefined}
               >
-                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                {savedRow?.status === "exported" ? "Exported" : "Approve & export"}
+                {exporting
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : exportBlocked
+                    ? <ShieldCheck className="h-3.5 w-3.5" />
+                    : <Download className="h-3.5 w-3.5" />}
+                {savedRow?.status === "exported"
+                  ? "Exported"
+                  : exportBlocked ? "Review required" : "Approve & export"}
               </Button>
             )}
           </div>
+
+          {/* Sensitivity gate — only shows when something looks sensitive */}
+          {brief && sensitivity?.any && (
+            <SensitivityReviewStep
+              report={sensitivity}
+              formatLabel={FORMAT_LABEL[format]}
+              acknowledged={sensitivityAck}
+              onAcknowledge={setSensitivityAck}
+            />
+          )}
 
           {/* Preview */}
           <div className="mt-4">

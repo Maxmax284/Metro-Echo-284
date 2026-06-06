@@ -10,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 
 type AuditRow = {
   id: string;
@@ -133,9 +134,9 @@ export function AuditSurface() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-medium">Audit</h2>
+            <h2 className="text-sm font-medium">Receipts</h2>
             <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              receipts only
+              what happened, when, and why you can trust it
             </span>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
@@ -248,8 +249,13 @@ export function AuditSurface() {
               <Card key={r.id} className="p-2 text-xs">
                 <div className="flex items-center gap-2">
                   <StatusDot tone={eventTone(r.event)} title={r.event} />
-                  <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{r.entity_type}</Badge>
-                  <span className="min-w-0 flex-1 truncate font-medium">{r.event}</span>
+                  <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
+                  <span
+                    className="min-w-0 flex-1 truncate font-medium text-foreground"
+                    title={r.event}
+                  >
+                    {humanizeEvent(r.event)}
+                  </span>
                   <span
                     className="ml-auto shrink-0 text-[10px] text-muted-foreground"
                     title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
@@ -257,10 +263,18 @@ export function AuditSurface() {
                     {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                   </span>
                 </div>
+                <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
+                  {trustNote(r.event)}
+                </div>
                 {r.payload && Object.keys(r.payload).length > 0 && (
-                  <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
-                    {JSON.stringify(r.payload, null, 2)}
-                  </pre>
+                  <details className="ml-5 mt-1">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                      Raw payload · for developers
+                    </summary>
+                    <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
+                      {JSON.stringify(r.payload, null, 2)}
+                    </pre>
+                  </details>
                 )}
               </Card>
             ))}

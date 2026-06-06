@@ -68,6 +68,18 @@ export function ProjectRollupCards() {
     return () => { cancelled = true; };
   }, [session]);
 
+  // Sort by urgency before rendering — situations first.
+  // IMPORTANT: hooks must run unconditionally on every render, BEFORE any early returns.
+  const sorted = useMemo(() => {
+    return [...entities].sort((a, b) => {
+      const ha = deriveProjectHealth(rollups[a.id] ?? null);
+      const hb = deriveProjectHealth(rollups[b.id] ?? null);
+      const diff = urgencyRank(ha) - urgencyRank(hb);
+      if (diff !== 0) return diff;
+      return Number(b.pinned) - Number(a.pinned);
+    });
+  }, [entities, rollups]);
+
   if (loading) {
     return (
       <Card className="flex items-center justify-center gap-2 border-border/60 bg-surface-elevated/40 p-6 text-[12px] text-muted-foreground">
@@ -80,26 +92,17 @@ export function ProjectRollupCards() {
     return (
       <Card className="border-border/60 bg-surface-elevated/40 p-4">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <Folder className="h-3 w-3" /> Project rollup
+          <Folder className="h-3 w-3" /> Projects
         </div>
-        <p className="mt-2 text-[12.5px] text-muted-foreground">
-          No projects or pinned entities yet. Pin an entity from the canvas to see it summarized here.
+        <p className="mt-2 text-[12.5px] text-foreground/85">
+          No projects yet. Capture a note from anywhere, then tap <span className="text-foreground">Connect</span> to link it to a project — it'll show up here with its own rollup.
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Tip: anything you pin from the canvas also surfaces here.
         </p>
       </Card>
     );
   }
-
-  // Sort by urgency before rendering — situations first.
-  const sorted = useMemo(() => {
-    return [...entities].sort((a, b) => {
-      const ha = deriveProjectHealth(rollups[a.id] ?? null);
-      const hb = deriveProjectHealth(rollups[b.id] ?? null);
-      const diff = urgencyRank(ha) - urgencyRank(hb);
-      if (diff !== 0) return diff;
-      // Tie-break: pinned first.
-      return Number(b.pinned) - Number(a.pinned);
-    });
-  }, [entities, rollups]);
 
   return (
     <div className="space-y-3">

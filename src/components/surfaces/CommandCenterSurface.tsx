@@ -18,10 +18,12 @@ import { useCanvas } from "@/components/entities/CanvasContext";
 import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCard";
 import { OperationsBriefingPanel } from "@/components/cockpit/OperationsBriefingPanel";
 import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
+import { DailyChecklistCard } from "@/components/cockpit/DailyChecklistCard";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
+import type { BriefFormat } from "@/lib/briefs";
 
 type Counts = {
   pendingApprovals: number;
@@ -67,8 +69,14 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [receipts, setReceipts] = useState<AuditRow[]>([]);
   const [pendingById, setPendingById] = useState<Map<string, SherlockFinding>>(new Map());
   const [briefOpen, setBriefOpen] = useState(false);
+  const [briefDefault, setBriefDefault] = useState<{ format?: BriefFormat; auto?: boolean }>({});
 
   useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
+
+  function openBrief(opts?: { format?: BriefFormat; auto?: boolean }) {
+    setBriefDefault(opts ?? {});
+    setBriefOpen(true);
+  }
 
   async function refresh() {
     setLoading(true);
@@ -186,6 +194,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </div>
         </div>
 
+        {/* 0. Daily checklist — needs you / what changed / suggested next */}
+        <DailyChecklistCard onNavigate={onNavigate} />
+
         {/* 1. Productivity Pulse — quick-health layer */}
         <ProductivityPulseCard />
 
@@ -205,10 +216,19 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         <div className="flex flex-wrap justify-end gap-2">
           <Button
+            variant="default"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => openBrief({ format: "weekly_review", auto: true })}
+            title="Generate a client-facing weekly summary across all projects"
+          >
+            <FileText className="h-3 w-3" /> Weekly review
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             className="h-7 gap-1.5 text-[11px]"
-            onClick={() => setBriefOpen(true)}
+            onClick={() => openBrief()}
           >
             <FileText className="h-3 w-3" /> Create brief
           </Button>
@@ -259,6 +279,8 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         open={briefOpen}
         onOpenChange={setBriefOpen}
         defaultScope="system"
+        defaultFormat={briefDefault.format}
+        autoDraft={briefDefault.auto}
       />
     </div>
   );
