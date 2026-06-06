@@ -24,7 +24,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Trash2, X, ScrollText, ListChecks, CheckSquare, MessageSquare, Notebook } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles, Trash2, X, ScrollText, ListChecks, CheckSquare, MessageSquare, Notebook, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
