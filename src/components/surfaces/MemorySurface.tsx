@@ -375,7 +375,7 @@ export function MemorySurface() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
-            placeholder="Semantic search across notes, messages, commitments…"
+            placeholder="Search by meaning — notes, messages, commitments…"
             className="pl-8 pr-20"
           />
           <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
