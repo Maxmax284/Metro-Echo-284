@@ -23,6 +23,8 @@ import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
+import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import type { CrossKind } from "@/lib/crossLinks";
 
@@ -527,11 +529,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   item._raw.kind === "message" ? "capture"
                   : item._raw.kind === "file" ? "file"
                   : null;
-                if (!crossKind) return null;
+                const projectKind: ProjectItemType | null =
+                  item._raw.kind === "message" ? "capture"
+                  : item._raw.kind === "file" ? "file"
+                  : item._raw.kind === "note" ? "note"
+                  : null;
+                if (!crossKind && !projectKind) return null;
                 return (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <ConnectButton source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }} />
-                    <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
+                    {crossKind && (
+                      <>
+                        <ConnectButton source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }} />
+                        <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
+                      </>
+                    )}
+                    {projectKind && (
+                      <AttachToProjectMenu
+                        itemType={projectKind}
+                        itemId={item._raw.row.id}
+                        itemLabel={item.text.slice(0, 80)}
+                      />
+                    )}
                   </div>
                 );
               })()}
