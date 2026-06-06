@@ -1759,6 +1759,94 @@ export type Database = {
         }
         Relationships: []
       }
+      project_items: {
+        Row: {
+          added_at: string
+          added_by: string
+          id: string
+          item_id: string
+          item_type: string
+          note: string | null
+          position: number
+          project_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          id?: string
+          item_id: string
+          item_type: string
+          note?: string | null
+          position?: number
+          project_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          note?: string | null
+          position?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json
+          organization_id: string | null
+          pinned: boolean
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string | null
+          pinned?: boolean
+          status?: string
+          summary?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string | null
+          pinned?: boolean
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
