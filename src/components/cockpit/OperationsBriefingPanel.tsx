@@ -391,7 +391,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               onClick={() => setShowFull((s) => !s)}
               aria-expanded={showFull}
             >
-              {showFull ? "Quick" : "Full report"}
+              {showFull ? "Less" : "More"}
             </Button>
           </div>
 
