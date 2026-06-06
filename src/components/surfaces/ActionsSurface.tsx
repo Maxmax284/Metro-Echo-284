@@ -307,7 +307,7 @@ export function ActionsSurface() {
                   {needsPhrase && (
                     <div className="space-y-1.5 rounded-md border border-warn/30 bg-warn/5 p-2.5">
                       <p className="text-xs text-foreground">
-                        High-risk. Type <span className="font-mono font-semibold">approve</span> to confirm.
+                        This one's high-risk. Type <span className="font-mono font-semibold">approve</span> to confirm.
                       </p>
                       <Input
                         autoFocus
