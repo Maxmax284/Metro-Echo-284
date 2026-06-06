@@ -173,6 +173,19 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
+        {/* Header — answers "where am I and what is this?" */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[15px] font-semibold text-foreground">Command Center</h1>
+              <WhatIsThis topic="command_center" />
+            </div>
+            <p className="text-[11.5px] text-muted-foreground">
+              Everything rolls up here. Situations first, statistics second.
+            </p>
+          </div>
+        </div>
+
         {/* 1. Productivity Pulse — quick-health layer */}
         <ProductivityPulseCard />
 
