@@ -22,6 +22,10 @@ type EntityRow = {
   first_seen_at: string;
   last_seen_at: string;
   metadata: any;
+  parent_entity_id?: string | null;
+  slug?: string | null;
+  summary?: string | null;
+  pinned?: boolean | null;
 };
 
 type LinkRow = {
@@ -76,20 +80,23 @@ async function fetchPreview(kind: string, id: string): Promise<string | null> {
 }
 
 export function EntityDetailSheet() {
-  const { openEntityId, closeEntity } = useEntitySheet();
+  const { openEntityId, openEntity, closeEntity } = useEntitySheet();
   const { openCanvas } = useCanvas();
   const [entity, setEntity] = useState<EntityRow | null>(null);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [parent, setParent] = useState<{ id: string; display_name: string; kind: string } | null>(null);
+  const [children, setChildren] = useState<Array<{ id: string; display_name: string; kind: string }>>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!openEntityId) { setEntity(null); setLinks([]); return; }
+    if (!openEntityId) { setEntity(null); setLinks([]); setParent(null); setChildren([]); setCounts({}); return; }
     let alive = true;
     setLoading(true);
     (async () => {
       const { data: ent } = await supabase
         .from("entities")
-        .select("id, kind, display_name, aliases, confidence, first_seen_at, last_seen_at, metadata")
+        .select("id, kind, display_name, aliases, confidence, first_seen_at, last_seen_at, metadata, parent_entity_id, slug, summary, pinned")
         .eq("id", openEntityId)
         .maybeSingle();
       if (!alive) return;
@@ -106,7 +113,31 @@ export function EntityDetailSheet() {
         ...l,
         preview: await fetchPreview(l.source_kind, l.source_id),
       })));
-      if (alive) { setLinks(enriched); setLoading(false); }
+      if (alive) { setLinks(enriched); }
+
+      // Project hierarchy + counts (only meaningful for project kind, but cheap).
+      if (ent) {
+        const e = ent as EntityRow;
+        const tasks: Promise<any>[] = [];
+        if (e.parent_entity_id) {
+          tasks.push((async () => {
+            const { data } = await supabase.from("entities").select("id, display_name, kind").eq("id", e.parent_entity_id!).maybeSingle();
+            if (alive && data) setParent(data as any);
+          })());
+        }
+        tasks.push((async () => {
+          const { data } = await supabase.from("entities").select("id, display_name, kind").eq("parent_entity_id", e.id).order("display_name").limit(20);
+          if (alive) setChildren((data ?? []) as any);
+        })());
+        // Counts derived from entity_links roles.
+        tasks.push((async () => {
+          const tally: Record<string, number> = {};
+          for (const l of linkRows) tally[l.source_kind] = (tally[l.source_kind] ?? 0) + 1;
+          if (alive) setCounts(tally);
+        })());
+        await Promise.all(tasks);
+      }
+      if (alive) setLoading(false);
     })();
     return () => { alive = false; };
   }, [openEntityId]);
@@ -160,6 +191,71 @@ export function EntityDetailSheet() {
           )}
           {entity && <EmbeddedSherlockFindings sourceType="entity" sourceId={entity.id} className="mt-1" />}
         </SheetHeader>
+
+        {entity?.kind === "project" && (
+          <div className="mt-4 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10.5px] uppercase tracking-wider text-primary/80">Project</p>
+              {entity.slug && (
+                <code className="rounded bg-surface-elevated/50 px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                  {entity.slug}
+                </code>
+              )}
+            </div>
+            {parent && (
+              <button
+                type="button"
+                onClick={() => openEntity(parent.id)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                title={`Open parent · ${parent.kind}`}
+              >
+                ↳ part of <span className="underline-offset-2 hover:underline">{parent.display_name}</span>
+              </button>
+            )}
+            {entity.summary && (
+              <p className="text-[12px] leading-snug text-foreground/85">{entity.summary}</p>
+            )}
+            {Object.keys(counts).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[
+                  ["note", "notes"],
+                  ["commitment", "commitments"],
+                  ["message", "messages"],
+                  ["ingested_file", "files"],
+                  ["action", "actions"],
+                  ["reminder", "reminders"],
+                ].map(([k, label]) => {
+                  const n = counts[k] ?? 0;
+                  if (!n) return null;
+                  return (
+                    <span key={k} className="rounded-full bg-surface-elevated/60 px-2 py-0.5 text-[10.5px] text-muted-foreground">
+                      {n} {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {children.length > 0 && (
+              <div className="pt-1">
+                <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Sub-topics</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {children.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => openEntity(c.id)}
+                      className="rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-0.5 text-[11px] text-foreground/85 hover:border-primary/40 hover:text-primary"
+                    >
+                      {c.display_name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+
 
 
         {entity?.aliases && entity.aliases.length > 0 && (

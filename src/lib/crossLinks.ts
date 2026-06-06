@@ -217,7 +217,37 @@ export async function suggestForItem(input: {
     }
   }
 
-  // 2. Semantic similars via memory-search edge function (uses the same
+  // 2. Cached Sherlock RELATE findings for this exact item — if the user
+  //    already ran Sherlock's "relate" chip, reuse those clusters instead
+  //    of re-asking the model. Sherlock suggested; user approves here.
+  try {
+    const { data: cachedRows } = await (supabase as any)
+      .from("sherlock_findings_cache")
+      .select("findings, updated_at, entity_type")
+      .eq("user_id", input.userId)
+      .eq("entity_id", input.source_id)
+      .like("entity_type", "relate:%")
+      .order("updated_at", { ascending: false })
+      .limit(3);
+    for (const row of (cachedRows ?? []) as any[]) {
+      const rel = (row?.findings?.related ?? []) as Array<{ kind?: string; id?: string; why?: string; confidence?: string }>;
+      for (const r of rel) {
+        if (!r?.id || !r?.kind) continue;
+        const kind = r.kind as CrossKind;
+        if (kind === input.source_kind && r.id === input.source_id) continue;
+        out.push({
+          target_kind: kind,
+          target_id: r.id,
+          target_label: `${KIND_LABEL[kind] ?? kind} ${r.id.slice(0, 6)}`,
+          relation: "related",
+          confidence: ((r.confidence as CrossConfidence) ?? "medium"),
+          why: `Sherlock: ${r.why ?? "related"}`,
+        });
+      }
+    }
+  } catch { /* best-effort */ }
+
+  // 3. Semantic similars via memory-search edge function (uses the same
   //    pipeline Sherlock relies on). This is the user's tap-to-open
   //    surface — no automatic linking. Sherlock suggests; user approves.
   try {
@@ -240,6 +270,28 @@ export async function suggestForItem(input: {
           confidence: sim >= 0.82 ? "high" : sim >= 0.72 ? "medium" : "low",
           why: `Looks similar · ${Math.round(sim * 100)}%`,
         });
+      }
+    }
+  } catch { /* best-effort */ }
+
+  // Hydrate readable labels for Sherlock suggestions whose label is still a
+  // raw kind+id stub. Cheap, batched per kind, only when needed.
+  try {
+    const stubs = out.filter((s) => /^[A-Z][a-z]+ [0-9a-f]{6}$/.test(s.target_label));
+    if (stubs.length) {
+      const byKind = new Map<CrossKind, string[]>();
+      for (const s of stubs) {
+        if (!byKind.has(s.target_kind)) byKind.set(s.target_kind, []);
+        byKind.get(s.target_kind)!.push(s.target_id);
+      }
+      const labels = new Map<string, string>();
+      await Promise.all(Array.from(byKind.entries()).map(async ([k, ids]) => {
+        const items = await fetchLabels(k, Array.from(new Set(ids)));
+        for (const it of items) labels.set(`${k}:${it.id}`, it.label);
+      }));
+      for (const s of out) {
+        const hit = labels.get(`${s.target_kind}:${s.target_id}`);
+        if (hit) s.target_label = hit;
       }
     }
   } catch { /* best-effort */ }
