@@ -1,25 +1,59 @@
 import { useState } from "react";
-import { MessageSquare, Notebook, ListChecks, Compass, CheckSquare, Search, ScrollText, LayoutDashboard, MoreHorizontal, CalendarClock } from "lucide-react";
+import {
+  MessageSquare,
+  Notebook,
+  ListChecks,
+  Compass,
+  CheckSquare,
+  Search,
+  ScrollText,
+  LayoutDashboard,
+  MoreHorizontal,
+  CalendarClock,
+  Inbox,
+  FolderKanban,
+  FileText,
+  Receipt,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 
-export type SurfaceKey = "command" | "schedule" | "conversation" | "memory" | "commitments" | "actions" | "awareness" | "sherlock" | "audit";
+export type SurfaceKey =
+  | "command"
+  | "inbox"
+  | "projects"
+  | "briefs"
+  | "receipts"
+  // legacy / advanced — still reachable via "More" and deep links
+  | "schedule"
+  | "conversation"
+  | "memory"
+  | "commitments"
+  | "actions"
+  | "awareness"
+  | "sherlock"
+  | "audit";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
+  // Primary
   { key: "command", label: "Cockpit", Icon: LayoutDashboard },
+  { key: "inbox", label: "Inbox", Icon: Inbox },
+  { key: "projects", label: "Projects", Icon: FolderKanban },
+  { key: "briefs", label: "Briefs", Icon: FileText },
+  { key: "receipts", label: "Receipts", Icon: Receipt },
+  // Advanced (overflow)
   { key: "schedule", label: "Today", Icon: CalendarClock },
-  { key: "conversation", label: "Capture", Icon: MessageSquare },
-  { key: "commitments", label: "Commit", Icon: CheckSquare },
+  { key: "conversation", label: "Capture chat", Icon: MessageSquare },
   { key: "memory", label: "Memory", Icon: Notebook },
+  { key: "commitments", label: "Commitments", Icon: CheckSquare },
   { key: "actions", label: "Actions", Icon: ListChecks },
   { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
-  { key: "audit", label: "Audit", Icon: ScrollText },
+  { key: "audit", label: "Audit log", Icon: ScrollText },
 ];
 
-// Mobile: 4 primary + overflow drawer for the rest. Keeps touch targets honest at 384px.
-// Today is now first-class — it's the doctrine's daily-use surface.
-const PRIMARY: SurfaceKey[] = ["command", "schedule", "conversation", "commitments"];
+// Five primary surfaces — the daily desk.
+const PRIMARY: SurfaceKey[] = ["command", "inbox", "projects", "briefs", "receipts"];
 
 export function SurfaceTabs({
   active,
@@ -32,11 +66,69 @@ export function SurfaceTabs({
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
-  if (variant === "bottom") {
-    const primaryItems = items.filter((i) => PRIMARY.includes(i.key));
-    const overflowItems = items.filter((i) => !PRIMARY.includes(i.key));
-    const activeInOverflow = overflowItems.some((i) => i.key === active);
+  const primaryItems = items.filter((i) => PRIMARY.includes(i.key));
+  const overflowItems = items.filter((i) => !PRIMARY.includes(i.key));
+  const activeInOverflow = overflowItems.some((i) => i.key === active);
 
+  const MoreSheet = (
+    <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+      <SheetTrigger asChild>
+        <button
+          className={cn(
+            variant === "bottom"
+              ? "flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] transition-colors duration-200 ease-out"
+              : "group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200 ease-out",
+            activeInOverflow
+              ? "text-primary"
+              : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
+          )}
+          aria-label="More surfaces"
+          title="More surfaces"
+        >
+          <MoreHorizontal
+            className={cn(
+              variant === "bottom" ? "h-5 w-5" : "h-5 w-5",
+              activeInOverflow && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]"
+            )}
+          />
+          {variant === "bottom" && <span className="tracking-wide">More</span>}
+        </button>
+      </SheetTrigger>
+      <SheetContent side={variant === "bottom" ? "bottom" : "left"} className={variant === "bottom" ? "rounded-t-2xl pb-8" : "w-[300px]"}>
+        <SheetHeader>
+          <SheetTitle className="text-sm">Advanced surfaces</SheetTitle>
+          <SheetDescription className="text-xs">
+            These also live inside Projects and Cockpit. You usually won't need to open them on their own.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {overflowItems.map(({ key, label, Icon }) => {
+            const isActive = key === active;
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  onChange(key);
+                  setMoreOpen(false);
+                }}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm transition-colors",
+                  isActive
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "bg-surface-elevated text-foreground/90 hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
+  if (variant === "bottom") {
     return (
       <nav className="glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 px-2 pt-1.5 md:hidden">
         {primaryItems.map(({ key, label, Icon }) => {
@@ -56,48 +148,14 @@ export function SurfaceTabs({
             </button>
           );
         })}
-        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-          <SheetTrigger asChild>
-            <button
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] transition-colors duration-200 ease-out",
-                activeInOverflow ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              )}
-              aria-label="More surfaces"
-            >
-              <MoreHorizontal className={cn("h-5 w-5", activeInOverflow && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]")} />
-              <span className="tracking-wide">More</span>
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-            <SheetHeader><SheetTitle className="text-sm">Surfaces</SheetTitle></SheetHeader>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {overflowItems.map(({ key, label, Icon }) => {
-                const isActive = key === active;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => { onChange(key); setMoreOpen(false); }}
-                    className={cn(
-                      "flex items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm transition-colors",
-                      isActive ? "bg-primary/15 text-primary border-primary/30" : "bg-surface-elevated text-foreground/90 hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </SheetContent>
-        </Sheet>
+        {MoreSheet}
       </nav>
     );
   }
 
   return (
     <nav className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
-      {items.map(({ key, label, Icon }) => {
+      {primaryItems.map(({ key, label, Icon }) => {
         const isActive = key === active;
         return (
           <button
@@ -114,6 +172,7 @@ export function SurfaceTabs({
           </button>
         );
       })}
+      <div className="mt-1">{MoreSheet}</div>
     </nav>
   );
 }
