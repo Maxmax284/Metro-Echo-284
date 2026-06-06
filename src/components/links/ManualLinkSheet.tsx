@@ -14,13 +14,16 @@ import {
   createCrossLink, searchTargets, RELATIONS, KIND_LABEL,
   type CrossKind, type CrossRelation,
 } from "@/lib/crossLinks";
+import { formatDistanceToNow } from "date-fns";
 
 const KIND_ICON: Record<CrossKind, any> = {
   note: FileText, commitment: CheckSquare, action: Hammer, file: FileIcon,
   message: MessageSquare, capture: MessageSquare, entity: Tag,
 };
 
-type Picked = { kind: CrossKind; id: string; label: string; preview?: string | null };
+const FILTERABLE_KINDS: CrossKind[] = ["note", "commitment", "action", "file", "entity", "message"];
+
+type Picked = { kind: CrossKind; id: string; label: string; preview?: string | null; updated_at?: string | null };
 
 export function ManualLinkSheet({
   open, onOpenChange, onLinked,
