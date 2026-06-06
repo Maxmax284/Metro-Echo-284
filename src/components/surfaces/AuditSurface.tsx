@@ -248,42 +248,52 @@ export function AuditSurface() {
                 Nothing matches. Clear filters above.
               </p>
             )}
-            {auditFiltered.map((r) => (
-              <Card key={r.id} className="p-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <StatusDot tone={eventTone(r.event)} title={r.event} />
-                  <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
-                  <span
-                    className="min-w-0 flex-1 truncate font-medium text-foreground"
-                    title={r.event}
-                  >
-                    {humanizeEvent(r.event)}
-                  </span>
-                  <span
-                    className="ml-auto shrink-0 text-[10px] text-muted-foreground"
-                    title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
-                  >
-                    {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-                <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
-                  {trustNote(r.event)}
-                </div>
-                {r.payload && Object.keys(r.payload).length > 0 && (
-                  <details className="ml-5 mt-1">
-                    <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
-                      Raw payload · for developers
-                    </summary>
-                    <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
-                      {JSON.stringify(r.payload, null, 2)}
-                    </pre>
-                  </details>
-                )}
+            {auditFiltered.slice(0, visibleCount).map((r) => (
+              <Card key={r.id} className="p-0 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDrawerRow(r)}
+                  className="block w-full p-2 text-left hover:bg-muted/30 rounded-md transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <StatusDot tone={eventTone(r.event)} title={r.event} />
+                    <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
+                    <span
+                      className="min-w-0 flex-1 truncate font-medium text-foreground"
+                      title={r.event}
+                    >
+                      {humanizeEvent(r.event)}
+                    </span>
+                    <span
+                      className="ml-auto shrink-0 text-[10px] text-muted-foreground"
+                      title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
+                    >
+                      {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
+                    {trustNote(r.event)} · tap to open
+                  </div>
+                </button>
               </Card>
             ))}
+            {auditFiltered.length > visibleCount && (
+              <div className="pt-1 text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[11px] text-muted-foreground"
+                  onClick={() => setVisibleCount((c) => c + 30)}
+                >
+                  Show 30 more · {auditFiltered.length - visibleCount} left
+                </Button>
+              </div>
+            )}
           </div>
         </section>
       </div>
+
+      <AuditDetailDrawer row={drawerRow} open={!!drawerRow} onOpenChange={(o) => !o && setDrawerRow(null)} />
     </div>
   );
 }
