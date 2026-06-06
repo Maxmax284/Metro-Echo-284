@@ -164,6 +164,9 @@ function RollupCard({
       ].filter(Boolean).join(", ")
     : null;
 
+  const health = deriveProjectHealth(rollup);
+  const why = whyAmISeeingThis(rollup);
+
   return (
     <Card className="flex flex-col gap-2.5 border-border/60 bg-surface-elevated/40 p-4">
       <div className="flex items-start justify-between gap-2">
@@ -173,7 +176,7 @@ function RollupCard({
             <span className="truncate text-[14px] font-medium text-foreground">{entity.display_name}</span>
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
-            <span>{entity.kind}</span>
+            <span>{entity.kind === "project" ? "Project" : entity.kind}</span>
             {entity.slug && <span className="font-mono normal-case tracking-normal text-[10px]">· {entity.slug}</span>}
           </div>
         </div>
@@ -182,28 +185,29 @@ function RollupCard({
         </Badge>
       </div>
 
+      {/* Situation pill — what's going on, in one line */}
+      <div className={cn(
+        "rounded-md border px-2.5 py-1.5 text-[12px] leading-snug",
+        healthClasses(health.tone),
+      )}>
+        <div className="text-[10.5px] uppercase tracking-wider opacity-80">{health.label}</div>
+        <div className="text-foreground/90">{health.reason}</div>
+      </div>
+
       {entity.summary && (
         <p className="text-[12px] text-muted-foreground line-clamp-2">{entity.summary}</p>
       )}
 
       <div className="space-y-1 text-[12.5px]">
-        {recentChange ? (
+        {recentChange && (
           <div className="flex items-baseline gap-1.5">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Recent</span>
             <span className="truncate text-foreground/90">{recentChange.label}</span>
           </div>
-        ) : (
-          <div className="text-[11.5px] text-muted-foreground">No recent linked changes.</div>
-        )}
-        {needs && (
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-warn shrink-0">Needs</span>
-            <span className="text-warn/90">{needs}</span>
-          </div>
         )}
         {linkedSummary && (
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Linked</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">Connected</span>
             <span className="truncate text-foreground/80">{linkedSummary}</span>
           </div>
         )}
@@ -211,9 +215,23 @@ function RollupCard({
 
       {rollup?.suggested_next && (
         <div className="rounded-md border border-primary/20 bg-primary/5 px-2 py-1.5 text-[11.5px] text-foreground/90">
-          Suggested next: {rollup.suggested_next.label}
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Suggested next move</span>
+          <div className="text-foreground/90">{rollup.suggested_next.label}</div>
         </div>
       )}
+
+      {/* Why am I seeing this? */}
+      <Collapsible>
+        <CollapsibleTrigger className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground hover:text-foreground">
+          <ChevronDown className="h-3 w-3" />
+          Why am I seeing this?
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-1 space-y-0.5 rounded-md border border-border/40 bg-background/30 p-2 text-[11.5px] text-foreground/80">
+          {why.map((line, i) => (
+            <div key={i} className="before:mr-1 before:text-muted-foreground/60 before:content-['·']">{line}</div>
+          ))}
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="mt-1 flex items-center justify-between gap-2">
         <Button size="sm" variant="ghost" className="h-8 gap-1 text-[11.5px]" onClick={onOpen}>
