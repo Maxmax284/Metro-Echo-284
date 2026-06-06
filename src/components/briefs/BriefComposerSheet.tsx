@@ -1,11 +1,12 @@
-// BriefComposerSheet — Draft → Review → Approve & Export.
-// Mobile-first bottom sheet. Doctrine: nothing exports without user tap.
+// BriefComposerSheet — Draft → Sensitivity review → Approve & Export.
+// Mobile-first bottom sheet. Doctrine: nothing exports without user tap, and
+// nothing sensitive exports without an explicit acknowledgment.
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, FileText, Download, Volume2, Pause, Square } from "lucide-react";
+import { Loader2, FileText, Download, Volume2, Square, ShieldCheck } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import {
   composeBrief, saveBriefDraft, approveAndExportBrief,
@@ -14,6 +15,9 @@ import {
 } from "@/lib/briefs";
 import { BriefRenderer } from "./BriefRenderer";
 import { BriefPdfDocument } from "./BriefPdfDocument";
+import { SensitivityReviewStep } from "./SensitivityReviewStep";
+import { scanBriefSensitivity } from "@/lib/briefSensitivity";
+import { supabase } from "@/integrations/supabase/client";
 import { useWorkspace } from "@/providers/WorkspaceProvider";
 import { useToast } from "@/hooks/use-toast";
 
