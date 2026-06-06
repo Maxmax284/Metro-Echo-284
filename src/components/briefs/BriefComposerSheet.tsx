@@ -164,9 +164,9 @@ export function BriefComposerSheet({
   function handlePlayAudio() {
     if (!brief) return;
     const proseSection = brief.sections.find((s) => s.id === "spoken") ?? brief.sections[0];
-    const text = typeof proseSection?.body === "string"
-      ? proseSection.body
-      : brief.sections.map((s) => (typeof s.body === "string" ? s.body : "")).join(" ");
+    const pick = (b: any) =>
+      typeof b === "string" ? b : (typeof b === "object" && typeof b?.text === "string" ? b.text : "");
+    const text = pick(proseSection?.body) || brief.sections.map((s) => pick(s.body)).join(" ");
     if (!text) return;
     window.speechSynthesis?.cancel();
     const u = new SpeechSynthesisUtterance(text);
