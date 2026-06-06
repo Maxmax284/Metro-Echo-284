@@ -242,7 +242,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
       <div className="relative flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Compass className="h-3 w-3 shrink-0" />
-          <span className="truncate">Operations briefing</span>
+          <span className="truncate">Today's read</span>
           <WhatIsThis topic="operations_briefing" />
           <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
             {scopeText}
