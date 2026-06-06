@@ -16,12 +16,13 @@ const ICON_FOR_KIND: Record<string, typeof FileText> = {
 };
 
 export function ReceiptsDrawer({
-  open, onOpenChange, refs, sectionLabel,
+  open, onOpenChange, refs, sectionLabel, highlightKey,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   refs: ReceiptRef[];
   sectionLabel?: string;
+  highlightKey?: string;
 }) {
   const [items, setItems] = useState<ResolvedReceipt[]>([]);
   const [audit, setAudit] = useState<Array<{ id: string; event: string; entity_type: string; created_at: string }>>([]);
