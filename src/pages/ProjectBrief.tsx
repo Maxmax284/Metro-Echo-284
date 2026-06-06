@@ -278,28 +278,80 @@ export default function ProjectBriefPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Section title="Latest" subtitle="What changed recently" empty={latest.length === 0 && "Nothing new this week."}>
+          <Section title="Recent changes" subtitle="What moved in the last week" empty={latest.length === 0 && "Nothing new this week."}>
             {latest.map((entry) => (
               <LatestRow key={`${entry.kind}-${entry.id}`} entry={entry} />
             ))}
           </Section>
 
-          <Section icon={<MessageSquare className="h-4 w-4" />} title="Captures" subtitle="Things you said or sent in" empty={resolved.captures.length === 0 && "None attached."}>
-            {resolved.captures
-              .slice()
-              .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+          {/* Needs me — open commitments + pending actions, merged */}
+          <Section
+            icon={<CheckSquare className="h-4 w-4" />}
+            title="Needs me"
+            subtitle="Open commitments and pending actions"
+            empty={
+              resolved.commitments.filter((c) => c.status !== "done" && c.status !== "cancelled").length === 0
+              && resolved.actions.filter((a) => a.status !== "executed" && a.status !== "cancelled").length === 0
+              && "Nothing waiting on you."
+            }
+          >
+            {resolved.commitments
+              .filter((c) => c.status !== "done" && c.status !== "cancelled")
+              .sort((a, b) => {
+                const ad = a.due_at ? +new Date(a.due_at) : Infinity;
+                const bd = b.due_at ? +new Date(b.due_at) : Infinity;
+                return ad - bd;
+              })
               .map((c) => {
-                const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
+                const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)}
-                    timestamp={c.created_at}>
-                    <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
+                  <ItemCard key={`c-${c.id}`} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">Commitment</Badge>
+                      <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
+                      {c.due_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Due {formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm">{c.summary}</p>
+                  </ItemCard>
+                );
+              })}
+            {resolved.actions
+              .filter((a) => a.status !== "executed" && a.status !== "cancelled")
+              .map((a) => {
+                const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
+                return (
+                  <ItemCard key={`a-${a.id}`} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">Action</Badge>
+                      <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
+                      {a.risk && (
+                        <Badge variant="outline" className="text-[10px] capitalize">{a.risk} risk</Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm">{a.title}</p>
                   </ItemCard>
                 );
               })}
           </Section>
 
-          <Section icon={<Notebook className="h-4 w-4" />} title="Notes" subtitle="The full body — read inline" empty={resolved.notes.length === 0 && "None attached."}>
+          <Section icon={<Search className="h-4 w-4" />} title="Signals" subtitle="Sherlock findings tied here" empty={resolved.findings.length === 0 && "None attached."}>
+            {resolved.findings.map((s) => {
+              const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
+              return (
+                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
+                  <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
+                  {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
+                  <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
+                </ItemCard>
+              );
+            })}
+          </Section>
+
+          <Section icon={<Notebook className="h-4 w-4" />} title="Notes" subtitle="Full bodies, read inline" empty={resolved.notes.length === 0 && "None attached."}>
             {resolved.notes.map((n) => {
               const row = items.find((i) => i.item_type === "note" && i.item_id === n.id)!;
               return (
@@ -328,53 +380,45 @@ export default function ProjectBriefPage() {
             })}
           </Section>
 
-          <Section icon={<Search className="h-4 w-4" />} title="Signals" subtitle="Sherlock findings tied here" empty={resolved.findings.length === 0 && "None attached."}>
-            {resolved.findings.map((s) => {
-              const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
-              return (
-                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
-                  <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
-                  {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
-                  <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
-                </ItemCard>
-              );
-            })}
+          <Section icon={<MessageSquare className="h-4 w-4" />} title="Captures" subtitle="Things you said or sent in" empty={resolved.captures.length === 0 && "None attached."}>
+            {resolved.captures
+              .slice()
+              .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+              .map((c) => {
+                const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
+                return (
+                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
+                    <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
+                  </ItemCard>
+                );
+              })}
           </Section>
 
-          <Section icon={<CheckSquare className="h-4 w-4" />} title="Commitments" empty={resolved.commitments.length === 0 && "None attached."}>
-            {resolved.commitments.map((c) => {
-              const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
-              return (
-                <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
-                  <p className="text-sm">{c.summary}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
-                    {c.due_at && (
-                      <span className="text-[11px] text-muted-foreground">
-                        Due {formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}
-                      </span>
-                    )}
-                  </div>
-                </ItemCard>
-              );
-            })}
-          </Section>
-
-          <Section icon={<ListChecks className="h-4 w-4" />} title="Actions" empty={resolved.actions.length === 0 && "None attached."}>
-            {resolved.actions.map((a) => {
-              const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
-              return (
-                <ItemCard key={a.id} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
-                  <p className="text-sm">{a.title}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
-                    {a.risk && (
-                      <Badge variant="outline" className="text-[10px] capitalize">{a.risk} risk</Badge>
-                    )}
-                  </div>
-                </ItemCard>
-              );
-            })}
+          <Section
+            icon={<Receipt className="h-4 w-4" />}
+            title="Receipts"
+            subtitle="What happened on this project"
+            empty={receipts.length === 0 && "No events recorded yet."}
+          >
+            {receipts.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 rounded-lg border border-border/60 bg-surface-elevated px-3 py-2 text-sm"
+              >
+                <Badge variant="outline" className="text-[10px]">{r.event}</Badge>
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {r.payload && typeof r.payload === "object"
+                    ? Object.entries(r.payload as Record<string, unknown>)
+                        .slice(0, 2)
+                        .map(([k, v]) => `${k}: ${String(v).slice(0, 40)}`)
+                        .join(" · ")
+                    : ""}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
           </Section>
         </div>
       )}
