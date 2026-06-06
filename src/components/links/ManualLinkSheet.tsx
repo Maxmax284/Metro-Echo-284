@@ -39,39 +39,52 @@ export function ManualLinkSheet({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Picked[]>([]);
   const [searching, setSearching] = useState(false);
+  const [kindFilters, setKindFilters] = useState<Set<CrossKind>>(new Set());
   const [relation, setRelation] = useState<CrossRelation>("related");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setSide("A"); setA(null); setB(null); setQuery(""); setResults([]);
-      setRelation("related"); setBusy(false);
+      setRelation("related"); setBusy(false); setKindFilters(new Set());
     }
   }, [open]);
 
-  useEffect(() => { setQuery(""); setResults([]); }, [side]);
+  useEffect(() => { setQuery(""); }, [side]);
 
+  // Recents when empty, ILIKE search when typing — both kind-filtered.
   useEffect(() => {
     if (!open || !user) return;
-    if (!query.trim()) { setResults([]); return; }
     setSearching(true);
     const exclude = side === "A" ? a : b; // never let A and B match
+    const kinds = kindFilters.size ? Array.from(kindFilters) : undefined;
+    const delay = query.trim() ? 220 : 0;
     const t = setTimeout(async () => {
       const rows = await searchTargets(query, {
-        userId: user.id, limit: 8,
+        userId: user.id, limit: 10,
         excludeKind: exclude?.kind, excludeId: exclude?.id,
+        kinds,
       });
       setResults(rows);
       setSearching(false);
-    }, 220);
+    }, delay);
     return () => clearTimeout(t);
-  }, [query, open, user?.id, side, a?.id, b?.id]);
+  }, [query, open, user?.id, side, a?.id, b?.id, kindFilters]);
+
+  const toggleKind = (k: CrossKind) => {
+    setKindFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
 
   const pick = (p: Picked) => {
     if (side === "A") { setA(p); setSide(b ? "A" : "B"); }
     else { setB(p); }
-    setQuery(""); setResults([]);
+    setQuery("");
   };
+
 
   const confirm = async () => {
     if (!a || !b || !user) return;
