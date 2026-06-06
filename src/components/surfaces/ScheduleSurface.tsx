@@ -145,12 +145,12 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
               {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
             </Section>
-            <Section title="Files needing review" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
+            <Section title="Files waiting on you" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
               {reviewFiles.slice(0, 5).map((f) => (
                 <li key={f.id} className="flex items-center gap-2 text-[12.5px]">
                   <FileText className="h-3 w-3 text-muted-foreground" />
                   <span className="truncate">{f.filename}</span>
-                  <span className="ml-auto text-[10.5px] text-warn">needs type</span>
+                  <span className="ml-auto text-[10.5px] text-warn">needs a label</span>
                 </li>
               ))}
             </Section>
