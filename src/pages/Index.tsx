@@ -16,7 +16,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LogOut, Loader2, Settings as SettingsIcon, Sparkles } from "lucide-react";
+import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban } from "lucide-react";
 import { ModeBadge } from "@/components/shell/ModeBadge";
 import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -177,6 +177,16 @@ function IndexInner() {
               title="Analyze with Sherlock"
             >
               <Sparkles className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Projects"
+              onClick={() => window.location.assign("/projects")}
+              title="Projects — Living Briefs"
+            >
+              <FolderKanban className="h-3.5 w-3.5" />
             </Button>
             <Sheet>
               <SheetTrigger asChild>
