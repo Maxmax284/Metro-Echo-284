@@ -227,7 +227,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
         {loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">No commitments. Quiet runway.</div>
+          <div className="py-12 text-center text-sm text-muted-foreground">Nothing on the list. Quiet runway.</div>
         ) : (
           <ul className="space-y-2">
             {items.map((c) => {
