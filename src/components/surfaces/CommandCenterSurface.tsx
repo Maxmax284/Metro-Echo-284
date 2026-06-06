@@ -279,6 +279,8 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         open={briefOpen}
         onOpenChange={setBriefOpen}
         defaultScope="system"
+        defaultFormat={briefDefault.format}
+        autoDraft={briefDefault.auto}
       />
     </div>
   );
