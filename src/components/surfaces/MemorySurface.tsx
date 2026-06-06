@@ -19,6 +19,7 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { ManualLinkSheet } from "@/components/links/ManualLinkSheet";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -60,6 +61,7 @@ export function MemorySurface() {
   const [active, setActive] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
+  const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
   const [view, setView] = useState<"inbox" | "notes" | "captures" | "files" | "corrections">("inbox");
@@ -292,6 +294,14 @@ export function MemorySurface() {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setLinking(true)}
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-elevated/40 px-2 py-1 text-[10.5px] text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+              title="Manually link two items"
+            >
+              <Link2 className="h-3 w-3" /> Link
+            </button>
             {view === "notes" && (
               <>
                 <button
@@ -314,6 +324,7 @@ export function MemorySurface() {
             )}
           </div>
         </div>
+        <ManualLinkSheet open={linking} onOpenChange={setLinking} />
         <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1 overflow-x-auto px-1">
           {([
             { id: "inbox", label: "Inbox", Icon: HelpCircle },
