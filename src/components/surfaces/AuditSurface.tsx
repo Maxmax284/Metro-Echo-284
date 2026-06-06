@@ -139,7 +139,7 @@ export function AuditSurface() {
             <ScrollText className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-medium">Receipts</h2>
             <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              what happened, when, and why you can trust it
+              every change, who did it, and when
             </span>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
