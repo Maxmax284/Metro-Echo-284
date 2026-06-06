@@ -22,6 +22,10 @@ type EntityRow = {
   first_seen_at: string;
   last_seen_at: string;
   metadata: any;
+  parent_entity_id?: string | null;
+  slug?: string | null;
+  summary?: string | null;
+  pinned?: boolean | null;
 };
 
 type LinkRow = {
