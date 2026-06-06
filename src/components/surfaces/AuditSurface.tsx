@@ -10,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 
 type AuditRow = {
   id: string;
