@@ -223,7 +223,7 @@ export function ActionsSurface() {
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
                               <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
-                                <RotateCcw className="h-3.5 w-3.5" /> Rollback
+                                <RotateCcw className="h-3.5 w-3.5" /> Undo
                               </Button>
                             )}
                             {(a.status === "proposed" || a.status === "staged") && (
