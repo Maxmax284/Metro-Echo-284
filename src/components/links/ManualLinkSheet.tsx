@@ -137,22 +137,60 @@ export function ManualLinkSheet({
                 autoFocus
               />
             </div>
-            {searching && (
-              <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Looking…
-              </div>
-            )}
-            {!searching && query && results.length === 0 && (
-              <p className="mt-2 text-[11px] text-muted-foreground">Nothing matched.</p>
+
+            {/* Kind filters */}
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {FILTERABLE_KINDS.map((k) => {
+                const Icon = KIND_ICON[k];
+                const active = kindFilters.has(k);
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => toggleKind(k)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] transition-colors",
+                      active
+                        ? "border-primary/40 bg-primary/15 text-primary"
+                        : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-2.5 w-2.5" /> {KIND_LABEL[k]}
+                  </button>
+                );
+              })}
+              {kindFilters.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setKindFilters(new Set())}
+                  className="ml-1 text-[10.5px] text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {query.trim() ? "Matches" : "Recent"}
+              </p>
+              {searching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </div>
+            {!searching && results.length === 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {query.trim() ? "Nothing matched." : "Nothing recent in this filter."}
+              </p>
             )}
             {results.length > 0 && (
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-1 space-y-1">
                 {results.map((r) => (
                   <ResultRow key={`${r.kind}:${r.id}`} target={r} onPick={() => pick(r)} />
                 ))}
               </ul>
             )}
           </div>
+
+
 
           {/* Relation */}
           <div>
