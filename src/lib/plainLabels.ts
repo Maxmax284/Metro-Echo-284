@@ -99,21 +99,25 @@ export function humanizeEvent(event: string): string {
 /** Why-trust caption per event family — shown as a soft sub-line. */
 export function trustNote(event: string): string {
   const e = (event ?? "").toLowerCase();
-  if (e.startsWith("brief.") || e.startsWith("pdf.") || e.startsWith("audio_brief") || e.startsWith("audit_packet") || e.startsWith("weekly_review"))
-    return "Recorded automatically when you approved the export.";
+  if (e.startsWith("brief.exported") || e.startsWith("pdf.") || e.startsWith("audit_packet") || e.startsWith("weekly_review"))
+    return "Logged the moment you approved the export.";
+  if (e.startsWith("brief."))
+    return "Logged when Vanta drafted or read the brief.";
+  if (e.startsWith("audio_brief"))
+    return "Logged when the audio briefing was generated.";
   if (e.startsWith("capture."))
-    return "Recorded the moment the capture entered Vanta.";
+    return "Logged the second the capture hit Vanta.";
   if (e.startsWith("link.") || e.startsWith("cross_link.") || e.startsWith("entity.linked"))
-    return "Recorded when you connected the items.";
+    return "Logged when you connected the items.";
   if (e.startsWith("action."))
-    return "Recorded by the Actions room when the state changed.";
+    return "Logged by the Actions room when the state changed.";
   if (e.startsWith("commitment."))
-    return "Recorded when the commitment moved.";
+    return "Logged when the commitment moved.";
   if (e.startsWith("file."))
-    return "Recorded by the file pipeline at each step.";
+    return "Logged by the file pipeline at this step.";
   if (e.startsWith("note."))
-    return "Recorded when the note was saved.";
-  return "Recorded automatically when the change happened.";
+    return "Logged when the note was saved.";
+  return "Logged automatically the moment it happened.";
 }
 
 /** Friendly label for a brief format. */
