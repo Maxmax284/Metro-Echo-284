@@ -198,14 +198,15 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         <ProductivityPulseCard />
 
         {/* Pinned: Today + Live Briefing stay visible while you scroll, always interactive. */}
-        <div className="sticky top-0 z-30 -mx-3 space-y-3 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:-mx-6 md:px-6">
+        <div
+          className="pointer-events-auto sticky top-0 z-40 -mx-3 max-h-[70vh] space-y-3 overflow-y-auto overscroll-contain border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:-mx-6 md:px-6"
+          onPointerDownCapture={(e) => e.stopPropagation()}
+        >
           {/* Today — what needs you, what changed, what's next. */}
           <DailyChecklistCard onNavigate={onNavigate} />
 
           {/* Live Briefing — plain-English situation report, visible and interactive. */}
-          <div className="pointer-events-auto">
-            <OperationsBriefingPanel onNavigate={onNavigate} />
-          </div>
+          <OperationsBriefingPanel onNavigate={onNavigate} />
         </div>
 
         {/* 4. Aware bubble — environment context. */}
