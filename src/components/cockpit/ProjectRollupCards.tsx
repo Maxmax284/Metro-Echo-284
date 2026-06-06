@@ -1,16 +1,20 @@
 // ProjectRollupCards — per-project / per-pinned-entity rollup.
-// Plain-English summary on top, structured counts underneath.
+// Situations first (health + reason), counts second.
 // Mobile-first single column at 384px.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, Folder, Loader2, Pin } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowRight, ChevronDown, FileText, Folder, Loader2, Pin } from "lucide-react";
 import { fetchEntityRollup, type EntityRollup } from "@/lib/briefs";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { useCanvas } from "@/components/entities/CanvasContext";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
+import { deriveProjectHealth, healthClasses, urgencyRank, whyAmISeeingThis } from "@/lib/projectHealth";
+import { cn } from "@/lib/utils";
 
 type EntityHeader = {
   id: string;
@@ -85,16 +89,29 @@ export function ProjectRollupCards() {
     );
   }
 
+  // Sort by urgency before rendering — situations first.
+  const sorted = useMemo(() => {
+    return [...entities].sort((a, b) => {
+      const ha = deriveProjectHealth(rollups[a.id] ?? null);
+      const hb = deriveProjectHealth(rollups[b.id] ?? null);
+      const diff = urgencyRank(ha) - urgencyRank(hb);
+      if (diff !== 0) return diff;
+      // Tie-break: pinned first.
+      return Number(b.pinned) - Number(a.pinned);
+    });
+  }, [entities, rollups]);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <Folder className="h-3 w-3" /> Project rollup
+          <Folder className="h-3 w-3" /> Projects
+          <WhatIsThis topic="project_rollup" />
         </div>
-        <span className="text-[10.5px] text-muted-foreground">{entities.length} surfaced</span>
+        <span className="text-[10.5px] text-muted-foreground">{entities.length} surfaced · sorted by urgency</span>
       </div>
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {entities.map((e) => {
+        {sorted.map((e) => {
           const r = rollups[e.id];
           return (
             <RollupCard
