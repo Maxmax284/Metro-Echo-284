@@ -94,6 +94,18 @@ const styles = StyleSheet.create({
   },
 });
 
+function bodyText(body: any): string {
+  if (body == null) return "";
+  if (typeof body === "string") return body;
+  if (typeof body === "object" && typeof body.text === "string") return body.text;
+  return String(body);
+}
+
+function refSuffix(receipts?: { id: string }[]): string {
+  if (!receipts || receipts.length === 0) return "";
+  return ` [${receipts.length} src]`;
+}
+
 function renderSection(section: BriefSection) {
   const heading = section.heading ? (
     <Text style={styles.sectionKicker}>{section.heading}</Text>
@@ -101,28 +113,32 @@ function renderSection(section: BriefSection) {
 
   switch (section.kind) {
     case "list": {
-      const items: string[] = Array.isArray(section.body) ? section.body : [];
+      const items: any[] = Array.isArray(section.body) ? section.body : [];
       return (
         <View key={section.id} wrap={false}>
           {heading}
-          {items.map((it, i) => (
-            <View key={i} style={styles.listItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.listText}>{it}</Text>
-            </View>
-          ))}
+          {items.map((it, i) => {
+            const text = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
+            const receipts = typeof it === "object" ? it?.receipts : undefined;
+            return (
+              <View key={i} style={styles.listItem}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.listText}>{text}{refSuffix(receipts ?? section.receipts)}</Text>
+              </View>
+            );
+          })}
         </View>
       );
     }
     case "timeline": {
-      const items: { when?: string; what?: string }[] = Array.isArray(section.body) ? section.body : [];
+      const items: any[] = Array.isArray(section.body) ? section.body : [];
       return (
         <View key={section.id}>
           {heading}
           {items.map((it, i) => (
             <View key={i} style={styles.timelineRow} wrap={false}>
               <Text style={styles.timelineWhen}>{it.when ?? ""}</Text>
-              <Text style={styles.timelineWhat}>{it.what ?? ""}</Text>
+              <Text style={styles.timelineWhat}>{(it.what ?? "")}{refSuffix(it.receipts ?? section.receipts)}</Text>
             </View>
           ))}
         </View>
@@ -134,7 +150,7 @@ function renderSection(section: BriefSection) {
         <View key={section.id} wrap={false}>
           {heading}
           <View style={styles.decisionBox}>
-            <Text style={styles.decisionLabel}>{body.decision ?? ""}</Text>
+            <Text style={styles.decisionLabel}>{(body.decision ?? "")}{refSuffix(body.receipts ?? section.receipts)}</Text>
             {body.why ? <Text style={styles.decisionWhy}>Why: {body.why}</Text> : null}
           </View>
         </View>
@@ -147,7 +163,7 @@ function renderSection(section: BriefSection) {
           {heading}
           {items.map((it, i) => (
             <Text key={i} style={styles.receipt}>
-              {typeof it === "string" ? it : JSON.stringify(it)}
+              {typeof it === "string" ? it : (it?.text ?? JSON.stringify(it))}
             </Text>
           ))}
         </View>
@@ -157,17 +173,20 @@ function renderSection(section: BriefSection) {
       return (
         <View key={section.id} wrap={false}>
           {heading}
-          <Text style={styles.pullQuote}>{String(section.body ?? "")}</Text>
+          <Text style={styles.pullQuote}>{bodyText(section.body)}</Text>
         </View>
       );
     case "prose":
-    default:
+    default: {
+      const text = bodyText(section.body);
+      const receipts = typeof section.body === "object" ? section.body?.receipts : section.receipts;
       return (
         <View key={section.id}>
           {heading}
-          <Text style={styles.prose}>{String(section.body ?? "")}</Text>
+          <Text style={styles.prose}>{text}{refSuffix(receipts)}</Text>
         </View>
       );
+    }
   }
 }
 
