@@ -168,64 +168,41 @@ export async function resolveProjectItems(items: ProjectItem[]): Promise<Resolve
   };
   for (const it of items) byType[it.item_type].push(it.item_id);
 
-  const out: ResolvedItems = { captures: [], notes: [], files: [], findings: [], commitments: [], actions: [] };
+  const [notes, files, findings, commitments, actions, captures] = await Promise.all([
+    byType.note.length
+      ? supabase.from("notes").select("id,title,body,updated_at").in("id", byType.note)
+      : Promise.resolve({ data: [] as any[] }),
+    byType.file.length
+      ? supabase.from("ingested_files").select("id,filename,created_at,mime_type,extracted_text").in("id", byType.file)
+      : Promise.resolve({ data: [] as any[] }),
+    byType.finding.length
+      ? supabase.from("sherlock_findings").select("id,finding_type,summary,created_at,status").in("id", byType.finding)
+      : Promise.resolve({ data: [] as any[] }),
+    byType.commitment.length
+      ? supabase.from("commitments").select("id,summary,status,due_at,updated_at").in("id", byType.commitment)
+      : Promise.resolve({ data: [] as any[] }),
+    byType.action.length
+      ? supabase.from("actions").select("id,title,status,risk,updated_at").in("id", byType.action)
+      : Promise.resolve({ data: [] as any[] }),
+    byType.capture.length
+      ? supabase.from("messages").select("id,created_at,content").in("id", byType.capture)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
 
-  const fetches: Promise<unknown>[] = [];
-
-  if (byType.note.length) {
-    fetches.push(
-      supabase.from("notes")
-        .select("id,title,body,updated_at")
-        .in("id", byType.note)
-        .then(({ data }) => { out.notes = (data ?? []) as ResolvedItems["notes"]; })
-    );
-  }
-  if (byType.file.length) {
-    fetches.push(
-      supabase.from("ingested_files")
-        .select("id,filename,created_at,mime_type,extracted_text")
-        .in("id", byType.file)
-        .then(({ data }) => { out.files = (data ?? []) as ResolvedItems["files"]; })
-    );
-  }
-  if (byType.finding.length) {
-    fetches.push(
-      supabase.from("sherlock_findings")
-        .select("id,title,summary,created_at,status")
-        .in("id", byType.finding)
-        .then(({ data }) => { out.findings = (data ?? []) as ResolvedItems["findings"]; })
-    );
-  }
-  if (byType.commitment.length) {
-    fetches.push(
-      supabase.from("commitments")
-        .select("id,summary,status,due_at,updated_at")
-        .in("id", byType.commitment)
-        .then(({ data }) => { out.commitments = (data ?? []) as ResolvedItems["commitments"]; })
-    );
-  }
-  if (byType.action.length) {
-    fetches.push(
-      supabase.from("actions")
-        .select("id,title,status,risk,updated_at")
-        .in("id", byType.action)
-        .then(({ data }) => { out.actions = (data ?? []) as ResolvedItems["actions"]; })
-    );
-  }
-  // Captures: stored in messages table under 'capture' role. Best-effort.
-  if (byType.capture.length) {
-    fetches.push(
-      supabase.from("messages")
-        .select("id,created_at,content")
-        .in("id", byType.capture)
-        .then(({ data }) => {
-          out.captures = (data ?? []).map((r: any) => ({
-            id: r.id, created_at: r.created_at, transcript: r.content, source: null,
-          }));
-        })
-    );
-  }
-
-  await Promise.all(fetches);
-  return out;
+  return {
+    notes: (notes.data ?? []) as ResolvedItems["notes"],
+    files: (files.data ?? []) as ResolvedItems["files"],
+    findings: ((findings.data ?? []) as any[]).map((f) => ({
+      id: f.id,
+      title: f.finding_type ?? null,
+      summary: f.summary ?? null,
+      created_at: f.created_at,
+      status: f.status,
+    })),
+    commitments: (commitments.data ?? []) as ResolvedItems["commitments"],
+    actions: (actions.data ?? []) as ResolvedItems["actions"],
+    captures: ((captures.data ?? []) as any[]).map((r) => ({
+      id: r.id, created_at: r.created_at, transcript: r.content, source: null,
+    })),
+  };
 }
