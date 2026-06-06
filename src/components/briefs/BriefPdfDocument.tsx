@@ -1,7 +1,16 @@
 // BriefPdfDocument — clean, premium PDF rendering of a Brief.
-// Letter size. Sans body, serif headings, single accent. No emojis.
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+// Each claim that carries receipts gets a superscript footnote number that
+// links to a matching numbered entry in the Source footnotes appendix.
+// Internal links use @react-pdf/renderer Link with src="#fn-N".
+import { Document, Page, View, Text, Link, StyleSheet } from "@react-pdf/renderer";
 import type { Brief, BriefSection } from "@/lib/briefs";
+import {
+  buildFootnotes,
+  footnoteAnchorId,
+  footnoteSrcId,
+  toSuperscript,
+  type ClaimRef,
+} from "@/lib/briefFootnotes";
 
 const COLORS = {
   ink: "#111418",
@@ -14,57 +23,17 @@ const COLORS = {
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 56,
-    paddingBottom: 56,
-    paddingHorizontal: 56,
-    fontFamily: "Helvetica",
-    fontSize: 11,
-    color: COLORS.body,
-    lineHeight: 1.5,
+    paddingTop: 56, paddingBottom: 56, paddingHorizontal: 56,
+    fontFamily: "Helvetica", fontSize: 11, color: COLORS.body, lineHeight: 1.5,
   },
-  titlePage: {
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    height: "100%",
-  },
-  kicker: {
-    fontSize: 9,
-    letterSpacing: 2,
-    color: COLORS.muted,
-    textTransform: "uppercase",
-    marginBottom: 14,
-  },
-  title: {
-    fontFamily: "Times-Roman",
-    fontSize: 28,
-    color: COLORS.ink,
-    marginBottom: 10,
-    lineHeight: 1.2,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: COLORS.muted,
-    marginBottom: 28,
-  },
-  accentRule: {
-    width: 40, height: 2, backgroundColor: COLORS.accent, marginBottom: 24,
-  },
+  titlePage: { flexDirection: "column", justifyContent: "center", alignItems: "flex-start", height: "100%" },
+  kicker: { fontSize: 9, letterSpacing: 2, color: COLORS.muted, textTransform: "uppercase", marginBottom: 14 },
+  title: { fontFamily: "Times-Roman", fontSize: 28, color: COLORS.ink, marginBottom: 10, lineHeight: 1.2 },
+  subtitle: { fontSize: 13, color: COLORS.muted, marginBottom: 28 },
+  accentRule: { width: 40, height: 2, backgroundColor: COLORS.accent, marginBottom: 24 },
   meta: { fontSize: 9, color: COLORS.muted },
-  sectionHeading: {
-    fontFamily: "Times-Roman",
-    fontSize: 14,
-    color: COLORS.ink,
-    marginTop: 18,
-    marginBottom: 6,
-  },
-  sectionKicker: {
-    fontSize: 8,
-    letterSpacing: 1.6,
-    color: COLORS.muted,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
+  sectionHeading: { fontFamily: "Times-Roman", fontSize: 14, color: COLORS.ink, marginTop: 18, marginBottom: 6 },
+  sectionKicker: { fontSize: 8, letterSpacing: 1.6, color: COLORS.muted, textTransform: "uppercase", marginBottom: 4 },
   prose: { fontSize: 11, color: COLORS.body, marginBottom: 4 },
   listItem: { flexDirection: "row", marginBottom: 4 },
   bullet: { width: 10, color: COLORS.muted },
@@ -72,25 +41,22 @@ const styles = StyleSheet.create({
   timelineRow: { marginBottom: 8, paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: COLORS.rule },
   timelineWhen: { fontSize: 8, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 },
   timelineWhat: { fontSize: 11, color: COLORS.body },
-  decisionBox: {
-    borderWidth: 1, borderColor: COLORS.accent, borderRadius: 4,
-    backgroundColor: COLORS.surface, padding: 10, marginVertical: 6,
-  },
+  decisionBox: { borderWidth: 1, borderColor: COLORS.accent, borderRadius: 4, backgroundColor: COLORS.surface, padding: 10, marginVertical: 6 },
   decisionLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: COLORS.ink, marginBottom: 4 },
   decisionWhy: { fontSize: 10, color: COLORS.muted },
   receipt: { fontSize: 9, fontFamily: "Courier", color: COLORS.muted, marginBottom: 2 },
-  pullQuote: {
-    fontFamily: "Times-Italic", fontSize: 13, color: COLORS.ink,
-    borderLeftWidth: 2, borderLeftColor: COLORS.accent, paddingLeft: 10, marginVertical: 8,
-  },
-  appendixTitle: {
-    fontFamily: "Times-Roman", fontSize: 16, color: COLORS.ink, marginBottom: 10,
-  },
+  pullQuote: { fontFamily: "Times-Italic", fontSize: 13, color: COLORS.ink, borderLeftWidth: 2, borderLeftColor: COLORS.accent, paddingLeft: 10, marginVertical: 8 },
+  appendixTitle: { fontFamily: "Times-Roman", fontSize: 16, color: COLORS.ink, marginBottom: 10 },
+  appendixIntro: { fontSize: 10, color: COLORS.muted, marginBottom: 12 },
+  footnoteRow: { flexDirection: "row", marginBottom: 6 },
+  footnoteNum: { width: 22, fontSize: 10, fontFamily: "Helvetica-Bold", color: COLORS.accent },
+  footnoteText: { flex: 1, fontSize: 10, color: COLORS.body },
+  footnoteMeta: { fontSize: 8, color: COLORS.muted, marginTop: 1 },
+  fn: { fontSize: 8, color: COLORS.accent, textDecoration: "none" },
   footer: {
     position: "absolute", bottom: 24, left: 56, right: 56,
     flexDirection: "row", justifyContent: "space-between",
-    fontSize: 8, color: COLORS.muted,
-    borderTopWidth: 1, borderTopColor: COLORS.rule, paddingTop: 6,
+    fontSize: 8, color: COLORS.muted, borderTopWidth: 1, borderTopColor: COLORS.rule, paddingTop: 6,
   },
 });
 
@@ -101,15 +67,24 @@ function bodyText(body: any): string {
   return String(body);
 }
 
-function refSuffix(receipts?: { id: string }[]): string {
-  if (!receipts || receipts.length === 0) return "";
-  return ` [${receipts.length} src]`;
+function Footnotes({ numbers }: { numbers: number[] }) {
+  if (!numbers.length) return null;
+  // Render each number as its own Link so each is independently clickable.
+  return (
+    <Text>
+      {numbers.map((n, i) => (
+        <Text key={n}>
+          {i === 0 ? " " : ""}
+          <Link src={footnoteSrcId(n)} style={styles.fn}>{toSuperscript([n])}</Link>
+        </Text>
+      ))}
+    </Text>
+  );
 }
 
-function renderSection(section: BriefSection) {
-  const heading = section.heading ? (
-    <Text style={styles.sectionKicker}>{section.heading}</Text>
-  ) : null;
+function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>) {
+  const heading = section.heading ? <Text style={styles.sectionKicker}>{section.heading}</Text> : null;
+  const getClaim = (key: string) => claimMap.get(`${section.id}:${key}`);
 
   switch (section.kind) {
     case "list": {
@@ -119,11 +94,11 @@ function renderSection(section: BriefSection) {
           {heading}
           {items.map((it, i) => {
             const text = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
-            const receipts = typeof it === "object" ? it?.receipts : undefined;
+            const claim = getClaim(String(i));
             return (
               <View key={i} style={styles.listItem}>
                 <Text style={styles.bullet}>•</Text>
-                <Text style={styles.listText}>{text}{refSuffix(receipts ?? section.receipts)}</Text>
+                <Text style={styles.listText}>{text}<Footnotes numbers={claim?.numbers ?? []} /></Text>
               </View>
             );
           })}
@@ -135,22 +110,26 @@ function renderSection(section: BriefSection) {
       return (
         <View key={section.id}>
           {heading}
-          {items.map((it, i) => (
-            <View key={i} style={styles.timelineRow} wrap={false}>
-              <Text style={styles.timelineWhen}>{it.when ?? ""}</Text>
-              <Text style={styles.timelineWhat}>{(it.what ?? "")}{refSuffix(it.receipts ?? section.receipts)}</Text>
-            </View>
-          ))}
+          {items.map((it, i) => {
+            const claim = getClaim(String(i));
+            return (
+              <View key={i} style={styles.timelineRow} wrap={false}>
+                <Text style={styles.timelineWhen}>{it.when ?? ""}</Text>
+                <Text style={styles.timelineWhat}>{(it.what ?? "")}<Footnotes numbers={claim?.numbers ?? []} /></Text>
+              </View>
+            );
+          })}
         </View>
       );
     }
     case "decision": {
       const body = section.body ?? {};
+      const claim = getClaim("decision");
       return (
         <View key={section.id} wrap={false}>
           {heading}
           <View style={styles.decisionBox}>
-            <Text style={styles.decisionLabel}>{(body.decision ?? "")}{refSuffix(body.receipts ?? section.receipts)}</Text>
+            <Text style={styles.decisionLabel}>{(body.decision ?? "")}<Footnotes numbers={claim?.numbers ?? []} /></Text>
             {body.why ? <Text style={styles.decisionWhy}>Why: {body.why}</Text> : null}
           </View>
         </View>
@@ -169,21 +148,22 @@ function renderSection(section: BriefSection) {
         </View>
       );
     }
-    case "pull_quote":
+    case "pull_quote": {
+      const claim = getClaim("prose");
       return (
         <View key={section.id} wrap={false}>
           {heading}
-          <Text style={styles.pullQuote}>{bodyText(section.body)}</Text>
+          <Text style={styles.pullQuote}>{bodyText(section.body)}<Footnotes numbers={claim?.numbers ?? []} /></Text>
         </View>
       );
+    }
     case "prose":
     default: {
-      const text = bodyText(section.body);
-      const receipts = typeof section.body === "object" ? section.body?.receipts : section.receipts;
+      const claim = getClaim("prose");
       return (
         <View key={section.id}>
           {heading}
-          <Text style={styles.prose}>{text}{refSuffix(receipts)}</Text>
+          <Text style={styles.prose}>{bodyText(section.body)}<Footnotes numbers={claim?.numbers ?? []} /></Text>
         </View>
       );
     }
@@ -192,13 +172,11 @@ function renderSection(section: BriefSection) {
 
 export function BriefPdfDocument({ brief }: { brief: Brief }) {
   const generated = new Date(brief.generated_at);
+  const { footnotes, claims } = buildFootnotes(brief);
+  const claimMap = new Map(claims.map((c) => [c.claimId, c]));
+
   return (
-    <Document
-      title={brief.title}
-      author="Vanta"
-      subject={`${brief.format} brief`}
-    >
-      {/* Title page */}
+    <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.titlePage}>
           <Text style={styles.kicker}>
@@ -211,6 +189,11 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
             Generated {generated.toISOString().slice(0, 19).replace("T", " ")}
           </Text>
           <Text style={styles.meta}>Signals hash · {brief.signals_hash.slice(0, 16)}</Text>
+          {footnotes.ordered.length > 0 && (
+            <Text style={[styles.meta, { marginTop: 8 }]}>
+              Every superscript number links to a source in the appendix.
+            </Text>
+          )}
         </View>
         <View style={styles.footer} fixed>
           <Text>Vanta · operational brief</Text>
@@ -218,10 +201,9 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         </View>
       </Page>
 
-      {/* Body */}
       <Page size="LETTER" style={styles.page}>
         <Text style={styles.sectionHeading}>Overview</Text>
-        {brief.sections.map(renderSection)}
+        {brief.sections.map((s) => renderSection(s, claimMap))}
 
         <View style={styles.footer} fixed>
           <Text>Vanta · {brief.title}</Text>
@@ -229,17 +211,27 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         </View>
       </Page>
 
-      {/* Appendix */}
-      {brief.appendix_receipts && brief.appendix_receipts.length > 0 && (
+      {footnotes.ordered.length > 0 && (
         <Page size="LETTER" style={styles.page}>
-          <Text style={styles.appendixTitle}>Receipt appendix</Text>
-          {brief.appendix_receipts.map((r, i) => (
-            <Text key={i} style={styles.receipt}>
-              {r.kind}:{r.id?.slice(0, 8) ?? ""} — {r.label ?? ""}
-            </Text>
+          <Text style={styles.appendixTitle}>Source footnotes</Text>
+          <Text style={styles.appendixIntro}>
+            Each numbered entry is the exact item the matching claim was drawn from.
+          </Text>
+          {footnotes.ordered.map(({ n, ref }) => (
+            <View key={n} id={footnoteAnchorId(n)} style={styles.footnoteRow} wrap={false}>
+              <Text style={styles.footnoteNum}>{n}.</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.footnoteText}>
+                  {ref.label ?? `${ref.kind} ${ref.id?.slice(0, 8) ?? ""}`}
+                </Text>
+                <Text style={styles.footnoteMeta}>
+                  {ref.kind}{ref.id ? ` · ${ref.id.slice(0, 12)}` : ""}
+                </Text>
+              </View>
+            </View>
           ))}
           <View style={styles.footer} fixed>
-            <Text>Vanta · receipts</Text>
+            <Text>Vanta · source footnotes</Text>
             <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>
