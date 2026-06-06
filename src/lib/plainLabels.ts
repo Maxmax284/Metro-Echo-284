@@ -51,41 +51,69 @@ export function kindLabel(kind: string | null | undefined): string {
 export function humanizeEvent(event: string): string {
   if (!event) return "Event";
   const exact: Record<string, string> = {
-    "brief.generated": "Brief generated",
-    "brief.exported": "Brief exported",
+    "brief.generated": "Brief drafted",
+    "brief.exported": "Brief exported as PDF",
     "pdf.generated": "PDF created",
     "audio_brief.generated": "Audio briefing created",
     "audit_packet.generated": "Audit packet created",
+    "weekly_review.generated": "Weekly review generated",
+    "brief.sensitivity_reviewed": "Sensitivity review acknowledged",
     "briefing.viewed": "Briefing read",
     "briefing.refreshed": "Briefing refreshed",
     "briefing.dismissed": "Briefing dismissed",
     "entity.linked": "Connected to a project",
     "cross_link.created": "Items connected",
+    "link.created": "Items connected",
+    "link.removed": "Connection removed",
     "capture.toast_shown": "Capture confirmed",
     "capture.toast_opened": "Capture opened",
+    "file.staged": "File staged",
+    "file.uploaded": "File uploaded",
+    "file.extracted": "File text extracted",
+    "file.linked": "File connected",
+    "file.reminder_drafted": "Reminder drafted from file",
+    "file.commitment_created": "Commitment drafted from file",
+    "file.archived": "File archived",
+    "action.executed": "Action ran",
+    "action.approved": "Action approved",
+    "action.rejected": "Action rejected",
+    "commitment.completed": "Commitment completed",
+    "commitment.snoozed": "Commitment snoozed",
+    "note.created": "Note saved",
+    "note.updated": "Note edited",
   };
   if (exact[event]) return exact[event];
-  // Generic transforms: action.executed -> "Action ran", note.created -> "Note created"
   const [domain, verb] = event.split(".");
   const domainLabel = kindLabel(domain);
   if (!verb) return domainLabel;
   const verbMap: Record<string, string> = {
-    created: "created",
-    updated: "updated",
-    deleted: "removed",
-    executed: "ran",
-    approved: "approved",
-    rejected: "rejected",
-    completed: "completed",
-    snoozed: "snoozed",
-    failed: "failed",
-    routed: "routed",
-    linked: "connected",
-    generated: "generated",
-    exported: "exported",
-    viewed: "read",
+    created: "created", updated: "updated", deleted: "removed",
+    executed: "ran", approved: "approved", rejected: "rejected",
+    completed: "completed", snoozed: "snoozed", failed: "failed",
+    routed: "routed", linked: "connected", generated: "generated",
+    exported: "exported", viewed: "read",
   };
   return `${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`;
+}
+
+/** Why-trust caption per event family — shown as a soft sub-line. */
+export function trustNote(event: string): string {
+  const e = (event ?? "").toLowerCase();
+  if (e.startsWith("brief.") || e.startsWith("pdf.") || e.startsWith("audio_brief") || e.startsWith("audit_packet") || e.startsWith("weekly_review"))
+    return "Recorded automatically when you approved the export.";
+  if (e.startsWith("capture."))
+    return "Recorded the moment the capture entered Vanta.";
+  if (e.startsWith("link.") || e.startsWith("cross_link.") || e.startsWith("entity.linked"))
+    return "Recorded when you connected the items.";
+  if (e.startsWith("action."))
+    return "Recorded by the Actions room when the state changed.";
+  if (e.startsWith("commitment."))
+    return "Recorded when the commitment moved.";
+  if (e.startsWith("file."))
+    return "Recorded by the file pipeline at each step.";
+  if (e.startsWith("note."))
+    return "Recorded when the note was saved.";
+  return "Recorded automatically when the change happened.";
 }
 
 /** Friendly label for a brief format. */
