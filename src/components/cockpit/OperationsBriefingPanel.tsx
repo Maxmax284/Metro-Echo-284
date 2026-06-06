@@ -23,6 +23,7 @@ import {
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { humanizeBriefingItem, renderPlainLine, displayKind, displayPlatform as displayPlatformPE } from "@/lib/plainEnglish";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 
 type Counts = {
   overdue: number;
@@ -242,6 +243,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
         <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Compass className="h-3 w-3 shrink-0" />
           <span className="truncate">Operations briefing</span>
+          <WhatIsThis topic="operations_briefing" />
           <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
             {scopeText}
           </Badge>
@@ -308,7 +310,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             ) : null}
             {briefing.what_matters && briefing.what_matters.length > 0 && (
               <div className="mt-1 rounded-md border border-border/40 bg-background/30 p-2">
-                <div className="mb-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">Why it matters</div>
+                <div className="mb-0.5 text-[9.5px] uppercase tracking-wider text-muted-foreground">What needs you</div>
                 <ul className="space-y-0.5 text-[12px] text-foreground/85">
                   {briefing.what_matters.map((line, i) => (<li key={i}>{line}</li>))}
                 </ul>
@@ -381,7 +383,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               onClick={() => setShowSources((s) => !s)}
               aria-expanded={showSources}
             >
-              <Info className="h-3 w-3" /> Why this matters
+              <Info className="h-3 w-3" /> Why this appears here
               {showSources ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </Button>
             <Button

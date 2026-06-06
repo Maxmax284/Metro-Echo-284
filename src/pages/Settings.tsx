@@ -14,6 +14,8 @@ import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
 import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
+import { useTutorial } from "@/components/tutorial/TutorialProvider";
+import { SystemMap } from "@/components/tutorial/SystemMap";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -32,6 +34,7 @@ type UsageLimit = {
 export default function Settings() {
   const { session } = useAuth();
   const isOwner = useIsOwner();
+  const { startTutorial } = useTutorial();
   const { controls, loading, update } = useSystemControls();
   const [logs, setLogs] = useState<UsageLog[]>([]);
   const [limits, setLimits] = useState<UsageLimit[]>([]);
@@ -103,6 +106,29 @@ export default function Settings() {
       )}
 
       <InstallVantaSection />
+
+      {/* How Vanta Works — replayable tutorial + visual system map. */}
+      <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">How Vanta Works</h2>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">
+              The whole flow in plain English. Replay the first-run walkthrough any time.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 h-8 text-[11.5px]"
+            onClick={startTutorial}
+          >
+            Replay tutorial
+          </Button>
+        </div>
+        <div className="mt-3">
+          <SystemMap />
+        </div>
+      </section>
 
       <TimeRemindersSection />
 

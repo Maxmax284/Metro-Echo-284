@@ -365,7 +365,9 @@ export function EntityDetailSheet() {
         })()}
         {entity && (
           <div className="mt-5 space-y-2">
-            <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Briefs for this entity</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Saved exports for this project</p>
+            </div>
             <BriefExportsList entityId={entity.id} />
           </div>
         )}

@@ -66,8 +66,8 @@ export type BriefExportRow = {
 };
 
 export const FORMAT_LABEL: Record<BriefFormat, string> = {
-  operator: "Operator brief",
-  client: "Client brief",
+  operator: "For me (operator)",
+  client: "For a client",
   audit_packet: "Audit packet",
   weekly_review: "Weekly review",
   audio_script: "Audio briefing",

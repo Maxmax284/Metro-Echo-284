@@ -21,6 +21,7 @@ import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 
 type Counts = {
   pendingApprovals: number;
@@ -172,6 +173,19 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
       <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
+        {/* Header — answers "where am I and what is this?" */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[15px] font-semibold text-foreground">Command Center</h1>
+              <WhatIsThis topic="command_center" />
+            </div>
+            <p className="text-[11.5px] text-muted-foreground">
+              Everything rolls up here. Situations first, statistics second.
+            </p>
+          </div>
+        </div>
+
         {/* 1. Productivity Pulse — quick-health layer */}
         <ProductivityPulseCard />
 
@@ -226,9 +240,13 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         {/* Past system-scope briefs */}
         <Card className="space-y-3 border-border/60 bg-surface-elevated/40 p-4">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            <FileText className="h-3 w-3" /> Past briefs
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <FileText className="h-3 w-3" /> Saved exports
+              <WhatIsThis topic="saved_exports" />
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground">Every PDF you've exported, with receipts. Re-download any of them.</p>
           <BriefExportsList entityId={null} />
         </Card>
 

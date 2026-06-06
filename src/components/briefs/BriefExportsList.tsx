@@ -48,7 +48,7 @@ export function BriefExportsList({ entityId }: { entityId?: string | null }) {
   if (rows.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
-        No briefs yet. Create one above.
+        No saved exports yet. Tap <span className="text-foreground/90">Create brief</span> to draft and export your first one.
       </div>
     );
   }
