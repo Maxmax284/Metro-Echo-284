@@ -12,6 +12,7 @@ import {
   resolveProjectItems,
   updateProject,
 } from "@/lib/projects";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +24,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Trash2, X, ScrollText, ListChecks, CheckSquare, MessageSquare, Notebook } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles, Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -38,6 +39,24 @@ export default function ProjectBriefPage() {
   const [summaryDraft, setSummaryDraft] = useState("");
   const [savingSummary, setSavingSummary] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
+  const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("audit_log")
+        .select("id,event,created_at,payload")
+        .eq("entity_type", "project")
+        .eq("entity_id", id)
+        .order("created_at", { ascending: false })
+        .limit(15);
+      if (!cancelled) setReceipts((data ?? []) as any);
+    })();
+    return () => { cancelled = true; };
+  }, [id, project?.updated_at]);
 
   useEffect(() => {
     if (!id) return;
@@ -128,6 +147,29 @@ export default function ProjectBriefPage() {
     }
   }
 
+  async function handleSummarize() {
+    if (!project) return;
+    setSummarizing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("project-summarize", {
+        body: { project_id: project.id },
+      });
+      if (error) throw error;
+      const text = (data as any)?.summary ?? "";
+      if (!text) {
+        toast.message("Nothing to summarize yet — attach a few items first.");
+        return;
+      }
+      setSummaryDraft(text);
+      toast.success("Draft ready — review and Save to commit.");
+    } catch (err) {
+      console.error("[brief] summarize failed", err);
+      toast.error("Couldn't summarize right now.");
+    } finally {
+      setSummarizing(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:py-10">
       <header className="mb-4 flex items-start gap-3">
@@ -192,18 +234,33 @@ export default function ProjectBriefPage() {
 
       {/* Living summary */}
       <section className="mb-6 rounded-2xl border border-border/60 bg-surface-elevated p-4">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Living brief</h2>
-          {summaryDraft !== project.summary && (
-            <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
-              {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSummarize}
+              disabled={summarizing || items.length === 0}
+              aria-label="Summarize attached items into a draft brief"
+            >
+              {summarizing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Summarize</>
+              )}
             </Button>
-          )}
+            {summaryDraft !== project.summary && (
+              <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
+                {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              </Button>
+            )}
+          </div>
         </div>
         <Textarea
           value={summaryDraft}
           onChange={(e) => setSummaryDraft(e.target.value)}
-          placeholder="Write the brief in your own words. Where you're at, what's next, who's involved. You can edit this any time — the attached items below stay in sync automatically."
+          placeholder="Write the brief in your own words — or tap Summarize to draft one from the attached items. You can always edit before saving."
           rows={5}
           className="resize-none border-0 bg-transparent px-0 focus-visible:ring-0"
         />
@@ -221,28 +278,80 @@ export default function ProjectBriefPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Section title="Latest" subtitle="What changed recently" empty={latest.length === 0 && "Nothing new this week."}>
+          <Section title="Recent changes" subtitle="What moved in the last week" empty={latest.length === 0 && "Nothing new this week."}>
             {latest.map((entry) => (
               <LatestRow key={`${entry.kind}-${entry.id}`} entry={entry} />
             ))}
           </Section>
 
-          <Section icon={<MessageSquare className="h-4 w-4" />} title="Captures" subtitle="Things you said or sent in" empty={resolved.captures.length === 0 && "None attached."}>
-            {resolved.captures
-              .slice()
-              .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+          {/* Needs me — open commitments + pending actions, merged */}
+          <Section
+            icon={<CheckSquare className="h-4 w-4" />}
+            title="Needs me"
+            subtitle="Open commitments and pending actions"
+            empty={
+              resolved.commitments.filter((c) => c.status !== "done" && c.status !== "cancelled").length === 0
+              && resolved.actions.filter((a) => a.status !== "executed" && a.status !== "cancelled").length === 0
+              && "Nothing waiting on you."
+            }
+          >
+            {resolved.commitments
+              .filter((c) => c.status !== "done" && c.status !== "cancelled")
+              .sort((a, b) => {
+                const ad = a.due_at ? +new Date(a.due_at) : Infinity;
+                const bd = b.due_at ? +new Date(b.due_at) : Infinity;
+                return ad - bd;
+              })
               .map((c) => {
-                const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
+                const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)}
-                    timestamp={c.created_at}>
-                    <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
+                  <ItemCard key={`c-${c.id}`} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">Commitment</Badge>
+                      <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
+                      {c.due_at && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Due {formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm">{c.summary}</p>
+                  </ItemCard>
+                );
+              })}
+            {resolved.actions
+              .filter((a) => a.status !== "executed" && a.status !== "cancelled")
+              .map((a) => {
+                const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
+                return (
+                  <ItemCard key={`a-${a.id}`} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">Action</Badge>
+                      <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
+                      {a.risk && (
+                        <Badge variant="outline" className="text-[10px] capitalize">{a.risk} risk</Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm">{a.title}</p>
                   </ItemCard>
                 );
               })}
           </Section>
 
-          <Section icon={<Notebook className="h-4 w-4" />} title="Notes" subtitle="The full body — read inline" empty={resolved.notes.length === 0 && "None attached."}>
+          <Section icon={<Search className="h-4 w-4" />} title="Signals" subtitle="Sherlock findings tied here" empty={resolved.findings.length === 0 && "None attached."}>
+            {resolved.findings.map((s) => {
+              const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
+              return (
+                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
+                  <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
+                  {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
+                  <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
+                </ItemCard>
+              );
+            })}
+          </Section>
+
+          <Section icon={<Notebook className="h-4 w-4" />} title="Notes" subtitle="Full bodies, read inline" empty={resolved.notes.length === 0 && "None attached."}>
             {resolved.notes.map((n) => {
               const row = items.find((i) => i.item_type === "note" && i.item_id === n.id)!;
               return (
@@ -271,53 +380,45 @@ export default function ProjectBriefPage() {
             })}
           </Section>
 
-          <Section icon={<Search className="h-4 w-4" />} title="Signals" subtitle="Sherlock findings tied here" empty={resolved.findings.length === 0 && "None attached."}>
-            {resolved.findings.map((s) => {
-              const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
-              return (
-                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
-                  <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
-                  {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
-                  <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
-                </ItemCard>
-              );
-            })}
+          <Section icon={<MessageSquare className="h-4 w-4" />} title="Captures" subtitle="Things you said or sent in" empty={resolved.captures.length === 0 && "None attached."}>
+            {resolved.captures
+              .slice()
+              .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+              .map((c) => {
+                const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
+                return (
+                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
+                    <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
+                  </ItemCard>
+                );
+              })}
           </Section>
 
-          <Section icon={<CheckSquare className="h-4 w-4" />} title="Commitments" empty={resolved.commitments.length === 0 && "None attached."}>
-            {resolved.commitments.map((c) => {
-              const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
-              return (
-                <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
-                  <p className="text-sm">{c.summary}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
-                    {c.due_at && (
-                      <span className="text-[11px] text-muted-foreground">
-                        Due {formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}
-                      </span>
-                    )}
-                  </div>
-                </ItemCard>
-              );
-            })}
-          </Section>
-
-          <Section icon={<ListChecks className="h-4 w-4" />} title="Actions" empty={resolved.actions.length === 0 && "None attached."}>
-            {resolved.actions.map((a) => {
-              const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
-              return (
-                <ItemCard key={a.id} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
-                  <p className="text-sm">{a.title}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
-                    {a.risk && (
-                      <Badge variant="outline" className="text-[10px] capitalize">{a.risk} risk</Badge>
-                    )}
-                  </div>
-                </ItemCard>
-              );
-            })}
+          <Section
+            icon={<Receipt className="h-4 w-4" />}
+            title="Receipts"
+            subtitle="What happened on this project"
+            empty={receipts.length === 0 && "No events recorded yet."}
+          >
+            {receipts.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 rounded-lg border border-border/60 bg-surface-elevated px-3 py-2 text-sm"
+              >
+                <Badge variant="outline" className="text-[10px]">{r.event}</Badge>
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                  {r.payload && typeof r.payload === "object"
+                    ? Object.entries(r.payload as Record<string, unknown>)
+                        .slice(0, 2)
+                        .map(([k, v]) => `${k}: ${String(v).slice(0, 40)}`)
+                        .join(" · ")
+                    : ""}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
           </Section>
         </div>
       )}
