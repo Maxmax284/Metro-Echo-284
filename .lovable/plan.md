@@ -1,355 +1,96 @@
-&nbsp;
 
-&nbsp;
-
-# Vanta Clarity Audit + Onboarding Layer
-
-No new major features. Goal: a new user understands the flow in under 2 minutes, a returning user can answer the 7 acceptance questions without thinking.
-
-## Part 1 — Audit findings (where users get lost today)
-
-**Capture → Memory**
-
-- `MemorySurface` mixes Captures / Files / Recognize / Corrections / Privacy tabs. No single "Inbox" label. Fix: rename the default tab to **Inbox** with a one-line helper: "Where new captures land before they're routed."
-- `CaptureToast` confirms a save but doesn't say *where it went* or *what it connected to*. Fix: append "Saved to Memory · linked to {entity}" + tap-through.
-
-**Linking**
-
-- `ManualLinkSheet` button label is "Link items" — unclear. Fix: **"Connect to…"** with subtext "Notes, commitments, reminders, projects."
-- `EntityChips` / `LinkChips` show raw type tokens (`commitment`, `reminder`, `note`). Fix: friendly nouns ("Commitment", "Reminder", "Note") + icon.
-
-**Rollups / Command Center**
-
-- `ProjectRollupCards` headers say "Recent / Needs / Linked" — fine, but no "why this is here" hint. Fix: card footer micro-line "Pinned project · updates the Operational Briefing."
-- `OperationsBriefingPanel` uses internal terms like "source grounding" and "verdict". Fix label map:
-  - verdict → **What's going on**
-  - what_changed → **Recent changes**
-  - what_matters → **What needs you**
-  - useful_connections → **Connected items**
-  - source_grounding → **Why this appears here**
-- Duplicate "Create brief" buttons (system-scope footer + per-card) — keep both but unify label & icon, and tooltip the system one as "Brief for everything across Vanta."
-
-**Briefs / Exports**
-
-- `BriefComposerSheet` format presets currently read as `operator/client/audit_packet/weekly_review/audio_script`. Fix labels:
-  - operator → **For me (operator)**
-  - client → **For a client**
-  - audit_packet → **Audit packet**
-  - weekly_review → **Weekly review**
-  - audio_script → **Audio briefing**
-- "Approve & Export" flow has no plain explanation of draft vs export. Fix: helper banner "Drafts stay private. Export saves a PDF you can share and re-download."
-- `BriefExportsList` title was generic. Fix: **"Saved exports"** with subtext "Every PDF you've exported, with receipts."
-
-**Receipts / Audit**
-
-- `AuditSurface` shows raw event names (`brief.generated`, `entity.linked`). Fix: humanizer map (`brief.generated` → "Brief generated", `pdf.generated` → "PDF created", `*.executed` → "Action ran", etc.). Keep raw event in a tooltip for owners.
-
-**Navigation**
-
-- Surface tabs: Conversation, Memory, Schedule, Commitments, Actions, Sherlock, Audit, Awareness, Command. 9 tabs at 384px is too many. We do **not** remove surfaces in this pass, but we relabel the mental anchors in `SurfaceTabs` tooltips:
-  - Memory → "Inbox & memory"
-  - Command → "Command Center — everything rolls up here"
-  - Audit → "Receipts"
-
-## Part 2 — Mental-model labels (one source of truth)
-
-New file `src/lib/plainLabels.ts` exporting:
-
-```
-INBOX, MEMORY, PROJECTS, COMMAND, BRIEFS, RECEIPTS
-+ humanize(eventKey), formatLabel(typeKey), formatFormat(briefFormat)
-```
-
-All surfaces import from here so wording stays consistent.
-
-## Part 3 — Onboarding / tutorial layer
-
-New components:
-
-- `src/components/tutorial/TutorialProvider.tsx` — context, step state, persisted in `user_preferences.tutorial_state` (already an existing prefs row — store `{ completed: bool, step: number, dismissed: bool }`).
-- `src/components/tutorial/FirstRunWalkthrough.tsx` — full-screen mobile-first overlay (384px target), 6 slides:
-  1. "Capture anything — voice, text, file. It lands in your **Inbox**."
-  2. "Vanta links it to the right **Project** automatically. You can also tap **Connect to…**."
-  3. "Your **Command Center** shows what's going on, what needs you, and what changed."
-  4. "Tap **Create brief** to turn it into a shareable PDF or audio summary."
-  5. "Every export is **saved** under the project — and every change leaves a **receipt**."
-  6. "Want a guided tour with a real note? **Try the Ground Stay demo**."
-  - Skip / Next / Back, dots indicator, no auto-advance.
-- `src/components/tutorial/WhatIsThis.tsx` — tiny `(?)` chip that opens a popover with 1–2 sentence explanation. Mounted on:
-  - Command Center header
-  - ProjectRollupCards
-  - OperationsBriefingPanel
-  - ManualLinkSheet trigger
-  - BriefComposerSheet header
-  - BriefExportsList header
-  - AuditSurface header
-  - SherlockWatchtowerCard header
-- `src/components/tutorial/GroundStayDemoFlow.tsx` — scripted 8-step coach-mark tour that highlights real DOM targets via `data-tour="..."` attributes and walks: capture → memory → link → rollup → briefing → create brief → export → receipt. Uses no fake data; nudges the user to perform each step, with "Do this for me" fallback only for the capture step (creates a demo note tagged `demo:ground-stay`).
-- Settings entry: **"Replay tutorial"** in `Settings.tsx` (re-opens FirstRunWalkthrough; "Run guided demo" re-opens GroundStayDemoFlow).
-
-## Part 4 — Small UI fixes that pay off
-
-- `CommandCenterSurface`: add a one-line header "**Command Center** — everything rolls up here." Replace "Past briefs" → "Saved exports".
-- `EntityDetailSheet`: rename tabs to plain English (Overview / Connected / Briefs / Receipts).
-- `CaptureToast`: show destination + connected entity if known.
-- All `formatDistanceToNow` usages already fine; no change.
-- Add `data-tour` attributes to the elements the demo flow needs to highlight (non-visual).
-
-## Part 5 — Out of scope (explicitly)
-
-- No new tables, no new edge functions, no schema changes.
-- No removal of existing surfaces — just relabeling and tooltipping.
-- No TTS upgrade, no IDML, no auto-tour.
-
-## Files to create
-
-- `src/lib/plainLabels.ts`
-- `src/components/tutorial/TutorialProvider.tsx`
-- `src/components/tutorial/FirstRunWalkthrough.tsx`
-- `src/components/tutorial/WhatIsThis.tsx`
-- `src/components/tutorial/GroundStayDemoFlow.tsx`
-- `src/components/tutorial/tutorialCopy.ts` (all strings in one place)
-
-## Files to edit
-
-- `src/App.tsx` — wrap with `TutorialProvider`, mount `FirstRunWalkthrough` + `GroundStayDemoFlow`.
-- `src/components/surfaces/CommandCenterSurface.tsx` — header, label swaps, WhatIsThis chips, data-tour attrs, "Saved exports".
-- `src/components/cockpit/OperationsBriefingPanel.tsx` — section header relabels, WhatIsThis chip.
-- `src/components/cockpit/ProjectRollupCards.tsx` — footer hint, WhatIsThis chip, data-tour.
-- `src/components/links/ManualLinkSheet.tsx` — "Connect to…" label + subtext.
-- `src/components/surfaces/MemorySurface.tsx` — default tab renamed "Inbox" + helper line.
-- `src/components/capture/CaptureToast.tsx` — destination + connected-to line.
-- `src/components/briefs/BriefComposerSheet.tsx` — friendly format names, draft/export helper banner.
-- `src/components/briefs/BriefExportsList.tsx` — "Saved exports" title + subtext.
-- `src/components/surfaces/AuditSurface.tsx` — humanized event labels via `plainLabels`.
-- `src/components/entities/EntityDetailSheet.tsx` — plain-English tab labels.
-- `src/components/shell/SurfaceTabs.tsx` — tooltip relabels.
-- `src/pages/Settings.tsx` — Replay tutorial + Run guided demo.
-
-## Acceptance check (manual)
-
-- New user lands → walkthrough shows in 6 taps, dismissible.
-- Each named card has a `(?)` that explains itself in ≤2 sentences.
-- No surface shows raw event/type tokens to non-owners.
-- Settings → Replay tutorial works.
-- Guided demo completes end-to-end with one demo note.
-
-VANTA CLARITY PASS — SITUATIONS OVER OBJECTS
-
-The onboarding audit is approved.
-
-Before implementation begins, perform one additional clarity pass focused on helping users understand situations, not just objects.
-
-Current state:
-
-Vanta is becoming excellent at explaining:
-
-- Notes
-- Files
-- Actions
-- Commitments
-- Projects
-- Links
-- Exports
-- Receipts
-
-However, users ultimately do not care about objects.
-
-Users care about:
-
-- What needs me?
-- What changed?
-- What is blocked?
-- What is waiting?
-- What is done?
-- What should I do next?
-
-Goal:
-
-Make Vanta explain situations before it explains infrastructure.
-
-Example:
-
-Instead of:
-
-Ground Stay  
-12 notes  
-4 commitments  
-2 actions  
-7 files
-
-Prefer:
-
-Ground Stay requires attention.
-
-Reason:  
-The payment flow remains unresolved.
-
-Open items:
-
-- Booking confirmation logic
-- Deposit workflow review
-
-Suggested next move:  
-Review payment flow and approve implementation.
-
-Principle:
-
-Objects support situations.
-
-Situations drive decisions.
-
-The Command Center should prioritize situations.
-
-New recommendations:
-
-1. WHY AM I SEEING THIS?
-
-Add a small expandable section to:
-
-- Project cards
-- Command Center summaries
-- Operational Briefing items
-- Sherlock findings
-
-Label:
-
-"Why am I seeing this?"
-
-Example:
-
-Why am I seeing this?
-
-- 4 new notes were added this week
-- 2 commitments are still open
-- A recent payment-flow change was detected
-
-This project is currently active.
-
-2. SYSTEM MAP
-
-Add a permanent help page available from Settings.
-
-Title:
-
-How Vanta Works
-
-Keep it visual and simple.
-
-Example:
-
-Capture  
-↓  
-Inbox  
-↓  
-Project  
-↓  
-Command Center  
-↓  
-Brief  
-↓  
-Receipt
-
-Each step should have a one-sentence explanation.
-
-No technical terminology.
-
-No architecture language.
-
-No database language.
-
-No AI terminology.
-
-3. COMMAND CENTER PRIORITY MODE
-
-Command Center should rank cards by urgency and relevance.
-
-Prefer:
-
-Needs attention  
-Waiting  
-Blocked  
-Review required  
-On track  
-Completed recently
-
-Avoid:
-
-Raw counts first.
-
-The user should see status before statistics.
-
-4. PROJECT HEALTH
-
-Add optional project health indicators.
-
-Examples:
-
-On Track  
-Needs Review  
-Waiting  
-Blocked  
-High Activity
-
-Health should be derived from:
-
-- overdue commitments
-- unresolved Sherlock findings
-- recent activity
-- pending actions
-
-Health should always include a plain-English explanation.
-
-5. DAILY OPERATOR VIEW
-
-Add a condensed mode for Command Center.
-
-Answer only:
-
-- What changed?
-- What needs me?
-- What should I review?
-- What can wait?
-
-This becomes the fastest way to understand the system.
-
-6. TUTORIAL IMPROVEMENT
-
-The Ground Stay demo remains approved.
-
-Add one final slide:
-
-"You now understand the entire Vanta flow."
-
-Capture  
-→ Inbox  
-→ Project  
-→ Command Center  
-→ Brief  
-→ Receipt
-
-The goal is confidence.
-
-A new user should be able to explain Vanta to another person after completing the demo.
-
-Final principle:
-
-Every screen should answer:
-
-What is happening?  
-Why is it happening?  
-What should I do next?
-
-If a screen cannot answer those questions, simplify it before adding more features.
-
-End goal:
-
-Vanta should feel less like software and more like an operations officer.
-
-Not:
-
-"Here are your objects."
-
-But:
-
-"Here's what's going on."
+This is a large multi-feature push on Command Center. I'll also quietly fix the conditional-`useMemo` hook crash in `ProjectRollupCards.tsx` while I'm in there.
+
+## 1. Receipts drill-down on every brief claim
+- Extend `compose-brief` edge function: every `BriefSection` body item gains an optional `receipts: BriefGrounding[]` field; LLM prompt requires citing source ids (audit event, note, file, commitment, action) for each claim.
+- `BriefRenderer`: render a small `[receipts]` chip next to each claim. Tap → opens new `ReceiptsDrawer` listing audit events / notes / files with timestamp + "open" links into existing surfaces.
+- `BriefPdfDocument`: render receipt ids inline as superscript references + an appendix table.
+- New shared helper `src/lib/receiptResolve.ts` to resolve `{kind,id}` → label + route.
+
+## 2. Whole-system scope (consolidated operational briefing)
+- `BriefComposerSheet` already has "Whole system" scope; wire it through `compose-brief` so when `scope_kind=system` the function pulls rollups for all pinned projects + recent activity across entities and assembles a single consolidated brief.
+- Add `system_rollup()` RPC mirroring `entity_rollup` but aggregating across the user's pinned/active entities.
+- New header card in `CommandCenterSurface`: "Generate system briefing" using the new scope.
+
+## 3. One-tap Weekly Review
+- New `WeeklyReviewButton` on `CommandCenterSurface`.
+- Calls `composeBrief({format:'weekly_review', scope_kind:'system', range_days:7})`, auto-runs PDF export (client format), and writes audit `brief.exported` + `weekly_review.generated`.
+- Adds `weekly_review.generated` event to humanizer.
+
+## 4. Pre-export sensitivity gate
+- New `src/lib/briefSensitivity.ts`: runs `detectSensitive` (already in `_shared/sensitive.ts`, mirror as client lib) against draft brief text + linked file/note titles.
+- `BriefComposerSheet`: between Draft and Approve, if any sensitive items found, show a `SensitivityReviewStep` listing categories + items, requiring an explicit "I've reviewed, export anyway" checkbox per format. Logs `brief.sensitivity_reviewed` audit.
+
+## 5. "Let's follow one note" replayable demo
+- Extend `GroundStayDemoFlow` (or new `FollowOneNoteDemo.tsx` since GroundStay variant isn't currently wired): 8 steps — capture → toast → memory inbox → connect to project → project rollup card → operational briefing → create brief → export → receipts drawer.
+- Each step targets real DOM via `data-tour` attributes (add where missing).
+- Replay from Settings → "Replay guided demo".
+
+## 6. Daily checklist
+- New `DailyChecklistCard.tsx` on top of `CommandCenterSurface`.
+- Three sections derived from existing rollups + commitments/actions queries:
+  - **Needs you**: overdue commitments, high-risk pending actions, pending sherlock findings
+  - **What changed**: audit events in last 24h grouped by entity
+  - **Suggested next**: top 3 from `projectHealth.urgencyRank`
+- Items are tappable, route to the right surface, dismissable for the day (localStorage).
+
+## 7. Plain-English Receipts/Audit relabel
+- Expand `src/lib/plainLabels.ts` `humanize()` to cover every event currently emitted (audit_log greps).
+- Audit `AuditSurface.tsx`: each row shows "[what] · [when relative + absolute] · [why this matters]" with a tooltip explaining trust ("Recorded automatically when …").
+- Add `EventTrustNote` component (a one-line "why trust this" caption per event family).
+
+## 8. Empty states
+- `ProjectRollupCards`: when none → "No projects yet. Capture a note and connect it to a project to see it here."
+- `BriefExportsList`: when empty → "No exports yet. Drafts stay private until you tap Approve & export."
+- `LinkedChipsBar`/`LinkChips`: when empty on an item → "Not connected yet. Tap Connect to link this to a project, person, or place."
+- `DailyChecklistCard`: empty per-section copy.
+- Each empty state has a primary CTA button routing to the right surface.
+
+## Bug fix (quiet)
+- `ProjectRollupCards.tsx:141` calls `useMemo` after conditional early returns. Refactor so all hooks run unconditionally at the top.
+
+## Technical notes
+- Migration: add `system_rollup(_user_id uuid)` SECURITY DEFINER RPC + grants. No schema changes; reuses `brief_exports`, `audit_log`, `cross_links`, `entities`.
+- Edge function `compose-brief`: extend prompt + response schema (receipts on each item, system scope path). Backwards-compatible.
+- No new tables, no new buckets, no new secrets. All within Lovable Cloud.
+- Doctrine kept: nothing auto-exports, every export still requires user tap; sensitivity gate strengthens that.
+
+## Files (high level)
+**New**
+- `src/components/cockpit/DailyChecklistCard.tsx`
+- `src/components/briefs/ReceiptsDrawer.tsx`
+- `src/components/briefs/SensitivityReviewStep.tsx`
+- `src/components/tutorial/FollowOneNoteDemo.tsx`
+- `src/lib/receiptResolve.ts`
+- `src/lib/briefSensitivity.ts`
+- `src/lib/sherlock/sensitive.ts` already exists — reuse
+- migration: `system_rollup` RPC
+
+**Edited**
+- `supabase/functions/compose-brief/index.ts` (receipts + system scope)
+- `src/lib/briefs.ts` (types: receipts on sections, system rollup helper)
+- `src/components/briefs/BriefComposerSheet.tsx` (sensitivity gate, weekly-review one-tap)
+- `src/components/briefs/BriefRenderer.tsx` + `BriefPdfDocument.tsx` (receipt chips + appendix)
+- `src/components/surfaces/CommandCenterSurface.tsx` (DailyChecklist, WeeklyReview button, system briefing)
+- `src/components/surfaces/AuditSurface.tsx` (plain English rows)
+- `src/lib/plainLabels.ts` (event coverage)
+- `src/components/cockpit/ProjectRollupCards.tsx` (hook fix + empty state)
+- `src/components/briefs/BriefExportsList.tsx` (empty state)
+- `src/components/links/LinkedChipsBar.tsx`, `LinkChips.tsx` (empty states)
+- `src/pages/Settings.tsx` (replay demo button)
+
+## Out of scope
+- No real TTS (keeps browser SpeechSynthesis).
+- No new auth, no role changes.
+- No removal of existing surfaces.
+
+## Acceptance
+- Every brief item shows a `[receipts]` chip that opens a drawer of real audit events/notes/files.
+- "Whole system" produces a single consolidated brief covering all pinned entities.
+- Weekly Review button generates + exports PDF in one tap, after sensitivity gate.
+- Sensitivity gate blocks export until user explicitly confirms when sensitive content detected.
+- Settings → Replay demo plays an end-to-end "follow one note" tour.
+- Command Center top shows daily checklist with Needs you / What changed / Suggested next.
+- Audit rows read like English sentences, not event keys.
+- Empty rollups, exports, and link bars all show guidance + a CTA.
+- `ProjectRollupCards` no longer crashes with the hooks error.
