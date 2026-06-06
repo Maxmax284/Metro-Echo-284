@@ -348,14 +348,14 @@ export function ActionsSurface() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <RotateCcw className="h-5 w-5 text-warn" />
-                    Rollback action
+                    Undo this action
                   </DialogTitle>
                   <DialogDescription className="space-y-2">
                     <span className="block text-sm font-medium text-foreground">{t.title}</span>
                     <span className="block text-xs text-muted-foreground">
                       {t.rollback_available
-                        ? "This will attempt to reverse the executed change. Audit trail is preserved."
-                        : "No automatic rollback is available. Marking as rolled_back is bookkeeping only — you'll need to undo the effect manually."}
+                        ? "Vanta will try to reverse what ran. The receipt stays either way."
+                        : "No automatic undo. Marking it 'undone' is just bookkeeping — you'll need to reverse the effect yourself."}
                     </span>
                   </DialogDescription>
                 </DialogHeader>
