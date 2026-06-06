@@ -176,16 +176,19 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
           </span>
         )}
         <div className="ml-auto flex gap-1">
-          {(["open", "all"] as const).map((f) => (
+          {([
+            { id: "open", label: "Open" },
+            { id: "all", label: "All" },
+          ] as const).map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
               className={cn(
                 "rounded-md px-2 py-0.5 transition-colors",
-                filter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+                filter === f.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {f}
+              {f.label}
             </button>
           ))}
         </div>
