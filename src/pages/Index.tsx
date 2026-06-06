@@ -249,7 +249,7 @@ function IndexInner() {
           <MissingSecretsBanner />
 
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
-          {surface === "inbox" && <MemorySurface />}
+          {surface === "inbox" && <InboxSurface />}
           {surface === "projects" && <ProjectsSurface />}
           {surface === "briefs" && <BriefsSurface />}
           {surface === "receipts" && <AuditSurface />}
