@@ -643,7 +643,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                       : null;
                     return t ? { type: t, id: it._raw.row.id } : null;
                   })
-                  .filter((x): x is { type: ProjectItemType; id: string } => !!x)}
+                  .filter((x): x is { type: ProjectItemType; id: string } => x !== null)}
                 label={`Push to project (${picks.length})`}
                 onAttached={() => { setSelectedIds(new Set()); setSelectMode(false); refresh(); }}
               />
