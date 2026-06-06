@@ -1,165 +1,90 @@
-# Vanta Unified Operations Flow — Implementation Plan
 
-This plan executes the audit you uploaded. The architecture stays as-is. We only change navigation, labels, surface roles, and a few glue components so Vanta feels like **one daily desk**, not 9 tabs.
+# Step 2 — Inbox surface
 
----
+Goal: turn the current Memory tab maze into one **Inbox** that feels like "stuff lands here, then I push it to a project."
 
-## Current state (1-line audit)
+## What we're building
 
-You already have all the engines (Capture, Memory, Notes, Files, Sherlock, Commitments, Actions, Audit, Briefs, Projects/Living Brief). They're surfaced as **9 sibling tabs of equal weight** in `SurfaceTabs.tsx`. That's the whole problem.
+A new `src/components/surfaces/InboxSurface.tsx` that the `inbox` surface key renders (replacing the current `MemorySurface` placeholder). It **composes existing pieces** — no rebuilds.
 
-## Target mental model
+### Layout
 
 ```text
-Capture (any source) → Inbox → Project / Living Brief → Cockpit → Brief/PDF → Receipts
+┌────────────────────────────────────────────────────┐
+│  Inbox                                  [+ Note]   │
+│  Stuff lands here. Push it into a project.         │
+│                                                    │
+│  [ Captures ] [ Notes ] [ Files ]   ◐ selecting    │
+│                                                    │
+│  ▣ ── capture / note / file row ─── [Attach ▾]    │
+│  ▣ ── capture / note / file row ─── [Attach ▾]    │
+│  □ ── capture / note / file row ─── [Attach ▾]    │
+│                                                    │
+│  Sources: Telegram · Email · Voice · Upload  (▸)   │
+└────────────────────────────────────────────────────┘
+   ↑ when ≥1 selected, sticky bar appears:
+   ┌────────────────────────────────────────────────┐
+   │  3 selected   [Attach to project ▾]  [Clear]   │
+   └────────────────────────────────────────────────┘
 ```
 
-Five primary surfaces. Everything else becomes a **support layer** that lives inside one of them.
+### Three subtabs
 
+1. **Captures** — existing `CapturesView` (already has multi-select + bulk connect, already has per-row `AttachToProjectMenu`). We pass an `onSelectionChange` callback so the Inbox-level sticky bar can drive bulk-attach.
+2. **Notes** — extract the notes list from `MemorySurface` into `InboxNotesList.tsx`. Each row gets a checkbox + per-row `AttachToProjectMenu`. Tapping a row still opens the editor (reuse the editor block from `MemorySurface`).
+3. **Files** — existing `MemoryFilesView` with per-row attach already present; add checkbox column.
 
-| Today's tab    | Becomes                                               |
-| -------------- | ----------------------------------------------------- |
-| Capture (chat) | **Inbox** (primary) — unified intake                  |
-| Memory         | folded into Inbox + Projects (notes/files = sections) |
-| Commitments    | section inside Project + Cockpit                      |
-| Actions        | section inside Project + Cockpit                      |
-| Sherlock       | "Signals" section inside Project + Cockpit            |
-| Awareness      | demoted to header chip (already half-there)           |
-| Audit          | renamed **Receipts** (primary)                        |
-| Schedule/Today | merged into Cockpit "Today" strip                     |
-| Cockpit        | **Cockpit** (primary, home)                           |
-| Projects       | **Projects** (primary)                                |
-| Briefs/exports | **Briefs** (primary)                                  |
+A single `useInboxSelection()` hook holds `{ kind, id, label }[]` across subtabs so a selection survives tab switches.
 
+### Bulk action bar
 
----
+Sticky bar appears when selection > 0:
 
-## Scope of this pass
+- **"Attach to project"** — opens a slimmed project picker (reuse `AttachToProjectMenu`'s internal list logic via a new `BulkAttachToProjectMenu`). On confirm: writes one `project_items` row per selected item using existing `attachItemsToProject(projectId, items[])` helper in `src/lib/projects.ts` (add if missing — current helper attaches one at a time; we'll add a batched version).
+- **"Clear"** — empties selection.
 
-Five focused steps. No new engines. No schema changes (the existing `projects`, `project_links`, `briefs`, `audit_events`, `sherlock_findings` tables cover everything).
+Each successful bulk-attach writes a single audit event `inbox.bulk_attached` with the project id + item count, and shows a toast "3 items pushed to Lamai Q3 rollout — open project?"
 
-### Step 1 — Collapse navigation to 5 primary surfaces
+### Sources strip (collapsed by default)
 
-- Rewrite `src/components/shell/SurfaceTabs.tsx`:
-  - Primary rail + bottom bar: **Cockpit, Inbox, Projects, Briefs, Receipts**.
-  - Move Commitments, Actions, Sherlock, Awareness, Conversation into the "More" overflow sheet, labelled "Advanced surfaces — these live inside Projects & Cockpit too."
-- Add `SurfaceKey` entries: `inbox`, `projects`, `briefs`, `receipts`. Keep old keys functional for deep links.
-- Default landing surface stays Cockpit.
+A bottom row with chips for Telegram / Email / Voice / Upload. Tap a chip → opens the existing settings sheet for that source. This replaces the random source cards floating around the old Memory surface.
 
-### Step 2 — Inbox surface (rename + reframe, no rebuild)
+## File touches
 
-- New `src/components/surfaces/InboxSurface.tsx` that **composes existing pieces**:
-  - `CapturesView` (already exists) as the main feed.
-  - `MemoryFilesView` as a "Files" tab inside Inbox.
-  - Notes list (extract from `MemorySurface`) as a "Notes" tab.
-  - Telegram/email/voice cards collapse into a single "Sources" chip row.
-- Every row already has `AttachToProjectMenu` — promote it to a primary button labelled **"Attach to project"** with hover hint "Send this into a project's Living Brief."
-- Add multi-select toolbar (checkbox per row) → bulk **Attach to project** + bulk **Summarize together** (calls existing `compose-brief` edge function scoped to selected items).
+**New:**
+- `src/components/surfaces/InboxSurface.tsx` — the surface shell with the three subtabs, header, sticky bulk bar.
+- `src/components/inbox/InboxNotesList.tsx` — notes list + checkboxes + per-row attach (extracted from MemorySurface).
+- `src/components/inbox/useInboxSelection.ts` — tiny zustand-free hook (useState + context or just module-level store) for cross-tab selection.
+- `src/components/projects/BulkAttachToProjectMenu.tsx` — popover, search projects, "Create new" inline, calls batched attach.
 
-### Step 3 — Projects = the real workspace
+**Edited:**
+- `src/lib/projects.ts` — add `attachItemsToProject(projectId, items: { item_type, item_id }[])` that does a single `insert([...])` and writes one audit event.
+- `src/components/memory/CapturesView.tsx` — accept optional `selection`/`onSelectionChange` props that mirror its existing internal selection to the parent (it already has multi-select for connect — we just expose it).
+- `src/components/memory/MemoryFilesView.tsx` — add an optional `selection`/`onSelectionChange` to surface its row checkbox state to the parent.
+- `src/pages/Index.tsx` — `surface === "inbox"` now renders `<InboxSurface />` instead of `<MemorySurface />`. Old `memory` key still renders `MemorySurface` via the More sheet (keeps deep links working).
 
-- `ProjectBrief.tsx` already exists. Restructure it into the canonical Living Brief layout from the audit:
-  1. Header: name, status, "Create brief" + "Attach items" buttons.
-  2. **Recent changes** (audit_events filtered by project) — top.
-  3. **What needs me** (open commitments + staged actions).
-  4. **Signals** (Sherlock findings linked to project).
-  5. **Notes / Files / Captures** tabs (project_links filtered).
-  6. **Saved exports** (briefs).
-  7. **Receipts** drawer link.
-- Each section has the same affordance: select → Attach more / Summarize / Export.
+## What we're NOT doing in this step
 
-### Step 4 — Cockpit = "Here is what is going on today"
+- Not touching the notes editor itself (still launched from the notes row).
+- Not adding bulk **Summarize** yet — that lands in Step 3 inside the Project view so the brief has a project to live under.
+- Not changing source ingestion code or Telegram bridge.
+- No DB migration. `project_items` already supports multi-insert.
 
-- Edit `CommandCenterSurface.tsx`: keep the sticky Today + Live Briefing you just pinned. Add a **project rollup** that reads:
-  > "Ground Stay needs attention · CampCore waiting on review · 3 commitments overdue · 1 export yesterday"
-- Driven by existing `ProjectRollupCards` + `useProductivityPulse`. No new data.
-- Demote tiles that duplicate Inbox/Projects — collapse into one "Jump to…" row.
+## Acceptance
 
-### Step 5 — Briefs + Receipts as first-class
+1. Tap **Inbox** in the rail → see Captures / Notes / Files subtabs.
+2. Tick 3 rows across two subtabs → sticky bar shows "3 selected".
+3. Tap **Attach to project** → pick "Lamai Q3 rollout" → toast confirms, items appear in that project's Living Brief, one audit event written.
+4. Per-row **Attach** still works for single items.
+5. Old `/projects/:id` page and notes editor unchanged.
 
-- **Briefs surface**: thin wrapper around existing `BriefComposerSheet` + `BriefExportsList`. Entry point: "Create brief" from any Project or selection.
-- **Receipts surface**: rename Audit. Same data. Add **"Why am I seeing this?"** popover on Project/Cockpit cards that opens the receipt drawer pre-filtered to that object's `audit_events` + `project_links`.
+## Order of implementation
 
-### Step 6 — Plain-English layer
+1. Add `attachItemsToProject` batched helper + `useInboxSelection` hook.
+2. Build `BulkAttachToProjectMenu`.
+3. Build `InboxSurface` shell with the three subtabs.
+4. Wire selection passthrough into `CapturesView` and `MemoryFilesView`.
+5. Extract `InboxNotesList` from `MemorySurface`.
+6. Swap `surface === "inbox"` in `Index.tsx`.
 
-- New `src/lib/glossary.ts` mapping internal labels → plain English (already partially in `plainLabels.ts` — extend it).
-- Add `<WhatIsThis term="…">` tooltip component (reuse `src/components/tutorial/WhatIsThis.tsx`) next to every ambiguous label: "Living Brief", "Signals", "Receipts", "Attach to project", "Compose brief".
-- Purge surface-visible tech terms: RPC, entity_rollup, cross_links, embeddings, source_grounding.
-
----
-
-## What we are NOT doing this pass
-
-- No DB migrations. No new engines. No AI prompt rewrites.
-- Not deleting Commitments / Actions / Sherlock / Awareness surfaces — they remain reachable via overflow + deep links so muscle memory and existing notification routes (`/?commitment=…`) still work.
-- No mobile redesign beyond keeping 384px tap targets honest in the new bottom bar.
-- No changes to capture pipelines, Telegram bridge, or Sherlock logic.
-
----
-
-## Implementation order
-
-1. SurfaceTabs collapse + new route keys (Step 1) — unblocks everything else.
-2. Inbox surface composition (Step 2).
-3. Project/Living Brief restructure (Step 3).
-4. Cockpit project rollup tightening (Step 4).
-5. Briefs + Receipts wrappers + "Why am I seeing this?" (Step 5).
-6. Glossary tooltip sweep (Step 6).
-
-Each step is shippable on its own and leaves the app in a working state.
-
----
-
-## Acceptance check (from your audit doc)
-
-After this pass, you should be able to:
-
-1. Capture → see it land in **Inbox**.
-2. Multi-select 3 captures → **Attach to project** → they appear in the Living Brief.
-3. Open the project → see Recent changes, Needs me, Signals, Notes/Files, Exports, Receipts.
-4. Tap **Summarize** → brief appears under Saved exports + surfaces in Cockpit.
-5. Open Cockpit → one screen tells you what changed and what needs you.
-6. Tap **Why am I seeing this?** on any card → receipts drawer explains it.
-
-If any of those break, the step that owns it gets revisited before moving on.
-
----
-
-Want me to start with Step 1 (collapse nav to the 5 primaries) or jump straight to Step 3 (Project/Living Brief restructure) since that's where most of the daily-flow pain lives?  
-  
-Start with Step 1: collapse navigation to the 5 primary surfaces.
-
-Proceed in the proposed order.
-
-Do not jump to the Project/Living Brief restructure yet.
-
-Reason:  
-The navigation is the first source of confusion. If the app still presents 9 sibling tabs of equal weight, the user will continue feeling lost even after the Project page improves.
-
-Approved direction:
-
-Primary surfaces:
-
-- Cockpit
-- Inbox
-- Projects
-- Briefs
-- Receipts
-
-Move the old advanced surfaces into More:
-
-- Commitments
-- Actions
-- Sherlock
-- Awareness
-- Conversation
-- any legacy/deep-link-only surfaces
-
-Keep old deep links functional.
-
-Default landing surface remains Cockpit.
-
-Make the “More” sheet clearly explain:  
-“Advanced surfaces — these also live inside Projects and Cockpit.”
-
-After Step 1 is complete and reviewed, proceed to Step 2: Inbox surface composition.
+Should take one pass. Ready to build?
