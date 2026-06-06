@@ -19,12 +19,21 @@ export type BriefSectionKind =
   | "receipts"
   | "pull_quote";
 
+export type BriefClaim = {
+  text: string;
+  receipts?: BriefGrounding[];
+};
+
 export type BriefSection = {
   id: string;
   heading?: string;
   kind: BriefSectionKind;
-  // prose/pull_quote: string. list/timeline/receipts: string[] or items[]. decision: { decision, why }
+  // Body shape per kind:
+  // - prose / pull_quote: string OR BriefClaim
+  // - list / timeline / receipts: string[] | BriefClaim[] | {when,what}[]
+  // - decision: { decision, why, receipts? }
   body: any;
+  receipts?: BriefGrounding[]; // section-level fallback grounding
 };
 
 export type BriefGrounding = {
