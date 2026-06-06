@@ -240,9 +240,13 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         {/* Past system-scope briefs */}
         <Card className="space-y-3 border-border/60 bg-surface-elevated/40 p-4">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-            <FileText className="h-3 w-3" /> Past briefs
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <FileText className="h-3 w-3" /> Saved exports
+              <WhatIsThis topic="saved_exports" />
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground">Every PDF you've exported, with receipts. Re-download any of them.</p>
           <BriefExportsList entityId={null} />
         </Card>
 
