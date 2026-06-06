@@ -259,7 +259,7 @@ export function ActionsSurface() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Icon className={cn("h-5 w-5", riskColor[t.risk])} />
-                    Review action
+                    Take a look before you approve
                   </DialogTitle>
                   <DialogDescription className="space-y-2">
                     <span className="block text-sm font-medium text-foreground">{t.title}</span>
