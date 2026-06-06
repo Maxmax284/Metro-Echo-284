@@ -134,9 +134,9 @@ export function AuditSurface() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-medium">Audit</h2>
+            <h2 className="text-sm font-medium">Receipts</h2>
             <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              receipts only
+              what happened, when, and why you can trust it
             </span>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
