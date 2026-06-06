@@ -271,13 +271,30 @@ export function BriefComposerSheet({
               <Button
                 size="sm" variant="default" className="ml-auto h-9 gap-1.5"
                 onClick={handleApproveExport}
-                disabled={exporting || savedRow?.status === "exported"}
+                disabled={exporting || exportBlocked || savedRow?.status === "exported"}
+                title={exportBlocked ? "Acknowledge sensitive content first" : undefined}
               >
-                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                {savedRow?.status === "exported" ? "Exported" : "Approve & export"}
+                {exporting
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : exportBlocked
+                    ? <ShieldCheck className="h-3.5 w-3.5" />
+                    : <Download className="h-3.5 w-3.5" />}
+                {savedRow?.status === "exported"
+                  ? "Exported"
+                  : exportBlocked ? "Review required" : "Approve & export"}
               </Button>
             )}
           </div>
+
+          {/* Sensitivity gate — only shows when something looks sensitive */}
+          {brief && sensitivity?.any && (
+            <SensitivityReviewStep
+              report={sensitivity}
+              formatLabel={FORMAT_LABEL[format]}
+              acknowledged={sensitivityAck}
+              onAcknowledge={setSensitivityAck}
+            />
+          )}
 
           {/* Preview */}
           <div className="mt-4">
