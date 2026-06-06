@@ -388,6 +388,27 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         </div>
       )}
 
+      {/* Bulk-select toolbar — available in both lanes. Lets the user
+          connect many captures to one place in a single tap. */}
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <button
+          type="button"
+          onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            selectMode
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <CheckSquare className="h-3 w-3" />
+          {selectMode ? "Done selecting" : "Select multiple"}
+        </button>
+        {selectMode && selectedIds.size > 0 && (
+          <span className="text-muted-foreground">{selectedIds.size} picked</span>
+        )}
+      </div>
+
       {loading && (
         <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
           Looking at the front desk…
