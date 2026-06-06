@@ -176,16 +176,19 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
           </span>
         )}
         <div className="ml-auto flex gap-1">
-          {(["open", "all"] as const).map((f) => (
+          {([
+            { id: "open", label: "Open" },
+            { id: "all", label: "All" },
+          ] as const).map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.id}
+              onClick={() => setFilter(f.id)}
               className={cn(
                 "rounded-md px-2 py-0.5 transition-colors",
-                filter === f ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+                filter === f.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {f}
+              {f.label}
             </button>
           ))}
         </div>
@@ -224,7 +227,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
         {loading ? (
           <div className="py-12 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">No commitments. Quiet runway.</div>
+          <div className="py-12 text-center text-sm text-muted-foreground">Nothing on the list. Quiet runway.</div>
         ) : (
           <ul className="space-y-2">
             {items.map((c) => {

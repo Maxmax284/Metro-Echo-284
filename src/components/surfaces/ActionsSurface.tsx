@@ -108,24 +108,24 @@ export function ActionsSurface() {
   };
 
   const groups = {
-    "Ready to act": actions.filter((a) => a.status === "approved"),
-    "Awaiting review": actions.filter((a) => a.status === "proposed" || a.status === "staged"),
-    "Recently executed": actions.filter((a) => a.status === "executed" || a.status === "audited"),
-    "Cancelled / rolled back": actions.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
+    "Ready to run": actions.filter((a) => a.status === "approved"),
+    "Needs your eye": actions.filter((a) => a.status === "proposed" || a.status === "staged"),
+    "Just ran": actions.filter((a) => a.status === "executed" || a.status === "audited"),
+    "Cancelled or undone": actions.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
   };
 
   return (
     <div className="flex h-full flex-col">
       <div className="px-4 pt-3 pb-2">
         <h2 className="text-lg font-semibold tracking-tight">Actions</h2>
-        <p className="text-xs text-muted-foreground">What you can do right now. Nothing executes silently.</p>
+        <p className="text-xs text-muted-foreground">What you can do right now. Nothing runs without your OK.</p>
       </div>
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
         {loading && <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>}
         {!loading && actions.length === 0 && (
           <div className="py-12 text-center text-sm text-muted-foreground">
-            No actions yet. Stage one from the conversation.
+            Nothing here yet. Drafts show up when Vanta proposes something.
           </div>
         )}
         {!loading && Object.entries(groups).map(([label, list]) =>
@@ -223,7 +223,7 @@ export function ActionsSurface() {
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
                               <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
-                                <RotateCcw className="h-3.5 w-3.5" /> Rollback
+                                <RotateCcw className="h-3.5 w-3.5" /> Undo
                               </Button>
                             )}
                             {(a.status === "proposed" || a.status === "staged") && (
@@ -259,7 +259,7 @@ export function ActionsSurface() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Icon className={cn("h-5 w-5", riskColor[t.risk])} />
-                    Review action
+                    Take a look before you approve
                   </DialogTitle>
                   <DialogDescription className="space-y-2">
                     <span className="block text-sm font-medium text-foreground">{t.title}</span>
@@ -281,7 +281,7 @@ export function ActionsSurface() {
                     )}
                     {affectedCount > 0 && (
                       <Badge variant="outline" className="gap-1 text-muted-foreground">
-                        <Boxes className="h-3 w-3" /> {affectedCount} affected
+                        <Boxes className="h-3 w-3" /> touches {affectedCount}
                       </Badge>
                     )}
                     <Badge
@@ -289,7 +289,7 @@ export function ActionsSurface() {
                       className={cn("gap-1", t.rollback_available ? "text-signal" : "text-muted-foreground")}
                     >
                       <RotateCcw className="h-3 w-3" />
-                      {t.rollback_available ? "Rollback available" : "No rollback"}
+                      {t.rollback_available ? "Can be undone" : "Can't be undone"}
                     </Badge>
                   </div>
 
@@ -307,7 +307,7 @@ export function ActionsSurface() {
                   {needsPhrase && (
                     <div className="space-y-1.5 rounded-md border border-warn/30 bg-warn/5 p-2.5">
                       <p className="text-xs text-foreground">
-                        High-risk. Type <span className="font-mono font-semibold">approve</span> to confirm.
+                        This one's high-risk. Type <span className="font-mono font-semibold">approve</span> to confirm.
                       </p>
                       <Input
                         autoFocus
@@ -348,14 +348,14 @@ export function ActionsSurface() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <RotateCcw className="h-5 w-5 text-warn" />
-                    Rollback action
+                    Undo this action
                   </DialogTitle>
                   <DialogDescription className="space-y-2">
                     <span className="block text-sm font-medium text-foreground">{t.title}</span>
                     <span className="block text-xs text-muted-foreground">
                       {t.rollback_available
-                        ? "This will attempt to reverse the executed change. Audit trail is preserved."
-                        : "No automatic rollback is available. Marking as rolled_back is bookkeeping only — you'll need to undo the effect manually."}
+                        ? "Vanta will try to reverse what ran. The receipt stays either way."
+                        : "No automatic undo. Marking it 'undone' is just bookkeeping — you'll need to reverse the effect yourself."}
                     </span>
                   </DialogDescription>
                 </DialogHeader>

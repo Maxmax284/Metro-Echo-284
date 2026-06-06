@@ -290,7 +290,7 @@ export function MemorySurface() {
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-tight">Memory</h2>
             <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              semantic
+              search by meaning
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -375,7 +375,7 @@ export function MemorySurface() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") runSearch(); }}
-            placeholder="Semantic search across notes, messages, commitments…"
+            placeholder="Search by meaning — notes, messages, commitments…"
             className="pl-8 pr-20"
           />
           <div className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">

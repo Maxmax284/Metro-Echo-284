@@ -145,12 +145,12 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
               {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
             </Section>
-            <Section title="Files needing review" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
+            <Section title="Files waiting on you" Icon={FileText} empty="No files waiting." onOpen={() => onNavigate?.("memory")}>
               {reviewFiles.slice(0, 5).map((f) => (
                 <li key={f.id} className="flex items-center gap-2 text-[12.5px]">
                   <FileText className="h-3 w-3 text-muted-foreground" />
                   <span className="truncate">{f.filename}</span>
-                  <span className="ml-auto text-[10.5px] text-warn">needs type</span>
+                  <span className="ml-auto text-[10.5px] text-warn">needs a label</span>
                 </li>
               ))}
             </Section>
@@ -223,8 +223,8 @@ function SummaryStrip({ reminders, commitments, captures, files, actions }: { re
   if (reminders) parts.push(`${reminders} reminder${reminders === 1 ? "" : "s"}`);
   if (commitments) parts.push(`${commitments} commitment${commitments === 1 ? "" : "s"}`);
   if (captures) parts.push(`${captures} capture${captures === 1 ? "" : "s"} waiting`);
-  if (files) parts.push(`${files} file${files === 1 ? "" : "s"} need review`);
-  if (actions) parts.push(`${actions} action${actions === 1 ? "" : "s"} need approval`);
+  if (files) parts.push(`${files} file${files === 1 ? "" : "s"} need a label`);
+  if (actions) parts.push(`${actions} action${actions === 1 ? "" : "s"} waiting on your OK`);
   const line = parts.length ? `Today: ${parts.join(", ")}.` : "Today: nothing on the board.";
   return (
     <Card className="border-border/60 bg-surface-elevated/60 p-3 text-[13px] text-foreground/90">
@@ -247,7 +247,7 @@ function QuickJump({ onNavigate, captures, actions }: { onNavigate?: (k: Surface
         <ListChecks className="h-4 w-4 text-primary" />
         <div>
           <div className="font-medium">Approvals</div>
-          <div className="text-[10.5px] text-muted-foreground">{actions} pending</div>
+          <div className="text-[10.5px] text-muted-foreground">{actions} waiting on your OK</div>
         </div>
       </button>
     </div>
