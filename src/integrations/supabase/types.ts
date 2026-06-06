@@ -489,6 +489,78 @@ export type Database = {
         }
         Relationships: []
       }
+      brief_exports: {
+        Row: {
+          approved_at: string | null
+          brief: Json
+          created_at: string
+          entity_id: string | null
+          exported_at: string | null
+          format: string
+          id: string
+          organization_id: string | null
+          scope_kind: string
+          signals_hash: string | null
+          status: string
+          storage_path: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          brief?: Json
+          created_at?: string
+          entity_id?: string | null
+          exported_at?: string | null
+          format: string
+          id?: string
+          organization_id?: string | null
+          scope_kind: string
+          signals_hash?: string | null
+          status?: string
+          storage_path?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          brief?: Json
+          created_at?: string
+          entity_id?: string | null
+          exported_at?: string | null
+          format?: string
+          id?: string
+          organization_id?: string | null
+          scope_kind?: string
+          signals_hash?: string | null
+          status?: string
+          storage_path?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brief_exports_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_exports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capture_routes: {
         Row: {
           audit_event_id: string | null
@@ -2315,6 +2387,7 @@ export type Database = {
           slug: string
         }[]
       }
+      entity_rollup: { Args: { _entity_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

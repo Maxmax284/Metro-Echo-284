@@ -17,6 +17,9 @@ import { ResearchPanel } from "@/components/research/ResearchPanel";
 import { useCanvas } from "@/components/entities/CanvasContext";
 import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCard";
 import { OperationsBriefingPanel } from "@/components/cockpit/OperationsBriefingPanel";
+import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
+import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
+import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
 
 type Counts = {
@@ -62,6 +65,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [findings, setFindings] = useState<{ id: string; entity_type: string; summary: string; confidence: string | null; updated_at: string }[]>([]);
   const [receipts, setReceipts] = useState<AuditRow[]>([]);
   const [pendingById, setPendingById] = useState<Map<string, SherlockFinding>>(new Map());
+  const [briefOpen, setBriefOpen] = useState(false);
 
   useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
 
@@ -174,17 +178,26 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 2. Aware bubble — sleeker, collapsed by default */}
         <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
 
-        {/* 3. Operations Briefing — plain-English situation report.
-            Replaces the old AmbientSummary counts card. */}
+        {/* 3. Operations Briefing — plain-English situation report. */}
         <OperationsBriefingPanel onNavigate={onNavigate} />
 
-        {/* 4. Live Capture — receipt roll. Unchanged content, just hoisted
-            above the deep-dive tile grid. */}
+        {/* 3a. Project / pinned-entity rollup — the per-project digest layer. */}
+        <ProjectRollupCards />
+
+        {/* 4. Live Capture — receipt roll. */}
         <div className="grid grid-cols-1 gap-3">
           <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => setBriefOpen(true)}
+          >
+            <FileText className="h-3 w-3" /> Create brief
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -211,10 +224,24 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         <ResearchPanel />
 
+        {/* Past system-scope briefs */}
+        <Card className="space-y-3 border-border/60 bg-surface-elevated/40 p-4">
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <FileText className="h-3 w-3" /> Past briefs
+          </div>
+          <BriefExportsList entityId={null} />
+        </Card>
+
         <div className="text-center text-[11px] text-muted-foreground">
           Command Center is read-only. Approvals route into the existing Actions room. Capture lanes remain capture-only.
         </div>
       </div>
+
+      <BriefComposerSheet
+        open={briefOpen}
+        onOpenChange={setBriefOpen}
+        defaultScope="system"
+      />
     </div>
   );
 }

@@ -12,6 +12,8 @@ import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlock
 import { RelatedEntitiesSection } from "./RelatedEntitiesSection";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
+import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 
 type EntityRow = {
   id: string;
@@ -88,6 +90,7 @@ export function EntityDetailSheet() {
   const [parent, setParent] = useState<{ id: string; display_name: string; kind: string } | null>(null);
   const [children, setChildren] = useState<Array<{ id: string; display_name: string; kind: string }>>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [briefOpen, setBriefOpen] = useState(false);
 
   useEffect(() => {
     if (!openEntityId) { setEntity(null); setLinks([]); setParent(null); setChildren([]); setCounts({}); return; }
@@ -180,14 +183,24 @@ export function EntityDetailSheet() {
             )}
           </SheetDescription>
           {entity && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7 gap-1.5 text-[11px]"
-              onClick={() => { const id = entity.id; closeEntity(); openCanvas(id); }}
-            >
-              <Network className="h-3 w-3" /> Open in Canvas
-            </Button>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-[11px]"
+                onClick={() => { const id = entity.id; closeEntity(); openCanvas(id); }}
+              >
+                <Network className="h-3 w-3" /> Open in Canvas
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-[11px]"
+                onClick={() => setBriefOpen(true)}
+              >
+                <FileText className="h-3 w-3" /> Create brief
+              </Button>
+            </div>
           )}
           {entity && <EmbeddedSherlockFindings sourceType="entity" sourceId={entity.id} className="mt-1" />}
         </SheetHeader>
@@ -350,7 +363,22 @@ export function EntityDetailSheet() {
             </>
           );
         })()}
+        {entity && (
+          <div className="mt-5 space-y-2">
+            <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Briefs for this entity</p>
+            <BriefExportsList entityId={entity.id} />
+          </div>
+        )}
       </SheetContent>
+      {entity && (
+        <BriefComposerSheet
+          open={briefOpen}
+          onOpenChange={setBriefOpen}
+          defaultScope="entity"
+          entityId={entity.id}
+          entityLabel={entity.display_name}
+        />
+      )}
     </Sheet>
   );
 }
