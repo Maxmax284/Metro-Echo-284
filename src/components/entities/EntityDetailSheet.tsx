@@ -120,15 +120,15 @@ export function EntityDetailSheet() {
         const e = ent as EntityRow;
         const tasks: Promise<any>[] = [];
         if (e.parent_entity_id) {
-          tasks.push(
-            supabase.from("entities").select("id, display_name, kind").eq("id", e.parent_entity_id).maybeSingle()
-              .then(({ data }) => { if (alive && data) setParent(data as any); })
-          );
+          tasks.push((async () => {
+            const { data } = await supabase.from("entities").select("id, display_name, kind").eq("id", e.parent_entity_id!).maybeSingle();
+            if (alive && data) setParent(data as any);
+          })());
         }
-        tasks.push(
-          supabase.from("entities").select("id, display_name, kind").eq("parent_entity_id", e.id).order("display_name").limit(20)
-            .then(({ data }) => { if (alive) setChildren((data ?? []) as any); })
-        );
+        tasks.push((async () => {
+          const { data } = await supabase.from("entities").select("id, display_name, kind").eq("parent_entity_id", e.id).order("display_name").limit(20);
+          if (alive) setChildren((data ?? []) as any);
+        })());
         // Counts derived from entity_links roles.
         tasks.push((async () => {
           const tally: Record<string, number> = {};
