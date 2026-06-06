@@ -194,56 +194,27 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </div>
         </div>
 
-        {/* 0. Daily checklist — needs you / what changed / suggested next */}
-        <DailyChecklistCard onNavigate={onNavigate} />
-
-        {/* 1. Productivity Pulse — quick-health layer */}
+        {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
 
-        {/* 2. Aware bubble — sleeker, collapsed by default */}
-        <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
+        {/* 2. Today — what needs you, what changed, what's next. */}
+        <DailyChecklistCard onNavigate={onNavigate} />
 
-        {/* 3. Operations Briefing — plain-English situation report. */}
+        {/* 3. Live Briefing — plain-English situation report, visible and interactive. */}
         <OperationsBriefingPanel onNavigate={onNavigate} />
 
-        {/* 3a. Project / pinned-entity rollup — the per-project digest layer. */}
+        {/* 4. Aware bubble — environment context. */}
+        <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
+
+        {/* 5. Project rollups */}
         <ProjectRollupCards />
 
-        {/* 4. Live Capture — receipt roll. */}
+        {/* 6. Live Capture — receipt roll. */}
         <div className="grid grid-cols-1 gap-3">
           <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            variant="default"
-            size="sm"
-            className="h-7 gap-1.5 text-[11px]"
-            onClick={() => openBrief({ format: "weekly_review", auto: true })}
-            title="Generate a client-facing weekly summary across all projects"
-          >
-            <FileText className="h-3 w-3" /> Weekly review
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1.5 text-[11px]"
-            onClick={() => openBrief()}
-          >
-            <FileText className="h-3 w-3" /> Create brief
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1.5 text-[11px]"
-            onClick={() => openCanvas(null)}
-          >
-            <Network className="h-3 w-3" /> Open Canvas
-          </Button>
-        </div>
-
-        {/* 5. Deep-dive tiles — demoted below the briefing.
-            System receipts is owner-only (engine-room view). */}
+        {/* 7. Deep-dive tiles. System receipts is owner-only. */}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
           <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
           <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
@@ -258,17 +229,52 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
         <ResearchPanel />
 
-        {/* Past system-scope briefs */}
-        <Card className="space-y-3 border-border/60 bg-surface-elevated/40 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-              <FileText className="h-3 w-3" /> Saved exports
-              <WhatIsThis topic="saved_exports" />
+        {/* === Bottom: brief composer + exports (rarely-touched tooling) === */}
+        <details className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-sm">
+          <summary className="cursor-pointer select-none text-[12px] text-muted-foreground hover:text-foreground">
+            Briefs &amp; exports — generate or download a written brief
+          </summary>
+          <div className="mt-3 space-y-3">
+            <p className="text-[11.5px] text-muted-foreground">
+              These create or open written PDFs that summarize what's going on. Nothing here changes your data.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 gap-1.5 text-[11px]"
+                onClick={() => openBrief({ format: "weekly_review", auto: true })}
+                title="Generate a client-facing weekly summary across all projects"
+              >
+                <FileText className="h-3 w-3" /> Weekly review
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-[11px]"
+                onClick={() => openBrief()}
+              >
+                <FileText className="h-3 w-3" /> Create brief
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-[11px]"
+                onClick={() => openCanvas(null)}
+              >
+                <Network className="h-3 w-3" /> Open Canvas
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <FileText className="h-3 w-3" /> Saved exports
+                <WhatIsThis topic="saved_exports" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">Every PDF you've exported, with receipts. Re-download any of them.</p>
+              <BriefExportsList entityId={null} />
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">Every PDF you've exported, with receipts. Re-download any of them.</p>
-          <BriefExportsList entityId={null} />
-        </Card>
+        </details>
 
         <div className="text-center text-[11px] text-muted-foreground">
           This is the rollup — nothing runs from here. Tap into a card to actually do something.
