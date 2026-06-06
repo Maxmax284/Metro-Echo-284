@@ -249,8 +249,13 @@ export function AuditSurface() {
               <Card key={r.id} className="p-2 text-xs">
                 <div className="flex items-center gap-2">
                   <StatusDot tone={eventTone(r.event)} title={r.event} />
-                  <Badge variant="outline" className="shrink-0 text-[9px] uppercase tracking-wider">{r.entity_type}</Badge>
-                  <span className="min-w-0 flex-1 truncate font-medium">{r.event}</span>
+                  <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
+                  <span
+                    className="min-w-0 flex-1 truncate font-medium text-foreground"
+                    title={r.event}
+                  >
+                    {humanizeEvent(r.event)}
+                  </span>
                   <span
                     className="ml-auto shrink-0 text-[10px] text-muted-foreground"
                     title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
@@ -258,10 +263,18 @@ export function AuditSurface() {
                     {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                   </span>
                 </div>
+                <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
+                  {trustNote(r.event)}
+                </div>
                 {r.payload && Object.keys(r.payload).length > 0 && (
-                  <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
-                    {JSON.stringify(r.payload, null, 2)}
-                  </pre>
+                  <details className="ml-5 mt-1">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                      Raw payload · for developers
+                    </summary>
+                    <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px] text-muted-foreground">
+                      {JSON.stringify(r.payload, null, 2)}
+                    </pre>
+                  </details>
                 )}
               </Card>
             ))}
