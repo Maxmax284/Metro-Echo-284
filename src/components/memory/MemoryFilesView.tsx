@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { ReminderComposer } from "@/components/reminders/ReminderComposer";
+import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { LinkChips, readLinks } from "@/components/links/LinkChips";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
@@ -533,6 +534,7 @@ export function MemoryFilesView() {
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <ConnectButton source={{ kind: "file", id: f.id, label: f.filename }} />
                     <LinkedChipsBar source={{ kind: "file", id: f.id }} />
+                    <AttachToProjectMenu itemType="file" itemId={f.id} itemLabel={f.filename} />
                   </div>
                 </>
               )}

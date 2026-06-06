@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateEmbedding } from "@/lib/embeddings";
 import { linkEntities } from "@/lib/entityGraph";
+import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { CorrectionsCenter } from "@/components/memory/CorrectionsCenter";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
@@ -688,7 +689,12 @@ export function MemorySurface() {
                   Extract actions
                 </Button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <AttachToProjectMenu
+                  itemType="note"
+                  itemId={active.id}
+                  itemLabel={active.title || active.body.slice(0, 80)}
+                />
                 <Button variant="ghost" size="sm" onClick={() => { setDeleteText(""); setConfirmingDelete(true); }} className="text-destructive hover:text-destructive">Delete</Button>
                 <Button size="sm" onClick={() => { save(active); setActive(null); }}>Save</Button>
               </div>
