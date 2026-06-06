@@ -271,7 +271,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         </Card>
 
         <div className="text-center text-[11px] text-muted-foreground">
-          Command Center is read-only. Approvals route into the existing Actions room. Capture lanes remain capture-only.
+          This is the rollup — nothing runs from here. Tap into a card to actually do something.
         </div>
       </div>
 
@@ -361,7 +361,7 @@ function ApprovalsCard({ items, highRisk, onOpen }: { items: ActionRow[]; highRi
       )}
       {highRisk > 0 && (
         <div className="mt-2 rounded border border-warn/30 bg-warn/5 px-2 py-1 text-[11px] text-warn">
-          {highRisk} high-risk requires typed approval in the Actions room.
+          {highRisk} high-risk needs your typed OK over in Actions.
         </div>
       )}
     </CardShell>

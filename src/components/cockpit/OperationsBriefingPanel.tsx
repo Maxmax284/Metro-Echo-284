@@ -242,7 +242,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
       <div className="relative flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Compass className="h-3 w-3 shrink-0" />
-          <span className="truncate">Operations briefing</span>
+          <span className="truncate">Today's read</span>
           <WhatIsThis topic="operations_briefing" />
           <Badge variant="secondary" className="shrink-0 text-[9.5px] font-normal uppercase tracking-wider">
             {scopeText}
@@ -322,8 +322,8 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           {briefing.useful_connections && briefing.useful_connections.length > 0 && (
             <div className="space-y-1 rounded-md border border-primary/20 bg-primary/5 p-2 motion-safe:animate-fade-in">
               <div className="flex items-center justify-between gap-2 text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                <span>Possible connections</span>
-                <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Detected by Sherlock</span>
+                <span>Heads-ups worth a look</span>
+                <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Spotted by Vanta</span>
               </div>
               <ul className="space-y-1">
                 {briefing.useful_connections.map((u) => (
@@ -338,7 +338,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
                     >
                       <span className="block truncate">{u.summary}</span>
                       <span className="block text-[10.5px] text-muted-foreground">
-                        Next: review in Sherlock — nothing applies yet.
+                        Next: take a look in Sherlock — nothing's been changed.
                       </span>
                     </button>
                   </li>
@@ -391,7 +391,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
               onClick={() => setShowFull((s) => !s)}
               aria-expanded={showFull}
             >
-              {showFull ? "Quick" : "Full report"}
+              {showFull ? "Less" : "More"}
             </Button>
           </div>
 

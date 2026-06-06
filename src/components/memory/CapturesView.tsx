@@ -586,26 +586,58 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       </div>
 
       {/* Sticky bulk-action bar */}
-      {selectMode && selectedIds.size > 0 && (
-        <div className="sticky bottom-2 z-20 mx-auto flex max-w-md items-center gap-2 rounded-full border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
-          <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
-          <Button
-            size="sm"
-            className="ml-auto h-8 gap-1 text-[11.5px]"
-            onClick={() => setBulkOpen(true)}
-          >
-            <Link2 className="h-3 w-3" /> Connect to…
-          </Button>
-          <button
-            type="button"
-            onClick={() => setSelectedIds(new Set())}
-            className="rounded-full p-1.5 text-muted-foreground hover:text-foreground"
-            aria-label="Clear selection"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
-      )}
+      {selectMode && selectedIds.size > 0 && (() => {
+        const picks = filtered.filter((i) => selectedIds.has(i.id));
+        const bulkApply = async (mode: "reviewed" | "archive") => {
+          if (!user) return;
+          for (const it of picks) {
+            if (it._raw.kind === "file") {
+              const next = mode === "reviewed" ? "attached" : "archived";
+              const ev = mode === "reviewed" ? "file.marked_reviewed" : "file.archived";
+              await supabase.from("ingested_files").update({ review_status: next } as any).eq("id", it._raw.row.id);
+              void logFileEvent(user.id, ev as any, it._raw.row.id, {});
+              await logRoute(user.id, it, mode === "reviewed" ? "memory" : "archived");
+            } else if (it._raw.kind === "message") {
+              if (mode === "reviewed") {
+                await stampMessageRoute(it, "memory");
+                await logRoute(user.id, it, "memory", { bulk: true });
+              } else {
+                await stampMessageRoute(it, "ignored");
+                await logRoute(user.id, it, "ignored", { bulk: true });
+              }
+            }
+          }
+          toast.success({ title: mode === "reviewed" ? `Marked ${picks.length} reviewed.` : `Archived ${picks.length}.` });
+          setSelectedIds(new Set());
+          setSelectMode(false);
+          refresh();
+        };
+        return (
+          <div className="sticky bottom-2 z-20 mx-auto flex max-w-md flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+            <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
+            <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              <Button size="sm" className="h-8 gap-1 text-[11.5px]" onClick={() => setBulkOpen(true)}>
+                <Link2 className="h-3 w-3" /> Connect to…
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-[11px]" onClick={() => bulkApply("reviewed")}>
+                <CheckCircle2 className="h-3 w-3" /> Mark reviewed
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 gap-1 text-[11px] text-muted-foreground" onClick={() => bulkApply("archive")}>
+                Archive
+              </Button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="rounded-full p-1.5 text-muted-foreground hover:text-foreground"
+                aria-label="Clear selection"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
 
       <BulkConnectSheet
         open={bulkOpen}
