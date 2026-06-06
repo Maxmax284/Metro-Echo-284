@@ -234,18 +234,33 @@ export default function ProjectBriefPage() {
 
       {/* Living summary */}
       <section className="mb-6 rounded-2xl border border-border/60 bg-surface-elevated p-4">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Living brief</h2>
-          {summaryDraft !== project.summary && (
-            <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
-              {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSummarize}
+              disabled={summarizing || items.length === 0}
+              aria-label="Summarize attached items into a draft brief"
+            >
+              {summarizing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Summarize</>
+              )}
             </Button>
-          )}
+            {summaryDraft !== project.summary && (
+              <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
+                {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              </Button>
+            )}
+          </div>
         </div>
         <Textarea
           value={summaryDraft}
           onChange={(e) => setSummaryDraft(e.target.value)}
-          placeholder="Write the brief in your own words. Where you're at, what's next, who's involved. You can edit this any time — the attached items below stay in sync automatically."
+          placeholder="Write the brief in your own words — or tap Summarize to draft one from the attached items. You can always edit before saving."
           rows={5}
           className="resize-none border-0 bg-transparent px-0 focus-visible:ring-0"
         />
