@@ -126,6 +126,9 @@ export function AuditSurface() {
     return rows;
   }, [audit, filter, quick, eventClass]);
 
+  // Reset pagination whenever filters change.
+  useEffect(() => { setVisibleCount(30); }, [filter, quick, eventClass]);
+
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
