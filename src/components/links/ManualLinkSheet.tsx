@@ -14,13 +14,16 @@ import {
   createCrossLink, searchTargets, RELATIONS, KIND_LABEL,
   type CrossKind, type CrossRelation,
 } from "@/lib/crossLinks";
+import { formatDistanceToNow } from "date-fns";
 
 const KIND_ICON: Record<CrossKind, any> = {
   note: FileText, commitment: CheckSquare, action: Hammer, file: FileIcon,
   message: MessageSquare, capture: MessageSquare, entity: Tag,
 };
 
-type Picked = { kind: CrossKind; id: string; label: string; preview?: string | null };
+const FILTERABLE_KINDS: CrossKind[] = ["note", "commitment", "action", "file", "entity", "message"];
+
+type Picked = { kind: CrossKind; id: string; label: string; preview?: string | null; updated_at?: string | null };
 
 export function ManualLinkSheet({
   open, onOpenChange, onLinked,
@@ -36,39 +39,52 @@ export function ManualLinkSheet({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Picked[]>([]);
   const [searching, setSearching] = useState(false);
+  const [kindFilters, setKindFilters] = useState<Set<CrossKind>>(new Set());
   const [relation, setRelation] = useState<CrossRelation>("related");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setSide("A"); setA(null); setB(null); setQuery(""); setResults([]);
-      setRelation("related"); setBusy(false);
+      setRelation("related"); setBusy(false); setKindFilters(new Set());
     }
   }, [open]);
 
-  useEffect(() => { setQuery(""); setResults([]); }, [side]);
+  useEffect(() => { setQuery(""); }, [side]);
 
+  // Recents when empty, ILIKE search when typing — both kind-filtered.
   useEffect(() => {
     if (!open || !user) return;
-    if (!query.trim()) { setResults([]); return; }
     setSearching(true);
     const exclude = side === "A" ? a : b; // never let A and B match
+    const kinds = kindFilters.size ? Array.from(kindFilters) : undefined;
+    const delay = query.trim() ? 220 : 0;
     const t = setTimeout(async () => {
       const rows = await searchTargets(query, {
-        userId: user.id, limit: 8,
+        userId: user.id, limit: 10,
         excludeKind: exclude?.kind, excludeId: exclude?.id,
+        kinds,
       });
       setResults(rows);
       setSearching(false);
-    }, 220);
+    }, delay);
     return () => clearTimeout(t);
-  }, [query, open, user?.id, side, a?.id, b?.id]);
+  }, [query, open, user?.id, side, a?.id, b?.id, kindFilters]);
+
+  const toggleKind = (k: CrossKind) => {
+    setKindFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+  };
 
   const pick = (p: Picked) => {
     if (side === "A") { setA(p); setSide(b ? "A" : "B"); }
     else { setB(p); }
-    setQuery(""); setResults([]);
+    setQuery("");
   };
+
 
   const confirm = async () => {
     if (!a || !b || !user) return;
@@ -121,22 +137,60 @@ export function ManualLinkSheet({
                 autoFocus
               />
             </div>
-            {searching && (
-              <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" /> Looking…
-              </div>
-            )}
-            {!searching && query && results.length === 0 && (
-              <p className="mt-2 text-[11px] text-muted-foreground">Nothing matched.</p>
+
+            {/* Kind filters */}
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              {FILTERABLE_KINDS.map((k) => {
+                const Icon = KIND_ICON[k];
+                const active = kindFilters.has(k);
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => toggleKind(k)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] transition-colors",
+                      active
+                        ? "border-primary/40 bg-primary/15 text-primary"
+                        : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-2.5 w-2.5" /> {KIND_LABEL[k]}
+                  </button>
+                );
+              })}
+              {kindFilters.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setKindFilters(new Set())}
+                  className="ml-1 text-[10.5px] text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  clear
+                </button>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {query.trim() ? "Matches" : "Recent"}
+              </p>
+              {searching && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </div>
+            {!searching && results.length === 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {query.trim() ? "Nothing matched." : "Nothing recent in this filter."}
+              </p>
             )}
             {results.length > 0 && (
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-1 space-y-1">
                 {results.map((r) => (
                   <ResultRow key={`${r.kind}:${r.id}`} target={r} onPick={() => pick(r)} />
                 ))}
               </ul>
             )}
           </div>
+
+
 
           {/* Relation */}
           <div>
@@ -238,6 +292,11 @@ function ResultRow({ target, onPick }: { target: Picked; onPick: () => void }) {
           </div>
           {target.preview && (
             <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{target.preview}</p>
+          )}
+          {target.updated_at && (
+            <p className="mt-0.5 text-[10px] text-muted-foreground/80">
+              {formatDistanceToNow(new Date(target.updated_at), { addSuffix: true })}
+            </p>
           )}
         </div>
         <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100" />

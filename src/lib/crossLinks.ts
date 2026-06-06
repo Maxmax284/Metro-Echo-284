@@ -117,28 +117,58 @@ async function fetchLabels(kind: CrossKind, ids: string[]): Promise<LabeledItem[
 // Universal search across all supported kinds. Cheap ILIKE per table —
 // good enough for v1 manual linking. Semantic suggestions live in the
 // suggestion pipeline (entity-resolve / memory_search), not here.
-export async function searchTargets(query: string, opts: { userId: string; limit?: number; excludeKind?: CrossKind; excludeId?: string } ): Promise<Array<LabeledItem & { kind: CrossKind }>> {
-  const q = query.trim();
-  if (!q) return [];
-  const userId = opts.userId;
-  const limit = opts.limit ?? 6;
-  const ilike = `%${q.replace(/[%_]/g, "")}%`;
-  const tasks: Array<Promise<Array<LabeledItem & { kind: CrossKind }>>> = [];
+// When `query` is empty, returns the most-recent items of the requested
+// kinds — turns the picker into a "recents" list with no extra UI.
+export type SearchedItem = LabeledItem & { kind: CrossKind; updated_at?: string | null };
 
-  const run = async (kind: CrossKind, table: string, labelCol: string, previewCol?: string, extraFilter?: { col: string; eq: any }) => {
-    const sel = previewCol ? `id, ${labelCol}, ${previewCol}` : `id, ${labelCol}`;
-    let qb: any = (supabase as any).from(table).select(sel).eq("user_id", userId).ilike(labelCol, ilike).limit(limit);
-    if (extraFilter) qb = qb.eq(extraFilter.col, extraFilter.eq);
+const KIND_TIMESTAMP: Record<CrossKind, string> = {
+  note: "updated_at",
+  commitment: "updated_at",
+  action: "updated_at",
+  file: "created_at",
+  message: "created_at",
+  capture: "created_at",
+  entity: "last_seen_at",
+};
+
+export async function searchTargets(
+  query: string,
+  opts: {
+    userId: string;
+    limit?: number;
+    excludeKind?: CrossKind;
+    excludeId?: string;
+    kinds?: CrossKind[];
+  },
+): Promise<SearchedItem[]> {
+  const q = query.trim();
+  const userId = opts.userId;
+  const limit = opts.limit ?? 8;
+  const wantKinds = new Set<CrossKind>(opts.kinds && opts.kinds.length ? opts.kinds : ["note", "commitment", "action", "file", "entity", "message"]);
+  const ilike = q ? `%${q.replace(/[%_]/g, "")}%` : null;
+
+  const run = async (kind: CrossKind, table: string, labelCol: string, previewCol?: string, searchCol?: string): Promise<SearchedItem[]> => {
+    if (!wantKinds.has(kind)) return [];
+    const tsCol = KIND_TIMESTAMP[kind];
+    const cols = [previewCol, searchCol].filter(Boolean) as string[];
+    const sel = ["id", labelCol, tsCol, ...cols].filter((v, i, a) => a.indexOf(v) === i).join(", ");
+    let qb: any = (supabase as any).from(table).select(sel).eq("user_id", userId);
+    if (ilike) qb = qb.ilike(searchCol ?? labelCol, ilike);
+    qb = qb.order(tsCol, { ascending: false, nullsFirst: false }).limit(limit);
     const { data } = await qb;
     return (data ?? []).map((r: any) => ({
-      kind, id: r.id as string,
+      kind,
+      id: r.id as string,
       label: String(r[labelCol] ?? "").slice(0, 80) || `(untitled ${kind})`,
       preview: previewCol && r[previewCol] ? String(r[previewCol]).slice(0, 140) : null,
+      updated_at: r[tsCol] ?? null,
     }));
   };
 
+  const tasks: Array<Promise<SearchedItem[]>> = [];
   tasks.push(run("note", "notes", "title", "body"));
-  tasks.push(run("note", "notes", "body"));
+  // also search inside body for notes when the title misses
+  if (ilike && wantKinds.has("note")) tasks.push(run("note", "notes", "title", "body", "body"));
   tasks.push(run("commitment", "commitments", "summary"));
   tasks.push(run("action", "actions", "title", "description"));
   tasks.push(run("file", "ingested_files", "filename"));
@@ -148,16 +178,21 @@ export async function searchTargets(query: string, opts: { userId: string; limit
   const all = (await Promise.all(tasks)).flat();
   // Dedup by kind+id, drop self.
   const seen = new Set<string>();
-  const out: Array<LabeledItem & { kind: CrossKind }> = [];
+  const deduped: SearchedItem[] = [];
   for (const r of all) {
     const key = `${r.kind}:${r.id}`;
     if (seen.has(key)) continue;
     if (opts.excludeKind && opts.excludeId && r.kind === opts.excludeKind && r.id === opts.excludeId) continue;
     seen.add(key);
-    out.push(r);
-    if (out.length >= limit * 2) break;
+    deduped.push(r);
   }
-  return out;
+  // Sort by recency across kinds.
+  deduped.sort((a, b) => {
+    const ta = a.updated_at ? Date.parse(a.updated_at) : 0;
+    const tb = b.updated_at ? Date.parse(b.updated_at) : 0;
+    return tb - ta;
+  });
+  return deduped.slice(0, limit * 2);
 }
 
 // Suggestion source: this item's existing entity_links (auto-extracted) →
