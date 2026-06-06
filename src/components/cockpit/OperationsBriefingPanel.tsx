@@ -338,7 +338,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
                     >
                       <span className="block truncate">{u.summary}</span>
                       <span className="block text-[10.5px] text-muted-foreground">
-                        Next: review in Sherlock — nothing applies yet.
+                        Next: take a look in Sherlock — nothing's been changed.
                       </span>
                     </button>
                   </li>
