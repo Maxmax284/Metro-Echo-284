@@ -26,6 +26,7 @@ import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
+import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
 
 type InboxLane = "now" | "snoozed" | "done";
@@ -633,7 +634,18 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           <div className="sticky bottom-2 z-20 mx-auto flex max-w-md flex-wrap items-center gap-2 rounded-2xl border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
             <span className="text-[11.5px] font-medium">{selectedIds.size} selected</span>
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              <Button size="sm" className="h-8 gap-1 text-[11.5px]" onClick={() => setBulkOpen(true)}>
+              <BulkAttachToProjectMenu
+                items={picks.flatMap((it) => {
+                  const t: ProjectItemType | null =
+                    it._raw.kind === "message" ? "capture"
+                    : it._raw.kind === "file" ? "file"
+                    : null;
+                  return t ? [{ type: t, id: it._raw.row.id as string }] : [];
+                })}
+                label={`Push to project (${picks.length})`}
+                onAttached={() => { setSelectedIds(new Set()); setSelectMode(false); refresh(); }}
+              />
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-[11.5px]" onClick={() => setBulkOpen(true)}>
                 <Link2 className="h-3 w-3" /> Connect to…
               </Button>
               <Button size="sm" variant="outline" className="h-8 gap-1 text-[11px]" onClick={() => bulkApply("reviewed")}>

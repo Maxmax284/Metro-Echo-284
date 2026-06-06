@@ -14,6 +14,7 @@ import { CommandCenterSurface } from "@/components/surfaces/CommandCenterSurface
 import { ScheduleSurface } from "@/components/surfaces/ScheduleSurface";
 import { BriefsSurface } from "@/components/surfaces/BriefsSurface";
 import { ProjectsSurface } from "@/components/surfaces/ProjectsSurface";
+import { InboxSurface } from "@/components/surfaces/InboxSurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -248,7 +249,7 @@ function IndexInner() {
           <MissingSecretsBanner />
 
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
-          {surface === "inbox" && <MemorySurface />}
+          {surface === "inbox" && <InboxSurface />}
           {surface === "projects" && <ProjectsSurface />}
           {surface === "briefs" && <BriefsSurface />}
           {surface === "receipts" && <AuditSurface />}
