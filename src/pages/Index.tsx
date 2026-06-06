@@ -248,6 +248,10 @@ function IndexInner() {
           <MissingSecretsBanner />
 
           {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
+          {surface === "inbox" && <MemorySurface />}
+          {surface === "projects" && <ProjectsSurface />}
+          {surface === "briefs" && <BriefsSurface />}
+          {surface === "receipts" && <AuditSurface />}
           {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
           {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
           {surface === "memory" && <MemorySurface />}
