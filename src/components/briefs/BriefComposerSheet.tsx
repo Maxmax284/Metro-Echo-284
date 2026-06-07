@@ -216,6 +216,15 @@ export function BriefComposerSheet({
           <div className="mt-4 space-y-2">
             <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Scope</div>
             <div className="flex flex-wrap gap-2">
+              {projectId && (
+                <Button
+                  size="sm" variant={scopeKind === "project" ? "default" : "outline"}
+                  className="h-8 text-[12px]"
+                  onClick={() => setScopeKind("project")}
+                >
+                  {entityLabel ?? "This project"}
+                </Button>
+              )}
               {entityId && (
                 <Button
                   size="sm" variant={scopeKind === "entity" ? "default" : "outline"}
@@ -233,6 +242,36 @@ export function BriefComposerSheet({
                 Whole system
               </Button>
               <Badge variant="secondary" className="self-center text-[10px]">{scopeBadge}</Badge>
+            </div>
+            {scopeKind === "project" && (
+              <p className="text-[11px] text-muted-foreground">
+                PDF will be saved to this project and visible under Saved exports, Briefs, and Receipts.
+              </p>
+            )}
+          </div>
+
+          {/* Audience */}
+          <div className="mt-4 space-y-2">
+            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Who is this for? <span className="ml-1 normal-case tracking-normal text-muted-foreground/70">Same project, different packaging.</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {AUDIENCES.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setAudience(a)}
+                  className={cn(
+                    "rounded-md border p-2 text-left transition-colors",
+                    audience === a
+                      ? "border-primary bg-primary/5"
+                      : "border-border/60 bg-surface-elevated/40 hover:border-border",
+                  )}
+                >
+                  <div className="text-[12px] font-medium text-foreground">{AUDIENCE_LABEL[a]}</div>
+                  <div className="mt-0.5 text-[10.5px] leading-tight text-muted-foreground">{AUDIENCE_DESCRIPTION[a]}</div>
+                </button>
+              ))}
             </div>
           </div>
 
