@@ -186,7 +186,7 @@ function IndexInner() {
               size="icon"
               className="h-7 w-7"
               aria-label="Projects"
-              onClick={() => window.location.assign("/projects")}
+              onClick={() => setSurface("projects")}
               title="Projects — Living Briefs"
             >
               <FolderKanban className="h-3.5 w-3.5" />
