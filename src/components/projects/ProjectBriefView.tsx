@@ -53,6 +53,14 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
   const [tone, setTone] = useState<"operator" | "narrative">("narrative");
   const [structured, setStructured] = useState<StructuredBrief | null>(null);
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
+  const [addOpen, setAddOpen] = useState(false);
+
+  async function refreshAttached() {
+    if (!project) return;
+    const next = await listProjectItems(project.id);
+    setItems(next);
+    setResolved(await resolveProjectItems(next));
+  }
 
   useEffect(() => {
     if (!id) return;
