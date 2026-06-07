@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
+import { ProjectInbox } from "@/components/projects/ProjectInbox";
 
 export interface ProjectBriefViewProps {
   id: string;
@@ -245,6 +246,16 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      <ProjectInbox
+        project={project}
+        attached={items}
+        onAttached={async () => {
+          const next = await listProjectItems(project.id);
+          setItems(next);
+          setResolved(await resolveProjectItems(next));
+        }}
+      />
 
       {/* Living brief */}
       <section className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4">
