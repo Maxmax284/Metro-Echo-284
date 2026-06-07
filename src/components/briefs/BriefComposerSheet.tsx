@@ -149,7 +149,9 @@ export function BriefComposerSheet({
       setSavedRow(updated);
       toast({
         title: "Brief exported",
-        description: pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported.",
+        description: scopeKind === "project" && entityLabel
+          ? `Saved to ${entityLabel} → Saved exports. Also visible in Briefs and Receipts.`
+          : (pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported."),
       });
       if (pdfBlob) {
         const url = URL.createObjectURL(pdfBlob);
