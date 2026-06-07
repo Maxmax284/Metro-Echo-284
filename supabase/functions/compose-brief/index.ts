@@ -16,10 +16,15 @@ const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 type Format =
   | "operator" | "client" | "audit_packet" | "weekly_review" | "audio_script";
 
+type Audience =
+  | "me" | "internal_operator" | "client" | "audit" | "implementation" | "presentation";
+
 type Input = {
   format: Format;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
+  project_id?: string | null;
+  audience?: Audience;
   range_days?: number;
 };
 
@@ -41,8 +46,10 @@ type Brief = {
   grounding: Record<string, unknown>;
   signals_hash: string;
   format: Format;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id: string | null;
+  project_id: string | null;
+  audience: Audience | null;
   generated_at: string;
 };
 
