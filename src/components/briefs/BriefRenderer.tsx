@@ -5,6 +5,7 @@
 // each claim mirror the numbered appendix used in the exported PDF.
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { Brief, BriefSection, BriefGrounding } from "@/lib/briefs";
 import { formatDistanceToNow } from "date-fns";
 import { Quote, ScrollText } from "lucide-react";
@@ -16,6 +17,7 @@ import {
   type ClaimRef,
   type FootnoteMap,
 } from "@/lib/briefFootnotes";
+import { templateFor } from "@/lib/briefTemplates";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
