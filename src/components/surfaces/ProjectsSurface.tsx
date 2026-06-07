@@ -16,7 +16,8 @@ import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
 
 /**
  * ProjectsSurface — in-shell list of projects (Living Briefs).
- * Tapping a project opens /projects/:id (the existing Living Brief page).
+ * Tapping a project swaps this surface to the Living Brief view in place,
+ * so everything stays under the Projects tab and the shell chrome is preserved.
  */
 export function ProjectsSurface() {
   const { user } = useAuth();
@@ -27,24 +28,34 @@ export function ProjectsSurface() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!user) return;
+    try {
+      const rows = await listProjects({ userId: user.id, organizationId: orgId });
+      setProjects(rows);
+    } catch (err) {
+      console.error("[projects] load failed", err);
+      setProjects([]);
+      toast.error("Couldn't load projects");
+    }
+  }, [user, orgId]);
 
   useEffect(() => {
-    if (!user) return;
     let cancelled = false;
     (async () => {
-      try {
-        const rows = await listProjects({ userId: user.id, organizationId: orgId });
-        if (!cancelled) setProjects(rows);
-      } catch (err) {
-        console.error("[projects] load failed", err);
-        if (!cancelled) {
-          setProjects([]);
-          toast.error("Couldn't load projects");
-        }
-      }
+      if (cancelled) return;
+      await refresh();
     })();
     return () => { cancelled = true; };
-  }, [user, orgId]);
+  }, [refresh]);
+
+  // When switching workspaces, drop any open project that no longer belongs.
+  useEffect(() => {
+    if (!selectedId || !projects) return;
+    if (!projects.some((p) => p.id === selectedId)) setSelectedId(null);
+  }, [projects, selectedId]);
 
   async function handleCreate() {
     if (!user) return;
@@ -61,13 +72,26 @@ export function ProjectsSurface() {
       });
       setOpen(false);
       setTitle(""); setSummary("");
-      window.location.assign(`/projects/${p.id}`);
+      // Refresh list in the background and open the new brief inline.
+      refresh();
+      setSelectedId(p.id);
     } catch (err) {
       console.error("[projects] create failed", err);
       toast.error("Couldn't create the project");
     } finally {
       setCreating(false);
     }
+  }
+
+  // Living brief in place — same tab, same shell.
+  if (selectedId) {
+    return (
+      <ProjectBriefView
+        id={selectedId}
+        onBack={() => setSelectedId(null)}
+        onDeleted={() => { setSelectedId(null); refresh(); }}
+      />
+    );
   }
 
   return (
@@ -142,9 +166,10 @@ export function ProjectsSurface() {
         <ul className="space-y-2">
           {projects.map((p) => (
             <li key={p.id}>
-              <Link
-                to={`/projects/${p.id}`}
-                className="block rounded-xl border border-border/60 bg-surface-elevated p-4 transition-colors hover:border-primary/40"
+              <button
+                type="button"
+                onClick={() => setSelectedId(p.id)}
+                className="block w-full rounded-xl border border-border/60 bg-surface-elevated p-4 text-left transition-colors hover:border-primary/40"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -163,7 +188,7 @@ export function ProjectsSurface() {
                     {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
                   </span>
                 </div>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
@@ -171,3 +196,4 @@ export function ProjectsSurface() {
     </div>
   );
 }
+
