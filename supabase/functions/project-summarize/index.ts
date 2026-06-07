@@ -21,8 +21,17 @@ const Body = z.object({
 const BRIEF_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["situation", "key_topics", "decisions", "risks", "next_move"],
+  required: ["overall_summary", "situation", "key_topics", "decisions", "risks", "next_move"],
   properties: {
+    overall_summary: {
+      type: "object",
+      additionalProperties: false,
+      required: ["text", "citations"],
+      properties: {
+        text: { type: "string", maxLength: 900 },
+        citations: { type: "array", items: { type: "string" }, maxItems: 8 },
+      },
+    },
     situation: {
       type: "object",
       additionalProperties: false,
@@ -211,14 +220,15 @@ Deno.serve(async (req: Request) => {
     lines.push(`\nINSTRUCTIONS:`);
     lines.push(`- You are writing as an operations coordinator who has read every attached item.`);
     lines.push(`- Summarize SITUATIONS, not objects. Never enumerate captures one by one.`);
-    lines.push(`- "situation.text" is one plain-English paragraph (3–6 sentences) describing what is actually going on across all items together, as one coherent picture. No bullet lists, no headings.`);
+    lines.push(`- "overall_summary.text" comes FIRST. One coherent paragraph (3–6 sentences) explaining what ALL attached material means together — the big picture. Synthesis voice: "X is currently in a Y phase. The main work centers on…". Cite at least 3 distinct ref keys spanning ≥2 item kinds when material allows. Never list items one-by-one. Never name how many notes/files/etc. exist.`);
+    lines.push(`- "situation.text" is one plain-English paragraph (3–6 sentences) describing what is actually going on right now across all items, as one coherent picture. No bullet lists, no headings. Do not repeat overall_summary verbatim — situation is current state, overall_summary is the meaning.`);
     lines.push(`- "key_topics.themes" groups related items into 2–6 themes. Title is short (e.g. "Booking & Payments", "Calendar & Availability"). Summary is 1–2 sentences explaining the theme. A theme should cover ≥2 items unless one item is clearly its own topic.`);
     lines.push(`- "decisions.bullets" lists things that sound settled or established as requirements. State them as facts (e.g. "Bookings default to a 20% deposit."). Omit if nothing qualifies.`);
     lines.push(`- "risks.bullets" lists real unresolved questions, ambiguity, or things flagged for review. Include open findings here, but do NOT mention "Sherlock", "findings", "signals", or any internal tooling by name — just describe the question.`);
     lines.push(`- "next_move.text" is one concrete operational next step grounded in the material.`);
-    lines.push(`- Cite sources on every theme, bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
-    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic.`);
-    lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system". Say what is happening instead.`);
+    lines.push(`- Cite sources on overall_summary, every theme, every bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
+    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic. Preferred phrasings: "Vanta noticed…", "Several items point to…", "The main pattern is…".`);
+    lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system", "Sherlock", "the system detected", "based on the data", "we have N notes". Say what is happening instead.`);
     lines.push(`- ${tone === "operator" ? "Slightly terser, scannable phrasing." : "Warm, plain English. Mention people by name when they appear."}`);
 
     const push = (kind: string, id: string, label: string, body: string) => {
