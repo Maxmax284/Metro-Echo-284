@@ -229,7 +229,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
             onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
           <MemoryPulseCard onOpen={() => onNavigate("memory")} />
           {isOwner && (
-            <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("audit")} />
+            <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("receipts")} />
           )}
         </div>
 
