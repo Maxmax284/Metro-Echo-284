@@ -27,6 +27,7 @@ import {
 import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles, Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 
 export default function ProjectBriefPage() {
   const { user, loading: authLoading } = useAuth();
@@ -40,6 +41,8 @@ export default function ProjectBriefPage() {
   const [savingSummary, setSavingSummary] = useState(false);
   const [busy, setBusy] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [tone, setTone] = useState<"operator" | "narrative">("narrative");
+  const [structured, setStructured] = useState<StructuredBrief | null>(null);
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
 
   useEffect(() => {
@@ -67,6 +70,11 @@ export default function ProjectBriefPage() {
         if (cancelled) return;
         setProject(p);
         setSummaryDraft(p?.summary ?? "");
+        const bs = (p as any)?.brief_structured;
+        if (bs && typeof bs === "object" && bs.blocks) {
+          setStructured(bs as StructuredBrief);
+          if (bs.tone === "operator" || bs.tone === "narrative") setTone(bs.tone);
+        }
         setItems(its);
         const r = await resolveProjectItems(its);
         if (!cancelled) setResolved(r);
@@ -152,16 +160,19 @@ export default function ProjectBriefPage() {
     setSummarizing(true);
     try {
       const { data, error } = await supabase.functions.invoke("project-summarize", {
-        body: { project_id: project.id },
+        body: { project_id: project.id, tone },
       });
       if (error) throw error;
-      const text = (data as any)?.summary ?? "";
-      if (!text) {
+      const payload = data as any;
+      if (payload?.empty) {
         toast.message("Nothing to summarize yet — attach a few items first.");
         return;
       }
-      setSummaryDraft(text);
-      toast.success("Draft ready — review and Save to commit.");
+      if (payload?.structured) {
+        setStructured(payload.structured as StructuredBrief);
+      }
+      if (payload?.summary) setSummaryDraft(payload.summary);
+      toast.success("Living brief refreshed.");
     } catch (err) {
       console.error("[brief] summarize failed", err);
       toast.error("Couldn't summarize right now.");
@@ -232,38 +243,76 @@ export default function ProjectBriefPage() {
         </DropdownMenu>
       </header>
 
-      {/* Living summary */}
-      <section className="mb-6 rounded-2xl border border-border/60 bg-surface-elevated p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
+      {/* Living brief */}
+      <section className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Living brief</h2>
           <div className="flex items-center gap-2">
+            <div className="inline-flex overflow-hidden rounded-md border border-border/60 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setTone("narrative")}
+                className={`px-2 py-1 transition-colors ${tone === "narrative" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                aria-pressed={tone === "narrative"}
+              >
+                Narrative
+              </button>
+              <button
+                type="button"
+                onClick={() => setTone("operator")}
+                className={`px-2 py-1 transition-colors ${tone === "operator" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                aria-pressed={tone === "operator"}
+              >
+                Operator
+              </button>
+            </div>
             <Button
               size="sm"
               variant="outline"
               onClick={handleSummarize}
               disabled={summarizing || items.length === 0}
-              aria-label="Summarize attached items into a draft brief"
+              aria-label="Regenerate structured Living Brief"
             >
               {summarizing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Summarize</>
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Refresh" : "Summarize"}</>
               )}
             </Button>
-            {summaryDraft !== project.summary && (
-              <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
-                {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
-              </Button>
-            )}
           </div>
         </div>
-        <Textarea
-          value={summaryDraft}
-          onChange={(e) => setSummaryDraft(e.target.value)}
-          placeholder="Write the brief in your own words — or tap Summarize to draft one from the attached items. You can always edit before saving."
-          rows={5}
-          className="resize-none border-0 bg-transparent px-0 focus-visible:ring-0"
-        />
+
+        {structured ? (
+          <LivingBriefBlocks brief={structured} />
+        ) : (
+          <p className="text-[12.5px] text-muted-foreground">
+            {items.length === 0
+              ? "Attach a few captures, notes, or files, then tap Summarize."
+              : "Tap Summarize to draft a structured Living Brief with citations back to every source."}
+          </p>
+        )}
+
+        <details className="group">
+          <summary className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80 hover:text-foreground">
+            Your own words {summaryDraft !== project.summary && <span className="ml-1 text-primary">· unsaved</span>}
+          </summary>
+          <div className="mt-2 space-y-2">
+            <Textarea
+              value={summaryDraft}
+              onChange={(e) => setSummaryDraft(e.target.value)}
+              placeholder="Optional — write the brief in your own voice. Saved alongside the structured one."
+              rows={4}
+              className="resize-none"
+            />
+            {summaryDraft !== project.summary && (
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
+                  {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </details>
       </section>
 
       {/* Sections */}
@@ -305,7 +354,7 @@ export default function ProjectBriefPage() {
               .map((c) => {
                 const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={`c-${c.id}`} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
+                  <ItemCard key={`c-${c.id}`} domId={sourceCardId("commitment", c.id)} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">Commitment</Badge>
                       <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
@@ -324,7 +373,7 @@ export default function ProjectBriefPage() {
               .map((a) => {
                 const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
                 return (
-                  <ItemCard key={`a-${a.id}`} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
+                  <ItemCard key={`a-${a.id}`} domId={sourceCardId("action", a.id)} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">Action</Badge>
                       <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
@@ -342,7 +391,7 @@ export default function ProjectBriefPage() {
             {resolved.findings.map((s) => {
               const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
               return (
-                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
+                <ItemCard key={s.id} domId={sourceCardId("finding", s.id)} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
                   <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
                   {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
                   <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
@@ -355,7 +404,7 @@ export default function ProjectBriefPage() {
             {resolved.notes.map((n) => {
               const row = items.find((i) => i.item_type === "note" && i.item_id === n.id)!;
               return (
-                <ItemCard key={n.id} onDetach={() => handleDetach(row.id)} timestamp={n.updated_at}>
+                <ItemCard key={n.id} domId={sourceCardId("note", n.id)} onDetach={() => handleDetach(row.id)} timestamp={n.updated_at}>
                   {n.title && <h3 className="mb-1 text-sm font-medium">{n.title}</h3>}
                   <p className="whitespace-pre-wrap text-sm text-foreground/90">{n.body || <span className="opacity-50">(empty)</span>}</p>
                 </ItemCard>
@@ -367,7 +416,7 @@ export default function ProjectBriefPage() {
             {resolved.files.map((f) => {
               const row = items.find((i) => i.item_type === "file" && i.item_id === f.id)!;
               return (
-                <ItemCard key={f.id} onDetach={() => handleDetach(row.id)} timestamp={f.created_at}>
+                <ItemCard key={f.id} domId={sourceCardId("file", f.id)} onDetach={() => handleDetach(row.id)} timestamp={f.created_at}>
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{f.filename}</span>
@@ -387,7 +436,7 @@ export default function ProjectBriefPage() {
               .map((c) => {
                 const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
+                  <ItemCard key={c.id} domId={sourceCardId("capture", c.id)} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
                     <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
                   </ItemCard>
                 );
@@ -487,14 +536,15 @@ function Section({
 }
 
 function ItemCard({
-  children, onDetach, timestamp,
+  children, onDetach, timestamp, domId,
 }: {
   children: React.ReactNode;
   onDetach: () => void;
   timestamp?: string;
+  domId?: string;
 }) {
   return (
-    <div className="group relative rounded-xl border border-border/60 bg-surface-elevated p-3">
+    <div id={domId} className="group relative scroll-mt-24 rounded-xl border border-border/60 bg-surface-elevated p-3 transition-shadow">
       <div>{children}</div>
       <div className="mt-2 flex items-center justify-between">
         {timestamp ? (
