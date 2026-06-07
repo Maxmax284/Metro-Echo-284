@@ -50,8 +50,9 @@ export type Brief = {
   grounding: Record<string, unknown>;
   signals_hash: string;
   format: BriefFormat;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
+  project_id?: string | null;
   generated_at: string;
 };
 
@@ -60,8 +61,9 @@ export type BriefExportRow = {
   user_id: string;
   organization_id: string | null;
   entity_id: string | null;
+  project_id: string | null;
   format: BriefFormat;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   title: string;
   subtitle: string | null;
   brief: Brief;
@@ -92,8 +94,9 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
 
 export type ComposeBriefInput = {
   format: BriefFormat;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
+  project_id?: string | null;
   range_days?: number;
 };
 
@@ -195,6 +198,7 @@ export async function approveAndExportBrief(args: {
 
 export async function listBriefExports(args: {
   entity_id?: string | null;
+  project_id?: string | null;
   limit?: number;
 }): Promise<BriefExportRow[]> {
   let q = supabase
@@ -203,6 +207,7 @@ export async function listBriefExports(args: {
     .order("created_at", { ascending: false })
     .limit(args.limit ?? 20);
   if (args.entity_id) q = q.eq("entity_id", args.entity_id);
+  if (args.project_id) q = q.eq("project_id", args.project_id);
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as BriefExportRow[];

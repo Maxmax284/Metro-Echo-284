@@ -260,7 +260,6 @@ function IndexInner() {
           {surface === "actions" && <ActionsSurface />}
           {surface === "sherlock" && <SherlockSurface />}
           {surface === "awareness" && <AwarenessSurface />}
-          {surface === "audit" && <AuditSurface />}
         </main>
       </div>
 

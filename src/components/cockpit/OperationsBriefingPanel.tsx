@@ -568,7 +568,7 @@ function labelForSurface(s: SurfaceKey): string {
     case "sherlock": return "Sherlock";
     case "memory": return "Memory";
     case "schedule": return "Schedule";
-    case "audit": return "Audit";
+    case "receipts": return "Receipts";
     case "awareness": return "Awareness";
     case "conversation": return "Conversation";
     case "command":
