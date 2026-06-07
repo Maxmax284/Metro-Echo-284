@@ -125,6 +125,31 @@ async function buildSystemSnapshot(supabase: any, uid: string, range_days: numbe
   };
 }
 
+async function buildProjectSnapshot(supabase: any, project_id: string) {
+  const [{ data: project }, { data: items }, { data: recentAudit }, { data: lastExports }] = await Promise.all([
+    supabase.from("projects").select("id,title,summary,status,brief_structured,updated_at").eq("id", project_id).maybeSingle(),
+    supabase.from("project_items").select("item_type,item_id").eq("project_id", project_id),
+    supabase.from("audit_log").select("id,event,created_at,payload").eq("entity_type","project").eq("entity_id",project_id).order("created_at",{ascending:false}).limit(25),
+    supabase.from("brief_exports").select("id,title,created_at,storage_path").eq("project_id",project_id).order("created_at",{ascending:false}).limit(3),
+  ]);
+  const byType: Record<string,string[]> = { capture:[], note:[], file:[], finding:[], commitment:[], action:[] };
+  for (const it of items ?? []) byType[(it as any).item_type]?.push((it as any).item_id);
+  const [notes, captures, files, findings, commitments, actions] = await Promise.all([
+    byType.note.length ? supabase.from("notes").select("id,title,body,updated_at").in("id", byType.note) : Promise.resolve({ data: [] }),
+    byType.capture.length ? supabase.from("messages").select("id,content,created_at").in("id", byType.capture) : Promise.resolve({ data: [] }),
+    byType.file.length ? supabase.from("ingested_files").select("id,filename,created_at").in("id", byType.file) : Promise.resolve({ data: [] }),
+    byType.finding.length ? supabase.from("sherlock_findings").select("id,finding_type,summary,status").in("id", byType.finding) : Promise.resolve({ data: [] }),
+    byType.commitment.length ? supabase.from("commitments").select("id,summary,status,due_at").in("id", byType.commitment) : Promise.resolve({ data: [] }),
+    byType.action.length ? supabase.from("actions").select("id,title,status,risk").in("id", byType.action) : Promise.resolve({ data: [] }),
+  ]);
+  return {
+    project, structured: project?.brief_structured ?? null,
+    notes: notes.data ?? [], captures: captures.data ?? [], files: files.data ?? [],
+    findings: findings.data ?? [], commitments: commitments.data ?? [], actions: actions.data ?? [],
+    recent_audit: recentAudit ?? [], prior_exports: lastExports ?? [],
+  };
+}
+
 function fallbackBrief(_format: Format, snapshot: any, scope_label: string): Section[] {
   const counts = snapshot?.counts ?? {};
   const overview = scope_label
