@@ -267,11 +267,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
       <ProjectInbox
         project={project}
         attached={items}
-        onAttached={async () => {
-          const next = await listProjectItems(project.id);
-          setItems(next);
-          setResolved(await resolveProjectItems(next));
-        }}
+        onAttached={refreshAttached}
+      />
+
+      <AddToProjectComposer
+        project={project}
+        attached={items}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAttached={refreshAttached}
       />
 
       {/* Living brief */}
