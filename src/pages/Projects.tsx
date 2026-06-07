@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { useActiveOrgId } from "@/providers/WorkspaceProvider";
+import { useWorkspace, useActiveOrgId } from "@/providers/WorkspaceProvider";
 import {
   Project,
+  attachToProject,
   createProject,
   listProjects,
 } from "@/lib/projects";
@@ -13,14 +14,20 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Pin, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Loader2, Pin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { SeedItemsPicker } from "@/components/projects/SeedItemsPicker";
+import type { SuggestedItem } from "@/lib/projectSuggestions";
 
 export default function ProjectsPage() {
   const { user, loading: authLoading } = useAuth();
   const orgId = useActiveOrgId();
+  const { memberships } = useWorkspace();
   const navigate = useNavigate();
 
   const [projects, setProjects] = useState<Project[] | null>(null);
@@ -28,6 +35,9 @@ export default function ProjectsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [seedOrgId, setSeedOrgId] = useState<string | null>(orgId);
+  const [seeds, setSeeds] = useState<Map<string, SuggestedItem>>(new Map());
 
   useEffect(() => {
     if (!user) return;
@@ -47,6 +57,24 @@ export default function ProjectsPage() {
     return () => { cancelled = true; };
   }, [user, orgId]);
 
+  // Reset composer state whenever it opens, and align scope with the active scope.
+  useEffect(() => {
+    if (open) {
+      setTitle("");
+      setSummary("");
+      setSummaryOpen(false);
+      setSeeds(new Map());
+      setSeedOrgId(orgId);
+    }
+  }, [open, orgId]);
+
+  const scopeOptions = useMemo(() => {
+    return [
+      { value: "__personal__", label: "Personal" },
+      ...memberships.map((m) => ({ value: m.organization_id, label: m.name })),
+    ];
+  }, [memberships]);
+
   if (authLoading) return <FullScreenLoader />;
   if (!user) return <Navigate to="/auth" replace />;
 
@@ -61,10 +89,25 @@ export default function ProjectsPage() {
       const p = await createProject({
         title,
         summary,
-        scope: { userId: user.id, organizationId: orgId },
+        scope: { userId: user.id, organizationId: seedOrgId },
       });
+      // Attach any seeded items so the project opens already populated.
+      const items = Array.from(seeds.values()).map((s) => ({
+        type: s.type,
+        id: s.id,
+      }));
+      if (items.length > 0) {
+        try {
+          await attachToProject({ projectId: p.id, userId: user.id, items });
+        } catch (err) {
+          console.error("[projects] seed attach failed", err);
+          toast.warning("Project created, but some items couldn't attach");
+        }
+      }
       setOpen(false);
-      setTitle(""); setSummary("");
+      if (items.length > 0) {
+        toast.success(`Project created with ${items.length} item${items.length === 1 ? "" : "s"}`);
+      }
       navigate(`/projects/${p.id}`);
     } catch (err) {
       console.error("[projects] create failed", err);
@@ -73,6 +116,18 @@ export default function ProjectsPage() {
       setCreating(false);
     }
   }
+
+  function toggleSeed(item: SuggestedItem) {
+    const key = `${item.type}:${item.id}`;
+    setSeeds((cur) => {
+      const next = new Map(cur);
+      if (next.has(key)) next.delete(key);
+      else next.set(key, item);
+      return next;
+    });
+  }
+
+  const seedCount = seeds.size;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
@@ -92,11 +147,12 @@ export default function ProjectsPage() {
               <Plus className="h-4 w-4" /> New
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>New project</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Title */}
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">Title</label>
                 <Input
@@ -106,22 +162,80 @@ export default function ProjectsPage() {
                   autoFocus
                 />
               </div>
+
+              {/* Scope */}
               <div>
-                <label className="mb-1 block text-xs text-muted-foreground">
-                  Summary <span className="opacity-60">(optional — what is this about?)</span>
-                </label>
-                <Textarea
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  placeholder="The running brief in your own words. You can edit this any time."
-                  rows={3}
+                <label className="mb-1 block text-xs text-muted-foreground">Scope</label>
+                <Select
+                  value={seedOrgId ?? "__personal__"}
+                  onValueChange={(v) => {
+                    setSeedOrgId(v === "__personal__" ? null : v);
+                    setSeeds(new Map()); // scope change invalidates seed selection
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scopeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Suggestions and recent captures are pulled from this scope only.
+                </p>
+              </div>
+
+              {/* Summary — collapsed by default */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setSummaryOpen((v) => !v)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {summaryOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  Summary <span className="opacity-60">(optional)</span>
+                </button>
+                {summaryOpen && (
+                  <Textarea
+                    className="mt-1"
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="The running brief in your own words. You can edit this any time."
+                    rows={3}
+                  />
+                )}
+              </div>
+
+              {/* Seed with… */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs font-medium">Seed with…</span>
+                  {seedCount > 0 && (
+                    <Badge variant="outline" className="text-[10px]">{seedCount} selected</Badge>
+                  )}
+                </div>
+                <SeedItemsPicker
+                  userId={user.id}
+                  organizationId={seedOrgId}
+                  title={title}
+                  summary={summary}
+                  selected={new Set(seeds.keys())}
+                  onToggle={toggleSeed}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate} disabled={creating}>
-                {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+                {creating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : seedCount > 0 ? (
+                  `Create with ${seedCount} item${seedCount === 1 ? "" : "s"}`
+                ) : (
+                  "Create"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
