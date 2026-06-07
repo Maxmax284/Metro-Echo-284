@@ -252,6 +252,9 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
     return m;
   }, [claims]);
 
+  const audience = (brief as any).audience ?? (brief.grounding as any)?.audience ?? null;
+  const template = templateFor(audience);
+
   const [drawer, setDrawer] = useState<{
     refs: BriefGrounding[]; label?: string; highlightKey?: string;
   } | null>(null);
@@ -260,12 +263,23 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
 
   return (
     <>
-      <Card className="space-y-4 border-border/60 bg-surface-elevated/60 p-4">
-        <header className="space-y-1 border-b border-border/40 pb-3">
+      <Card className={cn("space-y-4 p-4", template.preview.cardClass)}>
+        <div className={cn("flex items-center justify-between gap-2 -mb-1")}>
+          <span className={cn(
+            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+            template.preview.accentBgClass, template.preview.accentClass, "border-current/30",
+          )}>
+            {template.label}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {template.tagline}
+          </span>
+        </div>
+        <header className={cn("space-y-1 border-b pb-3", template.preview.headerClass)}>
           <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             {brief.format.replace("_", " ")} · {brief.scope_kind}
           </div>
-          <h2 className="text-[18px] font-semibold leading-tight text-foreground">{brief.title}</h2>
+          <h2 className={cn("leading-tight text-foreground", template.preview.titleClass)}>{brief.title}</h2>
           {brief.subtitle && (
             <p className="text-[12.5px] text-muted-foreground">{brief.subtitle}</p>
           )}
@@ -282,14 +296,16 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
           ))}
         </div>
 
-        <FootnoteAppendix footnotes={footnotes} openReceipts={openReceipts} />
+        {template.layout.footnotesAppendix && (
+          <FootnoteAppendix footnotes={footnotes} openReceipts={openReceipts} />
+        )}
 
-        {brief.appendix_receipts && brief.appendix_receipts.length > 0 && (
+        {brief.appendix_receipts && brief.appendix_receipts.length > 0 && template.layout.footnotesAppendix && (
           <div className="space-y-1.5 border-t border-border/40 pt-3">
             <button
               type="button"
               onClick={() => openReceipts({ refs: brief.appendix_receipts, label: "Receipt appendix" })}
-              className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+              className={cn("inline-flex items-center gap-1 text-[11px] hover:underline", template.preview.accentClass)}
             >
               <ScrollText className="h-3 w-3" /> Open all appendix receipts
             </button>
