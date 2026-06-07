@@ -260,15 +260,49 @@ Deno.serve(async (req: Request) => {
       push("action", a.id, a.title, `status: ${a.status}${a.risk ? `, ${a.risk} risk` : ""}`);
     }
 
+    // Background patterns — Sherlock signals + recent project activity + last briefs.
+    // Used by the model to detect repetition/contradictions/themes. Never surfaced by name.
+    const [sherlockCache, recentAudit, lastExports] = await Promise.all([
+      supabase.from("sherlock_findings_cache")
+        .select("finding_type,summary,confidence,created_at")
+        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(15),
+      supabase.from("audit_log")
+        .select("event,created_at,payload")
+        .eq("entity_type", "project").eq("entity_id", project_id)
+        .order("created_at", { ascending: false }).limit(25),
+      supabase.from("brief_exports")
+        .select("title,created_at,brief")
+        .eq("project_id", project_id)
+        .order("created_at", { ascending: false }).limit(2),
+    ]);
+    const bgLines: string[] = [];
+    for (const s of (sherlockCache.data ?? []) as any[]) {
+      bgLines.push(`pattern: ${s.finding_type ?? "signal"} — ${s.summary ?? ""}`);
+    }
+    for (const a of (recentAudit.data ?? []) as any[]) {
+      bgLines.push(`timeline: ${a.created_at?.slice(0, 19).replace("T", " ")} ${a.event}`);
+    }
+    for (const e of (lastExports.data ?? []) as any[]) {
+      const prev = e.brief?.grounding?.structured?.overall_summary?.text
+        ?? e.brief?.grounding?.structured?.situation?.text
+        ?? "";
+      if (prev) bgLines.push(`prior_brief (${e.created_at?.slice(0, 10)}): ${prev.slice(0, 280)}`);
+    }
+    if (bgLines.length) {
+      lines.push(`\nBACKGROUND PATTERNS (for your understanding only — do not name these sources, do not cite them):`);
+      lines.push(bgLines.join("\n"));
+    }
+
     lines.push(`\nREF KEYS AVAILABLE: ${refs.map((r) => r.ref).join(", ")}`);
 
     const sys = `${VANTA_CORE_VOICE}
 You write a Living Brief as an operations coordinator explaining a project in plain English.
-Output 6 sections: situation (paragraph), key_topics (themed groups), decisions, risks, next_move.
+Output 7 sections: overall_summary (paragraph — the big picture meaning), situation (paragraph — current state), key_topics (themed groups), decisions, risks, next_move.
+overall_summary comes first and explains what ALL the material means together. situation is current state.
 Summarize situations, not objects. Never list captures one by one. Group related items into themes.
-Every theme, bullet, and next_move MUST cite at least one ref key from the provided list (exactly as given).
+Every theme, bullet, overall_summary, and next_move MUST cite at least one ref key from the provided list (exactly as given).
 Never invent ref keys. If you cannot ground something, omit it.
-Never mention internal tooling ("Sherlock", "findings", "captures", "the database", "filed"). Describe what is happening.
+Never mention internal tooling ("Sherlock", "findings", "captures", "the database", "filed", "the system detected"). Describe what is happening.
 No markdown. No headings inside text fields.`;
 
 
@@ -378,6 +412,7 @@ No markdown. No headings inside text fields.`;
 
 function buildPlainText(s: any): string {
   const parts: string[] = [];
+  if (s?.overall_summary?.text) parts.push(`Overall: ${s.overall_summary.text}`);
   if (s?.situation?.text) parts.push(s.situation.text);
   if (s?.key_topics?.themes?.length) {
     parts.push(`\nKey topics:`);
