@@ -170,19 +170,21 @@ function fallbackBrief(_format: Format, snapshot: any, scope_label: string): Sec
   ];
 }
 
-async function aiCompose(format: Format, scope_label: string, snapshot: any): Promise<{
+async function aiCompose(format: Format, scope_label: string, snapshot: any, audience: Audience | null): Promise<{
   title: string; subtitle: string | null; sections: Section[];
 } | null> {
   if (!LOVABLE_KEY) return null;
   const sectionList = FORMAT_SECTIONS[format];
   const tone = FORMAT_TONE[format];
+  const audienceTone = audience ? AUDIENCE_TONE[audience] : "";
   const system = `You are Vanta's brief composer.
 
 Tone: ${tone}
-
+${audienceTone ? `\n${audienceTone}\n` : ""}
 Doctrine:
 - Never invent facts. Only describe what is present in the snapshot.
 - Plain English on top. No emojis. No exclamation marks.
+- Never name internal tooling ("Sherlock", "findings", "captures", "the database", "filed").
 - EVERY claim you make must be grounded in source ids from the snapshot.
 - For "list" and "timeline" items, return objects: { "text"/"what": "...", "receipts": [{ "kind": "audit"|"note"|"commitment"|"action"|"file"|"message"|"entity", "id": "<id from snapshot>" }] }.
 - For "prose" sections, return { "text": "...", "receipts": [...] }.
