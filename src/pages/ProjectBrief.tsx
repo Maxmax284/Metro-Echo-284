@@ -41,6 +41,8 @@ export default function ProjectBriefPage() {
   const [savingSummary, setSavingSummary] = useState(false);
   const [busy, setBusy] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
+  const [tone, setTone] = useState<"operator" | "narrative">("narrative");
+  const [structured, setStructured] = useState<StructuredBrief | null>(null);
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
 
   useEffect(() => {
