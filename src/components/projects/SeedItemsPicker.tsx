@@ -71,6 +71,15 @@ export function SeedItemsPicker({
 
   const hasTitle = useMemo(() => title.trim().length >= 3, [title]);
 
+  const filtered = useMemo(() => {
+    if (!data) return data;
+    if (!excludeKeys || excludeKeys.size === 0) return data;
+    return {
+      suggestions: data.suggestions.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+      recentCaptures: data.recentCaptures.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+    };
+  }, [data, excludeKeys]);
+
   return (
     <div className="space-y-3">
       {/* Suggestions */}
