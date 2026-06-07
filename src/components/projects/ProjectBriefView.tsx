@@ -35,6 +35,7 @@ import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/compone
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
 import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
+import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { useCanvas } from "@/components/entities/CanvasContext";
 
 export interface ProjectBriefViewProps {
@@ -57,6 +58,7 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [briefsRefreshKey, setBriefsRefreshKey] = useState(0);
+  const [exportOpen, setExportOpen] = useState(false);
   const { openCanvas } = useCanvas();
 
   async function refreshAttached() {
@@ -231,6 +233,16 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
           size="sm"
           variant="outline"
           className="gap-1.5"
+          onClick={() => setExportOpen(true)}
+          disabled={items.length === 0}
+          aria-label="Create export from this project"
+        >
+          <FileText className="h-4 w-4" /> Create export
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
           onClick={() => setAddOpen(true)}
         >
           <Plus className="h-4 w-4" /> Add
@@ -365,14 +377,25 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         </details>
       </section>
 
-      {/* Past briefs — every Summarize lands here as an exported brief */}
+      {/* Saved exports — every Summarize lands here as a draft, every approved export keeps its PDF */}
       <section className="mb-6 space-y-3 rounded-2xl border border-border/60 bg-surface-elevated p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Past briefs</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Saved exports</h2>
           <span className="text-[10.5px] text-muted-foreground/70">Also visible in Briefs and Receipts</span>
         </div>
         <BriefExportsList key={briefsRefreshKey} projectId={project.id} />
       </section>
+
+      <BriefComposerSheet
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        defaultScope="project"
+        projectId={project.id}
+        entityLabel={project.title}
+        defaultFormat="operator"
+        defaultAudience="internal_operator"
+      />
+
 
       {/* Sections */}
       {resolved === null ? (
