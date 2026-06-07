@@ -354,7 +354,7 @@ export default function ProjectBriefPage() {
               .map((c) => {
                 const row = items.find((i) => i.item_type === "commitment" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={`c-${c.id}`} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
+                  <ItemCard key={`c-${c.id}`} domId={sourceCardId("commitment", c.id)} onDetach={() => handleDetach(row.id)} timestamp={c.updated_at}>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">Commitment</Badge>
                       <Badge variant="outline" className="text-[10px] capitalize">{c.status}</Badge>
@@ -373,7 +373,7 @@ export default function ProjectBriefPage() {
               .map((a) => {
                 const row = items.find((i) => i.item_type === "action" && i.item_id === a.id)!;
                 return (
-                  <ItemCard key={`a-${a.id}`} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
+                  <ItemCard key={`a-${a.id}`} domId={sourceCardId("action", a.id)} onDetach={() => handleDetach(row.id)} timestamp={a.updated_at}>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[10px]">Action</Badge>
                       <Badge variant="outline" className="text-[10px] capitalize">{a.status}</Badge>
@@ -391,7 +391,7 @@ export default function ProjectBriefPage() {
             {resolved.findings.map((s) => {
               const row = items.find((i) => i.item_type === "finding" && i.item_id === s.id)!;
               return (
-                <ItemCard key={s.id} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
+                <ItemCard key={s.id} domId={sourceCardId("finding", s.id)} onDetach={() => handleDetach(row.id)} timestamp={s.created_at}>
                   <h3 className="text-sm font-medium">{s.title ?? "Finding"}</h3>
                   {s.summary && <p className="mt-1 text-sm text-muted-foreground">{s.summary}</p>}
                   <Badge variant="outline" className="mt-2 text-[10px] capitalize">{s.status}</Badge>
@@ -404,7 +404,7 @@ export default function ProjectBriefPage() {
             {resolved.notes.map((n) => {
               const row = items.find((i) => i.item_type === "note" && i.item_id === n.id)!;
               return (
-                <ItemCard key={n.id} onDetach={() => handleDetach(row.id)} timestamp={n.updated_at}>
+                <ItemCard key={n.id} domId={sourceCardId("note", n.id)} onDetach={() => handleDetach(row.id)} timestamp={n.updated_at}>
                   {n.title && <h3 className="mb-1 text-sm font-medium">{n.title}</h3>}
                   <p className="whitespace-pre-wrap text-sm text-foreground/90">{n.body || <span className="opacity-50">(empty)</span>}</p>
                 </ItemCard>
@@ -416,7 +416,7 @@ export default function ProjectBriefPage() {
             {resolved.files.map((f) => {
               const row = items.find((i) => i.item_type === "file" && i.item_id === f.id)!;
               return (
-                <ItemCard key={f.id} onDetach={() => handleDetach(row.id)} timestamp={f.created_at}>
+                <ItemCard key={f.id} domId={sourceCardId("file", f.id)} onDetach={() => handleDetach(row.id)} timestamp={f.created_at}>
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{f.filename}</span>
@@ -436,7 +436,7 @@ export default function ProjectBriefPage() {
               .map((c) => {
                 const row = items.find((i) => i.item_type === "capture" && i.item_id === c.id)!;
                 return (
-                  <ItemCard key={c.id} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
+                  <ItemCard key={c.id} domId={sourceCardId("capture", c.id)} onDetach={() => handleDetach(row.id)} timestamp={c.created_at}>
                     <p className="whitespace-pre-wrap text-sm">{c.transcript ?? "(no transcript)"}</p>
                   </ItemCard>
                 );
