@@ -53,6 +53,7 @@ export type Brief = {
   scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
   project_id?: string | null;
+  audience?: BriefAudience | null;
   generated_at: string;
 };
 
