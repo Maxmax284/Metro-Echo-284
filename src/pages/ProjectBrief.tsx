@@ -89,12 +89,12 @@ export default function ProjectBriefPage() {
     return () => { cancelled = true; };
   }, [id]);
 
+  const latest = useMemo(() => buildLatest(items, resolved), [items, resolved]);
+
   if (authLoading) return <Loading />;
   if (!user) return <Navigate to="/auth" replace />;
   if (project === undefined) return <Loading />;
   if (project === null) return <NotFoundPanel onBack={() => navigate("/projects")} />;
-
-  const latest = useMemo(() => buildLatest(items, resolved), [items, resolved]);
 
   async function handleSaveSummary() {
     if (!project || summaryDraft === project.summary) return;
