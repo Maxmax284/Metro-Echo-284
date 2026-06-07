@@ -1398,6 +1398,7 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          digest: Json | null
           embedding: string | null
           id: string
           metadata: Json | null
@@ -1410,6 +1411,7 @@ export type Database = {
           content?: string
           conversation_id: string
           created_at?: string
+          digest?: Json | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
@@ -1422,6 +1424,7 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          digest?: Json | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
@@ -1487,6 +1490,7 @@ export type Database = {
           autolink_suggestions: Json | null
           body: string
           created_at: string
+          digest: Json | null
           embedding: string | null
           id: string
           metadata: Json | null
@@ -1500,6 +1504,7 @@ export type Database = {
           autolink_suggestions?: Json | null
           body?: string
           created_at?: string
+          digest?: Json | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
@@ -1513,6 +1518,7 @@ export type Database = {
           autolink_suggestions?: Json | null
           body?: string
           created_at?: string
+          digest?: Json | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
@@ -1802,6 +1808,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          brief_structured: Json | null
           created_at: string
           id: string
           metadata: Json
@@ -1814,6 +1821,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          brief_structured?: Json | null
           created_at?: string
           id?: string
           metadata?: Json
@@ -1826,6 +1834,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          brief_structured?: Json | null
           created_at?: string
           id?: string
           metadata?: Json
