@@ -212,6 +212,14 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
             Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setAddOpen(true)}
+        >
+          <Plus className="h-4 w-4" /> Add
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" disabled={busy} aria-label="More">
