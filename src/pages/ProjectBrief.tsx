@@ -27,6 +27,7 @@ import {
 import { ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles, Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 
 export default function ProjectBriefPage() {
   const { user, loading: authLoading } = useAuth();
