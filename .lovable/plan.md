@@ -1,192 +1,145 @@
-# Vanta Architecture Audit — Plan
+# Slice 4 — Living Brief language & situation-summary overhaul
 
-You asked for the audit doc first. Below is the full audit, grounded in the actual codebase. On approval, I'll write it to `.lovable/architecture-audit.md` so it lives alongside `plan.md` and `phase*.md`. No code changes in this step — just the doc.
+No architecture changes. We're rewriting how the project Living Brief is generated, structured, and presented so it reads like an operations coordinator, not a record log. We're also clarifying the Past Briefs empty states.
 
-After approval we'll pick slices from the priority table at the bottom.
+## 1. New Living Brief shape
 
----
+Replace the current 5-block schema (`where_it_stands`, `what_moved`, `who_waiting`, `open_questions`, `next_move`) with a 6-section operational structure. Sources stay as citation chips, never as standalone bullets.
 
-## Deliverable
-
-**File:** `.lovable/architecture-audit.md` containing the audit below verbatim.
-
-No other files touched. No DB changes. No edge function changes.
-
----
-
-## Audit Content (goes into the doc)
-
-### 1. Routes (`src/App.tsx:48-58`)
+New `brief_structured.blocks`:
 
 
-| Path                   | Component                               | Place / View                                            |
-| ---------------------- | --------------------------------------- | ------------------------------------------------------- |
-| `/`                    | `Index` (surface-tab shell)             | Place — the primary destination                         |
-| `/projects`            | `ProjectsPage` → `ProjectsSurface`      | Place — also duplicated as a surface tab inside `/`     |
-| `/projects/:id`        | `ProjectBriefPage` → `ProjectBriefView` | Place — same component used inside the shell drill-down |
-| `/auth`, `/settings/*` | utility / control room                  | Place                                                   |
+| Section                        | Field                                                                 | Notes                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Situation                      | `situation.text` (string, ≤700 chars)                                 | Plain-English paragraph: what is going on across all attached items, written as one coherent picture, not a list of notes.     |
+| Key Topics                     | `key_topics.themes[]` → `{ title, summary, citations[] }` (≤6 themes) | Each theme groups related captures/notes/files/findings. Title is short (e.g. "Booking & Payments"). Summary is 1–2 sentences. |
+| Decisions / Known Requirements | `decisions.bullets[]` → `{ text, citations[] }` (≤6)                  | Only things that sound settled. Stated as facts, not "the user said".                                                          |
+| Risks / Questions              | `risks.bullets[]` → `{ text, citations[] }` (≤6)                      | Real unresolved items, including Sherlock findings folded in silently (don't name Sherlock in prose).                          |
+| Next Move                      | `next_move.text` + `next_move.citations[]`                            | One concrete operational step.                                                                                                 |
+| Sources                        | derived from `ref_index`                                              | Already exists; renderer keeps chips.                                                                                          |
 
 
-**Issue:** `/projects` and `/projects/:id` exist as both standalone routes and surface tabs. Two entry paths, slightly different chrome.
+`version` bumps to `2`. Renderer keeps backwards compat: if `version !== 2` or new sections are missing but old `where_it_stands` etc. exist, fall back to the old layout so existing briefs still render until re-summarized.
 
-### 2. Surfaces (`src/components/surfaces/`, `src/pages/Index.tsx`)
+## 2. Edge function: `supabase/functions/project-summarize/index.ts`
 
-Primary 5-tab nav: `command` (Cockpit) · `inbox` · `projects` · `briefs` · `receipts`.
+- Replace `BRIEF_SCHEMA` with the v2 schema above (strict JSON schema, `additionalProperties: false`).
+- Rewrite the prompt:
+  - Voice rules: plain English, operational, calm, useful. Banned phrases list: "filed", "notes have been captured", "items have been formally recorded", "database", "record".
+  - Summarize **situations, not objects**. Do not enumerate captures; synthesize them.
+  - Group related items into 2–6 themes before writing. A theme must cover ≥2 items unless a single item is clearly its own topic.
+  - Pull "Decisions" only from items that read as settled (decision-intent digests, explicit statements).
+  - Pull "Risks / Questions" from open questions, ambiguity in captures, and Sherlock findings with `status` open — but never mention Sherlock by name in prose.
+  - "Next Move" is one concrete action grounded in the material.
+  - Citations are required on every theme/bullet/next-move using the same `kind:id8` ref keys we already generate.
+- Keep the existing lazy-digest pass and ref-building pipeline (no architecture change).
+- Update `buildPlainText(structured)` to render the new sections in order: Situation paragraph, Key Topics (theme: summary), Decisions, Risks / Questions, Next Move. This feeds the `projects.summary` textarea and any non-rich consumers.
+- `brief_exports` insert is unchanged in shape, but `brief.grounding.structured` now carries v2.
 
-Overflow surfaces still mounted: `schedule`, `conversation`, `memory`, `commitments`, `actions`, `sherlock`, `awareness`, `audit`.
+## 3. Renderer: `src/components/projects/LivingBriefBlocks.tsx`
 
-**Duplicate keys:** `receipts` and `audit` both render `AuditSurface` (`Index.tsx:255` and `:263`). Same component, two tabs.
+- Extend `StructuredBrief.blocks` type with the new sections; keep old fields optional for back-compat.
+- Add render blocks in order: Situation (paragraph, no bullet dot), Key Topics (each theme as a small grouped block: bold title, summary line, citation chips inline), Decisions, Risks / Questions, Next Move.
+- Reuse `CitationChips` and `jumpTo` exactly as today.
+- If `blocks.situation` is missing but legacy `where_it_stands` exists, render legacy layout (one fallback path, no duplication).
+- Drop the trailing "Tap any chip to jump to the source" microcopy line into a single muted footer; keep the tone badge.
 
-### 3. Hidden / orphaned surfaces
+## 4. Past Briefs empty state — `src/components/briefs/BriefExportsList.tsx`
 
-- `SherlockSurface` — duplicates the global `SherlockOverlay` (always mounted in `App.tsx:61`).
-- `ConversationSurface` — duplicates `CompanionWidget` (always-on dock).
-- `ScheduleSurface` — already embedded in Cockpit via `DailyBriefingCard` + `ScheduleQueryChips`.
-- `AwarenessSurface` — already surfaced in Cockpit via `AwareCockpitCard`.
-- `CommitmentsSurface` / `ActionsSurface` — already shown inside `ProjectBriefView` "Needs me".
-- `tutorial/SystemMap.tsx`, `tutorial/FollowOneNoteDemo.tsx` — only reachable from `FirstRunWalkthrough`.
+Currently every Summarize writes a `brief_exports` row with `status="exported"` and `storage_path=null`. We'll treat presence of `storage_path` as the signal for "real PDF export":
 
-### 4. Duplicate workflows
+- Split rows into `pdfRows = rows.filter(r => r.storage_path)` and `draftRows = rows.filter(r => !r.storage_path)`.
+- Render logic:
+  - `pdfRows.length > 0` → render `pdfRows` as today (the list).
+  - else if `draftRows.length > 0` → show: **"Living Brief updated. No PDF exports yet."** (muted, single line, no CTA box).
+  - else → show: **"No exported briefs yet. Draft summaries stay in the Living Brief until you approve an export."**
+- Keep loading state as-is.
+- This only affects the project-scoped usage; entity-scoped usage shows the same logic and reads correctly because entity briefs that are real exports always have a `storage_path`.
 
-**Attach to project — 4 mechanisms:**
+## 5. Out of scope
 
-- `AttachToProjectMenu` (per-row popover)
-- `BulkAttachToProjectMenu` (multi-select popover, ~90% same code)
-- `AddToProjectComposer` (in-project dialog)
-- `ProjectInbox` (AI-suggested, one-tap)
+- No DB schema changes.
+- No changes to Sherlock surfaces, attach flows, canvas, or routes.
+- No changes to PDF export pipeline.
+- No changes to `vantaVoice.ts` beyond what Slice 3 already shipped.
 
-**Linking — 2 separate graphs:**
+## Files touched
 
-- `cross_links` table via `src/lib/crossLinks.ts` (item↔item)
-- `entity_relations` + `entity_links` via `src/lib/entityGraph.ts` (entity↔entity)
-- Canvas drag-to-relate writes only to `entity_relations` (`CommandCanvas.tsx:193-233`).
+- `supabase/functions/project-summarize/index.ts` — new schema, new prompt, new plain-text builder.
+- `src/components/projects/LivingBriefBlocks.tsx` — new sections + legacy fallback.
+- `src/components/briefs/BriefExportsList.tsx` — split PDF vs draft empty states.
 
-**Capture / Memory — same data, two surfaces:**
+## Acceptance
 
-- `InboxSurface` and `MemorySurface` both mount `CapturesView` and `MemoryFilesView`, each independently fetching the same rows.
+- Re-summarize a Ground Stay-style project: brief opens with a Situation paragraph that reads as one operational picture, followed by 2–6 themed groups, settled decisions, open risks/questions, and one Next Move. No "notes have been captured" / "filed" phrasing.
+- Citation chips still jump to source cards.
+- Project with summaries but no PDF exports shows "Living Brief updated. No PDF exports yet." Project with neither shows the "No exported briefs yet…" copy. Project with PDFs shows the list.
+- Existing pre-v2 briefs still render via the legacy path until the user taps Summarize again.
 
-### 5. Living Brief & Sherlock language
-
-Block names are clean: *Where it stands · What moved · Who's waiting · Open questions · Next move* (`LivingBriefBlocks.tsx:93-131`).
-
-Sherlock voice is consistently forensic and non-executing (`vantaVoice.ts:253-285`).
-
-**Database-y phrases to swap** (`src/lib/vantaVoice.ts`):
-
-- Line 28: `"Noted. \"${title}\" is filed."` → `"Noted. \"${title}\" is in."`
-- Line 88: `"Filed away."` → `"Tucked away."`
-- Line 207: `"Route recorded."` → `"Logged where it came in."`
-
-Minor: `ProjectBriefView.tsx:358-362` uses "attached"/"filing" framing in the empty state — acceptable but could be more operational.
-
-### 6. Export & Receipts — disconnected pipelines
-
-- `brief_exports` has no `project_id`, only `entity_id` (`src/lib/briefs.ts:62`).
-- Project Living Briefs are written to `projects.brief_structured` by `project-summarize` and never create a `brief_exports` row.
-- **Result:** the Receipts/Briefs tab shows zero history for project briefs. A user generating 20 project briefs sees nothing in Briefs.
-
-Trace:
-
-```
-ProjectBriefView → project-summarize → projects.brief_structured + audit_log("project.summarized")
-BriefComposerSheet → compose-brief → brief_exports (+ PDF in storage)
-```
-
-Two pipelines, no cross-reference.
-
-### 7. OpenCanvas
-
-`CommandCanvas` (`src/components/entities/CommandCanvas.tsx`) hosts Cards / Timeline / Flow / Board / Graph. All views are **entity-scoped via `openCanvasSeed.seedEntityId**`.
-
-Projects are not entities. There is no path to "open canvas for this project". No "Open canvas" button exists in `ProjectBriefView`. Canvas can't fulfil the doctrine line "OpenCanvas visualizes the project" today.
-
----
-
-## Priority Table (for slicing next)
-
-
-| #   | Severity | Finding                                                      | Fix shape                                                                                                |
-| --- | -------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| 1   | 🔴       | `receipts` and `audit` are the same component under two keys | Remove `audit` surface key; keep `receipts`                                                              |
-| 2   | 🔴       | Project briefs don't appear in Briefs/Receipts               | Add `project_id` to `brief_exports`; write a row on every `project-summarize`                            |
-| 3   | 🔴       | No project history on the project page                       | Render a "Past briefs" list inside `ProjectBriefView` once #2 lands                                      |
-| 4   | 🟠       | 3 near-duplicate attach popovers                             | Merge `AttachToProjectMenu` + `BulkAttachToProjectMenu` into one parameterized component                 |
-| 5   | 🟠       | `InboxSurface` and `MemorySurface` overlap                   | Define the split: Inbox = pre-organized landing, Memory = search/retrospective. Remove duplicated mounts |
-| 6   | 🟠       | Canvas has no project scope                                  | Add `seedProjectId` path through `CanvasContext` and an "Open canvas" button in `ProjectBriefView`       |
-| 7   | 🟡       | Two link graphs (`cross_links` vs `entity_relations`)        | Document the split deliberately or plan a merge                                                          |
-| 8   | 🟡       | `ConversationSurface` overflow duplicates `CompanionWidget`  | Remove overflow tab                                                                                      |
-| 9   | 🟡       | `SherlockSurface` overflow duplicates `SherlockOverlay`      | Remove overflow tab                                                                                      |
-| 10  | 🟡       | `"filed"` / `"Filed away"` / `"Route recorded"` in vantaSay  | Replace with operational equivalents                                                                     |
-| 11  | 🟢       | Block names + Sherlock voice                                 | No change                                                                                                |
-
-
----
-
-## Next step
-
-Approve this plan → I write `.lovable/architecture-audit.md`. Then we pick which row(s) from the priority table become Slice 3.  
-  
-  
 Approved.
 
-Write `.lovable/architecture-audit.md` exactly as drafted.
+Proceed with Slice 4 exactly as planned.
 
-No code changes yet.
+No architecture changes.
 
-No DB changes yet.
+No schema changes.
 
-No edge function changes yet.
+No route changes.
 
-After the audit doc is written, proceed to planning Slice 3 from the priority table.
+No Canvas changes.
 
-For Slice 3, prioritize these in order:
+No attach-flow changes.
 
-1. Fix duplicate Receipts/Audit surface
+Focus only on:
 
-   - Keep Receipts.
+1. Rewriting project-summarize around the new v2 Living Brief structure.
 
-   - Remove/demote Audit as a separate surface key.
+2. Updating LivingBriefBlocks to render the new operational sections.
 
-   - Same component should not appear under two names.
+3. Keeping backwards compatibility for old briefs.
 
-2. Fix project briefs not appearing in Briefs/Receipts
+4. Fixing Past Briefs empty states so draft summaries and real PDF exports are clearly different.
 
-   - Add project history visibility.
+The new Living Brief structure is approved:
 
-   - Project summaries/briefs must show up in the same saved brief/export history as other generated briefs.
+- Situation
 
-   - User should not generate a project brief and then lose track of it.
+- Key Topics
 
-3. Add Past Briefs / Saved Briefs inside ProjectBriefView
+- Decisions / Known Requirements
 
-   - A project should show its own generated summaries and exports.
+- Risks / Questions
 
-   - This is critical for trust and continuity.
+- Next Move
 
-4. Add project-scoped OpenCanvas access
+- Sources
 
-   - Add “Open Canvas” inside ProjectBriefView.
+The most important rule:
 
-   - Canvas should open for the current project, not just entity scope.
+Summarize situations, not objects.
 
-   - OpenCanvas becomes the project whiteboard.
+Do not say:
 
-5. Then clean language in vantaVoice
+“Notes have been captured.”
 
-   - Replace “filed” / “filed away” / “route recorded” with more human operational language.
+“Items have been filed.”
 
-Do not start with attach menu refactors yet.
+“Records were created.”
 
-Do not start with link graph cleanup yet.
+Say what is actually happening.
 
-Do not start with Memory vs Inbox split yet.
+Example target voice:
 
-Reason:
+“Ground Stay is currently focused on booking and availability cleanup. The main work is around calendar visibility, booking fee controls, unit availability, and making sure confirmed deposits properly turn into bookings.”
 
-The biggest current problem is continuity.
+Citations should stay, but they should support the writing — not dominate it.
 
-If a user summarizes a project, exports a brief, or opens a project, the history needs to live where the user expects it:
+Proceed with the three touched files only:
 
-inside the project, inside Briefs, and inside Receipts.
+- `supabase/functions/project-summarize/index.ts`
 
-That comes before code cleanup.
+- `src/components/projects/LivingBriefBlocks.tsx`
+
+- `src/components/briefs/BriefExportsList.tsx`
+
+After implementation, test with the Ground Stay project and confirm the summary reads like an operations coordinator, not a database receipt.
