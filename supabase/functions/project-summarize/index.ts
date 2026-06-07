@@ -285,6 +285,45 @@ Keep bullets short and concrete. No headings inside bullets. No markdown.`;
     // Plain-text fallback for the existing summary textarea / external surfaces.
     const summary = buildPlainText(structured);
 
+    // Mirror this Living Brief into brief_exports so it shows up in the
+    // project's Past Briefs list and the global Briefs/Receipts history.
+    // No PDF — storage_path stays null. Status "exported" because the user
+    // tapped Summarize, which is the project equivalent of approve-and-export.
+    const nowIso = new Date().toISOString();
+    const exportTitle = `${project.title} — Living Brief`;
+    const exportBrief = {
+      title: exportTitle,
+      subtitle: null,
+      sections: [],
+      appendix_receipts: [],
+      grounding: { project_id, refs: refIndex, structured },
+      signals_hash: "",
+      format: tone === "operator" ? "operator" : "operator",
+      scope_kind: "project",
+      project_id,
+      generated_at: nowIso,
+    };
+    const { data: exportRow, error: exportErr } = await supabase
+      .from("brief_exports")
+      .insert({
+        user_id: user.id,
+        organization_id: project.organization_id ?? null,
+        project_id,
+        entity_id: null,
+        format: "operator",
+        scope_kind: "project",
+        title: exportTitle,
+        subtitle: null,
+        brief: exportBrief,
+        signals_hash: null,
+        status: "exported",
+        approved_at: nowIso,
+        exported_at: nowIso,
+      } as any)
+      .select("id")
+      .single();
+    if (exportErr) console.error("[project-summarize] brief_exports insert failed", exportErr);
+
     await supabase.from("audit_log").insert({
       user_id: user.id,
       entity_type: "project",
@@ -295,6 +334,7 @@ Keep bullets short and concrete. No headings inside bullets. No markdown.`;
         ref_count: refs.length,
         tone,
         structured: true,
+        brief_export_id: exportRow?.id ?? null,
       },
     });
 

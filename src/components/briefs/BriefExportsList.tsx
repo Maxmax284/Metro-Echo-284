@@ -7,7 +7,7 @@ import { listBriefExports, getBriefDownloadUrl, FORMAT_LABEL, type BriefExportRo
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-export function BriefExportsList({ entityId }: { entityId?: string | null }) {
+export function BriefExportsList({ entityId, projectId }: { entityId?: string | null; projectId?: string | null }) {
   const [rows, setRows] = useState<BriefExportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -16,12 +16,12 @@ export function BriefExportsList({ entityId }: { entityId?: string | null }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    listBriefExports({ entity_id: entityId ?? undefined })
+    listBriefExports({ entity_id: entityId ?? undefined, project_id: projectId ?? undefined })
       .then((r) => { if (!cancelled) setRows(r); })
       .catch(() => { /* noop */ })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [entityId]);
+  }, [entityId, projectId]);
 
   async function download(row: BriefExportRow) {
     if (!row.storage_path) return;
