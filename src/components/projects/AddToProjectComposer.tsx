@@ -72,6 +72,7 @@ export function AddToProjectComposer({
         items: Array.from(selected.values()).map((s) => ({ type: s.type, id: s.id })),
       });
       toast.success(`Attached ${selected.size} item${selected.size === 1 ? "" : "s"}`);
+      setSelected(new Map());
       onAttached();
       onOpenChange(false);
     } catch (err) {
