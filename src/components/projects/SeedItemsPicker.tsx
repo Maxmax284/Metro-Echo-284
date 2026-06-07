@@ -32,13 +32,15 @@ interface Props {
   summary?: string;
   selected: Set<string>; // keys are `${type}:${id}`
   onToggle: (item: SuggestedItem) => void;
+  /** Keys (`${type}:${id}`) to exclude — e.g. items already attached. */
+  excludeKeys?: Set<string>;
   /** ms debounce on title/summary changes; default 400ms */
   debounceMs?: number;
 }
 
 export function SeedItemsPicker({
   userId, organizationId, title, summary,
-  selected, onToggle, debounceMs = 400,
+  selected, onToggle, excludeKeys, debounceMs = 400,
 }: Props) {
   const [data, setData] = useState<DraftCandidates | null>(null);
   const [loading, setLoading] = useState(true);
