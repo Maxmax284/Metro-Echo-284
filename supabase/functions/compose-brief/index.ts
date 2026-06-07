@@ -67,6 +67,15 @@ const FORMAT_TONE: Record<Format, string> = {
   audio_script: "Spoken-style. Conversational but composed. No headings, no bullet characters. One flowing block.",
 };
 
+const AUDIENCE_TONE: Record<string, string> = {
+  me: "Audience: the user themselves. Direct, terse, operational, no fluff.",
+  internal_operator: "Audience: an internal operator who will act on this. Clean operational summary, easy to act on. Plain English.",
+  client: "Audience: an external client. Polished and professional. Strip internal reasoning, debug language, and private signals.",
+  audit: "Audience: an auditor. Receipts-first. Lead with timestamps and proof. Minimal interpretation.",
+  implementation: "Audience: a builder. Emphasize requirements, decisions, risks, and concrete next steps.",
+  presentation: "Audience: a single-page presentation. Tight, scannable, executive voice. Skip filler.",
+};
+
 const FORMAT_SECTIONS: Record<Format, string[]> = {
   operator: ["overview", "recent_changes", "needs_attention", "open_commitments", "active_actions", "sherlock", "next_moves"],
   client: ["overview", "recent_changes", "decisions", "next_moves"],
