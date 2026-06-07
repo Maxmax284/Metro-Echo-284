@@ -19,6 +19,16 @@ const COLORS = {
   rule: "#E5E7EB",
   accent: "#3B82F6",
   surface: "#F8F9FB",
+  overallBg: "#EEF4FF",
+};
+
+const AUDIENCE_PDF_LABEL: Record<string, string> = {
+  me: "For me",
+  internal_operator: "For internal operator",
+  client: "For client",
+  audit: "For audit",
+  implementation: "For implementation",
+  presentation: "For presentation",
 };
 
 const styles = StyleSheet.create({
@@ -175,12 +185,31 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
   const { footnotes, claims } = buildFootnotes(brief);
   const claimMap = new Map(claims.map((c) => [c.claimId, c]));
 
+  const grounding: any = brief.grounding ?? {};
+  const structured: any = grounding.structured ?? null;
+  const audience: string | null = (brief as any).audience ?? grounding.audience ?? null;
+  const audienceLabel = audience ? (AUDIENCE_PDF_LABEL[audience] ?? null) : null;
+  const isProjectStructured = brief.scope_kind === "project" && structured?.blocks;
+  const refIndex: Record<string, { kind: string; id: string; label: string }> =
+    structured?.ref_index ?? {};
+  const blocks = structured?.blocks ?? {};
+
+  const renderCitations = (cites: string[] | undefined) => {
+    if (!cites?.length) return null;
+    return (
+      <Text style={styles.receipt}>
+        Sources: {cites.map((c) => refIndex[c]?.label ?? c).slice(0, 4).join(" · ")}
+      </Text>
+    );
+  };
+
   return (
     <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
       <Page size="LETTER" style={styles.page}>
         <View style={styles.titlePage}>
           <Text style={styles.kicker}>
             Vanta · {brief.format.replace("_", " ")} · {brief.scope_kind}
+            {audienceLabel ? ` · ${audienceLabel}` : ""}
           </Text>
           <Text style={styles.title}>{brief.title}</Text>
           {brief.subtitle ? <Text style={styles.subtitle}>{brief.subtitle}</Text> : null}
@@ -202,8 +231,79 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
       </Page>
 
       <Page size="LETTER" style={styles.page}>
-        <Text style={styles.sectionHeading}>Overview</Text>
-        {brief.sections.map((s) => renderSection(s, claimMap))}
+        {isProjectStructured ? (
+          <>
+            {blocks.overall_summary?.text && (
+              <View wrap={false}>
+                <Text style={styles.sectionKicker}>Overall summary</Text>
+                <View style={{ borderLeftWidth: 2, borderLeftColor: COLORS.accent, backgroundColor: COLORS.overallBg, padding: 10, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 12, color: COLORS.ink, lineHeight: 1.55 }}>
+                    {blocks.overall_summary.text}
+                  </Text>
+                  {renderCitations(blocks.overall_summary.citations)}
+                </View>
+              </View>
+            )}
+            {blocks.situation?.text && (
+              <View>
+                <Text style={styles.sectionHeading}>Situation</Text>
+                <Text style={styles.prose}>{blocks.situation.text}</Text>
+              </View>
+            )}
+            {blocks.key_topics?.themes?.length ? (
+              <View>
+                <Text style={styles.sectionHeading}>Key topics</Text>
+                {blocks.key_topics.themes.map((t: any, i: number) => (
+                  <View key={i} style={{ marginBottom: 8, padding: 8, backgroundColor: COLORS.surface, borderRadius: 3 }} wrap={false}>
+                    <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: COLORS.ink, marginBottom: 2 }}>{t.title}</Text>
+                    <Text style={styles.prose}>{t.summary}</Text>
+                    {renderCitations(t.citations)}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {blocks.decisions?.bullets?.length ? (
+              <View>
+                <Text style={styles.sectionHeading}>Decisions / known requirements</Text>
+                {blocks.decisions.bullets.map((b: any, i: number) => (
+                  <View key={i} style={styles.decisionBox} wrap={false}>
+                    <Text style={styles.decisionLabel}>{b.text}</Text>
+                    {renderCitations(b.citations)}
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {blocks.risks?.bullets?.length ? (
+              <View>
+                <Text style={styles.sectionHeading}>Risks / questions</Text>
+                {blocks.risks.bullets.map((b: any, i: number) => (
+                  <View key={i} style={styles.listItem} wrap={false}>
+                    <Text style={styles.bullet}>•</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.listText}>{b.text}</Text>
+                      {renderCitations(b.citations)}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            {blocks.next_move?.text ? (
+              <View wrap={false}>
+                <Text style={styles.sectionHeading}>Next move</Text>
+                <View style={styles.decisionBox}>
+                  <Text style={styles.decisionLabel}>{blocks.next_move.text}</Text>
+                  {renderCitations(blocks.next_move.citations)}
+                </View>
+              </View>
+            ) : null}
+            {/* TODO: canvas snapshot — slot for Slice 6+ */}
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionHeading}>Overview</Text>
+            {brief.sections.map((s) => renderSection(s, claimMap))}
+          </>
+        )}
 
         <View style={styles.footer} fixed>
           <Text>Vanta · {brief.title}</Text>

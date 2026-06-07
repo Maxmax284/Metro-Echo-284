@@ -16,10 +16,15 @@ const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 type Format =
   | "operator" | "client" | "audit_packet" | "weekly_review" | "audio_script";
 
+type Audience =
+  | "me" | "internal_operator" | "client" | "audit" | "implementation" | "presentation";
+
 type Input = {
   format: Format;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
+  project_id?: string | null;
+  audience?: Audience;
   range_days?: number;
 };
 
@@ -41,8 +46,10 @@ type Brief = {
   grounding: Record<string, unknown>;
   signals_hash: string;
   format: Format;
-  scope_kind: "system" | "entity";
+  scope_kind: "system" | "entity" | "project";
   entity_id: string | null;
+  project_id: string | null;
+  audience: Audience | null;
   generated_at: string;
 };
 
@@ -58,6 +65,15 @@ const FORMAT_TONE: Record<Format, string> = {
   audit_packet: "Receipts-first. Lead with what happened and when. Minimal prose. Cite timestamps.",
   weekly_review: "Reflective, scoped to the last seven days. Group by project or entity. Calm tone. Suitable as a client-facing weekly summary.",
   audio_script: "Spoken-style. Conversational but composed. No headings, no bullet characters. One flowing block.",
+};
+
+const AUDIENCE_TONE: Record<string, string> = {
+  me: "Audience: the user themselves. Direct, terse, operational, no fluff.",
+  internal_operator: "Audience: an internal operator who will act on this. Clean operational summary, easy to act on. Plain English.",
+  client: "Audience: an external client. Polished and professional. Strip internal reasoning, debug language, and private signals.",
+  audit: "Audience: an auditor. Receipts-first. Lead with timestamps and proof. Minimal interpretation.",
+  implementation: "Audience: a builder. Emphasize requirements, decisions, risks, and concrete next steps.",
+  presentation: "Audience: a single-page presentation. Tight, scannable, executive voice. Skip filler.",
 };
 
 const FORMAT_SECTIONS: Record<Format, string[]> = {
@@ -109,6 +125,31 @@ async function buildSystemSnapshot(supabase: any, uid: string, range_days: numbe
   };
 }
 
+async function buildProjectSnapshot(supabase: any, project_id: string) {
+  const [{ data: project }, { data: items }, { data: recentAudit }, { data: lastExports }] = await Promise.all([
+    supabase.from("projects").select("id,title,summary,status,brief_structured,updated_at").eq("id", project_id).maybeSingle(),
+    supabase.from("project_items").select("item_type,item_id").eq("project_id", project_id),
+    supabase.from("audit_log").select("id,event,created_at,payload").eq("entity_type","project").eq("entity_id",project_id).order("created_at",{ascending:false}).limit(25),
+    supabase.from("brief_exports").select("id,title,created_at,storage_path").eq("project_id",project_id).order("created_at",{ascending:false}).limit(3),
+  ]);
+  const byType: Record<string,string[]> = { capture:[], note:[], file:[], finding:[], commitment:[], action:[] };
+  for (const it of items ?? []) byType[(it as any).item_type]?.push((it as any).item_id);
+  const [notes, captures, files, findings, commitments, actions] = await Promise.all([
+    byType.note.length ? supabase.from("notes").select("id,title,body,updated_at").in("id", byType.note) : Promise.resolve({ data: [] }),
+    byType.capture.length ? supabase.from("messages").select("id,content,created_at").in("id", byType.capture) : Promise.resolve({ data: [] }),
+    byType.file.length ? supabase.from("ingested_files").select("id,filename,created_at").in("id", byType.file) : Promise.resolve({ data: [] }),
+    byType.finding.length ? supabase.from("sherlock_findings").select("id,finding_type,summary,status").in("id", byType.finding) : Promise.resolve({ data: [] }),
+    byType.commitment.length ? supabase.from("commitments").select("id,summary,status,due_at").in("id", byType.commitment) : Promise.resolve({ data: [] }),
+    byType.action.length ? supabase.from("actions").select("id,title,status,risk").in("id", byType.action) : Promise.resolve({ data: [] }),
+  ]);
+  return {
+    project, structured: project?.brief_structured ?? null,
+    notes: notes.data ?? [], captures: captures.data ?? [], files: files.data ?? [],
+    findings: findings.data ?? [], commitments: commitments.data ?? [], actions: actions.data ?? [],
+    recent_audit: recentAudit ?? [], prior_exports: lastExports ?? [],
+  };
+}
+
 function fallbackBrief(_format: Format, snapshot: any, scope_label: string): Section[] {
   const counts = snapshot?.counts ?? {};
   const overview = scope_label
@@ -129,19 +170,21 @@ function fallbackBrief(_format: Format, snapshot: any, scope_label: string): Sec
   ];
 }
 
-async function aiCompose(format: Format, scope_label: string, snapshot: any): Promise<{
+async function aiCompose(format: Format, scope_label: string, snapshot: any, audience: Audience | null): Promise<{
   title: string; subtitle: string | null; sections: Section[];
 } | null> {
   if (!LOVABLE_KEY) return null;
   const sectionList = FORMAT_SECTIONS[format];
   const tone = FORMAT_TONE[format];
+  const audienceTone = audience ? AUDIENCE_TONE[audience] : "";
   const system = `You are Vanta's brief composer.
 
 Tone: ${tone}
-
+${audienceTone ? `\n${audienceTone}\n` : ""}
 Doctrine:
 - Never invent facts. Only describe what is present in the snapshot.
 - Plain English on top. No emojis. No exclamation marks.
+- Never name internal tooling ("Sherlock", "findings", "captures", "the database", "filed").
 - EVERY claim you make must be grounded in source ids from the snapshot.
 - For "list" and "timeline" items, return objects: { "text"/"what": "...", "receipts": [{ "kind": "audit"|"note"|"commitment"|"action"|"file"|"message"|"entity", "id": "<id from snapshot>" }] }.
 - For "prose" sections, return { "text": "...", "receipts": [...] }.
@@ -231,6 +274,7 @@ Deno.serve(async (req) => {
     let snapshot: any;
     let scopeLabel = "Whole system";
     let entityId: string | null = null;
+    let projectId: string | null = null;
     if (input.scope_kind === "entity") {
       if (!input.entity_id) {
         return new Response(JSON.stringify({ error: "entity_id required for entity scope" }), {
@@ -240,11 +284,21 @@ Deno.serve(async (req) => {
       snapshot = await buildEntitySnapshot(supabase, input.entity_id);
       scopeLabel = snapshot?.entity?.display_name ?? "Entity";
       entityId = input.entity_id;
+    } else if (input.scope_kind === "project") {
+      if (!input.project_id) {
+        return new Response(JSON.stringify({ error: "project_id required for project scope" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      snapshot = await buildProjectSnapshot(supabase, input.project_id);
+      scopeLabel = snapshot?.project?.title ?? "Project";
+      projectId = input.project_id;
     } else {
       snapshot = await buildSystemSnapshot(supabase, uid, input.range_days ?? 7);
     }
 
-    const ai = await aiCompose(input.format, scopeLabel, snapshot);
+    const audience = input.audience ?? null;
+    const ai = await aiCompose(input.format, scopeLabel, snapshot, audience);
     const sections: Section[] = ai?.sections ?? fallbackBrief(input.format, snapshot, scopeLabel);
     const title = ai?.title ?? `${scopeLabel} — ${input.format.replace("_", " ")}`;
     const subtitle = ai?.subtitle ?? null;
@@ -255,7 +309,7 @@ Deno.serve(async (req) => {
       kind: "audit", id: a.id, label: `${a.event} · ${a.created_at}`,
     }));
 
-    const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format }));
+    const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format, audience }));
     const brief: Brief = {
       title,
       subtitle,
@@ -264,12 +318,19 @@ Deno.serve(async (req) => {
       grounding: {
         scope: input.scope_kind,
         entity_id: entityId,
+        project_id: projectId,
+        audience,
+        // For project scope, pass the Living Brief structured payload through so the
+        // PDF renderer can lead with Overall Summary + themed sections.
+        structured: input.scope_kind === "project" ? snapshot?.structured ?? null : null,
         snapshot_keys: Object.keys(snapshot ?? {}),
       },
       signals_hash,
       format: input.format,
       scope_kind: input.scope_kind,
       entity_id: entityId,
+      project_id: projectId,
+      audience,
       generated_at: new Date().toISOString(),
     };
 

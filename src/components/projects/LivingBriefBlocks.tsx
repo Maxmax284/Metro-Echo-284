@@ -17,6 +17,7 @@ export interface StructuredBrief {
   generated_at: string;
   blocks: {
     // v2
+    overall_summary?: { text?: string; citations?: string[] };
     situation?: { text?: string };
     key_topics?: { themes?: Theme[] };
     decisions?: BulletBlock;
@@ -156,7 +157,7 @@ export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
   const b = brief.blocks ?? {};
   const idx = brief.ref_index ?? {};
 
-  const isV2 = !!(b.situation?.text || b.key_topics?.themes?.length || b.decisions?.bullets?.length || b.risks?.bullets?.length);
+  const isV2 = !!(b.overall_summary?.text || b.situation?.text || b.key_topics?.themes?.length || b.decisions?.bullets?.length || b.risks?.bullets?.length);
   const hasLegacy = !!(b.where_it_stands || b.what_moved?.bullets?.length || b.who_waiting?.bullets?.length || b.open_questions?.bullets?.length);
 
   if (!isV2 && hasLegacy) {
@@ -165,6 +166,16 @@ export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
 
   return (
     <div className="space-y-5">
+      {b.overall_summary?.text && (
+        <div className="space-y-1.5 rounded-md border-l-2 border-primary/60 bg-primary/[0.04] py-2 pl-3 pr-2">
+          <BlockHeading>Overall summary</BlockHeading>
+          <p className="text-[14px] leading-relaxed text-foreground">
+            {b.overall_summary.text}
+            <CitationChips refs={b.overall_summary.citations ?? []} refIndex={idx} />
+          </p>
+        </div>
+      )}
+
       {b.situation?.text && (
         <div className="space-y-1.5">
           <BlockHeading>Situation</BlockHeading>

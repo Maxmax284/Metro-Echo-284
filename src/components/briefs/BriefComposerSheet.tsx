@@ -11,7 +11,8 @@ import { pdf } from "@react-pdf/renderer";
 import {
   composeBrief, saveBriefDraft, approveAndExportBrief,
   FORMAT_LABEL, FORMAT_DESCRIPTION,
-  type Brief, type BriefFormat, type BriefExportRow,
+  AUDIENCE_LABEL, AUDIENCE_DESCRIPTION,
+  type Brief, type BriefFormat, type BriefAudience, type BriefExportRow,
 } from "@/lib/briefs";
 import { BriefRenderer } from "./BriefRenderer";
 import { BriefPdfDocument } from "./BriefPdfDocument";
@@ -24,24 +25,28 @@ import { useToast } from "@/hooks/use-toast";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultScope: "system" | "entity";
+  defaultScope: "system" | "entity" | "project";
   entityId?: string | null;
   entityLabel?: string | null;
+  projectId?: string | null;
   /** Pre-select a format (used by one-tap actions like Weekly Review). */
   defaultFormat?: BriefFormat;
+  defaultAudience?: BriefAudience;
   /** Auto-tap Draft once when the sheet opens. */
   autoDraft?: boolean;
 };
 
 const FORMATS: BriefFormat[] = ["operator", "client", "audit_packet", "weekly_review", "audio_script"];
+const AUDIENCES: BriefAudience[] = ["me", "internal_operator", "client", "audit", "implementation", "presentation"];
 
 export function BriefComposerSheet({
-  open, onOpenChange, defaultScope, entityId, entityLabel, defaultFormat, autoDraft,
+  open, onOpenChange, defaultScope, entityId, entityLabel, projectId, defaultFormat, defaultAudience, autoDraft,
 }: Props) {
   const { scope } = useWorkspace();
   const { toast } = useToast();
   const [format, setFormat] = useState<BriefFormat>(defaultFormat ?? "operator");
-  const [scopeKind, setScopeKind] = useState<"system" | "entity">(defaultScope);
+  const [audience, setAudience] = useState<BriefAudience>(defaultAudience ?? (defaultScope === "project" ? "internal_operator" : "me"));
+  const [scopeKind, setScopeKind] = useState<"system" | "entity" | "project">(defaultScope);
   const [drafting, setDrafting] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [savedRow, setSavedRow] = useState<BriefExportRow | null>(null);
@@ -53,6 +58,7 @@ export function BriefComposerSheet({
     if (open) {
       setScopeKind(defaultScope);
       if (defaultFormat) setFormat(defaultFormat);
+      if (defaultAudience) setAudience(defaultAudience);
       setBrief(null);
       setSavedRow(null);
       setSensitivityAck(false);
@@ -65,12 +71,13 @@ export function BriefComposerSheet({
       setSpeaking(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultScope, defaultFormat, autoDraft]);
+  }, [open, defaultScope, defaultFormat, defaultAudience, autoDraft]);
 
   const orgId = scope.kind === "workspace" ? scope.organization_id : null;
 
   const scopeBadge = useMemo(() => {
     if (scopeKind === "entity") return entityLabel ?? "Selected entity";
+    if (scopeKind === "project") return entityLabel ?? "This project";
     return "Whole system";
   }, [scopeKind, entityLabel]);
 
@@ -86,6 +93,8 @@ export function BriefComposerSheet({
         format,
         scope_kind: scopeKind,
         entity_id: scopeKind === "entity" ? entityId ?? null : null,
+        project_id: scopeKind === "project" ? projectId ?? null : null,
+        audience,
       });
       setBrief(b);
       // Persist as draft immediately so review state has an id we can export
@@ -140,7 +149,9 @@ export function BriefComposerSheet({
       setSavedRow(updated);
       toast({
         title: "Brief exported",
-        description: pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported.",
+        description: scopeKind === "project" && entityLabel
+          ? `Saved to ${entityLabel} → Saved exports. Also visible in Briefs and Receipts.`
+          : (pdfBlob ? "PDF saved. Available in Saved exports." : "Marked as exported."),
       });
       if (pdfBlob) {
         const url = URL.createObjectURL(pdfBlob);
@@ -205,6 +216,15 @@ export function BriefComposerSheet({
           <div className="mt-4 space-y-2">
             <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Scope</div>
             <div className="flex flex-wrap gap-2">
+              {projectId && (
+                <Button
+                  size="sm" variant={scopeKind === "project" ? "default" : "outline"}
+                  className="h-8 text-[12px]"
+                  onClick={() => setScopeKind("project")}
+                >
+                  {entityLabel ?? "This project"}
+                </Button>
+              )}
               {entityId && (
                 <Button
                   size="sm" variant={scopeKind === "entity" ? "default" : "outline"}
@@ -222,6 +242,36 @@ export function BriefComposerSheet({
                 Whole system
               </Button>
               <Badge variant="secondary" className="self-center text-[10px]">{scopeBadge}</Badge>
+            </div>
+            {scopeKind === "project" && (
+              <p className="text-[11px] text-muted-foreground">
+                PDF will be saved to this project and visible under Saved exports, Briefs, and Receipts.
+              </p>
+            )}
+          </div>
+
+          {/* Audience */}
+          <div className="mt-4 space-y-2">
+            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Who is this for? <span className="ml-1 normal-case tracking-normal text-muted-foreground/70">Same project, different packaging.</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {AUDIENCES.map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => setAudience(a)}
+                  className={cn(
+                    "rounded-md border p-2 text-left transition-colors",
+                    audience === a
+                      ? "border-primary bg-primary/5"
+                      : "border-border/60 bg-surface-elevated/40 hover:border-border",
+                  )}
+                >
+                  <div className="text-[12px] font-medium text-foreground">{AUDIENCE_LABEL[a]}</div>
+                  <div className="mt-0.5 text-[10.5px] leading-tight text-muted-foreground">{AUDIENCE_DESCRIPTION[a]}</div>
+                </button>
+              ))}
             </div>
           </div>
 

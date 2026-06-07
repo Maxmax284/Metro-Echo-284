@@ -21,8 +21,17 @@ const Body = z.object({
 const BRIEF_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["situation", "key_topics", "decisions", "risks", "next_move"],
+  required: ["overall_summary", "situation", "key_topics", "decisions", "risks", "next_move"],
   properties: {
+    overall_summary: {
+      type: "object",
+      additionalProperties: false,
+      required: ["text", "citations"],
+      properties: {
+        text: { type: "string", maxLength: 900 },
+        citations: { type: "array", items: { type: "string" }, maxItems: 8 },
+      },
+    },
     situation: {
       type: "object",
       additionalProperties: false,
@@ -211,14 +220,15 @@ Deno.serve(async (req: Request) => {
     lines.push(`\nINSTRUCTIONS:`);
     lines.push(`- You are writing as an operations coordinator who has read every attached item.`);
     lines.push(`- Summarize SITUATIONS, not objects. Never enumerate captures one by one.`);
-    lines.push(`- "situation.text" is one plain-English paragraph (3–6 sentences) describing what is actually going on across all items together, as one coherent picture. No bullet lists, no headings.`);
+    lines.push(`- "overall_summary.text" comes FIRST. One coherent paragraph (3–6 sentences) explaining what ALL attached material means together — the big picture. Synthesis voice: "X is currently in a Y phase. The main work centers on…". Cite at least 3 distinct ref keys spanning ≥2 item kinds when material allows. Never list items one-by-one. Never name how many notes/files/etc. exist.`);
+    lines.push(`- "situation.text" is one plain-English paragraph (3–6 sentences) describing what is actually going on right now across all items, as one coherent picture. No bullet lists, no headings. Do not repeat overall_summary verbatim — situation is current state, overall_summary is the meaning.`);
     lines.push(`- "key_topics.themes" groups related items into 2–6 themes. Title is short (e.g. "Booking & Payments", "Calendar & Availability"). Summary is 1–2 sentences explaining the theme. A theme should cover ≥2 items unless one item is clearly its own topic.`);
     lines.push(`- "decisions.bullets" lists things that sound settled or established as requirements. State them as facts (e.g. "Bookings default to a 20% deposit."). Omit if nothing qualifies.`);
     lines.push(`- "risks.bullets" lists real unresolved questions, ambiguity, or things flagged for review. Include open findings here, but do NOT mention "Sherlock", "findings", "signals", or any internal tooling by name — just describe the question.`);
     lines.push(`- "next_move.text" is one concrete operational next step grounded in the material.`);
-    lines.push(`- Cite sources on every theme, bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
-    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic.`);
-    lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system". Say what is happening instead.`);
+    lines.push(`- Cite sources on overall_summary, every theme, every bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
+    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic. Preferred phrasings: "Vanta noticed…", "Several items point to…", "The main pattern is…".`);
+    lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system", "Sherlock", "the system detected", "based on the data", "we have N notes". Say what is happening instead.`);
     lines.push(`- ${tone === "operator" ? "Slightly terser, scannable phrasing." : "Warm, plain English. Mention people by name when they appear."}`);
 
     const push = (kind: string, id: string, label: string, body: string) => {
@@ -250,15 +260,49 @@ Deno.serve(async (req: Request) => {
       push("action", a.id, a.title, `status: ${a.status}${a.risk ? `, ${a.risk} risk` : ""}`);
     }
 
+    // Background patterns — Sherlock signals + recent project activity + last briefs.
+    // Used by the model to detect repetition/contradictions/themes. Never surfaced by name.
+    const [sherlockCache, recentAudit, lastExports] = await Promise.all([
+      supabase.from("sherlock_findings_cache")
+        .select("finding_type,summary,confidence,created_at")
+        .eq("user_id", user.id).order("created_at", { ascending: false }).limit(15),
+      supabase.from("audit_log")
+        .select("event,created_at,payload")
+        .eq("entity_type", "project").eq("entity_id", project_id)
+        .order("created_at", { ascending: false }).limit(25),
+      supabase.from("brief_exports")
+        .select("title,created_at,brief")
+        .eq("project_id", project_id)
+        .order("created_at", { ascending: false }).limit(2),
+    ]);
+    const bgLines: string[] = [];
+    for (const s of (sherlockCache.data ?? []) as any[]) {
+      bgLines.push(`pattern: ${s.finding_type ?? "signal"} — ${s.summary ?? ""}`);
+    }
+    for (const a of (recentAudit.data ?? []) as any[]) {
+      bgLines.push(`timeline: ${a.created_at?.slice(0, 19).replace("T", " ")} ${a.event}`);
+    }
+    for (const e of (lastExports.data ?? []) as any[]) {
+      const prev = e.brief?.grounding?.structured?.overall_summary?.text
+        ?? e.brief?.grounding?.structured?.situation?.text
+        ?? "";
+      if (prev) bgLines.push(`prior_brief (${e.created_at?.slice(0, 10)}): ${prev.slice(0, 280)}`);
+    }
+    if (bgLines.length) {
+      lines.push(`\nBACKGROUND PATTERNS (for your understanding only — do not name these sources, do not cite them):`);
+      lines.push(bgLines.join("\n"));
+    }
+
     lines.push(`\nREF KEYS AVAILABLE: ${refs.map((r) => r.ref).join(", ")}`);
 
     const sys = `${VANTA_CORE_VOICE}
 You write a Living Brief as an operations coordinator explaining a project in plain English.
-Output 6 sections: situation (paragraph), key_topics (themed groups), decisions, risks, next_move.
+Output 7 sections: overall_summary (paragraph — the big picture meaning), situation (paragraph — current state), key_topics (themed groups), decisions, risks, next_move.
+overall_summary comes first and explains what ALL the material means together. situation is current state.
 Summarize situations, not objects. Never list captures one by one. Group related items into themes.
-Every theme, bullet, and next_move MUST cite at least one ref key from the provided list (exactly as given).
+Every theme, bullet, overall_summary, and next_move MUST cite at least one ref key from the provided list (exactly as given).
 Never invent ref keys. If you cannot ground something, omit it.
-Never mention internal tooling ("Sherlock", "findings", "captures", "the database", "filed"). Describe what is happening.
+Never mention internal tooling ("Sherlock", "findings", "captures", "the database", "filed", "the system detected"). Describe what is happening.
 No markdown. No headings inside text fields.`;
 
 
@@ -368,6 +412,7 @@ No markdown. No headings inside text fields.`;
 
 function buildPlainText(s: any): string {
   const parts: string[] = [];
+  if (s?.overall_summary?.text) parts.push(`Overall: ${s.overall_summary.text}`);
   if (s?.situation?.text) parts.push(s.situation.text);
   if (s?.key_topics?.themes?.length) {
     parts.push(`\nKey topics:`);
