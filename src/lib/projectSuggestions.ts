@@ -254,3 +254,132 @@ export async function restoreDismissed(rowId: string): Promise<void> {
     .eq("id", rowId);
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Draft-mode candidates (used by the New Project composer before a project
+// row exists). Same scope rules as loadProjectSuggestions, but no
+// project_id / attached / dismissals to subtract.
+// ---------------------------------------------------------------------------
+
+interface DraftArgs {
+  userId: string;
+  organizationId: string | null;
+  title: string;
+  summary?: string;
+  lookbackDays?: number;
+  perTypeLimit?: number;
+}
+
+export interface DraftCandidates {
+  suggestions: SuggestedItem[]; // token-matched, ranked
+  recentCaptures: SuggestedItem[]; // always returned, latest messages in scope
+}
+
+function scopeFilterRaw(q: any, userId: string, orgId: string | null) {
+  if (orgId) return q.eq("organization_id", orgId);
+  return q.is("organization_id", null).eq("user_id", userId);
+}
+
+export async function loadDraftCandidates(args: DraftArgs): Promise<DraftCandidates> {
+  const { userId, organizationId } = args;
+  const lookbackDays = args.lookbackDays ?? 60;
+  const perType = args.perTypeLimit ?? 6;
+  const sinceIso = new Date(Date.now() - lookbackDays * 86400_000).toISOString();
+  const tokens = tokenize(`${args.title} ${args.summary ?? ""}`);
+
+  const scoreFor = (label: string, snippet?: string) => {
+    if (!tokens.length) return 0;
+    const hay = (label + " " + (snippet ?? "")).toLowerCase();
+    let s = 0;
+    for (const t of tokens) if (hay.includes(t)) s += 1;
+    return s;
+  };
+
+  async function fetchTable(
+    table: string,
+    cols: string,
+    orderCol: string,
+    matchCols: string[],
+    mapper: (r: any) => SuggestedItem,
+  ): Promise<SuggestedItem[]> {
+    let q = supabase
+      .from(table as any)
+      .select(cols)
+      .gte(orderCol, sinceIso)
+      .order(orderCol, { ascending: false })
+      .limit(perType * 3);
+    q = scopeFilterRaw(q, userId, organizationId);
+    const or = orClauseFor(tokens, matchCols);
+    if (or) q = q.or(or);
+    const { data } = await q;
+    return (data ?? []).map(mapper);
+  }
+
+  const [notes, messages, files, commitments, actions] = await Promise.all([
+    fetchTable("notes", "id,title,body,updated_at", "updated_at", ["title", "body"], (r) => ({
+      type: "note", id: r.id,
+      label: r.title?.trim() || (r.body ? r.body.slice(0, 60) : "Untitled note"),
+      snippet: r.body?.slice(0, 140),
+      created_at: r.updated_at,
+      score: scoreFor(r.title ?? "", r.body),
+    })),
+    fetchTable("messages", "id,content,created_at", "created_at", ["content"], (r) => ({
+      type: "capture", id: r.id,
+      label: (r.content ?? "Capture").slice(0, 80),
+      snippet: r.content?.slice(0, 140),
+      created_at: r.created_at,
+      score: scoreFor(r.content ?? ""),
+    })),
+    fetchTable("ingested_files", "id,filename,extracted_text,created_at", "created_at", ["filename", "extracted_text"], (r) => ({
+      type: "file", id: r.id,
+      label: r.filename ?? "File",
+      snippet: r.extracted_text?.slice(0, 140),
+      created_at: r.created_at,
+      score: scoreFor(r.filename ?? "", r.extracted_text),
+    })),
+    fetchTable("commitments", "id,summary,updated_at", "updated_at", ["summary"], (r) => ({
+      type: "commitment", id: r.id,
+      label: r.summary ?? "Commitment",
+      created_at: r.updated_at,
+      score: scoreFor(r.summary ?? ""),
+    })),
+    fetchTable("actions", "id,title,updated_at", "updated_at", ["title"], (r) => ({
+      type: "action", id: r.id,
+      label: r.title ?? "Action",
+      created_at: r.updated_at,
+      score: scoreFor(r.title ?? ""),
+    })),
+  ]);
+
+  const merged = [...notes, ...messages, ...files, ...commitments, ...actions];
+  const suggestions = merged
+    .filter((it) => (tokens.length === 0 ? false : it.score > 0))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return +new Date(b.created_at) - +new Date(a.created_at);
+    })
+    .slice(0, 8);
+
+  // Recent captures: always last N messages in scope, regardless of tokens.
+  let capQ = supabase
+    .from("messages")
+    .select("id,content,created_at")
+    .order("created_at", { ascending: false })
+    .limit(10);
+  capQ = scopeFilterRaw(capQ, userId, organizationId);
+  const { data: capData } = await capQ;
+  const recentCaptures: SuggestedItem[] = (capData ?? []).map((r: any) => ({
+    type: "capture",
+    id: r.id,
+    label: (r.content ?? "Capture").slice(0, 80),
+    snippet: r.content?.slice(0, 140),
+    created_at: r.created_at,
+    score: 0,
+  }));
+
+  // Avoid duplicates between suggestions and recentCaptures.
+  const suggestedKeys = new Set(suggestions.map((s) => `${s.type}:${s.id}`));
+  const filteredRecent = recentCaptures.filter((r) => !suggestedKeys.has(`${r.type}:${r.id}`));
+
+  return { suggestions, recentCaptures: filteredRecent };
+}
