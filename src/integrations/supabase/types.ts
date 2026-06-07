@@ -499,6 +499,7 @@ export type Database = {
           format: string
           id: string
           organization_id: string | null
+          project_id: string | null
           scope_kind: string
           signals_hash: string | null
           status: string
@@ -517,6 +518,7 @@ export type Database = {
           format: string
           id?: string
           organization_id?: string | null
+          project_id?: string | null
           scope_kind: string
           signals_hash?: string | null
           status?: string
@@ -535,6 +537,7 @@ export type Database = {
           format?: string
           id?: string
           organization_id?: string | null
+          project_id?: string | null
           scope_kind?: string
           signals_hash?: string | null
           status?: string
@@ -557,6 +560,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brief_exports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
