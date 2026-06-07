@@ -243,38 +243,76 @@ export default function ProjectBriefPage() {
         </DropdownMenu>
       </header>
 
-      {/* Living summary */}
-      <section className="mb-6 rounded-2xl border border-border/60 bg-surface-elevated p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
+      {/* Living brief */}
+      <section className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Living brief</h2>
           <div className="flex items-center gap-2">
+            <div className="inline-flex overflow-hidden rounded-md border border-border/60 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setTone("narrative")}
+                className={`px-2 py-1 transition-colors ${tone === "narrative" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                aria-pressed={tone === "narrative"}
+              >
+                Narrative
+              </button>
+              <button
+                type="button"
+                onClick={() => setTone("operator")}
+                className={`px-2 py-1 transition-colors ${tone === "operator" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                aria-pressed={tone === "operator"}
+              >
+                Operator
+              </button>
+            </div>
             <Button
               size="sm"
               variant="outline"
               onClick={handleSummarize}
               disabled={summarizing || items.length === 0}
-              aria-label="Summarize attached items into a draft brief"
+              aria-label="Regenerate structured Living Brief"
             >
               {summarizing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> Summarize</>
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Refresh" : "Summarize"}</>
               )}
             </Button>
-            {summaryDraft !== project.summary && (
-              <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
-                {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
-              </Button>
-            )}
           </div>
         </div>
-        <Textarea
-          value={summaryDraft}
-          onChange={(e) => setSummaryDraft(e.target.value)}
-          placeholder="Write the brief in your own words — or tap Summarize to draft one from the attached items. You can always edit before saving."
-          rows={5}
-          className="resize-none border-0 bg-transparent px-0 focus-visible:ring-0"
-        />
+
+        {structured ? (
+          <LivingBriefBlocks brief={structured} />
+        ) : (
+          <p className="text-[12.5px] text-muted-foreground">
+            {items.length === 0
+              ? "Attach a few captures, notes, or files, then tap Summarize."
+              : "Tap Summarize to draft a structured Living Brief with citations back to every source."}
+          </p>
+        )}
+
+        <details className="group">
+          <summary className="cursor-pointer text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80 hover:text-foreground">
+            Your own words {summaryDraft !== project.summary && <span className="ml-1 text-primary">· unsaved</span>}
+          </summary>
+          <div className="mt-2 space-y-2">
+            <Textarea
+              value={summaryDraft}
+              onChange={(e) => setSummaryDraft(e.target.value)}
+              placeholder="Optional — write the brief in your own voice. Saved alongside the structured one."
+              rows={4}
+              className="resize-none"
+            />
+            {summaryDraft !== project.summary && (
+              <div className="flex justify-end">
+                <Button size="sm" onClick={handleSaveSummary} disabled={savingSummary}>
+                  {savingSummary ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </details>
       </section>
 
       {/* Sections */}
