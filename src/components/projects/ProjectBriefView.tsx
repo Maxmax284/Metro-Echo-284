@@ -365,6 +365,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         </details>
       </section>
 
+      {/* Past briefs — every Summarize lands here as an exported brief */}
+      <section className="mb-6 space-y-3 rounded-2xl border border-border/60 bg-surface-elevated p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-muted-foreground">Past briefs</h2>
+          <span className="text-[10.5px] text-muted-foreground/70">Also visible in Briefs and Receipts</span>
+        </div>
+        <BriefExportsList key={briefsRefreshKey} projectId={project.id} />
+      </section>
+
       {/* Sections */}
       {resolved === null ? (
         <Loading />
