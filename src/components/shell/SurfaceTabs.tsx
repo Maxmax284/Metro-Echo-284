@@ -31,8 +31,7 @@ export type SurfaceKey =
   | "commitments"
   | "actions"
   | "awareness"
-  | "sherlock"
-  | "audit";
+  | "sherlock";
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   // Primary
@@ -49,7 +48,6 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   { key: "actions", label: "Actions", Icon: ListChecks },
   { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
-  { key: "audit", label: "Audit log", Icon: ScrollText },
 ];
 
 // Five primary surfaces — the daily desk.

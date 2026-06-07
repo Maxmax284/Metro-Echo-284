@@ -25,8 +25,8 @@ export const vantaSay = {
   // Capture / staging — variation pools so toasts don't feel canned
   noteSaved: (title?: string) =>
     title
-      ? pick(`Saved — "${title}" is in memory.`, `Noted. "${title}" is filed. 📝`, `Got it — "${title}" saved.`)
-      : pick("Saved that.", "Noted.", "Saved as a note. 📝", "Got it — filed."),
+      ? pick(`Saved — "${title}" is in memory.`, `Noted. "${title}" is in.`, `Got it — "${title}" saved.`)
+      : pick("Saved that.", "Noted.", "Saved as a note.", "Got it — in memory."),
   noteEmbedFailed: () => "Saved, but I couldn't index it for search yet.",
   capturedToMemory: () => pick("Captured to memory.", "Saved. 📝", "Got it — in memory."),
   actionStaged: (title?: string) =>
@@ -85,7 +85,7 @@ export const vantaSay = {
   briefingReady: () => "Briefing's ready.",
   fileNeedsReview: () => "This file needs a type.",
   fileTypeSet: (type: string) => `Filed as a ${type}.`,
-  fileArchived: () => "Filed away.",
+  fileArchived: () => "Tucked away.",
 
   // Awareness / radar
   recentered: () => "Recentered. Tap Scan area when you want fresh context.",
@@ -203,7 +203,7 @@ export const vantaSay = {
     reminderDrafted: () => "Reminder drafted. Confirm before it's set.",
     attached: () => "Attached.",
     reviewed: () => "Marked reviewed.",
-    routeRecorded: () => "Route recorded.",
+    routeRecorded: () => "Logged where it came in.",
   },
 
   // Briefing voice (Phase 6 — variant-aware operator summaries)
