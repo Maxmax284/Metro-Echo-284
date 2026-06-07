@@ -536,14 +536,15 @@ function Section({
 }
 
 function ItemCard({
-  children, onDetach, timestamp,
+  children, onDetach, timestamp, domId,
 }: {
   children: React.ReactNode;
   onDetach: () => void;
   timestamp?: string;
+  domId?: string;
 }) {
   return (
-    <div className="group relative rounded-xl border border-border/60 bg-surface-elevated p-3">
+    <div id={domId} className="group relative scroll-mt-24 rounded-xl border border-border/60 bg-surface-elevated p-3 transition-shadow">
       <div>{children}</div>
       <div className="mt-2 flex items-center justify-between">
         {timestamp ? (
