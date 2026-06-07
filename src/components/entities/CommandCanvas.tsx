@@ -384,10 +384,28 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
 }
 
 export function CommandCanvas() {
-  const { open, openCanvasSeed, closeCanvas } = useCanvas();
+  const { open, openCanvasSeed, seedProjectId, closeCanvas } = useCanvas();
   const [tab, setTab] = useState<"cards" | "timeline" | "flow" | "board" | "graph">("cards");
   const [windowDays, setWindowDays] = useState<CanvasWindow>(30);
   const [kinds, setKinds] = useState<Set<CanvasKind>>(new Set());
+  const [projectTitle, setProjectTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!seedProjectId) { setProjectTitle(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("projects").select("title").eq("id", seedProjectId).maybeSingle();
+      if (!cancelled) setProjectTitle((data as any)?.title ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [seedProjectId]);
+
+  const scopeLabel = seedProjectId
+    ? (projectTitle ? `Scoped to project: ${projectTitle}` : "Scoped to project")
+    : openCanvasSeed
+    ? "Scoped to entity"
+    : "Recent operational view";
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) closeCanvas(); }}>
@@ -395,9 +413,7 @@ export function CommandCanvas() {
         <SheetHeader className="flex flex-row items-center justify-between gap-2 px-4 pt-3 pb-2 shrink-0">
           <div className="min-w-0">
             <SheetTitle className="text-sm">Command Canvas</SheetTitle>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {openCanvasSeed ? "Scoped to entity" : "Recent operational view"}
-            </p>
+            <p className="text-[11px] text-muted-foreground truncate">{scopeLabel}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={closeCanvas} className="h-7 w-7 p-0">
             <X className="h-4 w-4" />
