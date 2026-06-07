@@ -26,13 +26,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles,
+  ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Plus, Search, Sparkles,
   Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
+import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 
 export interface ProjectBriefViewProps {
   id: string;
@@ -52,6 +53,14 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
   const [tone, setTone] = useState<"operator" | "narrative">("narrative");
   const [structured, setStructured] = useState<StructuredBrief | null>(null);
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
+  const [addOpen, setAddOpen] = useState(false);
+
+  async function refreshAttached() {
+    if (!project) return;
+    const next = await listProjectItems(project.id);
+    setItems(next);
+    setResolved(await resolveProjectItems(next));
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -203,6 +212,14 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
             Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setAddOpen(true)}
+        >
+          <Plus className="h-4 w-4" /> Add
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" disabled={busy} aria-label="More">
@@ -250,11 +267,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
       <ProjectInbox
         project={project}
         attached={items}
-        onAttached={async () => {
-          const next = await listProjectItems(project.id);
-          setItems(next);
-          setResolved(await resolveProjectItems(next));
-        }}
+        onAttached={refreshAttached}
+      />
+
+      <AddToProjectComposer
+        project={project}
+        attached={items}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAttached={refreshAttached}
       />
 
       {/* Living brief */}

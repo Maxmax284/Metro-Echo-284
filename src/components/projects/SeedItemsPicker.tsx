@@ -32,13 +32,15 @@ interface Props {
   summary?: string;
   selected: Set<string>; // keys are `${type}:${id}`
   onToggle: (item: SuggestedItem) => void;
+  /** Keys (`${type}:${id}`) to exclude — e.g. items already attached. */
+  excludeKeys?: Set<string>;
   /** ms debounce on title/summary changes; default 400ms */
   debounceMs?: number;
 }
 
 export function SeedItemsPicker({
   userId, organizationId, title, summary,
-  selected, onToggle, debounceMs = 400,
+  selected, onToggle, excludeKeys, debounceMs = 400,
 }: Props) {
   const [data, setData] = useState<DraftCandidates | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,15 @@ export function SeedItemsPicker({
 
   const hasTitle = useMemo(() => title.trim().length >= 3, [title]);
 
+  const filtered = useMemo(() => {
+    if (!data) return data;
+    if (!excludeKeys || excludeKeys.size === 0) return data;
+    return {
+      suggestions: filtered!.suggestions.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+      recentCaptures: filtered!.recentCaptures.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+    };
+  }, [data, excludeKeys]);
+
   return (
     <div className="space-y-3">
       {/* Suggestions */}
@@ -83,16 +94,16 @@ export function SeedItemsPicker({
           <p className="rounded-md border border-dashed border-border/50 px-3 py-2 text-[11.5px] text-muted-foreground">
             Type a title to see related items.
           </p>
-        ) : data === null || (loading && data.suggestions.length === 0) ? (
+        ) : filtered === null || (loading && filtered!.suggestions.length === 0) ? (
           <p className="rounded-md border border-dashed border-border/50 px-3 py-2 text-[11.5px] text-muted-foreground">
             Looking…
           </p>
-        ) : data.suggestions.length === 0 ? (
+        ) : filtered!.suggestions.length === 0 ? (
           <p className="rounded-md border border-dashed border-border/50 px-3 py-2 text-[11.5px] text-muted-foreground">
             Nothing obvious matches yet. You can still seed from recent captures below.
           </p>
         ) : (
-          <ItemList items={data.suggestions} selected={selected} onToggle={onToggle} />
+          <ItemList items={filtered!.suggestions} selected={selected} onToggle={onToggle} />
         )}
       </div>
 
@@ -103,16 +114,16 @@ export function SeedItemsPicker({
             Recent captures
           </span>
         </div>
-        {data === null ? (
+        {filtered === null ? (
           <p className="rounded-md border border-dashed border-border/50 px-3 py-2 text-[11.5px] text-muted-foreground">
             Loading recent…
           </p>
-        ) : data.recentCaptures.length === 0 ? (
+        ) : filtered!.recentCaptures.length === 0 ? (
           <p className="rounded-md border border-dashed border-border/50 px-3 py-2 text-[11.5px] text-muted-foreground">
             No recent captures in this scope.
           </p>
         ) : (
-          <ItemList items={data.recentCaptures} selected={selected} onToggle={onToggle} />
+          <ItemList items={filtered!.recentCaptures} selected={selected} onToggle={onToggle} />
         )}
       </div>
     </div>
