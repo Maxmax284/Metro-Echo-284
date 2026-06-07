@@ -26,13 +26,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Search, Sparkles,
+  ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Plus, Search, Sparkles,
   Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
+import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 
 export interface ProjectBriefViewProps {
   id: string;
