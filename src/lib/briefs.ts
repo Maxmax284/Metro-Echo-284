@@ -207,7 +207,7 @@ export async function listBriefExports(args: {
     .order("created_at", { ascending: false })
     .limit(args.limit ?? 20);
   if (args.entity_id) q = q.eq("entity_id", args.entity_id);
-  if (args.project_id) q = (q as any).eq("project_id", args.project_id);
+  if (args.project_id) q = q.eq("project_id", args.project_id);
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []) as unknown as BriefExportRow[];
