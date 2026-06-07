@@ -1806,6 +1806,41 @@ export type Database = {
           },
         ]
       }
+      project_suggestion_dismissals: {
+        Row: {
+          dismissed_at: string
+          id: string
+          item_id: string
+          item_type: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_suggestion_dismissals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           brief_structured: Json | null
