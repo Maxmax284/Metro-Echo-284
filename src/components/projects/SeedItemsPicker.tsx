@@ -75,8 +75,8 @@ export function SeedItemsPicker({
     if (!data) return data;
     if (!excludeKeys || excludeKeys.size === 0) return data;
     return {
-      suggestions: filtered!.suggestions.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
-      recentCaptures: filtered!.recentCaptures.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+      suggestions: data.suggestions.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
+      recentCaptures: data.recentCaptures.filter((it) => !excludeKeys.has(`${it.type}:${it.id}`)),
     };
   }, [data, excludeKeys]);
 
