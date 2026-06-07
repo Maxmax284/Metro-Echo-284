@@ -92,11 +92,38 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
   audio_script: "Spoken-style script. Read aloud or play in browser.",
 };
 
+export type BriefAudience =
+  | "me"
+  | "internal_operator"
+  | "client"
+  | "audit"
+  | "implementation"
+  | "presentation";
+
+export const AUDIENCE_LABEL: Record<BriefAudience, string> = {
+  me: "For me",
+  internal_operator: "For internal operator",
+  client: "For client",
+  audit: "For audit",
+  implementation: "For implementation",
+  presentation: "For presentation",
+};
+
+export const AUDIENCE_DESCRIPTION: Record<BriefAudience, string> = {
+  me: "Direct, operational, no fluff.",
+  internal_operator: "Clean operational summary, easy to act on.",
+  client: "Polished and professional. Hides internal noise.",
+  audit: "Receipts-first. Timestamps and proof.",
+  implementation: "Requirements, decisions, risks, next steps.",
+  presentation: "One clean page. Summary, topics, decisions, next move.",
+};
+
 export type ComposeBriefInput = {
   format: BriefFormat;
   scope_kind: "system" | "entity" | "project";
   entity_id?: string | null;
   project_id?: string | null;
+  audience?: BriefAudience;
   range_days?: number;
 };
 
@@ -120,6 +147,7 @@ export async function saveBriefDraft(args: {
       user_id: uid,
       organization_id: args.organization_id ?? null,
       entity_id: args.brief.entity_id ?? null,
+      project_id: args.brief.project_id ?? null,
       format: args.brief.format,
       scope_kind: args.brief.scope_kind,
       title: args.brief.title,
