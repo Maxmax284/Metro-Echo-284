@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { Project, createProject, listProjects } from "@/lib/projects";
@@ -13,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { FolderKanban, Loader2, Pin, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
 
 /**
  * ProjectsSurface — in-shell list of projects (Living Briefs).
