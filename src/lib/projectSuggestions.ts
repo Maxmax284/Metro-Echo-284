@@ -383,5 +383,3 @@ export async function loadDraftCandidates(args: DraftArgs): Promise<DraftCandida
 
   return { suggestions, recentCaptures: filteredRecent };
 }
-  if (error) throw error;
-}
