@@ -70,6 +70,11 @@ export default function ProjectBriefPage() {
         if (cancelled) return;
         setProject(p);
         setSummaryDraft(p?.summary ?? "");
+        const bs = (p as any)?.brief_structured;
+        if (bs && typeof bs === "object" && bs.blocks) {
+          setStructured(bs as StructuredBrief);
+          if (bs.tone === "operator" || bs.tone === "narrative") setTone(bs.tone);
+        }
         setItems(its);
         const r = await resolveProjectItems(its);
         if (!cancelled) setResolved(r);
