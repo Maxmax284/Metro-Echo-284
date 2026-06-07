@@ -160,16 +160,19 @@ export default function ProjectBriefPage() {
     setSummarizing(true);
     try {
       const { data, error } = await supabase.functions.invoke("project-summarize", {
-        body: { project_id: project.id },
+        body: { project_id: project.id, tone },
       });
       if (error) throw error;
-      const text = (data as any)?.summary ?? "";
-      if (!text) {
+      const payload = data as any;
+      if (payload?.empty) {
         toast.message("Nothing to summarize yet — attach a few items first.");
         return;
       }
-      setSummaryDraft(text);
-      toast.success("Draft ready — review and Save to commit.");
+      if (payload?.structured) {
+        setStructured(payload.structured as StructuredBrief);
+      }
+      if (payload?.summary) setSummaryDraft(payload.summary);
+      toast.success("Living brief refreshed.");
     } catch (err) {
       console.error("[brief] summarize failed", err);
       toast.error("Couldn't summarize right now.");
