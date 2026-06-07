@@ -27,13 +27,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Plus, Search, Sparkles,
-  Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt,
+  Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt, Network,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
 import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
+import { BriefExportsList } from "@/components/briefs/BriefExportsList";
+import { useCanvas } from "@/components/entities/CanvasContext";
 
 export interface ProjectBriefViewProps {
   id: string;
@@ -54,6 +56,8 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
   const [structured, setStructured] = useState<StructuredBrief | null>(null);
   const [receipts, setReceipts] = useState<Array<{ id: string; event: string; created_at: string; payload: any }>>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [briefsRefreshKey, setBriefsRefreshKey] = useState(0);
+  const { openCanvas } = useCanvas();
 
   async function refreshAttached() {
     if (!project) return;
@@ -185,6 +189,8 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
       }
       if (payload?.structured) setStructured(payload.structured as StructuredBrief);
       if (payload?.summary) setSummaryDraft(payload.summary);
+      // Bump the Past briefs list so the new export shows up immediately.
+      setBriefsRefreshKey((k) => k + 1);
       toast.success("Living brief refreshed.");
     } catch (err) {
       console.error("[brief] summarize failed", err);
@@ -212,6 +218,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
             Updated {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => openCanvas(null, { projectId: project.id })}
+          aria-label="Open canvas scoped to this project"
+        >
+          <Network className="h-4 w-4" /> Canvas
+        </Button>
         <Button
           size="sm"
           variant="outline"
