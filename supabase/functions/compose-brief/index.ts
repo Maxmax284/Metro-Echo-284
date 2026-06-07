@@ -274,6 +274,7 @@ Deno.serve(async (req) => {
     let snapshot: any;
     let scopeLabel = "Whole system";
     let entityId: string | null = null;
+    let projectId: string | null = null;
     if (input.scope_kind === "entity") {
       if (!input.entity_id) {
         return new Response(JSON.stringify({ error: "entity_id required for entity scope" }), {
@@ -283,11 +284,21 @@ Deno.serve(async (req) => {
       snapshot = await buildEntitySnapshot(supabase, input.entity_id);
       scopeLabel = snapshot?.entity?.display_name ?? "Entity";
       entityId = input.entity_id;
+    } else if (input.scope_kind === "project") {
+      if (!input.project_id) {
+        return new Response(JSON.stringify({ error: "project_id required for project scope" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      snapshot = await buildProjectSnapshot(supabase, input.project_id);
+      scopeLabel = snapshot?.project?.title ?? "Project";
+      projectId = input.project_id;
     } else {
       snapshot = await buildSystemSnapshot(supabase, uid, input.range_days ?? 7);
     }
 
-    const ai = await aiCompose(input.format, scopeLabel, snapshot);
+    const audience = input.audience ?? null;
+    const ai = await aiCompose(input.format, scopeLabel, snapshot, audience);
     const sections: Section[] = ai?.sections ?? fallbackBrief(input.format, snapshot, scopeLabel);
     const title = ai?.title ?? `${scopeLabel} — ${input.format.replace("_", " ")}`;
     const subtitle = ai?.subtitle ?? null;
@@ -298,7 +309,7 @@ Deno.serve(async (req) => {
       kind: "audit", id: a.id, label: `${a.event} · ${a.created_at}`,
     }));
 
-    const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format }));
+    const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format, audience }));
     const brief: Brief = {
       title,
       subtitle,
@@ -307,12 +318,19 @@ Deno.serve(async (req) => {
       grounding: {
         scope: input.scope_kind,
         entity_id: entityId,
+        project_id: projectId,
+        audience,
+        // For project scope, pass the Living Brief structured payload through so the
+        // PDF renderer can lead with Overall Summary + themed sections.
+        structured: input.scope_kind === "project" ? snapshot?.structured ?? null : null,
         snapshot_keys: Object.keys(snapshot ?? {}),
       },
       signals_hash,
       format: input.format,
       scope_kind: input.scope_kind,
       entity_id: entityId,
+      project_id: projectId,
+      audience,
       generated_at: new Date().toISOString(),
     };
 
