@@ -11,7 +11,8 @@ import { pdf } from "@react-pdf/renderer";
 import {
   composeBrief, saveBriefDraft, approveAndExportBrief,
   FORMAT_LABEL, FORMAT_DESCRIPTION,
-  type Brief, type BriefFormat, type BriefExportRow,
+  AUDIENCE_LABEL, AUDIENCE_DESCRIPTION,
+  type Brief, type BriefFormat, type BriefAudience, type BriefExportRow,
 } from "@/lib/briefs";
 import { BriefRenderer } from "./BriefRenderer";
 import { BriefPdfDocument } from "./BriefPdfDocument";
@@ -24,24 +25,28 @@ import { useToast } from "@/hooks/use-toast";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultScope: "system" | "entity";
+  defaultScope: "system" | "entity" | "project";
   entityId?: string | null;
   entityLabel?: string | null;
+  projectId?: string | null;
   /** Pre-select a format (used by one-tap actions like Weekly Review). */
   defaultFormat?: BriefFormat;
+  defaultAudience?: BriefAudience;
   /** Auto-tap Draft once when the sheet opens. */
   autoDraft?: boolean;
 };
 
 const FORMATS: BriefFormat[] = ["operator", "client", "audit_packet", "weekly_review", "audio_script"];
+const AUDIENCES: BriefAudience[] = ["me", "internal_operator", "client", "audit", "implementation", "presentation"];
 
 export function BriefComposerSheet({
-  open, onOpenChange, defaultScope, entityId, entityLabel, defaultFormat, autoDraft,
+  open, onOpenChange, defaultScope, entityId, entityLabel, projectId, defaultFormat, defaultAudience, autoDraft,
 }: Props) {
   const { scope } = useWorkspace();
   const { toast } = useToast();
   const [format, setFormat] = useState<BriefFormat>(defaultFormat ?? "operator");
-  const [scopeKind, setScopeKind] = useState<"system" | "entity">(defaultScope);
+  const [audience, setAudience] = useState<BriefAudience>(defaultAudience ?? (defaultScope === "project" ? "internal_operator" : "me"));
+  const [scopeKind, setScopeKind] = useState<"system" | "entity" | "project">(defaultScope);
   const [drafting, setDrafting] = useState(false);
   const [brief, setBrief] = useState<Brief | null>(null);
   const [savedRow, setSavedRow] = useState<BriefExportRow | null>(null);
@@ -53,6 +58,7 @@ export function BriefComposerSheet({
     if (open) {
       setScopeKind(defaultScope);
       if (defaultFormat) setFormat(defaultFormat);
+      if (defaultAudience) setAudience(defaultAudience);
       setBrief(null);
       setSavedRow(null);
       setSensitivityAck(false);
@@ -65,12 +71,13 @@ export function BriefComposerSheet({
       setSpeaking(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, defaultScope, defaultFormat, autoDraft]);
+  }, [open, defaultScope, defaultFormat, defaultAudience, autoDraft]);
 
   const orgId = scope.kind === "workspace" ? scope.organization_id : null;
 
   const scopeBadge = useMemo(() => {
     if (scopeKind === "entity") return entityLabel ?? "Selected entity";
+    if (scopeKind === "project") return entityLabel ?? "This project";
     return "Whole system";
   }, [scopeKind, entityLabel]);
 
@@ -86,6 +93,8 @@ export function BriefComposerSheet({
         format,
         scope_kind: scopeKind,
         entity_id: scopeKind === "entity" ? entityId ?? null : null,
+        project_id: scopeKind === "project" ? projectId ?? null : null,
+        audience,
       });
       setBrief(b);
       // Persist as draft immediately so review state has an id we can export
