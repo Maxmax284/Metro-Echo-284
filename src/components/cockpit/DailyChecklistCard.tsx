@@ -105,7 +105,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
         id: `audit:${r.id}`,
         label: humanizeEvent(r.event),
         detail: `${kindLabel(r.entity_type)} · ${formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}`,
-        surface: "audit" as SurfaceKey,
+        surface: "receipts" as SurfaceKey,
         icon: History,
         tone: "changed" as const,
       }));
