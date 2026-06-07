@@ -1,20 +1,33 @@
-// LivingBriefBlocks — renders the structured Living Brief (5 named blocks)
-// with inline citation chips that scroll to and pulse the source item card
-// further down the project page. Pure presentation.
+// LivingBriefBlocks — renders the structured Living Brief.
+// v2 layout: Situation paragraph, Key Topics (themed groups), Decisions,
+// Risks / Questions, Next Move. Falls back to the legacy v1 layout
+// (where_it_stands/what_moved/who_waiting/open_questions/next_move) so
+// briefs generated before Slice 4 still render until re-summarized.
 import { Badge } from "@/components/ui/badge";
 
 export type Citation = { ref: string; kind: string; id: string; label: string };
+
+type Bullet = { text: string; citations: string[] };
+type BulletBlock = { bullets?: Bullet[] };
+type Theme = { title: string; summary: string; citations: string[] };
 
 export interface StructuredBrief {
   version: number;
   tone: "operator" | "narrative";
   generated_at: string;
   blocks: {
-    where_it_stands?: { summary?: string; bullets?: Array<{ text: string; citations: string[] }> };
-    what_moved?: { bullets?: Array<{ text: string; citations: string[] }> };
-    who_waiting?: { bullets?: Array<{ text: string; citations: string[] }> };
-    open_questions?: { bullets?: Array<{ text: string; citations: string[] }> };
+    // v2
+    situation?: { text?: string };
+    key_topics?: { themes?: Theme[] };
+    decisions?: BulletBlock;
+    risks?: BulletBlock;
+    // shared
     next_move?: { text?: string; citations?: string[] };
+    // legacy v1
+    where_it_stands?: { summary?: string; bullets?: Bullet[] };
+    what_moved?: BulletBlock;
+    who_waiting?: BulletBlock;
+    open_questions?: BulletBlock;
   };
   ref_index: Record<string, { kind: string; id: string; label: string }>;
 }
@@ -61,7 +74,7 @@ function CitationChips({ refs, refIndex }: { refs: string[]; refIndex: Structure
 function BulletList({
   bullets, refIndex,
 }: {
-  bullets?: Array<{ text: string; citations: string[] }>;
+  bullets?: Bullet[];
   refIndex: StructuredBrief["ref_index"];
 }) {
   if (!bullets?.length) return <p className="text-xs text-muted-foreground">Nothing here yet.</p>;
@@ -84,7 +97,7 @@ function BlockHeading({ children }: { children: React.ReactNode }) {
   return <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{children}</div>;
 }
 
-export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
+function LegacyBlocks({ brief }: { brief: StructuredBrief }) {
   const b = brief.blocks ?? {};
   const idx = brief.ref_index ?? {};
   return (
@@ -98,25 +111,95 @@ export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
           {b.where_it_stands.bullets?.length ? <BulletList bullets={b.where_it_stands.bullets} refIndex={idx} /> : null}
         </div>
       )}
-
       {b.what_moved?.bullets?.length ? (
         <div className="space-y-1.5">
           <BlockHeading>What moved</BlockHeading>
           <BulletList bullets={b.what_moved.bullets} refIndex={idx} />
         </div>
       ) : null}
-
       {b.who_waiting?.bullets?.length ? (
         <div className="space-y-1.5">
           <BlockHeading>Who's waiting</BlockHeading>
           <BulletList bullets={b.who_waiting.bullets} refIndex={idx} />
         </div>
       ) : null}
-
       {b.open_questions?.bullets?.length ? (
         <div className="space-y-1.5">
           <BlockHeading>Open questions</BlockHeading>
           <BulletList bullets={b.open_questions.bullets} refIndex={idx} />
+        </div>
+      ) : null}
+      {b.next_move?.text ? (
+        <div className="space-y-1.5">
+          <BlockHeading>Next move</BlockHeading>
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 text-[13.5px] text-foreground">
+            {b.next_move.text}
+            <CitationChips refs={b.next_move.citations ?? []} refIndex={idx} />
+          </div>
+        </div>
+      ) : null}
+      <Footer tone={brief.tone} />
+    </div>
+  );
+}
+
+function Footer({ tone }: { tone: StructuredBrief["tone"] }) {
+  return (
+    <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground/80">
+      <Badge variant="outline" className="text-[9.5px] capitalize">{tone}</Badge>
+      <span>Tap any chip to jump to the source.</span>
+    </div>
+  );
+}
+
+export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
+  const b = brief.blocks ?? {};
+  const idx = brief.ref_index ?? {};
+
+  const isV2 = !!(b.situation?.text || b.key_topics?.themes?.length || b.decisions?.bullets?.length || b.risks?.bullets?.length);
+  const hasLegacy = !!(b.where_it_stands || b.what_moved?.bullets?.length || b.who_waiting?.bullets?.length || b.open_questions?.bullets?.length);
+
+  if (!isV2 && hasLegacy) {
+    return <LegacyBlocks brief={brief} />;
+  }
+
+  return (
+    <div className="space-y-5">
+      {b.situation?.text && (
+        <div className="space-y-1.5">
+          <BlockHeading>Situation</BlockHeading>
+          <p className="text-[13.5px] leading-relaxed text-foreground/90">{b.situation.text}</p>
+        </div>
+      )}
+
+      {b.key_topics?.themes?.length ? (
+        <div className="space-y-2">
+          <BlockHeading>Key topics</BlockHeading>
+          <ul className="space-y-2">
+            {b.key_topics.themes.map((t, i) => (
+              <li key={i} className="rounded-md border border-border/40 bg-surface-elevated/30 p-2.5">
+                <div className="text-[12.5px] font-medium text-foreground">{t.title}</div>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-foreground/85">
+                  {t.summary}
+                  <CitationChips refs={t.citations ?? []} refIndex={idx} />
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {b.decisions?.bullets?.length ? (
+        <div className="space-y-1.5">
+          <BlockHeading>Decisions / known requirements</BlockHeading>
+          <BulletList bullets={b.decisions.bullets} refIndex={idx} />
+        </div>
+      ) : null}
+
+      {b.risks?.bullets?.length ? (
+        <div className="space-y-1.5">
+          <BlockHeading>Risks / questions</BlockHeading>
+          <BulletList bullets={b.risks.bullets} refIndex={idx} />
         </div>
       ) : null}
 
@@ -130,10 +213,7 @@ export function LivingBriefBlocks({ brief }: { brief: StructuredBrief }) {
         </div>
       ) : null}
 
-      <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground/80">
-        <Badge variant="outline" className="text-[9.5px] capitalize">{brief.tone}</Badge>
-        <span>Tap any chip to jump to the source.</span>
-      </div>
+      <Footer tone={brief.tone} />
     </div>
   );
 }

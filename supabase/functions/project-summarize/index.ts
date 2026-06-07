@@ -21,32 +21,39 @@ const Body = z.object({
 const BRIEF_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["where_it_stands", "what_moved", "who_waiting", "open_questions", "next_move"],
+  required: ["situation", "key_topics", "decisions", "risks", "next_move"],
   properties: {
-    where_it_stands: {
+    situation: {
       type: "object",
       additionalProperties: false,
-      required: ["summary", "bullets"],
+      required: ["text"],
       properties: {
-        summary: { type: "string", maxLength: 320 },
-        bullets: {
+        text: { type: "string", maxLength: 700 },
+      },
+    },
+    key_topics: {
+      type: "object",
+      additionalProperties: false,
+      required: ["themes"],
+      properties: {
+        themes: {
           type: "array",
-          maxItems: 4,
+          maxItems: 6,
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["text", "citations"],
+            required: ["title", "summary", "citations"],
             properties: {
-              text: { type: "string", maxLength: 220 },
-              citations: { type: "array", items: { type: "string" }, maxItems: 4 },
+              title: { type: "string", maxLength: 60 },
+              summary: { type: "string", maxLength: 280 },
+              citations: { type: "array", items: { type: "string" }, maxItems: 6 },
             },
           },
         },
       },
     },
-    what_moved: { $ref: "#/$defs/block" },
-    who_waiting: { $ref: "#/$defs/block" },
-    open_questions: { $ref: "#/$defs/block" },
+    decisions: { $ref: "#/$defs/bulletBlock" },
+    risks: { $ref: "#/$defs/bulletBlock" },
     next_move: {
       type: "object",
       additionalProperties: false,
@@ -58,14 +65,14 @@ const BRIEF_SCHEMA = {
     },
   },
   $defs: {
-    block: {
+    bulletBlock: {
       type: "object",
       additionalProperties: false,
       required: ["bullets"],
       properties: {
         bullets: {
           type: "array",
-          maxItems: 5,
+          maxItems: 6,
           items: {
             type: "object",
             additionalProperties: false,
@@ -80,6 +87,7 @@ const BRIEF_SCHEMA = {
     },
   },
 } as const;
+
 
 async function lazyDigest(supabase: any, apiKey: string, items: Array<{ kind: "capture"|"note"; id: string; text: string; existing: any }>) {
   const SYS = `${VANTA_CORE_VOICE}
@@ -201,13 +209,17 @@ Deno.serve(async (req: Request) => {
     lines.push(`PROJECT: ${project.title}`);
     if (project.summary) lines.push(`CURRENT BRIEF: ${project.summary}`);
     lines.push(`\nINSTRUCTIONS:`);
-    lines.push(`- Cite sources for every bullet using the ref keys below, e.g. citations: ["note:abc12"].`);
-    lines.push(`- Only state things grounded in these items. No invention.`);
-    lines.push(`- "what_moved" should focus on items updated in the last 7 days.`);
-    lines.push(`- "who_waiting" should surface people or open commitments waiting on someone.`);
-    lines.push(`- "open_questions" should be real questions raised by the items, not generic.`);
-    lines.push(`- "next_move" is one concrete next action grounded in the material.`);
-    lines.push(`- ${tone === "operator" ? "Operator voice: terse, scannable." : "Narrative voice: warm, plain English. Mention people by name when they appear."}`);
+    lines.push(`- You are writing as an operations coordinator who has read every attached item.`);
+    lines.push(`- Summarize SITUATIONS, not objects. Never enumerate captures one by one.`);
+    lines.push(`- "situation.text" is one plain-English paragraph (3–6 sentences) describing what is actually going on across all items together, as one coherent picture. No bullet lists, no headings.`);
+    lines.push(`- "key_topics.themes" groups related items into 2–6 themes. Title is short (e.g. "Booking & Payments", "Calendar & Availability"). Summary is 1–2 sentences explaining the theme. A theme should cover ≥2 items unless one item is clearly its own topic.`);
+    lines.push(`- "decisions.bullets" lists things that sound settled or established as requirements. State them as facts (e.g. "Bookings default to a 20% deposit."). Omit if nothing qualifies.`);
+    lines.push(`- "risks.bullets" lists real unresolved questions, ambiguity, or things flagged for review. Include open findings here, but do NOT mention "Sherlock", "findings", "signals", or any internal tooling by name — just describe the question.`);
+    lines.push(`- "next_move.text" is one concrete operational next step grounded in the material.`);
+    lines.push(`- Cite sources on every theme, bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
+    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic.`);
+    lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system". Say what is happening instead.`);
+    lines.push(`- ${tone === "operator" ? "Slightly terser, scannable phrasing." : "Warm, plain English. Mention people by name when they appear."}`);
 
     const push = (kind: string, id: string, label: string, body: string) => {
       const ref = `${kind}:${id.slice(0, 8)}`;
@@ -241,10 +253,14 @@ Deno.serve(async (req: Request) => {
     lines.push(`\nREF KEYS AVAILABLE: ${refs.map((r) => r.ref).join(", ")}`);
 
     const sys = `${VANTA_CORE_VOICE}
-You write a Living Brief as 5 named blocks. Every bullet MUST cite at least one ref key from the provided list.
-Citations are the ref keys exactly as given (e.g. "note:abc12345").
-Never invent ref keys. If you cannot ground a bullet, omit it.
-Keep bullets short and concrete. No headings inside bullets. No markdown.`;
+You write a Living Brief as an operations coordinator explaining a project in plain English.
+Output 6 sections: situation (paragraph), key_topics (themed groups), decisions, risks, next_move.
+Summarize situations, not objects. Never list captures one by one. Group related items into themes.
+Every theme, bullet, and next_move MUST cite at least one ref key from the provided list (exactly as given).
+Never invent ref keys. If you cannot ground something, omit it.
+Never mention internal tooling ("Sherlock", "findings", "captures", "the database", "filed"). Describe what is happening.
+No markdown. No headings inside text fields.`;
+
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -273,12 +289,13 @@ Keep bullets short and concrete. No headings inside bullets. No markdown.`;
 
     const refIndex = Object.fromEntries(refs.map((r) => [r.ref, { kind: r.kind, id: r.id, label: r.label }]));
     const briefStruct = {
-      version: 1,
+      version: 2,
       tone,
       generated_at: new Date().toISOString(),
       blocks: structured,
       ref_index: refIndex,
     };
+
 
     await supabase.from("projects").update({ brief_structured: briefStruct }).eq("id", project_id);
 
@@ -351,15 +368,21 @@ Keep bullets short and concrete. No headings inside bullets. No markdown.`;
 
 function buildPlainText(s: any): string {
   const parts: string[] = [];
-  if (s.where_it_stands?.summary) parts.push(s.where_it_stands.summary);
-  const section = (label: string, b: any) => {
+  if (s?.situation?.text) parts.push(s.situation.text);
+  if (s?.key_topics?.themes?.length) {
+    parts.push(`\nKey topics:`);
+    for (const t of s.key_topics.themes) {
+      parts.push(`- ${t.title}: ${t.summary}`);
+    }
+  }
+  const bulletSection = (label: string, b: any) => {
     if (!b?.bullets?.length) return;
     parts.push(`\n${label}:`);
     for (const bl of b.bullets) parts.push(`- ${bl.text}`);
   };
-  section("What moved", s.what_moved);
-  section("Who's waiting", s.who_waiting);
-  section("Open questions", s.open_questions);
-  if (s.next_move?.text) parts.push(`\nNext move: ${s.next_move.text}`);
+  bulletSection("Decisions", s?.decisions);
+  bulletSection("Risks / questions", s?.risks);
+  if (s?.next_move?.text) parts.push(`\nNext move: ${s.next_move.text}`);
   return parts.join("\n");
 }
+

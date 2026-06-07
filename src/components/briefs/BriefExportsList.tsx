@@ -45,18 +45,31 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
     );
   }
 
-  if (rows.length === 0) {
+  // Split into real PDF exports (have a storage_path) vs draft summaries
+  // (project-summarize mirrors every Living Brief here without a PDF).
+  const pdfRows = rows.filter((r) => !!r.storage_path);
+  const draftRows = rows.filter((r) => !r.storage_path);
+
+  if (pdfRows.length === 0) {
+    if (draftRows.length > 0) {
+      return (
+        <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
+          <div className="text-foreground/85">Living Brief updated. No PDF exports yet.</div>
+        </div>
+      );
+    }
     return (
       <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
-        <div className="text-foreground/85">No exports yet.</div>
-        <div className="mt-1">Drafts stay private. Tap <span className="text-foreground/90">Create brief</span> → review → <span className="text-foreground/90">Approve &amp; export</span>. The PDF will appear here and you can re-download anytime.</div>
+        <div className="text-foreground/85">No exported briefs yet.</div>
+        <div className="mt-1">Draft summaries stay in the Living Brief until you approve an export.</div>
       </div>
     );
   }
 
+
   return (
     <ul className="space-y-2">
-      {rows.map((r) => (
+      {pdfRows.map((r) => (
         <li
           key={r.id}
           className="flex items-start gap-3 rounded-md border border-border/50 bg-surface-elevated/40 p-3"
