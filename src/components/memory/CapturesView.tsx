@@ -431,6 +431,19 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         {selectMode && selectedIds.size > 0 && (
           <span className="text-muted-foreground">{selectedIds.size} picked</span>
         )}
+        <button
+          type="button"
+          onClick={() => setShowDismissed((s) => !s)}
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            showDismissed
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+          title="Toggle dismissed items"
+        >
+          {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
+        </button>
       </div>
 
       {loading && (
