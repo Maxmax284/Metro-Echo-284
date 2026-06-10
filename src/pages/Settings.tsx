@@ -111,6 +111,9 @@ export default function Settings() {
 
       <InstallVantaSection />
 
+      <VerdictDownloadCard />
+      <IntakeCleanupSection />
+
       {/* How Vanta Works — replayable tutorial + visual system map. */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
         <div className="flex items-start justify-between gap-3">
