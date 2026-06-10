@@ -238,6 +238,19 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
         onOpen={onNavigate}
         onDismiss={handleDismiss}
       />
+      {(overdueMeta.capped > 0 || overdueMeta.stale > 0) && (
+        <button
+          onClick={() => onNavigate("commitments")}
+          className="flex w-full items-center justify-between rounded-md border border-border/40 bg-background/30 px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+        >
+          <span>
+            {overdueMeta.capped > 0 && <>+{overdueMeta.capped} more overdue</>}
+            {overdueMeta.capped > 0 && overdueMeta.stale > 0 && " · "}
+            {overdueMeta.stale > 0 && <>{overdueMeta.stale} moved to Stale tray</>}
+          </span>
+          <span className="text-primary">Open Commitments →</span>
+        </button>
+      )}
       {olderNeeds.length > 0 && (
         <OlderToggle
           count={olderNeeds.length}
