@@ -32,6 +32,10 @@ export type IntakePrefs = {
   dismissed_behavior: "sticky" | "show_restore";
   duplicate_grouping: "group" | "hide_dupes" | "newest_only" | "show_all";
   command_center_section_limit: number; // 3 | 5 | 10 | N
+  // Slice 7 — commitments
+  commitment_stale_days: number; // 5 | 7 | 14 | 30
+  commitment_stale_behavior: "tray" | "keep"; // tray = move to Stale tray, keep = show inline
+  today_card_overdue_limit: number; // hard cap on overdue items in Today card
 };
 
 export const DEFAULT_INTAKE_PREFS: IntakePrefs = {
@@ -40,6 +44,9 @@ export const DEFAULT_INTAKE_PREFS: IntakePrefs = {
   dismissed_behavior: "sticky",
   duplicate_grouping: "group",
   command_center_section_limit: 5,
+  commitment_stale_days: 7,
+  commitment_stale_behavior: "tray",
+  today_card_overdue_limit: 5,
 };
 
 export type DismissedSet = Set<string>; // keys: `${kind}:${id}`
