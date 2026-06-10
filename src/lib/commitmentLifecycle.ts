@@ -5,9 +5,8 @@
  * states layered on top of the raw rows; nothing here mutates anything.
  *
  * States:
- *   active   — open and within the stale window (or not yet overdue)
- *   stale    — open AND overdue by more than `commitment_stale_days` AND no
- *              user touch (updated_at) in that same window
+ *   active   — status=open and within the stale window (or not yet overdue)
+ *   stale    — status=open AND overdue by more than `commitment_stale_days`
  *   done     — status = done
  *   dropped  — status = cancelled
  *
@@ -25,6 +24,10 @@ export type CommitmentRow = {
   updated_at?: string | null;
 };
 
+export function isOpenCommitment(c: Pick<CommitmentRow, "status">): boolean {
+  return c.status === "open";
+}
+
 export function classifyCommitment(
   c: CommitmentRow,
   staleDays: number,
@@ -32,6 +35,7 @@ export function classifyCommitment(
 ): CommitmentLifecycleState {
   if (c.status === "done") return "done";
   if (c.status === "cancelled") return "dropped";
+  if (!isOpenCommitment(c)) return "dropped";
   if (!c.due_at) return "active";
 
   // Stale = due date is more than `staleDays` in the past. We deliberately
