@@ -86,8 +86,10 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { items, loading, refresh } = useIntakeFeed(60);
+  const { dismissed, dismiss, restore } = useIntakeDismissals();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
   const [lane, setLane] = useState<InboxLane>("now");
+  const [showDismissed, setShowDismissed] = useState(false);
   const [aftermathFileId, setAftermathFileId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -95,23 +97,30 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
 
   const filtered = useMemo(() => {
     let list = items;
+    // Dismissed filter — sticky across refresh, with optional "show dismissed" view.
+    const isDismissed = (i: IntakeRow) => {
+      const k = `${i._raw.kind}:${i._raw.row.id}`;
+      return dismissed.has(k);
+    };
+    if (showDismissed) {
+      list = list.filter(isDismissed);
+    } else {
+      list = list.filter((i) => !isDismissed(i));
+    }
     if (ambiguousOnly) {
-      // Inbox V2 state machine — Now / Snoozed / Done
       if (lane === "snoozed") {
         list = list.filter((i) => i.isSnoozed);
       } else if (lane === "done") {
         list = list.filter((i) => i.isDone && !i.isSnoozed);
       } else {
-        // "now" = needs review, not snoozed, not done
         list = list.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone);
       }
     } else {
-      // All-captures view filters
       if (filter === "review") list = list.filter((i) => i.needsReview);
       else if (filter !== "all") list = list.filter((i) => i.source === filter);
     }
     return list;
-  }, [items, filter, ambiguousOnly, lane]);
+  }, [items, filter, ambiguousOnly, lane, dismissed, showDismissed]);
 
   const routeToNote = async (item: IntakeRow) => {
     if (!user) return;
