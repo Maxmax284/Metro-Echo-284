@@ -69,7 +69,16 @@ export function useIntakeDismissals() {
 
   const dismiss = useCallback(
     async (
-      kind: "message" | "file" | "field_note" | "capture_group" | "note",
+      kind:
+        | "message"
+        | "file"
+        | "field_note"
+        | "capture_group"
+        | "note"
+        | "commitment"
+        | "action"
+        | "sherlock"
+        | "audit",
       id: string,
       opts?: { reason?: string; payload?: any },
     ) => {
