@@ -227,9 +227,17 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 5. Project rollups */}
         <ProjectRollupCards />
 
-        {/* 6. Live Capture — receipt roll. */}
+        {/* 6. Live Capture — receipt roll. Filtered by lifecycle + grouped. */}
         <div className="grid grid-cols-1 gap-3">
-          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
+          <LiveCaptureCard
+            items={captures}
+            onOpen={() => onNavigate("inbox" as SurfaceKey)}
+            findingsMap={pendingById}
+            prefs={intake}
+            dismissed={dismissed}
+            attached={attached}
+            onDismiss={(kind, id, payload) => dismiss(kind as any, id, { payload })}
+          />
         </div>
 
         {/* 7. Deep-dive tiles. System receipts is owner-only. */}
