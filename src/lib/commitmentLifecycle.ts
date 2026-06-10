@@ -34,14 +34,14 @@ export function classifyCommitment(
   if (c.status === "cancelled") return "dropped";
   if (!c.due_at) return "active";
 
+  // Stale = due date is more than `staleDays` in the past. We deliberately
+  // ignore `updated_at` here: a row getting re-saved by a background job or
+  // an audit write does NOT count as the user attending to the commitment.
+  // Only explicit user actions (snooze, reopen, edit due date) push the due
+  // date forward, which is the right signal.
   const due = new Date(c.due_at).getTime();
-  const updated = c.updated_at ? new Date(c.updated_at).getTime() : due;
   const cutoff = now.getTime() - staleDays * 86_400_000;
-
-  const overdueByMoreThanWindow = due < cutoff;
-  const untouchedInWindow = updated < cutoff;
-
-  return overdueByMoreThanWindow && untouchedInWindow ? "stale" : "active";
+  return due < cutoff ? "stale" : "active";
 }
 
 export function isStaleCommitment(
