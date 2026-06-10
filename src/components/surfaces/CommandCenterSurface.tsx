@@ -105,7 +105,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         .limit(50),
       supabase.from("commitments")
         .select("id, summary, due_at, status, priority")
-        .neq("status", "done")
+        .eq("status", "open")
         .order("due_at", { ascending: true, nullsFirst: false })
         .limit(50),
       supabase.from("messages")
