@@ -28,6 +28,7 @@ import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
+import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 
 type InboxLane = "now" | "snoozed" | "done";
 
