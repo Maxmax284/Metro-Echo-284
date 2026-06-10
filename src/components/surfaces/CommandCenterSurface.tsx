@@ -8,7 +8,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockHintChip } from "@/components/sherlock/SherlockHintChip";
 import type { SherlockFinding } from "@/lib/sherlock/types";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
-  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
+  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText, X, Layers } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -24,6 +24,15 @@ import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 import type { BriefFormat } from "@/lib/briefs";
+import { useIntakePrefs } from "@/hooks/useIntakePrefs";
+import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
+import { useAttachedItemIds } from "@/hooks/useAttachedItemIds";
+import {
+  filterForCommandCenter,
+  groupSimilarCaptures,
+  isGroup,
+  keyFor,
+} from "@/lib/intakeLifecycle";
 
 type Counts = {
   pendingApprovals: number;
