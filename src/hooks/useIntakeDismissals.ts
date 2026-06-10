@@ -39,14 +39,12 @@ export function useIntakeDismissals() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel("intake-dismissals")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "intake_dismissals" },
-        () => refresh(),
-      )
-      .subscribe();
+    const ch = supabase.channel(`intake-dismissals-${user.id}-${Math.random().toString(36).slice(2, 8)}`);
+    ch.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "intake_dismissals" },
+      () => refresh(),
+    ).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, refresh]);
 
