@@ -33,6 +33,7 @@ import {
   isGroup,
   keyFor,
 } from "@/lib/intakeLifecycle";
+import { isStaleCommitment } from "@/lib/commitmentLifecycle";
 
 type Counts = {
   pendingApprovals: number;
