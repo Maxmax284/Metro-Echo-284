@@ -16,6 +16,9 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { useIntakePrefs } from "@/hooks/useIntakePrefs";
+import { classifyCommitment } from "@/lib/commitmentLifecycle";
+import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 
 type Commitment = {
   id: string;
@@ -26,6 +29,7 @@ type Commitment = {
   priority: string;
   status: "open" | "done" | "cancelled";
   created_at: string;
+  updated_at?: string | null;
 };
 
 const PRIORITIES = ["low", "normal", "high"] as const;
@@ -38,19 +42,22 @@ type CommitmentsSurfaceProps = {
 export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfaceProps = {}) {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
+  const { intake } = useIntakePrefs();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [showStale, setShowStale] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const refresh = async () => {
     setLoading(true);
     let q = supabase
       .from("commitments")
-      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at")
+      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at")
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (filter === "open") q = q.eq("status", "open");
@@ -228,63 +235,166 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
           <div className="py-12 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
         ) : items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">Nothing on the list. Quiet runway.</div>
-        ) : (
-          <ul className="space-y-2">
-            {items.map((c) => {
-              const overdue = c.status === "open" && c.due_at && isPast(new Date(c.due_at));
-              return (
-                <li
-                  key={c.id}
-                  ref={(el) => { itemRefs.current[c.id] = el; }}
-                  className={cn(
-                    "rounded-xl surface-elevated p-3 ring-1 transition",
-                    c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60",
-                    highlightId === c.id && "ring-2 ring-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]",
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className={cn("text-sm", c.status === "done" && "line-through")}>{c.summary}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
-                        {c.due_at && (
-                          <span className={cn("flex flex-wrap items-baseline gap-x-1.5", overdue && "text-danger")}>
-                            <span>{overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}</span>
-                            <span className="text-muted-foreground/70">· {formatTzLine(new Date(c.due_at), timezone)}</span>
-                          </span>
-                        )}
-                        {c.priority !== "normal" && <span className="uppercase tracking-wider">{c.priority}</span>}
-                        {c.last_reminded_at && (
-                          <span className="flex items-center gap-1"><Bell className="h-2.5 w-2.5" /> reminded {formatDistanceToNow(new Date(c.last_reminded_at), { addSuffix: true })}</span>
-                        )}
-                        {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
-                        {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <EntityChips sourceKind="commitment" sourceId={c.id} />
-                        <SherlockChipTrigger
-                          operation="relate"
-                          entityType="commitment"
-                          entityId={c.id}
-                          text={c.summary}
-                          title={c.summary}
-                          showWhenEmpty={false}
-                        />
-                        <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
-                      </div>
-                      <div className="mt-1.5">
-                        <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
-                      </div>
-                      <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
+        ) : (() => {
+          const staleDays = intake.commitment_stale_days;
+          const useTray = intake.commitment_stale_behavior === "tray" && filter === "open";
+          const staleItems = useTray
+            ? items.filter((c) => classifyCommitment(c as any, staleDays) === "stale")
+            : [];
+          const staleIds = new Set(staleItems.map((s) => s.id));
+          const activeItems = items.filter((c) => !staleIds.has(c.id));
+
+          const renderRow = (c: Commitment, muted?: boolean) => {
+            const overdue = c.status === "open" && c.due_at && isPast(new Date(c.due_at));
+            return (
+              <li
+                key={c.id}
+                ref={(el) => { itemRefs.current[c.id] = el; }}
+                className={cn(
+                  "rounded-xl surface-elevated p-3 ring-1 transition",
+                  c.status !== "open" ? "opacity-50 ring-border/60" : overdue ? "ring-danger/50" : "ring-border/60",
+                  muted && "opacity-75",
+                  highlightId === c.id && "ring-2 ring-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.15)]",
+                )}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-sm", c.status === "done" && "line-through")}>{c.summary}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-muted-foreground">
+                      {c.due_at && (
+                        <span className={cn("flex flex-wrap items-baseline gap-x-1.5", overdue && "text-danger")}>
+                          <span>{overdue ? "overdue " : "due "}{formatDistanceToNowStrict(new Date(c.due_at), { addSuffix: true })}</span>
+                          <span className="text-muted-foreground/70">· {formatTzLine(new Date(c.due_at), timezone)}</span>
+                        </span>
+                      )}
+                      {c.priority !== "normal" && <span className="uppercase tracking-wider">{c.priority}</span>}
+                      {c.last_reminded_at && (
+                        <span className="flex items-center gap-1"><Bell className="h-2.5 w-2.5" /> reminded {formatDistanceToNow(new Date(c.last_reminded_at), { addSuffix: true })}</span>
+                      )}
+                      {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
+                      {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                     </div>
-                    {c.status === "open" && (
-                      <CommitmentActions c={c} onChanged={refresh} />
-                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <EntityChips sourceKind="commitment" sourceId={c.id} />
+                      <SherlockChipTrigger
+                        operation="relate"
+                        entityType="commitment"
+                        entityId={c.id}
+                        text={c.summary}
+                        title={c.summary}
+                        showWhenEmpty={false}
+                      />
+                      <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
+                    </div>
+                    <div className="mt-1.5">
+                      <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
+                    </div>
+                    <EmbeddedSherlockFindings sourceType="commitment" sourceId={c.id} />
                   </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  {c.status === "open" && (
+                    <CommitmentActions c={c} onChanged={refresh} />
+                  )}
+                </div>
+              </li>
+            );
+          };
+
+          const bulkSnoozeStale = async () => {
+            if (!session || staleItems.length === 0 || bulkBusy) return;
+            setBulkBusy(true);
+            const until = new Date(Date.now() + 7 * 86_400_000).toISOString();
+            const ids = staleItems.map((s) => s.id);
+            await supabase.from("commitments").update({ due_at: until, remind_at: until }).in("id", ids);
+            await supabase.from("audit_log").insert(
+              ids.map((id) => ({
+                user_id: session.user.id,
+                entity_type: "commitment",
+                entity_id: id,
+                event: "commitment.bulk_snoozed",
+                payload: { reason: "stale_tray_bulk", stale_days: staleDays, until },
+              })),
+            );
+            toast.success({ title: `Snoozed ${ids.length} stale commitment${ids.length === 1 ? "" : "s"} 7 days` });
+            setBulkBusy(false);
+            refresh();
+          };
+
+          const bulkDropStale = async () => {
+            if (!session || staleItems.length === 0 || bulkBusy) return;
+            setBulkBusy(true);
+            const ids = staleItems.map((s) => s.id);
+            await supabase.from("commitments").update({ status: "cancelled" }).in("id", ids);
+            await supabase.from("audit_log").insert(
+              ids.map((id) => ({
+                user_id: session.user.id,
+                entity_type: "commitment",
+                entity_id: id,
+                event: "commitment.bulk_dropped",
+                payload: { reason: "stale_tray_bulk", stale_days: staleDays },
+              })),
+            );
+            toast.success({ title: `Closed out ${ids.length} stale commitment${ids.length === 1 ? "" : "s"}` });
+            setBulkBusy(false);
+            refresh();
+          };
+
+          return (
+            <>
+              <ul className="space-y-2">{activeItems.map((c) => renderRow(c))}</ul>
+
+              {staleItems.length > 0 && (
+                <div className="mt-5 rounded-xl border border-border/60 bg-background/40 p-3">
+                  <button
+                    onClick={() => setShowStale((v) => !v)}
+                    className="flex w-full items-center justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-[12.5px] font-medium">
+                        Stale tray · {staleItems.length}
+                      </span>
+                    </div>
+                    {showStale
+                      ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </button>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Overdue more than {staleDays} days with no activity. Hidden from
+                    the Today card. Still here, still recoverable, never deleted.
+                  </p>
+
+                  {showStale && (
+                    <>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          disabled={bulkBusy}
+                          onClick={bulkSnoozeStale}
+                        >
+                          Snooze all 7 days
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          disabled={bulkBusy}
+                          onClick={bulkDropStale}
+                        >
+                          Close out all
+                        </Button>
+                      </div>
+                      <ul className="mt-3 space-y-2">
+                        {staleItems.map((c) => renderRow(c, true))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

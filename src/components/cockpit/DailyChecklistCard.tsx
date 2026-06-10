@@ -29,6 +29,7 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { useIntakePrefs } from "@/hooks/useIntakePrefs";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { keyFor } from "@/lib/intakeLifecycle";
+import { isStaleCommitment } from "@/lib/commitmentLifecycle";
 
 type Tone = "needs" | "changed" | "next";
 type DismissKind =
@@ -57,6 +58,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
   const [needs, setNeeds] = useState<ChecklistItem[]>([]);
   const [changed, setChanged] = useState<ChecklistItem[]>([]);
   const [next, setNext] = useState<ChecklistItem[]>([]);
+  const [overdueMeta, setOverdueMeta] = useState({ total: 0, stale: 0, visible: 0, capped: 0 });
   const [loading, setLoading] = useState(true);
   const [showOlderNeeds, setShowOlderNeeds] = useState(false);
   const [showOlderChanged, setShowOlderChanged] = useState(false);
@@ -70,7 +72,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const [overdue, highRisk, sherlock, recent] = await Promise.all([
         supabase.from("commitments")
-          .select("id, summary, due_at, updated_at")
+          .select("id, summary, due_at, updated_at, status")
           .eq("user_id", session.user.id).neq("status", "done")
           .lt("due_at", startOfDay.toISOString())
           .order("due_at", { ascending: true }).limit(50),
@@ -89,8 +91,22 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       ]);
       if (cancelled) return;
 
+      // Filter overdue commitments through the stale window. Stale ones go to
+      // the Stale tray on the Commitments surface — they don't shout here.
+      const staleDays = intake.commitment_stale_days;
+      const visibleOverdue =
+        intake.commitment_stale_behavior === "tray"
+          ? (overdue.data ?? []).filter(
+              (c: any) => !isStaleCommitment(c as any, staleDays),
+            )
+          : (overdue.data ?? []);
+
+      // Hard cap on overdue items in the Today card. Past the cap, the user
+      // sees a "+N more" pointer into the Commitments surface.
+      const cappedOverdue = visibleOverdue.slice(0, intake.today_card_overdue_limit);
+
       const needsItems: ChecklistItem[] = [
-        ...(overdue.data ?? []).map((c: any) => ({
+        ...cappedOverdue.map((c: any) => ({
           id: `commit:${c.id}`,
           label: c.summary,
           detail: c.due_at ? `Overdue · ${formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}` : "Overdue",
@@ -150,10 +166,16 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       setNeeds(needsItems);
       setChanged(changedItems);
       setNext(nextItems.slice(0, 3));
+      setOverdueMeta({
+        total: overdue.data?.length ?? 0,
+        stale: (overdue.data?.length ?? 0) - visibleOverdue.length,
+        visible: visibleOverdue.length,
+        capped: Math.max(0, visibleOverdue.length - cappedOverdue.length),
+      });
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [session]);
+  }, [session, intake.commitment_stale_days, intake.commitment_stale_behavior, intake.today_card_overdue_limit]);
 
   const windowDays = intake.capture_visibility_days;
   const limit = intake.command_center_section_limit;
@@ -216,6 +238,19 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
         onOpen={onNavigate}
         onDismiss={handleDismiss}
       />
+      {(overdueMeta.capped > 0 || overdueMeta.stale > 0) && (
+        <button
+          onClick={() => onNavigate("commitments")}
+          className="flex w-full items-center justify-between rounded-md border border-border/40 bg-background/30 px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+        >
+          <span>
+            {overdueMeta.capped > 0 && <>+{overdueMeta.capped} more overdue</>}
+            {overdueMeta.capped > 0 && overdueMeta.stale > 0 && " · "}
+            {overdueMeta.stale > 0 && <>{overdueMeta.stale} moved to Stale tray</>}
+          </span>
+          <span className="text-primary">Open Commitments →</span>
+        </button>
+      )}
       {olderNeeds.length > 0 && (
         <OlderToggle
           count={olderNeeds.length}
