@@ -295,13 +295,23 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       ];
     }
+    const dismissAction = {
+      label: "Dismiss",
+      onClick: () =>
+        dismiss(item._raw.kind as any, item._raw.row.id, { reason: "user_dismissed" }),
+    };
+    const restoreAction = {
+      label: "Restore",
+      onClick: () => restore(item._raw.kind, item._raw.row.id),
+    };
+    if (showDismissed) return [restoreAction];
     if (item.isSnoozed) {
-      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }];
+      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }, dismissAction];
     }
     if (item.routedTo === "ignored") {
-      return [{ label: "Undo", onClick: () => undoIgnore(item) }];
+      return [{ label: "Undo", onClick: () => undoIgnore(item) }, dismissAction];
     }
-    if (item.routedTo) return []; // already routed — read-only chip
+    if (item.routedTo) return [dismissAction];
     return [
       { label: "Track as commitment", onClick: () => routeToCommitment(item), primary: true },
       { label: "Save as note", onClick: () => routeToNote(item) },
@@ -310,6 +320,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       { label: "Snooze tomorrow", onClick: () => snooze(item, 24) },
       { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       { label: "Ignore", onClick: () => ignore(item) },
+      dismissAction,
     ];
   };
 
