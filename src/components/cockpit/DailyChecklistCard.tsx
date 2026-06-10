@@ -29,6 +29,7 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { useIntakePrefs } from "@/hooks/useIntakePrefs";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { keyFor } from "@/lib/intakeLifecycle";
+import { isStaleCommitment } from "@/lib/commitmentLifecycle";
 
 type Tone = "needs" | "changed" | "next";
 type DismissKind =
@@ -70,7 +71,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const [overdue, highRisk, sherlock, recent] = await Promise.all([
         supabase.from("commitments")
-          .select("id, summary, due_at, updated_at")
+          .select("id, summary, due_at, updated_at, status")
           .eq("user_id", session.user.id).neq("status", "done")
           .lt("due_at", startOfDay.toISOString())
           .order("due_at", { ascending: true }).limit(50),
@@ -89,8 +90,18 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       ]);
       if (cancelled) return;
 
+      // Filter overdue commitments through the stale window. Stale ones go to
+      // the Stale tray on the Commitments surface — they don't shout here.
+      const staleDays = intake.commitment_stale_days;
+      const visibleOverdue =
+        intake.commitment_stale_behavior === "tray"
+          ? (overdue.data ?? []).filter(
+              (c: any) => !isStaleCommitment(c as any, staleDays),
+            )
+          : (overdue.data ?? []);
+
       const needsItems: ChecklistItem[] = [
-        ...(overdue.data ?? []).map((c: any) => ({
+        ...visibleOverdue.map((c: any) => ({
           id: `commit:${c.id}`,
           label: c.summary,
           detail: c.due_at ? `Overdue · ${formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}` : "Overdue",
