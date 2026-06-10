@@ -134,7 +134,15 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
     const actions = (acts.data ?? []) as ActionRow[];
     const allCommits = (commits.data ?? []) as CommitmentRow[];
-    const overdueList = allCommits.filter(c => c.due_at && new Date(c.due_at) < startOfDay);
+    // Filter overdue through the stale window so old, untouched commitments
+    // (e.g. the 22-day-old laundry ghost) stop appearing in the Today tile
+    // and counts. They live in the Stale tray on the Commitments surface.
+    const staleDays = intake.commitment_stale_days;
+    const useTray = intake.commitment_stale_behavior === "tray";
+    const rawOverdue = allCommits.filter(c => c.due_at && new Date(c.due_at) < startOfDay);
+    const overdueList = useTray
+      ? rawOverdue.filter(c => !isStaleCommitment(c as any, staleDays))
+      : rawOverdue;
     const todayList = allCommits.filter(c => c.due_at && new Date(c.due_at) >= startOfDay && new Date(c.due_at) <= endOfDay);
     const msgsAsCaptures: CaptureRow[] = (recentMsgs.data ?? [])
       .filter((m: any) => m.role === "user")
