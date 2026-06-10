@@ -1,153 +1,166 @@
-# Slice 6 — Intake Lifecycle + Command Center Declutter
+# Plan — Companion Intelligence + Operator Profile (Phase 1: Design Only)
 
-Goal: stop Vanta from resurfacing old, dismissed, duplicate, or already-attached intake. Make Command Center feel current. Add a clear download button for the Verdict PDF.
+The uploaded brief is explicit: **do not build yet**. Phase 1 deliverable is an audit/design document, full stop. So this plan produces *one artifact* — a written design doc — and stops there. No new tables, hooks, components, or migrations.
 
-No new major features. Reuse existing layers: messages, ingested_files, field_notes, project_items, audit_log, capture_routes.
+## What I'll deliver
 
----
+A single markdown file at `.lovable/companion-intelligence-audit.md` (mirrors the existing `.lovable/architecture-audit.md` pattern), plus a downloadable PDF mirror at `/mnt/documents/vanta-companion-intelligence-audit.pdf` so you can hand it around.
 
-## 1. Intake lifecycle (single source of truth)
+Both contain the same 10 sections the brief asks for, mapped to what actually exists in the codebase today.
 
-Today: dismiss state is inconsistent. `messages.metadata.routed_to` exists, `ingested_files.review_status` exists, but there is no shared "lifecycle" field, no dismissed persistence for Command Center cards, and no stale filter.
+## Document outline
 
-Introduce one shared lifecycle concept stored in metadata + a small new table for cross-kind dismissals/restores.
+1. **Signal inventory** — every existing source that can feed Companion Intelligence, with the table/file it lives in:
+  - Captures: `messages`, `field_notes`, `notes`, `ingested_files`
+  - Routing: `capture_routes`, `user_channel_links`
+  - Projects: `projects`, `project_items`, `project_suggestion_dismissals`
+  - Briefs/Exports: `brief_exports`, `compose-brief`, `briefing-compose`
+  - Attention lifecycle: `intake_dismissals`, `intakeLifecycle.ts`, `useIntakePrefs`
+  - Receipts: `audit_log`, `audit_annotations`
+  - Inference: `sherlock_findings(_cache)`, `cross_links`, `entity_links`
+  - Prefs: `profiles.preferences`, `useUserPreferences`, `sherlock_settings`, `system_controls`
+  - Channels: Telegram, email-inbound, share-target, push  
+   Verdict per source: **already sufficient**, **needs aggregation only**, or **requires new signal** (kept to a minimum).
+2. **What can be inferred quietly** (no approval needed, never becomes a stable trait):
+  - Per-session UI state, ephemeral nudges, ranking re-orders, "you might mean…" hints.
+  - Rule: quiet inferences must not write to a profile table and must not survive logout.
+3. **What requires explicit user approval** before becoming a stable trait:
+  - Routing preferences, output-style preferences, recurring-project bindings, dismissal patterns, default brief audience/format.
+  - Approval surface spec: chip with **Remember / Not now / Never suggest this again**, plus the receipt fields the brief requires (what, why, source pattern, when approved, delete control).
+4. **Operator Profile schema (design only, not migrated yet):**
+  - `operator_profile_traits` — `user_id, kind, value_json, status (suggested|approved|rejected|retired), source_pattern, source_event_ids[], suggested_at, approved_at, retired_at`.
+  - `operator_profile_suggestions_log` — every suggestion shown, accepted/dismissed, with TTL so "Never suggest again" is enforceable.
+  - Field taxonomy: Working Style, Common Workflows, Preferred Outputs, Common Projects, Friction Points, Routing Preferences (matches the brief verbatim).
+5. **Settings surface** — new "What Vanta knows about you" section in `Settings.tsx`:
+  - Approved traits (editable / deletable)
+  - Suggested traits awaiting approval
+  - Rejected / "never suggest" list (restorable)
+  - Master switch: pause Companion Intelligence entirely
+  - Per-category switches (routing / output / projects / friction)
+6. **Privacy + trust controls:**
+  - Every trait answers: *what / why / source / when approved / how to delete*.
+  - No silent writes — enforced by RLS + an `assert_approved()` check in the design.
+  - Export ("Download what Vanta knows about me") and full purge.
+  - Hard "no" list quoted from the brief: no scoring, no horoscopes, no surveillance language, no autonomous action.
+7. **Device presence — future, not now:**
+  - Document the capture-only stance, list candidate inputs (share sheet, voice, screenshot, lock-screen, desktop drop, calendar read-only, location-on-consent).
+  - Restate the law: devices feed, never control. Sensitive sources require explicit consent gates.
+8. **How it connects to the existing simplified flow:**
+  - Inbox → routing suggestions from approved routing traits
+  - Projects → attach suggestions from `project_items` + routing history
+  - Living Brief → tone defaults from output preferences
+  - Canvas → grouping hints from co-attach patterns
+  - Briefs → format/audience defaults
+  - Receipts → every suggestion links back to source events in `audit_log`
+9. **Out of scope until UI/UX cleanup ships:**
+  - Any new engine, any new background job, any new AI call, any new table.
+  - No suggestion chips in Inbox/Projects until intake cleanup (Slice 6) is fully validated in the wild.
+  - No device expansion until Telegram bridge is proven on Vanta → GTH → CampCore.
+10. **Phased rollout (matches the brief):**
+  - **Phase 1 (this doc):** design only. Ships now.
+    - **Phase 2:** read-only Operator Profile generated from *already-approved* preferences (`useUserPreferences`, `intake` prefs, `sherlock_settings`). No new inference.
+    - **Phase 3:** suggested traits with approval chips. One suggestion category at a time, starting with routing.
+    - **Phase 4:** approved routing traits feed project suggestions.
+    - **Phase 5:** approved output traits feed brief defaults.
+    - **Phase 6:** device-aware capture expansion — only after core flow is calm.
 
-States (UI words): **Active · Attached · Archived · Dismissed · Stale**
+## Acceptance check (against the brief)
 
-Mapping:
-- Active = fresh, not routed, not dismissed, within visibility window.
-- Attached = present in `project_items` for any project.
-- Archived = explicitly archived by user (file `review_status='archived'`, message `metadata.lifecycle='archived'`).
-- Dismissed = explicitly dismissed by user (new `intake_dismissals` row).
-- Stale = older than window AND not attached AND not dismissed AND not in an active workflow (no open commitment / pending finding linked).
+The doc must answer, in plain English:
 
-### New table: `intake_dismissals`
-Small, cross-kind, append-only.
-```
-id, user_id, item_kind ('message'|'file'|'field_note'|'capture_group'),
-item_id (uuid or group hash), dismissed_at, reason text null,
-restored_at timestamptz null
-```
-RLS scoped to `auth.uid()`. GRANTs to authenticated + service_role.
+- How Vanta learns without being creepy
+- What it may notice silently vs. what needs approval
+- How the user edits/deletes anything remembered
+- How this reduces daily friction
+- How it plugs into Projects / Living Briefs / Canvas / Exports / Receipts
+- What is explicitly **not** being built yet
 
-A "dismissed" item = latest row for (user, kind, id) has `restored_at IS NULL`.
+## Files touched
 
-### Resurface rules
-A dismissed item only comes back if:
-- user restores it from the Dismissed view, or
-- it gets attached to a project (auto-restore + flip to Attached), or
-- a related commitment/finding becomes due.
+- **Create:** `.lovable/companion-intelligence-audit.md`
+- **Create (artifact):** `/mnt/documents/vanta-companion-intelligence-audit.pdf`
+- **No code changes. No migrations. No new hooks/components.**
 
-No silent resurfacing on refresh.
+Approve and I'll write the doc + generate the PDF in one pass.
 
----
+&nbsp;
 
-## 2. Visibility windows + settings
+Approved.
 
-Add to `profiles.preferences` (existing jsonb, no migration needed for shape):
-```
-intake: {
-  capture_visibility_days: 3,           // 2 | 3 | 7 | custom
-  unattached_after_window: 'collapse',  // collapse | archive | keep | ask
-  dismissed_behavior: 'sticky',         // sticky | show_restore
-  duplicate_grouping: 'group',          // group | hide_dupes | newest_only | show_all
-  command_center_section_limit: 5       // 3 | 5 | 10 | custom
-}
-```
+&nbsp;
 
-New settings section `IntakeCleanupSection.tsx` mounted in `src/pages/Settings.tsx` (Control Room). Plain-English copy as specified in the brief. Reads/writes via existing `useUserPreferences`.
+Proceed with Phase 1 exactly as planned.
 
----
+&nbsp;
 
-## 3. Shared filter layer
+Deliver only:
 
-New `src/lib/intakeLifecycle.ts`:
-- `classifyIntakeItem(row, ctx) → 'active'|'attached'|'archived'|'dismissed'|'stale'`
-- `filterForCommandCenter(items, prefs, dismissals, attachedIds)`
-- `filterForInbox(items, prefs, dismissals, attachedIds, filter)` (filter = Active|Attached|Archived|Dismissed|Stale|All)
-- `groupSimilarCaptures(items, prefs)` — bucket by (project hint OR top entity OR shared keyword stem) within a 48h window; output `{ kind:'group', key, items[], label }` when count ≥ 2.
+&nbsp;
 
-New hook `useIntakeDismissals()` — loads dismissals once, exposes `dismiss(kind,id)`, `restore(kind,id)`, optimistic local set. Realtime subscribed.
+1. .lovable/companion-intelligence-audit.md
 
-New hook `useAttachedItemIds()` — single query against `project_items` returning a `Set<"kind:id">`. Cached + realtime.
+2. /mnt/documents/vanta-companion-intelligence-audit.pdf
 
----
+&nbsp;
 
-## 4. Wire-up (no new surfaces)
+No code changes.
 
-Update these existing files to consume the filter + dismissals layer. No business logic changes beyond filtering/grouping/dismissing.
+No migrations.
 
-**Command Center** (`src/components/surfaces/CommandCenterSurface.tsx` + cockpit cards under `src/components/cockpit/`):
-- Each section runs items through `filterForCommandCenter` + `groupSimilarCaptures`.
-- Apply `command_center_section_limit`.
-- Add a `View all / Show older` dropdown per section that opens the matching Inbox filter.
-- Dismiss X on every card writes via `useIntakeDismissals().dismiss(...)`.
-- Attached items are filtered out unless explicitly toggled.
+No new hooks.
 
-**Inbox** (`src/components/surfaces/InboxSurface.tsx`, `useIntakeFeed.ts`):
-- Add tab filters: Active · Attached · Archived · Dismissed · Stale · All.
-- Default = Active. Dismissed/Stale views show a `Restore` button.
-- Live Captures section in command center pulls from this with `filter='active'` capped by section limit.
+No new components.
 
-**Capture cards** (`src/components/memory/CaptureCard.tsx`, `CapturesView.tsx`, `MemoryFilesView.tsx`, `InboxNotesList.tsx`):
-- Replace local "X" handlers with shared `dismiss()`.
-- When part of a group, render the group summary card (label + count + Expand / Attach to Project / Summarize together / Dismiss group). Group dismiss writes one `capture_group` dismissal keyed by group hash, with individual item ids in `reason` for receipts.
+No new tables.
 
-**Attached rollup**:
-- `useAttachedItemIds()` is the gate. Anything in the set is hidden from Command Center and from Inbox `Active` (still visible in `Attached`, in the project, and in Memory search).
+No new AI calls.
 
-**Memory search** stays untouched — everything remains searchable regardless of lifecycle.
+No new background jobs.
 
----
+No suggestion chips yet.
 
-## 5. Audit + receipts
+No device expansion yet.
 
-Every dismiss/restore/archive writes one `audit_log` row (`event='intake.dismissed'` / `'intake.restored'` / `'intake.archived'`) so receipts stay permanent. Group dismissals include the member ids in `payload`.
+&nbsp;
 
----
+This phase is documentation only.
 
-## 6. Verdict PDF — download button + cover page
+&nbsp;
 
-Today the Verdict PDF was generated as an artifact, but there is no in-app download.
+The audit should clearly define how Companion Intelligence and the Operator Profile will eventually work without making Vanta creepy, noisy, or autonomous.
 
-- Add a small `VerdictDownloadCard` in Settings → Control Room (and a button in the Briefs surface header) that links to a static `/vanta-verdict.pdf` shipped in `public/`.
-- Regenerate the PDF with a **title cover page**:
-  - Title: "Vanta — The Verdict"
-  - Subtitle: "A calm operational brain for people who think faster than their tools."
-  - One-paragraph hook (East-Coast plain English) summarizing the platform concept.
-  - Generated date.
-- Body unchanged from the previous Verdict (concept, capabilities, what it was built for, maturity gaps, bottom line).
-- Save to `public/vanta-verdict.pdf` so the button is a plain `<a href="/vanta-verdict.pdf" download>`.
+&nbsp;
 
----
+The most important rules:
 
-## Technical section
+&nbsp;
 
-### Files added
-- `supabase/migrations/<ts>_intake_dismissals.sql` — table + RLS + grants + index on `(user_id, item_kind, item_id, dismissed_at desc)`.
-- `src/lib/intakeLifecycle.ts` — classify/filter/group helpers + unit tests under `src/test/intake-lifecycle.test.ts`.
-- `src/hooks/useIntakeDismissals.ts`
-- `src/hooks/useAttachedItemIds.ts`
-- `src/components/settings/IntakeCleanupSection.tsx`
-- `public/vanta-verdict.pdf` (regenerated with cover page)
-- `src/components/settings/VerdictDownloadCard.tsx`
+- No silent profile building.
 
-### Files edited
-- `src/hooks/useUserPreferences.ts` — extend `UserPreferences` type with `intake` block + defaults.
-- `src/components/memory/useIntakeFeed.ts` — accept lifecycle filter; return classified items; merge dismissals + attachments.
-- `src/components/surfaces/CommandCenterSurface.tsx` + `src/components/cockpit/*` — apply filter/limit/group; wire `View all`.
-- `src/components/surfaces/InboxSurface.tsx` — add Active/Attached/Archived/Dismissed/Stale tabs + restore.
-- `src/components/memory/CaptureCard.tsx`, `CapturesView.tsx`, `MemoryFilesView.tsx`, `InboxNotesList.tsx` — shared dismiss + group card render.
-- `src/pages/Settings.tsx` — mount `IntakeCleanupSection` and `VerdictDownloadCard`.
-- `src/components/surfaces/BriefsSurface.tsx` — small "Download the Verdict" link in header.
+- No invisible behavior changes.
 
-### Out of scope
-- No new AI features, no new edge functions.
-- No changes to Sherlock, Living Briefs, exports, or project structure beyond reading `project_items`.
-- No deletion of any data — dismissed/archived/stale are filters, not deletes.
+- No autonomous action.
 
-### Acceptance tests
-1. Dismiss a week-old "Laundry" capture → gone from Command Center, stays gone after refresh, still findable in Memory search and in Inbox → Dismissed (with Restore).
-2. Four "Ground Stay payment" captures within 48h → render as one group "4 related Ground Stay payment captures" with Expand / Attach / Summarize / Dismiss group. After Attach to Ground Stay → group disappears from Command Center, shows inside the project, stays in Memory.
-3. Toggle Settings → capture window 2 days, section limit 3 → Command Center reflects immediately.
-4. Verdict button in Settings downloads a PDF whose first page is the cover (title + hook).
+- Capture never executes.
+
+- Plan → Approve → Execute stays the spine.
+
+- Anything that becomes a stable trait must be user-approved.
+
+- The user must be able to edit, delete, export, or purge what Vanta thinks it knows.
+
+- Quiet inferences can help ranking/session hints, but they must not become permanent profile traits.
+
+- Receipts must explain why any future trait was suggested.
+
+&nbsp;
+
+Keep the language plain English.
+
+&nbsp;
+
+The goal of this document is to define the future Companion Intelligence layer without building it prematurely.
+
+&nbsp;
+
+Proceed with the audit doc and PDF mirror in one pass.
