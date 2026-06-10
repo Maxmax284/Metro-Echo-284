@@ -19,6 +19,7 @@ import { SystemMap } from "@/components/tutorial/SystemMap";
 import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
 import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
 import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
+import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -112,6 +113,7 @@ export default function Settings() {
       <InstallVantaSection />
 
       <VerdictDownloadCard />
+      <OperatorProfileSection />
       <IntakeCleanupSection />
 
       {/* How Vanta Works — replayable tutorial + visual system map. */}
