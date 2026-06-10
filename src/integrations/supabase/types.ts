@@ -1287,6 +1287,39 @@ export type Database = {
         }
         Relationships: []
       }
+      intake_dismissals: {
+        Row: {
+          dismissed_at: string
+          id: string
+          item_id: string
+          item_kind: string
+          payload: Json
+          reason: string | null
+          restored_at: string | null
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          id?: string
+          item_id: string
+          item_kind: string
+          payload?: Json
+          reason?: string | null
+          restored_at?: string | null
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          id?: string
+          item_id?: string
+          item_kind?: string
+          payload?: Json
+          reason?: string | null
+          restored_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_webhook_secrets: {
         Row: {
           created_at: string
