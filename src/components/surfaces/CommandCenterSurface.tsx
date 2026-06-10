@@ -65,6 +65,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const { openSherlock } = useSherlock();
   const { openCanvas } = useCanvas();
   const isOwner = useIsOwner();
+  const { intake } = useIntakePrefs();
+  const { dismissed, dismiss } = useIntakeDismissals();
+  const { attached } = useAttachedItemIds();
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Counts>({
     pendingApprovals: 0, highRisk: 0, openCommitments: 0, overdueCommitments: 0,
