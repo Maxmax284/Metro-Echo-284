@@ -73,7 +73,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       const [overdue, highRisk, sherlock, recent] = await Promise.all([
         supabase.from("commitments")
           .select("id, summary, due_at, updated_at, status")
-          .eq("user_id", session.user.id).neq("status", "done")
+          .eq("user_id", session.user.id).eq("status", "open")
           .lt("due_at", startOfDay.toISOString())
           .order("due_at", { ascending: true }).limit(50),
         supabase.from("actions")
