@@ -14,6 +14,7 @@ export type UserPreferences = {
   telegram_reminders_enabled?: boolean;
   push_reminders_enabled?: boolean;
   in_app_reminders_enabled?: boolean;
+  intake?: Record<string, unknown>;
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {

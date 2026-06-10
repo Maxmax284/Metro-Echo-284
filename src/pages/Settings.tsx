@@ -17,6 +17,8 @@ import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { useTutorial } from "@/components/tutorial/TutorialProvider";
 import { SystemMap } from "@/components/tutorial/SystemMap";
 import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
+import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
+import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
