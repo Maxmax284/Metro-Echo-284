@@ -84,7 +84,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefDefault, setBriefDefault] = useState<{ format?: BriefFormat; auto?: boolean }>({});
 
-  useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session]);
+  useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session, intake.commitment_stale_days, intake.commitment_stale_behavior]);
 
   function openBrief(opts?: { format?: BriefFormat; auto?: boolean }) {
     setBriefDefault(opts ?? {});
