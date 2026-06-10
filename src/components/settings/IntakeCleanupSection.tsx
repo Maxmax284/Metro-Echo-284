@@ -90,6 +90,60 @@ export function IntakeCleanupSection() {
             updateIntake({ command_center_section_limit: Number(v) })
           }
         />
+
+        <div className="mt-2 border-t border-border/40 pt-4">
+          <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Commitments
+          </div>
+
+          <Choice
+            label="When a commitment goes overdue past…"
+            value={String(intake.commitment_stale_days)}
+            options={[
+              { v: "5", label: "5 days" },
+              { v: "7", label: "1 week" },
+              { v: "14", label: "2 weeks" },
+              { v: "30", label: "1 month" },
+            ]}
+            onChange={(v) => updateIntake({ commitment_stale_days: Number(v) })}
+          />
+
+          <div className="mt-3">
+            <Choice
+              label="…and there's been no activity, do this:"
+              value={intake.commitment_stale_behavior}
+              options={[
+                { v: "tray", label: "Move to Stale tray" },
+                { v: "keep", label: "Keep showing it" },
+              ]}
+              onChange={(v) =>
+                updateIntake({ commitment_stale_behavior: v as any })
+              }
+            />
+          </div>
+
+          <div className="mt-3">
+            <Choice
+              label="Max overdue items in the Today card"
+              value={String(intake.today_card_overdue_limit)}
+              options={[
+                { v: "3", label: "3" },
+                { v: "5", label: "5" },
+                { v: "10", label: "10" },
+                { v: "20", label: "20" },
+              ]}
+              onChange={(v) =>
+                updateIntake({ today_card_overdue_limit: Number(v) })
+              }
+            />
+          </div>
+
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Nothing is deleted or auto-completed. Stale just means "stop
+            shouting from the Today card." Open the Stale tray to reopen,
+            snooze, or close items. Every bulk action writes a receipt.
+          </p>
+        </div>
       </div>
 
       {dismissed.size > 0 && (
