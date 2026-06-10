@@ -16,6 +16,9 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { useIntakePrefs } from "@/hooks/useIntakePrefs";
+import { classifyCommitment } from "@/lib/commitmentLifecycle";
+import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 
 type Commitment = {
   id: string;
@@ -26,6 +29,7 @@ type Commitment = {
   priority: string;
   status: "open" | "done" | "cancelled";
   created_at: string;
+  updated_at?: string | null;
 };
 
 const PRIORITIES = ["low", "normal", "high"] as const;
@@ -38,12 +42,15 @@ type CommitmentsSurfaceProps = {
 export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfaceProps = {}) {
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
+  const { intake } = useIntakePrefs();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [showStale, setShowStale] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
 
   const refresh = async () => {
