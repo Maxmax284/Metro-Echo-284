@@ -100,8 +100,12 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
             )
           : (overdue.data ?? []);
 
+      // Hard cap on overdue items in the Today card. Past the cap, the user
+      // sees a "+N more" pointer into the Commitments surface.
+      const cappedOverdue = visibleOverdue.slice(0, intake.today_card_overdue_limit);
+
       const needsItems: ChecklistItem[] = [
-        ...visibleOverdue.map((c: any) => ({
+        ...cappedOverdue.map((c: any) => ({
           id: `commit:${c.id}`,
           label: c.summary,
           detail: c.due_at ? `Overdue · ${formatDistanceToNow(new Date(c.due_at), { addSuffix: true })}` : "Overdue",
