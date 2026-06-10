@@ -57,7 +57,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     setLoading(true);
     let q = supabase
       .from("commitments")
-      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at")
+      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at")
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (filter === "open") q = q.eq("status", "open");
