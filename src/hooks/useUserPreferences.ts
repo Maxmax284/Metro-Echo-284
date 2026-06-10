@@ -28,6 +28,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   telegram_reminders_enabled: false,
   push_reminders_enabled: false,
   in_app_reminders_enabled: true,
+  intake: {},
 };
 
 export function useUserPreferences() {
