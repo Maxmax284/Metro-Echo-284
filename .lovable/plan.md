@@ -1,196 +1,153 @@
-# Slice 5 — Overall Project Summary + Export Experience
+# Slice 6 — Intake Lifecycle + Command Center Declutter
 
-Extends the existing Living Brief + Briefs/Exports pipeline. No new engines, no new surfaces, no architecture changes. Sherlock stays quiet in the background.
+Goal: stop Vanta from resurfacing old, dismissed, duplicate, or already-attached intake. Make Command Center feel current. Add a clear download button for the Verdict PDF.
 
-## 1. Overall Summary block (Living Brief)
+No new major features. Reuse existing layers: messages, ingested_files, field_notes, project_items, audit_log, capture_routes.
 
-`**supabase/functions/project-summarize/index.ts**`
+---
 
-- Bump `BRIEF_SCHEMA` to add `overall_summary` as the FIRST required field: `{ text: string (≤900 chars), citations: string[] (≤8) }`. Schema version stays 2.
-- Pull Sherlock signals quietly into the prompt input as a separate context block:
-  - Read `sherlock_findings_cache` rows + the attached `finding` items already wired in.
-  - Read recent `audit_log` rows (last ~25) for this project (timeline events).
-  - Read project's last 2 `brief_exports` for continuity ("what changed since last brief").
-  - Inject these as `BACKGROUND PATTERNS:` lines (no UI exposure), instructing the model to use them to detect repetition, contradictions, themes — but never name "Sherlock"/"findings"/"signals" in output.
-- New prompt rules for `overall_summary`:
-  - One coherent paragraph that explains what all attached material means together.
-  - Synthesis voice ("Ground Stay is currently in a cleanup phase…"), not enumeration.
-  - Must cite ≥3 distinct ref keys spanning at least 2 item kinds when material allows.
-  - Banned phrases extended: "Sherlock", "the system detected", "based on the data", "we have N notes".
-  - Preferred phrasings: "Vanta noticed…", "Several items point to…", "The main pattern is…".
-- `buildPlainText`: prepend `Overall: <text>` so the mirrored `projects.summary` and the `brief_exports` plain text lead with it.
+## 1. Intake lifecycle (single source of truth)
 
-`**src/components/projects/LivingBriefBlocks.tsx**`
+Today: dismiss state is inconsistent. `messages.metadata.routed_to` exists, `ingested_files.review_status` exists, but there is no shared "lifecycle" field, no dismissed persistence for Command Center cards, and no stale filter.
 
-- Add `overall_summary?: { text?: string; citations?: string[] }` to `StructuredBrief.blocks`.
-- Render as the first block above Situation, with a distinct visual treatment (slightly larger leading, accent border-left, citation chips inline). Heading: "Overall summary".
-- `isV2` detection includes `overall_summary.text`.
+Introduce one shared lifecycle concept stored in metadata + a small new table for cross-kind dismissals/restores.
 
-## 2. Project-scoped export flow
+States (UI words): **Active · Attached · Archived · Dismissed · Stale**
 
-`**src/lib/briefs.ts**`
+Mapping:
+- Active = fresh, not routed, not dismissed, within visibility window.
+- Attached = present in `project_items` for any project.
+- Archived = explicitly archived by user (file `review_status='archived'`, message `metadata.lifecycle='archived'`).
+- Dismissed = explicitly dismissed by user (new `intake_dismissals` row).
+- Stale = older than window AND not attached AND not dismissed AND not in an active workflow (no open commitment / pending finding linked).
 
-- `composeBrief` already accepts `scope_kind`. Add `"project"` plumbing end-to-end (params, `composeBriefArgs`, edge call).
-- Add `audience` field to `BriefExportRow.brief.grounding` and to the `composeBrief` payload: `"me" | "internal_operator" | "client" | "audit" | "implementation" | "presentation"`.
-
-`**supabase/functions/compose-brief/index.ts**`
-
-- Accept `scope_kind: "project"` + `project_id` + `audience`.
-- New snapshot builder `buildProjectSnapshot(supabase, project_id)`:
-  - Reuses the same query set as `project-summarize` (notes/captures/files/findings/commitments/actions via `project_items`).
-  - Pulls the latest `projects.brief_structured` so the composer doesn't re-summarize — it packages.
-  - Includes recent project audit + last 2 exports.
-- Add audience-aware tone overlay applied on top of `FORMAT_TONE`:
-  - `me`: direct, terse, operational, no fluff.
-  - `internal_operator`: clean operational summary, easy to act on (default for Nikki).
-  - `client`: polished, strips internal/private signals.
-  - `audit`: receipts-first, timestamps emphasized.
-  - `implementation`: requirements/decisions/risks/next steps emphasized.
-  - `presentation`: tight one-pager voice.
-- For project scope, seed sections from the Living Brief's `overall_summary` + `situation` + `key_topics` + `decisions` + `risks` + `next_move` rather than reinventing.
-
-`**src/components/briefs/BriefComposerSheet.tsx**`
-
-- Add `defaultScope: "system" | "entity" | "project"` and `projectId` props.
-- New "Audience" picker row (6 chips) above Format, with helper subtitle: "Same project, different packaging."
-- Plain helper copy under the action row when scope is project:
-  > "PDF will be saved to this project and visible under Saved exports, Briefs, and Receipts."
-- After successful export: toast "Saved to &nbsp; → Saved exports."
-
-`**src/components/projects/ProjectBriefView.tsx**`
-
-- Add a "Create export" button next to Canvas in the header (only when `structured` exists or attached items > 0).
-- Opens `BriefComposerSheet` with `defaultScope="project"`, `projectId`, `defaultFormat="operator"`, `entityLabel={project.title}`.
-- Rename "Past briefs" section to "Saved exports" and keep it backed by `BriefExportsList` with `projectId`. Keep the existing draft/PDF split copy from Slice 4.
-
-## 3. PDF rendering uses the Overall Summary
-
-`**src/components/briefs/BriefPdfDocument.tsx**`
-
-- When a brief carries `grounding.structured` (project scope), render in this order on the document:
-  1. Title page (existing) — show audience as kicker chip ("For client", "For audit", …).
-  2. Overall summary (new, accent block, large body text).
-  3. Situation paragraph.
-  4. Key topics (themed cards).
-  5. Decisions box.
-  6. Risks / questions list.
-  7. Next move (existing decision-box treatment).
-  8. Sources appendix (existing footnotes pipeline, now fed by `ref_index`).
-- Non-project briefs (system/entity) fall through to existing renderer untouched.
-
-## 4. Out of scope (called out so we don't drift)
-
-- No Canvas snapshot embedded in PDF yet — leave a `// TODO: canvas snapshot` hook in the PDF renderer where the section would slot in.
-- No theme/accent-color customizer, no include/exclude toggles, no audio TTS for project scope (existing audio_script path stays as-is).
-- No new tables. No DB migration. No Sherlock UI changes. No new routes.
-- `vantaVoice.ts` untouched.
-
-## 5. Files touched
-
+### New table: `intake_dismissals`
+Small, cross-kind, append-only.
 ```
-supabase/functions/project-summarize/index.ts   (+ overall_summary, background patterns)
-supabase/functions/compose-brief/index.ts       (+ project scope, audience)
-src/lib/briefs.ts                                (+ audience field, project plumbing)
-src/components/projects/LivingBriefBlocks.tsx   (+ Overall summary block)
-src/components/projects/ProjectBriefView.tsx    (+ Create export button, copy)
-src/components/briefs/BriefComposerSheet.tsx    (+ audience picker, project scope, destination copy)
-src/components/briefs/BriefPdfDocument.tsx      (+ structured-project layout, audience kicker)
+id, user_id, item_kind ('message'|'file'|'field_note'|'capture_group'),
+item_id (uuid or group hash), dismissed_at, reason text null,
+restored_at timestamptz null
+```
+RLS scoped to `auth.uid()`. GRANTs to authenticated + service_role.
+
+A "dismissed" item = latest row for (user, kind, id) has `restored_at IS NULL`.
+
+### Resurface rules
+A dismissed item only comes back if:
+- user restores it from the Dismissed view, or
+- it gets attached to a project (auto-restore + flip to Attached), or
+- a related commitment/finding becomes due.
+
+No silent resurfacing on refresh.
+
+---
+
+## 2. Visibility windows + settings
+
+Add to `profiles.preferences` (existing jsonb, no migration needed for shape):
+```
+intake: {
+  capture_visibility_days: 3,           // 2 | 3 | 7 | custom
+  unattached_after_window: 'collapse',  // collapse | archive | keep | ask
+  dismissed_behavior: 'sticky',         // sticky | show_restore
+  duplicate_grouping: 'group',          // group | hide_dupes | newest_only | show_all
+  command_center_section_limit: 5       // 3 | 5 | 10 | custom
+}
 ```
 
-## 6. Acceptance check (Ground Stay)
+New settings section `IntakeCleanupSection.tsx` mounted in `src/pages/Settings.tsx` (Control Room). Plain-English copy as specified in the brief. Reads/writes via existing `useUserPreferences`.
 
-1. User taps Summarize → Living Brief opens with "Overall summary" paragraph first, explaining the cleanup phase + topics + Lamai Global thread together (not item-by-item).
-2. Sherlock-derived patterns influence wording but never appear by name.
-3. User taps "Create export" inside the project → composer opens pre-scoped to Ground Stay, audience picker visible, destination copy shown.
-4. Approve & export → PDF leads with Overall summary, audience tag on cover, sections in spec order, source footnotes intact.
-5. Export appears under Project → Saved exports, plus Briefs surface, plus Receipts (audit_log) — confirmed by single `brief_exports` row + `brief.exported` audit event.
+---
 
-&nbsp;
+## 3. Shared filter layer
 
-Approved.
+New `src/lib/intakeLifecycle.ts`:
+- `classifyIntakeItem(row, ctx) → 'active'|'attached'|'archived'|'dismissed'|'stale'`
+- `filterForCommandCenter(items, prefs, dismissals, attachedIds)`
+- `filterForInbox(items, prefs, dismissals, attachedIds, filter)` (filter = Active|Attached|Archived|Dismissed|Stale|All)
+- `groupSimilarCaptures(items, prefs)` — bucket by (project hint OR top entity OR shared keyword stem) within a 48h window; output `{ kind:'group', key, items[], label }` when count ≥ 2.
 
-Proceed with Slice 5 exactly as planned.
+New hook `useIntakeDismissals()` — loads dismissals once, exposes `dismiss(kind,id)`, `restore(kind,id)`, optimistic local set. Realtime subscribed.
 
-No architecture changes.
+New hook `useAttachedItemIds()` — single query against `project_items` returning a `Set<"kind:id">`. Cached + realtime.
 
-No new engines.
+---
 
-No new surfaces.
+## 4. Wire-up (no new surfaces)
 
-No new tables.
+Update these existing files to consume the filter + dismissals layer. No business logic changes beyond filtering/grouping/dismissing.
 
-No Sherlock UI changes.
+**Command Center** (`src/components/surfaces/CommandCenterSurface.tsx` + cockpit cards under `src/components/cockpit/`):
+- Each section runs items through `filterForCommandCenter` + `groupSimilarCaptures`.
+- Apply `command_center_section_limit`.
+- Add a `View all / Show older` dropdown per section that opens the matching Inbox filter.
+- Dismiss X on every card writes via `useIntakeDismissals().dismiss(...)`.
+- Attached items are filtered out unless explicitly toggled.
 
-No Canvas snapshot yet.
+**Inbox** (`src/components/surfaces/InboxSurface.tsx`, `useIntakeFeed.ts`):
+- Add tab filters: Active · Attached · Archived · Dismissed · Stale · All.
+- Default = Active. Dismissed/Stale views show a `Restore` button.
+- Live Captures section in command center pulls from this with `filter='active'` capped by section limit.
 
-No export customizer yet.
+**Capture cards** (`src/components/memory/CaptureCard.tsx`, `CapturesView.tsx`, `MemoryFilesView.tsx`, `InboxNotesList.tsx`):
+- Replace local "X" handlers with shared `dismiss()`.
+- When part of a group, render the group summary card (label + count + Expand / Attach to Project / Summarize together / Dismiss group). Group dismiss writes one `capture_group` dismissal keyed by group hash, with individual item ids in `reason` for receipts.
 
-Focus only on:
+**Attached rollup**:
+- `useAttachedItemIds()` is the gate. Anything in the set is hidden from Command Center and from Inbox `Active` (still visible in `Attached`, in the project, and in Memory search).
 
-1. Adding Overall Summary as the first Living Brief block.
+**Memory search** stays untouched — everything remains searchable regardless of lifecycle.
 
-2. Quietly feeding Sherlock/project patterns into project-summarize as background context.
+---
 
-3. Adding project-scoped export flow.
+## 5. Audit + receipts
 
-4. Adding audience selection to export.
+Every dismiss/restore/archive writes one `audit_log` row (`event='intake.dismissed'` / `'intake.restored'` / `'intake.archived'`) so receipts stay permanent. Group dismissals include the member ids in `payload`.
 
-5. Making PDFs lead with the Overall Summary.
+---
 
-6. Making export destination clear:
+## 6. Verdict PDF — download button + cover page
 
-   “PDF will be saved to this project and visible under Saved exports, Briefs, and Receipts.”
+Today the Verdict PDF was generated as an artifact, but there is no in-app download.
 
-Approved Living Brief order:
+- Add a small `VerdictDownloadCard` in Settings → Control Room (and a button in the Briefs surface header) that links to a static `/vanta-verdict.pdf` shipped in `public/`.
+- Regenerate the PDF with a **title cover page**:
+  - Title: "Vanta — The Verdict"
+  - Subtitle: "A calm operational brain for people who think faster than their tools."
+  - One-paragraph hook (East-Coast plain English) summarizing the platform concept.
+  - Generated date.
+- Body unchanged from the previous Verdict (concept, capabilities, what it was built for, maturity gaps, bottom line).
+- Save to `public/vanta-verdict.pdf` so the button is a plain `<a href="/vanta-verdict.pdf" download>`.
 
-- Overall Summary
+---
 
-- Situation
+## Technical section
 
-- Key Topics
+### Files added
+- `supabase/migrations/<ts>_intake_dismissals.sql` — table + RLS + grants + index on `(user_id, item_kind, item_id, dismissed_at desc)`.
+- `src/lib/intakeLifecycle.ts` — classify/filter/group helpers + unit tests under `src/test/intake-lifecycle.test.ts`.
+- `src/hooks/useIntakeDismissals.ts`
+- `src/hooks/useAttachedItemIds.ts`
+- `src/components/settings/IntakeCleanupSection.tsx`
+- `public/vanta-verdict.pdf` (regenerated with cover page)
+- `src/components/settings/VerdictDownloadCard.tsx`
 
-- Decisions / Known Requirements
+### Files edited
+- `src/hooks/useUserPreferences.ts` — extend `UserPreferences` type with `intake` block + defaults.
+- `src/components/memory/useIntakeFeed.ts` — accept lifecycle filter; return classified items; merge dismissals + attachments.
+- `src/components/surfaces/CommandCenterSurface.tsx` + `src/components/cockpit/*` — apply filter/limit/group; wire `View all`.
+- `src/components/surfaces/InboxSurface.tsx` — add Active/Attached/Archived/Dismissed/Stale tabs + restore.
+- `src/components/memory/CaptureCard.tsx`, `CapturesView.tsx`, `MemoryFilesView.tsx`, `InboxNotesList.tsx` — shared dismiss + group card render.
+- `src/pages/Settings.tsx` — mount `IntakeCleanupSection` and `VerdictDownloadCard`.
+- `src/components/surfaces/BriefsSurface.tsx` — small "Download the Verdict" link in header.
 
-- Risks / Questions
+### Out of scope
+- No new AI features, no new edge functions.
+- No changes to Sherlock, Living Briefs, exports, or project structure beyond reading `project_items`.
+- No deletion of any data — dismissed/archived/stale are filters, not deletes.
 
-- Next Move
-
-- Sources / Receipts
-
-Important rule:
-
-The Overall Summary must explain what all attached project material means together.
-
-It should not list notes, files, findings, or captures one by one.
-
-For Ground Stay, the target should sound like:
-
-“Ground Stay is currently in a cleanup phase around booking operations. The attached material points to connected issues around calendar availability, booking fee controls, payment/package logic, deposit confirmation, and unit visibility. The Lamai Global contact-page feedback is separate but related to reducing friction for guests, fighters, and clients trying to reach the business directly.”
-
-Sherlock should stay quiet.
-
-Use Sherlock-derived patterns to identify themes, contradictions, risks, and repeated topics, but never expose “Sherlock detected” or “the system found” in the user-facing summary.
-
-Project export flow is approved:
-
-Project
-
-→ Living Brief
-
-→ Create export
-
-→ Choose audience
-
-→ Choose format
-
-→ Preview
-
-→ Approve
-
-→ Saved exports
-
-→ Briefs
-
-→ Receipts
-
-Proceed with the listed touched files only.
+### Acceptance tests
+1. Dismiss a week-old "Laundry" capture → gone from Command Center, stays gone after refresh, still findable in Memory search and in Inbox → Dismissed (with Restore).
+2. Four "Ground Stay payment" captures within 48h → render as one group "4 related Ground Stay payment captures" with Expand / Attach / Summarize / Dismiss group. After Attach to Ground Stay → group disappears from Command Center, shows inside the project, stays in Memory.
+3. Toggle Settings → capture window 2 days, section limit 3 → Command Center reflects immediately.
+4. Verdict button in Settings downloads a PDF whose first page is the cover (title + hook).

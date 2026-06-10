@@ -8,7 +8,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { SherlockHintChip } from "@/components/sherlock/SherlockHintChip";
 import type { SherlockFinding } from "@/lib/sherlock/types";
 import { Loader2, ShieldAlert, ShieldCheck, Shield, CheckSquare, ListChecks,
-  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText } from "lucide-react";
+  Inbox, Search, Notebook, ScrollText, Compass, ArrowRight, Sparkles, Network, FileText, X, Layers } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -24,6 +24,15 @@ import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 import type { BriefFormat } from "@/lib/briefs";
+import { useIntakePrefs } from "@/hooks/useIntakePrefs";
+import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
+import { useAttachedItemIds } from "@/hooks/useAttachedItemIds";
+import {
+  filterForCommandCenter,
+  groupSimilarCaptures,
+  isGroup,
+  keyFor,
+} from "@/lib/intakeLifecycle";
 
 type Counts = {
   pendingApprovals: number;
@@ -56,6 +65,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const { openSherlock } = useSherlock();
   const { openCanvas } = useCanvas();
   const isOwner = useIsOwner();
+  const { intake } = useIntakePrefs();
+  const { dismissed, dismiss } = useIntakeDismissals();
+  const { attached } = useAttachedItemIds();
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Counts>({
     pendingApprovals: 0, highRisk: 0, openCommitments: 0, overdueCommitments: 0,
@@ -215,9 +227,17 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         {/* 5. Project rollups */}
         <ProjectRollupCards />
 
-        {/* 6. Live Capture — receipt roll. */}
+        {/* 6. Live Capture — receipt roll. Filtered by lifecycle + grouped. */}
         <div className="grid grid-cols-1 gap-3">
-          <LiveCaptureCard items={captures} onOpen={() => onNavigate("memory")} findingsMap={pendingById} />
+          <LiveCaptureCard
+            items={captures}
+            onOpen={() => onNavigate("inbox" as SurfaceKey)}
+            findingsMap={pendingById}
+            prefs={intake}
+            dismissed={dismissed}
+            attached={attached}
+            onDismiss={(kind, id, payload) => dismiss(kind as any, id, { payload })}
+          />
         </div>
 
         {/* 7. Deep-dive tiles. System receipts is owner-only. */}
@@ -409,45 +429,123 @@ function TodayCard({ today, overdue, onOpen }: { today: CommitmentRow[]; overdue
   );
 }
 
-function LiveCaptureCard({ items, onOpen, findingsMap }: { items: CaptureRow[]; onOpen: () => void; findingsMap: Map<string, SherlockFinding> }) {
+function LiveCaptureCard({
+  items, onOpen, findingsMap, prefs, dismissed, attached, onDismiss,
+}: {
+  items: CaptureRow[];
+  onOpen: () => void;
+  findingsMap: Map<string, SherlockFinding>;
+  prefs: import("@/lib/intakeLifecycle").IntakePrefs;
+  dismissed: Set<string>;
+  attached: Set<string>;
+  onDismiss: (kind: string, id: string, payload?: any) => void;
+}) {
   const { openSherlock } = useSherlock();
+
+  // Filter: active only (drops dismissed / attached / stale automatically)
+  const active = filterForCommandCenter(
+    items.map((c) => ({ ...c, ts: c.ts })),
+    prefs,
+    dismissed,
+    attached,
+  );
+  const grouped = groupSimilarCaptures(active, prefs);
+  const limited = grouped.slice(0, prefs.command_center_section_limit);
+  const hiddenCount = items.length - active.length;
+
   return (
     <CardShell title="Live Capture" Icon={Inbox}
-      badge={items.length ? String(items.length) : null}
-      onOpen={onOpen} openLabel="Open memory">
-      {items.length === 0 ? <Empty>Nothing captured recently.</Empty> : (
+      badge={limited.length ? String(limited.length) : null}
+      onOpen={onOpen} openLabel="View all">
+      {limited.length === 0 ? (
+        <Empty>
+          {hiddenCount > 0
+            ? `Nothing new. ${hiddenCount} older or dismissed item${hiddenCount === 1 ? "" : "s"} hidden.`
+            : "Nothing captured recently."}
+        </Empty>
+      ) : (
         <ul className="space-y-2">
-          {items.map(c => {
+          {limited.map((row) => {
+            if (isGroup(row)) {
+              return (
+                <li key={row.key} className="rounded-md border border-border/40 bg-background/30 p-2 text-[12.5px]">
+                  <div className="flex items-start gap-2">
+                    <Layers className="mt-0.5 h-3.5 w-3.5 text-primary" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-foreground">{row.label}</div>
+                      <div className="text-[10.5px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(row.items[0].ts), { addSuffix: true })}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() =>
+                        onDismiss("capture_group", row.key, {
+                          member_ids: row.items.map((i) => keyFor(i.kind, i.id)),
+                          member_kinds: row.items.map((i) => i.kind),
+                        })
+                      }
+                      className="rounded p-0.5 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+                      title="Dismiss group"
+                      aria-label="Dismiss group"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </li>
+              );
+            }
+            const c = row as CaptureRow;
             const finding = findingsMap.get(c.id);
+            const kind = c.kind === "file" ? "file" : c.kind === "note" ? "note" : "message";
             return (
-              <li key={c.id} className="text-[12.5px]">
-                <div className="truncate text-foreground">{c.label}</div>
-                <div className="text-[10.5px] text-muted-foreground">
-                  {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
+              <li key={c.id} className="group text-[12.5px]">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-foreground">{c.label}</div>
+                    <div className="text-[10.5px] text-muted-foreground">
+                      {c.kind} · {c.source ?? "capture"} · {formatDistanceToNow(new Date(c.ts), { addSuffix: true })}
+                    </div>
+                    {finding && (
+                      <SherlockHintChip
+                        hint={{
+                          id: finding.id,
+                          mode: finding.mode,
+                          summary: finding.summary,
+                          confidence: finding.confidence,
+                          suggested_action: finding.suggested_action,
+                        }}
+                        onOpen={() => {
+                          openSherlock({
+                            entity_type: c.kind === "message" ? "message" : c.kind === "file" ? "file" : "freeform",
+                            entity_id: c.id,
+                            title: finding.summary.slice(0, 80),
+                            text: "",
+                          });
+                        }}
+                      />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onDismiss(kind, c.id)}
+                    className="rounded p-0.5 text-muted-foreground opacity-60 transition-opacity hover:bg-surface-elevated hover:text-foreground group-hover:opacity-100"
+                    title="Dismiss"
+                    aria-label="Dismiss capture"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-                {finding && (
-                  <SherlockHintChip
-                    hint={{
-                      id: finding.id,
-                      mode: finding.mode,
-                      summary: finding.summary,
-                      confidence: finding.confidence,
-                      suggested_action: finding.suggested_action,
-                    }}
-                    onOpen={() => {
-                      openSherlock({
-                        entity_type: c.kind === "message" ? "message" : c.kind === "file" ? "file" : "freeform",
-                        entity_id: c.id,
-                        title: finding.summary.slice(0, 80),
-                        text: "",
-                      });
-                    }}
-                  />
-                )}
               </li>
             );
           })}
         </ul>
+      )}
+      {hiddenCount > 0 && limited.length > 0 && (
+        <div className="mt-2 text-[10.5px] text-muted-foreground">
+          {hiddenCount} older or dismissed item{hiddenCount === 1 ? "" : "s"} not shown ·{" "}
+          <button className="underline hover:text-foreground" onClick={onOpen}>
+            View all
+          </button>
+        </div>
       )}
     </CardShell>
   );

@@ -28,6 +28,7 @@ import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
+import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -86,8 +87,10 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { items, loading, refresh } = useIntakeFeed(60);
+  const { dismissed, dismiss, restore } = useIntakeDismissals();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
   const [lane, setLane] = useState<InboxLane>("now");
+  const [showDismissed, setShowDismissed] = useState(false);
   const [aftermathFileId, setAftermathFileId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -95,23 +98,30 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
 
   const filtered = useMemo(() => {
     let list = items;
+    // Dismissed filter — sticky across refresh, with optional "show dismissed" view.
+    const isDismissed = (i: IntakeRow) => {
+      const k = `${i._raw.kind}:${i._raw.row.id}`;
+      return dismissed.has(k);
+    };
+    if (showDismissed) {
+      list = list.filter(isDismissed);
+    } else {
+      list = list.filter((i) => !isDismissed(i));
+    }
     if (ambiguousOnly) {
-      // Inbox V2 state machine — Now / Snoozed / Done
       if (lane === "snoozed") {
         list = list.filter((i) => i.isSnoozed);
       } else if (lane === "done") {
         list = list.filter((i) => i.isDone && !i.isSnoozed);
       } else {
-        // "now" = needs review, not snoozed, not done
         list = list.filter((i) => i.needsReview && !i.isSnoozed && !i.isDone);
       }
     } else {
-      // All-captures view filters
       if (filter === "review") list = list.filter((i) => i.needsReview);
       else if (filter !== "all") list = list.filter((i) => i.source === filter);
     }
     return list;
-  }, [items, filter, ambiguousOnly, lane]);
+  }, [items, filter, ambiguousOnly, lane, dismissed, showDismissed]);
 
   const routeToNote = async (item: IntakeRow) => {
     if (!user) return;
@@ -285,13 +295,23 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       ];
     }
+    const dismissAction = {
+      label: "Dismiss",
+      onClick: () =>
+        dismiss(item._raw.kind as any, item._raw.row.id, { reason: "user_dismissed" }),
+    };
+    const restoreAction = {
+      label: "Restore",
+      onClick: () => restore(item._raw.kind, item._raw.row.id),
+    };
+    if (showDismissed) return [restoreAction];
     if (item.isSnoozed) {
-      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }];
+      return [{ label: "Bring back now", onClick: () => unsnooze(item), primary: true }, dismissAction];
     }
     if (item.routedTo === "ignored") {
-      return [{ label: "Undo", onClick: () => undoIgnore(item) }];
+      return [{ label: "Undo", onClick: () => undoIgnore(item) }, dismissAction];
     }
-    if (item.routedTo) return []; // already routed — read-only chip
+    if (item.routedTo) return [dismissAction];
     return [
       { label: "Track as commitment", onClick: () => routeToCommitment(item), primary: true },
       { label: "Save as note", onClick: () => routeToNote(item) },
@@ -300,6 +320,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       { label: "Snooze tomorrow", onClick: () => snooze(item, 24) },
       { label: "Send to Sherlock", onClick: () => sendToSherlock(item) },
       { label: "Ignore", onClick: () => ignore(item) },
+      dismissAction,
     ];
   };
 
@@ -410,6 +431,19 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         {selectMode && selectedIds.size > 0 && (
           <span className="text-muted-foreground">{selectedIds.size} picked</span>
         )}
+        <button
+          type="button"
+          onClick={() => setShowDismissed((s) => !s)}
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            showDismissed
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+          title="Toggle dismissed items"
+        >
+          {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
+        </button>
       </div>
 
       {loading && (

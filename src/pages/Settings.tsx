@@ -17,6 +17,8 @@ import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { useTutorial } from "@/components/tutorial/TutorialProvider";
 import { SystemMap } from "@/components/tutorial/SystemMap";
 import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
+import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
+import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -108,6 +110,9 @@ export default function Settings() {
       )}
 
       <InstallVantaSection />
+
+      <VerdictDownloadCard />
+      <IntakeCleanupSection />
 
       {/* How Vanta Works — replayable tutorial + visual system map. */}
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
