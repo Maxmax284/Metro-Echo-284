@@ -58,6 +58,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
   const [needs, setNeeds] = useState<ChecklistItem[]>([]);
   const [changed, setChanged] = useState<ChecklistItem[]>([]);
   const [next, setNext] = useState<ChecklistItem[]>([]);
+  const [overdueMeta, setOverdueMeta] = useState({ total: 0, stale: 0, visible: 0, capped: 0 });
   const [loading, setLoading] = useState(true);
   const [showOlderNeeds, setShowOlderNeeds] = useState(false);
   const [showOlderChanged, setShowOlderChanged] = useState(false);
@@ -165,10 +166,16 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       setNeeds(needsItems);
       setChanged(changedItems);
       setNext(nextItems.slice(0, 3));
+      setOverdueMeta({
+        total: overdue.data?.length ?? 0,
+        stale: (overdue.data?.length ?? 0) - visibleOverdue.length,
+        visible: visibleOverdue.length,
+        capped: Math.max(0, visibleOverdue.length - cappedOverdue.length),
+      });
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [session]);
+  }, [session, intake.commitment_stale_days, intake.commitment_stale_behavior, intake.today_card_overdue_limit]);
 
   const windowDays = intake.capture_visibility_days;
   const limit = intake.command_center_section_limit;
