@@ -241,6 +241,17 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
   const labels = template.layout.labels;
   const strip = !!template.layout.stripRawReceipts;
 
+  const sourcesAppendixInline = template.layout.receiptsFirst && footnotes.ordered.length > 0 ? (
+    <View key="sources_lead" wrap={false}>
+      <Text style={styles.sectionHeading}>Sources lead</Text>
+      {footnotes.ordered.slice(0, 12).map(({ n, ref }) => (
+        <Text key={n} style={styles.receipt}>
+          {n}. {ref.label ?? `${ref.kind} ${ref.id?.slice(0, 8) ?? ""}`} · {ref.kind}
+        </Text>
+      ))}
+    </View>
+  ) : null;
+
   const overallBlock = blocks.overall_summary?.text ? (
     <View key="overall" wrap={false}>
       <Text style={styles.sectionKicker}>{labels.overall}</Text>
