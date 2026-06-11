@@ -49,7 +49,14 @@ export function formatAuditEvent(
 ): BulletinLine | null {
   const e = ev.event;
   const proj = projectName || PROJECT_NAME_FALLBACK;
-  const base = { id: ev.id, at: ev.created_at, entity_id: ev.entity_id ?? null };
+  const base = {
+    id: ev.id,
+    at: ev.created_at,
+    entity_id: ev.entity_id ?? null,
+    source_event: e,
+    entity_type: ev.entity_type ?? null,
+    payload: ev.payload ?? null,
+  };
 
   // -- Done / saved -------------------------------------------------------
   if (e === "brief.exported")
