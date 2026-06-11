@@ -217,7 +217,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         </div>
 
         {/* 0. Daily bulletin — "Since you last checked", plain English. */}
-        <DailyBulletinCard />
+        <DailyBulletinCard onNavigate={onNavigate} />
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
