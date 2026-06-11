@@ -32,6 +32,12 @@ export type BulletinLine = {
   text: string;
   at: string;
   entity_id?: string | null;
+  /** Original audit event name (if any) — drives which inline actions apply. */
+  source_event?: string;
+  /** Original audit entity_type — drives which inline actions apply. */
+  entity_type?: string | null;
+  /** Raw payload echoed through for action handlers (e.g. dismissal kind/item_id). */
+  payload?: any;
 };
 
 const PROJECT_NAME_FALLBACK = "a project";
