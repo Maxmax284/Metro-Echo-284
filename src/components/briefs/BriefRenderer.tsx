@@ -87,11 +87,18 @@ function ClaimWrap({
   );
 }
 
-function extractText(body: any): string {
+const RAW_RECEIPT_RE =
+  /\s*\b(?:note|file|entity|commitment|action|message|capture|reminder|signal|finding|project)\s*[:#]\s*[A-Za-z0-9_-]{6,}\b\s*/g;
+function sanitize(text: string, strip?: boolean): string {
+  if (!strip || !text) return text;
+  return text.replace(RAW_RECEIPT_RE, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function extractText(body: any, strip?: boolean): string {
   if (body == null) return "";
-  if (typeof body === "string") return body;
-  if (typeof body === "object" && typeof body.text === "string") return body.text;
-  return String(body);
+  if (typeof body === "string") return sanitize(body, strip);
+  if (typeof body === "object" && typeof body.text === "string") return sanitize(body.text, strip);
+  return sanitize(String(body), strip);
 }
 
 function ProseBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
