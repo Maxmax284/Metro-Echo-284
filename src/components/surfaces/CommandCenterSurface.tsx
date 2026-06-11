@@ -603,11 +603,35 @@ function SherlockWatchtowerCard({ items, onOpen, onAnalyze }: {
 
 
 function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
-  const [recent, setRecent] = useState<{ id: string; title: string | null; created_at: string }[]>([]);
+  type NoteRow = {
+    id: string;
+    title: string | null;
+    summary: string | null;
+    body_md: string | null;
+    note_type: string | null;
+    created_at: string;
+  };
+  const [recent, setRecent] = useState<NoteRow[]>([]);
   useEffect(() => {
-    supabase.from("notes").select("id, title, created_at").order("created_at", { ascending: false }).limit(5)
-      .then(({ data }) => setRecent((data ?? []) as any));
+    supabase
+      .from("notes")
+      .select("id, title, summary, body_md, note_type, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => setRecent(((data ?? []) as any) as NoteRow[]));
   }, []);
+  function whatHappened(n: NoteRow): string {
+    if (n.summary && n.summary.trim()) return n.summary.trim();
+    if (n.body_md && n.body_md.trim()) {
+      const first = n.body_md.replace(/[#>*_`]/g, "").trim().split(/\n+/)[0] ?? "";
+      if (first) return first.length > 110 ? `${first.slice(0, 107)}…` : first;
+    }
+    if (n.note_type) {
+      const t = n.note_type.replace(/_/g, " ");
+      return `${t.charAt(0).toUpperCase() + t.slice(1)} captured for review.`;
+    }
+    return "Note captured for review.";
+  }
   return (
     <CardShell title="Memory Pulse" Icon={Notebook} onOpen={onOpen} openLabel="Open memory">
       {recent.length === 0 ? <Empty>No memory items yet.</Empty> : (
@@ -615,6 +639,7 @@ function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
           {recent.map(n => (
             <li key={n.id} className="text-[12.5px]">
               <div className="truncate text-foreground">{n.title || "Untitled note"}</div>
+              <div className="line-clamp-2 text-[11px] text-foreground/75">{whatHappened(n)}</div>
               <div className="text-[10.5px] text-muted-foreground">
                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </div>
@@ -633,9 +658,9 @@ function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () =
         <ul className="space-y-2">
           {items.slice(0, 5).map(r => (
             <li key={r.id} className="text-[12.5px]">
-              <div className="truncate text-foreground">{r.event}</div>
+              <div className="truncate text-foreground">{humanizeEvent(r.event)}</div>
               <div className="text-[10.5px] text-muted-foreground">
-                {r.entity_type} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
               </div>
             </li>
           ))}
@@ -644,6 +669,7 @@ function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () =
     </CardShell>
   );
 }
+
 
 function FilesTile({ onOpen }: { onOpen: () => void }) {
   const [counts, setCounts] = useState<{ newToday: number; triage: number; lastName: string | null; lastWhen: string | null }>({
