@@ -130,7 +130,13 @@ export function ProjectRollupCards() {
         })}
       </div>
 
+      <div className="text-[10.5px] text-muted-foreground">
+        Missing a project the bulletin mentioned? It may be unpinned or archived.{" "}
+        <Link to="/projects" className="underline-offset-2 hover:underline">See all projects</Link>.
+      </div>
+
       <BriefComposerSheet
+
         open={!!composeFor}
         onOpenChange={(o) => !o && setComposeFor(null)}
         defaultScope="entity"
