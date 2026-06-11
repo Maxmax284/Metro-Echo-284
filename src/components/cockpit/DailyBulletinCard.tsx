@@ -137,9 +137,10 @@ export function DailyBulletinCard({ refreshKey = 0 }: Props) {
     if (projectIds.size > 0) {
       const { data: projs } = await supabase
         .from("projects")
-        .select("id,name")
+        .select("id,title")
         .in("id", Array.from(projectIds));
-      for (const p of projs ?? []) projectNames.set(p.id, p.name);
+      for (const p of (projs ?? []) as Array<{ id: string; title: string }>)
+        projectNames.set(p.id, p.title);
     }
 
     // Project updates rollup (by project name).
