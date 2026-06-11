@@ -219,8 +219,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </div>
         </div>
 
+        {/* Soft, non-blocking first-run welcome — replaces the blocking tutorial modal. */}
+        <SoftWelcomeChip />
+
         {/* 0. Daily bulletin — "Since you last checked", plain English. */}
         <DailyBulletinCard onNavigate={onNavigate} />
+
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
