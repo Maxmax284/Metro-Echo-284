@@ -47,26 +47,19 @@ export function MissingSecretsBanner() {
             </Link>
           </div>
           <ul className="mt-2 space-y-1">
-            {missing.map(({ def, missing: names }) => (
+            {missing.map(({ def }) => (
               <li key={def.key} className="flex flex-wrap items-center gap-2 text-[11.5px]">
                 <Link
                   to={`/settings/integrations#integration-${def.key}`}
                   className="font-medium underline-offset-2 hover:underline"
                 >
-                  {def.name}
+                  {def.name} inbound connection
                 </Link>
-                <span className="text-muted-foreground">missing:</span>
-                {names.map((n) => (
-                  <code
-                    key={n}
-                    className="rounded bg-background/60 px-1 py-0.5 text-[10.5px] ring-1 ring-border/40"
-                  >
-                    {n}
-                  </code>
-                ))}
+                <span className="text-muted-foreground">needs setup</span>
               </li>
             ))}
           </ul>
+
         </div>
       </div>
     </section>
