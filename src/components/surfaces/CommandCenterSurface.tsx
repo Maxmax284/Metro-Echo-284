@@ -606,28 +606,26 @@ function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
   type NoteRow = {
     id: string;
     title: string | null;
-    summary: string | null;
-    body_md: string | null;
-    note_type: string | null;
+    body: string | null;
+    tags: string[] | null;
     created_at: string;
   };
   const [recent, setRecent] = useState<NoteRow[]>([]);
   useEffect(() => {
     supabase
       .from("notes")
-      .select("id, title, summary, body_md, note_type, created_at")
+      .select("id, title, body, tags, created_at")
       .order("created_at", { ascending: false })
       .limit(5)
       .then(({ data }) => setRecent(((data ?? []) as any) as NoteRow[]));
   }, []);
   function whatHappened(n: NoteRow): string {
-    if (n.summary && n.summary.trim()) return n.summary.trim();
-    if (n.body_md && n.body_md.trim()) {
-      const first = n.body_md.replace(/[#>*_`]/g, "").trim().split(/\n+/)[0] ?? "";
+    if (n.body && n.body.trim()) {
+      const first = n.body.replace(/[#>*_`]/g, "").trim().split(/\n+/)[0] ?? "";
       if (first) return first.length > 110 ? `${first.slice(0, 107)}…` : first;
     }
-    if (n.note_type) {
-      const t = n.note_type.replace(/_/g, " ");
+    if (n.tags && n.tags.length) {
+      const t = n.tags[0].replace(/_/g, " ");
       return `${t.charAt(0).toUpperCase() + t.slice(1)} captured for review.`;
     }
     return "Note captured for review.";
@@ -650,6 +648,7 @@ function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
     </CardShell>
   );
 }
+
 
 function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () => void }) {
   return (
