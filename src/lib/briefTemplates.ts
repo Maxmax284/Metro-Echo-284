@@ -46,6 +46,14 @@ export type BriefTemplate = {
     hideRisks: boolean;
     /** Render Sources appendix first (after Overall) for receipts-first audiences. */
     receiptsFirst: boolean;
+    /** Strip raw `{kind}:{id}` receipt strings from claim text before render. */
+    stripRawReceipts?: boolean;
+    /** Section order for structured project briefs. Default if omitted. */
+    sectionOrder?: ReadonlyArray<
+      "overall" | "situation" | "key_topics" | "decisions" | "risks" | "next_move"
+    >;
+    /** Optional footer note (right side, replaces page-count area when shown). */
+    footerNote?: string;
     /** Rename labels per audience (e.g. Risks -> Considerations). */
     labels: {
       overall: string;
