@@ -19,6 +19,7 @@ import { ProductivityPulseCard } from "@/components/cockpit/ProductivityPulseCar
 import { OperationsBriefingPanel } from "@/components/cockpit/OperationsBriefingPanel";
 import { ProjectRollupCards } from "@/components/cockpit/ProjectRollupCards";
 import { DailyChecklistCard } from "@/components/cockpit/DailyChecklistCard";
+import { DailyBulletinCard } from "@/components/cockpit/DailyBulletinCard";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -214,6 +215,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
             </p>
           </div>
         </div>
+
+        {/* 0. Daily bulletin — "Since you last checked", plain English. */}
+        <DailyBulletinCard />
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
