@@ -583,19 +583,24 @@ function SherlockWatchtowerCard({ items, onOpen, onAnalyze }: {
         </div>
       ) : (
         <ul className="space-y-2">
-          {items.slice(0, 5).map(s => (
-            <li key={s.id} className="text-[12.5px]">
-              <div className="text-foreground">{s.summary || "Open finding"}</div>
-              <div className="text-[10.5px] text-muted-foreground">
-                {s.entity_type}{s.confidence ? ` · ${s.confidence} confidence` : ""} · {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
-              </div>
-            </li>
-          ))}
+          {items.slice(0, 5).map(s => {
+            const modeLabel = sherlockModeLabel(s.entity_type);
+            const confLabel = sherlockConfidenceLabel(s.confidence);
+            return (
+              <li key={s.id} className="text-[12.5px]">
+                <div className="text-foreground">{s.summary || "Vanta noticed something"}</div>
+                <div className="text-[10.5px] text-muted-foreground">
+                  {modeLabel}{confLabel ? ` · ${confLabel}` : ""} · {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </CardShell>
   );
 }
+
 
 function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
   const [recent, setRecent] = useState<{ id: string; title: string | null; created_at: string }[]>([]);
