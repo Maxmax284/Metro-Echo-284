@@ -64,11 +64,20 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
   });
 }
 
-function bodyText(body: any): string {
+/** Strip raw `{kind}:{id-hex}` receipt strings from claim text — used for
+ * external (client) audiences where internal IDs must not leak. */
+const RAW_RECEIPT_RE =
+  /\s*\b(?:note|file|entity|commitment|action|message|capture|reminder|signal|finding|project)\s*[:#]\s*[A-Za-z0-9_-]{6,}\b\s*/g;
+function sanitize(text: string, strip?: boolean): string {
+  if (!strip || !text) return text;
+  return text.replace(RAW_RECEIPT_RE, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function bodyText(body: any, strip?: boolean): string {
   if (body == null) return "";
-  if (typeof body === "string") return body;
-  if (typeof body === "object" && typeof body.text === "string") return body.text;
-  return String(body);
+  if (typeof body === "string") return sanitize(body, strip);
+  if (typeof body === "object" && typeof body.text === "string") return sanitize(body.text, strip);
+  return sanitize(String(body), strip);
 }
 
 function Footnotes({ numbers, style }: { numbers: number[]; style: any }) {
