@@ -483,6 +483,13 @@ function LiveCaptureCard({
         <ul className="space-y-2">
           {limited.map((row) => {
             if (isGroup(row)) {
+              const bulkItems = row.items
+                .map((i) => {
+                  const t: "capture" | "file" | "note" | null =
+                    i.kind === "file" ? "file" : i.kind === "note" ? "note" : i.kind === "message" ? "capture" : null;
+                  return t ? { type: t, id: i.id } : null;
+                })
+                .filter((x): x is { type: "capture" | "file" | "note"; id: string } => !!x);
               return (
                 <li key={row.key} className="rounded-md border border-border/40 bg-background/30 p-2 text-[12.5px]">
                   <div className="flex items-start gap-2">
@@ -492,6 +499,15 @@ function LiveCaptureCard({
                       <div className="text-[10.5px] text-muted-foreground">
                         {formatDistanceToNow(new Date(row.items[0].ts), { addSuffix: true })}
                       </div>
+                      {bulkItems.length > 0 && (
+                        <div className="mt-1.5">
+                          <BulkAttachToProjectMenu
+                            items={bulkItems}
+                            label={`Attach ${bulkItems.length} to a project`}
+                            className="h-6 px-2 text-[10.5px]"
+                          />
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() =>
@@ -510,6 +526,7 @@ function LiveCaptureCard({
                 </li>
               );
             }
+
             const c = row as CaptureRow;
             const finding = findingsMap.get(c.id);
             const kind = c.kind === "file" ? "file" : c.kind === "note" ? "note" : "message";
