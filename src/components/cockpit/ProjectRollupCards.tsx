@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ArrowRight, ChevronDown, FileText, Folder, Loader2, Pin } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { fetchEntityRollup, type EntityRollup } from "@/lib/briefs";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { useCanvas } from "@/components/entities/CanvasContext";
