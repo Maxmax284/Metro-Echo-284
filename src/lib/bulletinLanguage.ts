@@ -32,6 +32,12 @@ export type BulletinLine = {
   text: string;
   at: string;
   entity_id?: string | null;
+  /** Original audit event name (if any) — drives which inline actions apply. */
+  source_event?: string;
+  /** Original audit entity_type — drives which inline actions apply. */
+  entity_type?: string | null;
+  /** Raw payload echoed through for action handlers (e.g. dismissal kind/item_id). */
+  payload?: any;
 };
 
 const PROJECT_NAME_FALLBACK = "a project";
@@ -43,7 +49,14 @@ export function formatAuditEvent(
 ): BulletinLine | null {
   const e = ev.event;
   const proj = projectName || PROJECT_NAME_FALLBACK;
-  const base = { id: ev.id, at: ev.created_at, entity_id: ev.entity_id ?? null };
+  const base = {
+    id: ev.id,
+    at: ev.created_at,
+    entity_id: ev.entity_id ?? null,
+    source_event: e,
+    entity_type: ev.entity_type ?? null,
+    payload: ev.payload ?? null,
+  };
 
   // -- Done / saved -------------------------------------------------------
   if (e === "brief.exported")
