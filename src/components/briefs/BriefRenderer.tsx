@@ -87,35 +87,43 @@ function ClaimWrap({
   );
 }
 
-function extractText(body: any): string {
-  if (body == null) return "";
-  if (typeof body === "string") return body;
-  if (typeof body === "object" && typeof body.text === "string") return body.text;
-  return String(body);
+const RAW_RECEIPT_RE =
+  /\s*\b(?:note|file|entity|commitment|action|message|capture|reminder|signal|finding|project)\s*[:#]\s*[A-Za-z0-9_-]{6,}\b\s*/g;
+function sanitize(text: string, strip?: boolean): string {
+  if (!strip || !text) return text;
+  return text.replace(RAW_RECEIPT_RE, " ").replace(/\s{2,}/g, " ").trim();
 }
 
-function ProseBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function extractText(body: any, strip?: boolean): string {
+  if (body == null) return "";
+  if (typeof body === "string") return sanitize(body, strip);
+  if (typeof body === "object" && typeof body.text === "string") return sanitize(body.text, strip);
+  return sanitize(String(body), strip);
+}
+
+function ProseBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
   const claim = claims.get(`${section.id}:prose`);
   return (
     <div className="space-y-1.5">
       {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
       <p className="text-[13.5px] leading-relaxed text-foreground/90">
         <ClaimWrap claim={claim} openReceipts={openReceipts}>
-          {extractText(section.body)}
+          {extractText(section.body, strip)}
         </ClaimWrap>
       </p>
     </div>
   );
 }
 
-function ListBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function ListBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
   const items: any[] = Array.isArray(section.body) ? section.body : [];
   return (
     <div className="space-y-1.5">
       {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
       <ul className="space-y-1 text-[13px] text-foreground/85">
         {items.map((it, i) => {
-          const text = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
+          const raw = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
+          const text = sanitize(raw, strip);
           const claim = claims.get(`${section.id}:${i}`);
           return (
             <li key={i} className="flex gap-2">
@@ -129,7 +137,7 @@ function ListBlock({ section, claims, openReceipts }: { section: BriefSection; c
   );
 }
 
-function TimelineBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function TimelineBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
   const items: any[] = Array.isArray(section.body) ? section.body : [];
   return (
     <div className="space-y-1.5">
@@ -141,7 +149,7 @@ function TimelineBlock({ section, claims, openReceipts }: { section: BriefSectio
             <li key={i}>
               <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{it.when ?? ""}</div>
               <div className="text-foreground/90">
-                <ClaimWrap claim={claim} openReceipts={openReceipts}>{it.what ?? ""}</ClaimWrap>
+                <ClaimWrap claim={claim} openReceipts={openReceipts}>{sanitize(it.what ?? "", strip)}</ClaimWrap>
               </div>
             </li>
           );
@@ -151,7 +159,7 @@ function TimelineBlock({ section, claims, openReceipts }: { section: BriefSectio
   );
 }
 
-function DecisionBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function DecisionBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
   const body = section.body ?? {};
   const claim = claims.get(`${section.id}:decision`);
   return (
@@ -159,15 +167,16 @@ function DecisionBlock({ section, claims, openReceipts }: { section: BriefSectio
       {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
       <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
         <div className="text-[13.5px] font-medium text-foreground">
-          <ClaimWrap claim={claim} openReceipts={openReceipts}>{body.decision ?? ""}</ClaimWrap>
+          <ClaimWrap claim={claim} openReceipts={openReceipts}>{sanitize(body.decision ?? "", strip)}</ClaimWrap>
         </div>
-        {body.why && <div className="mt-1 text-[12px] text-muted-foreground">Why: {body.why}</div>}
+        {body.why && <div className="mt-1 text-[12px] text-muted-foreground">Why: {sanitize(body.why, strip)}</div>}
       </div>
     </div>
   );
 }
 
-function ReceiptsBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function ReceiptsBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
+  if (strip) return null;
   const items: any[] = Array.isArray(section.body) ? section.body : [];
   return (
     <div className="space-y-1.5">
@@ -189,28 +198,28 @@ function ReceiptsBlock({ section, claims, openReceipts }: { section: BriefSectio
   );
 }
 
-function PullQuoteBlock({ section, claims, openReceipts }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn }) {
+function PullQuoteBlock({ section, claims, openReceipts, strip }: { section: BriefSection; claims: ClaimByKey; openReceipts: OpenReceiptsFn; strip?: boolean }) {
   const claim = claims.get(`${section.id}:prose`);
   return (
     <div className="space-y-1.5">
       {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
       <blockquote className="flex gap-2 border-l-2 border-primary/50 pl-3 text-[13.5px] italic text-foreground/85">
         <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/60" />
-        <span><ClaimWrap claim={claim} openReceipts={openReceipts}>{extractText(section.body)}</ClaimWrap></span>
+        <span><ClaimWrap claim={claim} openReceipts={openReceipts}>{extractText(section.body, strip)}</ClaimWrap></span>
       </blockquote>
     </div>
   );
 }
 
-function renderSection(section: BriefSection, claims: ClaimByKey, openReceipts: OpenReceiptsFn) {
+function renderSection(section: BriefSection, claims: ClaimByKey, openReceipts: OpenReceiptsFn, strip?: boolean) {
   switch (section.kind) {
-    case "list":      return <ListBlock section={section} claims={claims} openReceipts={openReceipts} />;
-    case "timeline":  return <TimelineBlock section={section} claims={claims} openReceipts={openReceipts} />;
-    case "decision":  return <DecisionBlock section={section} claims={claims} openReceipts={openReceipts} />;
-    case "receipts":  return <ReceiptsBlock section={section} claims={claims} openReceipts={openReceipts} />;
-    case "pull_quote":return <PullQuoteBlock section={section} claims={claims} openReceipts={openReceipts} />;
+    case "list":      return <ListBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
+    case "timeline":  return <TimelineBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
+    case "decision":  return <DecisionBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
+    case "receipts":  return <ReceiptsBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
+    case "pull_quote":return <PullQuoteBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
     case "prose":
-    default:          return <ProseBlock section={section} claims={claims} openReceipts={openReceipts} />;
+    default:          return <ProseBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
   }
 }
 
@@ -254,6 +263,7 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
 
   const audience = (brief as any).audience ?? (brief.grounding as any)?.audience ?? null;
   const template = templateFor(audience);
+  const strip = !!template.layout.stripRawReceipts;
 
   const [drawer, setDrawer] = useState<{
     refs: BriefGrounding[]; label?: string; highlightKey?: string;
@@ -284,15 +294,20 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
             <p className="text-[12.5px] text-muted-foreground">{brief.subtitle}</p>
           )}
           <p className="text-[10.5px] text-muted-foreground/80">
-            Drafted {formatDistanceToNow(new Date(brief.generated_at), { addSuffix: true })} · tap any
-            <span className="mx-1 underline decoration-dotted decoration-primary/40 underline-offset-[3px]">claim</span>
-            or footnote number to see its receipts.
+            Drafted {formatDistanceToNow(new Date(brief.generated_at), { addSuffix: true })}
+            {!strip && (
+              <>
+                {" · tap any"}
+                <span className="mx-1 underline decoration-dotted decoration-primary/40 underline-offset-[3px]">claim</span>
+                or footnote number to see its receipts.
+              </>
+            )}
           </p>
         </header>
 
         <div className="space-y-4">
           {brief.sections.map((s) => (
-            <div key={s.id}>{renderSection(s, claimsByKey, openReceipts)}</div>
+            <div key={s.id}>{renderSection(s, claimsByKey, openReceipts, strip)}</div>
           ))}
         </div>
 
@@ -311,7 +326,14 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
             </button>
           </div>
         )}
+
+        {template.layout.footerNote && (
+          <div className="border-t border-border/30 pt-2 text-[10.5px] italic text-muted-foreground/80">
+            {template.layout.footerNote}
+          </div>
+        )}
       </Card>
+
 
       <ReceiptsDrawer
         open={!!drawer}

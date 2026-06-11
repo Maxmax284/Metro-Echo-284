@@ -46,6 +46,14 @@ export type BriefTemplate = {
     hideRisks: boolean;
     /** Render Sources appendix first (after Overall) for receipts-first audiences. */
     receiptsFirst: boolean;
+    /** Strip raw `{kind}:{id}` receipt strings from claim text before render. */
+    stripRawReceipts?: boolean;
+    /** Section order for structured project briefs. Default if omitted. */
+    sectionOrder?: ReadonlyArray<
+      "overall" | "situation" | "key_topics" | "decisions" | "risks" | "next_move"
+    >;
+    /** Optional footer note (right side, replaces page-count area when shown). */
+    footerNote?: string;
     /** Rename labels per audience (e.g. Risks -> Considerations). */
     labels: {
       overall: string;
@@ -134,7 +142,10 @@ export const BRIEF_TEMPLATES: Record<BriefAudience | "default", BriefTemplate> =
     },
     layout: {
       coverPage: true, footnotesAppendix: true, showSignalsHash: true,
-      hideRisks: false, receiptsFirst: false, labels: DEFAULT_LABELS,
+      hideRisks: false, receiptsFirst: false,
+      sectionOrder: ["overall", "next_move", "decisions", "key_topics", "risks"],
+      footerNote: "Operator brief · keep for reference",
+      labels: { ...DEFAULT_LABELS, nextMove: "Next move" },
     },
   },
 
@@ -158,6 +169,9 @@ export const BRIEF_TEMPLATES: Record<BriefAudience | "default", BriefTemplate> =
     layout: {
       coverPage: true, footnotesAppendix: false, showSignalsHash: false,
       hideRisks: true, receiptsFirst: false,
+      stripRawReceipts: true,
+      sectionOrder: ["situation", "key_topics", "decisions", "risks", "next_move"],
+      footerNote: "Prepared with Vanta · summary only, not a legal document",
       labels: { ...DEFAULT_LABELS, risks: "Considerations" },
     },
   },
