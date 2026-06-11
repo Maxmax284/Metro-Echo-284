@@ -263,6 +263,7 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
 
   const audience = (brief as any).audience ?? (brief.grounding as any)?.audience ?? null;
   const template = templateFor(audience);
+  const strip = !!template.layout.stripRawReceipts;
 
   const [drawer, setDrawer] = useState<{
     refs: BriefGrounding[]; label?: string; highlightKey?: string;
@@ -293,15 +294,20 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
             <p className="text-[12.5px] text-muted-foreground">{brief.subtitle}</p>
           )}
           <p className="text-[10.5px] text-muted-foreground/80">
-            Drafted {formatDistanceToNow(new Date(brief.generated_at), { addSuffix: true })} · tap any
-            <span className="mx-1 underline decoration-dotted decoration-primary/40 underline-offset-[3px]">claim</span>
-            or footnote number to see its receipts.
+            Drafted {formatDistanceToNow(new Date(brief.generated_at), { addSuffix: true })}
+            {!strip && (
+              <>
+                {" · tap any"}
+                <span className="mx-1 underline decoration-dotted decoration-primary/40 underline-offset-[3px]">claim</span>
+                or footnote number to see its receipts.
+              </>
+            )}
           </p>
         </header>
 
         <div className="space-y-4">
           {brief.sections.map((s) => (
-            <div key={s.id}>{renderSection(s, claimsByKey, openReceipts)}</div>
+            <div key={s.id}>{renderSection(s, claimsByKey, openReceipts, strip)}</div>
           ))}
         </div>
 
@@ -320,7 +326,14 @@ export function BriefRenderer({ brief }: { brief: Brief }) {
             </button>
           </div>
         )}
+
+        {template.layout.footerNote && (
+          <div className="border-t border-border/30 pt-2 text-[10.5px] italic text-muted-foreground/80">
+            {template.layout.footerNote}
+          </div>
+        )}
       </Card>
+
 
       <ReceiptsDrawer
         open={!!drawer}
