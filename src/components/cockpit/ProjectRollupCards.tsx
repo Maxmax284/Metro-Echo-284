@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ArrowRight, ChevronDown, FileText, Folder, Loader2, Pin } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { fetchEntityRollup, type EntityRollup } from "@/lib/briefs";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { useCanvas } from "@/components/entities/CanvasContext";
@@ -128,7 +130,13 @@ export function ProjectRollupCards() {
         })}
       </div>
 
+      <div className="text-[10.5px] text-muted-foreground">
+        Missing a project the bulletin mentioned? It may be unpinned or archived.{" "}
+        <Link to="/projects" className="underline-offset-2 hover:underline">See all projects</Link>.
+      </div>
+
       <BriefComposerSheet
+
         open={!!composeFor}
         onOpenChange={(o) => !o && setComposeFor(null)}
         defaultScope="entity"

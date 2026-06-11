@@ -81,6 +81,18 @@ export function humanizeEvent(event: string): string {
     "commitment.snoozed": "Commitment snoozed",
     "note.created": "Note saved",
     "note.updated": "Note edited",
+    "project_items.inserted": "Added to a project",
+    "inbox.bulk_attached": "Items attached to a project",
+    "intake.dismissed": "Hidden from Command Center",
+    "intake.restored": "Restored to Command Center",
+    "intake.stale_archived": "Old loose capture moved out of today's view",
+    "similar_captures.grouped": "Similar captures grouped",
+    "bulletin.dismissed": "Hidden from the bulletin",
+    "bulletin.marked_all_seen": "Bulletin marked all-seen",
+    "bulletin.undo": "Undone from the bulletin",
+    "briefing.composed": "Brief created",
+    "sherlock_finding_created": "Vanta noticed something",
+    "sherlock_suggestion_dismissed": "Sherlock suggestion dismissed",
   };
   if (exact[event]) return exact[event];
   const [domain, verb] = event.split(".");
@@ -95,6 +107,49 @@ export function humanizeEvent(event: string): string {
   };
   return `${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`;
 }
+
+/** Plain-English label for a Sherlock finding mode (e.g. "suggest:message"). */
+export function sherlockModeLabel(mode: string | null | undefined): string {
+  if (!mode) return "General note";
+  const map: Record<string, string> = {
+    "suggest:message": "Suggestion from a message",
+    "extract:message": "Detail pulled from a message",
+    "suggest:file": "Suggestion from a file",
+    "extract:file": "Detail pulled from a file",
+    "suggest:note": "Suggestion from a note",
+    "extract:note": "Detail pulled from a note",
+    "freeform": "General note",
+    "message": "From a message",
+    "file": "From a file",
+    "note": "From a note",
+  };
+  return map[mode] ?? "Worth a look";
+}
+
+/** Plain-English label for a Sherlock confidence band. */
+export function sherlockConfidenceLabel(conf: string | null | undefined): string | null {
+  if (!conf) return null;
+  const c = conf.toLowerCase();
+  if (c === "high") return "Likely useful";
+  if (c === "medium" || c === "med") return "Worth reviewing";
+  if (c === "low") return "Needs review";
+  return null;
+}
+
+/** Friendly source-connection label for an env-var secret name. */
+export function secretConnectionLabel(name: string): string {
+  const exact: Record<string, string> = {
+    CAMPCORE_WEBHOOK_SECRET: "CampCore inbound connection",
+    FENRIR_WEBHOOK_SECRET: "Fenrir inbound connection",
+    GTH_WEBHOOK_SECRET: "Ground Truth Hub inbound connection",
+    WEBSITE_FORMS_SECRET: "Public web forms connection",
+    TELEGRAM_API_KEY: "Telegram bot connection",
+    WHATSAPP_PROVIDER_TOKEN: "WhatsApp provider connection",
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: "WhatsApp webhook verification",
+  };
+  return exact[name] ?? "Inbound connection";
+}
+
 
 /** Why-trust caption per event family — shown as a soft sub-line. */
 export function trustNote(event: string): string {

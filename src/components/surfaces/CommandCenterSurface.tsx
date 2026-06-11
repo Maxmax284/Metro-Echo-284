@@ -35,6 +35,9 @@ import {
   keyFor,
 } from "@/lib/intakeLifecycle";
 import { isStaleCommitment } from "@/lib/commitmentLifecycle";
+import { humanizeEvent, sherlockModeLabel, sherlockConfidenceLabel } from "@/lib/plainLabels";
+import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
+
 
 type Counts = {
   pendingApprovals: number;
@@ -216,8 +219,12 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           </div>
         </div>
 
+        {/* Soft, non-blocking first-run welcome — replaces the blocking tutorial modal. */}
+        <SoftWelcomeChip />
+
         {/* 0. Daily bulletin — "Since you last checked", plain English. */}
         <DailyBulletinCard onNavigate={onNavigate} />
+
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
@@ -382,6 +389,34 @@ function Empty({ children }: { children: string }) {
   return <div className="text-[12px] text-muted-foreground">{children}</div>;
 }
 
+function SoftWelcomeChip() {
+  const KEY = "vanta.command_center.welcome_dismissed.v1";
+  const [show, setShow] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(KEY) !== "1";
+  });
+  if (!show) return null;
+  return (
+    <div className="flex items-start justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11.5px] text-foreground/85">
+      <div className="min-w-0">
+        <span className="font-medium text-foreground">Welcome to Vanta.</span>{" "}
+        Here's what's changed recently. Tap any line to dig in.
+      </div>
+      <button
+        onClick={() => {
+          try { window.localStorage.setItem(KEY, "1"); } catch { /* noop */ }
+          setShow(false);
+        }}
+        className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+        aria-label="Dismiss welcome"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+
 function ApprovalsCard({ items, highRisk, onOpen }: { items: ActionRow[]; highRisk: number; onOpen: () => void }) {
   return (
     <CardShell title="Approvals" Icon={ListChecks} badge={items.length ? String(items.length) : null}
@@ -480,6 +515,13 @@ function LiveCaptureCard({
         <ul className="space-y-2">
           {limited.map((row) => {
             if (isGroup(row)) {
+              const bulkItems = row.items
+                .map((i) => {
+                  const t: "capture" | "file" | "note" | null =
+                    i.kind === "file" ? "file" : i.kind === "note" ? "note" : i.kind === "message" ? "capture" : null;
+                  return t ? { type: t, id: i.id } : null;
+                })
+                .filter((x): x is { type: "capture" | "file" | "note"; id: string } => !!x);
               return (
                 <li key={row.key} className="rounded-md border border-border/40 bg-background/30 p-2 text-[12.5px]">
                   <div className="flex items-start gap-2">
@@ -489,6 +531,15 @@ function LiveCaptureCard({
                       <div className="text-[10.5px] text-muted-foreground">
                         {formatDistanceToNow(new Date(row.items[0].ts), { addSuffix: true })}
                       </div>
+                      {bulkItems.length > 0 && (
+                        <div className="mt-1.5">
+                          <BulkAttachToProjectMenu
+                            items={bulkItems}
+                            label={`Attach ${bulkItems.length} to a project`}
+                            className="h-6 px-2 text-[10.5px]"
+                          />
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={() =>
@@ -507,6 +558,7 @@ function LiveCaptureCard({
                 </li>
               );
             }
+
             const c = row as CaptureRow;
             const finding = findingsMap.get(c.id);
             const kind = c.kind === "file" ? "file" : c.kind === "note" ? "note" : "message";
@@ -580,26 +632,53 @@ function SherlockWatchtowerCard({ items, onOpen, onAnalyze }: {
         </div>
       ) : (
         <ul className="space-y-2">
-          {items.slice(0, 5).map(s => (
-            <li key={s.id} className="text-[12.5px]">
-              <div className="text-foreground">{s.summary || "Open finding"}</div>
-              <div className="text-[10.5px] text-muted-foreground">
-                {s.entity_type}{s.confidence ? ` · ${s.confidence} confidence` : ""} · {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
-              </div>
-            </li>
-          ))}
+          {items.slice(0, 5).map(s => {
+            const modeLabel = sherlockModeLabel(s.entity_type);
+            const confLabel = sherlockConfidenceLabel(s.confidence);
+            return (
+              <li key={s.id} className="text-[12.5px]">
+                <div className="text-foreground">{s.summary || "Vanta noticed something"}</div>
+                <div className="text-[10.5px] text-muted-foreground">
+                  {modeLabel}{confLabel ? ` · ${confLabel}` : ""} · {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </CardShell>
   );
 }
 
+
 function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
-  const [recent, setRecent] = useState<{ id: string; title: string | null; created_at: string }[]>([]);
+  type NoteRow = {
+    id: string;
+    title: string | null;
+    body: string | null;
+    tags: string[] | null;
+    created_at: string;
+  };
+  const [recent, setRecent] = useState<NoteRow[]>([]);
   useEffect(() => {
-    supabase.from("notes").select("id, title, created_at").order("created_at", { ascending: false }).limit(5)
-      .then(({ data }) => setRecent((data ?? []) as any));
+    supabase
+      .from("notes")
+      .select("id, title, body, tags, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => setRecent(((data ?? []) as any) as NoteRow[]));
   }, []);
+  function whatHappened(n: NoteRow): string {
+    if (n.body && n.body.trim()) {
+      const first = n.body.replace(/[#>*_`]/g, "").trim().split(/\n+/)[0] ?? "";
+      if (first) return first.length > 110 ? `${first.slice(0, 107)}…` : first;
+    }
+    if (n.tags && n.tags.length) {
+      const t = n.tags[0].replace(/_/g, " ");
+      return `${t.charAt(0).toUpperCase() + t.slice(1)} captured for review.`;
+    }
+    return "Note captured for review.";
+  }
   return (
     <CardShell title="Memory Pulse" Icon={Notebook} onOpen={onOpen} openLabel="Open memory">
       {recent.length === 0 ? <Empty>No memory items yet.</Empty> : (
@@ -607,6 +686,7 @@ function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
           {recent.map(n => (
             <li key={n.id} className="text-[12.5px]">
               <div className="truncate text-foreground">{n.title || "Untitled note"}</div>
+              <div className="line-clamp-2 text-[11px] text-foreground/75">{whatHappened(n)}</div>
               <div className="text-[10.5px] text-muted-foreground">
                 {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
               </div>
@@ -618,6 +698,7 @@ function MemoryPulseCard({ onOpen }: { onOpen: () => void }) {
   );
 }
 
+
 function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () => void }) {
   return (
     <CardShell title="System Receipts" Icon={ScrollText} onOpen={onOpen} openLabel="Open audit">
@@ -625,9 +706,9 @@ function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () =
         <ul className="space-y-2">
           {items.slice(0, 5).map(r => (
             <li key={r.id} className="text-[12.5px]">
-              <div className="truncate text-foreground">{r.event}</div>
+              <div className="truncate text-foreground">{humanizeEvent(r.event)}</div>
               <div className="text-[10.5px] text-muted-foreground">
-                {r.entity_type} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
               </div>
             </li>
           ))}
@@ -636,6 +717,7 @@ function SystemReceiptsCard({ items, onOpen }: { items: AuditRow[]; onOpen: () =
     </CardShell>
   );
 }
+
 
 function FilesTile({ onOpen }: { onOpen: () => void }) {
   const [counts, setCounts] = useState<{ newToday: number; triage: number; lastName: string | null; lastWhen: string | null }>({

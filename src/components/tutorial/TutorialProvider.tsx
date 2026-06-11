@@ -41,12 +41,15 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<TutorialState>(() => load());
   const [open, setOpen] = useState(false);
 
-  // Auto-open once per first-run (small delay so app finishes mounting).
+  // Do NOT auto-open the blocking walkthrough on first run — the Daily
+  // Bulletin is the front door now. Users can open the tutorial from the
+  // header "What is this?" / Settings → Replay tutorial. We just mark
+  // dismissed-without-completion so the soft welcome chip can show once.
   useEffect(() => {
     if (state.completed || state.dismissed) return;
-    const t = setTimeout(() => setOpen(true), 1200);
-    return () => clearTimeout(t);
+    // No-op: leave `open` false. Soft welcome surfaces elsewhere.
   }, [state.completed, state.dismissed]);
+
 
   const setStep = useCallback((n: number) => {
     setState((s) => {
