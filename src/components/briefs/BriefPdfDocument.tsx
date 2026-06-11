@@ -94,7 +94,7 @@ function Footnotes({ numbers, style }: { numbers: number[]; style: any }) {
   );
 }
 
-function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, styles: any) {
+function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, styles: any, strip?: boolean) {
   const heading = section.heading ? <Text style={styles.sectionKicker}>{section.heading}</Text> : null;
   const getClaim = (key: string) => claimMap.get(`${section.id}:${key}`);
 
@@ -105,7 +105,8 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
         <View key={section.id} wrap={false}>
           {heading}
           {items.map((it, i) => {
-            const text = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
+            const raw = typeof it === "string" ? it : (it?.text ?? it?.what ?? "");
+            const text = sanitize(raw, strip);
             const claim = getClaim(String(i));
             return (
               <View key={i} style={styles.listItem}>
@@ -127,7 +128,7 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
             return (
               <View key={i} style={styles.timelineRow} wrap={false}>
                 <Text style={styles.timelineWhen}>{it.when ?? ""}</Text>
-                <Text style={styles.timelineWhat}>{(it.what ?? "")}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
+                <Text style={styles.timelineWhat}>{sanitize(it.what ?? "", strip)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
               </View>
             );
           })}
@@ -141,13 +142,15 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
         <View key={section.id} wrap={false}>
           {heading}
           <View style={styles.decisionBox}>
-            <Text style={styles.decisionLabel}>{(body.decision ?? "")}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
-            {body.why ? <Text style={styles.decisionWhy}>Why: {body.why}</Text> : null}
+            <Text style={styles.decisionLabel}>{sanitize(body.decision ?? "", strip)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
+            {body.why ? <Text style={styles.decisionWhy}>Why: {sanitize(body.why, strip)}</Text> : null}
           </View>
         </View>
       );
     }
     case "receipts": {
+      // External audiences do not show raw receipt lists.
+      if (strip) return null;
       const items: any[] = Array.isArray(section.body) ? section.body : [];
       return (
         <View key={section.id}>
@@ -165,7 +168,7 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
       return (
         <View key={section.id} wrap={false}>
           {heading}
-          <Text style={styles.pullQuote}>{bodyText(section.body)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
+          <Text style={styles.pullQuote}>{bodyText(section.body, strip)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
         </View>
       );
     }
@@ -175,7 +178,7 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
       return (
         <View key={section.id}>
           {heading}
-          <Text style={styles.prose}>{bodyText(section.body)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
+          <Text style={styles.prose}>{bodyText(section.body, strip)}<Footnotes numbers={claim?.numbers ?? []} style={styles.fn} /></Text>
         </View>
       );
     }
