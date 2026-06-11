@@ -389,6 +389,34 @@ function Empty({ children }: { children: string }) {
   return <div className="text-[12px] text-muted-foreground">{children}</div>;
 }
 
+function SoftWelcomeChip() {
+  const KEY = "vanta.command_center.welcome_dismissed.v1";
+  const [show, setShow] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(KEY) !== "1";
+  });
+  if (!show) return null;
+  return (
+    <div className="flex items-start justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11.5px] text-foreground/85">
+      <div className="min-w-0">
+        <span className="font-medium text-foreground">Welcome to Vanta.</span>{" "}
+        Here's what's changed recently. Tap any line to dig in.
+      </div>
+      <button
+        onClick={() => {
+          try { window.localStorage.setItem(KEY, "1"); } catch { /* noop */ }
+          setShow(false);
+        }}
+        className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+        aria-label="Dismiss welcome"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+
 function ApprovalsCard({ items, highRisk, onOpen }: { items: ActionRow[]; highRisk: number; onOpen: () => void }) {
   return (
     <CardShell title="Approvals" Icon={ListChecks} badge={items.length ? String(items.length) : null}
