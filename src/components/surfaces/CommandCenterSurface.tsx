@@ -35,6 +35,9 @@ import {
   keyFor,
 } from "@/lib/intakeLifecycle";
 import { isStaleCommitment } from "@/lib/commitmentLifecycle";
+import { humanizeEvent, sherlockModeLabel, sherlockConfidenceLabel } from "@/lib/plainLabels";
+import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
+
 
 type Counts = {
   pendingApprovals: number;
