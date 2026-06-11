@@ -239,27 +239,88 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
   };
 
   const labels = template.layout.labels;
+  const strip = !!template.layout.stripRawReceipts;
 
-  const overallBlock = blocks.overall_summary?.text && (
-    <View wrap={false}>
+  const overallBlock = blocks.overall_summary?.text ? (
+    <View key="overall" wrap={false}>
       <Text style={styles.sectionKicker}>{labels.overall}</Text>
       <View style={styles.overallBox}>
-        <Text style={styles.overallText}>{blocks.overall_summary.text}</Text>
-        {renderCitations(blocks.overall_summary.citations)}
+        <Text style={styles.overallText}>{sanitize(blocks.overall_summary.text, strip)}</Text>
+        {!strip && renderCitations(blocks.overall_summary.citations)}
       </View>
     </View>
-  );
+  ) : null;
 
-  const sourcesAppendixInline = template.layout.receiptsFirst && footnotes.ordered.length > 0 && (
-    <View wrap={false}>
-      <Text style={styles.sectionHeading}>Sources lead</Text>
-      {footnotes.ordered.slice(0, 12).map(({ n, ref }) => (
-        <Text key={n} style={styles.receipt}>
-          {n}. {ref.label ?? `${ref.kind} ${ref.id?.slice(0, 8) ?? ""}`} · {ref.kind}
-        </Text>
+  const situationBlock = blocks.situation?.text ? (
+    <View key="situation">
+      <Text style={styles.sectionHeading}>{labels.situation}</Text>
+      <Text style={styles.prose}>{sanitize(blocks.situation.text, strip)}</Text>
+    </View>
+  ) : null;
+
+  const keyTopicsBlock = blocks.key_topics?.themes?.length ? (
+    <View key="key_topics">
+      <Text style={styles.sectionHeading}>{labels.keyTopics}</Text>
+      {blocks.key_topics.themes.map((t: any, i: number) => (
+        <View key={i} style={{ marginBottom: 8, padding: 8, backgroundColor: template.pdf.surface, borderRadius: 3 }} wrap={false}>
+          <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: template.pdf.ink, marginBottom: 2 }}>{sanitize(t.title, strip)}</Text>
+          <Text style={styles.prose}>{sanitize(t.summary, strip)}</Text>
+          {!strip && renderCitations(t.citations)}
+        </View>
       ))}
     </View>
-  );
+  ) : null;
+
+  const decisionsBlock = blocks.decisions?.bullets?.length ? (
+    <View key="decisions">
+      <Text style={styles.sectionHeading}>{labels.decisions}</Text>
+      {blocks.decisions.bullets.map((b: any, i: number) => (
+        <View key={i} style={styles.decisionBox} wrap={false}>
+          <Text style={styles.decisionLabel}>{sanitize(b.text, strip)}</Text>
+          {!strip && renderCitations(b.citations)}
+        </View>
+      ))}
+    </View>
+  ) : null;
+
+  const risksBlock = !template.layout.hideRisks && blocks.risks?.bullets?.length ? (
+    <View key="risks">
+      <Text style={styles.sectionHeading}>{labels.risks}</Text>
+      {blocks.risks.bullets.map((b: any, i: number) => (
+        <View key={i} style={styles.listItem} wrap={false}>
+          <Text style={styles.bullet}>•</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.listText}>{sanitize(b.text, strip)}</Text>
+            {!strip && renderCitations(b.citations)}
+          </View>
+        </View>
+      ))}
+    </View>
+  ) : null;
+
+  const nextMoveBlock = blocks.next_move?.text ? (
+    <View key="next_move" wrap={false}>
+      <Text style={styles.sectionHeading}>{labels.nextMove}</Text>
+      <View style={styles.decisionBox}>
+        <Text style={styles.decisionLabel}>{sanitize(blocks.next_move.text, strip)}</Text>
+        {!strip && renderCitations(blocks.next_move.citations)}
+      </View>
+    </View>
+  ) : null;
+
+  const blockMap: Record<string, React.ReactNode> = {
+    overall: overallBlock,
+    situation: situationBlock,
+    key_topics: keyTopicsBlock,
+    decisions: decisionsBlock,
+    risks: risksBlock,
+    next_move: nextMoveBlock,
+  };
+  const order =
+    template.layout.sectionOrder ??
+    (["overall", "situation", "key_topics", "decisions", "risks", "next_move"] as const);
+
+  const footerLabel = template.layout.footerNote ?? `Vanta · ${brief.title}`;
 
   return (
     <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
@@ -286,7 +347,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
             )}
           </View>
           <View style={styles.footer} fixed>
-            <Text>Vanta · {template.label}</Text>
+            <Text>{footerLabel}</Text>
             <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>
@@ -303,73 +364,22 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
 
         {isProjectStructured ? (
           <>
-            {overallBlock}
             {sourcesAppendixInline}
-            {blocks.situation?.text && (
-              <View>
-                <Text style={styles.sectionHeading}>{labels.situation}</Text>
-                <Text style={styles.prose}>{blocks.situation.text}</Text>
-              </View>
-            )}
-            {blocks.key_topics?.themes?.length ? (
-              <View>
-                <Text style={styles.sectionHeading}>{labels.keyTopics}</Text>
-                {blocks.key_topics.themes.map((t: any, i: number) => (
-                  <View key={i} style={{ marginBottom: 8, padding: 8, backgroundColor: template.pdf.surface, borderRadius: 3 }} wrap={false}>
-                    <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: template.pdf.ink, marginBottom: 2 }}>{t.title}</Text>
-                    <Text style={styles.prose}>{t.summary}</Text>
-                    {renderCitations(t.citations)}
-                  </View>
-                ))}
-              </View>
-            ) : null}
-            {blocks.decisions?.bullets?.length ? (
-              <View>
-                <Text style={styles.sectionHeading}>{labels.decisions}</Text>
-                {blocks.decisions.bullets.map((b: any, i: number) => (
-                  <View key={i} style={styles.decisionBox} wrap={false}>
-                    <Text style={styles.decisionLabel}>{b.text}</Text>
-                    {renderCitations(b.citations)}
-                  </View>
-                ))}
-              </View>
-            ) : null}
-            {!template.layout.hideRisks && blocks.risks?.bullets?.length ? (
-              <View>
-                <Text style={styles.sectionHeading}>{labels.risks}</Text>
-                {blocks.risks.bullets.map((b: any, i: number) => (
-                  <View key={i} style={styles.listItem} wrap={false}>
-                    <Text style={styles.bullet}>•</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.listText}>{b.text}</Text>
-                      {renderCitations(b.citations)}
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-            {blocks.next_move?.text ? (
-              <View wrap={false}>
-                <Text style={styles.sectionHeading}>{labels.nextMove}</Text>
-                <View style={styles.decisionBox}>
-                  <Text style={styles.decisionLabel}>{blocks.next_move.text}</Text>
-                  {renderCitations(blocks.next_move.citations)}
-                </View>
-              </View>
-            ) : null}
+            {order.map((k) => blockMap[k]).filter(Boolean)}
           </>
         ) : (
           <>
             <Text style={styles.sectionHeading}>Overview</Text>
-            {brief.sections.map((s) => renderSection(s, claimMap, styles))}
+            {brief.sections.map((s) => renderSection(s, claimMap, styles, strip))}
           </>
         )}
 
         <View style={styles.footer} fixed>
-          <Text>Vanta · {brief.title}</Text>
+          <Text>{footerLabel}</Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
+
 
       {renderFootnotesAppendix()}
     </Document>
