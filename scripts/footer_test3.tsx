@@ -4,7 +4,6 @@ import { renderToFile, Document, Page, View, Text, StyleSheet } from "@react-pdf
 const c = { pagePadding: 56 };
 const s = StyleSheet.create({
   page: { paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding, fontFamily: "Helvetica" },
-  titlePage: { flexDirection: "column", justifyContent: "center", alignItems: "flex-start" },
   footer: {
     position: "absolute", bottom: 18, left: c.pagePadding,
     width: 612 - c.pagePadding * 2,
@@ -16,11 +15,15 @@ const s = StyleSheet.create({
 const Doc = () => (
   <Document>
     <Page size="LETTER" style={s.page}>
-      <View style={s.titlePage}>
-        <Text>Title</Text>
-      </View>
+      {false && <View><Text>hidden</Text></View>}
+      {true ? (
+        <>
+          <Text>section heading</Text>
+          {[].map((s:any)=>null)}
+        </>
+      ) : null}
       <View style={s.footer} fixed>
-        <Text style={{fontSize: 8, color: "#888"}}>FOOTER_X</Text>
+        <Text style={{fontSize: 8, color: "#888"}}>FOOTER_BODY</Text>
         <Text style={{fontSize: 8, color: "#888"}} render={({pageNumber}) => `${pageNumber}`} />
       </View>
     </Page>
