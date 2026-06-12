@@ -462,6 +462,43 @@ export function FileAftermathTray({
         </div>
       )}
 
+      {/* Treat as document — opens a dedicated Documents review surface */}
+      {!sensitive && isDocumentLike(row) && (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-2.5 text-[11.5px]"
+            disabled={creatingDoc}
+            onClick={async () => {
+              if (!user || creatingDoc) return;
+              setCreatingDoc(true);
+              try {
+                const doc = await treatFileAsDocument({
+                  userId: user.id,
+                  fileId: row.id,
+                  filename: row.filename,
+                  kind: detectedToDocKind(row.detected_doc_type),
+                });
+                setOpenDocumentId(doc.id);
+                toast.success("Opened in Documents.");
+              } catch (e) {
+                toast.fromError?.(e);
+              } finally {
+                setCreatingDoc(false);
+              }
+            }}
+          >
+            <FileSearch className="h-3 w-3" /> Treat as document
+          </Button>
+          <DocumentDetailSheet
+            documentId={openDocumentId}
+            open={!!openDocumentId}
+            onOpenChange={(o) => !o && setOpenDocumentId(null)}
+          />
+        </div>
+      )}
+
       {/* Primary actions */}
       <div className="mt-2 flex flex-wrap gap-1.5">
         {primary.map((a) => {
