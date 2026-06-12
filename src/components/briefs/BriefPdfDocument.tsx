@@ -17,7 +17,7 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
   return StyleSheet.create({
     page: {
       paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding,
-      fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body, lineHeight: 1.5,
+      fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body,
     },
     titlePage: { flexDirection: "column", justifyContent: "flex-start", alignItems: "flex-start", marginTop: 120 },
     kicker: { fontSize: 9, letterSpacing: 2, color: c.muted, textTransform: "uppercase", marginBottom: 14 },
@@ -27,10 +27,10 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     meta: { fontSize: 9, color: c.muted },
     sectionHeading: { fontFamily: c.titleFont === "Times-Roman" ? "Times-Roman" : "Helvetica-Bold", fontSize: 14, color: c.ink, marginTop: 18, marginBottom: 6 },
     sectionKicker: { fontSize: 8, letterSpacing: 1.6, color: c.muted, textTransform: "uppercase", marginBottom: 4 },
-    prose: { fontSize: c.bodySize, color: c.body, marginBottom: 4 },
+    prose: { fontSize: c.bodySize, color: c.body, marginBottom: 4, lineHeight: 1.5 },
     listItem: { flexDirection: "row", marginBottom: 4 },
     bullet: { width: 10, color: c.muted },
-    listText: { flex: 1, fontSize: c.bodySize, color: c.body },
+    listText: { flex: 1, fontSize: c.bodySize, color: c.body, lineHeight: 1.5 },
     timelineRow: { marginBottom: 8, paddingLeft: 10, borderLeftWidth: 1, borderLeftColor: c.rule },
     timelineWhen: { fontSize: 8, color: c.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 },
     timelineWhat: { fontSize: c.bodySize, color: c.body },
