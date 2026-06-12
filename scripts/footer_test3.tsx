@@ -4,7 +4,7 @@ import { renderToFile, Document, Page, View, Text, StyleSheet } from "@react-pdf
 const c = { pagePadding: 56, bodySize: 11, body: "#222", muted: "#888", rule: "#ddd" };
 const s = StyleSheet.create({
   page: { paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding, fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body, lineHeight: 1.5 },
-  titlePage: { flexDirection: "column", justifyContent: "center", alignItems: "flex-start", height: "100%" },
+  titlePage: { flexDirection: "column", justifyContent: "center", alignItems: "flex-start", flexGrow: 1 },
   footer: {
     position: "absolute", bottom: 18, left: c.pagePadding,
     width: 612 - c.pagePadding * 2,
