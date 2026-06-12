@@ -57,10 +57,10 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     },
     overallText: { fontSize: 12, color: c.ink, lineHeight: 1.55 },
     footer: {
-      position: "absolute", bottom: 18, left: 0, right: 0,
-      paddingHorizontal: c.pagePadding,
+      position: "absolute", bottom: 18, left: c.pagePadding,
+      width: 612 - c.pagePadding * 2, // LETTER width 612pt minus horizontal padding
       flexDirection: "row", justifyContent: "space-between",
-      fontSize: 8, color: c.muted, borderTopWidth: 1, borderTopColor: c.rule, paddingTop: 6,
+      borderTopWidth: 1, borderTopColor: c.rule, paddingTop: 6,
     },
     footerLeft: { fontSize: 8, color: c.muted, flexShrink: 1, paddingRight: 12 },
     footerRight: { fontSize: 8, color: c.muted },
