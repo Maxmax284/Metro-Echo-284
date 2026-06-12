@@ -95,6 +95,20 @@ export function formatAuditEvent(
     return { ...base, bucket: "attention", text: `A file has a suggested next step.` };
   if (e === "commitment.overdue")
     return { ...base, bucket: "attention", text: `A commitment went overdue.` };
+  if (e === "document.risk_flagged")
+    return { ...base, bucket: "attention", text: `A contract risk needs your review.` };
+  if (e === "document.review_failed" || e === "document.extract_failed")
+    return { ...base, bucket: "attention", text: `A document needs another look.` };
+
+  // -- Documents ----------------------------------------------------------
+  if (e === "document.uploaded")
+    return { ...base, bucket: "captures", text: `New document added to ${proj}.` };
+  if (e === "document.extracted")
+    return { ...base, bucket: "captures", text: `A document is ready to review.` };
+  if (e === "document.reviewed")
+    return { ...base, bucket: "done", text: `A document review is ready.` };
+  if (e === "document.exported")
+    return { ...base, bucket: "done", text: `A document review was exported.` };
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")
