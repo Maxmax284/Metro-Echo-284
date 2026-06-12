@@ -19,7 +19,7 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
       paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding,
       fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body, lineHeight: 1.5,
     },
-    titlePage: { flexDirection: "column", justifyContent: "center", alignItems: "flex-start", height: "100%" },
+    titlePage: { flexDirection: "column", justifyContent: "flex-start", alignItems: "flex-start", marginTop: 120 },
     kicker: { fontSize: 9, letterSpacing: 2, color: c.muted, textTransform: "uppercase", marginBottom: 14 },
     title: { fontFamily: c.titleFont, fontSize: c.titleSize, color: c.ink, marginBottom: 10, lineHeight: 1.2 },
     subtitle: { fontSize: 13, color: c.muted, marginBottom: 28 },
