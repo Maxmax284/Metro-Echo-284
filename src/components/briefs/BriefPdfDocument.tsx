@@ -57,10 +57,13 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     },
     overallText: { fontSize: 12, color: c.ink, lineHeight: 1.55 },
     footer: {
-      position: "absolute", bottom: 24, left: c.pagePadding, right: c.pagePadding,
+      position: "absolute", bottom: 18, left: 0, right: 0,
+      paddingHorizontal: c.pagePadding,
       flexDirection: "row", justifyContent: "space-between",
       fontSize: 8, color: c.muted, borderTopWidth: 1, borderTopColor: c.rule, paddingTop: 6,
     },
+    footerLeft: { fontSize: 8, color: c.muted, flexShrink: 1, paddingRight: 12 },
+    footerRight: { fontSize: 8, color: c.muted },
   });
 }
 
@@ -70,7 +73,17 @@ const RAW_RECEIPT_RE =
   /\s*\b(?:note|file|entity|commitment|action|message|capture|reminder|signal|finding|project)\s*[:#]\s*[A-Za-z0-9_-]{6,}\b\s*/g;
 function sanitize(text: string, strip?: boolean): string {
   if (!strip || !text) return text;
-  return text.replace(RAW_RECEIPT_RE, " ").replace(/\s{2,}/g, " ").trim();
+  let out = text.replace(RAW_RECEIPT_RE, " ");
+  // Tidy punctuation left over from the strip: collapse whitespace, fix
+  // floating commas / periods, and recapitalise the first letter after a
+  // sentence break when a receipt removal left a lowercase orphan.
+  out = out
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/([,.;:])\1+/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  out = out.replace(/([.!?]\s+)([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+  return out;
 }
 
 function bodyText(body: any, strip?: boolean): string {
@@ -231,8 +244,8 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
           </View>
         ))}
         <View style={styles.footer} fixed>
-          <Text>Vanta · source footnotes</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          <Text style={styles.footerLeft}>Vanta · source footnotes</Text>
+          <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
     );
@@ -298,12 +311,14 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
     <View key="risks">
       <Text style={styles.sectionHeading}>{labels.risks}</Text>
       {blocks.risks.bullets.map((b: any, i: number) => (
-        <View key={i} style={styles.listItem} wrap={false}>
-          <Text style={styles.bullet}>•</Text>
-          <View style={{ flex: 1 }}>
+        <View key={i} style={{ marginBottom: 6 }} wrap={false}>
+          <View style={styles.listItem}>
+            <Text style={styles.bullet}>•</Text>
             <Text style={styles.listText}>{sanitize(b.text, strip)}</Text>
-            {!strip && renderCitations(b.citations)}
           </View>
+          {!strip && b.citations?.length ? (
+            <View style={{ paddingLeft: 10 }}>{renderCitations(b.citations)}</View>
+          ) : null}
         </View>
       ))}
     </View>
@@ -358,8 +373,8 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
             )}
           </View>
           <View style={styles.footer} fixed>
-            <Text>{footerLabel}</Text>
-            <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+            <Text style={styles.footerLeft}>{footerLabel}</Text>
+            <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
           </View>
         </Page>
       )}
@@ -386,8 +401,8 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         )}
 
         <View style={styles.footer} fixed>
-          <Text>{footerLabel}</Text>
-          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+          <Text style={styles.footerLeft}>{footerLabel}</Text>
+          <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
 
