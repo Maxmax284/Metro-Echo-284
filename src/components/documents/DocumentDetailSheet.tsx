@@ -134,7 +134,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                 <Button
                   size="sm"
                   onClick={handleReview}
-                  disabled={!!busy || doc.status === "uploaded"}
+                  disabled={!!busy}
                   className="gap-1.5"
                 >
                   {busy === "review" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
