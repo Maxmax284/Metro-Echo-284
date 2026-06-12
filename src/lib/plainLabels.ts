@@ -100,6 +100,7 @@ export function humanizeEvent(event: string): string {
     "document.review_failed": "Document review didn't finish",
     "document.risk_flagged": "Contract risk flagged",
     "document.exported": "Document review exported",
+    "document.export_drafted": "Document review packet drafted",
   };
   if (exact[event]) return exact[event];
   const [domain, verb] = event.split(".");
