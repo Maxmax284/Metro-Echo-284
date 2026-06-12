@@ -94,6 +94,22 @@ function firstPerson(entities: unknown): string | null {
   return null;
 }
 
+function isDocumentLike(row: { filename: string; detected_doc_type: string | null }): boolean {
+  const t = (row.detected_doc_type ?? "").toLowerCase();
+  if (["contract", "invoice", "waiver", "policy", "other"].includes(t)) return true;
+  const f = row.filename.toLowerCase();
+  return /\.(pdf|docx?|rtf|txt)$/.test(f);
+}
+
+function detectedToDocKind(t: string | null): DocumentKind {
+  switch ((t ?? "").toLowerCase()) {
+    case "contract": return "other";
+    case "invoice": return "invoice";
+    case "policy": return "policy";
+    default: return "unknown";
+  }
+}
+
 const ACTIVITY_LABELS: Record<string, string> = {
   "file.staged": "Staged for upload",
   "file.upload_started": "Upload started",
