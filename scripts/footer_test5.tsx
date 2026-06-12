@@ -3,7 +3,7 @@ import { renderToFile, Document, Page, View, Text, StyleSheet } from "@react-pdf
 
 const c = { pagePadding: 56, bodySize: 11, body: "#2C3138", muted: "#7A8089", rule: "#E5E7EB" };
 const s = StyleSheet.create({
-  page: { paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding, fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body, lineHeight: 1.5 },
+  page: { paddingTop: c.pagePadding, paddingBottom: c.pagePadding, paddingHorizontal: c.pagePadding, fontFamily: "Helvetica", fontSize: c.bodySize, color: c.body },
   footer: { position: "absolute", bottom: 18, left: c.pagePadding, width: 612 - c.pagePadding * 2, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: c.rule, paddingTop: 6 },
 });
 
