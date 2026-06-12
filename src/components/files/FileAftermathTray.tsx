@@ -145,6 +145,8 @@ export function FileAftermathTray({
   const [briefingPending, setBriefingPending] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activity, setActivity] = useState<Array<{ id: string; event: string; created_at: string }> | null>(null);
+  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
+  const [creatingDoc, setCreatingDoc] = useState(false);
 
   useEffect(() => {
     let alive = true;
