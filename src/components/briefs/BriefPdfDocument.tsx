@@ -352,7 +352,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
     <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
       {template.layout.coverPage && (
         <Page size="LETTER" style={styles.page}>
-          <View style={styles.titlePage}>
+          <View style={{ marginTop: 120 }}>
             <Text style={styles.audienceChip}>{template.label} · {template.tagline}</Text>
             <Text style={styles.kicker}>
               Vanta · {brief.format.replace("_", " ")} · {brief.scope_kind}
