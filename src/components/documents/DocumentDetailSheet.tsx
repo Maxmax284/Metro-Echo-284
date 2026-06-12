@@ -41,7 +41,8 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | "extract" | "review">(null);
+  const [busy, setBusy] = useState<null | "extract" | "review" | "export-operator" | "export-client">(null);
+  const { openWithPrefill } = useCompanion();
 
   const refresh = useCallback(async () => {
     if (!documentId) return;
