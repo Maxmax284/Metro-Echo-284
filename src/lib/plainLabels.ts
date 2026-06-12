@@ -179,6 +179,8 @@ export function trustNote(event: string): string {
     return "Logged by the file pipeline at this step.";
   if (e.startsWith("note."))
     return "Logged when the note was saved.";
+  if (e.startsWith("document."))
+    return "Logged when this document moved through review.";
   return "Logged automatically the moment it happened.";
 }
 
