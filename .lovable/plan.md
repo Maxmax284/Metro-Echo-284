@@ -1,73 +1,95 @@
-# Business Documents + Contract Intelligence — Build Prep (report only)
+# Documents Phase 1 — Review Uploaded Documents
 
-This is a readiness + architecture-map pass. No tables, routes, edge functions, AI calls, or UI are added. Export Polish v1 (Operator / Client briefs) stays the active build slice; Documents implementation does not start until both Command Center polish and Export Polish gates pass.
+User-facing name: **Documents**. Internal: Business Documents + Contract Intelligence.
 
-## Deliverable
+Promise: Upload a business document → Vanta explains what it is, what it means, what matters, what could go wrong, what needs your attention. Attach to a project. Export a clean review PDF. Every step leaves a receipt.
 
-Single markdown report at:
+Phase 1 is **review only** — no drafting, no signatures, no auto-send. Drafting + DOCX come in later phases.
 
-```
-.lovable/business-documents-contract-intelligence-build-prep.md
-```
+---
 
-Optional PDF mirror generated from the markdown:
+## 1. Data model (new migration)
 
-```
-/mnt/documents/vanta-business-documents-contract-intelligence-build-prep.pdf
-```
+Five new tables in `public`, all RLS-enabled, scoped by `user_id` + active scope. Reuses `ingested_files` for the binary and `audit_log` for receipts.
 
-Both are documentation artifacts. No app code is touched in this slice.
+- `documents` — id, user_id, organization_id (nullable, for workspace scope), project_id, source_file_id (FK `ingested_files`), kind enum (`nda|sow|service|lease|partnership|invoice|policy|letter|other|unknown`), title, parties jsonb, status enum (`uploaded|extracting|extracted|reviewing|reviewed|failed`), latest_review_id (nullable), created_at, updated_at.
+- `document_versions` — id, document_id, version_no, body_text, body_storage_path (nullable), source enum (`upload|extraction`), created_at. Phase 1 writes one row per extraction.
+- `document_reviews` — id, document_id, version_id, summary, parties jsonb, key_dates jsonb, money_terms jsonb, obligations jsonb, missing_or_unclear jsonb, questions_to_ask jsonb, verdict text, model text, generated_at.
+- `document_risks` — id, review_id, document_id, severity enum (`low|medium|high`), title, plain_english, clause_ref text, suggested_question.
+- `document_obligations` — id, review_id, document_id, party, what, when_text, conditions, source_clause_ref.
 
-## Audit pass before writing
+Every CREATE TABLE followed by `GRANT SELECT, INSERT, UPDATE, DELETE ON ... TO authenticated; GRANT ALL ... TO service_role;` then RLS enable + policies scoped by `auth.uid()` (and org membership via `is_org_member` when `organization_id` set).
 
-Quick read-only sweep across the current codebase to ground every claim in the report. Touch only these areas; do not modify them:
+Storage: reuse the existing `memory-uploads` bucket (no new buckets in Phase 1). Extracted text lives in `document_versions.body_text` directly — fast, queryable, no extra signed-URL hops.
 
-- File intake & storage — `src/lib/fileIntake.ts`, `supabase/functions/_shared/fileIntake.ts`, `supabase/functions/files-ingest/index.ts`, `src/components/files/*`, `src/hooks/useStagedUpload.ts`
-- Projects + Living Brief — `src/lib/projects.ts`, `src/components/projects/*`, `src/pages/ProjectBrief.tsx`, `supabase/functions/project-summarize/index.ts`
-- Briefs / exports / PDF — `src/lib/briefs.ts`, `src/lib/briefTemplates.ts`, `src/components/briefs/*`, `supabase/functions/compose-brief/index.ts`
-- Command Center bulletin — `src/components/cockpit/DailyBulletinCard.tsx`, `src/components/surfaces/CommandCenterSurface.tsx`, `src/lib/bulletinLanguage.ts`, `src/lib/plainLabels.ts`
-- Receipts / audit — `src/lib/fileAudit.ts`, `src/components/audit/AuditDetailDrawer.tsx`, `src/lib/receiptResolve.ts`
-- Conversation / voice — `src/components/companion/*`, `src/components/capture/VoiceCaptureCard.tsx`, `supabase/functions/vanta-converse/index.ts`
-- Sherlock (risk-flag analog) — `src/components/sherlock/*`, `supabase/functions/sherlock-*`
-- Intake lifecycle + grouped captures — `src/lib/intakeLifecycle.ts`, `src/components/memory/*`, `src/components/projects/BulkAttachToProjectMenu.tsx`
+## 2. Edge functions (two new)
 
-For each system the report tags it: **Reusable as-is / Needs small extension / Needs new build / Do not touch yet.**
+- `documents-extract` — input `{ document_id }`. Loads the source `ingested_files` row, downloads from storage, extracts text (PDF via `pdf.js` / DOCX via `unzipit` + XML parse / image via existing OCR path on `files-ingest`). Writes `document_versions` row, flips `documents.status` from `uploaded` → `extracted` (or `failed`). Emits `document.extracted` to `audit_log`.
+- `documents-review` — input `{ document_id, version_id? }`. Calls Lovable AI (default `google/gemini-2.5-flash`) with the doctrine-correct system prompt: warm, plain English, no legal cosplay, surface risks + missing items + questions to ask. Writes `document_reviews` + `document_risks` + `document_obligations`. Flips status to `reviewed`, sets `latest_review_id`. Emits `document.reviewed` and (per risk) `document.risk_flagged`.
 
-## Report structure
+Both validate JWT in-code, use the shared `apiGuard`, and rate-limit via `rate_limit_hit`.
 
-The markdown follows the 16-section deliverable spec from the brief, in this order:
+## 3. Bulletin + receipts language
 
-1. Current system audit (per-area table with the four tags above)
-2. Reusable components (concrete file/function references)
-3. Gaps (what's missing for Documents to land cleanly)
-4. Recommended future data model — prefer reuse of `ingested_files`, `project_items`, `brief_exports`, `audit_log`; only propose new tables (`documents`, `document_reviews`, `document_risks`, `document_obligations`, `document_versions`) where existing rows can't carry the semantics. No SQL, just shape sketches.
-5. Recommended future storage model — original file, extracted text, review output, generated draft, exported PDF/DOCX, signature page, source appendix; mapped to current bucket layout.
-6. Recommended future edge functions — `documents-extract`, `documents-review`, `documents-draft`, `documents-export` (names indicative). Note overlap with `compose-brief` and `project-summarize`.
-7. Recommended future UI surfaces — Project → Documents tab, Document detail (Review / Draft / Export), upload entry from Capture and Project Inbox. No new top-level routes.
-8. Project integration plan — every document belongs to a Project; orphan documents land in Project Inbox for attachment, identical to current capture flow.
-9. Living Brief integration plan — review output emits living-brief blocks (parties, dates, money terms, obligations, risks, open questions) via the existing block system.
-10. Command Center integration plan — bulletin lines in plain English ("Ground Stay NDA review is ready", "One contract risk needs review"). Routed through `bulletinLanguage.ts` / `plainLabels.ts`. Banned phrasings listed.
-11. Export / Receipt integration plan — Document exports ride on `brief_exports` + PDF renderer with new audience templates in `briefTemplates.ts` (Contract Review Brief, Red Flag Report, Client Review Packet, Signature-Ready Draft, Attorney Handoff Packet). Every state change writes an `audit_log` row surfaced as a plain-English receipt.
-12. Voice / type conversation integration plan — reuse `vanta-converse` + Companion context; conversation becomes contextual inside Project / Document / Export surfaces. No new chat surface. Plan→Approve→Execute preserved.
-13. Legal / trust guardrails — single soft disclaimer string, where it appears, the Hard No list (no e-sign, no filing, no auto-send, no silent edits, no objective risk scoring, no attorney impersonation).
-14. Out-of-scope list — mirrors the Hard No + "not in Phase 1" items.
-15. Recommended phased implementation plan — Phase 1 Review → Phase 2 Draft basics → Phase 3 Conversational builder → Phase 4 Premium packets → Later (versions, obligations, renewals, attorney handoff, template vault).
-16. Readiness gate before build — explicit checklist: Command Center polish confirmed, no raw event/env/Sherlock labels, Export Polish v1 stable, project export round-trip green, receipts plain English, upload + project attach stable, no stale/dismissed clutter.
+Extend `src/lib/plainLabels.ts` + `src/lib/bulletinLanguage.ts`:
 
-## Final principle (stated in the doc)
+- `document.uploaded` → "New agreement added to {project}."
+- `document.extracted` → "{title} is ready to review."
+- `document.reviewed` → "{title} review is ready."
+- `document.risk_flagged` (high) → "One contract risk needs review on {title}."
+- `document.exported` → "Review packet exported for {title}."
 
-Documents is not a legal form builder. It is a business document command studio inside Vanta: explain in plain English, prepare drafts, flag risks, organize by Project, export cleanly, preserve receipts. Capture never executes. Plan → Approve → Execute always happens inside the platform.
+No raw event keys, no env-var names, no model names surface in user-facing copy.
 
-## What this slice will NOT do
+## 4. UI surfaces (no new routes)
 
-- No new tables, routes, migrations, edge functions, or AI calls.
-- No UI changes.
-- No changes to `compose-brief` shape.
-- No start of Documents Phase 1.
-- Export Polish v1 (Operator + Client) remains the active build slice.
+- **Project page → Documents tab** (`src/pages/ProjectBrief.tsx` / `ProjectBriefView.tsx`): list documents attached to this project with status chip + "Open" / "Review now" buttons.
+- **Document detail sheet** (`src/components/documents/DocumentDetailSheet.tsx`, new): Review mode only in Phase 1. Sections — Summary, Parties, Key Dates, Money Terms, Obligations, Risks (severity-coloured), Missing or Unclear, Questions to Ask, Verdict, Sources (clause refs). Sticky footer: Export Review · View Receipts · Mark Reviewed.
+- **Capture / File aftermath** (`src/components/files/FileAftermathTray.tsx`): add a "Treat as document" action on any uploaded PDF/DOCX/image. Triggers `documents` row create + `documents-extract` invoke.
+- **Project Inbox** (`src/components/projects/ProjectInbox.tsx`): same "Treat as document" affordance on orphan uploads.
+- **Command Center bulletin** (`DailyBulletinCard.tsx`): naturally picks up the new event copy via `bulletinLanguage.ts` — no card changes needed.
+
+Mobile-first at 384px. Big tap targets. Single soft disclaimer at the bottom of every review surface and exported PDF:
+> Vanta can help you understand and prepare, but this does not replace a licensed attorney.
+
+## 5. Export integration
+
+Reuses `brief_exports` + `BriefPdfDocument`. New audience template in `src/lib/briefTemplates.ts`:
+
+- `document_review` (operator) — full sections, includes risk severity + clause refs + source appendix.
+- `document_review_client` (client) — sanitised, no internal IDs/receipts, disclaimer footer.
+
+`compose-brief` extended with a `scope: { kind: "document", document_id }` branch that hydrates from `document_reviews` + `document_risks` + `document_obligations` instead of project items.
+
+## 6. Companion contextual prompts
+
+Inside a Document detail, the existing Companion picks up a `documentContext` from `CompanionContext` and offers (as drafts only — no execution):
+- "Explain this risk in plain English"
+- "What should I ask before signing?"
+- "Summarise the money terms"
+
+No new chat surface. Plan → Approve → Execute preserved.
+
+## 7. Out of scope (hard no — Phase 1)
+
+E-signature · auto-send · drafting · DOCX output · jurisdiction-specific guarantees · attorney impersonation · silent edits · objective risk scoring presented as legal truth.
+
+---
+
+## Build order (single pass)
+
+1. Migration: 5 tables + GRANTs + RLS + policies.
+2. Edge functions: `documents-extract`, `documents-review`.
+3. Frontend lib: `src/lib/documents.ts` (CRUD + invoke wrappers), types in `src/lib/documentsTypes.ts`.
+4. UI: `DocumentDetailSheet`, Documents tab in project, "Treat as document" actions in file aftermath + project inbox.
+5. Bulletin + receipts: extend `plainLabels.ts` + `bulletinLanguage.ts`.
+6. Export: extend `briefTemplates.ts` + `compose-brief` for document scope.
+7. Companion contextual prompts.
+8. QA pass: upload a real PDF → extract → review → export both audiences → confirm bulletin + receipts read clean at 384px.
 
 ## Technical notes
 
-- Markdown is hand-authored from the audit above; no generated content from runtime.
-- PDF mirror generated with a small one-off Python/ReportLab or pandoc-style script writing to `/mnt/documents/`; script lives in `/tmp/` and is not committed.
-- Memory: update `mem://documents/design-brief-pointer` to also reference the new build-prep doc; no other memory changes.
+- Text extraction in Phase 1 leans on `pdfjs-dist` (PDF), inline XML unzip (DOCX), and the existing OCR shim in `files-ingest` (images). All server-side in `documents-extract`.
+- Lovable AI: default `google/gemini-2.5-flash`; on 429/402 the function returns a soft `extraction_failed`/`review_failed` status with a plain-English message — never a raw error code in the UI.
+- All `audit_log` inserts use the existing helper pattern from `fileAudit.ts` so the receipt resolver picks them up automatically.
+- Status state machine enforced in `documents.ts` (mirrors `intakeLifecycle.ts` style) to prevent invalid transitions.

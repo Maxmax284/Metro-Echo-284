@@ -13,8 +13,10 @@ import { Button } from "@/components/ui/button";
 import {
   FileText, MessageSquare, Sparkles, ListChecks, CalendarClock,
   Link2, BellRing, CheckSquare, Search, Archive, X, MoreHorizontal,
-  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History,
+  Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History, FileSearch,
 } from "lucide-react";
+import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
+import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
@@ -92,6 +94,22 @@ function firstPerson(entities: unknown): string | null {
   return null;
 }
 
+function isDocumentLike(row: { filename: string; detected_doc_type: string | null }): boolean {
+  const t = (row.detected_doc_type ?? "").toLowerCase();
+  if (["contract", "invoice", "waiver", "policy", "other"].includes(t)) return true;
+  const f = row.filename.toLowerCase();
+  return /\.(pdf|docx?|rtf|txt)$/.test(f);
+}
+
+function detectedToDocKind(t: string | null): DocumentKind {
+  switch ((t ?? "").toLowerCase()) {
+    case "contract": return "other";
+    case "invoice": return "invoice";
+    case "policy": return "policy";
+    default: return "unknown";
+  }
+}
+
 const ACTIVITY_LABELS: Record<string, string> = {
   "file.staged": "Staged for upload",
   "file.upload_started": "Upload started",
@@ -143,6 +161,8 @@ export function FileAftermathTray({
   const [briefingPending, setBriefingPending] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activity, setActivity] = useState<Array<{ id: string; event: string; created_at: string }> | null>(null);
+  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null);
+  const [creatingDoc, setCreatingDoc] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -455,6 +475,43 @@ export function FileAftermathTray({
             </Button>
           </div>
           <div className="mt-1 text-[10px] text-muted-foreground">Nothing's been saved yet. Approve to track it.</div>
+        </div>
+      )}
+
+      {/* Treat as document — opens a dedicated Documents review surface */}
+      {!sensitive && isDocumentLike(row) && (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5 px-2.5 text-[11.5px]"
+            disabled={creatingDoc}
+            onClick={async () => {
+              if (!user || creatingDoc) return;
+              setCreatingDoc(true);
+              try {
+                const doc = await treatFileAsDocument({
+                  userId: user.id,
+                  fileId: row.id,
+                  filename: row.filename,
+                  kind: detectedToDocKind(row.detected_doc_type),
+                });
+                setOpenDocumentId(doc.id);
+                toast.success("Opened in Documents.");
+              } catch (e) {
+                toast.fromError?.(e);
+              } finally {
+                setCreatingDoc(false);
+              }
+            }}
+          >
+            <FileSearch className="h-3 w-3" /> Treat as document
+          </Button>
+          <DocumentDetailSheet
+            documentId={openDocumentId}
+            open={!!openDocumentId}
+            onOpenChange={(o) => !o && setOpenDocumentId(null)}
+          />
         </div>
       )}
 

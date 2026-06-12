@@ -36,6 +36,7 @@ import { ProjectInbox } from "@/components/projects/ProjectInbox";
 import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
+import { ProjectDocumentsSection } from "@/components/documents/ProjectDocumentsSection";
 import { useCanvas } from "@/components/entities/CanvasContext";
 
 export interface ProjectBriefViewProps {
@@ -296,6 +297,8 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         attached={items}
         onAttached={refreshAttached}
       />
+
+      <ProjectDocumentsSection projectId={project.id} />
 
       <AddToProjectComposer
         project={project}

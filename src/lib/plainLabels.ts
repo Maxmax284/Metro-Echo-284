@@ -93,6 +93,13 @@ export function humanizeEvent(event: string): string {
     "briefing.composed": "Brief created",
     "sherlock_finding_created": "Vanta noticed something",
     "sherlock_suggestion_dismissed": "Sherlock suggestion dismissed",
+    "document.uploaded": "Document added",
+    "document.extracted": "Document is ready to review",
+    "document.extract_failed": "Couldn't read the document",
+    "document.reviewed": "Document review ready",
+    "document.review_failed": "Document review didn't finish",
+    "document.risk_flagged": "Contract risk flagged",
+    "document.exported": "Document review exported",
   };
   if (exact[event]) return exact[event];
   const [domain, verb] = event.split(".");
@@ -172,6 +179,8 @@ export function trustNote(event: string): string {
     return "Logged by the file pipeline at this step.";
   if (e.startsWith("note."))
     return "Logged when the note was saved.";
+  if (e.startsWith("document."))
+    return "Logged when this document moved through review.";
   return "Logged automatically the moment it happened.";
 }
 
