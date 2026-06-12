@@ -3,14 +3,16 @@
 // Money terms, Obligations, Risks, Missing or unclear, Questions to ask,
 // Verdict, Soft disclaimer. Sticky footer: Re-review · Receipts.
 import { useCallback, useEffect, useState } from "react";
+import { pdf } from "@react-pdf/renderer";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, HelpCircle,
-  Loader2, MessageSquareWarning, RefreshCcw, Users, ShieldAlert, Sparkles,
+  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, FileDown,
+  HelpCircle, Loader2, MessageSquareWarning, RefreshCcw, Send, Sparkles,
+  ShieldAlert, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +21,12 @@ import {
   runExtraction, runReview, statusLabel,
   type DocumentObligation, type DocumentReview, type DocumentRisk, type DocumentRow,
 } from "@/lib/documents";
+import {
+  finalizeDocumentExport, saveDocumentExportDraft,
+  type DocumentExportAudience,
+} from "@/lib/documentExport";
+import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 interface Props {
   documentId: string | null;
