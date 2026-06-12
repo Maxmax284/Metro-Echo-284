@@ -313,6 +313,53 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   </Section>
                 )}
 
+                {/* Ask Vanta — drafts only, no execution */}
+                <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("explain-risk")}>
+                      Explain risks in plain English
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("before-signing")}>
+                      Questions to ask before signing
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("money")}>
+                      Summarize money terms
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    These open a draft in Vanta — nothing sends until you say so.
+                  </p>
+                </Section>
+
+                {/* Export packets */}
+                <Section icon={<FileDown className="h-4 w-4" />} title="Export review packet">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" className="h-8 gap-1.5 text-xs"
+                      onClick={() => handleExport("operator")}
+                      disabled={!!busy}>
+                      {busy === "export-operator"
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <FileDown className="h-3.5 w-3.5" />}
+                      Operator packet
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+                      onClick={() => handleExport("client")}
+                      disabled={!!busy}>
+                      {busy === "export-client"
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Send className="h-3.5 w-3.5" />}
+                      Client-ready packet
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Operator keeps risks and severity. Client version hides them as
+                    "Considerations" and includes the trust disclaimer.
+                  </p>
+                </Section>
+
                 <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
                   {DOCUMENT_DISCLAIMER}
                 </p>
