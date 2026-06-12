@@ -1,70 +1,73 @@
-## Sequence
+# Business Documents + Contract Intelligence — Build Prep (report only)
 
-### Step 0 — Confirm polish slice passed (gate)
-Re-run the real-workflow stress test against Command Center before any Export work. Pass criteria:
-- No raw event names, no `suggest:*` modes, no env-var secret names anywhere on the front door.
-- Memory Pulse cards show a "what happened" sub-line.
-- Grouped capture cards expose "Attach to project".
-- Project rollup explains hidden projects.
-- Soft welcome is non-blocking; tutorial does not auto-open.
-- Laundry ghost still dead; dismissed captures stay dismissed.
+This is a readiness + architecture-map pass. No tables, routes, edge functions, AI calls, or UI are added. Export Polish v1 (Operator / Client briefs) stays the active build slice; Documents implementation does not start until both Command Center polish and Export Polish gates pass.
 
-If anything fails → fix in place, do not start Export Polish. If clean → proceed.
+## Deliverable
 
-### Step 1 — Export Polish v1 scope
-Targets, in order: **Operator Brief**, **Client Brief**. Nothing else this slice.
+Single markdown report at:
 
-Out of scope (explicit):
-- No theme customizer / no per-user style controls.
-- No new audiences, no new formats, no new templates beyond these two.
-- No Documents / Contract Intelligence module (parked — see bottom).
-- No new tables, routes, migrations, or AI calls.
-- No edits to `compose-brief` payload shape.
+```
+.lovable/business-documents-contract-intelligence-build-prep.md
+```
 
-### Step 2 — Operator Brief polish
-Goal: feels like a tactical one-pager the operator actually wants to keep.
+Optional PDF mirror generated from the markdown:
 
-In `src/lib/briefTemplates.ts` (`internal_operator` + `operator` format path) and `src/components/briefs/BriefPdfDocument.tsx` / `BriefRenderer.tsx`:
-- Tighten cover: title, scope line, date, signals hash chip. No marketing chrome.
-- Section order: Overall → Next move → Decisions → Key topics → Risks → Sources.
-- Translate any remaining internal labels via `plainLabels.ts` (audit events, sherlock terms) so receipts in the appendix read in plain English.
-- Compact spacing; remove decorative rules that waste vertical space on mobile-printed PDFs.
-- Footer: "Operator brief · {date} · {signals_hash short}".
+```
+/mnt/documents/vanta-business-documents-contract-intelligence-build-prep.pdf
+```
 
-### Step 3 — Client Brief polish
-Goal: external-ready, no internal noise, no raw receipts.
+Both are documentation artifacts. No app code is touched in this slice.
 
-- Cover page only: title, subtitle, "Prepared for" line, date. No signals hash, no audit chrome (already `showSignalsHash: false`, `footnotesAppendix: false` — verify holds end-to-end).
-- Section order: Situation → Key topics → Decisions → Considerations (Risks renamed, already in template) → Next move.
-- Strip any `{kind}:{id}` receipt strings from claim text before render (sanitizer pass in `BriefRenderer` + PDF).
-- Soft serif title styling already in template; tighten body leading for printed feel.
-- Disclaimer footer line: "Prepared with Vanta. Summary only — not a legal document."
+## Audit pass before writing
 
-### Step 4 — Shared QA pass
-- Generate one Operator and one Client PDF from a real project.
-- Convert to images, inspect every page for: overflow, jargon leaks, raw IDs, empty sections, broken footnotes.
-- Verify `brief_exports` row + `brief.exported` (or `audit_packet.generated`) audit event written for both.
-- Confirm both appear in `BriefExportsList` with friendly format labels.
+Quick read-only sweep across the current codebase to ground every claim in the report. Touch only these areas; do not modify them:
 
-### Step 5 — Report & stop
-After Step 4: write findings into `.lovable/export-polish-v1-report.md`. Do not start Documents, OpenCanvas Phase 2, or Companion Phase 2.
+- File intake & storage — `src/lib/fileIntake.ts`, `supabase/functions/_shared/fileIntake.ts`, `supabase/functions/files-ingest/index.ts`, `src/components/files/*`, `src/hooks/useStagedUpload.ts`
+- Projects + Living Brief — `src/lib/projects.ts`, `src/components/projects/*`, `src/pages/ProjectBrief.tsx`, `supabase/functions/project-summarize/index.ts`
+- Briefs / exports / PDF — `src/lib/briefs.ts`, `src/lib/briefTemplates.ts`, `src/components/briefs/*`, `supabase/functions/compose-brief/index.ts`
+- Command Center bulletin — `src/components/cockpit/DailyBulletinCard.tsx`, `src/components/surfaces/CommandCenterSurface.tsx`, `src/lib/bulletinLanguage.ts`, `src/lib/plainLabels.ts`
+- Receipts / audit — `src/lib/fileAudit.ts`, `src/components/audit/AuditDetailDrawer.tsx`, `src/lib/receiptResolve.ts`
+- Conversation / voice — `src/components/companion/*`, `src/components/capture/VoiceCaptureCard.tsx`, `supabase/functions/vanta-converse/index.ts`
+- Sherlock (risk-flag analog) — `src/components/sherlock/*`, `supabase/functions/sherlock-*`
+- Intake lifecycle + grouped captures — `src/lib/intakeLifecycle.ts`, `src/components/memory/*`, `src/components/projects/BulkAttachToProjectMenu.tsx`
 
----
+For each system the report tags it: **Reusable as-is / Needs small extension / Needs new build / Do not touch yet.**
 
-## Re: the attachment (Vanta Business Documents + Contract Intelligence)
+## Report structure
 
-Read in full. It is **explicitly "do not build yet"** and the brief itself places Documents *after* (1) Command Center polish and (2) Export Polish. Action now:
+The markdown follows the 16-section deliverable spec from the brief, in this order:
 
-- Save the brief into the repo as `.lovable/documents-contract-intelligence-design-brief.md` (verbatim, design-only).
-- Add a one-line pointer in `mem://index.md` under Memories so it surfaces when Documents work eventually starts.
-- No code, no tables, no routes, no AI calls. Park.
+1. Current system audit (per-area table with the four tags above)
+2. Reusable components (concrete file/function references)
+3. Gaps (what's missing for Documents to land cleanly)
+4. Recommended future data model — prefer reuse of `ingested_files`, `project_items`, `brief_exports`, `audit_log`; only propose new tables (`documents`, `document_reviews`, `document_risks`, `document_obligations`, `document_versions`) where existing rows can't carry the semantics. No SQL, just shape sketches.
+5. Recommended future storage model — original file, extracted text, review output, generated draft, exported PDF/DOCX, signature page, source appendix; mapped to current bucket layout.
+6. Recommended future edge functions — `documents-extract`, `documents-review`, `documents-draft`, `documents-export` (names indicative). Note overlap with `compose-brief` and `project-summarize`.
+7. Recommended future UI surfaces — Project → Documents tab, Document detail (Review / Draft / Export), upload entry from Capture and Project Inbox. No new top-level routes.
+8. Project integration plan — every document belongs to a Project; orphan documents land in Project Inbox for attachment, identical to current capture flow.
+9. Living Brief integration plan — review output emits living-brief blocks (parties, dates, money terms, obligations, risks, open questions) via the existing block system.
+10. Command Center integration plan — bulletin lines in plain English ("Ground Stay NDA review is ready", "One contract risk needs review"). Routed through `bulletinLanguage.ts` / `plainLabels.ts`. Banned phrasings listed.
+11. Export / Receipt integration plan — Document exports ride on `brief_exports` + PDF renderer with new audience templates in `briefTemplates.ts` (Contract Review Brief, Red Flag Report, Client Review Packet, Signature-Ready Draft, Attorney Handoff Packet). Every state change writes an `audit_log` row surfaced as a plain-English receipt.
+12. Voice / type conversation integration plan — reuse `vanta-converse` + Companion context; conversation becomes contextual inside Project / Document / Export surfaces. No new chat surface. Plan→Approve→Execute preserved.
+13. Legal / trust guardrails — single soft disclaimer string, where it appears, the Hard No list (no e-sign, no filing, no auto-send, no silent edits, no objective risk scoring, no attorney impersonation).
+14. Out-of-scope list — mirrors the Hard No + "not in Phase 1" items.
+15. Recommended phased implementation plan — Phase 1 Review → Phase 2 Draft basics → Phase 3 Conversational builder → Phase 4 Premium packets → Later (versions, obligations, renewals, attorney handoff, template vault).
+16. Readiness gate before build — explicit checklist: Command Center polish confirmed, no raw event/env/Sherlock labels, Export Polish v1 stable, project export round-trip green, receipts plain English, upload + project attach stable, no stale/dismissed clutter.
 
-When Documents eventually enters build, the brief's own Phase 1 recommendation holds: start with **Review Uploaded Documents**, not drafting.
+## Final principle (stated in the doc)
 
----
+Documents is not a legal form builder. It is a business document command studio inside Vanta: explain in plain English, prepare drafts, flag risks, organize by Project, export cleanly, preserve receipts. Capture never executes. Plan → Approve → Execute always happens inside the platform.
+
+## What this slice will NOT do
+
+- No new tables, routes, migrations, edge functions, or AI calls.
+- No UI changes.
+- No changes to `compose-brief` shape.
+- No start of Documents Phase 1.
+- Export Polish v1 (Operator + Client) remains the active build slice.
 
 ## Technical notes
 
-- All Export work lives in: `src/lib/briefTemplates.ts`, `src/lib/briefs.ts` (no shape changes), `src/components/briefs/BriefPdfDocument.tsx`, `BriefRenderer.tsx`, `BriefExportsList.tsx`, and `src/lib/plainLabels.ts` (translator additions only).
-- No changes to `compose-brief` edge function in this slice — polish is render-layer only.
-- Storage path unchanged: `{user_id}/briefs/{export_id}.pdf` on `memory-uploads` bucket.
+- Markdown is hand-authored from the audit above; no generated content from runtime.
+- PDF mirror generated with a small one-off Python/ReportLab or pandoc-style script writing to `/mnt/documents/`; script lives in `/tmp/` and is not committed.
+- Memory: update `mem://documents/design-brief-pointer` to also reference the new build-prep doc; no other memory changes.
