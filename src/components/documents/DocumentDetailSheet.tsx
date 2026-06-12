@@ -103,6 +103,49 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     }
   }
 
+  async function handleExport(audience: DocumentExportAudience) {
+    if (!documentId) return;
+    setBusy(audience === "client" ? "export-client" : "export-operator");
+    try {
+      const { row, brief, doc: docRow } = await saveDocumentExportDraft({
+        document_id: documentId, audience,
+      });
+      const pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
+      await finalizeDocumentExport({
+        row, pdfBlob, document_id: docRow.id, audience,
+      });
+      const url = URL.createObjectURL(pdfBlob);
+      const a = window.document.createElement("a");
+      a.href = url;
+      a.download = `${brief.title.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success(audience === "client"
+        ? "Client packet exported."
+        : "Operator packet exported.");
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Export failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function handleAsk(kind: "explain-risk" | "before-signing" | "money") {
+    if (!doc) return;
+    const map: Record<typeof kind, string> = {
+      "explain-risk":
+        `For the document "${doc.title}", walk me through the highest-severity risks in plain English. What would each one mean for me in practice? No legal advice — just help me understand.`,
+      "before-signing":
+        `Before I sign "${doc.title}", what should I ask the other side? Use the review Vanta already produced. Draft the questions as a short list I can send.`,
+      "money":
+        `Summarize the money terms in "${doc.title}" — fees, deposits, late charges, refunds, who pays when. Plain English, no legal interpretation.`,
+    };
+    openWithPrefill(map[kind]);
+    onOpenChange(false);
+  }
+
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full max-w-xl overflow-y-auto pb-32 sm:max-w-2xl">
