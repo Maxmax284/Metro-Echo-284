@@ -827,6 +827,298 @@ export type Database = {
         }
         Relationships: []
       }
+      document_obligations: {
+        Row: {
+          conditions: string | null
+          created_at: string
+          document_id: string
+          id: string
+          party: string | null
+          review_id: string
+          source_clause_ref: string | null
+          user_id: string
+          what: string | null
+          when_text: string | null
+        }
+        Insert: {
+          conditions?: string | null
+          created_at?: string
+          document_id: string
+          id?: string
+          party?: string | null
+          review_id: string
+          source_clause_ref?: string | null
+          user_id: string
+          what?: string | null
+          when_text?: string | null
+        }
+        Update: {
+          conditions?: string | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          party?: string | null
+          review_id?: string
+          source_clause_ref?: string | null
+          user_id?: string
+          what?: string | null
+          when_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_obligations_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_obligations_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "document_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_reviews: {
+        Row: {
+          document_id: string
+          generated_at: string
+          id: string
+          key_dates: Json
+          missing_or_unclear: Json
+          model: string | null
+          money_terms: Json
+          obligations: Json
+          parties: Json
+          questions_to_ask: Json
+          summary: string | null
+          user_id: string
+          verdict: string | null
+          version_id: string
+        }
+        Insert: {
+          document_id: string
+          generated_at?: string
+          id?: string
+          key_dates?: Json
+          missing_or_unclear?: Json
+          model?: string | null
+          money_terms?: Json
+          obligations?: Json
+          parties?: Json
+          questions_to_ask?: Json
+          summary?: string | null
+          user_id: string
+          verdict?: string | null
+          version_id: string
+        }
+        Update: {
+          document_id?: string
+          generated_at?: string
+          id?: string
+          key_dates?: Json
+          missing_or_unclear?: Json
+          model?: string | null
+          money_terms?: Json
+          obligations?: Json
+          parties?: Json
+          questions_to_ask?: Json
+          summary?: string | null
+          user_id?: string
+          verdict?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_reviews_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_reviews_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "document_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_risks: {
+        Row: {
+          clause_ref: string | null
+          created_at: string
+          document_id: string
+          id: string
+          plain_english: string | null
+          review_id: string
+          severity: Database["public"]["Enums"]["document_risk_severity"]
+          suggested_question: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          clause_ref?: string | null
+          created_at?: string
+          document_id: string
+          id?: string
+          plain_english?: string | null
+          review_id: string
+          severity?: Database["public"]["Enums"]["document_risk_severity"]
+          suggested_question?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          clause_ref?: string | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          plain_english?: string | null
+          review_id?: string
+          severity?: Database["public"]["Enums"]["document_risk_severity"]
+          suggested_question?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_risks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_risks_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "document_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          body_storage_path: string | null
+          body_text: string | null
+          created_at: string
+          document_id: string
+          id: string
+          source: Database["public"]["Enums"]["document_version_source"]
+          user_id: string
+          version_no: number
+        }
+        Insert: {
+          body_storage_path?: string | null
+          body_text?: string | null
+          created_at?: string
+          document_id: string
+          id?: string
+          source?: Database["public"]["Enums"]["document_version_source"]
+          user_id: string
+          version_no?: number
+        }
+        Update: {
+          body_storage_path?: string | null
+          body_text?: string | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          source?: Database["public"]["Enums"]["document_version_source"]
+          user_id?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          failure_reason: string | null
+          id: string
+          kind: Database["public"]["Enums"]["document_kind"]
+          latest_review_id: string | null
+          organization_id: string | null
+          parties: Json
+          project_id: string | null
+          source_file_id: string | null
+          status: Database["public"]["Enums"]["document_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["document_kind"]
+          latest_review_id?: string | null
+          organization_id?: string | null
+          parties?: Json
+          project_id?: string | null
+          source_file_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["document_kind"]
+          latest_review_id?: string | null
+          organization_id?: string | null
+          parties?: Json
+          project_id?: string | null
+          source_file_id?: string | null
+          status?: Database["public"]["Enums"]["document_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_latest_review_fk"
+            columns: ["latest_review_id"]
+            isOneToOne: false
+            referencedRelation: "document_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_source_file_id_fkey"
+            columns: ["source_file_id"]
+            isOneToOne: false
+            referencedRelation: "ingested_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_inbound_addresses: {
         Row: {
           active: boolean
@@ -2634,6 +2926,26 @@ export type Database = {
       app_mode: "locked" | "observer" | "advisor" | "operator"
       app_role: "admin" | "user" | "owner"
       commitment_status: "open" | "done" | "cancelled"
+      document_kind:
+        | "nda"
+        | "sow"
+        | "service"
+        | "lease"
+        | "partnership"
+        | "invoice"
+        | "policy"
+        | "letter"
+        | "other"
+        | "unknown"
+      document_risk_severity: "low" | "medium" | "high"
+      document_status:
+        | "uploaded"
+        | "extracting"
+        | "extracted"
+        | "reviewing"
+        | "reviewed"
+        | "failed"
+      document_version_source: "upload" | "extraction"
       executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
@@ -2781,6 +3093,28 @@ export const Constants = {
       app_mode: ["locked", "observer", "advisor", "operator"],
       app_role: ["admin", "user", "owner"],
       commitment_status: ["open", "done", "cancelled"],
+      document_kind: [
+        "nda",
+        "sow",
+        "service",
+        "lease",
+        "partnership",
+        "invoice",
+        "policy",
+        "letter",
+        "other",
+        "unknown",
+      ],
+      document_risk_severity: ["low", "medium", "high"],
+      document_status: [
+        "uploaded",
+        "extracting",
+        "extracted",
+        "reviewing",
+        "reviewed",
+        "failed",
+      ],
+      document_version_source: ["upload", "extraction"],
       executor_kind: ["webhook", "telegram", "google_calendar", "email"],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
