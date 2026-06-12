@@ -3,14 +3,16 @@
 // Money terms, Obligations, Risks, Missing or unclear, Questions to ask,
 // Verdict, Soft disclaimer. Sticky footer: Re-review · Receipts.
 import { useCallback, useEffect, useState } from "react";
+import { pdf } from "@react-pdf/renderer";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, HelpCircle,
-  Loader2, MessageSquareWarning, RefreshCcw, Users, ShieldAlert, Sparkles,
+  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, FileDown,
+  HelpCircle, Loader2, MessageSquareWarning, RefreshCcw, Send, Sparkles,
+  ShieldAlert, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +21,12 @@ import {
   runExtraction, runReview, statusLabel,
   type DocumentObligation, type DocumentReview, type DocumentRisk, type DocumentRow,
 } from "@/lib/documents";
+import {
+  finalizeDocumentExport, saveDocumentExportDraft,
+  type DocumentExportAudience,
+} from "@/lib/documentExport";
+import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
+import { useCompanion } from "@/components/companion/CompanionContext";
 
 interface Props {
   documentId: string | null;
@@ -33,7 +41,8 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | "extract" | "review">(null);
+  const [busy, setBusy] = useState<null | "extract" | "review" | "export-operator" | "export-client">(null);
+  const { openWithPrefill } = useCompanion();
 
   const refresh = useCallback(async () => {
     if (!documentId) return;
@@ -93,6 +102,49 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       setBusy(null);
     }
   }
+
+  async function handleExport(audience: DocumentExportAudience) {
+    if (!documentId) return;
+    setBusy(audience === "client" ? "export-client" : "export-operator");
+    try {
+      const { row, brief, doc: docRow } = await saveDocumentExportDraft({
+        document_id: documentId, audience,
+      });
+      const pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
+      await finalizeDocumentExport({
+        row, pdfBlob, document_id: docRow.id, audience,
+      });
+      const url = URL.createObjectURL(pdfBlob);
+      const a = window.document.createElement("a");
+      a.href = url;
+      a.download = `${brief.title.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success(audience === "client"
+        ? "Client packet exported."
+        : "Operator packet exported.");
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Export failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function handleAsk(kind: "explain-risk" | "before-signing" | "money") {
+    if (!doc) return;
+    const map: Record<typeof kind, string> = {
+      "explain-risk":
+        `For the document "${doc.title}", walk me through the highest-severity risks in plain English. What would each one mean for me in practice? No legal advice — just help me understand.`,
+      "before-signing":
+        `Before I sign "${doc.title}", what should I ask the other side? Use the review Vanta already produced. Draft the questions as a short list I can send.`,
+      "money":
+        `Summarize the money terms in "${doc.title}" — fees, deposits, late charges, refunds, who pays when. Plain English, no legal interpretation.`,
+    };
+    openWithPrefill(map[kind]);
+    onOpenChange(false);
+  }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -260,6 +312,53 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                     <p className="whitespace-pre-wrap text-sm text-foreground/90">{review.verdict}</p>
                   </Section>
                 )}
+
+                {/* Ask Vanta — drafts only, no execution */}
+                <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("explain-risk")}>
+                      Explain risks in plain English
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("before-signing")}>
+                      Questions to ask before signing
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs"
+                      onClick={() => handleAsk("money")}>
+                      Summarize money terms
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    These open a draft in Vanta — nothing sends until you say so.
+                  </p>
+                </Section>
+
+                {/* Export packets */}
+                <Section icon={<FileDown className="h-4 w-4" />} title="Export review packet">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" className="h-8 gap-1.5 text-xs"
+                      onClick={() => handleExport("operator")}
+                      disabled={!!busy}>
+                      {busy === "export-operator"
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <FileDown className="h-3.5 w-3.5" />}
+                      Operator packet
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+                      onClick={() => handleExport("client")}
+                      disabled={!!busy}>
+                      {busy === "export-client"
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Send className="h-3.5 w-3.5" />}
+                      Client-ready packet
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Operator keeps risks and severity. Client version hides them as
+                    "Considerations" and includes the trust disclaimer.
+                  </p>
+                </Section>
 
                 <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
                   {DOCUMENT_DISCLAIMER}

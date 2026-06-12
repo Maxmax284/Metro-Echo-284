@@ -109,6 +109,8 @@ export function formatAuditEvent(
     return { ...base, bucket: "done", text: `A document review is ready.` };
   if (e === "document.exported")
     return { ...base, bucket: "done", text: `A document review was exported.` };
+  if (e === "document.export_drafted")
+    return { ...base, bucket: "captures", text: `A document review packet is ready to send.` };
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")
