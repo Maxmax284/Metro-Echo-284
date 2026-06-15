@@ -101,10 +101,45 @@ export default function DocumentsPage() {
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={() => setComposerOpen(true)} className="gap-1.5">
-          <FilePlus2 className="h-4 w-4" /> New document
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <Sparkles className="h-4 w-4" /> Create…
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                From existing memory
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {listExportPresets().map((p) => (
+                <DropdownMenuItem
+                  key={p.id}
+                  onSelect={() => launchPreset(p.id)}
+                  className="flex flex-col items-start gap-0.5 py-2"
+                >
+                  <span className="text-[12.5px] font-medium">{p.label}</span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    {p.description}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" onClick={() => setComposerOpen(true)} className="gap-1.5">
+            <FilePlus2 className="h-4 w-4" /> New document
+          </Button>
+        </div>
       </header>
+
+      {docWorkItems.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {docWorkItems.map((i) => (
+            <WorkProgressCard key={i.id} item={i} onDismiss={() => activity.remove(i.id)} />
+          ))}
+        </div>
+      )}
 
       <UnderConstructionBanner />
 
