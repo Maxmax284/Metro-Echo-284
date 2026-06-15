@@ -1,135 +1,650 @@
-# Documents — Phases 1–4 shipped; Phase 3 scaffolded
+# Vanta Polish Pass — Plain English, Collapsibility, Calm Motion
 
-Internal: **Business Documents + Contract Intelligence**. User-facing: **Documents**.
+A surgical cleanup of Command Center + Inbox. No new tables, migrations, AI calls, routes, or features. Documents/Export work is paused for this pass.
 
-Phase 1 (Review) shipped previously. This pass added Phase 2 (Drafting basic
-business documents) and left a safe scaffold for Phase 3 (Conversational
-builder) that doesn't expand the capture surface or break Plan→Approve→Execute.
+## 1. Plain-English Language Pass
 
----
+Centralize all user-facing event/status copy in one place so it never drifts again.
 
-## Phase 2 — Drafting (DONE)
+- Extend `src/lib/plainLabels.ts` and `src/lib/bulletinLanguage.ts` with a single `humanizeEvent()` map covering every banned phrase from the brief:
+  - `Briefing read` → `Brief was opened`
+  - `Brief created` → `New brief created`
+  - `Capture routed` → `Capture was organized`
+  - `Telegram message in` → `New Telegram note came in`
+  - `Connected to a project` → `Attached to a project`
+  - `Open in memory` → `Open saved note`
+  - `Entity graph` → `Connections`
+  - `high confidence` → `Likely useful`
+  - `Pending Sherlock review` → `Possible duplicate`
+  - `Already saved to memory` → `Saved to memory`
+- Banned token guard: a tiny dev-only assertion in the formatter that strips/replaces `record inserted`, `signal detected`, `lifecycle state`, `briefing.viewed`, `briefing.composed`, `webhook received`, `suggest:message`, `extract:message`, etc.
+- Rewrite Daily Bulletin top-line composer: short, natural sentences, no "and a few more" — use compact counts.
+- Today card subtitle → "Your quick check-in for today."
+- Inbox "Not connected yet…" → "Not connected yet. Attach this so Vanta knows where it belongs."
 
-### Schema
-Migration adds without breaking existing rows:
-- `document_status` enum gains `drafting`, `drafted`, `approved`.
-- `document_version_source` enum gains `draft`, `revision`.
-- `documents` table gains columns: `template_key`, `draft_inputs` (jsonb), `tone`.
-No new tables. RLS already enforces owner/org-member access on the parent rows.
+Files: `src/lib/plainLabels.ts`, `src/lib/bulletinLanguage.ts`, plus consumer call-sites in cockpit/inbox/bulletin/today components.
 
-### Edge function — `documents-draft`
-- Input: `{ document_id, template_title, user_message, revision_prompt? }`.
-- Calls Lovable AI (`google/gemini-2.5-flash`) with the voice doctrine + tone.
-- Writes a new `document_versions` row (`source='draft'` or `'revision'`).
-- Updates `documents.status` to `drafted` (or `failed` on rate/credit/network).
-- Emits one audit event per outcome:
-  - `document.draft_created`, `document.draft_revised`,
-  - `document.draft_failed`, `document.draft_approved` (via client lib).
+## 2. Shared Collapsible + More primitives
 
-### Frontend
-- `src/lib/documentTemplates.ts` — five starter templates (Mutual NDA,
-  Simple SOW, Service Agreement, Payment Agreement, Business Letter) with
-  field schemas + per-template prompt builders.
-- `src/lib/documents.ts` — new lifecycle: `createDraftDocument`, `runDraft`,
-  `approveDraft`, `getLatestVersion`, `isDraftDocument`.
-- `src/lib/documentDraftExport.ts` — exports a drafted document as a PDF
-  packet (operator working copy or client-ready) using the existing
-  `brief_exports` + `BriefPdfDocument` pipeline. Splits markdown by headings.
-- `src/components/documents/NewDocumentDialog.tsx` — guided template picker
-  + field form + tone selector. Builds the user message and invokes
-  `documents-draft`. Plan→Approve→Execute: nothing runs until the user taps.
-- `src/components/documents/DocumentDetailSheet.tsx` — adds a Draft mode
-  branch (renders body markdown, revision input, approve action, export
-  controls, Companion contextual prompts). Reuses the same sheet shell.
-- `src/components/documents/ProjectDocumentsSection.tsx` — adds a
-  "New document" button and an empty-state line, passes `organizationId`.
+Two small shared components so collapsibility/menus stay consistent:
 
-### Bulletin + receipts
-`plainLabels.ts` + `bulletinLanguage.ts` extended for:
-- `document.draft_created` → "A new document draft is ready to read." (captures)
-- `document.draft_revised` → "A document draft was updated." (captures)
-- `document.draft_approved` → "A document draft was approved." (done)
-- `document.draft_failed` → "A document needs another look." (attention)
+- `src/components/ui/CollapsibleSection.tsx` — header with title, count chip, short summary phrase, smooth accordion (200–300ms, ease-out), `defaultOpen` prop. Respects `prefers-reduced-motion`.
+- `src/components/ui/CardMoreMenu.tsx` — thin wrapper over existing dropdown for "More" actions on inbox/cockpit cards.
 
-No raw event keys, no env-var names, no model names ever surface.
+## 3. Command Center / Cockpit collapsibility
 
-### Out of scope (Phase 2)
-- E-signature, signature blocks beyond plain text.
-- DOCX output (Phase 4).
-- Watermarks, cover pages, source appendices (Phase 4).
-- Jurisdiction-specific guarantees (never).
-- Auto-send / silent edits (never).
+In `DailyBulletinCard.tsx`, `DailyChecklistCard.tsx`, `OperationsBriefingPanel.tsx`, `ProductivityPulseCard.tsx`, `ProjectRollupCards.tsx`, and the system-ish tiles in `src/pages/Index.tsx`:
 
----
+- Open by default: Daily Bulletin, Needs you (only if count > 0), Today/Next move (if active item).
+- Collapsed by default with count + phrase: New captures, Done and saved, Quiet cleanup, Receipts, Memory Pulse, Connected sources, System details, Dismissed/stale.
+- Projects card: cap to 2–3 most relevant; keep existing CALM language.
+- Calm empty states when Today has no urgent items.
 
-## Phase 3 — Conversational Builder (SCAFFOLD ONLY)
+## 4. Inbox card redesign (`InboxNotesList.tsx`)
 
-Wired safely without expanding the capture surface or letting AI execute.
+Reduce every card to: title/preview → source chips → short status line → **one primary** + **one secondary** + **More**.
 
-- `DocumentDetailSheet` already routes "Ask Vanta" buttons through
-  `useCompanion().openWithPrefill(...)`. For drafts, three contextual
-  prompts are present:
-  - "Tighten 30%" (suggestion only)
-  - "Warmer voice" (suggestion only)
-  - "Boardroom-formal" (suggestion only)
-  These open a Companion conversation pre-filled with a draft suggestion.
-  The user must explicitly tap **Apply revision** in the sheet to actually
-  call `documents-draft` with a revision prompt. Nothing executes from
-  inside the conversation.
+- Primary-action rules:
+  - Not attached → `Attach to project`
+  - Likely project known → `Attach to [Project Name]`
+  - Already attached → `Open project`
+  - Needs review → `Review`
+  - Saved & done → collapse or `Open saved note`
+- Move into More: connect person/place, open saved note, view source, show receipt, advanced connection actions.
+- Replace `+person/+project/+place` button row with single Attach sheet trigger.
+- Use "Saved" / "In memory" instead of arrow-to-memory chips.
 
-### What Phase 3 still needs (next slice)
-1. Voice path: piggyback on `VoiceCaptureCard` to capture a revision prompt
-   spoken aloud; transcript drops straight into the revision textarea.
-2. Multi-turn follow-up questions before the first draft (e.g. "Who's the
-   counterparty?" when missing). Today the dialog asks all fields up-front.
-3. Style presets persisted per project (currently per-document tone only).
-4. Inline "explain this clause" prompt anchored to a selected paragraph.
+## 5. Calm motion layer
 
-None of these expand the surface area. All four reuse `vanta-converse` +
-`documents-draft` and stay inside the existing detail sheet.
+Small motion primitives (CSS + framer-motion if already present; otherwise pure CSS transitions — no new deps):
 
----
+- Bulletin load: fade-in, sections settle (180–240ms).
+- Accordion expand/collapse: 200–300ms ease.
+- Attach: card settles into "Attached to [Project]" confirmation.
+- Dismiss: slide-left/fade + "Hidden from Command Center" toast.
+- Export saved: checkmark pulse + plain-English toast.
+- Bottom nav active icon: subtle lift/glow.
+- Needs-you alert: gentle one-time glow, no loop.
+- Honor `prefers-reduced-motion` → replace with fades or instant changes.
 
-## Phase 4 — Premium Packets (SHIPPED)
+## 6. Aesthetic micro-polish (no theme change)
 
-- `BriefPdfDocument` reads optional `grounding.watermark` and
-  `grounding.signatures` ([{name, role}]) from any Brief. When present,
-  the watermark renders diagonally on every page and a dedicated
-  **Signature page** is appended with signature/date/print-name rows.
-- `documentDraftExport.ts` adds a third audience: `signature`. Signatories
-  are pulled from `draft_inputs` (party_a, party_b, client_name,
-  contractor_name, sender_name, recipient_name, company_name,
-  counterparty, signer_a, signer_b) and the export is stamped
-  `DRAFT — NOT FOR EXECUTION`.
-- `documentDocxExport.ts` (new) renders the same draft as a `.docx`
-  client-side using `docx` + `file-saver`. Three buttons in the Export
-  draft section: Word (operator), Word — client, Word — signature.
-  Signature variant adds a "DRAFT — NOT FOR EXECUTION" header and a
-  Signatures page per named party. Emits `document.exported_docx` to the
-  audit log; plain-English label + bulletin string added.
-- `DocumentDetailSheet` exposes Signature packet (PDF) + three .docx
-  buttons on drafted documents. Plan → Approve → Execute preserved:
-  nothing executes until the operator taps.
+- Increase spacing in dense chip rows.
+- Soft dividers replace heavy boxes where used.
+- Ensure 44px tap targets and no horizontal chip scroll on 390px.
+- Max two visible actions per card.
 
-Still optional (not in Phase 4 scope, hold until asked):
-- Server-side DOCX render (only matters if operators want exports
-  triggered from the brief pipeline without opening the sheet).
-- Per-template source appendices when reviews are attached to drafts.
-- Per-project signature defaults (saved sigs / titles).
+## 7. Preserve (must not regress)
 
+Daily Bulletin position, Slice 5 exports, Slice 6 intake lifecycle, dismissed/stale persistence, grouped captures, attach-to-project, receipts internal completeness, Documents Beta page & banner, no new AI calls, no new tables.
 
+## Technical notes
 
----
+- All copy goes through `humanizeEvent()` / existing `plainLabels` — no inline strings in components.
+- `CollapsibleSection` uses `useReducedMotion` (if framer-motion present) or `@media (prefers-reduced-motion)` CSS guard.
+- Motion timings defined as CSS variables in `index.css` (`--motion-fast: 160ms`, `--motion-base: 220ms`, `--motion-slow: 280ms`) for consistency.
+- Dev-mode console warning if a banned token reaches the formatter — silenced in prod.
 
-## Build verification (this pass)
-- Migration applied: status + version source enums extended; columns added.
-- Edge function deployed automatically.
-- TypeScript: status state machine extended to cover all 9 statuses; build
-  passes with no type errors after adding `template_key`, `draft_inputs`,
-  `tone` to `DocumentRow`.
-- UI validated at 384px (project sheet, detail sheet, dialog).
-- Bulletin + plain-label coverage extended for every new audit event.
-- Plan → Approve → Execute preserved everywhere: drafting requires an
-  explicit dialog submission; revisions require explicit Apply tap;
-  approvals require explicit Approve tap; exports require explicit Export
-  tap; no AI runs from messaging or capture.
+## Out of scope (explicit)
+
+Documents/Contract Intelligence, Export Polish templates, OpenCanvas Phase 2, theme customizer, new AI calls, new migrations, rebuilding Command Center.
+
+## Acceptance check (post-build)
+
+Run the brief's manual test script at 384–390px: bulletin first, short human summary, non-urgent sections collapsed with counts, inbox cards show one primary action, language audit shows zero banned tokens, reduced-motion replaces slides with fades.
+
+&nbsp;
+
+Vanta Polish Pass — Plain English, Collapsibility, Calm Motion
+
+&nbsp;
+
+This is a surgical cleanup pass for Command Center + Inbox.
+
+&nbsp;
+
+Do not add new tables, migrations, AI calls, routes, major features, or architecture changes.
+
+&nbsp;
+
+Documents, Contract Intelligence, Export template polish, OpenCanvas Phase 2, theme customizer, and any rebuild of Command Center are explicitly out of scope.
+
+&nbsp;
+
+Goal: make Vanta feel calmer, clearer, more human, and easier to scan on mobile without changing the product’s core behavior.
+
+&nbsp;
+
+1. Plain-English Language Pass
+
+&nbsp;
+
+Centralize all user-facing event/status language so copy does not drift across the app.
+
+&nbsp;
+
+Update:
+
+&nbsp;
+
+src/lib/plainLabels.ts
+
+src/lib/bulletinLanguage.ts
+
+&nbsp;
+
+Add or extend a single humanizeEvent() formatter/map that covers all system-ish phrases and translates them into plain English.
+
+&nbsp;
+
+Required replacements:
+
+&nbsp;
+
+Briefing read → Brief was opened
+
+Brief created → New brief created
+
+Capture routed → Capture was organized
+
+Telegram message in → New Telegram note came in
+
+Connected to a project → Attached to a project
+
+Open in memory → Open saved note
+
+Entity graph → Connections
+
+high confidence → Likely useful
+
+Pending Sherlock review → Possible duplicate
+
+Already saved to memory → Saved to memory
+
+&nbsp;
+
+Add a dev-only banned-token guard inside the formatter.
+
+&nbsp;
+
+If any banned token reaches the formatter in development, replace/strip it and console.warn once.
+
+&nbsp;
+
+Silence warnings in production.
+
+&nbsp;
+
+Banned examples include:
+
+&nbsp;
+
+record inserted
+
+signal detected
+
+lifecycle state
+
+briefing.viewed
+
+briefing.composed
+
+webhook received
+
+suggest:message
+
+extract:message
+
+&nbsp;
+
+Rewrite Daily Bulletin top-line composer so summaries are short, natural, and human.
+
+&nbsp;
+
+Rules:
+
+&nbsp;
+
+No robotic event names.
+
+No “and a few more.”
+
+Use compact counts when needed.
+
+Prefer one short sentence over long stitched summaries.
+
+&nbsp;
+
+Today card subtitle must become:
+
+&nbsp;
+
+“Your quick check-in for today.”
+
+&nbsp;
+
+Inbox empty/unattached copy must become:
+
+&nbsp;
+
+“Not connected yet. Attach this so Vanta knows where it belongs.”
+
+&nbsp;
+
+All user-facing event/status copy must go through humanizeEvent() or existing plain label helpers. Do not add new inline system/status strings directly inside components.
+
+&nbsp;
+
+Relevant areas:
+
+&nbsp;
+
+cockpit
+
+inbox
+
+bulletin
+
+today components
+
+&nbsp;
+
+2. Shared Collapsible + More Primitives
+
+&nbsp;
+
+Create two small shared UI primitives.
+
+&nbsp;
+
+File:
+
+&nbsp;
+
+src/components/ui/CollapsibleSection.tsx
+
+&nbsp;
+
+Requirements:
+
+&nbsp;
+
+Header with title.
+
+Optional count chip.
+
+Optional short summary phrase.
+
+Smooth accordion open/close.
+
+Motion duration between 200–300ms.
+
+Use ease-out.
+
+Support defaultOpen prop.
+
+Respect prefers-reduced-motion.
+
+If framer-motion already exists, use it carefully.
+
+If not, use pure CSS transitions.
+
+Do not add new dependencies.
+
+&nbsp;
+
+File:
+
+&nbsp;
+
+src/components/ui/CardMoreMenu.tsx
+
+&nbsp;
+
+Requirements:
+
+&nbsp;
+
+Thin wrapper over the existing dropdown/menu pattern.
+
+Used for secondary card actions.
+
+Keeps inbox/cockpit card menus consistent.
+
+Do not invent a new menu system.
+
+&nbsp;
+
+3. Command Center / Cockpit Collapsibility
+
+&nbsp;
+
+Apply CollapsibleSection to:
+
+&nbsp;
+
+DailyBulletinCard.tsx
+
+DailyChecklistCard.tsx
+
+OperationsBriefingPanel.tsx
+
+ProductivityPulseCard.tsx
+
+ProjectRollupCards.tsx
+
+system-ish tiles in src/pages/Index.tsx
+
+&nbsp;
+
+Open by default:
+
+&nbsp;
+
+Daily Bulletin
+
+Needs you, only if count > 0
+
+Today / Next move, only if there is an active item
+
+&nbsp;
+
+Collapsed by default, but still show count + short plain-English phrase:
+
+&nbsp;
+
+New captures
+
+Done and saved
+
+Quiet cleanup
+
+Receipts
+
+Memory Pulse
+
+Connected sources
+
+System details
+
+Dismissed / stale
+
+&nbsp;
+
+Projects card:
+
+&nbsp;
+
+Show only the 2–3 most relevant projects.
+
+Keep existing CALM language.
+
+Do not expand this into a new project dashboard.
+
+&nbsp;
+
+Today empty state:
+
+&nbsp;
+
+If there are no urgent items, show a calm empty state.
+
+Do not make the user feel like something is broken or missing.
+
+&nbsp;
+
+4. Inbox Card Redesign
+
+&nbsp;
+
+Update:
+
+&nbsp;
+
+InboxNotesList.tsx
+
+&nbsp;
+
+Each card should be reduced to:
+
+&nbsp;
+
+Title or preview
+
+Source chips
+
+Short status line
+
+One primary action
+
+One secondary action
+
+More menu
+
+&nbsp;
+
+Primary action rules:
+
+&nbsp;
+
+Not attached → Attach to project
+
+Likely project known → Attach to [Project Name]
+
+Already attached → Open project
+
+Needs review → Review
+
+Saved and done → Collapse or Open saved note
+
+&nbsp;
+
+Move these actions into More:
+
+&nbsp;
+
+Connect person/place
+
+Open saved note
+
+View source
+
+Show receipt
+
+Advanced connection actions
+
+&nbsp;
+
+Replace the existing +person / +project / +place button row with a single Attach sheet trigger.
+
+&nbsp;
+
+Use:
+
+&nbsp;
+
+Saved
+
+In memory
+
+&nbsp;
+
+Do not use arrow-to-memory chips.
+
+&nbsp;
+
+Max two visible actions per card.
+
+&nbsp;
+
+5. Calm Motion Layer
+
+&nbsp;
+
+Add small motion primitives using CSS variables in index.css.
+
+&nbsp;
+
+Add:
+
+&nbsp;
+
+--motion-fast: 160ms;
+
+--motion-base: 220ms;
+
+--motion-slow: 280ms;
+
+&nbsp;
+
+Use these consistently.
+
+&nbsp;
+
+Motion rules:
+
+&nbsp;
+
+Bulletin load: fade-in, sections settle in 180–240ms.
+
+Accordion expand/collapse: 200–300ms ease-out.
+
+Attach: card settles into “Attached to [Project]” confirmation.
+
+Dismiss: slide-left/fade, then toast “Hidden from Command Center.”
+
+Export saved: checkmark pulse, then plain-English toast.
+
+Bottom nav active icon: subtle lift/glow.
+
+Needs-you alert: gentle one-time glow only. No looping animation.
+
+&nbsp;
+
+Respect prefers-reduced-motion:
+
+&nbsp;
+
+Replace slides with fades or instant state changes.
+
+No loops.
+
+No unnecessary movement.
+
+&nbsp;
+
+Do not add animation libraries. Only use framer-motion if already installed.
+
+&nbsp;
+
+6. Aesthetic Micro-Polish
+
+&nbsp;
+
+Do not change the theme.
+
+&nbsp;
+
+Improve spacing in dense chip rows.
+
+Use soft dividers instead of heavy boxes where appropriate.
+
+Ensure tap targets are at least 44px.
+
+Ensure no horizontal chip scrolling on 384–390px wide screens.
+
+Keep mobile layout clean.
+
+Max two visible actions per card.
+
+&nbsp;
+
+7. Preserve Existing Behavior
+
+&nbsp;
+
+Do not regress:
+
+&nbsp;
+
+Daily Bulletin position
+
+Slice 5 exports
+
+Slice 6 intake lifecycle
+
+dismissed/stale persistence
+
+grouped captures
+
+attach-to-project
+
+receipt internal completeness
+
+Documents Beta page and banner
+
+existing Command Center structure
+
+existing routes
+
+existing AI behavior
+
+&nbsp;
+
+No new AI calls.
+
+No new database tables.
+
+No new migrations.
+
+No route changes.
+
+&nbsp;
+
+8. Acceptance Check
+
+&nbsp;
+
+After implementation, run the manual test script at 384–390px width.
+
+&nbsp;
+
+Confirm:
+
+&nbsp;
+
+Daily Bulletin appears first.
+
+Top summary is short and human.
+
+No banned system tokens are visible.
+
+Non-urgent sections are collapsed by default with counts.
+
+Inbox cards show one primary action and one secondary action max.
+
+More menu contains advanced/secondary actions.
+
+Attach flow confirms in plain English.
+
+Dismiss flow shows “Hidden from Command Center.”
+
+Reduced-motion mode replaces slides with fades or instant changes.
+
+No horizontal chip scrolling.
+
+Tap targets remain usable.
+
+Documents/Export work was not touched except preserved existing behavior.
+
+&nbsp;
+
+Final audit:
+
+&nbsp;
+
+Search the UI-facing code for banned tokens.
+
+Any visible copy must route through humanizeEvent() or plain label helpers.
+
+Zero banned tokens should appear in rendered user-facing UI.
