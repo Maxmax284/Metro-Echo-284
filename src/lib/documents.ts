@@ -111,6 +111,19 @@ export async function listProjectDocuments(projectId: string): Promise<DocumentR
   return (data ?? []) as DocumentRow[];
 }
 
+/** All documents the current user can see, scoped to an org when provided.
+ *  Used by the global Documents page. RLS does the real gate. */
+export async function listAllDocuments(opts: {
+  organizationId?: string | null;
+} = {}): Promise<DocumentRow[]> {
+  let q = supabase.from("documents").select("*").order("created_at", { ascending: false });
+  if (opts.organizationId) q = q.eq("organization_id", opts.organizationId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as DocumentRow[];
+}
+
+
 export async function getDocument(id: string): Promise<DocumentRow | null> {
   const { data, error } = await supabase
     .from("documents").select("*").eq("id", id).maybeSingle();

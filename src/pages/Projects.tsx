@@ -141,6 +141,10 @@ export default function ProjectsPage() {
             One place per thing you're working on. Attach captures, notes, files and Sherlock signals — they all collect into a Living Brief.
           </p>
         </div>
+        <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Link to="/documents">Documents</Link>
+        </Button>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1.5">

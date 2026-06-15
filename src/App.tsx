@@ -26,7 +26,9 @@ import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
 import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
 import ProjectsPage from "./pages/Projects.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
+import DocumentsPage from "./pages/Documents.tsx";
 import NotFound from "./pages/NotFound.tsx";
+
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ const App = () => (
                             <Route path="/" element={<Index />} />
                             <Route path="/projects" element={<ProjectsPage />} />
                             <Route path="/projects/:id" element={<ProjectBriefPage />} />
+                            <Route path="/documents" element={<DocumentsPage />} />
+
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/settings/integrations" element={<IntegrationsSettings />} />
