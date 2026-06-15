@@ -192,3 +192,86 @@ export default function DocumentsPage() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// UnderConstructionBanner — honest "what works / what's coming" panel.
+// Collapsed by default so the list stays the surface. Expanding it shows the
+// roadmap so we don't pretend the module is done.
+// ---------------------------------------------------------------------------
+function UnderConstructionBanner() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-start gap-2 text-left"
+        aria-expanded={open}
+      >
+        <HardHat className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[12px] font-medium">
+            Documents — still under construction
+            {open
+              ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+              : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+          </div>
+          <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            Drafting + uploaded review work today. Deeper analysis, multi-doc
+            reports, and obligation tracking are next. Tap to see the roadmap.
+          </p>
+        </div>
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3 text-[11.5px] leading-relaxed">
+          <section>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wider text-emerald-700">
+              Live now
+            </div>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-foreground/85">
+              <li>Draft from templates (NDA, SOW, service, payment, letter) with tone.</li>
+              <li>Revise drafts in plain English; nothing executes without approval.</li>
+              <li>Upload a contract → extract → plain-English review: parties, key dates, money terms, obligations, risks, missing/unclear, questions to ask, verdict.</li>
+              <li>Export packets: PDF (operator / client) + Word (operator / client / signature with watermark + sig page).</li>
+              <li>"Ask Vanta" prompts pre-fill the Companion (tighten, soften, boardroom, explain risks, before signing, money).</li>
+            </ul>
+          </section>
+
+          <section>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wider text-amber-700">
+              In progress / next
+            </div>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-foreground/85">
+              <li>Conversational builder via voice (revision dictation through Companion).</li>
+              <li>Multi-turn intake — Vanta asks for missing fields instead of one big form.</li>
+              <li>Per-project style + signature defaults.</li>
+            </ul>
+          </section>
+
+          <section>
+            <div className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Parked (designed, not built)
+            </div>
+            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-foreground/85">
+              <li>Sherlock-grade cross-analysis: compare a contract to your other docs/notes; flag conflicts, repeated parties, prior commitments.</li>
+              <li>Multi-doc reports: roll several uploads into one risk/obligation digest.</li>
+              <li>Obligation tracking → reminders + commitments auto-created from the review.</li>
+              <li>Version compare (redline between draft revisions).</li>
+              <li>Renewal / expiry watchers.</li>
+              <li>Attorney handoff packet (review + redlines + questions, signed export).</li>
+              <li>Template vault: save approved drafts as reusable templates.</li>
+              <li>Inline "explain this clause" anchored to a selected paragraph.</li>
+            </ul>
+          </section>
+
+          <p className="rounded-md border border-border/50 bg-muted/40 p-2 text-[10.5px] text-muted-foreground">
+            None of this is legal advice. Plan → Approve → Execute applies to
+            every change Vanta makes here.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
