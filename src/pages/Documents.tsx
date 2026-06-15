@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth";
@@ -14,8 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
+import { useActivity } from "@/components/workstatus/ActivityStore";
+import { WorkProgressCard } from "@/components/workstatus/WorkProgressCard";
+import { listExportPresets, runExportPreset } from "@/lib/exportPresets";
 
 type Tab = "all" | "drafts" | "reviews";
 
@@ -28,6 +35,22 @@ export default function DocumentsPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+
+  const activity = useActivity();
+  const docWorkItems = activity.items.filter(
+    (i) => i.kind === "document" || i.kind === "export" || i.kind === "receipt",
+  );
+
+  function launchPreset(presetId: ReturnType<typeof listExportPresets>[number]["id"]) {
+    const preset = listExportPresets().find((p) => p.id === presetId);
+    if (!preset) return;
+    const handle = activity.start({
+      kind: presetId === "receipt-capture-packet" ? "receipt" : "export",
+      title: preset.label,
+      steps: [...preset.steps],
+    });
+    void runExportPreset(presetId, {}, handle);
+  }
 
   async function refresh() {
     try {
