@@ -14,7 +14,9 @@ export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 export const DOCUMENT_STATUSES = [
   "uploaded", "extracting", "extracted",
-  "reviewing", "reviewed", "failed",
+  "reviewing", "reviewed",
+  "drafting", "drafted", "approved",
+  "failed",
 ] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
