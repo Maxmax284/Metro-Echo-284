@@ -5,6 +5,7 @@
 // surface as "waiting_for_user" with a clear message — they never fake success.
 
 import type { WorkHandle } from "@/components/workstatus/ActivityStore";
+import { supabase } from "@/integrations/supabase/client";
 import {
   STEPS_DOCUMENT_EXPORT,
   STEPS_RECEIPT_PACKET,
@@ -28,6 +29,8 @@ export interface ExportPreset {
   failureCopy: string;
   /** If false, runExportPreset will mark waiting_for_user instead of pretending. */
   available: boolean;
+  /** If true, runExportPreset requires a projectId in context. */
+  requiresProject?: boolean;
 }
 
 export const EXPORT_PRESETS: Record<ExportPresetId, ExportPreset> = {
@@ -58,10 +61,11 @@ export const EXPORT_PRESETS: Record<ExportPresetId, ExportPreset> = {
     steps: STEPS_DOCUMENT_EXPORT,
     successCopy: (ctx) =>
       ctx.projectName
-        ? `Report ready. Saved to ${ctx.projectName}.`
-        : "Report ready. Saved to the project.",
+        ? `Living brief ready for ${ctx.projectName}. Saved with the project.`
+        : "Living brief ready. Saved with the project.",
     failureCopy: "We couldn't create the report. Your notes are safe.",
-    available: false,
+    available: true,
+    requiresProject: true,
   },
   "receipt-capture-packet": {
     id: "receipt-capture-packet",
@@ -83,7 +87,12 @@ export function listExportPresets(): ExportPreset[] {
 }
 
 export interface RunPresetContext {
+  projectId?: string;
   projectName?: string;
+  /** Navigation helper so the success card can open the result. */
+  onOpenProject?: (projectId: string) => void;
+  /** "operator" or "narrative" — passed to the summarize edge function. */
+  tone?: "operator" | "narrative";
 }
 
 /**
@@ -102,6 +111,13 @@ export async function runExportPreset(
     return;
   }
 
+  if (preset.requiresProject && !ctx.projectId) {
+    handle.waitForUser({
+      message: "Pick a project first, then run this report.",
+    });
+    return;
+  }
+
   if (!preset.available) {
     // Park in "needs you" with an honest message — preset is scaffolded but
     // not wired to a generator yet. UI shows this clearly; no fake success.
@@ -112,12 +128,87 @@ export async function runExportPreset(
     return;
   }
 
-  // When real generators are wired, replace the body below with:
-  //   handle.advance(1); await collect(...);
-  //   handle.advance(2); await applyTemplate(...);
-  //   handle.advance(3); const pdf = await createPdf(...);
-  //   handle.advance(4); const dest = await save(pdf);
-  //   handle.complete({ destination: preset.successCopy({ ...ctx }) });
-  // For now this branch is unreachable while available=false.
+  if (presetId === "project-summary-report" && ctx.projectId) {
+    await runProjectSummaryReport(ctx as RunPresetContext & { projectId: string }, handle, preset);
+    return;
+  }
+
+  // Future generators land here.
   handle.fail({ message: preset.failureCopy });
+}
+
+/**
+ * Real generator for project-summary-report. Calls the project-summarize
+ * edge function, which:
+ *   - lazy-digests undigested captures/notes
+ *   - writes a structured Living Brief to projects.brief_structured
+ *   - mirrors it into brief_exports (status: exported) so it shows up
+ *     in the project's Past Briefs list
+ * No fake PDF — the brief is saved as a Living Brief record on the project.
+ */
+async function runProjectSummaryReport(
+  ctx: RunPresetContext & { projectId: string },
+  handle: WorkHandle,
+  preset: ExportPreset,
+): Promise<void> {
+  try {
+    handle.advance(1); // Collecting the right notes
+
+    // Small visible pause so the step ticker reads naturally.
+    await new Promise((r) => setTimeout(r, 350));
+    handle.advance(2); // Applying the template
+
+    const { data, error } = await supabase.functions.invoke("project-summarize", {
+      body: { project_id: ctx.projectId, tone: ctx.tone ?? "narrative" },
+    });
+
+    if (error) {
+      console.error("[exportPresets] project-summarize failed", error);
+      handle.fail({ message: preset.failureCopy });
+      return;
+    }
+
+    const payload = (data ?? {}) as { empty?: boolean; structured?: unknown; summary?: string; error?: string };
+
+    if (payload?.error === "credits_exhausted") {
+      handle.fail({
+        message:
+          "AI credits are exhausted. Add credits in workspace settings, then try again. Your notes are safe.",
+      });
+      return;
+    }
+    if (payload?.error === "rate_limited") {
+      handle.fail({
+        message: "Too many requests right now. Wait a minute and try again.",
+      });
+      return;
+    }
+    if (payload?.empty) {
+      handle.waitForUser({
+        message: "Nothing to summarize yet — attach a few items to this project first.",
+      });
+      return;
+    }
+    if (!payload?.structured) {
+      handle.fail({ message: preset.failureCopy });
+      return;
+    }
+
+    handle.advance(3); // Creating the PDF (here: building the structured brief)
+    await new Promise((r) => setTimeout(r, 200));
+    handle.advance(4); // Saving the file
+
+    handle.complete({
+      destination: preset.successCopy({ projectName: ctx.projectName }),
+      primaryAction: ctx.onOpenProject
+        ? {
+            label: "Open project",
+            onClick: () => ctx.onOpenProject?.(ctx.projectId),
+          }
+        : undefined,
+    });
+  } catch (e) {
+    console.error("[exportPresets] runProjectSummaryReport threw", e);
+    handle.fail({ message: preset.failureCopy });
+  }
 }

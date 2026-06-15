@@ -2,7 +2,7 @@
 // Same DocumentDetailSheet + NewDocumentDialog the project view uses, just
 // listed across all projects within the active workspace scope.
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -10,10 +10,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { listAllDocuments, kindLabel, statusLabel, isDraftDocument, type DocumentRow } from "@/lib/documents";
+import { listProjects, type Project } from "@/lib/projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -22,13 +26,14 @@ import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet"
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
 import { useActivity } from "@/components/workstatus/ActivityStore";
 import { WorkProgressCard } from "@/components/workstatus/WorkProgressCard";
-import { listExportPresets, runExportPreset } from "@/lib/exportPresets";
+import { listExportPresets, runExportPreset, EXPORT_PRESETS, type ExportPresetId } from "@/lib/exportPresets";
 
 type Tab = "all" | "drafts" | "reviews";
 
 export default function DocumentsPage() {
   const { user, loading: authLoading } = useAuth();
   const orgId = useActiveOrgId();
+  const navigate = useNavigate();
 
   const [docs, setDocs] = useState<DocumentRow[] | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -36,20 +41,57 @@ export default function DocumentsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
 
+  // Project picker for presets that need one (e.g. project-summary-report).
+  const [projectPickerFor, setProjectPickerFor] = useState<ExportPresetId | null>(null);
+  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+
   const activity = useActivity();
   const docWorkItems = activity.items.filter(
     (i) => i.kind === "document" || i.kind === "export" || i.kind === "receipt",
   );
 
-  function launchPreset(presetId: ReturnType<typeof listExportPresets>[number]["id"]) {
-    const preset = listExportPresets().find((p) => p.id === presetId);
+  function startPresetRun(presetId: ExportPresetId, project?: Project) {
+    const preset = EXPORT_PRESETS[presetId];
     if (!preset) return;
     const handle = activity.start({
       kind: presetId === "receipt-capture-packet" ? "receipt" : "export",
-      title: preset.label,
+      title: project ? `${preset.label} — ${project.title}` : preset.label,
       steps: [...preset.steps],
+      projectName: project?.title,
     });
-    void runExportPreset(presetId, {}, handle);
+    void runExportPreset(
+      presetId,
+      {
+        projectId: project?.id,
+        projectName: project?.title,
+        onOpenProject: (id) => navigate(`/projects/${id}`),
+      },
+      handle,
+    );
+  }
+
+  async function launchPreset(presetId: ExportPresetId) {
+    const preset = EXPORT_PRESETS[presetId];
+    if (!preset) return;
+    if (preset.requiresProject) {
+      setProjectPickerFor(presetId);
+      if (!projects && user) {
+        setProjectsLoading(true);
+        try {
+          const rows = await listProjects({ userId: user.id, organizationId: orgId });
+          setProjects(rows);
+        } catch (e) {
+          console.error("[documents] load projects failed", e);
+          toast.error("Couldn't load your projects");
+          setProjects([]);
+        } finally {
+          setProjectsLoading(false);
+        }
+      }
+      return;
+    }
+    startPresetRun(presetId);
   }
 
   async function refresh() {
@@ -247,6 +289,54 @@ export default function DocumentsPage() {
           void refresh();
         }}
       />
+
+      <Dialog
+        open={projectPickerFor !== null}
+        onOpenChange={(o) => !o && setProjectPickerFor(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pick a project</DialogTitle>
+            <DialogDescription className="text-[12px]">
+              {projectPickerFor
+                ? EXPORT_PRESETS[projectPickerFor].description
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {projectsLoading || projects === null ? (
+            <div className="flex h-32 items-center justify-center text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading projects…
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No projects yet. Create one and attach a few items first.
+            </p>
+          ) : (
+            <ul className="max-h-80 space-y-1 overflow-y-auto">
+              {projects.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = projectPickerFor;
+                      setProjectPickerFor(null);
+                      if (id) startPresetRun(id, p);
+                    }}
+                    className="w-full rounded-md border border-border/60 bg-background p-2.5 text-left transition-colors hover:bg-accent/30"
+                  >
+                    <div className="text-sm font-medium truncate">{p.title}</div>
+                    {p.summary && (
+                      <div className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">
+                        {p.summary}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
