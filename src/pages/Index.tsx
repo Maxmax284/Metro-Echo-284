@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
