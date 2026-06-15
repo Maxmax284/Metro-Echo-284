@@ -23,6 +23,7 @@ import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { CardMoreMenu } from "@/components/ui/CardMoreMenu";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
