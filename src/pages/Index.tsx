@@ -191,6 +191,17 @@ function IndexInner() {
             >
               <FolderKanban className="h-3.5 w-3.5" />
             </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Documents"
+              title="Documents — drafts & reviews"
+            >
+              <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
+            </Button>
+
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
