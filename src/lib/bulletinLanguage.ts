@@ -74,11 +74,11 @@ export function formatAuditEvent(
 
   // -- New captures -------------------------------------------------------
   if (e === "telegram.message_in")
-    return { ...base, bucket: "captures", text: `New Telegram note captured.` };
+    return { ...base, bucket: "captures", text: `New Telegram note came in.` };
   if (e === "ecosystem.gth.captured")
     return { ...base, bucket: "captures", text: `New update from Ground Truth Hub.` };
   if (e === "capture.routed")
-    return { ...base, bucket: "captures", text: `A capture was routed to its destination.` };
+    return { ...base, bucket: "captures", text: `A capture was sent where it belongs.` };
   if (e === "file.uploaded" || e === "file.staged")
     return { ...base, bucket: "captures", text: `New file saved.` };
   if (e === "file.extracted")
