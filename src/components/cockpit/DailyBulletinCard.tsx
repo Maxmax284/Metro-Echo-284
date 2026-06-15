@@ -72,7 +72,7 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
   const [auditRowCount, setAuditRowCount] = useState(0);
   const [exportsRowCount, setExportsRowCount] = useState(0);
   const [expanded, setExpanded] = useState<Record<BulletinBucket, boolean>>({
-    attention: false,
+    attention: true, // open by default when items exist; harmless when empty
     project: false,
     captures: false,
     done: false,
