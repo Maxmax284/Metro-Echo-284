@@ -204,10 +204,36 @@
 .motion-fade-in {
   animation: vanta-fade-in var(--motion-base) var(--ease-out) both;
 }
+/* Calm staggered entrance — children fade in one after another. */
+.motion-stagger > * {
+  animation: vanta-fade-in var(--motion-base) var(--ease-out) both;
+}
+.motion-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.motion-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.motion-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.motion-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.motion-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.motion-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.motion-stagger > *:nth-child(7) { animation-delay: 360ms; }
+.motion-stagger > *:nth-child(8) { animation-delay: 420ms; }
+.motion-stagger > *:nth-child(n+9) { animation-delay: 480ms; }
+
+/* One-time soft pulse for count chips when a number ticks up. */
+@keyframes vanta-count-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.35); }
+  40%  { transform: scale(1.12); box-shadow: 0 0 0 6px hsl(var(--primary) / 0); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+}
+.motion-count-pulse {
+  animation: vanta-count-pulse 520ms var(--ease-out) 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
   .radar-fade-in,
   .motion-drawer-in,
-  .motion-fade-in { animation: none; }
+  .motion-fade-in,
+  .motion-stagger > *,
+  .motion-count-pulse { animation: none; }
 }
