@@ -16,6 +16,8 @@ import {
 import { Check, FolderPlus, Loader2, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useActivity } from "@/components/workstatus/ActivityStore";
+import { stepsInboxAttach, humanizeWorkError } from "@/lib/workStatus";
 
 interface AttachToProjectMenuProps {
   itemType: ProjectItemType;
@@ -37,6 +39,7 @@ export function AttachToProjectMenu({
 }: AttachToProjectMenuProps) {
   const { user } = useAuth();
   const orgId = useActiveOrgId();
+  const activity = useActivity();
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [q, setQ] = useState("");
@@ -69,18 +72,28 @@ export function AttachToProjectMenu({
   async function doAttach(p: Project) {
     if (!user) return;
     setBusyId(p.id);
+    const handle = activity.start({
+      kind: "attach",
+      title: itemLabel ? `Attaching “${itemLabel}”` : "Attaching note",
+      projectName: p.title,
+      steps: stepsInboxAttach(p.title),
+    });
     try {
+      handle.advance(1);
       await attachToProject({
         projectId: p.id,
         userId: user.id,
         items: [{ type: itemType, id: itemId }],
       });
+      handle.advance(2);
+      handle.complete({ destination: `Attached to ${p.title}.` });
       toast.success(`Attached to “${p.title}”`);
       flashAttached();
       onAttached?.(p);
       setOpen(false);
     } catch (err) {
       console.error("[attach] failed", err);
+      handle.fail({ message: humanizeWorkError("attach") });
       toast.error("Couldn't attach");
     } finally {
       setBusyId(null);
@@ -90,17 +103,27 @@ export function AttachToProjectMenu({
   async function doCreateAndAttach() {
     if (!user || !newTitle.trim()) return;
     setCreating(true);
+    const titleGuess = newTitle.trim();
+    const handle = activity.start({
+      kind: "attach",
+      title: `Creating “${titleGuess}” and attaching`,
+      projectName: titleGuess,
+      steps: ["Creating the project", ...stepsInboxAttach(titleGuess)],
+    });
     try {
       const p = await createProject({
-        title: newTitle.trim(),
+        title: titleGuess,
         summary: itemLabel ?? "",
         scope: { userId: user.id, organizationId: orgId },
       });
+      handle.advance(1);
       await attachToProject({
         projectId: p.id,
         userId: user.id,
         items: [{ type: itemType, id: itemId }],
       });
+      handle.advance(3);
+      handle.complete({ destination: `Attached to ${p.title}.` });
       toast.success(`Created “${p.title}” and attached`);
       flashAttached();
       onAttached?.(p);
@@ -108,6 +131,7 @@ export function AttachToProjectMenu({
       setNewTitle("");
     } catch (err) {
       console.error("[attach] create failed", err);
+      handle.fail({ message: humanizeWorkError("attach") });
       toast.error("Couldn't create");
     } finally {
       setCreating(false);

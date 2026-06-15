@@ -17,6 +17,8 @@ import { CanvasProvider } from "@/components/entities/CanvasContext";
 import { CommandCanvas } from "@/components/entities/CommandCanvas";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { FirstRunWalkthrough } from "@/components/tutorial/FirstRunWalkthrough";
+import { ActivityProvider } from "@/components/workstatus/ActivityStore";
+import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -46,27 +48,30 @@ const App = () => (
                   <AwarenessProvider>
                     <WorkspaceProvider>
                       <CompanionProvider>
-                        <TutorialProvider>
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/projects" element={<ProjectsPage />} />
-                            <Route path="/projects/:id" element={<ProjectBriefPage />} />
-                            <Route path="/documents" element={<DocumentsPage />} />
+                        <ActivityProvider>
+                          <TutorialProvider>
+                            <Routes>
+                              <Route path="/" element={<Index />} />
+                              <Route path="/projects" element={<ProjectsPage />} />
+                              <Route path="/projects/:id" element={<ProjectBriefPage />} />
+                              <Route path="/documents" element={<DocumentsPage />} />
 
-                            <Route path="/auth" element={<Auth />} />
-                            <Route path="/settings" element={<Settings />} />
-                            <Route path="/settings/integrations" element={<IntegrationsSettings />} />
-                            <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
-                            <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
-                            <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                          <CompanionWidget />
-                          <SherlockOverlay />
-                          <EntityDetailSheet />
-                          <CommandCanvas />
-                          <FirstRunWalkthrough />
-                        </TutorialProvider>
+                              <Route path="/auth" element={<Auth />} />
+                              <Route path="/settings" element={<Settings />} />
+                              <Route path="/settings/integrations" element={<IntegrationsSettings />} />
+                              <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
+                              <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
+                              <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                            <CompanionWidget />
+                            <SherlockOverlay />
+                            <EntityDetailSheet />
+                            <CommandCanvas />
+                            <FirstRunWalkthrough />
+                            <ActivityTray />
+                          </TutorialProvider>
+                        </ActivityProvider>
                       </CompanionProvider>
                     </WorkspaceProvider>
                   </AwarenessProvider>

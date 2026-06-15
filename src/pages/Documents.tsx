@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth";
@@ -14,8 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
+import { useActivity } from "@/components/workstatus/ActivityStore";
+import { WorkProgressCard } from "@/components/workstatus/WorkProgressCard";
+import { listExportPresets, runExportPreset } from "@/lib/exportPresets";
 
 type Tab = "all" | "drafts" | "reviews";
 
@@ -28,6 +35,22 @@ export default function DocumentsPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+
+  const activity = useActivity();
+  const docWorkItems = activity.items.filter(
+    (i) => i.kind === "document" || i.kind === "export" || i.kind === "receipt",
+  );
+
+  function launchPreset(presetId: ReturnType<typeof listExportPresets>[number]["id"]) {
+    const preset = listExportPresets().find((p) => p.id === presetId);
+    if (!preset) return;
+    const handle = activity.start({
+      kind: presetId === "receipt-capture-packet" ? "receipt" : "export",
+      title: preset.label,
+      steps: [...preset.steps],
+    });
+    void runExportPreset(presetId, {}, handle);
+  }
 
   async function refresh() {
     try {
@@ -78,10 +101,45 @@ export default function DocumentsPage() {
             </p>
           </div>
         </div>
-        <Button size="sm" onClick={() => setComposerOpen(true)} className="gap-1.5">
-          <FilePlus2 className="h-4 w-4" /> New document
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <Sparkles className="h-4 w-4" /> Create…
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuLabel className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                From existing memory
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {listExportPresets().map((p) => (
+                <DropdownMenuItem
+                  key={p.id}
+                  onSelect={() => launchPreset(p.id)}
+                  className="flex flex-col items-start gap-0.5 py-2"
+                >
+                  <span className="text-[12.5px] font-medium">{p.label}</span>
+                  <span className="text-[11px] text-muted-foreground leading-snug">
+                    {p.description}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" onClick={() => setComposerOpen(true)} className="gap-1.5">
+            <FilePlus2 className="h-4 w-4" /> New document
+          </Button>
+        </div>
       </header>
+
+      {docWorkItems.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {docWorkItems.map((i) => (
+            <WorkProgressCard key={i.id} item={i} onDismiss={() => activity.remove(i.id)} />
+          ))}
+        </div>
+      )}
 
       <UnderConstructionBanner />
 

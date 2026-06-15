@@ -1,650 +1,113 @@
-# Vanta Polish Pass — Plain English, Collapsibility, Calm Motion
 
-A surgical cleanup of Command Center + Inbox. No new tables, migrations, AI calls, routes, or features. Documents/Export work is paused for this pass.
+# Vanta Document Engine + Work Status Layer — Foundation Pass
 
-## 1. Plain-English Language Pass
+## Goal
 
-Centralize all user-facing event/status copy in one place so it never drifts again.
+Make Vanta show its work and turn existing memory into clean documents. Foundation only — no parallel "Document Engine World", no new tables, no new AI calls, no new routes.
 
-- Extend `src/lib/plainLabels.ts` and `src/lib/bulletinLanguage.ts` with a single `humanizeEvent()` map covering every banned phrase from the brief:
-  - `Briefing read` → `Brief was opened`
-  - `Brief created` → `New brief created`
-  - `Capture routed` → `Capture was organized`
-  - `Telegram message in` → `New Telegram note came in`
-  - `Connected to a project` → `Attached to a project`
-  - `Open in memory` → `Open saved note`
-  - `Entity graph` → `Connections`
-  - `high confidence` → `Likely useful`
-  - `Pending Sherlock review` → `Possible duplicate`
-  - `Already saved to memory` → `Saved to memory`
-- Banned token guard: a tiny dev-only assertion in the formatter that strips/replaces `record inserted`, `signal detected`, `lifecycle state`, `briefing.viewed`, `briefing.composed`, `webhook received`, `suggest:message`, `extract:message`, etc.
-- Rewrite Daily Bulletin top-line composer: short, natural sentences, no "and a few more" — use compact counts.
-- Today card subtitle → "Your quick check-in for today."
-- Inbox "Not connected yet…" → "Not connected yet. Attach this so Vanta knows where it belongs."
+## Audit findings (what already exists, what we extend)
 
-Files: `src/lib/plainLabels.ts`, `src/lib/bulletinLanguage.ts`, plus consumer call-sites in cockpit/inbox/bulletin/today components.
+- **Documents Beta**: `src/pages/Documents.tsx`, `src/components/documents/*`, `src/lib/documents.ts`, `documentExport.ts`, `documentDocxExport.ts`, `documentDraftExport.ts`, `documentTemplates.ts`. Real PDF/DOCX export already works. Reuse all of it.
+- **Plain language helpers**: `src/lib/plainLabels.ts` (with banned-token scrub), `bulletinLanguage.ts`. Extend, don't replace.
+- **Toasts**: `sonner` everywhere.
+- **Motion**: CSS variables already in `src/index.css` from last pass. No framer-motion. Stay with CSS.
+- **Inbox attach**: `src/components/projects/AttachToProjectMenu.tsx` uses sonner toasts.
+- **Cockpit**: `DailyBulletinCard`, `DailyChecklistCard`, `ProjectRollupCards` etc.
+- **No durable job table exists.** Per the prompt's hard rule, we do NOT add a migration. The Activity Tray uses an in-memory store (Zustand-style with React context) that persists only for the session. Receipts/exports already write durable rows where it matters — the tray is a visibility layer on top, not a new source of truth.
 
-## 2. Shared Collapsible + More primitives
+## What we'll build
 
-Two small shared components so collapsibility/menus stay consistent:
+### 1. Work Status core (no UI yet) — `src/lib/workStatus.ts`
 
-- `src/components/ui/CollapsibleSection.tsx` — header with title, count chip, short summary phrase, smooth accordion (200–300ms, ease-out), `defaultOpen` prop. Respects `prefers-reduced-motion`.
-- `src/components/ui/CardMoreMenu.tsx` — thin wrapper over existing dropdown for "More" actions on inbox/cockpit cards.
+- `WorkState` type: `queued | working | waiting_for_user | complete | failed | canceled`
+- `WorkItem` type: `{ id, kind, title, projectName?, steps: string[], currentStep, state, destination?, error?, primaryAction?, startedAt, finishedAt? }`
+- `humanizeWorkState()`, `humanizeWorkStep()`, `humanizeActionResult()`, `humanizeWorkError()` — route through `plainLabels.scrubBannedTokens()`.
+- Standard step libraries from the prompt (export, upload, attach, project update, receipt packet, dismiss) as exported constants.
 
-## 3. Command Center / Cockpit collapsibility
+### 2. Activity Tray store — `src/components/workstatus/ActivityStore.tsx`
 
-In `DailyBulletinCard.tsx`, `DailyChecklistCard.tsx`, `OperationsBriefingPanel.tsx`, `ProductivityPulseCard.tsx`, `ProjectRollupCards.tsx`, and the system-ish tiles in `src/pages/Index.tsx`:
+React context + reducer. API:
+```ts
+const { start, advance, complete, fail, waitForUser, cancel, items } = useActivity();
+const handle = start({ kind, title, steps, projectName });
+handle.advance(stepIndex);
+handle.complete({ destination, primaryAction });
+handle.fail({ message, retry });
+```
+Mounted once in `App.tsx`. Items auto-move to "recent" after 8s on complete, stay until dismissed on failed/waiting.
 
-- Open by default: Daily Bulletin, Needs you (only if count > 0), Today/Next move (if active item).
-- Collapsed by default with count + phrase: New captures, Done and saved, Quiet cleanup, Receipts, Memory Pulse, Connected sources, System details, Dismissed/stale.
-- Projects card: cap to 2–3 most relevant; keep existing CALM language.
-- Calm empty states when Today has no urgent items.
+### 3. Reusable primitives — `src/components/workstatus/`
 
-## 4. Inbox card redesign (`InboxNotesList.tsx`)
+- `ActionButton.tsx` — thin wrapper over existing `Button`. Takes `pending`, `pendingLabel`. Shows label swap + tiny inline spinner under 700ms, then escalates.
+- `WorkProgressCard.tsx` — compact inline card: title, current step text, "Step N of M", calm `--motion-base` fade-in.
+- `StepTicker.tsx` — dots row, no infinite pulse, single CSS transition on active dot.
+- `WorkStatusBadge.tsx` — colored pill mapped from `WorkState` via `humanizeWorkState`. Uses semantic tokens.
+- `ActivityTray.tsx` — bottom-right desktop, bottom pill (above bottom nav) on mobile. Collapsed = "N active" pill. Expanded = grouped sheet (Working / Needs you / Recently done / Failed). Does not steal focus.
 
-Reduce every card to: title/preview → source chips → short status line → **one primary** + **one secondary** + **More**.
+Reuses existing shadcn `Sheet`, `Card`, `Button`, `Badge`. No new deps.
 
-- Primary-action rules:
-  - Not attached → `Attach to project`
-  - Likely project known → `Attach to [Project Name]`
-  - Already attached → `Open project`
-  - Needs review → `Review`
-  - Saved & done → collapse or `Open saved note`
-- Move into More: connect person/place, open saved note, view source, show receipt, advanced connection actions.
-- Replace `+person/+project/+place` button row with single Attach sheet trigger.
-- Use "Saved" / "In memory" instead of arrow-to-memory chips.
+### 4. Document Engine preset registry — `src/lib/exportPresets.ts`
 
-## 5. Calm motion layer
+Single declarative registry, no DB. Initial presets:
 
-Small motion primitives (CSS + framer-motion if already present; otherwise pure CSS transitions — no new deps):
+- `daily-command-brief` → reuses existing brief composer + `documentExport` PDF pipeline.
+- `project-summary-report` → reuses existing project data + `documentExport`.
+- `receipt-capture-packet` → reuses existing receipts/capture data + `documentExport`.
 
-- Bulletin load: fade-in, sections settle (180–240ms).
-- Accordion expand/collapse: 200–300ms ease.
-- Attach: card settles into "Attached to [Project]" confirmation.
-- Dismiss: slide-left/fade + "Hidden from Command Center" toast.
-- Export saved: checkmark pulse + plain-English toast.
-- Bottom nav active icon: subtle lift/glow.
-- Needs-you alert: gentle one-time glow, no loop.
-- Honor `prefers-reduced-motion` → replace with fades or instant changes.
+Each preset shape: `{ id, label, outputFormat, dataSources, sections, defaultDestination, steps[], successCopy, failureCopy }`.
 
-## 6. Aesthetic micro-polish (no theme change)
+Exposes one function: `runExportPreset(presetId, context, activity)` — orchestrates `start → advance per step → complete with destination` using the Activity store, and calls the actual existing export functions. If a preset's real generator isn't wired, it calls `waitForUser` with a clear "Not available yet" state instead of faking completion.
 
-- Increase spacing in dense chip rows.
-- Soft dividers replace heavy boxes where used.
-- Ensure 44px tap targets and no horizontal chip scroll on 390px.
-- Max two visible actions per card.
+### 5. Wire into existing flows (no rebuilds)
 
-## 7. Preserve (must not regress)
+- **`AttachToProjectMenu.tsx`** — replace bare sonner calls with Activity start/complete/fail using the "Inbox attach" step library. Toast still fires on completion (single, not spam).
+- **`Documents.tsx`** — add a small "Active document work" row at the top driven by `useActivity()` filtered to `kind: 'document'`. Add a "Create…" menu that calls `runExportPreset` for the three presets. Document cards keep existing actions; add `WorkStatusBadge` when an item has an in-flight job.
+- **`DailyBulletinCard.tsx`** — add a slim "Active work" row only when something is running (one line, dismissible, no looping motion). Stays quiet otherwise.
+- **`App.tsx`** — mount `<ActivityProvider>` + `<ActivityTray />` once.
 
-Daily Bulletin position, Slice 5 exports, Slice 6 intake lifecycle, dismissed/stale persistence, grouped captures, attach-to-project, receipts internal completeness, Documents Beta page & banner, no new AI calls, no new tables.
+### 6. Language audit pass
 
-## Technical notes
+Extend `plainLabels.BANNED_TOKENS` with the prompt's full banned list (`lifecycle state`, `artifact composed`, `export artifact`, `render initialized`, `briefing.composed`, `processing`, etc.) and run a repo grep to fix any remaining raw strings in user-visible code.
 
-- All copy goes through `humanizeEvent()` / existing `plainLabels` — no inline strings in components.
-- `CollapsibleSection` uses `useReducedMotion` (if framer-motion present) or `@media (prefers-reduced-motion)` CSS guard.
-- Motion timings defined as CSS variables in `index.css` (`--motion-fast: 160ms`, `--motion-base: 220ms`, `--motion-slow: 280ms`) for consistency.
-- Dev-mode console warning if a banned token reaches the formatter — silenced in prod.
+### 7. Motion & a11y
+
+- Reuse existing `--motion-fast/base/slow` vars. No new keyframes that loop.
+- Wrap all transitions in `@media (prefers-reduced-motion: reduce)` → instant.
+- All tray/card buttons ≥44px. Tray pill positioned above bottom nav at 384px.
+- `role="status"` + `aria-live="polite"` on the active work region.
 
 ## Out of scope (explicit)
 
-Documents/Contract Intelligence, Export Polish templates, OpenCanvas Phase 2, theme customizer, new AI calls, new migrations, rebuilding Command Center.
-
-## Acceptance check (post-build)
-
-Run the brief's manual test script at 384–390px: bulletin first, short human summary, non-urgent sections collapsed with counts, inbox cards show one primary action, language audit shows zero banned tokens, reduced-motion replaces slides with fades.
-
-&nbsp;
-
-Vanta Polish Pass — Plain English, Collapsibility, Calm Motion
-
-&nbsp;
-
-This is a surgical cleanup pass for Command Center + Inbox.
-
-&nbsp;
-
-Do not add new tables, migrations, AI calls, routes, major features, or architecture changes.
-
-&nbsp;
-
-Documents, Contract Intelligence, Export template polish, OpenCanvas Phase 2, theme customizer, and any rebuild of Command Center are explicitly out of scope.
-
-&nbsp;
-
-Goal: make Vanta feel calmer, clearer, more human, and easier to scan on mobile without changing the product’s core behavior.
-
-&nbsp;
-
-1. Plain-English Language Pass
-
-&nbsp;
-
-Centralize all user-facing event/status language so copy does not drift across the app.
-
-&nbsp;
-
-Update:
-
-&nbsp;
-
-src/lib/plainLabels.ts
-
-src/lib/bulletinLanguage.ts
-
-&nbsp;
-
-Add or extend a single humanizeEvent() formatter/map that covers all system-ish phrases and translates them into plain English.
-
-&nbsp;
-
-Required replacements:
-
-&nbsp;
-
-Briefing read → Brief was opened
-
-Brief created → New brief created
-
-Capture routed → Capture was organized
-
-Telegram message in → New Telegram note came in
-
-Connected to a project → Attached to a project
-
-Open in memory → Open saved note
-
-Entity graph → Connections
-
-high confidence → Likely useful
-
-Pending Sherlock review → Possible duplicate
-
-Already saved to memory → Saved to memory
-
-&nbsp;
-
-Add a dev-only banned-token guard inside the formatter.
-
-&nbsp;
-
-If any banned token reaches the formatter in development, replace/strip it and console.warn once.
-
-&nbsp;
-
-Silence warnings in production.
-
-&nbsp;
-
-Banned examples include:
-
-&nbsp;
-
-record inserted
-
-signal detected
-
-lifecycle state
-
-briefing.viewed
-
-briefing.composed
-
-webhook received
-
-suggest:message
-
-extract:message
-
-&nbsp;
-
-Rewrite Daily Bulletin top-line composer so summaries are short, natural, and human.
-
-&nbsp;
-
-Rules:
-
-&nbsp;
-
-No robotic event names.
-
-No “and a few more.”
-
-Use compact counts when needed.
-
-Prefer one short sentence over long stitched summaries.
-
-&nbsp;
-
-Today card subtitle must become:
-
-&nbsp;
-
-“Your quick check-in for today.”
-
-&nbsp;
-
-Inbox empty/unattached copy must become:
-
-&nbsp;
-
-“Not connected yet. Attach this so Vanta knows where it belongs.”
-
-&nbsp;
-
-All user-facing event/status copy must go through humanizeEvent() or existing plain label helpers. Do not add new inline system/status strings directly inside components.
-
-&nbsp;
-
-Relevant areas:
-
-&nbsp;
-
-cockpit
-
-inbox
-
-bulletin
-
-today components
-
-&nbsp;
-
-2. Shared Collapsible + More Primitives
-
-&nbsp;
-
-Create two small shared UI primitives.
-
-&nbsp;
-
-File:
-
-&nbsp;
-
-src/components/ui/CollapsibleSection.tsx
-
-&nbsp;
-
-Requirements:
-
-&nbsp;
-
-Header with title.
-
-Optional count chip.
-
-Optional short summary phrase.
-
-Smooth accordion open/close.
-
-Motion duration between 200–300ms.
-
-Use ease-out.
-
-Support defaultOpen prop.
-
-Respect prefers-reduced-motion.
-
-If framer-motion already exists, use it carefully.
-
-If not, use pure CSS transitions.
-
-Do not add new dependencies.
-
-&nbsp;
-
-File:
-
-&nbsp;
-
-src/components/ui/CardMoreMenu.tsx
-
-&nbsp;
-
-Requirements:
-
-&nbsp;
-
-Thin wrapper over the existing dropdown/menu pattern.
-
-Used for secondary card actions.
-
-Keeps inbox/cockpit card menus consistent.
-
-Do not invent a new menu system.
-
-&nbsp;
-
-3. Command Center / Cockpit Collapsibility
-
-&nbsp;
-
-Apply CollapsibleSection to:
-
-&nbsp;
-
-DailyBulletinCard.tsx
-
-DailyChecklistCard.tsx
-
-OperationsBriefingPanel.tsx
-
-ProductivityPulseCard.tsx
-
-ProjectRollupCards.tsx
-
-system-ish tiles in src/pages/Index.tsx
-
-&nbsp;
-
-Open by default:
-
-&nbsp;
-
-Daily Bulletin
-
-Needs you, only if count > 0
-
-Today / Next move, only if there is an active item
-
-&nbsp;
-
-Collapsed by default, but still show count + short plain-English phrase:
-
-&nbsp;
-
-New captures
-
-Done and saved
-
-Quiet cleanup
-
-Receipts
-
-Memory Pulse
-
-Connected sources
-
-System details
-
-Dismissed / stale
-
-&nbsp;
-
-Projects card:
-
-&nbsp;
-
-Show only the 2–3 most relevant projects.
-
-Keep existing CALM language.
-
-Do not expand this into a new project dashboard.
-
-&nbsp;
-
-Today empty state:
-
-&nbsp;
-
-If there are no urgent items, show a calm empty state.
-
-Do not make the user feel like something is broken or missing.
-
-&nbsp;
-
-4. Inbox Card Redesign
-
-&nbsp;
-
-Update:
-
-&nbsp;
-
-InboxNotesList.tsx
-
-&nbsp;
-
-Each card should be reduced to:
-
-&nbsp;
-
-Title or preview
-
-Source chips
-
-Short status line
-
-One primary action
-
-One secondary action
-
-More menu
-
-&nbsp;
-
-Primary action rules:
-
-&nbsp;
-
-Not attached → Attach to project
-
-Likely project known → Attach to [Project Name]
-
-Already attached → Open project
-
-Needs review → Review
-
-Saved and done → Collapse or Open saved note
-
-&nbsp;
-
-Move these actions into More:
-
-&nbsp;
-
-Connect person/place
-
-Open saved note
-
-View source
-
-Show receipt
-
-Advanced connection actions
-
-&nbsp;
-
-Replace the existing +person / +project / +place button row with a single Attach sheet trigger.
-
-&nbsp;
-
-Use:
-
-&nbsp;
-
-Saved
-
-In memory
-
-&nbsp;
-
-Do not use arrow-to-memory chips.
-
-&nbsp;
-
-Max two visible actions per card.
-
-&nbsp;
-
-5. Calm Motion Layer
-
-&nbsp;
-
-Add small motion primitives using CSS variables in index.css.
-
-&nbsp;
-
-Add:
-
-&nbsp;
-
---motion-fast: 160ms;
-
---motion-base: 220ms;
-
---motion-slow: 280ms;
-
-&nbsp;
-
-Use these consistently.
-
-&nbsp;
-
-Motion rules:
-
-&nbsp;
-
-Bulletin load: fade-in, sections settle in 180–240ms.
-
-Accordion expand/collapse: 200–300ms ease-out.
-
-Attach: card settles into “Attached to [Project]” confirmation.
-
-Dismiss: slide-left/fade, then toast “Hidden from Command Center.”
-
-Export saved: checkmark pulse, then plain-English toast.
-
-Bottom nav active icon: subtle lift/glow.
-
-Needs-you alert: gentle one-time glow only. No looping animation.
-
-&nbsp;
-
-Respect prefers-reduced-motion:
-
-&nbsp;
-
-Replace slides with fades or instant state changes.
-
-No loops.
-
-No unnecessary movement.
-
-&nbsp;
-
-Do not add animation libraries. Only use framer-motion if already installed.
-
-&nbsp;
-
-6. Aesthetic Micro-Polish
-
-&nbsp;
-
-Do not change the theme.
-
-&nbsp;
-
-Improve spacing in dense chip rows.
-
-Use soft dividers instead of heavy boxes where appropriate.
-
-Ensure tap targets are at least 44px.
-
-Ensure no horizontal chip scrolling on 384–390px wide screens.
-
-Keep mobile layout clean.
-
-Max two visible actions per card.
-
-&nbsp;
-
-7. Preserve Existing Behavior
-
-&nbsp;
-
-Do not regress:
-
-&nbsp;
-
-Daily Bulletin position
-
-Slice 5 exports
-
-Slice 6 intake lifecycle
-
-dismissed/stale persistence
-
-grouped captures
-
-attach-to-project
-
-receipt internal completeness
-
-Documents Beta page and banner
-
-existing Command Center structure
-
-existing routes
-
-existing AI behavior
-
-&nbsp;
-
-No new AI calls.
-
-No new database tables.
-
-No new migrations.
-
-No route changes.
-
-&nbsp;
-
-8. Acceptance Check
-
-&nbsp;
-
-After implementation, run the manual test script at 384–390px width.
-
-&nbsp;
-
-Confirm:
-
-&nbsp;
-
-Daily Bulletin appears first.
-
-Top summary is short and human.
-
-No banned system tokens are visible.
-
-Non-urgent sections are collapsed by default with counts.
-
-Inbox cards show one primary action and one secondary action max.
-
-More menu contains advanced/secondary actions.
-
-Attach flow confirms in plain English.
-
-Dismiss flow shows “Hidden from Command Center.”
-
-Reduced-motion mode replaces slides with fades or instant changes.
-
-No horizontal chip scrolling.
-
-Tap targets remain usable.
-
-Documents/Export work was not touched except preserved existing behavior.
-
-&nbsp;
-
-Final audit:
-
-&nbsp;
-
-Search the UI-facing code for banned tokens.
-
-Any visible copy must route through humanizeEvent() or plain label helpers.
-
-Zero banned tokens should appear in rendered user-facing UI.
+- No new Supabase migrations, no new tables, no new edge functions.
+- No new AI calls.
+- No new routes.
+- No template builder, no Canva editor, no Contract Intelligence work.
+- Python/ReportLab worker is NOT added — interface designed so it could plug in later.
+
+## File touch list
+
+New:
+- `src/lib/workStatus.ts`
+- `src/lib/exportPresets.ts`
+- `src/components/workstatus/ActivityStore.tsx`
+- `src/components/workstatus/ActionButton.tsx`
+- `src/components/workstatus/WorkProgressCard.tsx`
+- `src/components/workstatus/StepTicker.tsx`
+- `src/components/workstatus/WorkStatusBadge.tsx`
+- `src/components/workstatus/ActivityTray.tsx`
+
+Edited:
+- `src/App.tsx` (mount provider + tray)
+- `src/lib/plainLabels.ts` (extend banned list + work helpers)
+- `src/components/projects/AttachToProjectMenu.tsx` (wire activity)
+- `src/pages/Documents.tsx` (active work row, preset launcher, badges)
+- `src/components/cockpit/DailyBulletinCard.tsx` (slim active work row)
+- `src/index.css` (only if a missing motion var needs adding)
+
+## Risks / things to call out before building
+
+1. **No durable job persistence.** If you navigate away and refresh, in-flight tray items vanish. Anything that mattered (exports, receipts) is still safely stored by the existing pipelines. If you want refresh-safe tray history later, that needs a `work_jobs` table — flagged for a separate approval.
+2. **Daily Bulletin** already had a calm pass last round. The "Active work" row will only render when `items.filter(working).length > 0` so it stays quiet by default.
+3. **Documents page** currently has its own loading states. We'll layer the new primitives on top without removing existing behavior; if anything double-renders we'll consolidate in the same edit.
+
+Ready to build on approval.
