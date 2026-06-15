@@ -158,14 +158,15 @@ export function composeSinceLastChecked(input: {
     .filter(([, n]) => n > 0)
     .sort((a, b) => b[1] - a[1]);
   if (projEntries.length === 1) {
-    const [name, n] = projEntries[0];
-    parts.push(`${name} had ${plural(n, "update")}`);
-  } else if (projEntries.length > 1) {
-    const top = projEntries.slice(0, 2).map(([name, n]) => `${name} (${n})`).join(" and ");
-    parts.push(`project activity in ${top}`);
+    parts.push(`${projEntries[0][0]} was active`);
+  } else if (projEntries.length === 2) {
+    parts.push(`${projEntries[0][0]} and ${projEntries[1][0]} were active`);
+  } else if (projEntries.length > 2) {
+    const total = projEntries.reduce((s, [, n]) => s + n, 0);
+    parts.push(`${projEntries.length} projects were active (${total} updates)`);
   }
 
-  if (input.newCaptures > 0) parts.push(`${plural(input.newCaptures, "new capture")}`);
+  if (input.newCaptures > 0) parts.push(`${plural(input.newCaptures, "new capture")} came in`);
   if (input.exportsSaved > 0) parts.push(`${plural(input.exportsSaved, "export")} saved`);
   if (input.needsAttention > 0)
     parts.push(`${plural(input.needsAttention, "item")} waiting for review`);
@@ -177,10 +178,7 @@ export function composeSinceLastChecked(input: {
   const lead = input.hasLastSeen ? "Since you last checked" : "Here's what changed recently";
   if (parts.length === 0) return `${lead}: nothing urgent right now. Recent activity is quiet.`;
 
-  // Compose with serial commas, cap to ~3 clauses.
-  const visible = parts.slice(0, 3);
-  const overflow = parts.length - visible.length;
-  let sentence = visible.join(", ");
-  if (overflow > 0) sentence += `, and a few more`;
-  return `${lead}: ${sentence}.`;
+  // Keep it short: at most two clauses. Counts already carry the rest.
+  const visible = parts.slice(0, 2);
+  return `${lead}: ${visible.join(". ")}.`;
 }
