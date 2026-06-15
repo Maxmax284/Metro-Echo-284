@@ -76,6 +76,7 @@ export function AttachToProjectMenu({
         items: [{ type: itemType, id: itemId }],
       });
       toast.success(`Attached to “${p.title}”`);
+      flashAttached();
       onAttached?.(p);
       setOpen(false);
     } catch (err) {
