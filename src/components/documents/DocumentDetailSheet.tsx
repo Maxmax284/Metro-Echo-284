@@ -127,29 +127,41 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     }
   }
 
-  async function handleExport(audience: DocumentExportAudience) {
+  async function handleExport(audience: DocumentExportAudience | DraftExportAudience) {
     if (!documentId) return;
-    setBusy(audience === "client" ? "export-client" : "export-operator");
+    const busyKey =
+      audience === "client" ? "export-client"
+      : audience === "signature" ? "export-signature"
+      : "export-operator";
+    setBusy(busyKey);
     try {
       // Drafts and reviews use different brief builders.
+      const isSignature = audience === "signature";
+      if (isSignature && !isDraft) {
+        toast.error("Signature packets are available on drafted documents.");
+        return;
+      }
       const builder = isDraft ? saveDraftExportDraft : saveDocumentExportDraft;
       const finalizer = isDraft ? finalizeDraftExport : finalizeDocumentExport;
       const { row, brief, doc: docRow } = await builder({
-        document_id: documentId, audience,
+        document_id: documentId, audience: audience as any,
       });
       const pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
       await finalizer({
-        row, pdfBlob, document_id: docRow.id, audience,
+        row, pdfBlob, document_id: docRow.id, audience: audience as any,
       });
       const url = URL.createObjectURL(pdfBlob);
       const a = window.document.createElement("a");
       a.href = url;
-      a.download = `${brief.title.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}.pdf`;
+      const suffix = isSignature ? "-signature" : "";
+      a.download = `${brief.title.replace(/[^a-z0-9-]+/gi, "-").toLowerCase()}${suffix}.pdf`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success(audience === "client"
-        ? "Client packet exported."
-        : "Operator packet exported.");
+      toast.success(
+        isSignature ? "Signature packet exported."
+        : audience === "client" ? "Client packet exported."
+        : "Operator packet exported.",
+      );
       onChanged?.();
     } catch (e: any) {
       toast.error(e?.message ?? "Export failed. Try again.");
@@ -157,6 +169,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       setBusy(null);
     }
   }
+
 
   async function handleRevise() {
     if (!documentId || !doc) return;
