@@ -378,10 +378,42 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
 
   const footerLabel = template.layout.footerNote ?? `Vanta · ${brief.title}`;
 
+  const renderSignaturePage = () => {
+    if (signatures.length === 0) return null;
+    return (
+      <Page size="LETTER" style={styles.page}>
+        {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
+        <Text style={styles.appendixTitle}>Signature page</Text>
+        <Text style={styles.appendixIntro}>
+          By signing below each party acknowledges the terms of "{brief.title}".
+          {watermark ? ` This copy is marked ${watermark} and is not for execution.` : ""}
+        </Text>
+        <View style={styles.sigBlock}>
+          {signatures.map((s, i) => (
+            <View key={i} wrap={false} style={{ marginBottom: 24 }}>
+              <Text style={styles.sigName}>{s.name}</Text>
+              {s.role ? <Text style={styles.sigRole}>{s.role}</Text> : null}
+              <View style={styles.sigRow}>
+                <Text style={{ fontSize: 9, color: template.pdf.muted }}>Signature</Text>
+                <Text style={{ fontSize: 9, color: template.pdf.muted }}>Date</Text>
+              </View>
+              <Text style={styles.sigLabel}>Print name</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerLeft}>{footerLabel}</Text>
+          <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+        </View>
+      </Page>
+    );
+  };
+
   return (
     <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
       {template.layout.coverPage && (
         <Page size="LETTER" style={styles.page}>
+          {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
           <View style={{ marginTop: 120 }}>
             <Text style={styles.audienceChip}>{template.label} · {template.tagline}</Text>
             <Text style={styles.kicker}>
@@ -410,6 +442,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
       )}
 
       <Page size="LETTER" style={styles.page}>
+        {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
         {!template.layout.coverPage && (
           <View style={{ marginBottom: 10 }}>
             <Text style={styles.audienceChip}>{template.label}</Text>
@@ -436,8 +469,9 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         </View>
       </Page>
 
-
+      {renderSignaturePage()}
       {renderFootnotesAppendix()}
     </Document>
   );
 }
+
