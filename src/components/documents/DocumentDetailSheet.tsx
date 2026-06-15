@@ -46,9 +46,16 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [review, setReview] = useState<DocumentReview | null>(null);
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
+  const [version, setVersion] = useState<DocumentVersion | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | "extract" | "review" | "export-operator" | "export-client">(null);
+  const [busy, setBusy] = useState<
+    null | "extract" | "review" | "draft" | "revise" | "approve"
+    | "export-operator" | "export-client"
+  >(null);
+  const [revisionText, setRevisionText] = useState("");
   const { openWithPrefill } = useCompanion();
+
+  const isDraft = !!doc && isDraftDocument(doc);
 
   const refresh = useCallback(async () => {
     if (!documentId) return;
@@ -56,10 +63,18 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     try {
       const d = await getDocument(documentId);
       setDoc(d);
-      const { review, risks, obligations } = await getLatestReview(documentId);
-      setReview(review);
-      setRisks(risks);
-      setObligations(obligations);
+      if (d && !d.source_file_id && d.template_key) {
+        // Draft path — only need the latest version body.
+        const v = await getLatestVersion(documentId);
+        setVersion(v);
+        setReview(null); setRisks([]); setObligations([]);
+      } else {
+        const { review, risks, obligations } = await getLatestReview(documentId);
+        setReview(review);
+        setRisks(risks);
+        setObligations(obligations);
+        setVersion(null);
+      }
     } finally {
       setLoading(false);
     }
