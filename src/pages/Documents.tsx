@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, FilePlus2, FileText, Loader2, Search } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/lib/auth";
