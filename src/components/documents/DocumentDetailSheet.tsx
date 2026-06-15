@@ -52,8 +52,9 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<
     null | "extract" | "review" | "draft" | "revise" | "approve"
-    | "export-operator" | "export-client"
+    | "export-operator" | "export-client" | "export-signature"
   >(null);
+
   const [revisionText, setRevisionText] = useState("");
   const { openWithPrefill } = useCompanion();
 
