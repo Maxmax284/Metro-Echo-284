@@ -37,6 +37,7 @@ import {
 import { isStaleCommitment } from "@/lib/commitmentLifecycle";
 import { humanizeEvent, sherlockModeLabel, sherlockConfidenceLabel } from "@/lib/plainLabels";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 
 
 type Counts = {
