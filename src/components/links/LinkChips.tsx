@@ -142,7 +142,7 @@ export function LinkChips({
             );
           })
         ) : (
-          <span className="text-[11px] italic text-muted-foreground">Not connected yet. Add a person, project, or place so this shows up in the right rollup.</span>
+          <span className="text-[11px] italic text-muted-foreground">Not connected yet. Attach this so Vanta knows where it belongs.</span>
         )}
       </div>
       <div className="flex flex-wrap gap-1">

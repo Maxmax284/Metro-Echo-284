@@ -637,7 +637,7 @@ function SherlockWatchtowerCard({ items, onOpen, onAnalyze }: {
             const confLabel = sherlockConfidenceLabel(s.confidence);
             return (
               <li key={s.id} className="text-[12.5px]">
-                <div className="text-foreground">{s.summary || "Vanta noticed something"}</div>
+                <div className="text-foreground">{s.summary || "Possible duplicate needs review"}</div>
                 <div className="text-[10.5px] text-muted-foreground">
                   {modeLabel}{confLabel ? ` · ${confLabel}` : ""} · {formatDistanceToNow(new Date(s.updated_at), { addSuffix: true })}
                 </div>
