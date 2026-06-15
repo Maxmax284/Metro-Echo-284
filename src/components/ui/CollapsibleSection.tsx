@@ -21,6 +21,8 @@ export interface CollapsibleSectionProps {
   onOpenChange?: (open: boolean) => void;
   /** Subtle attention glow (e.g. "Needs you" > 0). One-time, no loop. */
   attention?: boolean;
+  /** Drop the outer card chrome — use when children already render their own cards. */
+  bare?: boolean;
   className?: string;
   children: ReactNode;
 }
