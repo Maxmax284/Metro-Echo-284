@@ -71,6 +71,15 @@ const BANNED_TOKENS: Array<[RegExp, string]> = [
   [/\balready saved to memory\b/gi, "Saved to memory"],
   [/\bsuggest:message\b/gi, "Suggestion from a message"],
   [/\bextract:message\b/gi, "Detail pulled from a message"],
+  // Work Status Layer additions — banned backend-ish phrases that must never leak.
+  [/\bartifact composed\b/gi, "Packet ready"],
+  [/\bexport artifact\b/gi, "export"],
+  [/\brender initialized\b/gi, "Preparing the file"],
+  [/\brender pipeline failed\b/gi, "We couldn't create the file"],
+  [/\btemplate render initialized\b/gi, "Applying the template"],
+  [/\bjob queued\b/gi, "Waiting to start"],
+  [/\bprocessing\.\.\./gi, "Working…"],
+  [/\bprocessing…/gi, "Working…"],
 ];
 
 const warned = new Set<string>();
