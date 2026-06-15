@@ -334,8 +334,10 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                 busy={busy}
                 onRevise={handleRevise}
                 onExport={handleExport}
+                onExportDocx={handleExportDocx}
                 onAsk={handleAskDraft}
               />
+
             ) : review ? (
               <div className="space-y-6">
                 <Section icon={<FileSearch className="h-4 w-4" />} title="Summary">
