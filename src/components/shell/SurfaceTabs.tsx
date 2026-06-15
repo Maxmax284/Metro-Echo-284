@@ -136,12 +136,25 @@ export function SurfaceTabs({
               key={key}
               onClick={() => onChange(key)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] transition-colors duration-200 ease-out",
+                "relative flex flex-1 flex-col items-center gap-0.5 rounded-md py-1.5 text-[11px] transition-colors duration-[var(--motion-base)] ease-[var(--ease-out)]",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
               aria-label={label}
             >
-              <Icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]")} />
+              {/* Sliding lift on active: tiny bar grows up under the icon. */}
+              <span
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute -top-0.5 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-primary transition-[width,opacity] duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
+                  isActive ? "w-6 opacity-100" : "w-0 opacity-0",
+                )}
+              />
+              <Icon
+                className={cn(
+                  "h-5 w-5 transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
+                  isActive && "-translate-y-0.5 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]",
+                )}
+              />
               <span className="tracking-wide">{label}</span>
             </button>
           );
@@ -150,6 +163,7 @@ export function SurfaceTabs({
       </nav>
     );
   }
+
 
   return (
     <nav className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
