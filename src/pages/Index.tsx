@@ -46,8 +46,26 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, setSurface] = useState<SurfaceKey>("command");
+  const [surface, _setSurface] = useState<SurfaceKey>("command");
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
+
+  // Per-surface scroll memory. We capture the active surface's scroll position
+  // right before switching, then restore the incoming surface's position on
+  // mount. Surfaces all use a `.overflow-y-auto` scroller, so we grab the
+  // first one inside the wrapper.
+  const surfaceWrapperRef = useRef<HTMLDivElement | null>(null);
+  const scrollMemory = useRef<Record<string, number>>({});
+  const setSurface = (next: SurfaceKey) => {
+    const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
+    if (el) scrollMemory.current[surface] = el.scrollTop;
+    _setSurface(next);
+  };
+  useLayoutEffect(() => {
+    const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
+    if (!el) return;
+    el.scrollTop = scrollMemory.current[surface] ?? 0;
+  }, [surface]);
+
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
   const { setContext } = useCurrentContext();
