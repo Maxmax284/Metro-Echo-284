@@ -131,7 +131,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
         ...(sherlock.data ?? []).map((s: any) => ({
           id: `sherlock:${s.id}`,
           label: s.summary || "Open Sherlock finding",
-          detail: "Pending Sherlock review",
+          detail: "Possible duplicate needs review",
           surface: "sherlock" as SurfaceKey,
           icon: ShieldAlert,
           tone: "needs" as const,
