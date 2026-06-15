@@ -32,6 +32,9 @@ export type DocumentRow = {
   status: DocumentStatus;
   latest_review_id: string | null;
   failure_reason: string | null;
+  template_key: string | null;
+  draft_inputs: Record<string, string>;
+  tone: string | null;
   created_at: string;
   updated_at: string;
 };
