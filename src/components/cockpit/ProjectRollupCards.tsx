@@ -132,8 +132,11 @@ export function ProjectRollupCards() {
 
       <div className="text-[10.5px] text-muted-foreground">
         Missing a project the bulletin mentioned? It may be unpinned or archived.{" "}
-        <Link to="/projects" className="underline-offset-2 hover:underline">See all projects</Link>.
+        <Link to="/projects" className="underline-offset-2 hover:underline">See all projects</Link>
+        {" · "}
+        <Link to="/documents" className="underline-offset-2 hover:underline">Documents</Link>.
       </div>
+
 
       <BriefComposerSheet
 
