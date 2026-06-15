@@ -506,3 +506,112 @@ function Section({ icon, title, children }: { icon?: React.ReactNode; title: str
     </section>
   );
 }
+
+// ---------------------------------------------------------------------------
+// DraftBody — Phase 2 "this is a drafted document" surface.
+// Renders the latest markdown body, a revision input, export controls, and
+// the Companion contextual prompts (drafts only — Plan → Approve → Execute).
+// ---------------------------------------------------------------------------
+
+interface DraftBodyProps {
+  doc: DocumentRow;
+  version: DocumentVersion | null;
+  revisionText: string;
+  setRevisionText: (s: string) => void;
+  busy: null | string;
+  onRevise: () => void;
+  onExport: (audience: DocumentExportAudience) => void;
+  onAsk: (kind: "tighten" | "soften" | "boardroom") => void;
+}
+
+function DraftBody({
+  doc, version, revisionText, setRevisionText,
+  busy, onRevise, onExport, onAsk,
+}: DraftBodyProps) {
+  const body = version?.body_text ?? "";
+  const isLocked = doc.status === "approved";
+
+  if (!version && (doc.status === "drafting" || doc.status === "failed")) {
+    return (
+      <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+        {doc.status === "drafting" && "Drafting…"}
+        {doc.status === "failed" && (doc.failure_reason ?? "Drafting didn't finish. Try again.")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Section icon={<FileText className="h-4 w-4" />} title={isLocked ? "Approved draft" : "Working draft"}>
+        <article className="prose prose-sm max-w-none whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-4 text-sm leading-relaxed text-foreground/90">
+          {body || "—"}
+        </article>
+        {version && (
+          <p className="text-[11px] text-muted-foreground">
+            Version {version.version_no} · {version.source}
+          </p>
+        )}
+      </Section>
+
+      {!isLocked && (
+        <Section icon={<Pencil className="h-4 w-4" />} title="Revise">
+          <textarea
+            value={revisionText}
+            onChange={(e) => setRevisionText(e.target.value)}
+            placeholder="What should change? (e.g. tighten section 3, add a confidentiality clause)"
+            className="min-h-[80px] w-full rounded-md border border-border/60 bg-background p-2.5 text-sm"
+          />
+          <Button size="sm" onClick={onRevise} disabled={!!busy} className="gap-1.5">
+            {busy === "revise"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Sparkles className="h-3.5 w-3.5" />}
+            Apply revision
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Vanta will rewrite the whole draft preserving every section you didn't ask to change.
+          </p>
+        </Section>
+      )}
+
+      <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("tighten")}>Tighten 30%</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("soften")}>Warmer voice</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("boardroom")}>Boardroom-formal</Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          These open a draft suggestion in Vanta — nothing sends until you say so.
+        </p>
+      </Section>
+
+      <Section icon={<FileDown className="h-4 w-4" />} title="Export draft">
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExport("operator")} disabled={!!busy}>
+            {busy === "export-operator"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <FileDown className="h-3.5 w-3.5" />}
+            Working copy
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExport("client")} disabled={!!busy}>
+            {busy === "export-client"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Send className="h-3.5 w-3.5" />}
+            Client-ready
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Client copy strips internal IDs and includes the trust note.
+        </p>
+      </Section>
+
+      <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
+        {DOCUMENT_DISCLAIMER}
+      </p>
+    </div>
+  );
+}
