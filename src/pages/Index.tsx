@@ -226,12 +226,20 @@ function IndexInner() {
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">your channels</span>
                   </a>
                   <a
+                    href="/documents"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Documents</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drafts &amp; reviews</span>
+                  </a>
+                  <a
                     href="/settings/workspaces"
                     className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
                   >
                     <span className="font-medium">Workspaces</span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">members &amp; roles</span>
                   </a>
+
                   <TelegramLinkCard />
                   <Separator />
                   <VoiceCaptureCard />
