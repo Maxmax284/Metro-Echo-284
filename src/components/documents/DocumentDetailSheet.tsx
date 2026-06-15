@@ -17,14 +17,20 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import {
-  DOCUMENT_DISCLAIMER, getDocument, getLatestReview, kindLabel,
+  DOCUMENT_DISCLAIMER, approveDraft, getDocument, getLatestReview,
+  getLatestVersion, isDraftDocument, kindLabel, runDraft,
   runExtraction, runReview, statusLabel,
   type DocumentObligation, type DocumentReview, type DocumentRisk, type DocumentRow,
+  type DocumentVersion,
 } from "@/lib/documents";
 import {
   finalizeDocumentExport, saveDocumentExportDraft,
   type DocumentExportAudience,
 } from "@/lib/documentExport";
+import {
+  finalizeDraftExport, saveDraftExportDraft,
+} from "@/lib/documentDraftExport";
+import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useCompanion } from "@/components/companion/CompanionContext";
 
