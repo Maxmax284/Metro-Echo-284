@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, User, Briefcase, MapPin, X } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
+import { Plus, User, Briefcase, MapPin, X, Paperclip } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 
@@ -13,12 +16,20 @@ export type EntityLink = { kind: LinkKind; label: string; ref?: string | null };
 type EntityKind = "note" | "commitment" | "ingested_file" | "message";
 
 const KIND_ICON = { person: User, project: Briefcase, place: MapPin } as const;
-const KIND_LABEL = { person: "person", project: "project", place: "place" } as const;
+const KIND_LABEL = { person: "Person", project: "Project", place: "Place" } as const;
+const KIND_PLACEHOLDER = {
+  person: "Who is this about? (e.g. Nikki)",
+  project: "Which project? (e.g. Lamai Muay Thai)",
+  place: "Where? (e.g. Phuket office)",
+} as const;
 
 /**
  * Lightweight relationship chips stored in `metadata.links: EntityLink[]`.
  * No new tables — pure metadata. Recent-label suggestions are sourced from
  * the user's own existing links across notes/commitments/files.
+ *
+ * Trigger surface: one "Attach" button opens a sheet that handles person,
+ * project, and place in one calm pane (was three +chip buttons before).
  */
 export function LinkChips({
   entityKind,
@@ -34,17 +45,15 @@ export function LinkChips({
   compact?: boolean;
 }) {
   const { user } = useAuth();
-  const [open, setOpen] = useState<LinkKind | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [tab, setTab] = useState<LinkKind>("project");
   const [value, setValue] = useState("");
   const [recent, setRecent] = useState<Record<LinkKind, string[]>>({ person: [], project: [], place: [] });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!user || !open) return;
+    if (!user || !sheetOpen) return;
     (async () => {
-      // Cheap recent labels: scan recent metadata across notes, commitments,
-      // files, and captured messages so labels surface wherever the user has
-      // been working — not just notes.
       const [n, c, f, m] = await Promise.all([
         supabase.from("notes").select("metadata").order("updated_at", { ascending: false }).limit(120),
         supabase.from("commitments").select("metadata").order("updated_at", { ascending: false }).limit(120),
@@ -65,7 +74,7 @@ export function LinkChips({
         place: Array.from(buckets.place).slice(0, 10),
       });
     })();
-  }, [user, open]);
+  }, [user, sheetOpen]);
 
   const audit = async (event: string, link: EntityLink) => {
     if (!user) return;
@@ -97,7 +106,6 @@ export function LinkChips({
     if (!clean) return;
     if (links.some((l) => l.kind === kind && l.label.toLowerCase() === clean.toLowerCase())) {
       toast.message({ title: "Already linked." });
-      setOpen(null);
       setValue("");
       return;
     }
@@ -105,8 +113,8 @@ export function LinkChips({
     await persist(next);
     await audit("link.added", { kind, label: clean });
     toast.success({ title: `Linked to ${clean}.` });
-    setOpen(null);
     setValue("");
+    setSheetOpen(false);
   };
 
   const removeLink = async (link: EntityLink) => {
@@ -116,6 +124,7 @@ export function LinkChips({
   };
 
   const hasLinks = links.length > 0;
+  const ActiveIcon = KIND_ICON[tab];
 
   return (
     <div className={cn("space-y-1.5", compact && "text-[11px]")}>
@@ -142,62 +151,109 @@ export function LinkChips({
             );
           })
         ) : (
-          <span className="text-[11px] italic text-muted-foreground">Not connected yet. Attach this so Vanta knows where it belongs.</span>
+          <span className="text-[11px] italic text-muted-foreground">
+            Not connected yet. Attach this so Vanta knows where it belongs.
+          </span>
         )}
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {(["person", "project", "place"] as LinkKind[]).map((k) => {
-          const Icon = KIND_ICON[k];
-          return (
+
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetTrigger asChild>
             <button
-              key={k}
               type="button"
-              onClick={(e) => { e.stopPropagation(); setOpen(open === k ? null : k); setValue(""); }}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] transition-colors",
-                open === k
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-              )}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-surface-elevated/60 px-2 py-0.5 text-[10.5px] text-muted-foreground transition-colors hover:bg-surface-elevated hover:text-foreground"
+              aria-label="Attach to person, project, or place"
             >
-              <Plus className="h-2.5 w-2.5" />
-              <Icon className="h-2.5 w-2.5" />
-              {KIND_LABEL[k]}
+              {hasLinks ? <Plus className="h-2.5 w-2.5" /> : <Paperclip className="h-2.5 w-2.5" />}
+              Attach
             </button>
-          );
-        })}
-      </div>
-      {open && (
-        <div className="rounded-md bg-surface-elevated/60 p-2 ring-1 ring-border/60" onClick={(e) => e.stopPropagation()}>
-          <div className="flex gap-1.5">
-            <Input
-              autoFocus
-              placeholder={`Name a ${open}…`}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addLink(open, value); }}
-              className="h-8 text-[12px]"
-            />
-            <Button size="sm" className="h-8 px-2 text-[11px]" disabled={busy || !value.trim()} onClick={() => addLink(open, value)}>
-              Link
-            </Button>
-          </div>
-          {recent[open].length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {recent[open].map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => addLink(open, label)}
-                  className="rounded-full bg-muted/30 px-2 py-0.5 text-[10.5px] text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[80vh]">
+            <SheetHeader className="text-left">
+              <SheetTitle className="text-sm font-medium">
+                Attach this to where it belongs
+              </SheetTitle>
+            </SheetHeader>
+            <div className="mt-3 space-y-3" onClick={(e) => e.stopPropagation()}>
+              {/* Kind tabs */}
+              <div
+                role="tablist"
+                aria-label="Attach kind"
+                className="flex items-center gap-1 rounded-xl border border-border/60 bg-surface-elevated/60 p-1"
+              >
+                {(["project", "person", "place"] as LinkKind[]).map((k) => {
+                  const Icon = KIND_ICON[k];
+                  const active = tab === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => { setTab(k); setValue(""); }}
+                      className={cn(
+                        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] transition-colors min-h-[40px]",
+                        active
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {KIND_LABEL[k]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Input */}
+              <div className="flex gap-1.5">
+                <Input
+                  autoFocus
+                  placeholder={KIND_PLACEHOLDER[tab]}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addLink(tab, value); }}
+                  className="h-9 text-[12.5px]"
+                />
+                <Button
+                  size="sm"
+                  className="h-9 gap-1 px-3 text-[12px]"
+                  disabled={busy || !value.trim()}
+                  onClick={() => addLink(tab, value)}
                 >
-                  {label}
-                </button>
-              ))}
+                  <ActiveIcon className="h-3 w-3" />
+                  Attach
+                </Button>
+              </div>
+
+              {/* Recent suggestions */}
+              {recent[tab].length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                    Recent {KIND_LABEL[tab].toLowerCase()}s
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recent[tab].map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => addLink(tab, label)}
+                        className="rounded-full bg-muted/40 px-2.5 py-1 text-[11.5px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10.5px] text-muted-foreground">
+                Nothing runs — this just tells Vanta where it belongs.
+              </p>
             </div>
-          )}
-        </div>
-      )}
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }
@@ -207,3 +263,4 @@ export function readLinks(metadata: any): EntityLink[] {
   if (!Array.isArray(ls)) return [];
   return ls.filter((l): l is EntityLink => l && typeof l.label === "string" && ["person", "project", "place"].includes(l.kind));
 }
+
