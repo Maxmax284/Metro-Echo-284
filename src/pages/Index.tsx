@@ -19,7 +19,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban } from "lucide-react";
+import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban, FileText } from "lucide-react";
 import { ModeBadge } from "@/components/shell/ModeBadge";
 import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
