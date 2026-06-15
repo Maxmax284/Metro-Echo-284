@@ -23,6 +23,7 @@ import { logFileEvent } from "@/lib/fileAudit";
 import { AftermathFooter, type NextMove } from "@/components/aftermath/AftermathFooter";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { CardMoreMenu } from "@/components/ui/CardMoreMenu";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
@@ -571,12 +572,11 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                 if (!crossKind && !projectKind) return null;
                 return (
                   <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Linked chips — display, no action. */}
                     {crossKind && (
-                      <>
-                        <ConnectButton source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }} />
-                        <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
-                      </>
+                      <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
                     )}
+                    {/* Primary action: attach to a project. */}
                     {projectKind && (
                       <AttachToProjectMenu
                         itemType={projectKind}
@@ -584,9 +584,20 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                         itemLabel={item.text.slice(0, 80)}
                       />
                     )}
+                    {/* Secondary moves live behind More. */}
+                    {crossKind && (
+                      <CardMoreMenu>
+                        <div className="px-2 py-1.5">
+                          <ConnectButton
+                            source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }}
+                          />
+                        </div>
+                      </CardMoreMenu>
+                    )}
                   </div>
                 );
               })()}
+
               {nextMove && (
                 <AftermathFooter
                   next={nextMove}
