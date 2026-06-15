@@ -261,13 +261,13 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
 
             {/* Primary action row — what to do next */}
             <div className="mb-6 flex flex-wrap gap-2">
-              {(doc.status === "uploaded" || doc.status === "failed") && (
+              {!isDraft && (doc.status === "uploaded" || doc.status === "failed") && (
                 <Button size="sm" onClick={handleExtract} disabled={!!busy} className="gap-1.5">
                   {busy === "extract" ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
                   Read document
                 </Button>
               )}
-              {(doc.status === "extracted" || doc.status === "reviewed" || doc.status === "failed") && (
+              {!isDraft && (doc.status === "extracted" || doc.status === "reviewed" || doc.status === "failed") && (
                 <Button
                   size="sm"
                   onClick={handleReview}
@@ -278,13 +278,36 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   {review ? "Re-review" : "Review document"}
                 </Button>
               )}
+              {isDraft && doc.status === "drafted" && (
+                <Button size="sm" onClick={handleApproveDraft} disabled={!!busy} className="gap-1.5">
+                  {busy === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Approve draft
+                </Button>
+              )}
+              {isDraft && doc.status === "approved" && (
+                <Badge variant="outline" className="gap-1 text-[11px]">
+                  <Check className="h-3 w-3" /> Approved
+                </Badge>
+              )}
             </div>
 
-            {review ? (
+            {isDraft ? (
+              <DraftBody
+                doc={doc}
+                version={version}
+                revisionText={revisionText}
+                setRevisionText={setRevisionText}
+                busy={busy}
+                onRevise={handleRevise}
+                onExport={handleExport}
+                onAsk={handleAskDraft}
+              />
+            ) : review ? (
               <div className="space-y-6">
                 <Section icon={<FileSearch className="h-4 w-4" />} title="Summary">
                   <p className="whitespace-pre-wrap text-sm text-foreground/90">{review.summary ?? "—"}</p>
                 </Section>
+
 
                 {review.parties?.length > 0 && (
                   <Section icon={<Users className="h-4 w-4" />} title="Parties">
