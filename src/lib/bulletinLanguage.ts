@@ -90,7 +90,7 @@ export function formatAuditEvent(
   if (e === "capture.needs_review")
     return { ...base, bucket: "attention", text: `A capture needs a quick look.` };
   if (e === "sherlock_finding_created" || e === "sherlock.suggested")
-    return { ...base, bucket: "attention", text: `Vanta noticed something worth a quick look.` };
+    return { ...base, bucket: "attention", text: `Possible duplicate needs review.` };
   if (e === "file.action_suggested")
     return { ...base, bucket: "attention", text: `A file has a suggested next step.` };
   if (e === "commitment.overdue")
