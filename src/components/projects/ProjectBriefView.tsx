@@ -298,7 +298,7 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         onAttached={refreshAttached}
       />
 
-      <ProjectDocumentsSection projectId={project.id} />
+      <ProjectDocumentsSection projectId={project.id} organizationId={project.organization_id ?? null} />
 
       <AddToProjectComposer
         project={project}
