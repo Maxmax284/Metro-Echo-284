@@ -10,9 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, FileDown,
-  HelpCircle, Loader2, MessageSquareWarning, RefreshCcw, Send, Sparkles,
-  ShieldAlert, Users,
+  AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
+  FileDown, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
+  RefreshCcw, Send, Sparkles, ShieldAlert, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
