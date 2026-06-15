@@ -47,6 +47,48 @@ export function kindLabel(kind: string | null | undefined): string {
   return map[kind] ?? (kind.charAt(0).toUpperCase() + kind.slice(1).replace(/_/g, " "));
 }
 
+/**
+ * Banned system-ish tokens — must never reach the UI. In dev we warn once
+ * and rewrite them to the closest plain-English phrase; in prod we silently
+ * rewrite so nothing leaks even if a new call site is added.
+ */
+const BANNED_TOKENS: Array<[RegExp, string]> = [
+  [/\brecord inserted\b/gi, "saved"],
+  [/\bsignal detected\b/gi, "new signal"],
+  [/\blifecycle state\b/gi, "status"],
+  [/\bbriefing\.viewed\b/gi, "Brief was opened"],
+  [/\bbriefing\.composed\b/gi, "New brief created"],
+  [/\bbriefing read\b/gi, "Brief was opened"],
+  [/\bbrief created\b/gi, "New brief created"],
+  [/\bwebhook received\b/gi, "new capture"],
+  [/\bcapture routed\b/gi, "Capture was organized"],
+  [/\btelegram message in\b/gi, "New Telegram note came in"],
+  [/\bconnected to a project\b/gi, "Attached to a project"],
+  [/\bopen in memory\b/gi, "Open saved note"],
+  [/\bentity graph\b/gi, "Connections"],
+  [/\bhigh confidence\b/gi, "Likely useful"],
+  [/\bpending sherlock review\b/gi, "Possible duplicate"],
+  [/\balready saved to memory\b/gi, "Saved to memory"],
+  [/\bsuggest:message\b/gi, "Suggestion from a message"],
+  [/\bextract:message\b/gi, "Detail pulled from a message"],
+];
+
+const warned = new Set<string>();
+function scrubBannedTokens(s: string): string {
+  let out = s;
+  for (const [re, replacement] of BANNED_TOKENS) {
+    if (re.test(out)) {
+      if (import.meta.env?.DEV && !warned.has(re.source)) {
+        warned.add(re.source);
+        // eslint-disable-next-line no-console
+        console.warn(`[plainLabels] banned token reached UI: ${re.source}`);
+      }
+      out = out.replace(re, replacement);
+    }
+  }
+  return out;
+}
+
 /** Humanize an audit event key like `brief.generated` -> "Brief generated". */
 export function humanizeEvent(event: string): string {
   if (!event) return "Event";
@@ -108,18 +150,18 @@ export function humanizeEvent(event: string): string {
     "document.exported_docx": "Document exported as Word",
 
   };
-  if (exact[event]) return exact[event];
+  if (exact[event]) return scrubBannedTokens(exact[event]);
   const [domain, verb] = event.split(".");
   const domainLabel = kindLabel(domain);
-  if (!verb) return domainLabel;
+  if (!verb) return scrubBannedTokens(domainLabel);
   const verbMap: Record<string, string> = {
     created: "created", updated: "updated", deleted: "removed",
     executed: "ran", approved: "approved", rejected: "rejected",
     completed: "completed", snoozed: "snoozed", failed: "failed",
-    routed: "routed", linked: "connected", generated: "generated",
-    exported: "exported", viewed: "read",
+    routed: "organized", linked: "connected", generated: "generated",
+    exported: "exported", viewed: "opened",
   };
-  return `${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`;
+  return scrubBannedTokens(`${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`);
 }
 
 /** Plain-English label for a Sherlock finding mode (e.g. "suggest:message"). */

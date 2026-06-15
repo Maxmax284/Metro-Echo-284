@@ -225,7 +225,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
             <CheckSquare className="h-3 w-3" /> Today
           </div>
           <p className="text-[12px] text-foreground/85">
-            What needs you, what changed, what to do next.
+            Your quick check-in for today.
           </p>
         </div>
         <Badge variant="secondary" className="text-[10px]">{totalVisible} items</Badge>
