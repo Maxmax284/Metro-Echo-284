@@ -43,6 +43,12 @@ export function AttachToProjectMenu({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [justAttached, setJustAttached] = useState(false);
+
+  const flashAttached = () => {
+    setJustAttached(true);
+    setTimeout(() => setJustAttached(false), 1600);
+  };
 
   useEffect(() => {
     if (!open || !user) return;
