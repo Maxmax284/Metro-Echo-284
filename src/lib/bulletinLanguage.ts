@@ -97,7 +97,7 @@ export function formatAuditEvent(
     return { ...base, bucket: "attention", text: `A commitment went overdue.` };
   if (e === "document.risk_flagged")
     return { ...base, bucket: "attention", text: `A contract risk needs your review.` };
-  if (e === "document.review_failed" || e === "document.extract_failed")
+  if (e === "document.review_failed" || e === "document.extract_failed" || e === "document.draft_failed")
     return { ...base, bucket: "attention", text: `A document needs another look.` };
 
   // -- Documents ----------------------------------------------------------
@@ -111,6 +111,12 @@ export function formatAuditEvent(
     return { ...base, bucket: "done", text: `A document review was exported.` };
   if (e === "document.export_drafted")
     return { ...base, bucket: "captures", text: `A document review packet is ready to send.` };
+  if (e === "document.draft_created")
+    return { ...base, bucket: "captures", text: `A new document draft is ready to read.` };
+  if (e === "document.draft_revised")
+    return { ...base, bucket: "captures", text: `A document draft was updated.` };
+  if (e === "document.draft_approved")
+    return { ...base, bucket: "done", text: `A document draft was approved.` };
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")

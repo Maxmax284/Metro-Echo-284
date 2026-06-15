@@ -10,21 +10,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle, BookOpen, Calendar, Coins, FileSearch, FileDown,
-  HelpCircle, Loader2, MessageSquareWarning, RefreshCcw, Send, Sparkles,
-  ShieldAlert, Users,
+  AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
+  FileDown, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
+  RefreshCcw, Send, Sparkles, ShieldAlert, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import {
-  DOCUMENT_DISCLAIMER, getDocument, getLatestReview, kindLabel,
+  DOCUMENT_DISCLAIMER, approveDraft, getDocument, getLatestReview,
+  getLatestVersion, isDraftDocument, kindLabel, runDraft,
   runExtraction, runReview, statusLabel,
   type DocumentObligation, type DocumentReview, type DocumentRisk, type DocumentRow,
+  type DocumentVersion,
 } from "@/lib/documents";
 import {
   finalizeDocumentExport, saveDocumentExportDraft,
   type DocumentExportAudience,
 } from "@/lib/documentExport";
+import {
+  finalizeDraftExport, saveDraftExportDraft,
+} from "@/lib/documentDraftExport";
+import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useCompanion } from "@/components/companion/CompanionContext";
 
@@ -40,9 +46,16 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [review, setReview] = useState<DocumentReview | null>(null);
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
+  const [version, setVersion] = useState<DocumentVersion | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState<null | "extract" | "review" | "export-operator" | "export-client">(null);
+  const [busy, setBusy] = useState<
+    null | "extract" | "review" | "draft" | "revise" | "approve"
+    | "export-operator" | "export-client"
+  >(null);
+  const [revisionText, setRevisionText] = useState("");
   const { openWithPrefill } = useCompanion();
+
+  const isDraft = !!doc && isDraftDocument(doc);
 
   const refresh = useCallback(async () => {
     if (!documentId) return;
@@ -50,10 +63,18 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     try {
       const d = await getDocument(documentId);
       setDoc(d);
-      const { review, risks, obligations } = await getLatestReview(documentId);
-      setReview(review);
-      setRisks(risks);
-      setObligations(obligations);
+      if (d && !d.source_file_id && d.template_key) {
+        // Draft path — only need the latest version body.
+        const v = await getLatestVersion(documentId);
+        setVersion(v);
+        setReview(null); setRisks([]); setObligations([]);
+      } else {
+        const { review, risks, obligations } = await getLatestReview(documentId);
+        setReview(review);
+        setRisks(risks);
+        setObligations(obligations);
+        setVersion(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -107,11 +128,14 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     if (!documentId) return;
     setBusy(audience === "client" ? "export-client" : "export-operator");
     try {
-      const { row, brief, doc: docRow } = await saveDocumentExportDraft({
+      // Drafts and reviews use different brief builders.
+      const builder = isDraft ? saveDraftExportDraft : saveDocumentExportDraft;
+      const finalizer = isDraft ? finalizeDraftExport : finalizeDocumentExport;
+      const { row, brief, doc: docRow } = await builder({
         document_id: documentId, audience,
       });
       const pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
-      await finalizeDocumentExport({
+      await finalizer({
         row, pdfBlob, document_id: docRow.id, audience,
       });
       const url = URL.createObjectURL(pdfBlob);
@@ -129,6 +153,67 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     } finally {
       setBusy(null);
     }
+  }
+
+  async function handleRevise() {
+    if (!documentId || !doc) return;
+    const prompt = revisionText.trim();
+    if (!prompt) {
+      toast.error("Describe the change you want.");
+      return;
+    }
+    const template = getTemplate(doc.template_key);
+    setBusy("revise");
+    try {
+      const r = await runDraft({
+        documentId,
+        templateTitle: template?.promptTitle ?? doc.title,
+        userMessage: template
+          ? template.buildUserMessage(doc.draft_inputs ?? {}, (doc.tone as any) ?? "warm")
+          : `Document: ${doc.title}`,
+        revisionPrompt: prompt,
+      });
+      if (!r.ok) {
+        toast.error(
+          r.error === "rate_limited" ? "Over rate limit. Try again in a minute."
+          : r.error === "credits_exhausted" ? "Out of drafting credits."
+          : "Revision failed. Try again.",
+        );
+      } else {
+        toast.success("Draft updated.");
+        setRevisionText("");
+      }
+      await refresh();
+      onChanged?.();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleApproveDraft() {
+    if (!documentId) return;
+    setBusy("approve");
+    try {
+      await approveDraft(documentId);
+      toast.success("Draft approved.");
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't approve.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function handleAskDraft(kind: "tighten" | "soften" | "boardroom") {
+    if (!doc) return;
+    const map: Record<typeof kind, string> = {
+      tighten: `Rewrite the draft of "${doc.title}" to be 30% shorter without losing any obligations. Suggest the changes — don't apply them.`,
+      soften:  `Suggest a warmer, more human revision of "${doc.title}" while keeping every commitment the same.`,
+      boardroom: `Suggest a more boardroom-formal revision of "${doc.title}". Keep the structure; tighten the language.`,
+    };
+    openWithPrefill(map[kind]);
+    onOpenChange(false);
   }
 
   function handleAsk(kind: "explain-risk" | "before-signing" | "money") {
@@ -176,13 +261,13 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
 
             {/* Primary action row — what to do next */}
             <div className="mb-6 flex flex-wrap gap-2">
-              {(doc.status === "uploaded" || doc.status === "failed") && (
+              {!isDraft && (doc.status === "uploaded" || doc.status === "failed") && (
                 <Button size="sm" onClick={handleExtract} disabled={!!busy} className="gap-1.5">
                   {busy === "extract" ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
                   Read document
                 </Button>
               )}
-              {(doc.status === "extracted" || doc.status === "reviewed" || doc.status === "failed") && (
+              {!isDraft && (doc.status === "extracted" || doc.status === "reviewed" || doc.status === "failed") && (
                 <Button
                   size="sm"
                   onClick={handleReview}
@@ -193,13 +278,36 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   {review ? "Re-review" : "Review document"}
                 </Button>
               )}
+              {isDraft && doc.status === "drafted" && (
+                <Button size="sm" onClick={handleApproveDraft} disabled={!!busy} className="gap-1.5">
+                  {busy === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Approve draft
+                </Button>
+              )}
+              {isDraft && doc.status === "approved" && (
+                <Badge variant="outline" className="gap-1 text-[11px]">
+                  <Check className="h-3 w-3" /> Approved
+                </Badge>
+              )}
             </div>
 
-            {review ? (
+            {isDraft ? (
+              <DraftBody
+                doc={doc}
+                version={version}
+                revisionText={revisionText}
+                setRevisionText={setRevisionText}
+                busy={busy}
+                onRevise={handleRevise}
+                onExport={handleExport}
+                onAsk={handleAskDraft}
+              />
+            ) : review ? (
               <div className="space-y-6">
                 <Section icon={<FileSearch className="h-4 w-4" />} title="Summary">
                   <p className="whitespace-pre-wrap text-sm text-foreground/90">{review.summary ?? "—"}</p>
                 </Section>
+
 
                 {review.parties?.length > 0 && (
                   <Section icon={<Users className="h-4 w-4" />} title="Parties">
@@ -396,5 +504,114 @@ function Section({ icon, title, children }: { icon?: React.ReactNode; title: str
       </div>
       {children}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DraftBody — Phase 2 "this is a drafted document" surface.
+// Renders the latest markdown body, a revision input, export controls, and
+// the Companion contextual prompts (drafts only — Plan → Approve → Execute).
+// ---------------------------------------------------------------------------
+
+interface DraftBodyProps {
+  doc: DocumentRow;
+  version: DocumentVersion | null;
+  revisionText: string;
+  setRevisionText: (s: string) => void;
+  busy: null | string;
+  onRevise: () => void;
+  onExport: (audience: DocumentExportAudience) => void;
+  onAsk: (kind: "tighten" | "soften" | "boardroom") => void;
+}
+
+function DraftBody({
+  doc, version, revisionText, setRevisionText,
+  busy, onRevise, onExport, onAsk,
+}: DraftBodyProps) {
+  const body = version?.body_text ?? "";
+  const isLocked = doc.status === "approved";
+
+  if (!version && (doc.status === "drafting" || doc.status === "failed")) {
+    return (
+      <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+        {doc.status === "drafting" && "Drafting…"}
+        {doc.status === "failed" && (doc.failure_reason ?? "Drafting didn't finish. Try again.")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Section icon={<FileText className="h-4 w-4" />} title={isLocked ? "Approved draft" : "Working draft"}>
+        <article className="prose prose-sm max-w-none whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-4 text-sm leading-relaxed text-foreground/90">
+          {body || "—"}
+        </article>
+        {version && (
+          <p className="text-[11px] text-muted-foreground">
+            Version {version.version_no} · {version.source}
+          </p>
+        )}
+      </Section>
+
+      {!isLocked && (
+        <Section icon={<Pencil className="h-4 w-4" />} title="Revise">
+          <textarea
+            value={revisionText}
+            onChange={(e) => setRevisionText(e.target.value)}
+            placeholder="What should change? (e.g. tighten section 3, add a confidentiality clause)"
+            className="min-h-[80px] w-full rounded-md border border-border/60 bg-background p-2.5 text-sm"
+          />
+          <Button size="sm" onClick={onRevise} disabled={!!busy} className="gap-1.5">
+            {busy === "revise"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Sparkles className="h-3.5 w-3.5" />}
+            Apply revision
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Vanta will rewrite the whole draft preserving every section you didn't ask to change.
+          </p>
+        </Section>
+      )}
+
+      <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("tighten")}>Tighten 30%</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("soften")}>Warmer voice</Button>
+          <Button size="sm" variant="outline" className="h-8 text-xs"
+            onClick={() => onAsk("boardroom")}>Boardroom-formal</Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          These open a draft suggestion in Vanta — nothing sends until you say so.
+        </p>
+      </Section>
+
+      <Section icon={<FileDown className="h-4 w-4" />} title="Export draft">
+        <div className="flex flex-wrap gap-1.5">
+          <Button size="sm" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExport("operator")} disabled={!!busy}>
+            {busy === "export-operator"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <FileDown className="h-3.5 w-3.5" />}
+            Working copy
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExport("client")} disabled={!!busy}>
+            {busy === "export-client"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Send className="h-3.5 w-3.5" />}
+            Client-ready
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Client copy strips internal IDs and includes the trust note.
+        </p>
+      </Section>
+
+      <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
+        {DOCUMENT_DISCLAIMER}
+      </p>
+    </div>
   );
 }

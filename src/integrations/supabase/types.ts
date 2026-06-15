@@ -1045,6 +1045,7 @@ export type Database = {
       documents: {
         Row: {
           created_at: string
+          draft_inputs: Json
           failure_reason: string | null
           id: string
           kind: Database["public"]["Enums"]["document_kind"]
@@ -1054,12 +1055,15 @@ export type Database = {
           project_id: string | null
           source_file_id: string | null
           status: Database["public"]["Enums"]["document_status"]
+          template_key: string | null
           title: string
+          tone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          draft_inputs?: Json
           failure_reason?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
@@ -1069,12 +1073,15 @@ export type Database = {
           project_id?: string | null
           source_file_id?: string | null
           status?: Database["public"]["Enums"]["document_status"]
+          template_key?: string | null
           title?: string
+          tone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          draft_inputs?: Json
           failure_reason?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["document_kind"]
@@ -1084,7 +1091,9 @@ export type Database = {
           project_id?: string | null
           source_file_id?: string | null
           status?: Database["public"]["Enums"]["document_status"]
+          template_key?: string | null
           title?: string
+          tone?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2945,7 +2954,10 @@ export type Database = {
         | "reviewing"
         | "reviewed"
         | "failed"
-      document_version_source: "upload" | "extraction"
+        | "drafting"
+        | "drafted"
+        | "approved"
+      document_version_source: "upload" | "extraction" | "draft" | "revision"
       executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
@@ -3113,8 +3125,11 @@ export const Constants = {
         "reviewing",
         "reviewed",
         "failed",
+        "drafting",
+        "drafted",
+        "approved",
       ],
-      document_version_source: ["upload", "extraction"],
+      document_version_source: ["upload", "extraction", "draft", "revision"],
       executor_kind: ["webhook", "telegram", "google_calendar", "email"],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
