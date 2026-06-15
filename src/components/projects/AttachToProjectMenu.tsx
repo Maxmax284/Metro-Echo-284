@@ -125,11 +125,19 @@ export function AttachToProjectMenu({
           <Button
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", className)}
+            className={cn(
+              "h-7 w-7 text-muted-foreground hover:text-foreground",
+              justAttached && "text-primary",
+              className,
+            )}
             title="Attach to project"
             aria-label="Attach to project"
           >
-            <FolderPlus className="h-4 w-4" />
+            {justAttached ? (
+              <Check key="ok" className="h-4 w-4 motion-confirm" />
+            ) : (
+              <FolderPlus className="h-4 w-4" />
+            )}
           </Button>
         ) : (
           <Button
@@ -137,10 +145,19 @@ export function AttachToProjectMenu({
             size="sm"
             className={cn(
               "h-7 shrink-0 snap-start whitespace-nowrap gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground",
+              justAttached && "text-primary",
               className
             )}
           >
-            <FolderPlus className="h-3.5 w-3.5" /> Attach
+            {justAttached ? (
+              <>
+                <Check key="ok" className="h-3.5 w-3.5 motion-confirm" /> Attached
+              </>
+            ) : (
+              <>
+                <FolderPlus className="h-3.5 w-3.5" /> Attach
+              </>
+            )}
           </Button>
         )}
       </PopoverTrigger>
