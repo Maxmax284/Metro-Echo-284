@@ -217,3 +217,108 @@ export function kindLabel(k: DocumentKind): string {
   };
   return map[k];
 }
+
+// ---------- Phase 2: Drafting ---------------------------------------------
+
+export type DocumentVersion = {
+  id: string;
+  document_id: string;
+  user_id: string;
+  version_no: number;
+  body_text: string | null;
+  source: "upload" | "extraction" | "draft" | "revision";
+  created_at: string;
+};
+
+/** Create a new drafted document (no source file). Status starts at 'drafting'. */
+export async function createDraftDocument(opts: {
+  userId: string;
+  title: string;
+  kind: DocumentKind;
+  templateKey: string;
+  inputs: Record<string, string>;
+  tone: string;
+  projectId?: string | null;
+  organizationId?: string | null;
+}): Promise<DocumentRow> {
+  const { data, error } = await supabase
+    .from("documents")
+    .insert({
+      user_id: opts.userId,
+      organization_id: opts.organizationId ?? null,
+      project_id: opts.projectId ?? null,
+      source_file_id: null,
+      kind: opts.kind,
+      title: opts.title || "Untitled draft",
+      status: "drafting",
+      template_key: opts.templateKey,
+      draft_inputs: opts.inputs ?? {},
+      tone: opts.tone,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  await supabase.from("audit_log").insert({
+    user_id: opts.userId,
+    entity_type: "document",
+    entity_id: data.id,
+    event: "document.draft_started",
+    payload: { template_key: opts.templateKey, project_id: opts.projectId ?? null },
+  });
+  return data as DocumentRow;
+}
+
+export async function runDraft(opts: {
+  documentId: string;
+  templateTitle: string;
+  userMessage: string;
+  revisionPrompt?: string;
+}): Promise<{ ok: boolean; error?: string; version_id?: string }> {
+  const { data, error } = await supabase.functions.invoke("documents-draft", {
+    body: {
+      document_id: opts.documentId,
+      template_title: opts.templateTitle,
+      user_message: opts.userMessage,
+      revision_prompt: opts.revisionPrompt,
+    },
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: !!data?.ok, error: data?.error, version_id: data?.version_id };
+}
+
+/** Approve the latest draft — locks the document at status 'approved'. */
+export async function approveDraft(documentId: string): Promise<void> {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u?.user?.id;
+  if (!userId) throw new Error("Not signed in.");
+  const { error } = await supabase
+    .from("documents")
+    .update({ status: "approved" })
+    .eq("id", documentId);
+  if (error) throw error;
+  await supabase.from("audit_log").insert({
+    user_id: userId,
+    entity_type: "document",
+    entity_id: documentId,
+    event: "document.draft_approved",
+    payload: {},
+  });
+}
+
+/** Get the latest (most recent) version row for a document. */
+export async function getLatestVersion(documentId: string): Promise<DocumentVersion | null> {
+  const { data, error } = await supabase
+    .from("document_versions")
+    .select("*")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as DocumentVersion | null;
+}
+
+/** True when the document was authored as a draft (no uploaded source file). */
+export function isDraftDocument(doc: Pick<DocumentRow, "source_file_id" | "template_key">): boolean {
+  return !doc.source_file_id && !!doc.template_key;
+}
