@@ -26,7 +26,9 @@ import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
 import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
 import ProjectsPage from "./pages/Projects.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
+import DocumentsPage from "./pages/Documents.tsx";
 import NotFound from "./pages/NotFound.tsx";
+
 
 const queryClient = new QueryClient();
 
