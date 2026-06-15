@@ -258,6 +258,18 @@
   animation: vanta-breath 4.8s ease-in-out infinite;
 }
 
+/* Surface swap: gentle 4px lift + fade. Starts ~40ms after the tab indicator
+   moves so the indicator visually leads the content. Keeps the app from
+   "popping" like a 1998 window. */
+@keyframes vanta-surface-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.motion-surface-in {
+  animation: vanta-surface-in 200ms var(--ease-out) 40ms both;
+  will-change: opacity, transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -268,5 +280,6 @@
   .motion-count-pulse,
   .motion-dismiss-left,
   .motion-confirm,
-  .motion-breath { animation: none; }
+  .motion-breath,
+  .motion-surface-in { animation: none; }
 }

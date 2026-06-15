@@ -267,18 +267,20 @@ function IndexInner() {
           </div>
           <MissingSecretsBanner />
 
-          {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
-          {surface === "inbox" && <InboxSurface />}
-          {surface === "projects" && <ProjectsSurface />}
-          {surface === "briefs" && <BriefsSurface />}
-          {surface === "receipts" && <AuditSurface />}
-          {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
-          {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
-          {surface === "memory" && <MemorySurface />}
-          {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
-          {surface === "actions" && <ActionsSurface />}
-          {surface === "sherlock" && <SherlockSurface />}
-          {surface === "awareness" && <AwarenessSurface />}
+          <div key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+            {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
+            {surface === "inbox" && <InboxSurface />}
+            {surface === "projects" && <ProjectsSurface />}
+            {surface === "briefs" && <BriefsSurface />}
+            {surface === "receipts" && <AuditSurface />}
+            {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
+            {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
+            {surface === "memory" && <MemorySurface />}
+            {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
+            {surface === "actions" && <ActionsSurface />}
+            {surface === "sherlock" && <SherlockSurface />}
+            {surface === "awareness" && <AwarenessSurface />}
+          </div>
         </main>
       </div>
 
