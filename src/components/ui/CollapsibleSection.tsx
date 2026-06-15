@@ -21,6 +21,8 @@ export interface CollapsibleSectionProps {
   onOpenChange?: (open: boolean) => void;
   /** Subtle attention glow (e.g. "Needs you" > 0). One-time, no loop. */
   attention?: boolean;
+  /** Drop the outer card chrome — use when children already render their own cards. */
+  bare?: boolean;
   className?: string;
   children: ReactNode;
 }
@@ -33,6 +35,7 @@ export function CollapsibleSection({
   open: controlled,
   onOpenChange,
   attention,
+  bare,
   className,
   children,
 }: CollapsibleSectionProps) {
@@ -47,7 +50,7 @@ export function CollapsibleSection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-border/60 bg-surface-elevated/60",
+        !bare && "rounded-2xl border border-border/60 bg-surface-elevated/60",
         attention && "ring-1 ring-primary/30 shadow-glow",
         className,
       )}
@@ -56,7 +59,10 @@ export function CollapsibleSection({
         type="button"
         onClick={toggle}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left min-h-[44px]"
+        className={cn(
+          "flex w-full items-center gap-3 text-left min-h-[44px]",
+          bare ? "px-1 py-2" : "px-4 py-3",
+        )}
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -87,7 +93,7 @@ export function CollapsibleSection({
         )}
       >
         <div className="overflow-hidden">
-          <div className="border-t border-border/50 px-4 py-3">{children}</div>
+          <div className={cn(bare ? "pt-2" : "border-t border-border/50 px-4 py-3")}>{children}</div>
         </div>
       </div>
     </section>

@@ -37,6 +37,7 @@ import {
 import { isStaleCommitment } from "@/lib/commitmentLifecycle";
 import { humanizeEvent, sherlockModeLabel, sherlockConfidenceLabel } from "@/lib/plainLabels";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
+import { CollapsibleSection } from "@/components/ui/CollapsibleSection";
 
 
 type Counts = {
@@ -223,7 +224,9 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         <SoftWelcomeChip />
 
         {/* 0. Daily bulletin — "Since you last checked", plain English. */}
-        <DailyBulletinCard onNavigate={onNavigate} />
+        <div className="motion-fade-in">
+          <DailyBulletinCard onNavigate={onNavigate} />
+        </div>
 
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
@@ -241,14 +244,29 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
           <OperationsBriefingPanel onNavigate={onNavigate} />
         </div>
 
-        {/* 4. Aware bubble — environment context. */}
-        <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
+        {/* Where you are — collapsed by default, calm. */}
+        <CollapsibleSection
+          title="Where you are"
+          summary="Location, signal, recent context."
+        >
+          <AwareCockpitCard onOpenAwareness={() => onNavigate("awareness")} />
+        </CollapsibleSection>
 
-        {/* 5. Project rollups */}
-        <ProjectRollupCards />
+        {/* Projects — collapsed; tap to expand rollups. */}
+        <CollapsibleSection
+          title="Projects"
+          summary="Living briefs and recent project activity."
+        >
+          <ProjectRollupCards />
+        </CollapsibleSection>
 
-        {/* 6. Live Capture — receipt roll. Filtered by lifecycle + grouped. */}
-        <div className="grid grid-cols-1 gap-3">
+        {/* Live Capture — collapsed; count shown in header. */}
+        <CollapsibleSection
+          title="Recent captures"
+          count={captures.length}
+          summary={captures.length ? "Notes, files, and messages that just came in." : "Nothing new right now."}
+          attention={captures.length > 0 && counts.recentCaptures > 0}
+        >
           <LiveCaptureCard
             items={captures}
             onOpen={() => onNavigate("inbox" as SurfaceKey)}
@@ -258,22 +276,34 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
             attached={attached}
             onDismiss={(kind, id, payload) => dismiss(kind as any, id, { payload })}
           />
-        </div>
+        </CollapsibleSection>
 
-        {/* 7. Deep-dive tiles. System receipts is owner-only. */}
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
-          <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
-          <FilesTile onOpen={() => onNavigate("memory")} />
-          <SherlockWatchtowerCard items={findings} onOpen={() => onNavigate("sherlock")}
-            onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
-          <MemoryPulseCard onOpen={() => onNavigate("memory")} />
-          {isOwner && (
-            <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("receipts")} />
-          )}
-        </div>
+        {/* Operational tiles — collapsed under one section. */}
+        <CollapsibleSection
+          title="Operational tiles"
+          summary="Approvals, today, files, watchtower, memory pulse, receipts."
+          attention={counts.pendingApprovals > 0 || counts.highRisk > 0 || counts.overdueCommitments > 0}
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <ApprovalsCard items={approvals} highRisk={counts.highRisk} onOpen={() => onNavigate("actions")} />
+            <TodayCard today={today} overdue={overdue} onOpen={() => onNavigate("commitments")} />
+            <FilesTile onOpen={() => onNavigate("memory")} />
+            <SherlockWatchtowerCard items={findings} onOpen={() => onNavigate("sherlock")}
+              onAnalyze={() => openSherlock({ entity_type: "freeform", title: "Cockpit scan", text: "" })} />
+            <MemoryPulseCard onOpen={() => onNavigate("memory")} />
+            {isOwner && (
+              <SystemReceiptsCard items={receipts} onOpen={() => onNavigate("receipts")} />
+            )}
+          </div>
+        </CollapsibleSection>
 
-        <ResearchPanel />
+        {/* Research — collapsed. */}
+        <CollapsibleSection
+          title="Research"
+          summary="Background scans and saved analyses."
+        >
+          <ResearchPanel />
+        </CollapsibleSection>
 
         {/* === Bottom: brief composer + exports (rarely-touched tooling) === */}
         <details className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-sm">
@@ -321,6 +351,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
             </div>
           </div>
         </details>
+
 
         <div className="text-center text-[11px] text-muted-foreground">
           This is the rollup — nothing runs from here. Tap into a card to actually do something.

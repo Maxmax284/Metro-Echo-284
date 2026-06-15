@@ -197,9 +197,17 @@
 .motion-drawer-in {
   animation: drawer-slide-up var(--motion-base) var(--ease-out) both;
 }
+@keyframes vanta-fade-in {
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.motion-fade-in {
+  animation: vanta-fade-in var(--motion-base) var(--ease-out) both;
+}
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
   .radar-fade-in,
-  .motion-drawer-in { animation: none; }
+  .motion-drawer-in,
+  .motion-fade-in { animation: none; }
 }
