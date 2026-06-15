@@ -81,12 +81,15 @@ export const DOCUMENT_DISCLAIMER =
 
 // ---------- Status state machine (mirrors intakeLifecycle.ts style) ----------
 const TRANSITIONS: Record<DocumentStatus, ReadonlyArray<DocumentStatus>> = {
-  uploaded:   ["extracting", "extracted", "failed"],
+  uploaded:   ["extracting", "extracted", "drafting", "failed"],
   extracting: ["extracted", "failed"],
   extracted:  ["reviewing", "failed"],
   reviewing:  ["reviewed", "failed"],
   reviewed:   ["reviewing"], // re-review allowed
-  failed:     ["extracting", "reviewing"],
+  drafting:   ["drafted", "failed"],
+  drafted:    ["drafting", "approved", "failed"], // can revise (back to drafting) or approve
+  approved:   ["drafting"], // revising a locked draft starts a new drafting pass
+  failed:     ["extracting", "reviewing", "drafting"],
 };
 export function canTransition(from: DocumentStatus, to: DocumentStatus): boolean {
   if (from === to) return true;
