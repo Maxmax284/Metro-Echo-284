@@ -201,6 +201,9 @@ export function statusLabel(s: DocumentStatus): string {
     case "extracted":  return "Ready to review";
     case "reviewing":  return "Reviewing…";
     case "reviewed":   return "Review ready";
+    case "drafting":   return "Drafting…";
+    case "drafted":    return "Draft ready";
+    case "approved":   return "Approved";
     case "failed":     return "Needs attention";
   }
 }
