@@ -19,7 +19,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban } from "lucide-react";
+import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban, FileText } from "lucide-react";
 import { ModeBadge } from "@/components/shell/ModeBadge";
 import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -191,6 +191,17 @@ function IndexInner() {
             >
               <FolderKanban className="h-3.5 w-3.5" />
             </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Documents"
+              title="Documents — drafts & reviews"
+            >
+              <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
+            </Button>
+
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
@@ -215,12 +226,20 @@ function IndexInner() {
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">your channels</span>
                   </a>
                   <a
+                    href="/documents"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Documents</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drafts &amp; reviews</span>
+                  </a>
+                  <a
                     href="/settings/workspaces"
                     className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
                   >
                     <span className="font-medium">Workspaces</span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">members &amp; roles</span>
                   </a>
+
                   <TelegramLinkCard />
                   <Separator />
                   <VoiceCaptureCard />
