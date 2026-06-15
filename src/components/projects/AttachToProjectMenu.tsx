@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
-import { FolderPlus, Loader2, Plus, Search } from "lucide-react";
+import { Check, FolderPlus, Loader2, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -43,6 +43,12 @@ export function AttachToProjectMenu({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [justAttached, setJustAttached] = useState(false);
+
+  const flashAttached = () => {
+    setJustAttached(true);
+    setTimeout(() => setJustAttached(false), 1600);
+  };
 
   useEffect(() => {
     if (!open || !user) return;
@@ -70,6 +76,7 @@ export function AttachToProjectMenu({
         items: [{ type: itemType, id: itemId }],
       });
       toast.success(`Attached to “${p.title}”`);
+      flashAttached();
       onAttached?.(p);
       setOpen(false);
     } catch (err) {
@@ -95,6 +102,7 @@ export function AttachToProjectMenu({
         items: [{ type: itemType, id: itemId }],
       });
       toast.success(`Created “${p.title}” and attached`);
+      flashAttached();
       onAttached?.(p);
       setOpen(false);
       setNewTitle("");
@@ -117,11 +125,19 @@ export function AttachToProjectMenu({
           <Button
             variant="ghost"
             size="icon"
-            className={cn("h-7 w-7 text-muted-foreground hover:text-foreground", className)}
+            className={cn(
+              "h-7 w-7 text-muted-foreground hover:text-foreground",
+              justAttached && "text-primary",
+              className,
+            )}
             title="Attach to project"
             aria-label="Attach to project"
           >
-            <FolderPlus className="h-4 w-4" />
+            {justAttached ? (
+              <Check key="ok" className="h-4 w-4 motion-confirm" />
+            ) : (
+              <FolderPlus className="h-4 w-4" />
+            )}
           </Button>
         ) : (
           <Button
@@ -129,10 +145,19 @@ export function AttachToProjectMenu({
             size="sm"
             className={cn(
               "h-7 shrink-0 snap-start whitespace-nowrap gap-1 px-2 text-[11px] text-muted-foreground hover:text-foreground",
+              justAttached && "text-primary",
               className
             )}
           >
-            <FolderPlus className="h-3.5 w-3.5" /> Attach
+            {justAttached ? (
+              <>
+                <Check key="ok" className="h-3.5 w-3.5 motion-confirm" /> Attached
+              </>
+            ) : (
+              <>
+                <FolderPlus className="h-3.5 w-3.5" /> Attach
+              </>
+            )}
           </Button>
         )}
       </PopoverTrigger>

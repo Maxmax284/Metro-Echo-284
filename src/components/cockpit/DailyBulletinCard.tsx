@@ -513,7 +513,7 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Compass className="h-3 w-3" /> Daily bulletin
-          <span className="normal-case tracking-normal text-muted-foreground/80">
+          <span className="normal-case tracking-normal text-muted-foreground/80 motion-breath">
             · {humanLastSeen(lastSeenIso)}
           </span>
         </div>

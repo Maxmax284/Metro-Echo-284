@@ -228,6 +228,36 @@
   animation: vanta-count-pulse 520ms var(--ease-out) 1;
 }
 
+/* Dismiss = slide left + fade out (180ms). Apply just before unmount. */
+@keyframes vanta-dismiss-left {
+  from { transform: translate3d(0, 0, 0); opacity: 1; max-height: 200px; }
+  to   { transform: translate3d(-12%, 0, 0); opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; }
+}
+.motion-dismiss-left {
+  animation: vanta-dismiss-left 180ms var(--ease-out) both;
+  overflow: hidden;
+}
+
+/* Confirmation scale-in (160ms) — attach success, checkmark swap, etc. */
+@keyframes vanta-confirm {
+  from { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.motion-confirm {
+  animation: vanta-confirm 220ms var(--ease-out) both;
+}
+
+/* Slow opacity "breath" — almost invisible, used on live timestamps so
+   you sense the system is awake without anything moving loudly. */
+@keyframes vanta-breath {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+.motion-breath {
+  animation: vanta-breath 4.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -235,5 +265,8 @@
   .motion-drawer-in,
   .motion-fade-in,
   .motion-stagger > *,
-  .motion-count-pulse { animation: none; }
+  .motion-count-pulse,
+  .motion-dismiss-left,
+  .motion-confirm,
+  .motion-breath { animation: none; }
 }
