@@ -51,10 +51,17 @@ export function ProjectDocumentsSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Documents</h2>
+          <Badge
+            variant="outline"
+            className="h-5 border-amber-500/50 bg-amber-500/10 px-1.5 text-[9.5px] uppercase tracking-wide text-amber-700"
+          >
+            Beta
+          </Badge>
           {docs.length > 0 && (
             <span className="text-[10.5px] text-muted-foreground/70">{docs.length} attached</span>
           )}
         </div>
+
         <Button
           size="sm"
           variant="outline"
