@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
@@ -46,8 +46,26 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, setSurface] = useState<SurfaceKey>("command");
+  const [surface, _setSurface] = useState<SurfaceKey>("command");
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
+
+  // Per-surface scroll memory. We capture the active surface's scroll position
+  // right before switching, then restore the incoming surface's position on
+  // mount. Surfaces all use a `.overflow-y-auto` scroller, so we grab the
+  // first one inside the wrapper.
+  const surfaceWrapperRef = useRef<HTMLDivElement | null>(null);
+  const scrollMemory = useRef<Record<string, number>>({});
+  const setSurface = (next: SurfaceKey) => {
+    const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
+    if (el) scrollMemory.current[surface] = el.scrollTop;
+    _setSurface(next);
+  };
+  useLayoutEffect(() => {
+    const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
+    if (!el) return;
+    el.scrollTop = scrollMemory.current[surface] ?? 0;
+  }, [surface]);
+
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
   const { setContext } = useCurrentContext();
@@ -267,7 +285,7 @@ function IndexInner() {
           </div>
           <MissingSecretsBanner />
 
-          <div key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+          <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
