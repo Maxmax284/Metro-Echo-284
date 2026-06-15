@@ -619,11 +619,19 @@ function DraftBody({
               : <Send className="h-3.5 w-3.5" />}
             Client-ready
           </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExport("signature")} disabled={!!busy}>
+            {busy === "export-signature"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <FileSignature className="h-3.5 w-3.5" />}
+            Signature packet
+          </Button>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          Client copy strips internal IDs and includes the trust note.
+          Signature packet adds a "DRAFT — NOT FOR EXECUTION" watermark and a signature page for each named party. Nothing is sent for you.
         </p>
       </Section>
+
 
       <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
         {DOCUMENT_DISCLAIMER}
