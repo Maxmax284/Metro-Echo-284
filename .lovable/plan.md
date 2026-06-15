@@ -1,4 +1,4 @@
-# Documents — Phases 1–2 shipped; Phase 3 scaffolded; Phase 4 (packets) partial
+# Documents — Phases 1–4 shipped; Phase 3 scaffolded
 
 Internal: **Business Documents + Contract Intelligence**. User-facing: **Documents**.
 
