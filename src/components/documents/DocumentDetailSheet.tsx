@@ -536,7 +536,7 @@ interface DraftBodyProps {
   setRevisionText: (s: string) => void;
   busy: null | string;
   onRevise: () => void;
-  onExport: (audience: DocumentExportAudience) => void;
+  onExport: (audience: DraftExportAudience) => void;
   onAsk: (kind: "tighten" | "soften" | "boardroom") => void;
 }
 
