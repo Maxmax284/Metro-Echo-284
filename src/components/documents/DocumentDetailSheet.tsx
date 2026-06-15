@@ -557,13 +557,15 @@ interface DraftBodyProps {
   busy: null | string;
   onRevise: () => void;
   onExport: (audience: DraftExportAudience) => void;
+  onExportDocx: (audience: DraftExportAudience) => void;
   onAsk: (kind: "tighten" | "soften" | "boardroom") => void;
 }
 
 function DraftBody({
   doc, version, revisionText, setRevisionText,
-  busy, onRevise, onExport, onAsk,
+  busy, onRevise, onExport, onExportDocx, onAsk,
 }: DraftBodyProps) {
+
   const body = version?.body_text ?? "";
   const isLocked = doc.status === "approved";
 
