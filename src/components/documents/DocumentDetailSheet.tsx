@@ -31,6 +31,8 @@ import {
 import {
   finalizeDraftExport, saveDraftExportDraft, type DraftExportAudience,
 } from "@/lib/documentDraftExport";
+import { exportDraftDocx } from "@/lib/documentDocxExport";
+
 
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
@@ -52,8 +54,9 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<
     null | "extract" | "review" | "draft" | "revise" | "approve"
-    | "export-operator" | "export-client" | "export-signature"
+    | "export-operator" | "export-client" | "export-signature" | "export-docx"
   >(null);
+
 
   const [revisionText, setRevisionText] = useState("");
   const { openWithPrefill } = useCompanion();
@@ -169,6 +172,21 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       setBusy(null);
     }
   }
+
+  async function handleExportDocx(audience: DraftExportAudience) {
+    if (!documentId) return;
+    setBusy("export-docx");
+    try {
+      await exportDraftDocx({ document_id: documentId, audience });
+      toast.success("Word doc exported.");
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "DOCX export failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
 
 
   async function handleRevise() {
@@ -316,8 +334,10 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                 busy={busy}
                 onRevise={handleRevise}
                 onExport={handleExport}
+                onExportDocx={handleExportDocx}
                 onAsk={handleAskDraft}
               />
+
             ) : review ? (
               <div className="space-y-6">
                 <Section icon={<FileSearch className="h-4 w-4" />} title="Summary">
@@ -537,13 +557,15 @@ interface DraftBodyProps {
   busy: null | string;
   onRevise: () => void;
   onExport: (audience: DraftExportAudience) => void;
+  onExportDocx: (audience: DraftExportAudience) => void;
   onAsk: (kind: "tighten" | "soften" | "boardroom") => void;
 }
 
 function DraftBody({
   doc, version, revisionText, setRevisionText,
-  busy, onRevise, onExport, onAsk,
+  busy, onRevise, onExport, onExportDocx, onAsk,
 }: DraftBodyProps) {
+
   const body = version?.body_text ?? "";
   const isLocked = doc.status === "approved";
 
@@ -627,10 +649,30 @@ function DraftBody({
             Signature packet
           </Button>
         </div>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExportDocx("operator")} disabled={!!busy}>
+            {busy === "export-docx"
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <FileText className="h-3.5 w-3.5" />}
+            Word (.docx)
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExportDocx("client")} disabled={!!busy}>
+            <FileText className="h-3.5 w-3.5" />
+            Word — client
+          </Button>
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
+            onClick={() => onExportDocx("signature")} disabled={!!busy}>
+            <FileSignature className="h-3.5 w-3.5" />
+            Word — signature
+          </Button>
+        </div>
         <p className="text-[11px] text-muted-foreground">
-          Signature packet adds a "DRAFT — NOT FOR EXECUTION" watermark and a signature page for each named party. Nothing is sent for you.
+          PDF for sharing as-is. Word (.docx) for handing to a lawyer or making further edits. Signature packet adds the "DRAFT — NOT FOR EXECUTION" watermark and a signature page for each named party. Nothing is sent for you.
         </p>
       </Section>
+
 
 
       <p className="rounded-md border border-border/60 bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">

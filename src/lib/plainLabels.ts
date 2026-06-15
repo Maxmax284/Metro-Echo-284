@@ -105,6 +105,8 @@ export function humanizeEvent(event: string): string {
     "document.draft_revised": "Draft updated",
     "document.draft_failed": "Draft didn't finish",
     "document.draft_approved": "Draft approved",
+    "document.exported_docx": "Document exported as Word",
+
   };
   if (exact[event]) return exact[event];
   const [domain, verb] = event.split(".");

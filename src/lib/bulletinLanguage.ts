@@ -117,6 +117,9 @@ export function formatAuditEvent(
     return { ...base, bucket: "captures", text: `A document draft was updated.` };
   if (e === "document.draft_approved")
     return { ...base, bucket: "done", text: `A document draft was approved.` };
+  if (e === "document.exported_docx")
+    return { ...base, bucket: "done", text: `A document was exported as a Word file.` };
+
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")
