@@ -90,32 +90,33 @@ None of these expand the surface area. All four reuse `vanta-converse` +
 
 ---
 
-## Phase 4 — Premium Packets (IN PROGRESS)
+## Phase 4 — Premium Packets (SHIPPED)
 
-Shipped in this pass:
-- `BriefPdfDocument` now reads optional `grounding.watermark` (string) and
-  `grounding.signatures` ([{name, role}]) from any Brief. When present:
-  - Watermark renders diagonally and faintly on every page (cover, body,
-    signature, footnotes). Color matches the audience accent.
-  - A dedicated **Signature page** is appended with one signature/date row
-    per named party, plus a print-name line. Uses the same footer/header
-    chrome as the rest of the packet.
-- `documentDraftExport.ts` adds a third audience: `signature`. It pulls
-  signatories from `draft_inputs` (party_a, party_b, client_name,
-  contractor_name, sender_name, recipient_name, company_name, counterparty,
-  signer_a, signer_b) and stamps the watermark `DRAFT — NOT FOR EXECUTION`.
-- `DocumentDetailSheet` exposes a third **Signature packet** button on
-  drafted documents. Plan → Approve → Execute preserved: nothing executes
-  until the operator taps. Export still flows through the existing
-  `brief_exports` pipeline and emits `document.export_drafted` +
-  `document.exported` audit events.
+- `BriefPdfDocument` reads optional `grounding.watermark` and
+  `grounding.signatures` ([{name, role}]) from any Brief. When present,
+  the watermark renders diagonally on every page and a dedicated
+  **Signature page** is appended with signature/date/print-name rows.
+- `documentDraftExport.ts` adds a third audience: `signature`. Signatories
+  are pulled from `draft_inputs` (party_a, party_b, client_name,
+  contractor_name, sender_name, recipient_name, company_name,
+  counterparty, signer_a, signer_b) and the export is stamped
+  `DRAFT — NOT FOR EXECUTION`.
+- `documentDocxExport.ts` (new) renders the same draft as a `.docx`
+  client-side using `docx` + `file-saver`. Three buttons in the Export
+  draft section: Word (operator), Word — client, Word — signature.
+  Signature variant adds a "DRAFT — NOT FOR EXECUTION" header and a
+  Signatures page per named party. Emits `document.exported_docx` to the
+  audit log; plain-English label + bulletin string added.
+- `DocumentDetailSheet` exposes Signature packet (PDF) + three .docx
+  buttons on drafted documents. Plan → Approve → Execute preserved:
+  nothing executes until the operator taps.
 
-Still to do (held back from this pass — needs explicit operator request):
-- DOCX output via a new `documents-docx` edge function (server-side
-  rendering; biggest unknown is font availability inside Deno).
+Still optional (not in Phase 4 scope, hold until asked):
+- Server-side DOCX render (only matters if operators want exports
+  triggered from the brief pipeline without opening the sheet).
 - Per-template source appendices when reviews are attached to drafts.
-- Per-project signature defaults (saved sigs / titles) — currently each
-  party is pulled fresh from the draft inputs.
+- Per-project signature defaults (saved sigs / titles).
+
 
 
 ---
