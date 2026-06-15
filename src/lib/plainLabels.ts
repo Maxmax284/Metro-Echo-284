@@ -150,18 +150,18 @@ export function humanizeEvent(event: string): string {
     "document.exported_docx": "Document exported as Word",
 
   };
-  if (exact[event]) return exact[event];
+  if (exact[event]) return scrubBannedTokens(exact[event]);
   const [domain, verb] = event.split(".");
   const domainLabel = kindLabel(domain);
-  if (!verb) return domainLabel;
+  if (!verb) return scrubBannedTokens(domainLabel);
   const verbMap: Record<string, string> = {
     created: "created", updated: "updated", deleted: "removed",
     executed: "ran", approved: "approved", rejected: "rejected",
     completed: "completed", snoozed: "snoozed", failed: "failed",
-    routed: "routed", linked: "connected", generated: "generated",
-    exported: "exported", viewed: "read",
+    routed: "organized", linked: "connected", generated: "generated",
+    exported: "exported", viewed: "opened",
   };
-  return `${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`;
+  return scrubBannedTokens(`${domainLabel} ${verbMap[verb] ?? verb.replace(/_/g, " ")}`);
 }
 
 /** Plain-English label for a Sherlock finding mode (e.g. "suggest:message"). */
