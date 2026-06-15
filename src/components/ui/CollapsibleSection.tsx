@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +47,20 @@ export function CollapsibleSection({
     onOpenChange?.(next);
   };
 
+  // One-time pulse on the count chip when the number ticks up.
+  const prevCount = useRef<number | null>(typeof count === "number" ? count : null);
+  const [pulse, setPulse] = useState(false);
+  useEffect(() => {
+    if (typeof count !== "number") return;
+    if (prevCount.current !== null && count > prevCount.current) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 600);
+      prevCount.current = count;
+      return () => clearTimeout(t);
+    }
+    prevCount.current = count;
+  }, [count]);
+
   return (
     <section
       className={cn(
@@ -68,7 +82,12 @@ export function CollapsibleSection({
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium">{title}</span>
             {typeof count === "number" && count > 0 && (
-              <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <span
+                className={cn(
+                  "rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground",
+                  pulse && "motion-count-pulse bg-primary/15 text-primary",
+                )}
+              >
                 {count}
               </span>
             )}
