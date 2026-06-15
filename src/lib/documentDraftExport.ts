@@ -11,7 +11,28 @@ import {
   type DocumentRow,
 } from "@/lib/documents";
 
-export type DraftExportAudience = "operator" | "client";
+export type DraftExportAudience = "operator" | "client" | "signature";
+
+const SIGNATORY_KEYS = [
+  "party_a", "party_b", "client_name", "contractor_name",
+  "sender_name", "recipient_name", "company_name", "counterparty",
+  "signer_a", "signer_b",
+];
+
+function extractSignatories(inputs: Record<string, string> | null | undefined) {
+  if (!inputs) return [];
+  const out: Array<{ name: string; role?: string }> = [];
+  const seen = new Set<string>();
+  for (const k of SIGNATORY_KEYS) {
+    const v = inputs[k];
+    if (typeof v === "string" && v.trim() && !seen.has(v.trim().toLowerCase())) {
+      seen.add(v.trim().toLowerCase());
+      out.push({ name: v.trim(), role: k.replace(/_/g, " ") });
+    }
+  }
+  return out;
+}
+
 
 function sectionsFromMarkdown(body: string): BriefSection[] {
   const lines = body.split(/\r?\n/);
