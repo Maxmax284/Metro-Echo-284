@@ -29,8 +29,9 @@ import {
   type DocumentExportAudience,
 } from "@/lib/documentExport";
 import {
-  finalizeDraftExport, saveDraftExportDraft,
+  finalizeDraftExport, saveDraftExportDraft, type DraftExportAudience,
 } from "@/lib/documentDraftExport";
+
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useCompanion } from "@/components/companion/CompanionContext";
