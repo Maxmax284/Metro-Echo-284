@@ -31,6 +31,8 @@ import {
 import {
   finalizeDraftExport, saveDraftExportDraft, type DraftExportAudience,
 } from "@/lib/documentDraftExport";
+import { exportDraftDocx } from "@/lib/documentDocxExport";
+
 
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
