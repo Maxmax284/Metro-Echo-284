@@ -173,6 +173,21 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     }
   }
 
+  async function handleExportDocx(audience: DraftExportAudience) {
+    if (!documentId) return;
+    setBusy("export-docx");
+    try {
+      await exportDraftDocx({ document_id: documentId, audience });
+      toast.success("Word doc exported.");
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "DOCX export failed. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
 
   async function handleRevise() {
     if (!documentId || !doc) return;
