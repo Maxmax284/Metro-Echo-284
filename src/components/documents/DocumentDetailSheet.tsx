@@ -128,11 +128,14 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     if (!documentId) return;
     setBusy(audience === "client" ? "export-client" : "export-operator");
     try {
-      const { row, brief, doc: docRow } = await saveDocumentExportDraft({
+      // Drafts and reviews use different brief builders.
+      const builder = isDraft ? saveDraftExportDraft : saveDocumentExportDraft;
+      const finalizer = isDraft ? finalizeDraftExport : finalizeDocumentExport;
+      const { row, brief, doc: docRow } = await builder({
         document_id: documentId, audience,
       });
       const pdfBlob = await pdf(<BriefPdfDocument brief={brief} />).toBlob();
-      await finalizeDocumentExport({
+      await finalizer({
         row, pdfBlob, document_id: docRow.id, audience,
       });
       const url = URL.createObjectURL(pdfBlob);
@@ -150,6 +153,67 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     } finally {
       setBusy(null);
     }
+  }
+
+  async function handleRevise() {
+    if (!documentId || !doc) return;
+    const prompt = revisionText.trim();
+    if (!prompt) {
+      toast.error("Describe the change you want.");
+      return;
+    }
+    const template = getTemplate(doc.template_key);
+    setBusy("revise");
+    try {
+      const r = await runDraft({
+        documentId,
+        templateTitle: template?.promptTitle ?? doc.title,
+        userMessage: template
+          ? template.buildUserMessage(doc.draft_inputs ?? {}, (doc.tone as any) ?? "warm")
+          : `Document: ${doc.title}`,
+        revisionPrompt: prompt,
+      });
+      if (!r.ok) {
+        toast.error(
+          r.error === "rate_limited" ? "Over rate limit. Try again in a minute."
+          : r.error === "credits_exhausted" ? "Out of drafting credits."
+          : "Revision failed. Try again.",
+        );
+      } else {
+        toast.success("Draft updated.");
+        setRevisionText("");
+      }
+      await refresh();
+      onChanged?.();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleApproveDraft() {
+    if (!documentId) return;
+    setBusy("approve");
+    try {
+      await approveDraft(documentId);
+      toast.success("Draft approved.");
+      await refresh();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Couldn't approve.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function handleAskDraft(kind: "tighten" | "soften" | "boardroom") {
+    if (!doc) return;
+    const map: Record<typeof kind, string> = {
+      tighten: `Rewrite the draft of "${doc.title}" to be 30% shorter without losing any obligations. Suggest the changes — don't apply them.`,
+      soften:  `Suggest a warmer, more human revision of "${doc.title}" while keeping every commitment the same.`,
+      boardroom: `Suggest a more boardroom-formal revision of "${doc.title}". Keep the structure; tighten the language.`,
+    };
+    openWithPrefill(map[kind]);
+    onOpenChange(false);
   }
 
   function handleAsk(kind: "explain-risk" | "before-signing" | "money") {
