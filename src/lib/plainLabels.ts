@@ -101,6 +101,10 @@ export function humanizeEvent(event: string): string {
     "document.risk_flagged": "Contract risk flagged",
     "document.exported": "Document review exported",
     "document.export_drafted": "Document review packet drafted",
+    "document.draft_created": "Draft document ready",
+    "document.draft_revised": "Draft updated",
+    "document.draft_failed": "Draft didn't finish",
+    "document.draft_approved": "Draft approved",
   };
   if (exact[event]) return exact[event];
   const [domain, verb] = event.split(".");
