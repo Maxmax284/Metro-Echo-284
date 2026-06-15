@@ -285,7 +285,7 @@ function IndexInner() {
           </div>
           <MissingSecretsBanner />
 
-          <div key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+          <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
