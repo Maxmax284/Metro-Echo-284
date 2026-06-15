@@ -1,4 +1,4 @@
-# Documents — Phase 2 (Drafting) shipped; Phase 3 (Conversational) scaffolded
+# Documents — Phases 1–2 shipped; Phase 3 scaffolded; Phase 4 (packets) partial
 
 Internal: **Business Documents + Contract Intelligence**. User-facing: **Documents**.
 
