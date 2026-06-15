@@ -64,8 +64,27 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     },
     footerLeft: { fontSize: 8, color: c.muted, flexShrink: 1, paddingRight: 12 },
     footerRight: { fontSize: 8, color: c.muted },
+    watermark: {
+      position: "absolute", top: 280, left: 0, right: 0,
+      textAlign: "center", fontSize: 80, fontFamily: "Helvetica-Bold",
+      color: c.accent, opacity: 0.08, letterSpacing: 6,
+      transform: "rotate(-28deg)",
+    },
+    sigBlock: {
+      marginTop: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.rule,
+    },
+    sigRow: {
+      flexDirection: "row", justifyContent: "space-between",
+      marginTop: 32, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: c.ink,
+    },
+    sigLabel: { fontSize: 9, color: c.muted, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 },
+    sigName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: c.ink, marginTop: 10 },
+    sigRole: { fontSize: 9, color: c.muted, marginTop: 2 },
   });
 }
+
+export type PdfSignature = { name: string; role?: string | null };
+
 
 /** Strip raw `{kind}:{id-hex}` receipt strings from claim text — used for
  * external (client) audiences where internal IDs must not leak. */
