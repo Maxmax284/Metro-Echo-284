@@ -206,7 +206,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
-      <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6">
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-3 md:px-6 motion-stagger">
         {/* Header — answers "where am I and what is this?" */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -224,25 +224,29 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         <SoftWelcomeChip />
 
         {/* 0. Daily bulletin — "Since you last checked", plain English. */}
-        <div className="motion-fade-in">
-          <DailyBulletinCard onNavigate={onNavigate} />
-        </div>
+        <DailyBulletinCard onNavigate={onNavigate} />
 
 
         {/* 1. Productivity Pulse — the quick-health read, top of page. */}
         <ProductivityPulseCard />
 
-        {/* Pinned: Today + Live Briefing stay visible while you scroll, always interactive. */}
-        <div
-          className="pointer-events-auto sticky top-0 z-40 -mx-3 max-h-[70vh] space-y-3 overflow-y-auto overscroll-contain border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:-mx-6 md:px-6"
-          onPointerDownCapture={(e) => e.stopPropagation()}
+        {/* Today — collapsed by default; tap to open. */}
+        <CollapsibleSection
+          title="Today · Needs you"
+          summary="What needs you, what changed, what's next."
+          attention={counts.pendingApprovals > 0 || counts.overdueCommitments > 0}
         >
-          {/* Today — what needs you, what changed, what's next. */}
           <DailyChecklistCard onNavigate={onNavigate} />
+        </CollapsibleSection>
 
-          {/* Live Briefing — plain-English situation report, visible and interactive. */}
+        {/* Live Briefing — collapsed by default. */}
+        <CollapsibleSection
+          title="Live briefing"
+          summary="Plain-English situation report. Tap to open."
+        >
           <OperationsBriefingPanel onNavigate={onNavigate} />
-        </div>
+        </CollapsibleSection>
+
 
         {/* Where you are — collapsed by default, calm. */}
         <CollapsibleSection
