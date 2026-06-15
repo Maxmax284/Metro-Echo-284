@@ -232,6 +232,16 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
     structured?.ref_index ?? {};
   const blocks = structured?.blocks ?? {};
 
+  const watermark: string | null =
+    typeof (grounding as any)?.watermark === "string" && (grounding as any).watermark.trim()
+      ? String((grounding as any).watermark).trim().toUpperCase()
+      : null;
+  const signatures: PdfSignature[] = Array.isArray((grounding as any)?.signatures)
+    ? ((grounding as any).signatures as any[])
+        .map((s) => (typeof s === "string" ? { name: s } : { name: String(s?.name ?? "").trim(), role: s?.role ?? null }))
+        .filter((s) => s.name.length > 0)
+    : [];
+
   const renderCitations = (cites: string[] | undefined) => {
     if (!cites?.length) return null;
     return (
@@ -240,6 +250,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
       </Text>
     );
   };
+
 
   const renderFootnotesAppendix = () => {
     if (!template.layout.footnotesAppendix || footnotes.ordered.length === 0) return null;
