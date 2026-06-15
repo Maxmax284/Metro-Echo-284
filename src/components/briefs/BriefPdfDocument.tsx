@@ -64,8 +64,27 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     },
     footerLeft: { fontSize: 8, color: c.muted, flexShrink: 1, paddingRight: 12 },
     footerRight: { fontSize: 8, color: c.muted },
+    watermark: {
+      position: "absolute", top: 280, left: 0, right: 0,
+      textAlign: "center", fontSize: 80, fontFamily: "Helvetica-Bold",
+      color: c.accent, opacity: 0.08, letterSpacing: 6,
+      transform: "rotate(-28deg)",
+    },
+    sigBlock: {
+      marginTop: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.rule,
+    },
+    sigRow: {
+      flexDirection: "row", justifyContent: "space-between",
+      marginTop: 32, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: c.ink,
+    },
+    sigLabel: { fontSize: 9, color: c.muted, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 },
+    sigName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: c.ink, marginTop: 10 },
+    sigRole: { fontSize: 9, color: c.muted, marginTop: 2 },
   });
 }
+
+export type PdfSignature = { name: string; role?: string | null };
+
 
 /** Strip raw `{kind}:{id-hex}` receipt strings from claim text — used for
  * external (client) audiences where internal IDs must not leak. */
@@ -213,6 +232,16 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
     structured?.ref_index ?? {};
   const blocks = structured?.blocks ?? {};
 
+  const watermark: string | null =
+    typeof (grounding as any)?.watermark === "string" && (grounding as any).watermark.trim()
+      ? String((grounding as any).watermark).trim().toUpperCase()
+      : null;
+  const signatures: PdfSignature[] = Array.isArray((grounding as any)?.signatures)
+    ? ((grounding as any).signatures as any[])
+        .map((s) => (typeof s === "string" ? { name: s } : { name: String(s?.name ?? "").trim(), role: s?.role ?? null }))
+        .filter((s) => s.name.length > 0)
+    : [];
+
   const renderCitations = (cites: string[] | undefined) => {
     if (!cites?.length) return null;
     return (
@@ -221,6 +250,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
       </Text>
     );
   };
+
 
   const renderFootnotesAppendix = () => {
     if (!template.layout.footnotesAppendix || footnotes.ordered.length === 0) return null;
@@ -348,10 +378,42 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
 
   const footerLabel = template.layout.footerNote ?? `Vanta · ${brief.title}`;
 
+  const renderSignaturePage = () => {
+    if (signatures.length === 0) return null;
+    return (
+      <Page size="LETTER" style={styles.page}>
+        {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
+        <Text style={styles.appendixTitle}>Signature page</Text>
+        <Text style={styles.appendixIntro}>
+          By signing below each party acknowledges the terms of "{brief.title}".
+          {watermark ? ` This copy is marked ${watermark} and is not for execution.` : ""}
+        </Text>
+        <View style={styles.sigBlock}>
+          {signatures.map((s, i) => (
+            <View key={i} wrap={false} style={{ marginBottom: 24 }}>
+              <Text style={styles.sigName}>{s.name}</Text>
+              {s.role ? <Text style={styles.sigRole}>{s.role}</Text> : null}
+              <View style={styles.sigRow}>
+                <Text style={{ fontSize: 9, color: template.pdf.muted }}>Signature</Text>
+                <Text style={{ fontSize: 9, color: template.pdf.muted }}>Date</Text>
+              </View>
+              <Text style={styles.sigLabel}>Print name</Text>
+            </View>
+          ))}
+        </View>
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerLeft}>{footerLabel}</Text>
+          <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
+        </View>
+      </Page>
+    );
+  };
+
   return (
     <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
       {template.layout.coverPage && (
         <Page size="LETTER" style={styles.page}>
+          {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
           <View style={{ marginTop: 120 }}>
             <Text style={styles.audienceChip}>{template.label} · {template.tagline}</Text>
             <Text style={styles.kicker}>
@@ -380,6 +442,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
       )}
 
       <Page size="LETTER" style={styles.page}>
+        {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
         {!template.layout.coverPage && (
           <View style={{ marginBottom: 10 }}>
             <Text style={styles.audienceChip}>{template.label}</Text>
@@ -406,8 +469,9 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         </View>
       </Page>
 
-
+      {renderSignaturePage()}
       {renderFootnotesAppendix()}
     </Document>
   );
 }
+

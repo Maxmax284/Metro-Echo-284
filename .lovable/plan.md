@@ -1,4 +1,4 @@
-# Documents — Phase 2 (Drafting) shipped; Phase 3 (Conversational) scaffolded
+# Documents — Phases 1–2 shipped; Phase 3 scaffolded; Phase 4 (packets) partial
 
 Internal: **Business Documents + Contract Intelligence**. User-facing: **Documents**.
 
@@ -90,10 +90,33 @@ None of these expand the surface area. All four reuse `vanta-converse` +
 
 ---
 
-## Phase 4 — Premium Packets (NOT STARTED)
-DOCX output, cover pages, watermarks, signature pages, source appendices.
-Will likely require a new edge function `documents-docx` and small extensions
-to `BriefPdfDocument` for cover + signature blocks. No schema change expected.
+## Phase 4 — Premium Packets (IN PROGRESS)
+
+Shipped in this pass:
+- `BriefPdfDocument` now reads optional `grounding.watermark` (string) and
+  `grounding.signatures` ([{name, role}]) from any Brief. When present:
+  - Watermark renders diagonally and faintly on every page (cover, body,
+    signature, footnotes). Color matches the audience accent.
+  - A dedicated **Signature page** is appended with one signature/date row
+    per named party, plus a print-name line. Uses the same footer/header
+    chrome as the rest of the packet.
+- `documentDraftExport.ts` adds a third audience: `signature`. It pulls
+  signatories from `draft_inputs` (party_a, party_b, client_name,
+  contractor_name, sender_name, recipient_name, company_name, counterparty,
+  signer_a, signer_b) and stamps the watermark `DRAFT — NOT FOR EXECUTION`.
+- `DocumentDetailSheet` exposes a third **Signature packet** button on
+  drafted documents. Plan → Approve → Execute preserved: nothing executes
+  until the operator taps. Export still flows through the existing
+  `brief_exports` pipeline and emits `document.export_drafted` +
+  `document.exported` audit events.
+
+Still to do (held back from this pass — needs explicit operator request):
+- DOCX output via a new `documents-docx` edge function (server-side
+  rendering; biggest unknown is font availability inside Deno).
+- Per-template source appendices when reviews are attached to drafts.
+- Per-project signature defaults (saved sigs / titles) — currently each
+  party is pulled fresh from the draft inputs.
+
 
 ---
 

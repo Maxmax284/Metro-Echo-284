@@ -11,7 +11,28 @@ import {
   type DocumentRow,
 } from "@/lib/documents";
 
-export type DraftExportAudience = "operator" | "client";
+export type DraftExportAudience = "operator" | "client" | "signature";
+
+const SIGNATORY_KEYS = [
+  "party_a", "party_b", "client_name", "contractor_name",
+  "sender_name", "recipient_name", "company_name", "counterparty",
+  "signer_a", "signer_b",
+];
+
+function extractSignatories(inputs: Record<string, string> | null | undefined) {
+  if (!inputs) return [];
+  const out: Array<{ name: string; role?: string }> = [];
+  const seen = new Set<string>();
+  for (const k of SIGNATORY_KEYS) {
+    const v = inputs[k];
+    if (typeof v === "string" && v.trim() && !seen.has(v.trim().toLowerCase())) {
+      seen.add(v.trim().toLowerCase());
+      out.push({ name: v.trim(), role: k.replace(/_/g, " ") });
+    }
+  }
+  return out;
+}
+
 
 function sectionsFromMarkdown(body: string): BriefSection[] {
   const lines = body.split(/\r?\n/);
@@ -65,9 +86,18 @@ export function buildDraftBrief(args: {
     body: DOCUMENT_DISCLAIMER,
   });
 
-  const subtitle = audience === "client"
+  const isSignature = audience === "signature";
+  const isClientFacing = audience === "client" || isSignature;
+
+  const subtitle = isSignature
+    ? `Signature packet · ${kindLabel(doc.kind)}`
+    : audience === "client"
     ? `Client-ready draft · ${kindLabel(doc.kind)}`
     : `Operator working draft · ${kindLabel(doc.kind)}`;
+
+  const signatures = isSignature
+    ? extractSignatories((doc.draft_inputs as Record<string, string> | null) ?? null)
+    : [];
 
   return {
     title: doc.title,
@@ -78,18 +108,20 @@ export function buildDraftBrief(args: {
       scope: "project",
       document_id: doc.id,
       project_id: doc.project_id ?? null,
-      audience: audience === "client" ? "client" : "internal_operator",
+      audience: isClientFacing ? "client" : "internal_operator",
       kind: "document_draft",
+      ...(isSignature ? { watermark: "DRAFT — NOT FOR EXECUTION", signatures } : {}),
     },
     signals_hash: doc.id,
-    format: audience,
+    format: isClientFacing ? "client" : "operator",
     scope_kind: "project",
     entity_id: null,
     project_id: doc.project_id ?? null,
-    audience: audience === "client" ? "client" : "internal_operator",
+    audience: isClientFacing ? "client" : "internal_operator",
     generated_at: new Date().toISOString(),
   };
 }
+
 
 export async function saveDraftExportDraft(args: {
   document_id: string;
