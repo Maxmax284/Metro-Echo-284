@@ -289,6 +289,54 @@ export default function DocumentsPage() {
           void refresh();
         }}
       />
+
+      <Dialog
+        open={projectPickerFor !== null}
+        onOpenChange={(o) => !o && setProjectPickerFor(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pick a project</DialogTitle>
+            <DialogDescription className="text-[12px]">
+              {projectPickerFor
+                ? EXPORT_PRESETS[projectPickerFor].description
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {projectsLoading || projects === null ? (
+            <div className="flex h-32 items-center justify-center text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading projects…
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No projects yet. Create one and attach a few items first.
+            </p>
+          ) : (
+            <ul className="max-h-80 space-y-1 overflow-y-auto">
+              {projects.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = projectPickerFor;
+                      setProjectPickerFor(null);
+                      if (id) startPresetRun(id, p);
+                    }}
+                    className="w-full rounded-md border border-border/60 bg-background p-2.5 text-left transition-colors hover:bg-accent/30"
+                  >
+                    <div className="text-sm font-medium truncate">{p.title}</div>
+                    {p.summary && (
+                      <div className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">
+                        {p.summary}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
