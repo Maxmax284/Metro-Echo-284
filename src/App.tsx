@@ -51,6 +51,8 @@ const App = () => (
                             <Route path="/" element={<Index />} />
                             <Route path="/projects" element={<ProjectsPage />} />
                             <Route path="/projects/:id" element={<ProjectBriefPage />} />
+                            <Route path="/documents" element={<DocumentsPage />} />
+
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/settings/integrations" element={<IntegrationsSettings />} />
