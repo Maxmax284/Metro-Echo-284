@@ -157,6 +157,8 @@ export function humanizeEvent(event: string): string {
     "document.draft_failed": "Draft didn't finish",
     "document.draft_approved": "Draft approved",
     "document.exported_docx": "Document exported as Word",
+    "research.brief_created": "Research brief ready",
+    "research.brief_viewed": "Research brief opened",
 
   };
   if (exact[event]) return scrubBannedTokens(exact[event]);
@@ -239,6 +241,8 @@ export function trustNote(event: string): string {
     return "Logged when the note was saved.";
   if (e.startsWith("document."))
     return "Logged when this document moved through review.";
+  if (e.startsWith("research."))
+    return "Logged when you approved the research run.";
   return "Logged automatically the moment it happened.";
 }
 

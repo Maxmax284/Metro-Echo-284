@@ -9,7 +9,8 @@ export type BriefFormat =
   | "client"          // external, clean, no internal reasoning
   | "audit_packet"    // receipts-first
   | "weekly_review"   // across projects/entities
-  | "audio_script";   // single spoken-prose block
+  | "audio_script"    // single spoken-prose block
+  | "research_brief"; // outside-context brief attached to a project
 
 export type BriefSectionKind =
   | "prose"
@@ -83,6 +84,7 @@ export const FORMAT_LABEL: Record<BriefFormat, string> = {
   audit_packet: "Audit packet",
   weekly_review: "Weekly review",
   audio_script: "Audio briefing",
+  research_brief: "Outside research",
 };
 
 export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
@@ -91,6 +93,7 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
   audit_packet: "Receipts-focused. Timestamps, sources, decisions.",
   weekly_review: "What changed across your projects this week.",
   audio_script: "Spoken-style script. Read aloud or play in browser.",
+  research_brief: "Plain-English outside context, with sources.",
 };
 
 export type BriefAudience =

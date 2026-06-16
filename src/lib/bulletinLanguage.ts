@@ -120,6 +120,12 @@ export function formatAuditEvent(
   if (e === "document.exported_docx")
     return { ...base, bucket: "done", text: `A document was exported as a Word file.` };
 
+  // -- Research (Phase 4) -------------------------------------------------
+  if (e === "research.brief_created") {
+    const projTitle = ev.payload?.project_title || proj;
+    return { ...base, bucket: "done", text: `Research brief ready for ${projTitle}.` };
+  }
+
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")
