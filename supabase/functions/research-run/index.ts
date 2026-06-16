@@ -17,6 +17,13 @@ const Body = z.object({
   mode: z.enum(["quick", "deep"]).default("quick"),
   related_entity_type: z.string().max(64).optional(),
   related_entity_id: z.string().uuid().optional(),
+  // Phase 4 — when present, an approved research run produces a
+  // plain-English Research Brief attached to this project.
+  project_id: z.string().uuid().optional(),
+  // Optional plain-English reason that surfaced the chip ("Ground Stay has
+  // repeated notes about deposits"). Stored on the receipt so audit shows
+  // *why* this research ran.
+  trigger_reason: z.string().max(280).optional(),
 });
 
 const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY") ?? "";
@@ -91,7 +98,7 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { question, mode, related_entity_type, related_entity_id } = parsed.data;
+    const { question, mode, related_entity_type, related_entity_id, project_id, trigger_reason } = parsed.data;
     const db = adminClient();
 
     // Deep mode kill-switch check
@@ -172,7 +179,68 @@ Deno.serve(async (req: Request) => {
         status: "complete", summary, completed_at: new Date().toISOString(),
       }).eq("id", researchId);
 
-      return new Response(JSON.stringify({ id: researchId, status: "complete", sources: allSources.length }), {
+      // Phase 4 — attach a plain-English Research Brief to the project.
+      let briefExportId: string | null = null;
+      if (project_id && allSources.length > 0) {
+        try {
+          // Confirm the project belongs to this user before attaching.
+          const { data: proj } = await db.from("projects")
+            .select("id, title, organization_id")
+            .eq("id", project_id).eq("user_id", user.id).maybeSingle();
+          if (proj) {
+            const briefDoc = composeResearchBrief({
+              project_title: proj.title ?? "this project",
+              question,
+              summary,
+              sources: allSources,
+              trigger_reason,
+              research_id: researchId,
+            });
+            const { data: be } = await db.from("brief_exports").insert({
+              user_id: user.id,
+              organization_id: proj.organization_id ?? null,
+              project_id: proj.id,
+              format: "research_brief",
+              scope_kind: "project",
+              title: briefDoc.title,
+              subtitle: briefDoc.subtitle,
+              brief: briefDoc,
+              status: "draft",
+            }).select("id").maybeSingle();
+            briefExportId = be?.id ?? null;
+
+            // Receipt — what was researched, why, what triggered it, sources, when.
+            await db.from("audit_log").insert({
+              user_id: user.id,
+              entity_type: "project",
+              entity_id: proj.id,
+              event: "research.brief_created",
+              payload: {
+                project_id: proj.id,
+                project_title: proj.title,
+                research_id: researchId,
+                brief_export_id: briefExportId,
+                question,
+                sources: allSources.length,
+                trigger_reason: trigger_reason ?? null,
+                triggered_by_entity_type: related_entity_type ?? null,
+                triggered_by_entity_id: related_entity_id ?? null,
+                approved_at: new Date().toISOString(),
+              },
+            });
+          }
+        } catch (e) {
+          // Don't fail the research call if brief attach hits an issue.
+          console.error("[research-run] brief attach failed", e);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        id: researchId,
+        status: "complete",
+        sources: allSources.length,
+        brief_export_id: briefExportId,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (e) {
