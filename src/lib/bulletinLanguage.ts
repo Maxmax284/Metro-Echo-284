@@ -126,6 +126,14 @@ export function formatAuditEvent(
     return { ...base, bucket: "done", text: `Research brief ready for ${projTitle}.` };
   }
 
+  // -- Recaps (Phase 5) ---------------------------------------------------
+  if (e === "recap.weekly_created")
+    return { ...base, bucket: "done", text: `Weekly recap ready. Tap to read.` };
+  if (e === "recap.monthly_created")
+    return { ...base, bucket: "done", text: `Monthly review ready. Tap to read.` };
+
+
+
 
   // -- Quiet cleanup ------------------------------------------------------
   if (e === "dismissed" || e === "sherlock_suggestion_dismissed")
