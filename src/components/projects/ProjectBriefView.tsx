@@ -318,6 +318,9 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
             prompt={`Outside context for "${project.title}": recurring themes, comparable cases, and risks worth knowing before the next decision.`}
             relatedEntityType="project"
             relatedEntityId={project.id}
+            projectId={project.id}
+            triggerReason={`${project.title} has ${items.length} attached items worth checking outside context on.`}
+            onCompleted={(r) => { if (r?.brief_export_id) setBriefsRefreshKey((k) => k + 1); }}
           />
         )}
       </div>
