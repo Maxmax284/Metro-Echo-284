@@ -165,7 +165,11 @@ async function runProjectSummaryReport(
     handle.advance(2); // Applying the template
 
     const { data, error } = await supabase.functions.invoke("project-summarize", {
-      body: { project_id: ctx.projectId, tone: ctx.tone ?? "narrative" },
+      body: {
+        project_id: ctx.projectId,
+        tone: ctx.tone ?? "narrative",
+        replace_prior: ctx.replacePrior !== false,
+      },
     });
 
     if (error) {
@@ -174,7 +178,14 @@ async function runProjectSummaryReport(
       return;
     }
 
-    const payload = (data ?? {}) as { empty?: boolean; structured?: unknown; summary?: string; error?: string };
+    const payload = (data ?? {}) as {
+      empty?: boolean;
+      structured?: StructuredBriefPayload;
+      summary?: string;
+      error?: string;
+      brief_export_id?: string | null;
+      project_id?: string;
+    };
 
     if (payload?.error === "credits_exhausted") {
       handle.fail({
@@ -204,14 +215,67 @@ async function runProjectSummaryReport(
     await new Promise((r) => setTimeout(r, 200));
     handle.advance(4); // Saving the file
 
+    const briefExportId = payload.brief_export_id ?? null;
+    const structured = payload.structured;
+    const projectName = ctx.projectName ?? "this project";
+
+    const primaryAction = ctx.onOpenProject
+      ? {
+          label: "Open project",
+          onClick: () => ctx.onOpenProject?.(ctx.projectId),
+        }
+      : undefined;
+
+    const secondaryAction = briefExportId
+      ? {
+          label: "Download PDF",
+          onClick: async () => {
+            try {
+              const brief = buildProjectSummaryBrief(ctx.projectId, projectName, structured);
+              const blob = await renderProjectSummaryPdf(brief);
+              const row = {
+                id: briefExportId,
+                user_id: "",
+                organization_id: null,
+                entity_id: null,
+                project_id: ctx.projectId,
+                format: "operator" as const,
+                scope_kind: "project" as const,
+                title: brief.title,
+                subtitle: null,
+                brief,
+                signals_hash: null,
+                storage_path: null,
+                status: "exported" as const,
+                approved_at: null,
+                exported_at: null,
+                created_at: brief.generated_at,
+                updated_at: brief.generated_at,
+              };
+              const updated = await approveAndExportBrief({ row: row as any, pdfBlob: blob });
+              if (updated.storage_path) {
+                const url = await getBriefDownloadUrl(updated.storage_path);
+                if (url) window.open(url, "_blank", "noopener,noreferrer");
+              }
+            } catch (err) {
+              console.error("[exportPresets] download PDF failed", err);
+            }
+          },
+        }
+      : undefined;
+
+    const tertiaryAction = ctx.onRegenerate
+      ? {
+          label: "Regenerate",
+          onClick: () => ctx.onRegenerate?.(ctx.projectId, ctx.projectName),
+        }
+      : undefined;
+
     handle.complete({
       destination: preset.successCopy({ projectName: ctx.projectName }),
-      primaryAction: ctx.onOpenProject
-        ? {
-            label: "Open project",
-            onClick: () => ctx.onOpenProject?.(ctx.projectId),
-          }
-        : undefined,
+      primaryAction,
+      secondaryAction,
+      tertiaryAction,
     });
   } catch (e) {
     console.error("[exportPresets] runProjectSummaryReport threw", e);
