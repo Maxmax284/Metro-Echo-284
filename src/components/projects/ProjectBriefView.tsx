@@ -34,6 +34,7 @@ import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
 import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
+import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
@@ -305,12 +306,21 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         </DropdownMenu>
       </header>
 
-      <SherlockFindingsChips
-        sourceObjectType="freeform"
-        sourceObjectId={project.id}
-        max={4}
-        className="mb-3"
-      />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <SherlockFindingsChips
+          sourceObjectType="freeform"
+          sourceObjectId={project.id}
+          max={4}
+        />
+        {items.length >= 2 && (
+          <ResearchSuggestionChip
+            label="Look outside on this?"
+            prompt={`Outside context for "${project.title}": recurring themes, comparable cases, and risks worth knowing before the next decision.`}
+            relatedEntityType="project"
+            relatedEntityId={project.id}
+          />
+        )}
+      </div>
 
       <ProjectInbox
         project={project}

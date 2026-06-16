@@ -280,3 +280,34 @@ This module is not a legal form builder. It is a business document command studi
 Say what you need. Upload what you have. Understand what you are dealing with. Revise it. Package it. Keep proof.
 
 Vanta explains in plain English, helps prepare drafts, flags risks, organises by Project, exports cleanly, preserves receipts. Capture never executes. Plan → Approve → Execute happens only inside the platform.
+
+---
+
+## 17. Tooling-Layer Addendum — Cross-Check Verdict (Jun 2026)
+
+Reviewed against `Vanta_Business_Documents_Tooling_Layer_Addendum_Audit_Prompt.pdf`.
+
+**Verdict:** *Tooling layer partially covered.* The artifact spine ships (extracted text, drafts, exports, receipts), but the explicit "tools do the work, conversation controls them" framing is implicit in the build-prep rather than named as a layer.
+
+### Already covered (no rebuild)
+- Intake tools — `files-ingest`, `documents-extract`, `useStagedUpload`, `GlobalDropZone`.
+- Understanding tools — `documents-review` (parties, dates, money, obligations, risks, plain-English summary).
+- Drafting tools — `documents-draft` with guided + chat intake.
+- Export tools — `compose-brief` + `BriefPdfDocument` + `documentDocxExport.ts` (PDF + DOCX).
+- Project/system tools — project attach, Living Brief integration via `project-summarize`, `audit_log` receipts, Command Center humaniser.
+- Conversation control — `vanta-converse`, `CompanionContext`, contextual prompts inside surfaces.
+- Approvals — drafts land as `proposed` and require user approval before export; exports always land in `brief_exports`.
+
+### Gaps to fold into existing phases (additive, no schema changes)
+1. **Named tool plan before execution.** When a contextual ask resolves to a multi-step run (e.g. "review this and create a packet"), show the numbered plan and a single Approve button before any tool fires. *Folds into Sherlock/Research/Recap audit → Phase 7 Documents Integration; reuses existing Plan→Approve→Execute infra, no new tables.*
+2. **Per-tool-action receipts surfacing.** Receipts already write to `audit_log`; surface them as a per-document timeline ("extracted → reviewed → drafted → exported") inside `DocumentDetailSheet`. *Phase 7.*
+3. **Source appendix builder.** Optional brief-template section that lists every source the review/draft cited. Extends `briefTemplates.ts` only; no new edge function. *Phase 7.*
+4. **Signature page / cover variants.** Adds two `BriefPdfDocument` page kinds; no new infra. *Phase 7, ships with Premium Document Packets.*
+5. **Outside-context research per document.** Wire the Phase 3 Research suggestion chip into `DocumentDetailSheet` so a user can ask Vanta to gather outside examples for a clause or risk, with the result attached as a research-brief receipt on the document. *Already planned in Sherlock audit Phase 7; this confirms the hook.*
+6. **Version compare / redline / obligation tracking / template vault / attorney handoff.** Stay parked in "Later Phases." No change.
+
+### What stays out of scope
+E-signature, legal filing, automatic sending, autonomous contract approval, attorney impersonation, hidden edits, full template marketplace, full theme customizer.
+
+### No-build confirmation
+Folding these into the existing roadmap. **No new tables, no new edge functions, no UI restructure introduced by this addendum.** Items 1–4 ship inside the already-planned Phase 7 work; item 5 reuses the Phase 3 Research chip; item 6 stays parked.
