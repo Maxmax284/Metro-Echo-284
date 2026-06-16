@@ -1,113 +1,72 @@
+## Project Summary follow-ups
 
-# Vanta Document Engine + Work Status Layer — Foundation Pass
+Five focused upgrades around the project-summary preset. No new tables.
 
-## Goal
+### 1. Export-to-PDF from the tray card
+**Edit `supabase/functions/project-summarize/index.ts`**
+- Return `brief_export_id` and `project_id` in the success payload so the client can act on the new export.
 
-Make Vanta show its work and turn existing memory into clean documents. Foundation only — no parallel "Document Engine World", no new tables, no new AI calls, no new routes.
+**Edit `src/lib/exportPresets.ts`**
+- After `complete`, attach a `secondaryAction` "Download PDF" alongside "Open project". The action:
+  - Builds a `Brief` from the structured blocks (reuse `LivingBriefBlocks` source shape → simple section list: overall summary, situation, themes, decisions, risks, next move).
+  - Renders with `pdf(<BriefPdfDocument brief={brief} />).toBlob()`.
+  - Calls `approveAndExportBrief({ row, pdfBlob })` on the returned `brief_export_id`, then opens the signed URL.
 
-## Audit findings (what already exists, what we extend)
+**Edit `src/lib/workStatus.ts` + `WorkProgressCard.tsx` + `ActivityStore.tsx`**
+- Add optional `secondaryAction?: WorkPrimaryAction` to `WorkItem` and render it next to the primary action button.
 
-- **Documents Beta**: `src/pages/Documents.tsx`, `src/components/documents/*`, `src/lib/documents.ts`, `documentExport.ts`, `documentDocxExport.ts`, `documentDraftExport.ts`, `documentTemplates.ts`. Real PDF/DOCX export already works. Reuse all of it.
-- **Plain language helpers**: `src/lib/plainLabels.ts` (with banned-token scrub), `bulletinLanguage.ts`. Extend, don't replace.
-- **Toasts**: `sonner` everywhere.
-- **Motion**: CSS variables already in `src/index.css` from last pass. No framer-motion. Stay with CSS.
-- **Inbox attach**: `src/components/projects/AttachToProjectMenu.tsx` uses sonner toasts.
-- **Cockpit**: `DailyBulletinCard`, `DailyChecklistCard`, `ProjectRollupCards` etc.
-- **No durable job table exists.** Per the prompt's hard rule, we do NOT add a migration. The Activity Tray uses an in-memory store (Zustand-style with React context) that persists only for the session. Receipts/exports already write durable rows where it matters — the tray is a visibility layer on top, not a new source of truth.
+### 2. Show summary inside the project details view
+The `ProjectBriefView` already renders `projects.brief_structured` via `LivingBriefBlocks`. Two small fixes so users reliably see it after launching from Documents:
+- Add an `id="living-brief"` anchor on the Living brief `<section>` in `ProjectBriefView`.
+- When the tray's "Open project" action navigates to `/projects/:id#living-brief`, ProjectBriefView scrolls that section into view after mount (one `useEffect` on hash).
 
-## What we'll build
+### 3. Regenerate summary replaces prior export
+**Edit `supabase/functions/project-summarize/index.ts`**
+- Accept optional `replace_prior: boolean` (default true). When true, before inserting the new mirrored `brief_exports` row, delete prior project-scoped rows for this project where `storage_path IS NULL` and `format = 'operator'` and `scope_kind = 'project'`. Leaves PDF-backed exports untouched.
 
-### 1. Work Status core (no UI yet) — `src/lib/workStatus.ts`
+**Edit `src/components/projects/ProjectBriefView.tsx`**
+- Rename the existing "Refresh" / "Summarize" action to "Regenerate" once a structured brief exists. Adds a small confirmation toast describing what's replaced.
 
-- `WorkState` type: `queued | working | waiting_for_user | complete | failed | canceled`
-- `WorkItem` type: `{ id, kind, title, projectName?, steps: string[], currentStep, state, destination?, error?, primaryAction?, startedAt, finishedAt? }`
-- `humanizeWorkState()`, `humanizeWorkStep()`, `humanizeActionResult()`, `humanizeWorkError()` — route through `plainLabels.scrubBannedTokens()`.
-- Standard step libraries from the prompt (export, upload, attach, project update, receipt packet, dismiss) as exported constants.
+**Edit `src/lib/exportPresets.ts`**
+- Pass `replace_prior: true` from the preset run.
+- Add a `secondaryAction` "Regenerate" on the completed tray card that re-launches the same preset for the same project.
 
-### 2. Activity Tray store — `src/components/workstatus/ActivityStore.tsx`
+### 4. Project picker upgrades
+**Edit `src/pages/Documents.tsx`** (the `<Dialog>` block only)
+- Add a search `<Input>` filtering by title (case-insensitive).
+- Recently used: persist a small list of last 5 project IDs picked here in `localStorage` (`vanta.documents.recentProjects`). Render them as a top section "Recent" above the full list. Update on selection.
+- Empty-state copy:
+  - No projects at all: "No projects in this workspace yet. Create one from Projects and attach a few notes or files, then come back."
+  - No matches: "Nothing matches '<query>'."
+- Disable the picker submit when filtered list is empty.
 
-React context + reducer. API:
-```ts
-const { start, advance, complete, fail, waitForUser, cancel, items } = useActivity();
-const handle = start({ kind, title, steps, projectName });
-handle.advance(stepIndex);
-handle.complete({ destination, primaryAction });
-handle.fail({ message, retry });
+### 5. Tests
+**New `src/lib/exportPresets.test.ts`** using vitest + a mocked supabase client:
+- Mocks `@/integrations/supabase/client` (`supabase.functions.invoke`).
+- Builds a minimal `WorkHandle` spy.
+- Cases:
+  - Happy path: invoke called with `{ project_id, tone, replace_prior: true }`; returns `{ structured, brief_export_id }`; handle reaches `complete` with project + PDF actions populated.
+  - Rate limit: invoke resolves `{ data: { error: 'rate_limited' } }` → `fail` called with a wait-a-minute message.
+  - Credits exhausted: `{ error: 'credits_exhausted' }` → `fail` called with credit message.
+  - Empty: `{ empty: true }` → `waitForUser` with attach-items message.
+  - Missing project id: returns immediately with `waitForUser`.
+
+Note on the "updates brief_exports and projects.brief_structured" requirement: covered by asserting the client-side contract (correct invoke args, correct handle transitions). The actual DB writes happen in the edge function and are not reachable from vitest without hitting live infra; covering them would require Deno tests against the deployed function — out of scope for this pass and explicitly skipped to keep tests fast and offline.
+
+### Files touched
+```text
+supabase/functions/project-summarize/index.ts   (return id, replace_prior)
+src/lib/exportPresets.ts                        (PDF action, regenerate, replace_prior)
+src/lib/workStatus.ts                           (secondaryAction type)
+src/components/workstatus/ActivityStore.tsx     (pass through secondaryAction)
+src/components/workstatus/WorkProgressCard.tsx  (render secondary button)
+src/components/projects/ProjectBriefView.tsx    (anchor + hash scroll, button label)
+src/pages/Documents.tsx                         (picker search, recents, empty states)
+src/lib/exportPresets.test.ts                   (new)
 ```
-Mounted once in `App.tsx`. Items auto-move to "recent" after 8s on complete, stay until dismissed on failed/waiting.
 
-### 3. Reusable primitives — `src/components/workstatus/`
-
-- `ActionButton.tsx` — thin wrapper over existing `Button`. Takes `pending`, `pendingLabel`. Shows label swap + tiny inline spinner under 700ms, then escalates.
-- `WorkProgressCard.tsx` — compact inline card: title, current step text, "Step N of M", calm `--motion-base` fade-in.
-- `StepTicker.tsx` — dots row, no infinite pulse, single CSS transition on active dot.
-- `WorkStatusBadge.tsx` — colored pill mapped from `WorkState` via `humanizeWorkState`. Uses semantic tokens.
-- `ActivityTray.tsx` — bottom-right desktop, bottom pill (above bottom nav) on mobile. Collapsed = "N active" pill. Expanded = grouped sheet (Working / Needs you / Recently done / Failed). Does not steal focus.
-
-Reuses existing shadcn `Sheet`, `Card`, `Button`, `Badge`. No new deps.
-
-### 4. Document Engine preset registry — `src/lib/exportPresets.ts`
-
-Single declarative registry, no DB. Initial presets:
-
-- `daily-command-brief` → reuses existing brief composer + `documentExport` PDF pipeline.
-- `project-summary-report` → reuses existing project data + `documentExport`.
-- `receipt-capture-packet` → reuses existing receipts/capture data + `documentExport`.
-
-Each preset shape: `{ id, label, outputFormat, dataSources, sections, defaultDestination, steps[], successCopy, failureCopy }`.
-
-Exposes one function: `runExportPreset(presetId, context, activity)` — orchestrates `start → advance per step → complete with destination` using the Activity store, and calls the actual existing export functions. If a preset's real generator isn't wired, it calls `waitForUser` with a clear "Not available yet" state instead of faking completion.
-
-### 5. Wire into existing flows (no rebuilds)
-
-- **`AttachToProjectMenu.tsx`** — replace bare sonner calls with Activity start/complete/fail using the "Inbox attach" step library. Toast still fires on completion (single, not spam).
-- **`Documents.tsx`** — add a small "Active document work" row at the top driven by `useActivity()` filtered to `kind: 'document'`. Add a "Create…" menu that calls `runExportPreset` for the three presets. Document cards keep existing actions; add `WorkStatusBadge` when an item has an in-flight job.
-- **`DailyBulletinCard.tsx`** — add a slim "Active work" row only when something is running (one line, dismissible, no looping motion). Stays quiet otherwise.
-- **`App.tsx`** — mount `<ActivityProvider>` + `<ActivityTray />` once.
-
-### 6. Language audit pass
-
-Extend `plainLabels.BANNED_TOKENS` with the prompt's full banned list (`lifecycle state`, `artifact composed`, `export artifact`, `render initialized`, `briefing.composed`, `processing`, etc.) and run a repo grep to fix any remaining raw strings in user-visible code.
-
-### 7. Motion & a11y
-
-- Reuse existing `--motion-fast/base/slow` vars. No new keyframes that loop.
-- Wrap all transitions in `@media (prefers-reduced-motion: reduce)` → instant.
-- All tray/card buttons ≥44px. Tray pill positioned above bottom nav at 384px.
-- `role="status"` + `aria-live="polite"` on the active work region.
-
-## Out of scope (explicit)
-
-- No new Supabase migrations, no new tables, no new edge functions.
-- No new AI calls.
-- No new routes.
-- No template builder, no Canva editor, no Contract Intelligence work.
-- Python/ReportLab worker is NOT added — interface designed so it could plug in later.
-
-## File touch list
-
-New:
-- `src/lib/workStatus.ts`
-- `src/lib/exportPresets.ts`
-- `src/components/workstatus/ActivityStore.tsx`
-- `src/components/workstatus/ActionButton.tsx`
-- `src/components/workstatus/WorkProgressCard.tsx`
-- `src/components/workstatus/StepTicker.tsx`
-- `src/components/workstatus/WorkStatusBadge.tsx`
-- `src/components/workstatus/ActivityTray.tsx`
-
-Edited:
-- `src/App.tsx` (mount provider + tray)
-- `src/lib/plainLabels.ts` (extend banned list + work helpers)
-- `src/components/projects/AttachToProjectMenu.tsx` (wire activity)
-- `src/pages/Documents.tsx` (active work row, preset launcher, badges)
-- `src/components/cockpit/DailyBulletinCard.tsx` (slim active work row)
-- `src/index.css` (only if a missing motion var needs adding)
-
-## Risks / things to call out before building
-
-1. **No durable job persistence.** If you navigate away and refresh, in-flight tray items vanish. Anything that mattered (exports, receipts) is still safely stored by the existing pipelines. If you want refresh-safe tray history later, that needs a `work_jobs` table — flagged for a separate approval.
-2. **Daily Bulletin** already had a calm pass last round. The "Active work" row will only render when `items.filter(working).length > 0` so it stays quiet by default.
-3. **Documents page** currently has its own loading states. We'll layer the new primitives on top without removing existing behavior; if anything double-renders we'll consolidate in the same edit.
-
-Ready to build on approval.
+### Risks / non-goals
+- No DB migrations.
+- The PDF builder reuses `BriefPdfDocument` with a synthesized Brief — visuals will look like other operator exports, not a custom layout.
+- Recent-projects list is per-browser (localStorage), not per-user — acceptable for this UX nudge.
+- Tests stay frontend-only; edge function behavior is asserted indirectly through the contract.
