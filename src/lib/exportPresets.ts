@@ -93,8 +93,12 @@ export interface RunPresetContext {
   projectName?: string;
   /** Navigation helper so the success card can open the result. */
   onOpenProject?: (projectId: string) => void;
+  /** Re-launch helper so the success card can offer "Regenerate". */
+  onRegenerate?: (projectId: string, projectName?: string) => void;
   /** "operator" or "narrative" — passed to the summarize edge function. */
   tone?: "operator" | "narrative";
+  /** If false, prior PDF-less mirror rows are kept. Default true. */
+  replacePrior?: boolean;
 }
 
 /**
