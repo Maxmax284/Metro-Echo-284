@@ -123,7 +123,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
           type: "set_state",
           id,
           state: "complete",
-          extra: { destination: o?.destination, primaryAction: o?.primaryAction, currentStep: (opts.steps.length || 1) - 1 },
+          extra: { destination: o?.destination, primaryAction: o?.primaryAction, secondaryAction: o?.secondaryAction, tertiaryAction: o?.tertiaryAction, currentStep: (opts.steps.length || 1) - 1 },
         }),
       fail: (o) =>
         dispatch({
