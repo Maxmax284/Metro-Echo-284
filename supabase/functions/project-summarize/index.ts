@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { project_id, tone } = parsed.data;
+    const { project_id, tone, replace_prior } = parsed.data;
 
     const { data: project, error: pErr } = await supabase
       .from("projects").select("*").eq("id", project_id).maybeSingle();
