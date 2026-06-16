@@ -259,3 +259,97 @@ Deno.serve(async (req: Request) => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Phase 4 — Research Brief composition.
+// Plain-English structured brief written into brief_exports.brief so the
+// Living Brief, Saved exports list, and future export polish can render it
+// without a new table or new edge function.
+// ---------------------------------------------------------------------------
+
+type ResearchBriefSection = { id: string; heading: string; body: string };
+type ResearchBriefDoc = {
+  kind: "research_brief";
+  title: string;
+  subtitle: string;
+  format: "research_brief";
+  scope_kind: "project";
+  generated_at: string;
+  question: string;
+  trigger_reason: string | null;
+  research_id: string;
+  sections: ResearchBriefSection[];
+  sources: Array<{ position: number; title: string; url: string; snippet: string; provider: string }>;
+};
+
+function composeResearchBrief(args: {
+  project_title: string;
+  question: string;
+  summary: string;
+  sources: Source[];
+  trigger_reason?: string | null;
+  research_id: string;
+}): ResearchBriefDoc {
+  const { project_title, question, summary, sources, trigger_reason, research_id } = args;
+  const summaryText = (summary && summary.trim()) || "No summary was produced.";
+
+  // Split the AI synthesis into the briefest plain-English shape we can.
+  // We do not over-parse — a single "Key findings" block beats a wrong split.
+  const sections: ResearchBriefSection[] = [
+    {
+      id: "what_vanta_looked_into",
+      heading: "What Vanta looked into",
+      body: question,
+    },
+    {
+      id: "why_it_matters",
+      heading: "Why it matters",
+      body: trigger_reason
+        ? trigger_reason
+        : `${project_title} surfaced a recurring question worth checking outside context for.`,
+    },
+    {
+      id: "key_findings",
+      heading: "Key findings",
+      body: summaryText,
+    },
+    {
+      id: "what_this_means",
+      heading: `What this means for ${project_title}`,
+      body: sources.length
+        ? `Outside examples were saved. Review them alongside the Living Brief to decide what to apply.`
+        : `No usable outside sources were found this run. Try a more specific question.`,
+    },
+    {
+      id: "questions_or_cautions",
+      heading: "Questions or cautions",
+      body: `These sources are starting points, not legal or financial guarantees. Cross-check anything you act on.`,
+    },
+    {
+      id: "suggested_next_move",
+      heading: "Suggested next move",
+      body: `Open the sources, pick what fits ${project_title}, and capture decisions back into the Living Brief.`,
+    },
+  ];
+
+  const shortQ = question.length > 60 ? question.slice(0, 57).trimEnd() + "…" : question;
+  return {
+    kind: "research_brief",
+    title: `Research brief: ${shortQ}`,
+    subtitle: `Outside context for ${project_title}`,
+    format: "research_brief",
+    scope_kind: "project",
+    generated_at: new Date().toISOString(),
+    question,
+    trigger_reason: trigger_reason ?? null,
+    research_id,
+    sections,
+    sources: sources.map((s) => ({
+      position: s.position,
+      title: s.title,
+      url: s.url,
+      snippet: s.snippet,
+      provider: s.provider,
+    })),
+  };
+}
