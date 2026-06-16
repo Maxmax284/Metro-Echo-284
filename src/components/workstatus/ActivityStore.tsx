@@ -55,7 +55,7 @@ export interface WorkHandle {
   id: string;
   advance: (stepIndex: number) => void;
   patch: (patch: Partial<WorkItem>) => void;
-  complete: (opts?: { destination?: string; primaryAction?: WorkPrimaryAction }) => void;
+  complete: (opts?: { destination?: string; primaryAction?: WorkPrimaryAction; secondaryAction?: WorkPrimaryAction; tertiaryAction?: WorkPrimaryAction }) => void;
   fail: (opts?: { message?: string; retry?: WorkPrimaryAction }) => void;
   waitForUser: (opts?: { message?: string; primaryAction?: WorkPrimaryAction }) => void;
   cancel: () => void;
