@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { generateEmbedding } from "@/lib/embeddings";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
+import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
 
 type Note = {
   id: string;
@@ -167,6 +168,12 @@ export function InboxNotesList() {
                   {n.title && n.body && (
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
                   )}
+                  <SherlockFindingsChips
+                    sourceObjectType="note"
+                    sourceObjectId={n.id}
+                    scope={{ entity_type: "note", entity_id: n.id, title: n.title ?? undefined, text: n.body }}
+                    className="mt-1.5"
+                  />
                 </button>
                 <AttachToProjectMenu
                   itemType="note"
