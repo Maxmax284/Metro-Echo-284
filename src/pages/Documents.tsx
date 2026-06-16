@@ -45,6 +45,29 @@ export default function DocumentsPage() {
   const [projectPickerFor, setProjectPickerFor] = useState<ExportPresetId | null>(null);
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [projectQuery, setProjectQuery] = useState("");
+  const [recentProjectIds, setRecentProjectIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("vanta.documents.recentProjects");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string").slice(0, 5) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  function rememberRecentProject(id: string) {
+    setRecentProjectIds((prev) => {
+      const next = [id, ...prev.filter((x) => x !== id)].slice(0, 5);
+      try {
+        window.localStorage.setItem("vanta.documents.recentProjects", JSON.stringify(next));
+      } catch {
+        /* storage disabled — ignore */
+      }
+      return next;
+    });
+  }
 
   const activity = useActivity();
   const docWorkItems = activity.items.filter(
@@ -65,7 +88,13 @@ export default function DocumentsPage() {
       {
         projectId: project?.id,
         projectName: project?.title,
-        onOpenProject: (id) => navigate(`/projects/${id}`),
+        onOpenProject: (id) => navigate(`/projects/${id}#living-brief`),
+        onRegenerate: (id, name) => {
+          const p = (projects ?? []).find((x) => x.id === id)
+            ?? (project && project.id === id ? project : undefined)
+            ?? ({ id, title: name ?? "Project" } as Project);
+          startPresetRun(presetId, p);
+        },
       },
       handle,
     );
@@ -76,6 +105,7 @@ export default function DocumentsPage() {
     if (!preset) return;
     if (preset.requiresProject) {
       setProjectPickerFor(presetId);
+      setProjectQuery("");
       if (!projects && user) {
         setProjectsLoading(true);
         try {
@@ -93,6 +123,7 @@ export default function DocumentsPage() {
     }
     startPresetRun(presetId);
   }
+
 
   async function refresh() {
     try {
