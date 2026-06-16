@@ -23,6 +23,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
+
+const SHERLOCK_SOURCE: Partial<Record<SuggestedItem["type"], string>> = {
+  note: "note",
+  capture: "message",
+  file: "file",
+  commitment: "commitment",
+  action: "action",
+};
 
 interface Props {
   project: Project;
@@ -164,6 +173,14 @@ export function ProjectInbox({ project, attached, onAttached }: Props) {
                         <p className="mt-0.5 line-clamp-1 text-[11.5px] text-muted-foreground">
                           {s.snippet}
                         </p>
+                      )}
+                      {SHERLOCK_SOURCE[s.type] && (
+                        <SherlockFindingsChips
+                          sourceObjectType={SHERLOCK_SOURCE[s.type]!}
+                          sourceObjectId={s.id}
+                          className="mt-1"
+                          max={2}
+                        />
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">

@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";
+import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
 import { AddToProjectComposer } from "@/components/projects/AddToProjectComposer";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
@@ -303,6 +304,13 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
+
+      <SherlockFindingsChips
+        sourceObjectType="freeform"
+        sourceObjectId={project.id}
+        max={4}
+        className="mb-3"
+      />
 
       <ProjectInbox
         project={project}
