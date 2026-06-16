@@ -351,6 +351,20 @@ No markdown. No headings inside text fields.`;
     // project's Past Briefs list and the global Briefs/Receipts history.
     // No PDF — storage_path stays null. Status "exported" because the user
     // tapped Summarize, which is the project equivalent of approve-and-export.
+    // When replace_prior is true (default), prior PDF-less project-summary
+    // mirror rows for this project are removed so the list shows the latest.
+    // PDF-backed exports (storage_path IS NOT NULL) are left untouched.
+    if (replace_prior) {
+      const { error: delErr } = await supabase
+        .from("brief_exports")
+        .delete()
+        .eq("project_id", project_id)
+        .eq("scope_kind", "project")
+        .eq("format", "operator")
+        .is("storage_path", null);
+      if (delErr) console.error("[project-summarize] replace_prior delete failed", delErr);
+    }
+
     const nowIso = new Date().toISOString();
     const exportTitle = `${project.title} — Living Brief`;
     const exportBrief = {
@@ -396,11 +410,17 @@ No markdown. No headings inside text fields.`;
         ref_count: refs.length,
         tone,
         structured: true,
+        replaced_prior: replace_prior,
         brief_export_id: exportRow?.id ?? null,
       },
     });
 
-    return new Response(JSON.stringify({ structured: briefStruct, summary }), {
+    return new Response(JSON.stringify({
+      structured: briefStruct,
+      summary,
+      brief_export_id: exportRow?.id ?? null,
+      project_id,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
