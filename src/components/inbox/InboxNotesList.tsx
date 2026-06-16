@@ -15,6 +15,7 @@ import { generateEmbedding } from "@/lib/embeddings";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
+import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 
 type Note = {
   id: string;
@@ -168,12 +169,20 @@ export function InboxNotesList() {
                   {n.title && n.body && (
                     <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.body}</p>
                   )}
-                  <SherlockFindingsChips
-                    sourceObjectType="note"
-                    sourceObjectId={n.id}
-                    scope={{ entity_type: "note", entity_id: n.id, title: n.title ?? undefined, text: n.body }}
-                    className="mt-1.5"
-                  />
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <SherlockFindingsChips
+                      sourceObjectType="note"
+                      sourceObjectId={n.id}
+                      scope={{ entity_type: "note", entity_id: n.id, title: n.title ?? undefined, text: n.body }}
+                    />
+                    {n.body.trim().length >= 60 && (
+                      <ResearchSuggestionChip
+                        prompt={`Outside context for this note: ${(n.title || n.body).slice(0, 160)}`}
+                        relatedEntityType="note"
+                        relatedEntityId={n.id}
+                      />
+                    )}
+                  </div>
                 </button>
                 <AttachToProjectMenu
                   itemType="note"
