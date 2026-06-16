@@ -85,6 +85,18 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
     return () => { cancelled = true; };
   }, [id, project?.updated_at]);
 
+  // If the URL points at #living-brief (e.g. opened from the Activity Tray),
+  // scroll the brief into view once the project has loaded.
+  useEffect(() => {
+    if (!project) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#living-brief") return;
+    const el = document.getElementById("living-brief");
+    if (!el) return;
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [project?.id]);
+
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -309,7 +321,7 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
       />
 
       {/* Living brief */}
-      <section className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4">
+      <section id="living-brief" className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4 scroll-mt-20">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Living brief</h2>
           <div className="flex items-center gap-2">
@@ -336,14 +348,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
               variant="outline"
               onClick={handleSummarize}
               disabled={summarizing || items.length === 0}
-              aria-label="Regenerate structured Living Brief"
+              aria-label={structured ? "Regenerate the structured Living Brief" : "Summarize this project into a structured Living Brief"}
             >
               {summarizing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Refresh" : "Summarize"}</>
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Regenerate" : "Summarize"}</>
               )}
             </Button>
+
           </div>
         </div>
 

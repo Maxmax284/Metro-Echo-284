@@ -55,7 +55,7 @@ export interface WorkHandle {
   id: string;
   advance: (stepIndex: number) => void;
   patch: (patch: Partial<WorkItem>) => void;
-  complete: (opts?: { destination?: string; primaryAction?: WorkPrimaryAction }) => void;
+  complete: (opts?: { destination?: string; primaryAction?: WorkPrimaryAction; secondaryAction?: WorkPrimaryAction; tertiaryAction?: WorkPrimaryAction }) => void;
   fail: (opts?: { message?: string; retry?: WorkPrimaryAction }) => void;
   waitForUser: (opts?: { message?: string; primaryAction?: WorkPrimaryAction }) => void;
   cancel: () => void;
@@ -123,7 +123,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
           type: "set_state",
           id,
           state: "complete",
-          extra: { destination: o?.destination, primaryAction: o?.primaryAction, currentStep: (opts.steps.length || 1) - 1 },
+          extra: { destination: o?.destination, primaryAction: o?.primaryAction, secondaryAction: o?.secondaryAction, tertiaryAction: o?.tertiaryAction, currentStep: (opts.steps.length || 1) - 1 },
         }),
       fail: (o) =>
         dispatch({

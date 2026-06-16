@@ -62,7 +62,7 @@ export function WorkProgressCard({
               </span>
             </div>
           )}
-          {(item.primaryAction || onDismiss) && (
+          {(item.primaryAction || item.secondaryAction || item.tertiaryAction || onDismiss) && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {item.primaryAction && (
                 <Button
@@ -72,6 +72,26 @@ export function WorkProgressCard({
                   onClick={() => void item.primaryAction!.onClick()}
                 >
                   {item.primaryAction.label}
+                </Button>
+              )}
+              {item.secondaryAction && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-[11.5px]"
+                  onClick={() => void item.secondaryAction!.onClick()}
+                >
+                  {item.secondaryAction.label}
+                </Button>
+              )}
+              {item.tertiaryAction && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11.5px]"
+                  onClick={() => void item.tertiaryAction!.onClick()}
+                >
+                  {item.tertiaryAction.label}
                 </Button>
               )}
               {onDismiss && (

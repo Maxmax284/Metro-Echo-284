@@ -39,6 +39,8 @@ export interface WorkItem {
   destination?: string;
   error?: string;
   primaryAction?: WorkPrimaryAction;
+  secondaryAction?: WorkPrimaryAction;
+  tertiaryAction?: WorkPrimaryAction;
   startedAt: number;
   finishedAt?: number;
 }
