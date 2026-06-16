@@ -85,6 +85,18 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
     return () => { cancelled = true; };
   }, [id, project?.updated_at]);
 
+  // If the URL points at #living-brief (e.g. opened from the Activity Tray),
+  // scroll the brief into view once the project has loaded.
+  useEffect(() => {
+    if (!project) return;
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#living-brief") return;
+    const el = document.getElementById("living-brief");
+    if (!el) return;
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [project?.id]);
+
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
