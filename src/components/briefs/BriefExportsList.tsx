@@ -29,7 +29,33 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
     try {
       const url = await getBriefDownloadUrl(row.storage_path);
       if (!url) throw new Error("Could not create download link");
-      window.open(url, "_blank", "noopener,noreferrer");
+      const filename = `${(row.title || "brief").replace(/[^\w.-]+/g, "_")}.pdf`;
+      // Fetch as blob so the browser actually downloads instead of opening inline
+      // (mobile webviews and popup blockers often swallow window.open).
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = filename;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objUrl), 2000);
+      } catch {
+        // Fallback: direct anchor click on signed URL.
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
     } catch (e: any) {
       toast({ title: "Download failed", description: e?.message ?? String(e), variant: "destructive" });
     } finally {
