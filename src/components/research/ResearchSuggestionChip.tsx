@@ -27,8 +27,12 @@ export interface ResearchSuggestionChipProps {
   /** Optional entity link so the research row attaches to its source. */
   relatedEntityType?: string;
   relatedEntityId?: string;
+  /** Optional project to attach the resulting Research Brief to (Phase 4). */
+  projectId?: string;
+  /** Optional plain-English reason that surfaced this chip. Stored on the receipt. */
+  triggerReason?: string;
   /** Optional callback fired when the run completes (success or otherwise). */
-  onCompleted?: () => void;
+  onCompleted?: (result?: { brief_export_id?: string | null }) => void;
   className?: string;
 }
 
