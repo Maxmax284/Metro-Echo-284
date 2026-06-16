@@ -20,6 +20,7 @@ import { FollowOneNoteDemo } from "@/components/tutorial/FollowOneNoteDemo";
 import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
 import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
+import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -153,6 +154,8 @@ export default function Settings() {
 
 
       <TimeRemindersSection />
+
+      <RecapSettingsPanel />
 
       <PushReadinessSection />
 

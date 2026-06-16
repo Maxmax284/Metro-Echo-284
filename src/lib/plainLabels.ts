@@ -159,6 +159,10 @@ export function humanizeEvent(event: string): string {
     "document.exported_docx": "Document exported as Word",
     "research.brief_created": "Research brief ready",
     "research.brief_viewed": "Research brief opened",
+    "recap.weekly_created": "Weekly recap ready",
+    "recap.monthly_created": "Monthly review ready",
+
+
 
   };
   if (exact[event]) return scrubBannedTokens(exact[event]);
