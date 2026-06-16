@@ -336,14 +336,15 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
               variant="outline"
               onClick={handleSummarize}
               disabled={summarizing || items.length === 0}
-              aria-label="Regenerate structured Living Brief"
+              aria-label={structured ? "Regenerate the structured Living Brief" : "Summarize this project into a structured Living Brief"}
             >
               {summarizing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Refresh" : "Summarize"}</>
+                <><Sparkles className="mr-1.5 h-3.5 w-3.5" /> {structured ? "Regenerate" : "Summarize"}</>
               )}
             </Button>
+
           </div>
         </div>
 
