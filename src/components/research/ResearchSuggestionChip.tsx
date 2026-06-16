@@ -44,7 +44,9 @@ export function ResearchSuggestionChip({
   const [question, setQuestion] = useState(prompt);
   const [running, setRunning] = useState(false);
 
-  const handleOpen = () => {
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     setQuestion(prompt);
     setOpen(true);
   };
