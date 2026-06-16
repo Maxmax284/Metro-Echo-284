@@ -8,9 +8,10 @@ export type BriefFormat =
   | "operator"        // tactical, for the user
   | "client"          // external, clean, no internal reasoning
   | "audit_packet"    // receipts-first
-  | "weekly_review"   // across projects/entities
+  | "weekly_review"   // across projects/entities — also recap_weekly
   | "audio_script"    // single spoken-prose block
-  | "research_brief"; // outside-context brief attached to a project
+  | "research_brief"  // outside-context brief attached to a project
+  | "monthly_review"; // monthly recap (Phase 5)
 
 export type BriefSectionKind =
   | "prose"
@@ -51,7 +52,7 @@ export type Brief = {
   grounding: Record<string, unknown>;
   signals_hash: string;
   format: BriefFormat;
-  scope_kind: "system" | "entity" | "project";
+  scope_kind: "system" | "entity" | "project" | "recap_weekly" | "recap_monthly";
   entity_id?: string | null;
   project_id?: string | null;
   audience?: BriefAudience | null;
@@ -65,7 +66,7 @@ export type BriefExportRow = {
   entity_id: string | null;
   project_id: string | null;
   format: BriefFormat;
-  scope_kind: "system" | "entity" | "project";
+  scope_kind: "system" | "entity" | "project" | "recap_weekly" | "recap_monthly";
   title: string;
   subtitle: string | null;
   brief: Brief;
@@ -85,6 +86,7 @@ export const FORMAT_LABEL: Record<BriefFormat, string> = {
   weekly_review: "Weekly review",
   audio_script: "Audio briefing",
   research_brief: "Outside research",
+  monthly_review: "Monthly review",
 };
 
 export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
@@ -94,6 +96,7 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
   weekly_review: "What changed across your projects this week.",
   audio_script: "Spoken-style script. Read aloud or play in browser.",
   research_brief: "Plain-English outside context, with sources.",
+  monthly_review: "What bigger pattern is forming this month.",
 };
 
 export type BriefAudience =
@@ -124,7 +127,7 @@ export const AUDIENCE_DESCRIPTION: Record<BriefAudience, string> = {
 
 export type ComposeBriefInput = {
   format: BriefFormat;
-  scope_kind: "system" | "entity" | "project";
+  scope_kind: "system" | "entity" | "project" | "recap_weekly" | "recap_monthly";
   entity_id?: string | null;
   project_id?: string | null;
   audience?: BriefAudience;
