@@ -16,6 +16,7 @@ const corsHeaders = {
 const Body = z.object({
   project_id: z.string().uuid(),
   tone: z.enum(["operator", "narrative"]).default("narrative"),
+  replace_prior: z.boolean().default(true),
 });
 
 const BRIEF_SCHEMA = {
