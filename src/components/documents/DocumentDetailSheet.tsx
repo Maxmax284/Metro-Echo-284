@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
   FileDown, FileSignature, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
-  RefreshCcw, Send, Sparkles, ShieldAlert, Users,
+  Receipt, RefreshCcw, Send, Sparkles, ShieldAlert, Users,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -37,6 +37,9 @@ import { exportDraftDocx } from "@/lib/documentDocxExport";
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
+import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
+import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 
 interface Props {
   documentId: string | null;
@@ -264,6 +267,15 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     onOpenChange(false);
   }
 
+  async function runPlan(steps: ToolPlanStepKey[]) {
+    for (const step of steps) {
+      if (step === "extract") await handleExtract();
+      else if (step === "review") await handleReview();
+      else if (step === "export-operator") await handleExport("operator");
+    }
+  }
+
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -324,6 +336,20 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                 </Badge>
               )}
             </div>
+
+            {!isDraft && (
+              <div className="mb-6">
+                <DocumentToolPlan
+                  status={doc.status}
+                  isDraft={isDraft}
+                  busy={!!busy}
+                  hasReview={!!review}
+                  onRun={runPlan}
+                />
+              </div>
+            )}
+
+
 
             {isDraft ? (
               <DraftBody
@@ -473,10 +499,22 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                       Summarize money terms
                     </Button>
                   </div>
+                  <div className="pt-1">
+                    <ResearchSuggestionChip
+                      prompt={`For the document "${doc.title}", find a few outside examples and common practices around the risks and clauses Vanta flagged. Summarize in plain English with sources.`}
+                      label="Look outside for examples"
+                      relatedEntityType="document"
+                      relatedEntityId={doc.id}
+                      projectId={doc.project_id ?? undefined}
+                      triggerReason="document_review"
+                      onCompleted={() => refresh()}
+                    />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     These open a draft in Vanta — nothing sends until you say so.
                   </p>
                 </Section>
+
 
                 {/* Export packets */}
                 <Section icon={<FileDown className="h-4 w-4" />} title="Export review packet">
@@ -508,12 +546,17 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   {DOCUMENT_DISCLAIMER}
                 </p>
 
+                <Section icon={<Receipt className="h-4 w-4" />} title="Receipts">
+                  <DocumentReceiptsTimeline documentId={doc.id} />
+                </Section>
+
                 <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
                   <span>Reviewed {formatDistanceToNow(new Date(review.generated_at), { addSuffix: true })}</span>
                   <Button size="sm" variant="ghost" className="gap-1.5" onClick={handleReview} disabled={!!busy}>
                     <RefreshCcw className="h-3.5 w-3.5" /> Re-review
                   </Button>
                 </div>
+
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
