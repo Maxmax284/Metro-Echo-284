@@ -547,6 +547,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
           {relations.some((r) => r.status === "suggested") && (
             <span className="inline-flex items-center gap-1 text-primary/80">· dashed = Sherlock suggested</span>
           )}
+          {lens === "risk" && <span className="text-warn">· red = sensitive · amber = Sherlock attention</span>}
+          {lens === "decisions" && <span className="text-signal">· green = confirmed · blue = suggested</span>}
+          {lens === "clusters" && <span className="text-primary/80">· halos group what Sherlock noticed</span>}
         </span>
       </div>
     </div>
