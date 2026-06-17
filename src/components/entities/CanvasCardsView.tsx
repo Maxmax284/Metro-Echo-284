@@ -125,7 +125,9 @@ export function CanvasCardsView({ seedEntityId, windowDays = 30, kinds }: Props)
   }
 
   return (
-    <div className="h-full overflow-y-auto px-3 py-2 space-y-2">
+    <div className="h-full overflow-y-auto py-2 space-y-2">
+      <CanvasResearchCards seedEntityId={seedEntityId} />
+      <div className="px-3 space-y-2">
       {entities.map((e) => {
         const refs = counts.get(e.id) ?? 0;
         const rels = relCounts.get(e.id) ?? 0;
