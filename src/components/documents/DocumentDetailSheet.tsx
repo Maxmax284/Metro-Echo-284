@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
   FileDown, FileSignature, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
-  RefreshCcw, Send, Sparkles, ShieldAlert, Users,
+  Receipt, RefreshCcw, Send, Sparkles, ShieldAlert, Users,
 } from "lucide-react";
 
 import { toast } from "sonner";
