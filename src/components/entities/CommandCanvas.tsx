@@ -140,10 +140,43 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         .neq("status", "dismissed")
         .in("from_entity_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
+      // Phase 6 — pull Sherlock findings + actions tied to the visible entities,
+      // so lens views (risk / decisions / clusters) can color & cluster nodes.
+      let f: SherlockFinding[] = [];
+      const acts = new Map<string, { pending: number; executed: number; risky: number }>();
+      if (ids.length > 0) {
+        const [{ data: fdata }, { data: adata }] = await Promise.all([
+          supabase
+            .from("sherlock_findings")
+            .select("id, finding_type, source_object_id, target_object_id, confidence, sensitive_flag, status")
+            .eq("user_id", user.id)
+            .eq("status", "pending")
+            .or(`source_object_id.in.(${ids.join(",")}),target_object_id.in.(${ids.join(",")})`)
+            .limit(200),
+          supabase
+            .from("actions")
+            .select("id, status, risk, entity_id")
+            .eq("user_id", user.id)
+            .in("entity_id", ids)
+            .limit(500),
+        ]);
+        f = (fdata ?? []) as SherlockFinding[];
+        for (const a of (adata ?? []) as any[]) {
+          if (!a.entity_id) continue;
+          const cur = acts.get(a.entity_id) ?? { pending: 0, executed: 0, risky: 0 };
+          if (a.status === "executed") cur.executed += 1;
+          else if (a.status === "staged" || a.status === "proposed") cur.pending += 1;
+          if (a.risk === "high") cur.risky += 1;
+          acts.set(a.entity_id, cur);
+        }
+      }
+
       if (!alive) return;
       setEntities(list);
       setWeights(w);
       setRelations((rels ?? []) as Relation[]);
+      setFindings(f);
+      setActionsByEntity(acts);
       setLoading(false);
     })();
     return () => { alive = false; };
