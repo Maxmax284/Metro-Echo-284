@@ -37,6 +37,9 @@ import { exportDraftDocx } from "@/lib/documentDocxExport";
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
+import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
+import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 
 interface Props {
   documentId: string | null;
