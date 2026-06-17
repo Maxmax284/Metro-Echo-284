@@ -155,6 +155,7 @@ export function CanvasCardsView({ seedEntityId, windowDays = 30, kinds }: Props)
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
