@@ -69,7 +69,7 @@ type SherlockFinding = {
   sensitive_flag: boolean;
   status: string;
 };
-type ActionRow = { id: string; status: string; entity_id?: string | null };
+
 
 function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
