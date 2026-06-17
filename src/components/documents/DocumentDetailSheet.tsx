@@ -267,6 +267,15 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
     onOpenChange(false);
   }
 
+  async function runPlan(steps: ToolPlanStepKey[]) {
+    for (const step of steps) {
+      if (step === "extract") await handleExtract();
+      else if (step === "review") await handleReview();
+      else if (step === "export-operator") await handleExport("operator");
+    }
+  }
+
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
