@@ -58,6 +58,18 @@ function kindColor(kind: string): string {
 }
 
 type Density = { maxNodes: 12 | 24 | 48; hideWeak: boolean; hideSuggested: boolean };
+type Lens = "relations" | "risk" | "decisions" | "clusters";
+
+type SherlockFinding = {
+  id: string;
+  finding_type: string;
+  source_object_id: string | null;
+  target_object_id: string | null;
+  confidence: string;
+  sensitive_flag: boolean;
+  status: string;
+};
+type ActionRow = { id: string; status: string; entity_id?: string | null };
 
 function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
@@ -71,6 +83,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [density, setDensity] = useState<Density>({ maxNodes: 24, hideWeak: false, hideSuggested: false });
+  const [lens, setLens] = useState<Lens>("relations");
+  const [findings, setFindings] = useState<SherlockFinding[]>([]);
+  const [actionsByEntity, setActionsByEntity] = useState<Map<string, { pending: number; executed: number; risky: number }>>(new Map());
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
