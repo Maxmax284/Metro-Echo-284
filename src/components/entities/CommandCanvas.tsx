@@ -367,6 +367,29 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         >
           hide suggested
         </button>
+        <span className="mx-1 h-3 w-px bg-border/60" aria-hidden />
+        <span className="px-1 uppercase tracking-wider text-[9px]">lens</span>
+        {(["relations", "risk", "decisions", "clusters"] as Lens[]).map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => setLens(l)}
+            className={cn(
+              "rounded-full px-2 py-0.5 ring-1 transition capitalize",
+              lens === l
+                ? "bg-primary/15 text-primary ring-primary/40"
+                : "bg-muted/30 ring-border/60 hover:bg-muted/50",
+            )}
+            title={
+              l === "relations" ? "Default relational view" :
+              l === "risk" ? "Color nodes by Sherlock attention" :
+              l === "decisions" ? "Color by confirmed vs suggested relations" :
+              "Group nodes by what Sherlock noticed"
+            }
+          >
+            {l}
+          </button>
+        ))}
       </div>
 
       {loading && (
