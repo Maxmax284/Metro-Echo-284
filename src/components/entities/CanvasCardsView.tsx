@@ -5,6 +5,7 @@ import { useEntitySheet } from "./EntityContext";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
+import { CanvasResearchCards } from "./CanvasResearchCards";
 
 type Entity = {
   id: string;
