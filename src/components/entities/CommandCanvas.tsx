@@ -412,17 +412,44 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
+          {/* Phase 6 — Sherlock cluster halos (only in clusters lens) */}
+          {clusterHalos.map((h, i) => (
+            <g key={`halo${i}`}>
+              <circle
+                cx={h.cx}
+                cy={h.cy}
+                r={h.r}
+                fill="hsl(var(--primary))"
+                fillOpacity={0.06}
+                stroke="hsl(var(--primary))"
+                strokeOpacity={0.35}
+                strokeDasharray="3 4"
+                strokeWidth={1}
+              />
+              <text
+                x={h.cx}
+                y={h.cy - h.r - 4}
+                textAnchor="middle"
+                fontSize={9}
+                className="fill-primary"
+                style={{ pointerEvents: "none", textTransform: "capitalize" }}
+              >
+                {h.type.replace(/_/g, " ")}
+              </text>
+            </g>
+          ))}
           {visibleRelations.map((r, i) => {
             const a = nodeById.get(r.from_entity_id);
             const b = nodeById.get(r.to_entity_id);
             if (!a || !b) return null;
             const isSuggested = r.status === "suggested";
+            const dim = lens === "risk" || lens === "decisions";
             return (
               <line
                 key={`r${i}`}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 stroke="hsl(var(--primary))"
-                strokeOpacity={isSuggested ? 0.55 : 0.35}
+                strokeOpacity={dim ? 0.18 : (isSuggested ? 0.55 : 0.35)}
                 strokeDasharray={isSuggested ? "5 4" : undefined}
                 strokeWidth={isSuggested ? 1.25 : 1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
               >
