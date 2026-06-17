@@ -546,12 +546,17 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   {DOCUMENT_DISCLAIMER}
                 </p>
 
+                <Section icon={<Receipt className="h-4 w-4" />} title="Receipts">
+                  <DocumentReceiptsTimeline documentId={doc.id} />
+                </Section>
+
                 <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
                   <span>Reviewed {formatDistanceToNow(new Date(review.generated_at), { addSuffix: true })}</span>
                   <Button size="sm" variant="ghost" className="gap-1.5" onClick={handleReview} disabled={!!busy}>
                     <RefreshCcw className="h-3.5 w-3.5" /> Re-review
                   </Button>
                 </div>
+
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
