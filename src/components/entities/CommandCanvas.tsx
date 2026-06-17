@@ -180,6 +180,63 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   );
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
+  // Phase 6 — per-entity Sherlock signals.
+  // riskByEntity: pending finding count weighted by high-confidence + sensitive flags.
+  // clustersByType: groupings of entities that share a Sherlock finding_type.
+  const { riskByEntity, clustersByType } = useMemo(() => {
+    const risk = new Map<string, { count: number; risky: boolean }>();
+    const clusters = new Map<string, Set<string>>();
+    for (const f of findings) {
+      const ids = [f.source_object_id, f.target_object_id].filter(Boolean) as string[];
+      const isRisky = f.sensitive_flag || f.confidence === "high";
+      for (const id of ids) {
+        if (!nodeById.has(id)) continue;
+        const cur = risk.get(id) ?? { count: 0, risky: false };
+        cur.count += 1;
+        if (isRisky) cur.risky = true;
+        risk.set(id, cur);
+        if (!clusters.has(f.finding_type)) clusters.set(f.finding_type, new Set());
+        clusters.get(f.finding_type)!.add(id);
+      }
+    }
+    return { riskByEntity: risk, clustersByType: clusters };
+  }, [findings, nodeById]);
+
+  // Decisions map: derive from existing entity_relations.
+  // confirmed vs suggested vs none — color the node by current relational "state of decision".
+  const decisionByEntity = useMemo(() => {
+    const m = new Map<string, "confirmed" | "suggested" | "none">();
+    for (const r of relations) {
+      for (const id of [r.from_entity_id, r.to_entity_id]) {
+        const prev = m.get(id);
+        if (r.status === "confirmed" || r.status === "active") m.set(id, "confirmed");
+        else if (!prev || prev === "none") m.set(id, r.status === "suggested" ? "suggested" : "confirmed");
+      }
+    }
+    return m;
+  }, [relations]);
+
+  // Cluster halos: compute a centroid + radius for each finding_type cluster (≥2 nodes).
+  const clusterHalos = useMemo(() => {
+    if (lens !== "clusters") return [] as { type: string; cx: number; cy: number; r: number }[];
+    const out: { type: string; cx: number; cy: number; r: number }[] = [];
+    for (const [type, set] of clustersByType) {
+      if (set.size < 2) continue;
+      const pts: { x: number; y: number }[] = [];
+      for (const id of set) {
+        const n = nodeById.get(id);
+        if (n) pts.push({ x: n.x, y: n.y });
+      }
+      if (pts.length < 2) continue;
+      const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+      const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+      const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + 28;
+      out.push({ type, cx, cy, r });
+    }
+    return out;
+  }, [lens, clustersByType, nodeById]);
+
+
   const svgPoint = (e: React.PointerEvent): { x: number; y: number } => {
     const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
