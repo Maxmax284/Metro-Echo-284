@@ -472,6 +472,21 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
             const r = 14 + Math.min(8, n.weight);
             const isDrag = dragId === n.id;
             const isHover = hoverId === n.id && dragId && dragId !== n.id;
+            const risk = riskByEntity.get(n.id);
+            const dec = decisionByEntity.get(n.id);
+            // Lens-driven palette
+            let fill = kindColor(n.kind);
+            let ring: string | null = null;
+            if (lens === "risk") {
+              if (risk?.risky) fill = "hsl(var(--danger))";
+              else if (risk && risk.count > 0) fill = "hsl(var(--warn))";
+              else fill = "hsl(var(--muted-foreground))";
+            } else if (lens === "decisions") {
+              if (dec === "confirmed") fill = "hsl(var(--signal))";
+              else if (dec === "suggested") fill = "hsl(var(--primary))";
+              else fill = "hsl(var(--muted-foreground))";
+            }
+            if ((risk?.count ?? 0) > 0 && lens !== "risk") ring = "hsl(var(--warn))";
             return (
               <g
                 key={n.id}
@@ -486,12 +501,30 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
               >
                 <circle
                   r={r}
-                  fill={kindColor(n.kind)}
-                  fillOpacity={isHover ? 0.45 : 0.22}
-                  stroke={kindColor(n.kind)}
+                  fill={fill}
+                  fillOpacity={isHover ? 0.5 : 0.28}
+                  stroke={fill}
                   strokeWidth={isDrag || isHover ? 2 : 1.2}
-                  strokeOpacity={isDrag || isHover ? 1 : 0.7}
+                  strokeOpacity={isDrag || isHover ? 1 : 0.75}
                 />
+                {ring && (
+                  <circle
+                    r={r + 3.5}
+                    fill="none"
+                    stroke={ring}
+                    strokeOpacity={0.7}
+                    strokeWidth={1}
+                    strokeDasharray="2 2"
+                  />
+                )}
+                {risk && risk.count > 0 && (
+                  <g transform={`translate(${r - 2}, ${-(r - 2)})`}>
+                    <circle r={5} fill={risk.risky ? "hsl(var(--danger))" : "hsl(var(--warn))"} />
+                    <text textAnchor="middle" y={1.8} fontSize={7} className="fill-background" style={{ pointerEvents: "none" }}>
+                      {Math.min(9, risk.count)}
+                    </text>
+                  </g>
+                )}
                 {!hideLabels && (
                   <text
                     y={r + 11}
