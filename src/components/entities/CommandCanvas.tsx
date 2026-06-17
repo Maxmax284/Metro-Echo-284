@@ -85,7 +85,6 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   const [density, setDensity] = useState<Density>({ maxNodes: 24, hideWeak: false, hideSuggested: false });
   const [lens, setLens] = useState<Lens>("relations");
   const [findings, setFindings] = useState<SherlockFinding[]>([]);
-  const [actionsByEntity, setActionsByEntity] = useState<Map<string, { pending: number; executed: number; risky: number }>>(new Map());
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
