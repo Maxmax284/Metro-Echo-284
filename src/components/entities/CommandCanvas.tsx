@@ -58,6 +58,18 @@ function kindColor(kind: string): string {
 }
 
 type Density = { maxNodes: 12 | 24 | 48; hideWeak: boolean; hideSuggested: boolean };
+type Lens = "relations" | "risk" | "decisions" | "clusters";
+
+type SherlockFinding = {
+  id: string;
+  finding_type: string;
+  source_object_id: string | null;
+  target_object_id: string | null;
+  confidence: string;
+  sensitive_flag: boolean;
+  status: string;
+};
+
 
 function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
@@ -71,6 +83,8 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [density, setDensity] = useState<Density>({ maxNodes: 24, hideWeak: false, hideSuggested: false });
+  const [lens, setLens] = useState<Lens>("relations");
+  const [findings, setFindings] = useState<SherlockFinding[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -125,10 +139,26 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         .neq("status", "dismissed")
         .in("from_entity_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
 
+      // Phase 6 — pull pending Sherlock findings tied to the visible entities
+      // so the lens views (risk / clusters) can color & cluster nodes.
+      let f: SherlockFinding[] = [];
+      if (ids.length > 0) {
+        const inList = ids.join(",");
+        const { data: fdata } = await (supabase as any)
+          .from("sherlock_findings")
+          .select("id, finding_type, source_object_id, target_object_id, confidence, sensitive_flag, status")
+          .eq("user_id", user.id)
+          .eq("status", "pending")
+          .or(`source_object_id.in.(${inList}),target_object_id.in.(${inList})`)
+          .limit(200);
+        f = (fdata ?? []) as SherlockFinding[];
+      }
+
       if (!alive) return;
       setEntities(list);
       setWeights(w);
       setRelations((rels ?? []) as Relation[]);
+      setFindings(f);
       setLoading(false);
     })();
     return () => { alive = false; };
@@ -149,6 +179,63 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
     [entities, weights, seedEntityId, size.w, size.h],
   );
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  // Phase 6 — per-entity Sherlock signals.
+  // riskByEntity: pending finding count weighted by high-confidence + sensitive flags.
+  // clustersByType: groupings of entities that share a Sherlock finding_type.
+  const { riskByEntity, clustersByType } = useMemo(() => {
+    const risk = new Map<string, { count: number; risky: boolean }>();
+    const clusters = new Map<string, Set<string>>();
+    for (const f of findings) {
+      const ids = [f.source_object_id, f.target_object_id].filter(Boolean) as string[];
+      const isRisky = f.sensitive_flag || f.confidence === "high";
+      for (const id of ids) {
+        if (!nodeById.has(id)) continue;
+        const cur = risk.get(id) ?? { count: 0, risky: false };
+        cur.count += 1;
+        if (isRisky) cur.risky = true;
+        risk.set(id, cur);
+        if (!clusters.has(f.finding_type)) clusters.set(f.finding_type, new Set());
+        clusters.get(f.finding_type)!.add(id);
+      }
+    }
+    return { riskByEntity: risk, clustersByType: clusters };
+  }, [findings, nodeById]);
+
+  // Decisions map: derive from existing entity_relations.
+  // confirmed vs suggested vs none — color the node by current relational "state of decision".
+  const decisionByEntity = useMemo(() => {
+    const m = new Map<string, "confirmed" | "suggested" | "none">();
+    for (const r of relations) {
+      for (const id of [r.from_entity_id, r.to_entity_id]) {
+        const prev = m.get(id);
+        if (r.status === "confirmed" || r.status === "active") m.set(id, "confirmed");
+        else if (!prev || prev === "none") m.set(id, r.status === "suggested" ? "suggested" : "confirmed");
+      }
+    }
+    return m;
+  }, [relations]);
+
+  // Cluster halos: compute a centroid + radius for each finding_type cluster (≥2 nodes).
+  const clusterHalos = useMemo(() => {
+    if (lens !== "clusters") return [] as { type: string; cx: number; cy: number; r: number }[];
+    const out: { type: string; cx: number; cy: number; r: number }[] = [];
+    for (const [type, set] of clustersByType) {
+      if (set.size < 2) continue;
+      const pts: { x: number; y: number }[] = [];
+      for (const id of set) {
+        const n = nodeById.get(id);
+        if (n) pts.push({ x: n.x, y: n.y });
+      }
+      if (pts.length < 2) continue;
+      const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+      const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+      const r = Math.max(...pts.map((p) => Math.hypot(p.x - cx, p.y - cy))) + 28;
+      out.push({ type, cx, cy, r });
+    }
+    return out;
+  }, [lens, clustersByType, nodeById]);
+
 
   const svgPoint = (e: React.PointerEvent): { x: number; y: number } => {
     const svg = svgRef.current;
@@ -280,6 +367,29 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         >
           hide suggested
         </button>
+        <span className="mx-1 h-3 w-px bg-border/60" aria-hidden />
+        <span className="px-1 uppercase tracking-wider text-[9px]">lens</span>
+        {(["relations", "risk", "decisions", "clusters"] as Lens[]).map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => setLens(l)}
+            className={cn(
+              "rounded-full px-2 py-0.5 ring-1 transition capitalize",
+              lens === l
+                ? "bg-primary/15 text-primary ring-primary/40"
+                : "bg-muted/30 ring-border/60 hover:bg-muted/50",
+            )}
+            title={
+              l === "relations" ? "Default relational view" :
+              l === "risk" ? "Color nodes by Sherlock attention" :
+              l === "decisions" ? "Color by confirmed vs suggested relations" :
+              "Group nodes by what Sherlock noticed"
+            }
+          >
+            {l}
+          </button>
+        ))}
       </div>
 
       {loading && (
@@ -302,17 +412,44 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
+          {/* Phase 6 — Sherlock cluster halos (only in clusters lens) */}
+          {clusterHalos.map((h, i) => (
+            <g key={`halo${i}`}>
+              <circle
+                cx={h.cx}
+                cy={h.cy}
+                r={h.r}
+                fill="hsl(var(--primary))"
+                fillOpacity={0.06}
+                stroke="hsl(var(--primary))"
+                strokeOpacity={0.35}
+                strokeDasharray="3 4"
+                strokeWidth={1}
+              />
+              <text
+                x={h.cx}
+                y={h.cy - h.r - 4}
+                textAnchor="middle"
+                fontSize={9}
+                className="fill-primary"
+                style={{ pointerEvents: "none", textTransform: "capitalize" }}
+              >
+                {h.type.replace(/_/g, " ")}
+              </text>
+            </g>
+          ))}
           {visibleRelations.map((r, i) => {
             const a = nodeById.get(r.from_entity_id);
             const b = nodeById.get(r.to_entity_id);
             if (!a || !b) return null;
             const isSuggested = r.status === "suggested";
+            const dim = lens === "risk" || lens === "decisions";
             return (
               <line
                 key={`r${i}`}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 stroke="hsl(var(--primary))"
-                strokeOpacity={isSuggested ? 0.55 : 0.35}
+                strokeOpacity={dim ? 0.18 : (isSuggested ? 0.55 : 0.35)}
                 strokeDasharray={isSuggested ? "5 4" : undefined}
                 strokeWidth={isSuggested ? 1.25 : 1 + Math.min(2, (r.evidence_count ?? 1) / 3)}
               >
@@ -335,6 +472,21 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
             const r = 14 + Math.min(8, n.weight);
             const isDrag = dragId === n.id;
             const isHover = hoverId === n.id && dragId && dragId !== n.id;
+            const risk = riskByEntity.get(n.id);
+            const dec = decisionByEntity.get(n.id);
+            // Lens-driven palette
+            let fill = kindColor(n.kind);
+            let ring: string | null = null;
+            if (lens === "risk") {
+              if (risk?.risky) fill = "hsl(var(--danger))";
+              else if (risk && risk.count > 0) fill = "hsl(var(--warn))";
+              else fill = "hsl(var(--muted-foreground))";
+            } else if (lens === "decisions") {
+              if (dec === "confirmed") fill = "hsl(var(--signal))";
+              else if (dec === "suggested") fill = "hsl(var(--primary))";
+              else fill = "hsl(var(--muted-foreground))";
+            }
+            if ((risk?.count ?? 0) > 0 && lens !== "risk") ring = "hsl(var(--warn))";
             return (
               <g
                 key={n.id}
@@ -349,12 +501,30 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
               >
                 <circle
                   r={r}
-                  fill={kindColor(n.kind)}
-                  fillOpacity={isHover ? 0.45 : 0.22}
-                  stroke={kindColor(n.kind)}
+                  fill={fill}
+                  fillOpacity={isHover ? 0.5 : 0.28}
+                  stroke={fill}
                   strokeWidth={isDrag || isHover ? 2 : 1.2}
-                  strokeOpacity={isDrag || isHover ? 1 : 0.7}
+                  strokeOpacity={isDrag || isHover ? 1 : 0.75}
                 />
+                {ring && (
+                  <circle
+                    r={r + 3.5}
+                    fill="none"
+                    stroke={ring}
+                    strokeOpacity={0.7}
+                    strokeWidth={1}
+                    strokeDasharray="2 2"
+                  />
+                )}
+                {risk && risk.count > 0 && (
+                  <g transform={`translate(${r - 2}, ${-(r - 2)})`}>
+                    <circle r={5} fill={risk.risky ? "hsl(var(--danger))" : "hsl(var(--warn))"} />
+                    <text textAnchor="middle" y={1.8} fontSize={7} className="fill-background" style={{ pointerEvents: "none" }}>
+                      {Math.min(9, risk.count)}
+                    </text>
+                  </g>
+                )}
                 {!hideLabels && (
                   <text
                     y={r + 11}
@@ -377,6 +547,9 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
           {relations.some((r) => r.status === "suggested") && (
             <span className="inline-flex items-center gap-1 text-primary/80">· dashed = Sherlock suggested</span>
           )}
+          {lens === "risk" && <span className="text-warn">· red = sensitive · amber = Sherlock attention</span>}
+          {lens === "decisions" && <span className="text-signal">· green = confirmed · blue = suggested</span>}
+          {lens === "clusters" && <span className="text-primary/80">· halos group what Sherlock noticed</span>}
         </span>
       </div>
     </div>
