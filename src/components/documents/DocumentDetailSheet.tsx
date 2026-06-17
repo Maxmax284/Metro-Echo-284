@@ -499,10 +499,22 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                       Summarize money terms
                     </Button>
                   </div>
+                  <div className="pt-1">
+                    <ResearchSuggestionChip
+                      prompt={`For the document "${doc.title}", find a few outside examples and common practices around the risks and clauses Vanta flagged. Summarize in plain English with sources.`}
+                      label="Look outside for examples"
+                      relatedEntityType="document"
+                      relatedEntityId={doc.id}
+                      projectId={doc.project_id ?? undefined}
+                      triggerReason="document_review"
+                      onCompleted={() => refresh()}
+                    />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     These open a draft in Vanta — nothing sends until you say so.
                   </p>
                 </Section>
+
 
                 {/* Export packets */}
                 <Section icon={<FileDown className="h-4 w-4" />} title="Export review packet">
