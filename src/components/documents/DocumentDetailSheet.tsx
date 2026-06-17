@@ -337,6 +337,20 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
               )}
             </div>
 
+            {!isDraft && (
+              <div className="mb-6">
+                <DocumentToolPlan
+                  status={doc.status}
+                  isDraft={isDraft}
+                  busy={!!busy}
+                  hasReview={!!review}
+                  onRun={runPlan}
+                />
+              </div>
+            )}
+
+
+
             {isDraft ? (
               <DraftBody
                 doc={doc}
