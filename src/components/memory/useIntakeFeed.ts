@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import type { CaptureItem, CaptureSource } from "./CaptureCard";
 
@@ -25,6 +26,7 @@ export type IntakeRow = CaptureItem & {
  */
 export function useIntakeFeed(limit = 60) {
   const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [items, setItems] = useState<IntakeRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,17 +34,17 @@ export function useIntakeFeed(limit = 60) {
     if (!session) return;
     setLoading(true);
     const [msgs, files, fieldNotes] = await Promise.all([
-      supabase.from("messages")
-        .select("id, content, created_at, role, metadata")
+      applyScope(supabase.from("messages")
+        .select("id, content, created_at, role, metadata"))
         .eq("role", "user")
         .order("created_at", { ascending: false })
         .limit(limit),
-      supabase.from("ingested_files")
-        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status")
+      applyScope(supabase.from("ingested_files")
+        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status"))
         .order("created_at", { ascending: false })
         .limit(limit),
-      supabase.from("field_notes")
-        .select("id, summary, note_type, created_at, confidence")
+      applyScope(supabase.from("field_notes")
+        .select("id, summary, note_type, created_at, confidence"))
         .order("created_at", { ascending: false })
         .limit(limit),
     ]);

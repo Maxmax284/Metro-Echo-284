@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ type Note = {
  */
 export function InboxNotesList() {
   const { session } = useAuth();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Note | null>(null);
@@ -49,7 +51,7 @@ export function InboxNotesList() {
     setNotes((data ?? []) as Note[]);
   };
 
-  useEffect(() => { if (session) refresh(); }, [session]);
+  useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
 
   const togglePick = (id: string) => {
     setPicked((prev) => {
@@ -69,7 +71,7 @@ export function InboxNotesList() {
     try {
       const { data, error } = await supabase
         .from("notes")
-        .insert({ user_id: session.user.id, title: draft.title || null, body: draft.body, tags: [] })
+        .insert(withScope({ user_id: session.user.id, title: draft.title || null, body: draft.body, tags: [] }))
         .select("id, title, body, updated_at")
         .single();
       if (error) throw error;

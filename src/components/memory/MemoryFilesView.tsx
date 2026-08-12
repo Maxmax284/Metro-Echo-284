@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
@@ -62,6 +63,7 @@ const TONE: Record<string, string> = {
 
 export function MemoryFilesView() {
   const { user } = useAuth();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
   const { record: recordRoute } = useCaptureRoute();
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -87,7 +89,7 @@ export function MemoryFilesView() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [scopeKey]);
 
   const handleFiles = async (fileList: FileList | File[]) => {
     if (!user) return;

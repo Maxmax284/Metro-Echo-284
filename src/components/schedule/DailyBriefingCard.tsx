@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,7 @@ type Commitment = {
  */
 export function DailyBriefingCard() {
   const { session, user } = useAuth();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const { timezone } = useUserTimezone();
   const [items, setItems] = useState<Commitment[]>([]);
   const [overdue, setOverdue] = useState(0);
@@ -44,16 +46,16 @@ export function DailyBriefingCard() {
     (async () => {
       const endOfDay = new Date(); endOfDay.setHours(23, 59, 59, 999);
       const [c, a, f] = await Promise.all([
-        supabase.from("commitments")
-          .select("id, summary, due_at, remind_at, status")
+        applyScope(supabase.from("commitments")
+          .select("id, summary, due_at, remind_at, status"))
           .eq("status", "open")
           .order("due_at", { ascending: true, nullsFirst: false })
           .limit(50),
-        supabase.from("actions")
-          .select("id", { count: "exact", head: true })
+        applyScope(supabase.from("actions")
+          .select("id", { count: "exact", head: true }))
           .in("status", ["proposed", "staged"]),
-        supabase.from("ingested_files")
-          .select("id", { count: "exact", head: true })
+        applyScope(supabase.from("ingested_files")
+          .select("id", { count: "exact", head: true }))
           .eq("status", "pending"),
       ]);
       const rows = (c.data ?? []) as Commitment[];
@@ -67,12 +69,12 @@ export function DailyBriefingCard() {
       // Audit briefing.generated once per session-mount (counts-first, no AI).
       if (user && !auditedRef.current) {
         auditedRef.current = true;
-        await supabase.from("audit_log").insert({
+        await supabase.from("audit_log").insert(withScope({
           user_id: user.id,
           entity_type: "briefing",
           event: "briefing.generated",
           payload: { overdue: od, due_today: rows.length, approvals: a.count ?? 0, files_pending: f.count ?? 0 },
-        });
+        }));
       }
     })();
   }, [session, user]);
