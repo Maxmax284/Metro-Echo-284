@@ -14,11 +14,13 @@ import {
   FolderKanban,
   FileText,
   Receipt,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 
 export type SurfaceKey =
+  | "today"
   | "command"
   | "inbox"
   | "projects"
@@ -35,6 +37,7 @@ export type SurfaceKey =
 
 const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = [
   // Primary
+  { key: "today", label: "Today", Icon: Sun },
   { key: "command", label: "Cockpit", Icon: LayoutDashboard },
   { key: "inbox", label: "Inbox", Icon: Inbox },
   { key: "projects", label: "Projects", Icon: FolderKanban },
@@ -51,7 +54,7 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
 ];
 
 // Five primary surfaces — the daily desk.
-const PRIMARY: SurfaceKey[] = ["command", "inbox", "projects", "briefs", "receipts"];
+const PRIMARY: SurfaceKey[] = ["today", "inbox", "projects", "briefs", "receipts"];
 
 export function SurfaceTabs({
   active,
