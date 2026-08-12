@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { FolderKanban, Loader2, Pin, Plus } from "lucide-react";
+import { LoadingState, EmptyState } from "@/components/ui/state-views";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
@@ -149,19 +150,15 @@ export function ProjectsSurface() {
       </header>
 
       {projects === null ? (
-        <div className="flex h-40 items-center justify-center text-muted-foreground">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <LoadingState rows={3} label="Loading projects" />
       ) : projects.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/60 bg-surface-elevated/40 p-8 text-center">
-          <h2 className="text-base font-medium">No projects yet</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            A project is the anchor — captures, notes, files and signals attach to it and roll up into one Living Brief.
-          </p>
-          <Button onClick={() => setOpen(true)} className="mt-4 gap-1.5">
-            <Plus className="h-4 w-4" /> Create your first project
-          </Button>
-        </div>
+        <EmptyState
+          icon={<FolderKanban className="h-5 w-5" />}
+          title="No projects yet"
+          hint="A project is the anchor — captures, notes, files and signals attach to it and roll up into one Living Brief."
+          actionLabel="Create your first project"
+          onAction={() => setOpen(true)}
+        />
       ) : (
         <ul className="space-y-2">
           {projects.map((p) => (
