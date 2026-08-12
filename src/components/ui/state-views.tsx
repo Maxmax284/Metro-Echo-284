@@ -88,7 +88,7 @@ export function ErrorState({
 }) {
   return (
     <div
-      className={cn("vanta-card px-4 py-4 ring-danger/30", className)}
+      className={cn("vanta-card px-4 py-4 ring-1 ring-danger/40", className)}
       role="alert"
     >
       <div className="text-[12.5px] font-medium text-danger">{title}</div>
