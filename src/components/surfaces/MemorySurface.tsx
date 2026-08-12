@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,28 +77,29 @@ export function MemorySurface() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const searchCancelRef = useRef(false);
 
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const [related, setRelated] = useState<RelatedHit[]>([]);
   const [relatedBusy, setRelatedBusy] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await applyScope(supabase
       .from("notes")
-      .select("id, title, body, tags, updated_at")
+      .select("id, title, body, tags, updated_at"))
       .order("updated_at", { ascending: false })
       .limit(100);
     setNotes((data ?? []) as Note[]);
     setLoading(false);
   };
 
-  useEffect(() => { if (session) refresh(); }, [session]);
+  useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
 
   const create = async () => {
     if (!session) return;
     if (!draft.body.trim() && !draft.title.trim()) return;
     const { data } = await supabase
       .from("notes")
-      .insert({ user_id: session.user.id, title: draft.title || null, body: draft.body, tags: [] })
+      .insert(withScope({ user_id: session.user.id, title: draft.title || null, body: draft.body, tags: [] }))
       .select("id, title, body, tags, updated_at")
       .single();
     if (data) {

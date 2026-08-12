@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ type Executor = { id: string; name: string; kind: "webhook" | "telegram"; enable
 
 export function ActionsSurface() {
   const { session } = useAuth();
+  const { scope, applyScope, key: scopeKey } = useScope();
   const [actions, setActions] = useState<Action[]>([]);
   const [executors, setExecutors] = useState<Executor[]>([]);
   const [chosenExecutor, setChosenExecutor] = useState<Record<string, string>>({});
@@ -60,7 +62,7 @@ export function ActionsSurface() {
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available").order("updated_at", { ascending: false }).limit(100),
+      applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
     setActions((a.data ?? []) as Action[]);
@@ -68,7 +70,7 @@ export function ActionsSurface() {
     setLoading(false);
   };
 
-  useEffect(() => { if (session) refresh(); }, [session]);
+  useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
 
   const transition = async (a: Action, to: Action["status"], reason?: string) => {
     setBusy(a.id);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +73,7 @@ function eventTone(event: string): DotTone {
 
 export function AuditSurface() {
   const { timezone } = useUserTimezone();
+  const { applyScope, key: scopeKey, matches } = useScope();
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [events, setEvents] = useState<ActionEvent[]>([]);
   const [filter, setFilter] = useState("");
@@ -84,7 +86,7 @@ export function AuditSurface() {
   const load = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      supabase.from("audit_log").select("*").order("created_at", { ascending: false }).limit(100),
+      applyScope(supabase.from("audit_log").select("*")).order("created_at", { ascending: false }).limit(100),
       supabase.from("action_events").select("*").order("created_at", { ascending: false }).limit(60),
     ]);
     setAudit((a.data ?? []) as AuditRow[]);
@@ -92,7 +94,7 @@ export function AuditSurface() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [scopeKey]);
 
   // Wave 5 — live receipts. Every state change emits an audit_log row;
   // surface them as they happen so the Audit lane reflects reality, not a
@@ -100,13 +102,16 @@ export function AuditSurface() {
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | null = null;
     const nudge = () => { if (t) clearTimeout(t); t = setTimeout(() => load(), 400); };
+    // Scope guard: postgres_changes can't express "IS NULL", so rows from other
+    // rooms are dropped here before they can trigger a reload.
+    const scoped = (payload: any) => { if (matches(payload?.new)) nudge(); };
     const channel = supabase
-      .channel("audit-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, nudge)
+      .channel(`audit-live-${scopeKey}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_log" }, scoped)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "action_events" }, nudge)
       .subscribe();
     return () => { if (t) clearTimeout(t); supabase.removeChannel(channel); };
-  }, []);
+  }, [scopeKey, matches]);
 
   const auditFiltered = useMemo(() => {
     const f = filter.trim().toLowerCase();

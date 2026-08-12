@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
   const { session } = useAuth();
   const { timezone } = useUserTimezone();
   const { intake } = useIntakePrefs();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
@@ -55,9 +57,9 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
   const refresh = async () => {
     setLoading(true);
-    let q = supabase
+    let q = applyScope(supabase
       .from("commitments")
-      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at")
+      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at"))
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (filter === "open") q = q.eq("status", "open");
@@ -66,7 +68,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     setLoading(false);
   };
 
-  useEffect(() => { if (session) refresh(); }, [session, filter]);
+  useEffect(() => { if (session) refresh(); }, [session, filter, scopeKey]);
 
   // Push deep-link: focus the target commitment. Switch to "all" filter so
   // done/cancelled items still surface, scroll the row into view, and
@@ -98,7 +100,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
       : null;
     const { data } = await supabase
       .from("commitments")
-      .insert({
+      .insert(withScope({
         user_id: session.user.id,
         summary: draft.summary.trim(),
         due_at: draft.due_at ? new Date(draft.due_at).toISOString() : null,
@@ -118,13 +120,13 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
   const audit = async (commitmentId: string, event: string, payload: Record<string, any> = {}) => {
     if (!session) return;
-    await supabase.from("audit_log").insert({
+    await supabase.from("audit_log").insert(withScope({
       user_id: session.user.id,
       entity_type: "commitment",
       entity_id: commitmentId,
       event,
       payload,
-    });
+    }));
   };
 
   const isReminder = (c: Commitment) => !!c.remind_at;
