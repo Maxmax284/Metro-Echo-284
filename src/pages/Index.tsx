@@ -15,6 +15,7 @@ import { ScheduleSurface } from "@/components/surfaces/ScheduleSurface";
 import { BriefsSurface } from "@/components/surfaces/BriefsSurface";
 import { ProjectsSurface } from "@/components/surfaces/ProjectsSurface";
 import { InboxSurface } from "@/components/surfaces/InboxSurface";
+import { TodaySurface } from "@/components/surfaces/TodaySurface";
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, _setSurface] = useState<SurfaceKey>("command");
+  const [surface, _setSurface] = useState<SurfaceKey>("today");
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
 
   // Per-surface scroll memory. We capture the active surface's scroll position
@@ -287,6 +288,7 @@ function IndexInner() {
           <MissingSecretsBanner />
 
           <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+            {surface === "today" && <TodaySurface onNavigate={setSurface} />}
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
