@@ -173,7 +173,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             {overdue.length === 0 && approvals.length === 0 ? (
               <EmptyState
                 title="Clear for now"
-                description="Late promises and things staged for approval show up here."
+                hint="Late promises and things staged for approval show up here."
               />
             ) : (
               <div className="space-y-1.5">
@@ -217,7 +217,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             {dueToday.length === 0 && next.length === 0 ? (
               <EmptyState
                 title="No dated promises"
-                description="When you tell Vanta you'll do something by a date, it lands here."
+                hint="When you tell Vanta you'll do something by a date, it lands here."
               />
             ) : (
               <div className="space-y-1.5">
@@ -254,7 +254,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             {events.length === 0 ? (
               <EmptyState
                 title="Nothing recorded yet"
-                description="Every save, approval and run leaves a receipt here."
+                hint="Every save, approval and run leaves a receipt here."
               />
             ) : (
               <ul className="space-y-1.5">
