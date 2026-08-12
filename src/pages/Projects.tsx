@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2, Pin, Plus } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { SeedItemsPicker } from "@/components/projects/SeedItemsPicker";
 import type { SuggestedItem } from "@/lib/projectSuggestions";

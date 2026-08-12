@@ -9,8 +9,9 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Trash2, Notebook } from "lucide-react";
+import { LoadingState, EmptyState } from "@/components/ui/state-views";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
@@ -113,13 +114,7 @@ export function InboxNotesList() {
     setEditing(null);
   };
 
-  if (!notes) {
-    return (
-      <div className="flex h-40 items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading notes…
-      </div>
-    );
-  }
+  if (!notes) return <LoadingState rows={3} label="Loading notes" />;
 
   const pickedItems = Array.from(picked).map((id) => ({ type: "note" as const, id }));
 
@@ -135,10 +130,13 @@ export function InboxNotesList() {
       </div>
 
       {notes.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-          <Notebook className="mx-auto mb-2 h-5 w-5 opacity-60" />
-          No notes yet. Tap “New note” to start.
-        </div>
+        <EmptyState
+          icon={<Notebook className="h-5 w-5" />}
+          title="Nothing written down yet"
+          hint="Notes are the fastest way in. Anything you save here can be pushed into a project later."
+          actionLabel="New note"
+          onAction={() => setComposing(true)}
+        />
       ) : (
         <ul className="space-y-1.5">
           {notes.map((n) => {

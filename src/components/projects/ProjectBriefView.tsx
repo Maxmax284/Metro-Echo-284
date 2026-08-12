@@ -1,6 +1,6 @@
 // ProjectBriefView — the Living Brief surface, decoupled from routing so it
 // can render either inside the shell (under the Projects tab) or as its own
-// page. Pure view: takes a project id + a way to go back.
+// page. Pure view: takes a project id + a back handler.
 import { useEffect, useMemo, useState } from "react";
 import {
   Project,
@@ -29,7 +29,7 @@ import {
   ArrowLeft, FileText, Loader2, MoreVertical, Pin, PinOff, Plus, Search, Sparkles,
   Trash2, X, ScrollText, CheckSquare, MessageSquare, Notebook, Receipt, Network,
 } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { LivingBriefBlocks, sourceCardId, type StructuredBrief } from "@/components/projects/LivingBriefBlocks";
 import { ProjectInbox } from "@/components/projects/ProjectInbox";

@@ -25,7 +25,7 @@ import type { IntegrationDef } from "@/lib/integrations/registry";
 import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 
 type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; diagnostic?: ExternalPlatformDiagnostic; onSecretsChanged?: () => void | Promise<void> };
 
@@ -65,18 +65,20 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
     });
     setTesting(false);
     if (error) {
-      toast.error("Test failed.", { description: error.message });
+      toast.error({ title: "Test failed.", description: error.message });
       setTestResult({ ok: false, stage: "invoke_error", inbound_response: error.message });
       return;
     }
     setTestResult(data);
     if (data?.ok) {
-      toast.success("Test signal received and stored as draft.", {
+      toast.success({
+        title: "Test signal received and stored as draft.",
         description: `event_id ${String(data.event_id).slice(0, 8)}… → message ${String(data.message_row?.id).slice(0, 8)}…`,
       });
       await onSecretsChanged?.();
     } else {
-      toast.error(`Test failed at ${data?.stage ?? "unknown"}`, {
+      toast.error({
+        title: `Test failed at ${data?.stage ?? "unknown"}`,
         description: typeof data?.inbound_response === "object"
           ? JSON.stringify(data.inbound_response)
           : String(data?.inbound_response ?? "see details below"),
@@ -137,7 +139,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
     });
     setSavingSecret(false);
     if (error || data?.error) {
-      toast.error("Couldn't save secret.", { description: data?.error ?? error?.message });
+      toast.error({ title: "Couldn't save secret.", description: data?.error ?? error?.message });
       return;
     }
     toast.success("Secret saved.");

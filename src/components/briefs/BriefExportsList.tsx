@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Loader2, Telescope, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { LoadingState, EmptyState } from "@/components/ui/state-views";
 import { listBriefExports, getBriefDownloadUrl, FORMAT_LABEL, type BriefExportRow } from "@/lib/briefs";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -68,13 +69,7 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 p-3 text-[12px] text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading briefs…
-      </div>
-    );
-  }
+  if (loading) return <LoadingState rows={2} label="Loading briefs" />;
 
   const pdfRows = rows.filter((r) => !!r.storage_path);
   // Research briefs are drafts without a PDF — surface them anyway with an
@@ -85,16 +80,17 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
   if (pdfRows.length === 0 && researchRows.length === 0) {
     if (otherDrafts.length > 0) {
       return (
-        <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
-          <div className="text-foreground/85">Living Brief updated. No PDF exports yet.</div>
-        </div>
+        <EmptyState
+          title="Living Brief updated. No PDF exports yet."
+          hint="Approve an export and the PDF lands here with its receipt."
+        />
       );
     }
     return (
-      <div className="rounded-md border border-dashed border-border/50 p-4 text-center text-[12px] text-muted-foreground">
-        <div className="text-foreground/85">No exported briefs yet.</div>
-        <div className="mt-1">Draft summaries stay in the Living Brief until you approve an export.</div>
-      </div>
+      <EmptyState
+        title="No exported briefs yet"
+        hint="Draft summaries stay in the Living Brief until you approve an export."
+      />
     );
   }
 
