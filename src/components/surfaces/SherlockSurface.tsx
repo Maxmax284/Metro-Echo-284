@@ -61,6 +61,7 @@ type Target =
 
 export function SherlockSurface() {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
 
   const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
