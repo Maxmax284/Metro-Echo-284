@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";

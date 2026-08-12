@@ -11,7 +11,7 @@ import {
 import { Loader2, Plus, Trash2, Notebook } from "lucide-react";
 import { LoadingState, EmptyState } from "@/components/ui/state-views";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";

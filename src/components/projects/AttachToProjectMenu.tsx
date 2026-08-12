@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { Check, FolderPlus, Loader2, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useActivity } from "@/components/workstatus/ActivityStore";
 import { stepsInboxAttach, humanizeWorkError } from "@/lib/workStatus";
 

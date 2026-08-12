@@ -15,7 +15,7 @@ import {
   Receipt, RefreshCcw, Send, Sparkles, ShieldAlert, Users,
 } from "lucide-react";
 
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import {
   DOCUMENT_DISCLAIMER, approveDraft, getDocument, getLatestReview,

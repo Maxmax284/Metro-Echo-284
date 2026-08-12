@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { attachToProject, type Project, type ProjectItem } from "@/lib/projects";
 import { SeedItemsPicker } from "@/components/projects/SeedItemsPicker";
 import type { SuggestedItem } from "@/lib/projectSuggestions";

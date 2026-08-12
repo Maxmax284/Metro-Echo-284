@@ -21,7 +21,7 @@ import {
   ChevronDown, ChevronRight, FileText, Inbox, Loader2, MessageSquare,
   Notebook, Paperclip, RotateCcw, Sparkles, X, CheckSquare, ScrollText,
 } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
 

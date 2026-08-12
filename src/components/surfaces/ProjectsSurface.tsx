@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FolderKanban, Loader2, Pin, Plus } from "lucide-react";
 import { LoadingState, EmptyState } from "@/components/ui/state-views";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
 

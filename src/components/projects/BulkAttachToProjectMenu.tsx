@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { FolderPlus, Loader2, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 
 export interface BulkAttachItem {
   type: ProjectItemType;

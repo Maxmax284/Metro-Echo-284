@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, FilePlus2, Loader2, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DOCUMENT_TEMPLATES, DRAFT_TONES, getTemplate,
