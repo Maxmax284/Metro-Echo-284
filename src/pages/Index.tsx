@@ -33,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { NudgesPanel } from "@/components/NudgesPanel";
 import { CaptureToastProvider } from "@/components/capture/CaptureToast";
 import { GlobalDropZone } from "@/components/files/GlobalDropZone";
+import { ClipboardImageIntake } from "@/components/files/ClipboardImageIntake";
 import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBanner";
 
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -305,6 +306,7 @@ function IndexInner() {
       <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
       <GlobalDropZone />
+      <ClipboardImageIntake />
     </div>
   );
 }
