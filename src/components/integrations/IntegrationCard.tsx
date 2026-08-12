@@ -71,12 +71,14 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
     }
     setTestResult(data);
     if (data?.ok) {
-      toast.success("Test signal received and stored as draft.", {
+      toast.success({
+        title: "Test signal received and stored as draft.",
         description: `event_id ${String(data.event_id).slice(0, 8)}… → message ${String(data.message_row?.id).slice(0, 8)}…`,
       });
       await onSecretsChanged?.();
     } else {
-      toast.error(`Test failed at ${data?.stage ?? "unknown"}`, {
+      toast.error({
+        title: `Test failed at ${data?.stage ?? "unknown"}`,
         description: typeof data?.inbound_response === "object"
           ? JSON.stringify(data.inbound_response)
           : String(data?.inbound_response ?? "see details below"),
