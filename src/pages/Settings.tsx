@@ -21,6 +21,7 @@ import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection
 import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
+import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -156,6 +157,8 @@ export default function Settings() {
       <TimeRemindersSection />
 
       <RecapSettingsPanel />
+
+      <DeviceSignalsSection />
 
       <PushReadinessSection />
 
