@@ -82,7 +82,7 @@ export function EmailInboxCard() {
               <div className="text-muted-foreground">Forwarding address</div>
               <div className="flex items-center gap-1">
                 <code className="flex-1 truncate rounded bg-muted px-2 py-1">{friendlyAddress}</code>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copy(friendlyAddress!)}>
+                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copy inbound email address" onClick={() => copy(friendlyAddress!)}>
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -91,7 +91,7 @@ export function EmailInboxCard() {
               <div className="text-muted-foreground">Webhook URL (for SendGrid/Mailgun/Postmark inbound)</div>
               <div className="flex items-center gap-1">
                 <code className="flex-1 truncate rounded bg-muted px-2 py-1">{webhookUrl}</code>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copy(webhookUrl)}>
+                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copy webhook URL" onClick={() => copy(webhookUrl)}>
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </div>

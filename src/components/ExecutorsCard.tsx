@@ -267,7 +267,7 @@ export function ExecutorsCard() {
               <div className="text-[11px] text-muted-foreground truncate">{summary(e)}</div>
             </div>
             <Switch checked={e.enabled} onCheckedChange={() => toggle(e)} />
-            <Button size="icon" variant="ghost" onClick={() => remove(e.id)}><Trash2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" aria-label={`Remove ${e.name}`} onClick={() => remove(e.id)}><Trash2 className="h-4 w-4" /></Button>
           </li>
         ))}
       </ul>
