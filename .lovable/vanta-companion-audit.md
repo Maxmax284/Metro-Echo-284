@@ -386,12 +386,27 @@ role-aware UI, brief-pipeline consolidation, react-query migration.
 
 ## Changes Implemented In This Pass (safe only)
 
-1. `src/components/ui/state-views.tsx` — `LoadingState` (skeleton + `aria-busy`), `EmptyState` (teaching
-   copy + optional action), `ErrorState`. Adopted in the four smallest surfaces as proof.
-2. `src/index.css` — `.vanta-card` utility (one surface + radius + ring), and a
-   `prefers-reduced-motion` guard on `.motion-surface-in`.
-3. Accessible names added to 8 icon-only buttons.
-4. Bottom nav respects `env(safe-area-inset-bottom)`.
-5. Removed dead scratch files under `scripts/`.
+1. `src/components/ui/state-views.tsx` (new) — `LoadingState` (skeletons + `aria-busy` + `sr-only` label),
+   `EmptyState` (teaching copy + optional action), `ErrorState` (plain English + retry).
+2. Adopted the primitives in `BriefExportsList`, `InboxNotesList`, and `ProjectsSurface` as proof. The
+   remaining 62 hand-rolled spinners are documented under UI-4, not swept in this pass.
+3. `src/index.css` — `.vanta-card` utility: one surface, one radius, one hairline ring. Replaces the
+   ad-hoc `surface-elevated + rounded-{md,lg,xl,2xl} + ring-border/{30,40,50,60,70}` combinations.
+4. Accessible names added to the 4 genuinely unlabeled icon-only buttons (`EmailInboxCard` ×2,
+   `ExecutorsCard` ×1; the `ui/sidebar.tsx` trigger is upstream shadcn and already has an `sr-only` label).
+5. **Fixed 2 pre-existing failing tests.** 12 files imported `toast` from `sonner` directly, bypassing the
+   `vantaVoice` wrapper that owns Vanta's tone; all now route through `vantaToast`. Four two-arg call sites
+   in `IntegrationCard` converted to the wrapper's `{ title, description }` shape. One false-positive
+   banned-phrase hit in a `ProjectBriefView` code comment reworded.
+6. Removed 6 dead scratch files under `scripts/` (`footer_test*.tsx`, `qaExportPolish.tsx`).
+
+Suite status after this pass: **47/47 passing** (was 45/47). Typecheck clean.
+
+### Corrections to earlier assumptions
+
+Two things were already handled and are *not* issues, contrary to a first read:
+
+- `prefers-reduced-motion` already guards `.motion-surface-in`, the radar animations, and the drawer motion.
+- The bottom nav already applies `.safe-bottom` (`env(safe-area-inset-bottom)`).
 
 No schema changes. No behavior changes. No navigation changes.
