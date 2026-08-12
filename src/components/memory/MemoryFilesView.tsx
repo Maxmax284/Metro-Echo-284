@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
@@ -62,6 +63,7 @@ const TONE: Record<string, string> = {
 
 export function MemoryFilesView() {
   const { user } = useAuth();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
   const { record: recordRoute } = useCaptureRoute();
   const [files, setFiles] = useState<FileRow[]>([]);
@@ -78,16 +80,16 @@ export function MemoryFilesView() {
 
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await applyScope(supabase
       .from("ingested_files")
-      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at, detected_doc_type, suggested_summary, suggested_actions, extracted_entities, sensitive, review_status, confidence")
+      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at, detected_doc_type, suggested_summary, suggested_actions, extracted_entities, sensitive, review_status, confidence"))
       .order("created_at", { ascending: false })
       .limit(100);
     setFiles((data ?? []) as FileRow[]);
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [scopeKey]);
 
   const handleFiles = async (fileList: FileList | File[]) => {
     if (!user) return;
@@ -102,7 +104,7 @@ export function MemoryFilesView() {
         if (upErr) throw upErr;
         const { data: rec, error: insErr } = await supabase
           .from("ingested_files")
-          .insert({
+          .insert(withScope({
             user_id: user.id,
             filename: f.name,
             mime_type: f.type || null,
@@ -110,7 +112,7 @@ export function MemoryFilesView() {
             storage_path: path,
             source: "upload",
             status: "pending",
-          })
+          }))
           .select("id")
           .single();
         if (insErr) throw insErr;

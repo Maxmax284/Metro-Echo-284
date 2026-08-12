@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { Archive, Clock, MapPin, AlertTriangle, Trash2, Loader2 } from "lucide-react";
@@ -51,6 +52,7 @@ const FEEDBACK_TONE: Record<string, string> = {
 };
 
 export function CorrectionsCenter() {
+  const { applyScope, key: scopeKey } = useScope();
   const [tab, setTab] = useState<Tab>("corrections");
   const [corrections, setCorrections] = useState<Correction[]>([]);
   const [notes, setNotes] = useState<FieldNote[]>([]);
@@ -61,14 +63,14 @@ export function CorrectionsCenter() {
   const load = async () => {
     setLoading(true);
     const [c, n] = await Promise.all([
-      supabase
+      applyScope(supabase
         .from("corrections")
-        .select("id, surface, target_type, target_id, feedback_type, user_note, confidence_impact, status, created_at")
+        .select("id, surface, target_type, target_id, feedback_type, user_note, confidence_impact, status, created_at"))
         .order("created_at", { ascending: false })
         .limit(200),
-      supabase
+      applyScope(supabase
         .from("field_notes")
-        .select("id, note_type, summary, details, location_label, confidence, freshness, status, expires_at, created_at")
+        .select("id, note_type, summary, details, location_label, confidence, freshness, status, expires_at, created_at"))
         .order("created_at", { ascending: false })
         .limit(200),
     ]);
@@ -77,7 +79,7 @@ export function CorrectionsCenter() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [scopeKey]);
 
   const setCorrectionStatus = async (id: string, status: "archived" | "active") => {
     setBusy(id);

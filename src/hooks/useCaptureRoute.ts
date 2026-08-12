@@ -9,6 +9,7 @@
 // commitment, action, etc.) and then call record() to keep the receipts.
 import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 
 export type CaptureKind = "message" | "file" | "field_note" | "note" | "other";
@@ -42,6 +43,7 @@ export type RecordRouteInput = {
 
 export function useCaptureRoute() {
   const { user } = useAuth();
+  const { withScope, key: scopeKey } = useScope();
 
   const record = useCallback(
     async (input: RecordRouteInput) => {
@@ -59,16 +61,16 @@ export function useCaptureRoute() {
       };
       const { data: audit } = await supabase
         .from("audit_log")
-        .insert({
+        .insert(withScope({
           user_id: user.id,
           entity_type: "capture",
           entity_id: null,
           event,
           payload: auditPayload,
-        })
+        }))
         .select("id")
         .single();
-      await supabase.from("capture_routes").insert({
+      await supabase.from("capture_routes").insert(withScope({
         user_id: user.id,
         capture_kind: input.captureKind,
         capture_id: input.captureId,
@@ -80,10 +82,10 @@ export function useCaptureRoute() {
         sherlock_finding_id: input.sherlockFindingId ?? null,
         audit_event_id: audit?.id ?? null,
         payload: (input.payload ?? {}) as any,
-      });
+      }));
       return audit?.id ?? null;
     },
-    [user],
+    [user, withScope, scopeKey],
   );
 
   return { record };

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,6 +61,7 @@ type Target =
 
 export function SherlockSurface() {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
 
   const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
@@ -89,9 +91,9 @@ export function SherlockSurface() {
   const loadTargets = async () => {
     if (!user) return;
     const [c, n, a] = await Promise.all([
-      supabase.from("commitments").select("id, summary, updated_at").order("updated_at", { ascending: false }).limit(4),
-      supabase.from("notes").select("id, title, body, updated_at").order("updated_at", { ascending: false }).limit(4),
-      supabase.from("actions").select("id, title, status, updated_at").order("updated_at", { ascending: false }).limit(4),
+      applyScope(supabase.from("commitments").select("id, summary, updated_at")).order("updated_at", { ascending: false }).limit(4),
+      applyScope(supabase.from("notes").select("id, title, body, updated_at")).order("updated_at", { ascending: false }).limit(4),
+      applyScope(supabase.from("actions").select("id, title, status, updated_at")).order("updated_at", { ascending: false }).limit(4),
     ]);
     const t: Target[] = [];
     (c.data ?? []).forEach((r: any) =>
@@ -103,7 +105,7 @@ export function SherlockSurface() {
     setTargets(t);
   };
 
-  useEffect(() => { load(); loadTargets(); }, [user]);
+  useEffect(() => { load(); loadTargets(); }, [user, scopeKey]);
 
   const loadFindings = async (id: string) => {
     if (findingsByInv[id]) return;
