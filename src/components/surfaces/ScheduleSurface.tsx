@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ type FileRow = { id: string; filename: string; status: string; metadata: any; cr
 export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) => void }) {
   const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const [tab, setTab] = useState<TabKey>("today");
   const [commits, setCommits] = useState<Commitment[]>([]);
   const [reviewCaptures, setReviewCaptures] = useState<number>(0);
@@ -26,18 +28,18 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   const [pendingActions, setPendingActions] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (session) load(); }, [session]);
+  useEffect(() => { if (session) load(); }, [session, scopeKey]);
 
   // Doctrine: every surface change leaves a receipt. Debounced 1.5s to avoid spam.
   useEffect(() => {
     if (!user) return;
     const t = setTimeout(() => {
-      supabase.from("audit_log").insert({
+      supabase.from("audit_log").insert(withScope({
         user_id: user.id,
         entity_type: "schedule",
         event: "schedule.viewed",
         payload: { tab },
-      });
+      }));
     }, 1500);
     return () => clearTimeout(t);
   }, [tab, user]);
@@ -46,20 +48,20 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
     setLoading(true);
     const in7 = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
     const [c, m, f, a] = await Promise.all([
-      supabase.from("commitments")
-        .select("id, summary, due_at, remind_at, status, metadata")
+      applyScope(supabase.from("commitments")
+        .select("id, summary, due_at, remind_at, status, metadata"))
         .neq("status", "done").neq("status", "cancelled")
         .or(`due_at.lte.${in7},remind_at.lte.${in7}`)
         .order("due_at", { ascending: true, nullsFirst: false }).limit(100),
-      supabase.from("messages")
-        .select("id", { count: "exact", head: true })
+      applyScope(supabase.from("messages")
+        .select("id", { count: "exact", head: true }))
         .eq("role", "user")
         .filter("metadata->>needs_review", "eq", "true"),
-      supabase.from("ingested_files")
-        .select("id, filename, status, metadata, created_at")
+      applyScope(supabase.from("ingested_files")
+        .select("id, filename, status, metadata, created_at"))
         .order("created_at", { ascending: false }).limit(30),
-      supabase.from("actions")
-        .select("id", { count: "exact", head: true })
+      applyScope(supabase.from("actions")
+        .select("id", { count: "exact", head: true }))
         .in("status", ["proposed", "staged"]),
     ]);
     setCommits((c.data ?? []) as Commitment[]);

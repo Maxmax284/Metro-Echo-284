@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
     pendingApprovals: 0, highRisk: 0, openCommitments: 0, overdueCommitments: 0,
     sherlockFlags: 0, recentCaptures: 0, executedToday: 0,
   });
+  const { applyScope, key: scopeKey } = useScope();
   const [approvals, setApprovals] = useState<ActionRow[]>([]);
   const [today, setToday] = useState<CommitmentRow[]>([]);
   const [overdue, setOverdue] = useState<CommitmentRow[]>([]);
@@ -89,7 +91,7 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefDefault, setBriefDefault] = useState<{ format?: BriefFormat; auto?: boolean }>({});
 
-  useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session, intake.commitment_stale_days, intake.commitment_stale_behavior]);
+  useEffect(() => { if (session) refresh(); /* eslint-disable-next-line */ }, [session, scopeKey, intake.commitment_stale_days, intake.commitment_stale_behavior]);
 
   function openBrief(opts?: { format?: BriefFormat; auto?: boolean }) {
     setBriefDefault(opts ?? {});
@@ -103,30 +105,30 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
     const endOfDay = new Date(now); endOfDay.setHours(23, 59, 59, 999);
 
     const [acts, commits, recentMsgs, recentFiles, sherlock, audit, sherlockPending] = await Promise.all([
-      supabase.from("actions")
-        .select("id, title, risk, status, updated_at")
+      applyScope(supabase.from("actions")
+        .select("id, title, risk, status, updated_at"))
         .in("status", ["staged", "proposed"])
         .order("updated_at", { ascending: false })
         .limit(50),
-      supabase.from("commitments")
-        .select("id, summary, due_at, status, priority")
+      applyScope(supabase.from("commitments")
+        .select("id, summary, due_at, status, priority"))
         .eq("status", "open")
         .order("due_at", { ascending: true, nullsFirst: false })
         .limit(50),
-      supabase.from("messages")
-        .select("id, role, content, created_at, metadata")
+      applyScope(supabase.from("messages")
+        .select("id, role, content, created_at, metadata"))
         .order("created_at", { ascending: false })
         .limit(20),
-      supabase.from("ingested_files")
-        .select("id, filename, source, created_at")
+      applyScope(supabase.from("ingested_files")
+        .select("id, filename, source, created_at"))
         .order("created_at", { ascending: false })
         .limit(10),
       supabase.from("sherlock_findings_cache")
         .select("id, entity_type, findings, confidence, updated_at")
         .order("updated_at", { ascending: false })
         .limit(8),
-      supabase.from("audit_log")
-        .select("id, event, entity_type, created_at")
+      applyScope(supabase.from("audit_log")
+        .select("id, event, entity_type, created_at"))
         .order("created_at", { ascending: false })
         .limit(15),
       supabase.from("sherlock_findings")
