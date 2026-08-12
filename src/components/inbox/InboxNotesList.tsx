@@ -43,9 +43,9 @@ export function InboxNotesList() {
 
   const refresh = async () => {
     setNotes(null);
-    const { data } = await supabase
+    const { data } = await applyScope(supabase
       .from("notes")
-      .select("id, title, body, updated_at")
+      .select("id, title, body, updated_at"))
       .order("updated_at", { ascending: false })
       .limit(100);
     setNotes((data ?? []) as Note[]);

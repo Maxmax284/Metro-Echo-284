@@ -63,14 +63,14 @@ export function CorrectionsCenter() {
   const load = async () => {
     setLoading(true);
     const [c, n] = await Promise.all([
-      supabase
+      applyScope(supabase
         .from("corrections")
-        .select("id, surface, target_type, target_id, feedback_type, user_note, confidence_impact, status, created_at")
+        .select("id, surface, target_type, target_id, feedback_type, user_note, confidence_impact, status, created_at"))
         .order("created_at", { ascending: false })
         .limit(200),
-      supabase
+      applyScope(supabase
         .from("field_notes")
-        .select("id, note_type, summary, details, location_label, confidence, freshness, status, expires_at, created_at")
+        .select("id, note_type, summary, details, location_label, confidence, freshness, status, expires_at, created_at"))
         .order("created_at", { ascending: false })
         .limit(200),
     ]);

@@ -7,6 +7,7 @@
 //  - No auto AI. files-ingest extracts; aftermath actions are opt-in.
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { logFileEvent } from "@/lib/fileAudit";
 import { vantaSay } from "@/lib/vantaVoice";
@@ -49,6 +50,7 @@ export function useStagedUpload(opts?: {
   onSaved?: (s: StagedFile) => void;
 }) {
   const { user } = useAuth();
+  const { withScope } = useScope();
   const [staged, setStaged] = useState<StagedFile[]>([]);
   // ref mirror so async loops always read fresh items
   const ref = useRef<StagedFile[]>([]);
@@ -131,7 +133,7 @@ export function useStagedUpload(opts?: {
         if (upErr) throw upErr;
         const { data: rec, error: insErr } = await supabase
           .from("ingested_files")
-          .insert({
+          .insert(withScope({
             user_id: user.id,
             filename: s.file.name,
             mime_type: s.file.type || null,
@@ -141,7 +143,7 @@ export function useStagedUpload(opts?: {
             status: "pending",
             batch_id: s.batchId ?? null,
             metadata: s.note ? { note: s.note } : {},
-          } as any)
+          }) as any)
           .select("id")
           .single();
         if (insErr) throw insErr;

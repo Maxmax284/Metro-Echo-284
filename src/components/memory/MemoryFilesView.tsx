@@ -80,9 +80,9 @@ export function MemoryFilesView() {
 
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await applyScope(supabase
       .from("ingested_files")
-      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at, detected_doc_type, suggested_summary, suggested_actions, extracted_entities, sensitive, review_status, confidence")
+      .select("id, filename, mime_type, size_bytes, source, status, note_id, metadata, created_at, detected_doc_type, suggested_summary, suggested_actions, extracted_entities, sensitive, review_status, confidence"))
       .order("created_at", { ascending: false })
       .limit(100);
     setFiles((data ?? []) as FileRow[]);
@@ -104,7 +104,7 @@ export function MemoryFilesView() {
         if (upErr) throw upErr;
         const { data: rec, error: insErr } = await supabase
           .from("ingested_files")
-          .insert({
+          .insert(withScope({
             user_id: user.id,
             filename: f.name,
             mime_type: f.type || null,
@@ -112,7 +112,7 @@ export function MemoryFilesView() {
             storage_path: path,
             source: "upload",
             status: "pending",
-          })
+          }))
           .select("id")
           .single();
         if (insErr) throw insErr;
