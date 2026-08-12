@@ -105,7 +105,7 @@ export function SherlockSurface() {
     setTargets(t);
   };
 
-  useEffect(() => { load(); loadTargets(); }, [user]);
+  useEffect(() => { load(); loadTargets(); }, [user, scopeKey]);
 
   const loadFindings = async (id: string) => {
     if (findingsByInv[id]) return;
