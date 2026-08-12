@@ -106,7 +106,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
         due_at: draft.due_at ? new Date(draft.due_at).toISOString() : null,
         remind_at: remindAt,
         priority: draft.priority,
-      })
+      }))
       .select("id")
       .single();
     if (data) {
