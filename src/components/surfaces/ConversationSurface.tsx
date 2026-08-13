@@ -22,6 +22,7 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
+import { useScope } from "@/hooks/useScope";
 
 
 type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
@@ -66,6 +67,7 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
   const { session } = useAuth();
+  const { scope } = useScope();
   const { context, setContext } = useCurrentContext();
   const { place } = useAwareness();
   const { mode } = useMode();
