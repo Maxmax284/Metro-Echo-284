@@ -11,6 +11,7 @@ import { ArrowUpRight, Check, Loader2, Shield, ShieldAlert, ShieldCheck } from "
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
 
 type PendingStatus = "proposed" | "staged" | "approved";
 
@@ -20,6 +21,10 @@ type PendingAction = {
   description: string | null;
   risk: "low_reversible" | "standard" | "high";
   status: PendingStatus;
+  payload: Record<string, unknown> | null;
+  source: string | null;
+  affected_entities: unknown[] | null;
+  rollback_available: boolean | null;
 };
 
 const RiskIcon = { low_reversible: ShieldCheck, standard: Shield, high: ShieldAlert } as const;
@@ -49,10 +54,11 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
   const [items, setItems] = useState<PendingAction[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [executeTarget, setExecuteTarget] = useState<PendingAction | null>(null);
 
   const load = async () => {
     const { data } = await applyScope(
-      supabase.from("actions").select("id, title, description, risk, status"),
+      supabase.from("actions").select("id, title, description, risk, status, payload, source, affected_entities, rollback_available"),
     )
       .in("status", ["proposed", "staged", "approved"])
       .order("updated_at", { ascending: false })
@@ -156,7 +162,7 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
                 </Button>
               )}
               {a.status === "approved" && (
-                <Button size="sm" className="min-h-[44px] gap-1" disabled={working} onClick={() => execute(a)}>
+                <Button size="sm" className="min-h-[44px] gap-1" disabled={working} onClick={() => setExecuteTarget(a)}>
                   <Check className="h-3.5 w-3.5" /> Execute
                 </Button>
               )}
@@ -178,6 +184,18 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
           </div>
         );
       })}
+
+      <ExecuteConfirmDialog
+        action={executeTarget}
+        busy={!!executeTarget && busy === executeTarget.id}
+        onCancel={() => setExecuteTarget(null)}
+        onConfirm={async () => {
+          const t = executeTarget;
+          if (!t) return;
+          await execute(t);
+          setExecuteTarget(null);
+        }}
+      />
     </div>
   );
 }
