@@ -1,85 +1,53 @@
-# Sherlock + Research Protocol + Recap Intelligence — Audit/Design Pass
+# Execute Confirmation + Today Layer Consolidation
 
-## Posture
-Audit and design only. No routes, tables, migrations, AI calls, refactors, or UI moves in this pass. The single deliverable is one document.
+## Audit first — what already exists
 
-## Deliverable
-Create one file:
-- `.lovable/sherlock-research-protocol-recap-audit.md`
+Checked before writing this plan:
 
-No other file is created, edited, or deleted.
+- **Today already exists.** `src/components/surfaces/TodaySurface.tsx` (303 lines) is live as the first primary tab and default surface. It already answers needs attention / what's next / what changed / fresh in, is scope-filtered through `applyScope`, and uses `.vanta-card`, `LoadingState`, `EmptyState`.
+- **Ask Vanta already exists as a primary path.** `src/components/today/AskVantaBar.tsx` sits at the top of Today with quick asks that open the companion with prefill.
+- **Structured responses already exist.** `src/lib/vantaBlocks.ts` + `StructuredResponse.tsx`, and approval cards with live Stage / Approve / Execute buttons in `InlineApprovalActions.tsx`.
+- **Navigation consolidation already started.** `SurfaceTabs.tsx` has 5 primary tabs (Today, Inbox, Projects, Briefs, Receipts) with Cockpit, Memory, Actions, Commitments, Schedule, Sherlock, Aware in the More sheet.
+- **Approval flow already exists** in `ActionsSurface.tsx` (stage → approve with typed confirm for non-low-risk → execute → rollback dialog).
 
-## Document Structure
+So this phase is **refinement and one real safety gap**, not a new Today layer. No second command center, no second assistant surface, no new tables.
 
-The audit doc will follow the prompt's spine, grounded in what already exists in the codebase. Sections:
+## The real gap: Execute has no confirmation
 
-1. **Purpose & Posture** — restate the core principle (Sherlock = internal, Research = external, Vanta explains, recaps preserve story, user approves next move). Reaffirm: no implementation in this pass; respects in-flight Plain English / Collapsible / Motion / Daily Bulletin polish.
+Confirmed in the code: approving a non-low-risk action requires typed confirmation, but **Execute runs immediately** in both places it is reachable — `ActionsSurface.execute()` and `InlineApprovalActions.execute()`. That is the one destructive step with no "verify intent and details" moment.
 
-2. **Current State Inventory** (what exists today, grounded in real paths):
-   - Sherlock surface: `src/components/surfaces/SherlockSurface.tsx`, overlay `SherlockOverlay.tsx`, settings `SherlockSettingsPanel.tsx`, hint/suggestion chips, finding card, review modal, embedded findings, `SherlockContext.tsx`.
-   - Sherlock lib: `src/lib/sherlock/{lifecycle,sensitive,types}.ts`; hooks `useSherlockSettings`, `useSherlockCache`, `useSherlockPending`, `useSherlockFindings`.
-   - Edge functions: `sherlock-investigate`, `sherlock-watch`, `sherlock-patterns`, `_shared/sherlockSuggest.ts`, `_shared/sensitive.ts`.
-   - Research surface: `src/components/research/ResearchPanel.tsx`, edge `research-run`.
-   - Recap-adjacent surfaces today: `DailyBulletinCard`, `DailyChecklistCard`, `OperationsBriefingPanel`, `ProductivityPulseCard`, `ProjectRollupCards`, `briefing-compose`, `ambient-pulse`, `awareness-brief`.
-   - Living Brief / Projects: `LivingBriefBlocks`, `ProjectBriefView`, `project-summarize`.
-   - Cross-cutting: `vantaSignal.ts`, `useSignalRoute.ts`, `receiptResolve.ts`, `NudgesPanel.tsx`, entity graph, audit drawer.
-   - For each: one-line "what it does, what it touches, what it exposes to the user."
+### What gets built
 
-3. **Gap Analysis** — what is isolated vs protocol-shaped:
-   - Sherlock is still page-shaped (surface + overlay). Findings exist but don't quietly steer Inbox routing, Project suggestions, Brief composition, or Command Center beyond chips.
-   - Research is a panel users must visit; no contextual suggestion pattern, no queue, no source receipts surface.
-   - Recap layer: daily exists; weekly/monthly do not. No recap settings, no roll-up storage strategy, no brief save path.
-   - Receipts: per-finding receipts exist; no unified "why Vanta suggested this" receipt across Sherlock + Research + Recap.
-   - Language: identify any remaining raw labels surfaced to users (against the banned list on page 8 of the prompt).
+A single shared **Execute confirmation dialog** used by both call sites:
 
-4. **Target Architecture (logical, no code)**
-   - Sherlock = internal awareness protocol. Page becomes Advanced/History/Settings/Receipts.
-   - Research = external awareness protocol. Page becomes Queue/Approved/Briefs/Sources/Settings.
-   - Shared "suggestion bus" concept (logical, not implemented): produces plain-English chips/banners across Inbox, Projects, Command Center, Living Brief, OpenCanvas, Briefs/Exports.
-   - Receipts: unified "Why?" expandable on every surfaced suggestion.
+- Title/summary of the action, its risk level in plain English, and the target it affects.
+- Details block: description, affected entities, source, and the executor that will run it (webhook / Telegram / manual) — so intent is visible before anything runs.
+- What happens after: it runs, and a receipt lands in Receipts.
+- Buttons: Cancel / Run it. Low-risk reversible actions confirm with one tap; standard and high risk require typing the confirm word, matching the existing approve gate.
+- Reversibility line: whether it can be undone afterwards.
+- Mobile-first: bottom-sheet feel, 44px targets, no tiny text.
 
-5. **Where Sherlock Should Appear** — Inbox, Command Center, Projects, Living Brief, OpenCanvas, Briefs/Exports. Each with example plain-English copy from the prompt and the corresponding existing component it would attach to.
+One component, reused. The existing approve and rollback dialogs stay exactly as they are.
 
-6. **Where Research Should Appear** — Project context, Living Brief gaps, Command Center suggestion, Briefs appendix. Approval gates, queue surface, source receipts.
+## Today layer refinements (low risk, presentational)
 
-7. **Recap Intelligence Design**
-   - Daily Bulletin: extend with Sherlock pattern alerts + Research activity rows (no new tabs).
-   - Weekly Recap: "Living Brief for the whole system" — content blocks, tone options, delivery options.
-   - Monthly Review: pattern-formation summary — content blocks, controls.
-   - Storage idea: recaps live as `brief_exports` rows with a recap scope (logical proposal — not migrated in this pass).
+1. **Quiet status.** When nothing needs attention, replace the stack of empty cards with one calm line: what's clear, next scheduled item, count of today's commitments.
+2. **Grouped attention instead of item dumps.** Roll per-project noise into one line ("CampStay has 3 items needing attention") that drills into the owning surface, rather than listing each row.
+3. **Security line, not a Fenrir rebuild.** One row: "Security looks good." / "Fenrir blocked one unusual login. No action required." Expanding hands off to the existing security/audit surface. No Fenrir redesign.
+4. **Progressive loading.** Today's critical summary (attention + next) renders as soon as it resolves; the changed / fresh-in feeds fill in after. A slow or failing secondary feed shows an inline error row instead of blanking the page.
+5. **Calmer visuals.** Fewer nested cards, more whitespace, stronger heading hierarchy, tighter mobile spacing at 384px.
 
-8. **UI Presence Layer** — micro-presence patterns (chips, soft banners, pulse, slide-in toasts, bottom sheets, hover cards, "Why?" receipts). Explicit list of what to avoid (large modals, spam, raw labels).
+## Ask Vanta gets the active scope explicitly
 
-9. **Mobile vs Desktop Behavior** — patterns per form factor; consistency rule.
+Confirmed gap: the conversation request body sends only `conversation_id` and `message` — the active scope is not passed. This phase sends the active scope with each ask and scopes the assistant's reads to it, so "What matters?" means "what matters in this exact space". No new AI capabilities.
 
-10. **Motion Rules** — motion explains state change only.
+## Explicitly deferred
 
-11. **Settings / Trust Layer ("What Vanta can see")** — proposed sections, fully user-controlled. Daily/Weekly/Monthly recap controls. Tone options. Delivery options.
+Route restructure to Today / Work / Ask / Receipts is documented as the direction but **not executed** this phase — Inbox and Projects stay separate tabs. Also deferred: long-term AI memory, autonomous actions, cross-scope views, voice mode, notification automation, Fenrir rebuild, schema changes.
 
-12. **Automation Guardrails** — allowed-with-settings vs explicit-approval vs never-automatic, mapped to existing actions/transitions infra.
+## Technical notes
 
-13. **Banned User-Facing Language** — verbatim list + a sweep table noting any current strings to revisit later (no edits in this pass).
-
-14. **Phased Plan (design only, not executed here)**
-    - Phase 1: this audit.
-    - Phase 2: Sherlock background guidance across Inbox + Projects.
-    - Phase 3: Research suggestions (approval-gated).
-    - Phase 4: Research briefs → project attach → Living Brief update → receipts.
-    - Phase 5: Recap intelligence (Daily roll-up → Weekly → Monthly + settings).
-    - Phase 6: OpenCanvas intelligence (clusters, source cards).
-    - Phase 7: Documents / Contract Intelligence integration.
-    - Phase 8: Device / native signals.
-    - For each phase: scope, what it touches (existing files), what it must NOT touch, exit criteria.
-
-15. **Explicit Non-Goals for this pass** — no migrations, no new edge functions, no UI moves, no relabel sweep, no Sherlock/Research page restructure yet.
-
-## Process
-
-1. Read the relevant existing files (Sherlock components/lib/hooks/functions, Research panel + edge, recap-adjacent cockpit + brief + recap infra, Living Brief, receipts, audit).
-2. Write the document in one pass following the structure above.
-3. Stop. No other files change.
-
-## Out of Scope (this pass)
-- Any code edit outside the new audit markdown.
-- Any DB migration or edge-function change.
-- Any user-visible UI change.
+- New: `src/components/actions/ExecuteConfirmDialog.tsx` (shared), consumed by `ActionsSurface.tsx` and `InlineApprovalActions.tsx`.
+- `TodaySurface.tsx` refactored into small section pieces with independent load states; aggregation logic extracted to a scope-aware hook so it can be tested without rendering.
+- Scope passed in the `vanta-converse` request body; the function filters its reads by it.
+- Tests added to the existing suite (currently 63 passing): execute confirm blocks until confirmed, low-risk one-tap vs high-risk typed path, Today attention ordering and grouping, Today respects Personal vs workspace scope, scope switch refetches, Ask Vanta carries scope, quiet-state behavior, receipt links stay valid. Coverage does not shrink.
