@@ -14,6 +14,7 @@ import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
 
 type Action = {
   id: string;
@@ -57,6 +58,7 @@ export function ActionsSurface() {
   const [approvalTarget, setApprovalTarget] = useState<Action | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [rollbackTarget, setRollbackTarget] = useState<Action | null>(null);
+  const [executeTarget, setExecuteTarget] = useState<Action | null>(null);
   const [rollbackText, setRollbackText] = useState("");
 
   const refresh = async () => {
@@ -213,7 +215,7 @@ export function ActionsSurface() {
                                     ))}
                                   </select>
                                 )}
-                                <Button size="sm" disabled={busy === a.id} onClick={() => execute(a)} className="gap-1">
+                                <Button size="sm" disabled={busy === a.id} onClick={() => setExecuteTarget(a)} className="gap-1">
                                   <Check className="h-3.5 w-3.5" /> Execute
                                 </Button>
                               </>
@@ -244,6 +246,23 @@ export function ActionsSurface() {
           )
         )}
       </div>
+
+      <ExecuteConfirmDialog
+        action={executeTarget}
+        executors={executors}
+        executorId={executeTarget ? chosenExecutor[executeTarget.id] : undefined}
+        onExecutorChange={(id) =>
+          executeTarget && setChosenExecutor((m) => ({ ...m, [executeTarget.id]: id }))
+        }
+        busy={!!executeTarget && busy === executeTarget.id}
+        onCancel={() => setExecuteTarget(null)}
+        onConfirm={async () => {
+          const t = executeTarget;
+          if (!t) return;
+          await execute(t);
+          setExecuteTarget(null);
+        }}
+      />
 
       <Dialog open={!!approvalTarget} onOpenChange={(o) => !o && setApprovalTarget(null)}>
         <DialogContent className="max-w-lg">
