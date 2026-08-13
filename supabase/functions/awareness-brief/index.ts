@@ -1,3 +1,4 @@
+import { resolveUser } from "../_shared/authContext.ts";
 import { corsHeaders } from "../_shared/http.ts";
 // awareness-brief: generate a structured VantaSignal for one section of a place.
 // Stage 2 refactor — JSON-mode Gemini, Zod validation, safe fallback signal,
@@ -217,13 +218,7 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
-    const __authHeader = req.headers.get("Authorization") ?? "";
-
-    const __token = __authHeader.replace("Bearer ", "");
-
-    const { data: __claimsData } = await supabase.auth.getUser(__token);
-
-    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
+    const user = await resolveUser(req, supabase as any);
     if (!user) return jsonResp({ error: "unauthorized" }, 401);
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
