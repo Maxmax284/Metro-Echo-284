@@ -21,6 +21,8 @@ import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
+import { StructuredResponse } from "@/components/companion/StructuredResponse";
+
 
 type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
 type Msg = {
