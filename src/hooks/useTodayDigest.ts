@@ -32,6 +32,8 @@ export type TodayDigest = {
   dueToday: DigestCommitment[];
   upcoming: DigestCommitment[];
   events: DigestEvent[];
+  /** Full recent event list, for the "What changed" drill-down. */
+  allEvents: DigestEvent[];
   captureCount: number;
   security: ReturnType<typeof securityLine>;
   quiet: boolean;
