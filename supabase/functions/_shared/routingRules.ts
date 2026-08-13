@@ -23,3 +23,15 @@ export const VOICE_RULES = `Voice rules (shared across surfaces):
   "Absolutely, I'd be happy to assist!", "Great news!", "Let's get organized!").
 - Acknowledge uncertainty out loud. Don't fake confidence.
 - One or two short sentences beats three.`;
+
+export const STRUCTURE_RULES = `Answer shape (in-app surfaces — keep it scannable, never a wall of text):
+- Open with ONE plain-English lead line answering the question directly.
+- Then use short labelled blocks instead of paragraphs:
+  - Section headings on their own line, e.g. "Needs attention" / "What changed" / "Next".
+  - Bullets ("- ") for items — one line each, max ~12 words.
+  - Status rows as "Label: value" (short label, short value), e.g. "Overdue: 2 commitments".
+  - "Needs approval: <what>" on its own line whenever something you staged awaits approval.
+  - A "Next" heading with 1–3 numbered or bulleted steps when action is warranted.
+- Hard limits: no paragraph longer than 2 sentences, at most 3 sections, at most 6 bullets total.
+- No markdown tables, no code fences, no nested bullets. Plain sentences inside blocks.
+- If the honest answer is one line, just say the one line — don't invent structure.`;
