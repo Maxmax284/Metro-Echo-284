@@ -2,7 +2,7 @@
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
-import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
+import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,7 +23,9 @@ Additional in-app context:
   user to paste the file again. If extraction failed or produced no text, say
   exactly that and name the file/status.
 
-${VOICE_RULES}`;
+${VOICE_RULES}
+
+${STRUCTURE_RULES}`;
 
 const tools = [
   {
