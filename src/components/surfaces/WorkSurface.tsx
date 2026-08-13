@@ -31,7 +31,7 @@ type Counts = { inbox: number; commitments: number; actions: number };
  */
 export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { user } = useAuth();
-  const { applyScope, orgId, key } = useScope();
+  const { applyScope, scope, orgId, key } = useScope();
   const [projects, setProjects] = useState<Project[]>([]);
   const [counts, setCounts] = useState<Counts>({ inbox: 0, commitments: 0, actions: 0 });
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
     setError(null);
     try {
       const [projs, notes, commits, actions] = await Promise.all([
-        listProjects(orgId ?? null).catch(() => [] as Project[]),
+        listProjects(scope).catch(() => [] as Project[]),
         applyScope(supabase.from("notes").select("id", { count: "exact", head: true })),
         applyScope(supabase.from("commitments").select("id", { count: "exact", head: true })).eq("status", "open"),
         applyScope(supabase.from("actions").select("id", { count: "exact", head: true })).in("status", ["staged", "proposed"]),
@@ -60,7 +60,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, key, orgId]);
+  }, [user?.id, key, orgId, scope]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -76,7 +76,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <ResumeWorkSection onNavigate={onNavigate} />
 
         {error ? (
-          <ErrorState message={error} onRetry={refresh} />
+          <ErrorState detail={error} onRetry={refresh} />
         ) : loading ? (
           <LoadingState label="Pulling your work together…" />
         ) : (
@@ -103,7 +103,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                       href={`/projects/${p.id}`}
                       className="flex min-h-[44px] items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left text-xs hover:border-primary/40"
                     >
-                      <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{p.title}</span>
                       <span className="shrink-0 text-[11px] text-muted-foreground">
                         {p.updated_at ? formatDistanceToNow(new Date(p.updated_at), { addSuffix: true }) : ""}
                       </span>
