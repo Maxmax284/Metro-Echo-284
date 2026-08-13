@@ -153,6 +153,7 @@ export function useTodayDigest(): TodayDigest {
     dueToday,
     upcoming,
     events: events.slice(0, 6),
+    allEvents: events,
     captureCount,
     security,
     quiet: attention.length === 0,
