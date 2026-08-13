@@ -1,9 +1,9 @@
 // Renders a Vanta answer as structured blocks: a lead summary, status rows,
 // checklists, section cards, approval notices and next steps.
-import { AlertTriangle, ArrowUpRight, CheckCircle2, CircleDot, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleDot, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseVantaBlocks, isStructured, type Tone, type VantaBlock } from "@/lib/vantaBlocks";
-import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { InlineApprovalActions } from "@/components/companion/InlineApprovalActions";
 
 const TONE_RING: Record<Tone, string> = {
   neutral: "ring-border/60 bg-surface-elevated/60",
@@ -96,13 +96,7 @@ function Blocks({ blocks, depth = 0 }: { blocks: VantaBlock[]; depth?: number })
                   {b.title}
                 </div>
                 {b.detail && <p className="mt-1 text-[13px] leading-snug text-foreground/90">{b.detail}</p>}
-                <button
-                  type="button"
-                  onClick={() => setContext({ surface: "actions" })}
-                  className="mt-2 inline-flex min-h-[36px] items-center gap-1 rounded-lg bg-primary/10 px-2.5 text-[12px] font-medium text-primary transition-colors hover:bg-primary/20"
-                >
-                  Review in Actions <ArrowUpRight className="h-3 w-3" />
-                </button>
+                <InlineApprovalActions detail={b.detail} />
               </div>
             );
           case "section":
