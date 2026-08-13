@@ -18,7 +18,8 @@ export type GatewayResult<T> =
   | { ok: false; kind: FailureKind; status: number; detail?: string };
 
 function apiKey(): string {
-  const key = Deno.env.get("LOVABLE_API_KEY");
+  // globalThis access keeps this module importable by the client-side test runner.
+  const key = (globalThis as any).Deno?.env?.get("LOVABLE_API_KEY") as string | undefined;
   if (!key) throw new Error("LOVABLE_API_KEY not configured");
   return key;
 }
