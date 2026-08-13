@@ -51,8 +51,8 @@ Deno.serve(async (req: Request) => {
       if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const { data: row, error } = await userClient.from(def.table).select(`id, user_id, ${def.textCols.join(", ")}`).eq("id", parsed.data.id).maybeSingle();
       if (error) throw error;
-      if (!row || (row as { user_id: string }).user_id !== user.id) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const text = def.textCols.map((c) => (row as Record<string, unknown>)[c] ?? "").join("\n").trim();
+      if (!row || (row as unknown as { user_id: string }).user_id !== user.id) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const text = def.textCols.map((c) => (row as unknown as Record<string, unknown>)[c] ?? "").join("\n").trim();
       if (!text) return new Response(JSON.stringify({ processed: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const vec = await embed(text);
       const { error: upErr } = await userClient.from(def.table).update({ embedding: vec as unknown as string }).eq("id", parsed.data.id);
@@ -71,11 +71,11 @@ Deno.serve(async (req: Request) => {
         .limit(limit);
       if (error) throw error;
       for (const row of rows ?? []) {
-        const text = def.textCols.map((c) => (row as Record<string, unknown>)[c] ?? "").join("\n").trim();
+        const text = def.textCols.map((c) => (row as unknown as Record<string, unknown>)[c] ?? "").join("\n").trim();
         if (!text) continue;
         try {
           const vec = await embed(text);
-          await client.from(def.table).update({ embedding: vec as unknown as string }).eq("id", (row as { id: string }).id);
+          await client.from(def.table).update({ embedding: vec as unknown as string }).eq("id", (row as unknown as { id: string }).id);
           processed++;
         } catch (_e) { /* skip per-row failures */ }
       }
