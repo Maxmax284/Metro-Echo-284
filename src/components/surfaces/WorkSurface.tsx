@@ -43,7 +43,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
     setError(null);
     try {
       const [projs, notes, commits, actions] = await Promise.all([
-        listProjects(scope).catch(() => [] as Project[]),
+        listProjects({ userId: user.id, organizationId: orgId ?? null }).catch(() => [] as Project[]),
         applyScope(supabase.from("notes").select("id", { count: "exact", head: true })),
         applyScope(supabase.from("commitments").select("id", { count: "exact", head: true })).eq("status", "open"),
         applyScope(supabase.from("actions").select("id", { count: "exact", head: true })).in("status", ["staged", "proposed"]),
