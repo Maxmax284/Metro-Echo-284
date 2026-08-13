@@ -1,6 +1,7 @@
 import { resolveUser } from "../_shared/authContext.ts";
-import { unauthorized } from "../_shared/errors.ts";
+import { failure, unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
+import { embedText } from "../_shared/aiGateway.ts";
 // memory-search: semantic search across notes/messages/commitments for the signed-in user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -26,19 +27,9 @@ Deno.serve(async (req: Request) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
-
-    const er = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "openai/text-embedding-3-small", input: parsed.data.query }),
-    });
-    if (er.status === 429) return new Response(JSON.stringify({ error: "rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (er.status === 402) return new Response(JSON.stringify({ error: "credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!er.ok) throw new Error(`embedding error: ${er.status}`);
-    const ej = await er.json();
-    const vec: number[] = ej.data?.[0]?.embedding ?? [];
+    const emb = await embedText(parsed.data.query);
+    if (!emb.ok) return failure(emb.kind);
+    const vec = emb.data;
 
     const { data, error } = await supabase.rpc("memory_search", {
       _user_id: user.id,

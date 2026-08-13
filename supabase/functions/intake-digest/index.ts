@@ -1,3 +1,4 @@
+import { chatCompletion, MODELS, parseJsonBlock } from "../_shared/aiGateway.ts";
 import { corsHeaders } from "../_shared/http.ts";
 // intake-digest: pre-chew captures and notes into a tiny structured digest.
 // Body: { items: Array<{ kind: 'capture'|'note', id: string }> } OR { kind, id }.
@@ -79,8 +80,6 @@ Deno.serve(async (req: Request) => {
     }
     const items = "items" in parsed.data ? parsed.data.items : [parsed.data];
 
-    const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) throw new Error("LOVABLE_API_KEY not configured");
 
     const results: Record<string, any> = {};
     for (const it of items) {
@@ -92,7 +91,7 @@ Deno.serve(async (req: Request) => {
       const text = (row as any)[col];
       if (!text || String(text).trim().length < 3) continue;
       try {
-        const d = await digestOne(String(text), key);
+        const d = await digestOne(String(text));
         if (!d) continue;
         await supabase.from(table).update({ digest: d }).eq("id", it.id);
         results[it.id] = d;
