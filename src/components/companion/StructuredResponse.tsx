@@ -25,7 +25,6 @@ function ToneDot({ tone }: { tone: Tone }) {
 }
 
 function Blocks({ blocks, depth = 0 }: { blocks: VantaBlock[]; depth?: number }) {
-  const { setContext } = useCurrentContext();
   return (
     <div className={cn("space-y-2.5", depth > 0 && "space-y-2")}>
       {blocks.map((b, i) => {
