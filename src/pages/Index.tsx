@@ -332,7 +332,10 @@ function IndexInner() {
 
           <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
+            {surface === "work" && <WorkSurface onNavigate={setSurface} />}
+            {surface === "ask" && <ConversationSurface onIntent={onIntent} />}
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
+
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
             {surface === "briefs" && <BriefsSurface />}
