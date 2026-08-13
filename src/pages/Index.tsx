@@ -16,6 +16,14 @@ import { BriefsSurface } from "@/components/surfaces/BriefsSurface";
 import { ProjectsSurface } from "@/components/surfaces/ProjectsSurface";
 import { InboxSurface } from "@/components/surfaces/InboxSurface";
 import { TodaySurface } from "@/components/surfaces/TodaySurface";
+import { WorkSurface } from "@/components/surfaces/WorkSurface";
+import {
+  DEFAULT_SURFACE,
+  parseSurfaceFromSearch,
+  surfaceSearch,
+  type SurfaceId,
+} from "@/lib/navigation";
+
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
 import { Button } from "@/components/ui/button";
