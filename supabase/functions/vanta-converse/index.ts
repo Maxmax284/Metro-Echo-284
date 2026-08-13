@@ -170,12 +170,23 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { conversation_id, message } = await req.json();
+    const { conversation_id, message, scope } = await req.json();
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id and message required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Active scope — Personal (organization_id IS NULL) or one workspace.
+    // Every context read below is filtered by it so "what matters?" can only
+    // ever mean "what matters in this exact space".
+    const scopeType: string = scope?.type === "organization" && scope?.organization_id ? "organization" : scope?.type === "admin" ? "admin" : "personal";
+    const scopeOrgId: string | null = scopeType === "organization" ? String(scope.organization_id) : null;
+    const scoped = (q: any) =>
+      scopeType === "admin" ? q : scopeOrgId ? q.eq("organization_id", scopeOrgId) : q.is("organization_id", null);
+    const scopeBlock = `Active scope — answer only from this space:
+- scope: ${scopeType}${scopeOrgId ? ` (workspace ${scopeOrgId})` : " (the user's personal space)"}
+- Never mention or infer data from another space. If something is not in this space, say you do not see it here.`;
 
     const wantsFileContext = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
 
@@ -192,15 +203,15 @@ Deno.serve(async (req: Request) => {
     // Also pull timezone + default morning/afternoon/evening so the model can
     // resolve vague reminder times against the user's actual day shape.
     const [{ data: corrections }, { data: fieldNotes }, { data: profile }, { data: recentFiles }] = await Promise.all([
-      supabase
+      scoped(supabase
         .from("corrections")
-        .select("surface, target_type, feedback_type, user_note, created_at")
+        .select("surface, target_type, feedback_type, user_note, created_at"))
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(8),
-      supabase
+      scoped(supabase
         .from("field_notes")
-        .select("note_type, summary, location_label, created_at")
+        .select("note_type, summary, location_label, created_at"))
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(8),
@@ -210,9 +221,9 @@ Deno.serve(async (req: Request) => {
         .eq("id", user.id)
         .maybeSingle(),
       wantsFileContext
-        ? supabase
+        ? scoped(supabase
             .from("ingested_files")
-            .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text")
+            .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(3)
@@ -259,7 +270,7 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
-    const sysWithCorrections = [SYSTEM_PROMPT, timeBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
+    const sysWithCorrections = [SYSTEM_PROMPT, scopeBlock, timeBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [

@@ -145,7 +145,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ conversation_id: convId, message: text }),
+        body: JSON.stringify({ conversation_id: convId, message: text, scope: { type: scope.type, organization_id: scope.organizationId } }),
         signal: ctrl.signal,
       });
 
