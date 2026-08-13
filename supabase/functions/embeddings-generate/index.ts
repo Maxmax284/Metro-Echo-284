@@ -1,3 +1,4 @@
+import { embedText } from "../_shared/aiGateway.ts";
 import { resolveUser } from "../_shared/authContext.ts";
 import { corsHeaders } from "../_shared/http.ts";
 // embeddings-generate: compute embeddings for notes/messages/commitments via Lovable AI Gateway.
@@ -20,15 +21,10 @@ const TABLE_TEXT: Record<string, { table: string; textCols: string[] }> = {
   entity:     { table: "entities",    textCols: ["display_name", "summary"] },
 };
 
-async function embed(text: string, apiKey: string): Promise<number[]> {
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "openai/text-embedding-3-small", input: text.slice(0, 8000) }),
-  });
-  if (!r.ok) throw new Error(`embedding gateway: ${r.status} ${await r.text()}`);
-  const j = await r.json();
-  return j.data?.[0]?.embedding ?? [];
+async function embed(text: string): Promise<number[]> {
+  const res = await embedText(text.slice(0, 8000));
+  if (!res.ok) throw new Error(`embedding gateway: ${res.status}`);
+  return res.data;
 }
 
 Deno.serve(async (req: Request) => {
@@ -37,8 +33,6 @@ Deno.serve(async (req: Request) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     // Try user-scoped client first
     const userClient = createClient(
@@ -60,7 +54,7 @@ Deno.serve(async (req: Request) => {
       if (!row || (row as { user_id: string }).user_id !== user.id) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const text = def.textCols.map((c) => (row as Record<string, unknown>)[c] ?? "").join("\n").trim();
       if (!text) return new Response(JSON.stringify({ processed: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const vec = await embed(text, apiKey);
+      const vec = await embed(text);
       const { error: upErr } = await userClient.from(def.table).update({ embedding: vec as unknown as string }).eq("id", parsed.data.id);
       if (upErr) throw upErr;
       processed = 1;
@@ -80,7 +74,7 @@ Deno.serve(async (req: Request) => {
         const text = def.textCols.map((c) => (row as Record<string, unknown>)[c] ?? "").join("\n").trim();
         if (!text) continue;
         try {
-          const vec = await embed(text, apiKey);
+          const vec = await embed(text);
           await client.from(def.table).update({ embedding: vec as unknown as string }).eq("id", (row as { id: string }).id);
           processed++;
         } catch (_e) { /* skip per-row failures */ }

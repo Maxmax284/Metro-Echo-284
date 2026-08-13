@@ -1,3 +1,4 @@
+import { chatCompletion, embedText, parseJsonBlock } from "../_shared/aiGateway.ts";
 import { corsHeaders } from "../_shared/http.ts";
 // entity-resolve — semantic + (optional) LLM disambiguation pass that runs on
 // top of the rule-based linkEntities. Doctrine: capture never executes.
@@ -42,39 +43,26 @@ type Match = {
   similarity: number;
 };
 
-async function embed(text: string, apiKey: string): Promise<number[]> {
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "openai/text-embedding-3-small", input: text.slice(0, 8000) }),
-  });
-  if (!r.ok) throw new Error(`embedding: ${r.status} ${await r.text()}`);
-  const j = await r.json();
-  return j.data?.[0]?.embedding ?? [];
+async function embed(text: string): Promise<number[]> {
+  const res = await embedText(text.slice(0, 8000));
+  if (!res.ok) throw new Error(`embedding: ${res.status}`);
+  return res.data;
 }
 
 async function llmPick(
   text: string,
   shortlist: Match[],
-  apiKey: string,
 ): Promise<{ id: string; why: string } | null> {
   // Cheap tiebreak — only fires when scores are within 0.05 of each other.
   const sys = "You disambiguate which user-known entity a short capture is most about. Choose exactly one id from the shortlist. If none clearly fit, return null.";
   const user = `Capture:\n"""${text.slice(0, 2000)}"""\n\nShortlist (id · kind · name):\n${shortlist.map((m) => `${m.id} · ${m.kind} · ${m.display_name}`).join("\n")}\n\nReturn JSON: {"id": "<uuid|null>", "why": "<one sentence>"}`;
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      response_format: { type: "json_object" },
-      messages: [{ role: "system", content: sys }, { role: "user", content: user }],
-    }),
-  });
-  if (!r.ok) return null;
+  const res = await chatCompletion(
+    [{ role: "system", content: sys }, { role: "user", content: user }],
+    { model: "google/gemini-3-flash-preview", response_format: { type: "json_object" } },
+  );
+  if (!res.ok) return null;
   try {
-    const j = await r.json();
-    const raw = j.choices?.[0]?.message?.content ?? "{}";
-    const parsed = JSON.parse(raw);
+    const parsed = parseJsonBlock<any>(res.data?.choices?.[0]?.message?.content ?? "{}") ?? {};
     if (!parsed?.id || parsed.id === "null") return null;
     if (!shortlist.find((m) => m.id === parsed.id)) return null;
     return { id: parsed.id as string, why: String(parsed.why ?? "") };
@@ -109,8 +97,6 @@ async function resolveProject(
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) {
@@ -135,7 +121,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 1. embed
-    const vec = await embed(text, apiKey);
+    const vec = await embed(text);
 
     // 2. semantic match
     const { data: matchData, error: matchErr } = await sb.rpc("entities_semantic_match", {
@@ -160,7 +146,7 @@ Deno.serve(async (req: Request) => {
 
       if (llm_disambiguate && second && top.similarity - second.similarity < 0.05) {
         const shortlist = matches.slice(0, 4);
-        const picked = await llmPick(text, shortlist, apiKey);
+        const picked = await llmPick(text, shortlist);
         if (picked) {
           const found = shortlist.find((m) => m.id === picked.id);
           if (found) { chosen = found; why = picked.why; }
