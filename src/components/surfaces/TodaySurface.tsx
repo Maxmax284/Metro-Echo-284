@@ -221,7 +221,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           {backgroundError ? (
             <ErrorState
               title="Couldn't read recent activity"
-              hint="The rest of Today still works. Try again when you're ready."
+              detail="The rest of Today still works. Try again when you are ready."
               onRetry={refresh}
             />
           ) : loadingBackground ? (
