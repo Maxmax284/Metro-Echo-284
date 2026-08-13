@@ -71,7 +71,7 @@ function eventTone(event: string): DotTone {
   return "muted";
 }
 
-export function AuditSurface() {
+export function AuditSurface({ focusActionId }: { focusActionId?: string | null } = {}) {
   const { timezone } = useUserTimezone();
   const { applyScope, key: scopeKey, matches } = useScope();
   const [audit, setAudit] = useState<AuditRow[]>([]);
@@ -82,6 +82,13 @@ export function AuditSurface() {
   const [loading, setLoading] = useState(false);
   const [visibleCount, setVisibleCount] = useState(30);
   const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
+
+  // Deep-link from an action card's "See in Receipts": narrow to that action.
+  useEffect(() => {
+    if (!focusActionId) return;
+    setQuick("action");
+    setFilter(focusActionId);
+  }, [focusActionId]);
 
   const load = async () => {
     setLoading(true);
