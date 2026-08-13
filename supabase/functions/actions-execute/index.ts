@@ -180,6 +180,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         entity_type: "action",
         entity_id: action_id,
+        organization_id: action.organization_id ?? null,
         event: "execute.failed",
         payload: { executor_id: executor.id, kind: executor.kind, error: msg },
       });
@@ -200,6 +201,7 @@ Deno.serve(async (req: Request) => {
     });
     await supabase.from("audit_log").insert({
       user_id: user.id, entity_type: "action", entity_id: action_id,
+      organization_id: action.organization_id ?? null,
       event: "execute.success",
       payload: { executor_id: executor.id, kind: executor.kind, result },
     });
