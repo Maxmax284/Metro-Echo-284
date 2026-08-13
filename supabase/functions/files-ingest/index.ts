@@ -1,3 +1,6 @@
+import { resolveUser } from "../_shared/authContext.ts";
+import { unauthorized } from "../_shared/errors.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // files-ingest: extract text from an uploaded file (PDF, DOCX, image OCR, text),
 // create a note, embed, and trigger memory-autolink. Phase D — Ingestion Hardening.
 // Wave 1 / Phase 3: also runs a single doc-type classifier call against the
@@ -15,10 +18,6 @@ import {
   type FileIntakeUpdate,
 } from "../_shared/fileIntake.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const TEXT_EXTS = new Set(["md", "txt", "json", "xml", "csv", "log", "yaml", "yml", "html", "htm"]);
 
@@ -106,14 +105,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: auth } } },
     );
-    const __authHeader = req.headers.get("Authorization") ?? "";
-
-    const __token = __authHeader.replace("Bearer ", "");
-
-    const { data: __claimsData } = await supabase.auth.getUser(__token);
-
-    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const user = await resolveUser(req, supabase as any);
+    if (!user) return unauthorized();
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "files-ingest", _limit: 60, _window_seconds: 60 });

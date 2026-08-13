@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // email-inbound: public webhook that accepts forwarded email and creates a note.
 // Address format: <slug>@inbound.vanta — the slug routes to a user. Body can be
 // JSON ({to, from, subject, text, html, attachments?[]}) or multipart/form-data
@@ -6,10 +7,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { linkEntities } from "../_shared/entityGraph.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 function extractSlug(toField: string | null | undefined): string | null {
   if (!toField) return null;

@@ -1,3 +1,7 @@
+import { resolveUser } from "../_shared/authContext.ts";
+import { unauthorized } from "../_shared/errors.ts";
+import { persistBriefDraft, writeBriefReceipt } from "../_shared/briefCore.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // recap-compose — Phase 5 (Recap Intelligence)
 // Composes a plain-English Weekly or Monthly recap from existing signals
 // (audit_log, brief_exports, project_items, projects, sherlock_findings).
@@ -6,10 +10,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   period: z.enum(["weekly", "monthly"]),
@@ -39,15 +39,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
-    const { data: claims } = await userClient.auth.getUser(
-      (req.headers.get("Authorization") ?? "").replace("Bearer ", ""),
-    );
-    const user = claims?.user;
-    if (!user) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const user = await resolveUser(req, userClient as any);
+    if (!user) return unauthorized();
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
@@ -301,36 +294,25 @@ Deno.serve(async (req: Request) => {
       totals,
     };
 
-    const { data: be, error: insErr } = await userClient
-      .from("brief_exports")
-      .insert({
-        user_id: user.id,
-        format: doc.format,
-        scope_kind: doc.scope_kind,
-        title: doc.title,
-        subtitle: doc.subtitle,
-        brief: doc as any,
-        status: "draft",
-      })
-      .select("id")
-      .maybeSingle();
-    if (insErr) throw insErr;
+    const exportId = await persistBriefDraft(userClient, {
+      userId: user.id,
+      format: doc.format,
+      scopeKind: doc.scope_kind,
+      title: doc.title,
+      subtitle: doc.subtitle,
+      brief: doc,
+    });
 
-    await userClient.from("audit_log").insert({
-      user_id: user.id,
-      entity_type: "brief_export",
-      entity_id: be?.id ?? null,
+    await writeBriefReceipt(userClient, {
+      userId: user.id,
+      entityType: "brief_export",
+      entityId: exportId,
       event: period === "weekly" ? "recap.weekly_created" : "recap.monthly_created",
-      payload: {
-        period,
-        window: doc.window,
-        totals,
-        brief_export_id: be?.id ?? null,
-      },
+      metadata: { period, window: doc.window, totals, brief_export_id: exportId },
     });
 
     return new Response(JSON.stringify({
-      brief_export_id: be?.id ?? null,
+      brief_export_id: exportId,
       period,
       totals,
     }), {

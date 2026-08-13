@@ -1,3 +1,6 @@
+import { chatCompletion, MODELS, parseJsonBlock } from "../_shared/aiGateway.ts";
+import { receiptAppendix, signalsHash, writeBriefReceipt } from "../_shared/briefCore.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // compose-brief — Command Center brief composer.
 // Doctrine:
 // - User-tap only. No background execution.
@@ -6,10 +9,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -52,12 +51,6 @@ type Brief = {
   audience: Audience | null;
   generated_at: string;
 };
-
-async function sha(input: string): Promise<string> {
-  const buf = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-256", buf);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
-}
 
 const FORMAT_TONE: Record<Format, string> = {
   operator: "Direct, tactical, in second person. No fluff. Plain English.",
@@ -210,29 +203,14 @@ For "receipts" sections, body is an array of strings like "2026-06-05 14:22 — 
   const userMsg = `Scope: ${scope_label}\nFormat: ${format}\nSnapshot (use IDs from this for receipts):\n${JSON.stringify(snapshot).slice(0, 14000)}`;
 
   try {
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userMsg },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
-    if (!resp.ok) {
-      console.warn("compose-brief AI failed", resp.status, await resp.text());
-      return null;
-    }
-    const json = await resp.json();
-    const content = json?.choices?.[0]?.message?.content;
+    const res = await chatCompletion(
+      [{ role: "system", content: system }, { role: "user", content: userMsg }],
+      { model: MODELS.fast, response_format: { type: "json_object" } },
+    );
+    if (!res.ok) return null;
+    const content = res.data?.choices?.[0]?.message?.content;
     if (!content) return null;
-    const parsed = JSON.parse(content);
+    const parsed = parseJsonBlock<any>(content);
     if (!parsed?.sections || !Array.isArray(parsed.sections)) return null;
     return parsed;
   } catch (e) {
@@ -305,11 +283,9 @@ Deno.serve(async (req) => {
 
     // Receipts appendix: pull from audit
     const auditSource = (snapshot?.recent_audit ?? snapshot?.audit ?? []) as any[];
-    const appendix_receipts: Grounding[] = auditSource.slice(0, 12).map((a) => ({
-      kind: "audit", id: a.id, label: `${a.event} · ${a.created_at}`,
-    }));
+    const appendix_receipts: Grounding[] = receiptAppendix(auditSource);
 
-    const signals_hash = await sha(JSON.stringify({ snapshot, format: input.format, audience }));
+    const signals_hash = await signalsHash(JSON.stringify({ snapshot, format: input.format, audience }));
     const brief: Brief = {
       title,
       subtitle,
@@ -334,11 +310,10 @@ Deno.serve(async (req) => {
       generated_at: new Date().toISOString(),
     };
 
-    await supabase.from("audit_log").insert({
-      user_id: uid,
-      entity_type: "brief",
+    await writeBriefReceipt(supabase, {
+      userId: uid,
       event: "brief.generated",
-      payload: {
+      metadata: {
         format: input.format,
         scope_kind: input.scope_kind,
         entity_id: entityId,

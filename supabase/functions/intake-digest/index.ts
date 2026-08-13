@@ -1,3 +1,5 @@
+import { chatCompletion, MODELS, parseJsonBlock } from "../_shared/aiGateway.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // intake-digest: pre-chew captures and notes into a tiny structured digest.
 // Body: { items: Array<{ kind: 'capture'|'note', id: string }> } OR { kind, id }.
 // Writes back digest jsonb on messages/notes and returns the digests.
@@ -6,10 +8,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Item = z.object({ kind: z.enum(["capture", "note"]), id: z.string().uuid() });
 const Body = z.union([
@@ -39,26 +37,22 @@ You read one short capture or note and return a tiny digest.
 - waiting_on: who or what is blocking action, if obvious. Else empty string.
 Do not invent. Only use what is in the text.`;
 
-async function digestOne(text: string, apiKey: string) {
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: SYS },
-        { role: "user", content: text.slice(0, 4000) },
-      ],
+async function digestOne(text: string) {
+  const res = await chatCompletion(
+    [
+      { role: "system", content: SYS },
+      { role: "user", content: text.slice(0, 4000) },
+    ],
+    {
+      model: MODELS.lite,
       response_format: {
         type: "json_schema",
         json_schema: { name: "digest", strict: true, schema: DIGEST_SCHEMA },
       },
-    }),
-  });
-  if (!r.ok) throw new Error(`ai gateway ${r.status}`);
-  const j = await r.json();
-  const raw = j.choices?.[0]?.message?.content ?? "{}";
-  try { return JSON.parse(raw); } catch { return null; }
+    },
+  );
+  if (!res.ok) throw new Error(`ai gateway ${res.status}`);
+  return parseJsonBlock(res.data?.choices?.[0]?.message?.content ?? "{}");
 }
 
 Deno.serve(async (req: Request) => {
@@ -86,8 +80,6 @@ Deno.serve(async (req: Request) => {
     }
     const items = "items" in parsed.data ? parsed.data.items : [parsed.data];
 
-    const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) throw new Error("LOVABLE_API_KEY not configured");
 
     const results: Record<string, any> = {};
     for (const it of items) {
@@ -99,7 +91,7 @@ Deno.serve(async (req: Request) => {
       const text = (row as any)[col];
       if (!text || String(text).trim().length < 3) continue;
       try {
-        const d = await digestOne(String(text), key);
+        const d = await digestOne(String(text));
         if (!d) continue;
         await supabase.from(table).update({ digest: d }).eq("id", it.id);
         results[it.id] = d;

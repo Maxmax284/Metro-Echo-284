@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // documents-review: read the latest document_versions.body_text and produce
 // a plain-English review (summary, parties, dates, money, obligations,
 // missing/unclear, questions, verdict, risks). Writes:
@@ -13,10 +14,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   document_id: z.string().uuid(),

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // briefing-compose — Phase 5 (Briefings v2)
 // Composes a structured operational briefing on explicit user tap.
 // Returns: { headline, counts, best_first_move, narrative, items[] }
@@ -5,10 +6,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { BRIEFING_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // sherlock-watch — Phase 3b "watch" mode.
 // Hourly scan over the entity graph that drafts Sherlock-style findings as
 // nudges. Never sends push, never executes, never invents — only highlights
@@ -11,10 +12,6 @@
 // NudgesPanel. No new tables, no new push channels, no auto-execution.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const HEAT_MIN_SOURCES = 3;
 const PAIRING_MIN_SOURCES = 2;
