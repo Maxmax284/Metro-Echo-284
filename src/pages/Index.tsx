@@ -39,6 +39,7 @@ import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBa
 
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
+import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
 
@@ -50,6 +51,7 @@ function IndexInner() {
   const { user, loading, signOut } = useAuth();
   const [surface, _setSurface] = useState<SurfaceKey>("today");
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
+  const [focusReceiptActionId, setFocusReceiptActionId] = useState<string | null>(null);
 
   // Per-surface scroll memory. We capture the active surface's scroll position
   // right before switching, then restore the incoming surface's position on
@@ -76,6 +78,18 @@ function IndexInner() {
   useEffect(() => {
     setContext({ surface });
   }, [surface, setContext]);
+
+  // "See in Receipts" from an action receipt drawer.
+  useEffect(() => {
+    const onOpenReceipts = (e: Event) => {
+      const id = (e as CustomEvent<{ actionId: string }>).detail?.actionId ?? null;
+      setFocusReceiptActionId(id);
+      setSurface("receipts");
+    };
+    window.addEventListener(OPEN_RECEIPTS_EVENT, onOpenReceipts);
+    return () => window.removeEventListener(OPEN_RECEIPTS_EVENT, onOpenReceipts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Deep-link from push notifications: /?commitment=<id> opens the Commitments
   // surface and focuses that specific commitment. We strip the param so it
@@ -293,7 +307,7 @@ function IndexInner() {
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
             {surface === "briefs" && <BriefsSurface />}
-            {surface === "receipts" && <AuditSurface />}
+            {surface === "receipts" && <AuditSurface focusActionId={focusReceiptActionId} />}
             {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
             {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
             {surface === "memory" && <MemorySurface />}

@@ -84,6 +84,8 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       entity_type: "action",
       entity_id: action_id,
+      // Receipts live in the scope the work happened in, not always Personal.
+      organization_id: action.organization_id ?? null,
       event: `transition:${from}->${to_status}`,
       payload: { reason: reason ?? null },
     });

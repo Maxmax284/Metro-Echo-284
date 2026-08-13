@@ -1,7 +1,7 @@
 // AuditDetailDrawer — the plain-English receipt for one audit row.
 // User taps any row in Receipts and sees: what happened, when, who/what
 // it touched, and (optionally, behind a dev toggle) the raw payload.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,10 +77,13 @@ export function AuditDetailDrawer({
   row,
   open,
   onOpenChange,
+  footer,
 }: {
   row: AuditRow | null;
   open: boolean;
   onOpenChange: (next: boolean) => void;
+  /** Optional extra control (e.g. "See in Receipts") shown under the facts. */
+  footer?: ReactNode;
 }) {
   const { timezone } = useUserTimezone();
   const [showDev, setShowDev] = useState<boolean>(() => {
@@ -137,6 +140,8 @@ export function AuditDetailDrawer({
               </ul>
             </div>
           )}
+
+          {footer && <div className="flex items-center justify-end pt-0.5">{footer}</div>}
 
           <div className="flex items-center justify-between gap-2 pt-1">
             <p className="text-[10.5px] italic text-muted-foreground">
