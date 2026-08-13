@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2 } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2, ScrollText } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -15,6 +15,7 @@ import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlock
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
+import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 
 type Action = {
   id: string;
@@ -60,6 +61,8 @@ export function ActionsSurface() {
   const [rollbackTarget, setRollbackTarget] = useState<Action | null>(null);
   const [executeTarget, setExecuteTarget] = useState<Action | null>(null);
   const [rollbackText, setRollbackText] = useState("");
+  const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
+  const [receiptAwaitWrite, setReceiptAwaitWrite] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -100,9 +103,13 @@ export function ActionsSurface() {
         });
         if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
         toast.success("Executed.");
+        setReceiptAwaitWrite(true);
+        setReceiptActionId(a.id);
         refresh();
       } else {
         await transition(a, "executed", "manual execute");
+        setReceiptAwaitWrite(true);
+        setReceiptActionId(a.id);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Execute failed");
@@ -225,6 +232,16 @@ export function ActionsSurface() {
                                 Mark reviewed
                               </Button>
                             )}
+                            {(a.status === "executed" || a.status === "audited" || a.status === "rolled_back") && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="gap-1"
+                                onClick={() => { setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
+                              >
+                                <ScrollText className="h-3.5 w-3.5" /> Receipt
+                              </Button>
+                            )}
                             {(a.status === "executed" || a.status === "audited") && (
                               <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
                                 <RotateCcw className="h-3.5 w-3.5" /> Undo
@@ -246,6 +263,12 @@ export function ActionsSurface() {
           )
         )}
       </div>
+
+      <ActionReceiptDrawer
+        actionId={receiptActionId}
+        awaitWrite={receiptAwaitWrite}
+        onClose={() => setReceiptActionId(null)}
+      />
 
       <ExecuteConfirmDialog
         action={executeTarget}

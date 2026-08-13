@@ -12,6 +12,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
+import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 
 type PendingStatus = "proposed" | "staged" | "approved";
 
@@ -55,6 +56,7 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [executeTarget, setExecuteTarget] = useState<PendingAction | null>(null);
+  const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await applyScope(
@@ -100,7 +102,8 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
         body: { action_id: a.id },
       });
       if (error) throw error;
-      toast.success("Executed. Receipt is in Audit.");
+      toast.success("Executed. Here's the receipt.");
+      setReceiptActionId(a.id);
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Execute failed.");
@@ -184,6 +187,8 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
           </div>
         );
       })}
+
+      <ActionReceiptDrawer actionId={receiptActionId} awaitWrite onClose={() => setReceiptActionId(null)} />
 
       <ExecuteConfirmDialog
         action={executeTarget}
