@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
 import { AskVantaBar } from "@/components/today/AskVantaBar";
+import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
@@ -85,6 +86,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const digest = useTodayDigest();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
+  const [drill, setDrill] = useState<TodaySectionKey | null>(null);
 
   const {
     loadingCritical,
@@ -95,6 +97,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     dueToday,
     upcoming,
     events,
+    allEvents,
     captureCount,
     security,
     quiet,
@@ -133,8 +136,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               hint="Grouped by the work it belongs to."
               icon={AlertTriangle}
               action={
-                <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("actions")}>
-                  Review
+                <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("now")}>
+                  See all
                 </Button>
               }
             >
@@ -185,8 +188,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             hint="Promises with a date, soonest first."
             icon={CalendarClock}
             action={
-              <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("commitments")}>
-                All
+              <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("next")}>
+                See all
               </Button>
             }
           >
@@ -197,6 +200,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               />
             ) : (
               <div className="space-y-1.5">
+                {dueToday.length > 0 ? (
+                  <button
+                    onClick={() => setDrill("today")}
+                    className="min-h-[44px] w-full rounded-lg border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40"
+                  >
+                    {dueToday.length} {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
+                  </button>
+                ) : null}
                 {[...dueToday, ...upcoming].slice(0, 5).map((c) => (
                   <Row
                     key={c.id}
@@ -275,8 +286,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 hint="The last few things Vanta recorded, in plain English."
                 icon={Receipt}
                 action={
-                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("receipts")}>
-                    Receipts
+                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("changed")}>
+                    See all
                   </Button>
                 }
               >
@@ -317,6 +328,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           )}
         </>
       )}
+
+      <TodaySectionSheet
+        section={drill}
+        onClose={() => setDrill(null)}
+        onNavigate={onNavigate}
+        attention={attention}
+        dueToday={dueToday}
+        upcoming={upcoming}
+        events={allEvents}
+      />
     </div>
   );
 }
