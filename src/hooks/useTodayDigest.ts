@@ -102,11 +102,11 @@ export function useTodayDigest(): TodayDigest {
       }
       const { data } = await supabase
         .from("project_items")
-        .select("item_id, project_id, projects(name)")
+        .select("item_id, project_id, projects(title)")
         .in("item_id", ids);
       const map: Record<string, string | undefined> = {};
-      for (const row of (data ?? []) as { item_id: string; projects: { name: string } | null }[]) {
-        map[row.item_id] = row.projects?.name;
+      for (const row of (data ?? []) as { item_id: string; projects: { title: string } | null }[]) {
+        map[row.item_id] = row.projects?.title;
       }
       setProjectOf(map);
     },
