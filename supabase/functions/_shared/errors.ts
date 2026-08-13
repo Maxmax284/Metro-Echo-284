@@ -36,7 +36,7 @@ const MESSAGE: Record<FailureKind, string> = {
   budget_exceeded: "Usage limit reached. Try again later or raise the limit in Settings.",
   rate_limited: "Too many requests in a row. Wait a moment and retry.",
   provider_failed: "An outside service did not respond. Nothing was changed.",
-  internal: "Something went wrong on our side. Nothing was changed.",
+  internal: "That did not complete. Nothing was changed.",
 };
 
 export function statusFor(kind: FailureKind): number {
