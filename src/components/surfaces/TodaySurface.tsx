@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
+import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
@@ -130,6 +131,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <LoadingState rows={2} label="Pulling together your day" />
       ) : (
         <>
+          <ResumeWorkSection onNavigate={onNavigate} />
+
           {!quiet && (
             <Section
               title="Needs attention"
