@@ -35,6 +35,15 @@ const stripMd = (s: string) =>
 const isHeading = (line: string) =>
   /^#{1,4}\s+\S/.test(line) || /^\*\*[^*]{2,60}\*\*:?\s*$/.test(line) || /^[A-Z][A-Za-z '/]{2,40}:\s*$/.test(line);
 
+// A short title-case line immediately followed by a bullet/status is a heading
+// even without a colon ("Needs attention").
+const isImplicitHeading = (line: string, next?: string) => {
+  const t = line.trim();
+  if (t.length > 40 || /[.!?,;]$/.test(t) || !/^[A-Z]/.test(t) || t.includes(":")) return false;
+  if (!next) return false;
+  return isBullet(next) || asStatus(next) !== null;
+};
+
 const isBullet = (line: string) => /^\s*(?:[-*•]|\d+[.)])\s+\S/.test(line);
 const bulletText = (line: string) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim();
 
@@ -98,8 +107,8 @@ export function parseVantaBlocks(raw: string): VantaBlock[] {
     flushNext();
   };
 
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li].trimEnd();
     if (!line.trim()) {
       flushAll();
       continue;
@@ -112,7 +121,7 @@ export function parseVantaBlocks(raw: string): VantaBlock[] {
       continue;
     }
 
-    if (isHeading(line)) {
+    if (isHeading(line) || isImplicitHeading(line, lines[li + 1])) {
       flushAll();
       const title = stripMd(line).replace(/:$/, "");
       if (NEXT_HEADING.test(title)) {
