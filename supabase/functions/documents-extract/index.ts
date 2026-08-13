@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // documents-extract: turn an uploaded ingested_files row into a
 // document_versions row with plain text body. Phase 1 leans on the existing
 // `files-ingest` pipeline, which already writes ingested_files.extracted_text
@@ -9,10 +10,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({ document_id: z.string().uuid() });
 

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // intake-digest: pre-chew captures and notes into a tiny structured digest.
 // Body: { items: Array<{ kind: 'capture'|'note', id: string }> } OR { kind, id }.
 // Writes back digest jsonb on messages/notes and returns the digests.
@@ -6,10 +7,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Item = z.object({ kind: z.enum(["capture", "note"]), id: z.string().uuid() });
 const Body = z.union([

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // awareness-brief: generate a structured VantaSignal for one section of a place.
 // Stage 2 refactor — JSON-mode Gemini, Zod validation, safe fallback signal,
 // persists both the structured signal and a short prose summary for back-compat.
@@ -11,10 +12,6 @@ import {
   type VantaSignal,
 } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const SECTION_VALUES = [
   "transport", "infrastructure", "payments", "etiquette",

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // awareness-geocode: reverse-geocode a place's lat/lon via Nominatim (OpenStreetMap)
 // and populate country, region, and city on the awareness_places row.
 //
@@ -97,10 +98,6 @@ async function fetchOverpassSanity(lat: number, lon: number, admin: any): Promis
 
 
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   place_id: z.string().uuid(),

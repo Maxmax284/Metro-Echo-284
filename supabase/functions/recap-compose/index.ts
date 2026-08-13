@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // recap-compose — Phase 5 (Recap Intelligence)
 // Composes a plain-English Weekly or Monthly recap from existing signals
 // (audit_log, brief_exports, project_items, projects, sherlock_findings).
@@ -6,10 +7,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   period: z.enum(["weekly", "monthly"]),

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // awareness-snapshot: assemble a compact + full awareness snapshot for a place.
 // Routes all external provider calls through apiGuard.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -5,10 +6,6 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { runGuarded, adminClient } from "../_shared/apiGuard.ts";
 import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   place_id: z.string().uuid(),

@@ -1,11 +1,8 @@
+import { corsHeaders } from "../_shared/http.ts";
 // secrets-status: returns presence (boolean) of allowlisted secret names.
 // Never returns secret values. Auth-gated.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 // Hard allowlist — only these names may be probed.
 const ALLOWED = new Set([

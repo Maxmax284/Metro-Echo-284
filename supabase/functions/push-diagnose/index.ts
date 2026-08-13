@@ -1,11 +1,8 @@
+import { corsHeaders } from "../_shared/http.ts";
 // push-diagnose: honest server-side view of push readiness.
 // Returns the 5 axes the UI needs to decide whether to claim "Push ON".
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

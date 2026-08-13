@@ -1,10 +1,9 @@
+import { resolveUser } from "../_shared/authContext.ts";
+import { unauthorized } from "../_shared/errors.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // telegram-link: mint a one-time pairing code for the signed-in user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 function makeCode() {
   // 6 chars, ambiguous letters removed
@@ -24,14 +23,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
-    const __authHeader = req.headers.get("Authorization") ?? "";
-
-    const __token = __authHeader.replace("Bearer ", "");
-
-    const { data: __claimsData } = await supabase.auth.getUser(__token);
-
-    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const user = await resolveUser(req, supabase as any);
+    if (!user) return unauthorized();
 
     const code = makeCode();
     const { error } = await supabase

@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // compose-brief — Command Center brief composer.
 // Doctrine:
 // - User-tap only. No background execution.
@@ -6,10 +7,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 

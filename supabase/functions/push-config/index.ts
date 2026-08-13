@@ -1,12 +1,9 @@
+import { corsHeaders } from "../_shared/http.ts";
 // push-config: returns the VAPID public key for the browser to subscribe.
 // The public key is non-secret by design (browsers send it as applicationServerKey).
 // Private key stays in edge env and is only used by the sender.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

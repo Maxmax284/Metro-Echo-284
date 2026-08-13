@@ -1,3 +1,6 @@
+import { resolveUser } from "../_shared/authContext.ts";
+import { unauthorized } from "../_shared/errors.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // awareness-query: answer a free-form location/place question grounded in the
 // user's most recent awareness_place plus any recent briefings. Returns text +
 // confidence + sources. Phase C of Sherlock & Core Gap Closure.
@@ -5,10 +8,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   question: z.string().min(1).max(2000),
@@ -29,14 +28,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } },
     );
-    const __authHeader = req.headers.get("Authorization") ?? "";
-
-    const __token = __authHeader.replace("Bearer ", "");
-
-    const { data: __claimsData } = await supabase.auth.getUser(__token);
-
-    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const user = await resolveUser(req, supabase as any);
+    if (!user) return unauthorized();
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: allowed } = await admin.rpc("rate_limit_hit", {

@@ -1,12 +1,9 @@
+import { corsHeaders } from "../_shared/http.ts";
 // telegram-test: send a one-off test message (with Vanta deep link) to all
 // of the signed-in user's linked Telegram chats. Capture layer untouched —
 // this only proves end-to-end delivery + deep link works.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 

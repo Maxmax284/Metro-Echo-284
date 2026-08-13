@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // research-run: kick off a research object (quick or deep) for a user.
 // Quick mode = single SerpApi search + AI synthesis. Deep mode = up to 3 searches.
 // All external calls routed through apiGuard. Deep mode additionally gated by
@@ -7,10 +8,6 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { runGuarded, adminClient } from "../_shared/apiGuard.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   question: z.string().min(3).max(500),

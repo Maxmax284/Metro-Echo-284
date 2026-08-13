@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // commitment-reminders: sweep due/overdue commitments, emit audit events,
 // and (when opted in) deliver Telegram nudges. Designed for pg_cron.
 //
@@ -7,10 +8,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 const TG_THROTTLE_MS = 6 * 60 * 60 * 1000;

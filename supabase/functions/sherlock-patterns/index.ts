@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // sherlock-patterns — observe-mode scanner. Looks across the user's substrate
 // for soft signals (stale commitments, snoozed reminders, near-duplicate notes,
 // recurring entity activity) and writes them as `observe` findings into
@@ -7,10 +8,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 type FindingDraft = {
   source_object_type: string;

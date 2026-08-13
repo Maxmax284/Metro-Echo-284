@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // embeddings-generate: compute embeddings for notes/messages/commitments via Lovable AI Gateway.
 // Modes:
 //   { mode: "single", kind, id }                — requires user JWT, scoped to caller
@@ -5,10 +6,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.union([
   z.object({ mode: z.literal("single"), kind: z.enum(["note", "message", "commitment", "entity"]), id: z.string().uuid() }),

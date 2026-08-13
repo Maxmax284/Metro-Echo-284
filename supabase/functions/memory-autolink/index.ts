@@ -1,12 +1,11 @@
+import { resolveUser } from "../_shared/authContext.ts";
+import { unauthorized } from "../_shared/errors.ts";
+import { corsHeaders } from "../_shared/http.ts";
 // memory-autolink: for a given note, find related notes via vector similarity and cache as suggestions.
 // If `accept: true`, persists a `note_links` row for each suggested note.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   note_id: z.string().uuid(),
@@ -23,14 +22,8 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
     );
-    const __authHeader = req.headers.get("Authorization") ?? "";
-
-    const __token = __authHeader.replace("Bearer ", "");
-
-    const { data: __claimsData } = await supabase.auth.getUser(__token);
-
-    const user = __claimsData?.user?.id ? { id: __claimsData.user.id as string } : null;
-    if (!user) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const user = await resolveUser(req, supabase as any);
+    if (!user) return unauthorized();
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

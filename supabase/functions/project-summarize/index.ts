@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/http.ts";
 // project-summarize: build a structured Living Brief from a project's attached items.
 // Returns 5 named blocks (where_it_stands, what_moved, who_waiting, open_questions, next_move),
 // each with bullet-level citations back to source captures/notes/files/findings/commitments/actions.
@@ -8,10 +9,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const Body = z.object({
   project_id: z.string().uuid(),
