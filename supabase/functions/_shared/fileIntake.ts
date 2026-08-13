@@ -2,7 +2,7 @@
 // Validates patches the server writes to public.ingested_files for the
 // Phase 2 operational fields (detected type, entities, suggestions,
 // sensitive flag, confidence, review status).
-import { z } from "npm:zod@3.23.8";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 export const DETECTED_DOC_TYPES = [
   "unknown",
