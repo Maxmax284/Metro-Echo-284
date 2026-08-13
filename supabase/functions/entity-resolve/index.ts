@@ -80,16 +80,16 @@ async function resolveProject(
     id: match.id, parent_entity_id: match.parent_entity_id,
   };
   for (let i = 0; i < 3 && cur?.parent_entity_id; i++) {
-    const { data } = await sb
+    const { data }: { data: Record<string, unknown> | null } = await sb
       .from("entities")
       .select("id, display_name, kind, parent_entity_id, user_id")
       .eq("id", cur.parent_entity_id)
       .maybeSingle();
-    if (!data || (data as { user_id: string }).user_id !== userId) return null;
-    if ((data as { kind: string }).kind === "project") {
+    if (!data || (data as unknown as { user_id: string }).user_id !== userId) return null;
+    if ((data as unknown as { kind: string }).kind === "project") {
       return { id: data.id as string, name: (data as { display_name: string }).display_name };
     }
-    cur = { id: data.id as string, parent_entity_id: (data as { parent_entity_id: string | null }).parent_entity_id };
+    cur = { id: data.id as string, parent_entity_id: (data as unknown as { parent_entity_id: string | null }).parent_entity_id };
   }
   return null;
 }
