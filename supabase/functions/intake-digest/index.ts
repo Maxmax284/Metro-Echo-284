@@ -36,26 +36,22 @@ You read one short capture or note and return a tiny digest.
 - waiting_on: who or what is blocking action, if obvious. Else empty string.
 Do not invent. Only use what is in the text.`;
 
-async function digestOne(text: string, apiKey: string) {
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: SYS },
-        { role: "user", content: text.slice(0, 4000) },
-      ],
+async function digestOne(text: string) {
+  const res = await chatCompletion(
+    [
+      { role: "system", content: SYS },
+      { role: "user", content: text.slice(0, 4000) },
+    ],
+    {
+      model: MODELS.lite,
       response_format: {
         type: "json_schema",
         json_schema: { name: "digest", strict: true, schema: DIGEST_SCHEMA },
       },
-    }),
-  });
-  if (!r.ok) throw new Error(`ai gateway ${r.status}`);
-  const j = await r.json();
-  const raw = j.choices?.[0]?.message?.content ?? "{}";
-  try { return JSON.parse(raw); } catch { return null; }
+    },
+  );
+  if (!res.ok) throw new Error(`ai gateway ${res.status}`);
+  return parseJsonBlock(res.data?.choices?.[0]?.message?.content ?? "{}");
 }
 
 Deno.serve(async (req: Request) => {
