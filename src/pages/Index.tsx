@@ -57,7 +57,12 @@ export default function Index() {
 
 function IndexInner() {
   const { user, loading, signOut } = useAuth();
-  const [surface, _setSurface] = useState<SurfaceKey>("today");
+  // Navigation state is URL-backed: `?surface=<id>` so refresh, browser back
+  // and saved links all land on the same room/desk. Legacy keys (audit, chat,
+  // cockpit) are mapped in parseSurfaceFromSearch.
+  const [surface, _setSurface] = useState<SurfaceKey>(
+    () => (typeof window !== "undefined" ? parseSurfaceFromSearch(window.location.search) : null) ?? DEFAULT_SURFACE,
+  );
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
   const [focusReceiptActionId, setFocusReceiptActionId] = useState<string | null>(null);
 
@@ -67,16 +72,32 @@ function IndexInner() {
   // first one inside the wrapper.
   const surfaceWrapperRef = useRef<HTMLDivElement | null>(null);
   const scrollMemory = useRef<Record<string, number>>({});
-  const setSurface = (next: SurfaceKey) => {
+  const setSurface = (next: SurfaceKey, opts?: { replace?: boolean }) => {
     const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
     if (el) scrollMemory.current[surface] = el.scrollTop;
     _setSurface(next);
+    if (typeof window !== "undefined") {
+      const url = window.location.pathname + surfaceSearch(next as SurfaceId) + window.location.hash;
+      if (opts?.replace) window.history.replaceState({ surface: next }, "", url);
+      else window.history.pushState({ surface: next }, "", url);
+    }
   };
+
+  // Browser back/forward moves between rooms instead of leaving the app.
+  useEffect(() => {
+    const onPop = () => {
+      _setSurface(parseSurfaceFromSearch(window.location.search) ?? DEFAULT_SURFACE);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   useLayoutEffect(() => {
     const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
     if (!el) return;
     el.scrollTop = scrollMemory.current[surface] ?? 0;
   }, [surface]);
+
 
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
