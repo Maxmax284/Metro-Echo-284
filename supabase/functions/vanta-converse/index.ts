@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
+import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -188,6 +189,9 @@ Deno.serve(async (req: Request) => {
 - scope: ${scopeType}${scopeOrgId ? ` (workspace ${scopeOrgId})` : " (the user's personal space)"}
 - Never mention or infer data from another space. If something is not in this space, say you do not see it here.`;
 
+    const workingCandidates = await buildWorkingContext(supabase, scoped).catch(() => []);
+    const workingBlock = workingContextBlock(workingCandidates);
+
     const wantsFileContext = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
 
     // Load recent context (last ~30 messages)
@@ -270,7 +274,7 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
-    const sysWithCorrections = [SYSTEM_PROMPT, scopeBlock, timeBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
+    const sysWithCorrections = [SYSTEM_PROMPT, scopeBlock, timeBlock, workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
