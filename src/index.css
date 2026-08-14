@@ -403,6 +403,18 @@
   100% { transform: scaleX(1); opacity: 0; }
 }
 
+/* Signal track: the processing indicator's travelling segment. Mounted only
+   while a request is genuinely pending, so it stops when the request stops. */
+@keyframes vanta-signal-track {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.motion-signal-track {
+  animation: vanta-signal-track 1.1s var(--ease-out) infinite;
+}
+
+
+
 /* Snap: crisp mechanical settle for a record reaching its next state.
    Short, controlled, no overshoot. */
 @keyframes vanta-snap {
