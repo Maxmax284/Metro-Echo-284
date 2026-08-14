@@ -385,6 +385,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 title="What changed"
                 hint="The last few things Vanta recorded, in plain English."
                 icon={Receipt}
+                reading={<RollingNumber value={allEvents.length} />}
                 action={
                   <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("changed")}>
                     See all
@@ -395,34 +396,51 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   <EmptyState
                     title="Nothing recorded yet"
                     hint="Every save, approval and run leaves a receipt here."
+                    flow={["Change", "Receipt", "Receipts room"]}
                   />
                 ) : (
                   <ul className="space-y-1.5">
                     {events.map((e) => (
-                      <li key={e.id} className="flex items-center gap-2 text-xs text-foreground/90">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
-                        <span className="min-w-0 flex-1 truncate">{humanizeEvent(e.event)}</span>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <li
+                        key={e.id}
+                        className={cn(
+                          "flex items-center gap-2 text-xs text-foreground/90",
+                          LEAD_BAR,
+                          "text-primary/50",
+                        )}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-foreground/90">{humanizeEvent(e.event)}</span>
+                        <MachineText className="shrink-0 text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                        </span>
+                        </MachineText>
                       </li>
                     ))}
                   </ul>
                 )}
               </Section>
 
-              <Section title="Fresh in" icon={Inbox}
+              <Section
+                title="Fresh in"
+                icon={Inbox}
+                reading={<RollingNumber value={captureCount} />}
                 action={
                   <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("inbox")}>
                     Open inbox
                   </Button>
                 }
               >
-                <p className="text-xs leading-snug text-muted-foreground">
-                  {captureCount === 0
-                    ? "Nothing new in the last day. Captures from Telegram, email, voice and uploads land in Inbox."
-                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.`}
-                </p>
+                {captureCount === 0 ? (
+                  <EmptyState
+                    title="Nothing new"
+                    hint="Captures land in Inbox, then you sort them into the work they belong to."
+                    flow={["Telegram", "Email", "Voice", "Inbox"]}
+                  />
+                ) : (
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    <MachineText className="text-foreground/90">{captureCount}</MachineText> new{" "}
+                    {captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.
+                  </p>
+                )}
               </Section>
             </>
           )}
