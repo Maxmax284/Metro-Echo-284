@@ -73,9 +73,14 @@ export function ExecuteConfirmDialog({
   onConfirm: () => void | Promise<void>;
 }) {
   const [typed, setTyped] = useState("");
+  /* The one moment of drama in the app: on confirm the card presses inward and
+     its border goes solid, so executing feels like a mechanism engaging rather
+     than a button turning grey. */
+  const [committing, setCommitting] = useState(false);
 
   useEffect(() => {
     setTyped("");
+    setCommitting(false);
   }, [action?.id]);
 
   if (!action) {
