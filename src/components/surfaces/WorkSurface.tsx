@@ -52,6 +52,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   const [counts, setCounts] = useState<Counts>({ inbox: 0, commitments: 0, actions: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /* When Vanta last actually looked. Shown as a real stamp, never faked. */
+  const [lastRead, setLastRead] = useState<number | null>(null);
+  const { timezone } = useUserTimezone();
 
   const refresh = useCallback(async () => {
     if (!user) return;
