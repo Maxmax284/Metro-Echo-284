@@ -301,7 +301,11 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                     <MachineText className="shrink-0 text-[10px] text-muted-foreground/70">
                       #{auditFiltered.length - i}
                     </MachineText>
-                    <Badge variant="outline" className="vanta-machine shrink-0 text-[9px] uppercase tracking-[0.12em]">
+                    <Badge
+                      variant="outline"
+                      className="vanta-machine max-w-[84px] shrink-0 truncate text-[9px] uppercase tracking-[0.08em]"
+                      title={r.entity_type}
+                    >
                       {kindLabel(r.entity_type)}
                     </Badge>
                     <span
