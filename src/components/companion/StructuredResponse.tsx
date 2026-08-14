@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, CircleDot, ShieldCheck } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { parseVantaBlocks, isStructured, type Tone, type VantaBlock } from "@/lib/vantaBlocks";
 import { InlineApprovalActions } from "@/components/companion/InlineApprovalActions";
+import { MOTION_ARRIVAL } from "@/lib/motion";
 
 const TONE_RING: Record<Tone, string> = {
   neutral: "ring-border/60 bg-surface-elevated/60",
