@@ -195,9 +195,14 @@ function Desk({
       )}
     </>
   );
+  /* Work is the operational room: crisper corners, tighter rhythm, desks that
+     read like machined panels rather than marketing cards. */
   const className = cn(
-    "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left transition-colors hover:border-primary/40",
+    "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    MOTION_ROW,
+    MOTION_HOVER_LIFT,
   );
+
   return href ? (
     <a href={href} className={className}>{body}</a>
   ) : (
