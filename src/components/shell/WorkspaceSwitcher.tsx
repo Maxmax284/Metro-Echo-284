@@ -110,9 +110,12 @@ function ScopeRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-muted/40",
+        "flex min-h-[44px] w-full items-start gap-2 rounded-md px-2 py-2 text-left text-[12px] hover:bg-muted/40",
+        MOTION_MICRO,
+        MOTION_PRESS,
         active && "bg-muted/30",
       )}
+
     >
       <span className="mt-0.5 text-muted-foreground">{icon}</span>
       <span className="min-w-0 flex-1">
