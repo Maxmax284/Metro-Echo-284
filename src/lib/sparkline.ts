@@ -23,9 +23,14 @@ export function bucketByDay(
 
   for (const ts of timestamps) {
     if (!ts) continue;
-    const t = new Date(ts).getTime();
+    const d = new Date(ts);
+    const t = d.getTime();
     if (!Number.isFinite(t)) continue;
-    const dayOffset = Math.floor((anchor - t) / DAY);
+    // Compare day-to-day, not instant-to-midnight, or a row from yesterday
+    // afternoon lands in today's bucket.
+    const rowDay = new Date(t);
+    rowDay.setHours(0, 0, 0, 0);
+    const dayOffset = Math.round((anchor - rowDay.getTime()) / DAY);
     // dayOffset 0 = today, 1 = yesterday, …
     if (dayOffset < 0) {
       buckets[span - 1] += 1; // future-dated rows still count as now
