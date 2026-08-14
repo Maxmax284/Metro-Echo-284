@@ -264,6 +264,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             title="What's next"
             hint="Promises with a date, soonest first."
             icon={CalendarClock}
+            reading={<RollingNumber value={dueToday.length + upcoming.length} />}
             action={
               <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("next")}>
                 See all
@@ -274,6 +275,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               <EmptyState
                 title="No dated promises"
                 hint="When you tell Vanta you'll do something by a date, it lands here."
+                flow={["You say it", "Vanta dates it", "Commitments"]}
               />
             ) : (
               <div className="space-y-1.5">
