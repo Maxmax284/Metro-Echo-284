@@ -30,11 +30,18 @@ export function MachineLabel({
 export function MachineText({
   children,
   className,
+  title,
 }: {
   children: ReactNode;
   className?: string;
+  /** Native tooltip — used to show the full precise value on hover. */
+  title?: string;
 }) {
-  return <span className={cn("vanta-machine", className)}>{children}</span>;
+  return (
+    <span className={cn("vanta-machine", className)} title={title}>
+      {children}
+    </span>
+  );
 }
 
 /**
