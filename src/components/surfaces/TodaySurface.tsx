@@ -65,7 +65,8 @@ function Row({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left transition-colors hover:border-primary/40",
+        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left hover:border-primary/40",
+        MOTION_ROW,
         tone === "warn" && "border-warn/40",
       )}
     >
@@ -75,6 +76,7 @@ function Row({
     </button>
   );
 }
+
 
 /**
  * TodaySurface — the front door. It answers what matters now, what's next, what
