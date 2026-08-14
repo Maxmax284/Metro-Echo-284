@@ -127,6 +127,10 @@
     --ring: 188 70% 38%;
     --glass: hsl(0 0% 100% / 0.72);
     --glass-border: hsl(220 14% 80% / 0.5);
+    --vanta-accent: 268 60% 50%;
+    --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.10), transparent 62%),
+                     radial-gradient(90% 120% at 95% 10%, hsl(var(--primary) / 0.06), transparent 60%);
+
   }
 }
 
