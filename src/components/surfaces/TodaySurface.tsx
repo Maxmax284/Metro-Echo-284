@@ -282,9 +282,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 {dueToday.length > 0 ? (
                   <button
                     onClick={() => setDrill("today")}
-                    className="min-h-[44px] w-full rounded-lg border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40"
+                    className={cn(
+                      "min-h-[44px] w-full rounded-[calc(var(--radius)-4px)] border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40",
+                      MOTION_FOCUS,
+                    )}
                   >
-                    {dueToday.length} {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
+                    <MachineText>{dueToday.length}</MachineText>{" "}
+                    {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
                   </button>
                 ) : null}
                 {[...dueToday, ...upcoming].slice(0, 5).map((c) => (
