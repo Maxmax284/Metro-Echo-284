@@ -256,8 +256,25 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             />
           ) : loadingBackground ? (
             <LoadingState rows={1} label="Loading recent activity" />
+          ) : secondaryQuiet ? (
+            /* Quiet state: one calm line instead of three empty cards. */
+            <section className="vanta-card flex items-center gap-2 px-4 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 flex-1 text-[12px] leading-snug text-muted-foreground">
+                Everything important is quiet. Nothing unusual, nothing new to sort.
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn("h-9 shrink-0 text-xs", MOTION_ROW)}
+                onClick={() => onNavigate("receipts")}
+              >
+                Receipts
+              </Button>
+            </section>
           ) : (
             <>
+
               <Section
                 title="Security"
                 icon={ShieldCheck}
