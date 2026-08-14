@@ -203,7 +203,14 @@ export function ExecuteConfirmDialog({
           <Button variant="ghost" className="min-h-[44px]" onClick={onCancel}>
             Cancel
           </Button>
-          <Button className="min-h-[44px] gap-1.5" disabled={!ready || busy} onClick={() => onConfirm()}>
+          <Button
+            className="min-h-[44px] gap-1.5"
+            disabled={!ready || busy}
+            onClick={() => {
+              setCommitting(true);
+              void onConfirm();
+            }}
+          >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             Run it
           </Button>
