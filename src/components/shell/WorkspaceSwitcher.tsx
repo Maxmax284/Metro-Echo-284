@@ -8,7 +8,7 @@ import { Check, ChevronsUpDown, Building2, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { MOTION_MICRO, MOTION_PRESS } from "@/lib/motion";
+import { MOTION_MICRO, MOTION_PRESS, MOTION_SIGNAL } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace, scopeLabel, type Membership } from "@/providers/WorkspaceProvider";
 import { useRole } from "@/hooks/useRole";
@@ -43,23 +43,26 @@ export function WorkspaceSwitcher() {
           variant="ghost"
           size="sm"
           className={cn(
-            "h-7 max-w-[200px] gap-1 px-2 text-[11px] font-normal",
+            "relative h-7 max-w-[200px] gap-1 px-2 text-[11px] font-normal",
             MOTION_MICRO,
             MOTION_PRESS,
-            switching && "text-primary",
+            /* Vanta changed rooms: one purple sweep across the scope label
+               while scoped data refetches, then quiet again. */
+            switching && `text-accent ${MOTION_SIGNAL}`,
           )}
           aria-label="Switch workspace"
         >
           <Icon className="h-3 w-3 shrink-0" />
           <span className="truncate">{label}</span>
           {switching ? (
-            <span className="shrink-0 text-[10.5px] text-primary" aria-live="polite">
+            <span className="shrink-0 text-[10.5px] text-accent" aria-live="polite">
               · refreshing
             </span>
           ) : null}
           <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
+
 
       <PopoverContent align="end" className="w-[260px] p-1.5">
         <ScopeRow

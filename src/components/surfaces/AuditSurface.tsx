@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
+import { MOTION_ARRIVAL, MOTION_ROW } from "@/lib/motion";
 
 type AuditRow = {
   id: string;
@@ -141,6 +142,17 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   // Reset pagination whenever filters change.
   useEffect(() => { setVisibleCount(30); }, [filter, quick, eventClass]);
 
+  /* Receipts is the stable room — the only motion here is a genuinely new
+     receipt arriving. Anything already seen never animates again. */
+  const seenIds = useRef<Set<string> | null>(null);
+  const isNewReceipt = (id: string) => (seenIds.current ? !seenIds.current.has(id) : false);
+  useEffect(() => {
+    const next = seenIds.current ?? new Set<string>();
+    for (const r of audit) next.add(r.id);
+    seenIds.current = next;
+  }, [audit]);
+
+
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
@@ -264,12 +276,13 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               </p>
             )}
             {auditFiltered.slice(0, visibleCount).map((r) => (
-              <Card key={r.id} className="p-0 text-xs">
+              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_ARRIVAL)}>
                 <button
                   type="button"
                   onClick={() => setDrawerRow(r)}
-                  className="block w-full p-2 text-left hover:bg-muted/30 rounded-md transition-colors"
+                  className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW)}
                 >
+
                   <div className="flex items-center gap-2">
                     <StatusDot tone={eventTone(r.event)} title={r.event} />
                     <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>

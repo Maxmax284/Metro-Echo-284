@@ -69,6 +69,15 @@
     --glass: hsl(220 16% 12% / 0.72);
     --glass-border: hsl(220 14% 28% / 0.4);
 
+    /* Vanta intelligence accent — purple. Identity only, never decoration. */
+    --vanta-accent: 268 70% 66%;
+    /* Hero ambient: one controlled purple wash. Very low intensity. */
+    --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.14), transparent 62%),
+                     radial-gradient(90% 120% at 95% 10%, hsl(var(--primary) / 0.07), transparent 60%);
+    /* Grain: inline SVG noise. Opt-in per surface, never global. */
+    --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+
+
     /* Motion */
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
     --motion-fast: 140ms;
@@ -118,6 +127,10 @@
     --ring: 188 70% 38%;
     --glass: hsl(0 0% 100% / 0.72);
     --glass-border: hsl(220 14% 80% / 0.5);
+    --vanta-accent: 268 60% 50%;
+    --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.10), transparent 62%),
+                     radial-gradient(90% 120% at 95% 10%, hsl(var(--primary) / 0.06), transparent 60%);
+
   }
 }
 
@@ -163,7 +176,58 @@
     border-radius: var(--radius);
     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.6);
   }
+
+  /* ---- Street-tech surface levels ----
+     Four levels only: page background → surface → inset → elevated dialog.
+     Depth comes from tone, not from adding borders everywhere. */
+  .vanta-inset {
+    background: hsl(var(--background) / 0.6);
+    border-radius: calc(var(--radius) - 4px);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.35);
+  }
+
+  /* Grain: opt-in texture so dark surfaces don't read as sterile flat SaaS.
+     Extremely low opacity, no movement, no cost beyond one composited layer. */
+  .vanta-grain { position: relative; }
+  .vanta-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--noise);
+    background-size: 120px 120px;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    border-radius: inherit;
+  }
+
+  /* Hero: where Vanta's presence lives. One controlled purple wash, grain,
+     and a slow drift. Only used on the Today state area. */
+  .vanta-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background-color: hsl(var(--surface) / 0.7);
+    background-image: var(--gradient-hero);
+    background-size: 140% 140%;
+    background-position: 0% 0%;
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.5);
+    animation: vanta-hero-drift 42s ease-in-out infinite alternate;
+  }
+
+  /* Desktop-only depth response for interactive cards. Touch uses press. */
+  @media (hover: hover) and (pointer: fine) {
+    .vanta-hover-lift {
+      transition: transform var(--motion-fast) var(--ease-out),
+                  box-shadow var(--motion-fast) var(--ease-out);
+    }
+    .vanta-hover-lift:hover {
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.9), var(--shadow-sm);
+    }
+  }
 }
+
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -304,6 +368,64 @@
   transform: scale(0.98);
 }
 
+
+/* Hero drift: one slow ambient wash in one controlled area. Nothing else in
+   the app loops. */
+@keyframes vanta-hero-drift {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 40%; }
+}
+
+/* Signal line: the one reusable "Vanta noticed something" motif.
+   A 1px purple line that sweeps once and settles. Event-driven, never looped.
+   Apply to a positioned container. */
+.vanta-signal { position: relative; }
+.vanta-signal::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--vanta-accent) / 0.9) 45%,
+    hsl(var(--vanta-accent) / 0.35) 70%,
+    transparent);
+  transform-origin: left center;
+  animation: vanta-signal-sweep 720ms var(--ease-out) 1 both;
+  pointer-events: none;
+}
+@keyframes vanta-signal-sweep {
+  0%   { transform: scaleX(0); opacity: 0; }
+  35%  { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* Signal track: the processing indicator's travelling segment. Mounted only
+   while a request is genuinely pending, so it stops when the request stops. */
+@keyframes vanta-signal-track {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.motion-signal-track {
+  animation: vanta-signal-track 1.1s var(--ease-out) infinite;
+}
+
+
+
+/* Snap: crisp mechanical settle for a record reaching its next state.
+   Short, controlled, no overshoot. */
+@keyframes vanta-snap {
+  0%   { transform: scale(0.99); opacity: 0.7; }
+  60%  { transform: scale(1);    opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.motion-snap {
+  animation: vanta-snap 180ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -317,10 +439,24 @@
   .motion-breath,
   .motion-arrival,
   .motion-resolve,
+  .motion-snap,
+  .motion-signal-track,
+
+  .vanta-hero,
   .motion-surface-in { animation: none; }
+
+  /* The signal still marks the change — it just does not travel. */
+  .vanta-signal::before {
+    animation: none;
+    opacity: 0.7;
+    transform: none;
+  }
 
   /* Reduced motion still communicates state — it just does not move. */
   .motion-press { transition: none; }
   .motion-press:active { transform: none; }
+  .vanta-hover-lift { transition: none; }
+  .vanta-hover-lift:hover { transform: none; }
 }
+
 

@@ -21,7 +21,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { MOTION_ROW } from "@/lib/motion";
+import { MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   PROJECT_STATUS_LABEL,
   PROJECT_STATUS_TONE,
@@ -115,9 +115,11 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                       <a
                         href={`/projects/${p.id}`}
                         className={cn(
-                          "flex min-h-[44px] items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left hover:border-primary/40",
+                          "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
                           MOTION_ROW,
+                          MOTION_HOVER_LIFT,
                         )}
+
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-medium">{p.title}</span>
@@ -195,9 +197,14 @@ function Desk({
       )}
     </>
   );
+  /* Work is the operational room: crisper corners, tighter rhythm, desks that
+     read like machined panels rather than marketing cards. */
   const className = cn(
-    "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left transition-colors hover:border-primary/40",
+    "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    MOTION_ROW,
+    MOTION_HOVER_LIFT,
   );
+
   return href ? (
     <a href={href} className={className}>{body}</a>
   ) : (

@@ -128,6 +128,9 @@ export function SurfaceTabs({
       >
         {primaryItems.map(({ key, label, Icon }) => {
           const isActive = activeRoom === key && !activeInOverflow;
+          /* Ask is the intelligence room, so it marks in accent purple. The
+             operational rooms stay cyan. Colour keeps meaning that way. */
+          const tone = key === "ask" ? "accent" : "primary";
           return (
             <button
               key={key}
@@ -135,29 +138,37 @@ export function SurfaceTabs({
               className={cn(
                 "relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px]",
                 MOTION_ROW,
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                isActive
+                  ? tone === "accent" ? "text-accent" : "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
 
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
             >
+              {/* Machined marker: square-cut 2px bar, not a soft pill. */}
               <span
                 aria-hidden
                 className={cn(
-                  "pointer-events-none absolute -top-0.5 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-primary transition-[width,opacity] duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
-                  isActive ? "w-6 opacity-100" : "w-0 opacity-0",
+                  "pointer-events-none absolute -top-0.5 left-1/2 h-[2px] -translate-x-1/2 rounded-[1px] transition-[width,opacity] duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
+                  tone === "accent" ? "bg-accent" : "bg-primary",
+                  isActive ? "w-7 opacity-100" : "w-0 opacity-0",
                 )}
               />
               <Icon
                 className={cn(
                   "h-5 w-5 transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
-                  isActive && "-translate-y-0.5 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]",
+                  isActive && "-translate-y-0.5",
+                  isActive && (tone === "accent"
+                    ? "drop-shadow-[0_0_10px_hsl(var(--accent)/0.55)]"
+                    : "drop-shadow-[0_0_10px_hsl(var(--primary)/0.5)]"),
                 )}
               />
-              <span className="tracking-wide">{label}</span>
+              <span className="tracking-[0.02em]">{label}</span>
             </button>
           );
         })}
+
         {MoreSheet}
       </nav>
     );
@@ -167,6 +178,7 @@ export function SurfaceTabs({
     <nav aria-label="Primary" className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
       {primaryItems.map(({ key, label, Icon }) => {
         const isActive = activeRoom === key && !activeInOverflow;
+        const accent = key === "ask";
         return (
           <button
             key={key}
@@ -175,18 +187,29 @@ export function SurfaceTabs({
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl",
+              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-lg",
               MOTION_MICRO,
-              isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+              isActive
+                ? accent ? "bg-accent/15 text-accent" : "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
             )}
 
           >
             <Icon className="h-5 w-5" />
-            <span className="text-[9px] leading-tight tracking-wide">{label}</span>
-            {isActive && <span className="absolute -left-0.5 h-6 w-0.5 rounded-r-full bg-primary" />}
+            <span className="text-[9px] leading-tight tracking-[0.02em]">{label}</span>
+            {isActive && (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute -left-0.5 h-6 w-[2px] rounded-r-[1px]",
+                  accent ? "bg-accent" : "bg-primary",
+                )}
+              />
+            )}
           </button>
         );
       })}
+
       <div className="mt-1">{MoreSheet}</div>
     </nav>
   );

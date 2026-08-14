@@ -31,3 +31,20 @@ export const MOTION_RESOLVE = "motion-resolve";
 
 /** Tappable row: micro colour feedback plus press compression. */
 export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
+
+/** Desktop-only 1px depth response for interactive cards. Touch uses press. */
+export const MOTION_HOVER_LIFT = "vanta-hover-lift";
+
+/** Interactive card: desktop depth on hover, compression on touch. */
+export const MOTION_CARD = `${MOTION_HOVER_LIFT} ${MOTION_PRESS}`;
+
+/**
+ * The one "Vanta noticed something" motif: a 1px purple line that sweeps once
+ * and settles. Event-driven only — apply while a real change is acknowledged,
+ * then remove. Never left on.
+ */
+export const MOTION_SIGNAL = "vanta-signal";
+
+/** Crisp mechanical settle when a record reaches its next state. */
+export const MOTION_SNAP = "motion-snap";
+

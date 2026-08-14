@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
@@ -118,19 +118,37 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const secondaryQuiet =
     quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
 
+  /* One-shot signal on the hero when real new change actually lands. It says
+     "Vanta noticed something", then it is gone. Never left on. */
+  const [changeSignal, setChangeSignal] = useState(false);
+  const lastChanged = useRef<number | null>(null);
+  useEffect(() => {
+    if (loadingCritical) return;
+    const next = events.length;
+    if (lastChanged.current === null) { lastChanged.current = next; return; }
+    if (next <= lastChanged.current) { lastChanged.current = next; return; }
+    lastChanged.current = next;
+    setChangeSignal(true);
+    const t = window.setTimeout(() => setChangeSignal(false), 800);
+    return () => window.clearTimeout(t);
+  }, [events.length, loadingCritical]);
+
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
-      <header>
+      {/* Hero — where Vanta's presence lives. Ambient purple wash + grain,
+          slight depth separation from the feed. Copy stays grounded. */}
+      <header className={cn("vanta-hero vanta-grain px-4 py-4 sm:px-5 sm:py-5", changeSignal && "vanta-signal")}>
         <div className="flex items-center gap-2">
-          <Sun className="h-4 w-4 text-primary" />
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Today</span>
-          <Badge variant="outline" className="ml-auto text-[10px]">{destination}</Badge>
+          <Sun className="h-4 w-4 text-accent" />
+          <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Today</span>
+          <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wide">{destination}</Badge>
         </div>
         <h1
           aria-live="polite"
           className={cn(
-            "mt-2 text-2xl font-semibold leading-tight tracking-tight",
-            tone === "urgent" ? "text-danger" : tone === "attention" ? "text-foreground" : "text-foreground",
+            "mt-2 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em]",
+            tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
           {loadingCritical ? "Reading this space…" : headline}
@@ -139,6 +157,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
         </p>
       </header>
+
 
 
       <AskVantaBar />

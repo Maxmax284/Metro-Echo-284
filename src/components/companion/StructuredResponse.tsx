@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, CircleDot, ShieldCheck } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { parseVantaBlocks, isStructured, type Tone, type VantaBlock } from "@/lib/vantaBlocks";
 import { InlineApprovalActions } from "@/components/companion/InlineApprovalActions";
+import { MOTION_ARRIVAL } from "@/lib/motion";
 
 const TONE_RING: Record<Tone, string> = {
   neutral: "ring-border/60 bg-surface-elevated/60",
@@ -116,6 +117,10 @@ function Blocks({ blocks, depth = 0 }: { blocks: VantaBlock[]; depth?: number })
 /**
  * Structured renderer for assistant text. Falls back to plain prose when the
  * answer has no structure (short replies, mid-stream partials).
+ *
+ * The container arrives once — 4px rise plus fade — so a structured object
+ * reads as something placed into the conversation. Individual lines never
+ * animate.
  */
 export function StructuredResponse({ text }: { text: string }) {
   const blocks = parseVantaBlocks(text);
@@ -123,5 +128,10 @@ export function StructuredResponse({ text }: { text: string }) {
   if (!isStructured(blocks)) {
     return <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/95">{text}</div>;
   }
-  return <Blocks blocks={blocks} />;
+  return (
+    <div className={MOTION_ARRIVAL}>
+      <Blocks blocks={blocks} />
+    </div>
+  );
 }
+
