@@ -523,6 +523,9 @@
 }
 .motion-commit {
   animation: vanta-commit 320ms var(--ease-out) both;
+}
+
+
 
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
