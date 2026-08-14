@@ -73,6 +73,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         commitments: (commits as any)?.count ?? 0,
         actions: (actions as any)?.count ?? 0,
       });
+      setLastRead(Date.now());
     } catch (e: any) {
       setError(e?.message ?? "Work could not load.");
     } finally {
