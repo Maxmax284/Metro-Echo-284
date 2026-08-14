@@ -20,7 +20,10 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { MOTION_ROW } from "@/lib/motion";
+import { todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
+
 
 function Section({
   title,
