@@ -8,7 +8,7 @@ import { Check, ChevronsUpDown, Building2, Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { MOTION_MICRO, MOTION_PRESS } from "@/lib/motion";
+import { MOTION_MICRO, MOTION_PRESS, MOTION_SIGNAL } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace, scopeLabel, type Membership } from "@/providers/WorkspaceProvider";
 import { useRole } from "@/hooks/useRole";
