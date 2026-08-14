@@ -65,12 +65,14 @@ export function SurfaceTabs({
         <button
           className={cn(
             variant === "bottom"
-              ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px] transition-colors duration-200 ease-out"
-              : "group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200 ease-out",
+              ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px]"
+              : "group relative flex h-11 w-11 items-center justify-center rounded-xl",
+            MOTION_ROW,
             activeInOverflow
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
           )}
+
           aria-label="More tools"
           title="More tools"
         >

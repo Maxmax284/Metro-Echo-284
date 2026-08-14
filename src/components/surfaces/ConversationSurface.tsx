@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
-import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
+import { CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
