@@ -115,7 +115,7 @@ export function ExecuteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className={cn("space-y-3 rounded-[calc(var(--radius)-4px)] p-0.5", committing && "motion-commit")}>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline" className={cn("gap-1", riskColor[action.risk])}>
               <Icon className="h-3 w-3" /> {riskLabel[action.risk]}
