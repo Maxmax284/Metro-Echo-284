@@ -275,32 +275,38 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                 Nothing matches. Clear filters above.
               </p>
             )}
-            {auditFiltered.slice(0, visibleCount).map((r) => (
+            {auditFiltered.slice(0, visibleCount).map((r, i) => (
               <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_ARRIVAL)}>
                 <button
                   type="button"
                   onClick={() => setDrawerRow(r)}
-                  className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW)}
+                  className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW, MOTION_FOCUS)}
                 >
 
                   <div className="flex items-center gap-2">
                     <StatusDot tone={eventTone(r.event)} title={r.event} />
-                    <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
+                    {/* Sequence number in the loaded log. Machine data, mono. */}
+                    <MachineText className="shrink-0 text-[10px] text-muted-foreground/70">
+                      #{auditFiltered.length - i}
+                    </MachineText>
+                    <Badge variant="outline" className="vanta-machine shrink-0 text-[9px] uppercase tracking-[0.12em]">
+                      {kindLabel(r.entity_type)}
+                    </Badge>
                     <span
                       className="min-w-0 flex-1 truncate font-medium text-foreground"
                       title={r.event}
                     >
                       {humanizeEvent(r.event)}
                     </span>
-                    <span
+                    <MachineText
                       className="ml-auto shrink-0 text-[10px] text-muted-foreground"
                       title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
                     >
-                      {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                    </span>
+                      {formatInTimeZone(new Date(r.created_at), timezone, "HH:mm:ss")}
+                    </MachineText>
                   </div>
                   <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
-                    {trustNote(r.event)} · tap to open
+                    {trustNote(r.event)} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })} · tap to open
                   </div>
                 </button>
               </Card>
