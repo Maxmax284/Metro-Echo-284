@@ -178,6 +178,7 @@ export function SurfaceTabs({
     <nav aria-label="Primary" className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
       {primaryItems.map(({ key, label, Icon }) => {
         const isActive = activeRoom === key && !activeInOverflow;
+        const accent = key === "conversation";
         return (
           <button
             key={key}
@@ -186,18 +187,29 @@ export function SurfaceTabs({
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl",
+              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-lg",
               MOTION_MICRO,
-              isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
+              isActive
+                ? accent ? "bg-accent/15 text-accent" : "bg-primary/15 text-primary"
+                : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
             )}
 
           >
             <Icon className="h-5 w-5" />
-            <span className="text-[9px] leading-tight tracking-wide">{label}</span>
-            {isActive && <span className="absolute -left-0.5 h-6 w-0.5 rounded-r-full bg-primary" />}
+            <span className="text-[9px] leading-tight tracking-[0.02em]">{label}</span>
+            {isActive && (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute -left-0.5 h-6 w-[2px] rounded-r-[1px]",
+                  accent ? "bg-accent" : "bg-primary",
+                )}
+              />
+            )}
           </button>
         );
       })}
+
       <div className="mt-1">{MoreSheet}</div>
     </nav>
   );
