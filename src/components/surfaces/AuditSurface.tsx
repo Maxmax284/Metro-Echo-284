@@ -275,12 +275,13 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               </p>
             )}
             {auditFiltered.slice(0, visibleCount).map((r) => (
-              <Card key={r.id} className="p-0 text-xs">
+              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_ARRIVAL)}>
                 <button
                   type="button"
                   onClick={() => setDrawerRow(r)}
-                  className="block w-full p-2 text-left hover:bg-muted/30 rounded-md transition-colors"
+                  className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW)}
                 >
+
                   <div className="flex items-center gap-2">
                     <StatusDot tone={eventTone(r.event)} title={r.event} />
                     <Badge variant="outline" className="shrink-0 text-[9.5px]">{kindLabel(r.entity_type)}</Badge>
