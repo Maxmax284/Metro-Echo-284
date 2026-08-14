@@ -48,3 +48,17 @@ export const MOTION_SIGNAL = "vanta-signal";
 /** Crisp mechanical settle when a record reaches its next state. */
 export const MOTION_SNAP = "motion-snap";
 
+/**
+ * Commit — the one moment of drama in the whole app. Fires when an execute is
+ * confirmed: the card presses inward 1px and its border goes solid. Use once
+ * per execution, then drop it.
+ */
+export const MOTION_COMMIT = "motion-commit";
+
+/** Keyboard focus that reads as deliberate. Pair with interactive elements. */
+export const MOTION_FOCUS = "vanta-focus";
+
+/** Leading 2px status rail on a row. Tone comes from the row's text-* token. */
+export const LEAD_BAR = "vanta-lead";
+
+
