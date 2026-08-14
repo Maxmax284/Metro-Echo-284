@@ -35,7 +35,8 @@ export function ProjectReentryCard({
   const where = c.projectTitle ?? "Work outside a project";
 
   return (
-    <div className="rounded-lg border border-border/50 bg-surface-elevated p-3">
+    <div className={`vanta-inset vanta-grain p-3 ${MOTION_HOVER_LIFT}`}>
+
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-foreground">{where}</p>
