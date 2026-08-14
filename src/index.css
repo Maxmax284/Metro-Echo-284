@@ -176,7 +176,58 @@
     border-radius: var(--radius);
     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.6);
   }
+
+  /* ---- Street-tech surface levels ----
+     Four levels only: page background → surface → inset → elevated dialog.
+     Depth comes from tone, not from adding borders everywhere. */
+  .vanta-inset {
+    background: hsl(var(--background) / 0.6);
+    border-radius: calc(var(--radius) - 4px);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.35);
+  }
+
+  /* Grain: opt-in texture so dark surfaces don't read as sterile flat SaaS.
+     Extremely low opacity, no movement, no cost beyond one composited layer. */
+  .vanta-grain { position: relative; }
+  .vanta-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: var(--noise);
+    background-size: 120px 120px;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    border-radius: inherit;
+  }
+
+  /* Hero: where Vanta's presence lives. One controlled purple wash, grain,
+     and a slow drift. Only used on the Today state area. */
+  .vanta-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background-color: hsl(var(--surface) / 0.7);
+    background-image: var(--gradient-hero);
+    background-size: 140% 140%;
+    background-position: 0% 0%;
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.5);
+    animation: vanta-hero-drift 42s ease-in-out infinite alternate;
+  }
+
+  /* Desktop-only depth response for interactive cards. Touch uses press. */
+  @media (hover: hover) and (pointer: fine) {
+    .vanta-hover-lift {
+      transition: transform var(--motion-fast) var(--ease-out),
+                  box-shadow var(--motion-fast) var(--ease-out);
+    }
+    .vanta-hover-lift:hover {
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.9), var(--shadow-sm);
+    }
+  }
 }
+
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
