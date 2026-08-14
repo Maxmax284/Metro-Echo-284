@@ -130,7 +130,7 @@ export function SurfaceTabs({
           const isActive = activeRoom === key && !activeInOverflow;
           /* Ask is the intelligence room, so it marks in accent purple. The
              operational rooms stay cyan. Colour keeps meaning that way. */
-          const tone = key === "conversation" ? "accent" : "primary";
+          const tone = key === "ask" ? "accent" : "primary";
           return (
             <button
               key={key}
@@ -178,7 +178,7 @@ export function SurfaceTabs({
     <nav aria-label="Primary" className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
       {primaryItems.map(({ key, label, Icon }) => {
         const isActive = activeRoom === key && !activeInOverflow;
-        const accent = key === "conversation";
+        const accent = key === "ask";
         return (
           <button
             key={key}
