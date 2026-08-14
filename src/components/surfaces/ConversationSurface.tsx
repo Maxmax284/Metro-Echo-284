@@ -22,6 +22,8 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
+import { ProcessingLine } from "@/components/companion/ProcessingLine";
+
 import { useScope } from "@/hooks/useScope";
 
 
