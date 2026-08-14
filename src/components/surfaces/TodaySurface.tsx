@@ -20,7 +20,15 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import {
+  ActivityTrace,
+  MachineLabel,
+  MachineText,
+  RollingNumber,
+  SectionRail,
+  TickRow,
+} from "@/components/ui/instrument";
 import { todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
 
@@ -29,25 +37,27 @@ function Section({
   title,
   hint,
   icon: Icon,
+  reading,
   children,
   action,
 }: {
   title: string;
   hint?: string;
   icon: typeof Sun;
+  /** A real reading shown in the rail gap — a count, never a label. */
+  reading?: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
     <section className="vanta-card p-4">
-      <div className="flex items-start gap-2">
-        <Icon className="mt-0.5 h-4 w-4 text-primary" />
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-          {hint ? <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p> : null}
-        </div>
-        {action ? <div className="ml-auto shrink-0">{action}</div> : null}
-      </div>
+      <SectionRail
+        label={title}
+        reading={reading}
+        icon={<Icon className="h-3.5 w-3.5" />}
+        action={action}
+      />
+      {hint ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{hint}</p> : null}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -68,13 +78,16 @@ function Row({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left hover:border-primary/40",
+        "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
         MOTION_ROW,
-        tone === "warn" && "border-warn/40",
+        MOTION_FOCUS,
+        /* Leading rail: status is a glance, not a read. */
+        LEAD_BAR,
+        tone === "warn" ? "text-warn" : "text-border",
       )}
     >
       <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">{label}</span>
-      {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
+      {meta ? <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText> : null}
       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
     </button>
   );
