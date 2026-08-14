@@ -261,9 +261,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                     <span className="font-medium">{ev.to_status}</span>
                   </div>
                   {ev.reason && <div className="line-clamp-2 text-[11px] text-muted-foreground">{ev.reason}</div>}
-                  <div className="text-[10px] text-muted-foreground/70">
+                  <MachineText className="block text-[10px] text-muted-foreground/70">
                     action {ev.action_id.slice(0, 8)} · {formatDistanceToNow(new Date(ev.created_at), { addSuffix: true })}
-                  </div>
+                  </MachineText>
                 </div>
               </Card>
             ))}
