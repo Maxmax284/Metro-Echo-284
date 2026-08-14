@@ -21,7 +21,15 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { MOTION_ROW } from "@/lib/motion";
+import {
+  PROJECT_STATUS_LABEL,
+  PROJECT_STATUS_TONE,
+  projectStatus,
+  projectTimeLabel,
+} from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+
 
 type Counts = { inbox: number; commitments: number; actions: number };
 
@@ -97,21 +105,36 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
               </p>
             ) : (
               <ul className="mt-2 space-y-1.5">
-                {projects.map((p) => (
-                  <li key={p.id}>
-                    <a
-                      href={`/projects/${p.id}`}
-                      className="flex min-h-[44px] items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left text-xs hover:border-primary/40"
-                    >
-                      <span className="min-w-0 flex-1 truncate font-medium">{p.title}</span>
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        {p.updated_at ? formatDistanceToNow(new Date(p.updated_at), { addSuffix: true }) : ""}
-                      </span>
-                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    </a>
-                  </li>
-                ))}
+                {projects.map((p) => {
+                  const st = projectStatus({
+                    status: (p as { status?: string | null }).status ?? null,
+                    updatedAt: p.updated_at,
+                  });
+                  return (
+                    <li key={p.id}>
+                      <a
+                        href={`/projects/${p.id}`}
+                        className={cn(
+                          "flex min-h-[44px] items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left hover:border-primary/40",
+                          MOTION_ROW,
+                        )}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium">{p.title}</span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            {projectTimeLabel({ updatedAt: p.updated_at })}
+                          </span>
+                        </span>
+                        <span className={cn("shrink-0 text-[11px] font-medium", PROJECT_STATUS_TONE[st])}>
+                          {PROJECT_STATUS_LABEL[st]}
+                        </span>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
+
             )}
           </section>
         )}

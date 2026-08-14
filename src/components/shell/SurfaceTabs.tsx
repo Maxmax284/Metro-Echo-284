@@ -18,6 +18,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
+
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
 
@@ -65,12 +67,14 @@ export function SurfaceTabs({
         <button
           className={cn(
             variant === "bottom"
-              ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px] transition-colors duration-200 ease-out"
-              : "group relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200 ease-out",
+              ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px]"
+              : "group relative flex h-11 w-11 items-center justify-center rounded-xl",
+            MOTION_ROW,
             activeInOverflow
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
           )}
+
           aria-label="More tools"
           title="More tools"
         >
@@ -98,11 +102,13 @@ export function SurfaceTabs({
                   setMoreOpen(false);
                 }}
                 className={cn(
-                  "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm transition-colors",
+                  "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm",
+                  MOTION_ROW,
                   isActive
                     ? "bg-primary/15 text-primary border-primary/30"
                     : "bg-surface-elevated text-foreground/90 hover:text-foreground"
                 )}
+
               >
                 <Icon className="h-4 w-4" />
                 {label}
@@ -127,9 +133,11 @@ export function SurfaceTabs({
               key={key}
               onClick={() => onChange(key)}
               className={cn(
-                "relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px] transition-colors duration-[var(--motion-base)] ease-[var(--ease-out)]",
+                "relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px]",
+                MOTION_ROW,
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
+
               aria-label={label}
               aria-current={isActive ? "page" : undefined}
             >
@@ -167,9 +175,11 @@ export function SurfaceTabs({
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl transition-colors duration-200 ease-out",
+              "group relative flex h-11 w-11 flex-col items-center justify-center rounded-xl",
+              MOTION_MICRO,
               isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
             )}
+
           >
             <Icon className="h-5 w-5" />
             <span className="text-[9px] leading-tight tracking-wide">{label}</span>

@@ -278,6 +278,32 @@
   will-change: opacity, transform;
 }
 
+/* Arrival: a row that just showed up because real new data landed. One time. */
+@keyframes vanta-arrival {
+  from { opacity: 0; transform: translate3d(0, 2px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.motion-arrival {
+  animation: vanta-arrival var(--motion-base) var(--ease-out) both;
+}
+
+/* Resolve: a record settling into its next state (staged → approved → executed). */
+@keyframes vanta-resolve {
+  0%   { opacity: 0.55; transform: translate3d(0, 2px, 0); }
+  100% { opacity: 1;    transform: translate3d(0, 0, 0); }
+}
+.motion-resolve {
+  animation: vanta-resolve var(--motion-base) var(--ease-out) both;
+}
+
+/* Press: tap compression. Micro feedback only — never a bounce. */
+.motion-press {
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+.motion-press:active {
+  transform: scale(0.98);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -289,5 +315,12 @@
   .motion-dismiss-left,
   .motion-confirm,
   .motion-breath,
+  .motion-arrival,
+  .motion-resolve,
   .motion-surface-in { animation: none; }
+
+  /* Reduced motion still communicates state — it just does not move. */
+  .motion-press { transition: none; }
+  .motion-press:active { transform: none; }
 }
+

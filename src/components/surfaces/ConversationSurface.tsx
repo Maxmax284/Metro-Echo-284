@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
-import { Loader2, CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
+import { CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
@@ -22,6 +22,8 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { StagedFileChips } from "@/components/files/StagedFileChips";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
+import { ProcessingLine } from "@/components/companion/ProcessingLine";
+
 import { useScope } from "@/hooks/useScope";
 
 
@@ -351,8 +353,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                     {m.role === "assistant"
                       ? (m.content
                           ? <StructuredResponse text={m.content} />
-                          : (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : ""))
-                      : (m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : ""))}
+                          : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))
+                      : (m.content || (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))}
+
                   </div>
 
                   {m.content && m.role !== "system" && (

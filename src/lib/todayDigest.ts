@@ -134,3 +134,33 @@ export function quietSummary(input: {
   }
   return parts.join(" ");
 }
+
+export type TodayTone = "calm" | "attention" | "urgent";
+
+/**
+ * The headline for Today. It is the largest text on the page, so it is only
+ * ever a count of real things: attention items first, then recorded changes.
+ * Nothing here is generated when there is nothing to say.
+ */
+export function todayHeadline(input: {
+  attention: { level: AttentionLevel }[];
+  changedCount?: number;
+}): { tone: TodayTone; headline: string } {
+  const n = input.attention.length;
+  if (n === 0) {
+    const changed = input.changedCount ?? 0;
+    if (changed > 0) {
+      return {
+        tone: "calm",
+        headline: changed === 1 ? "One thing changed" : `${changed} things changed`,
+      };
+    }
+    return { tone: "calm", headline: "Quiet right now" };
+  }
+  const critical = input.attention.some((a) => a.level === "critical");
+  return {
+    tone: critical ? "urgent" : "attention",
+    headline: n === 1 ? "One thing needs you" : `${n} things need you`,
+  };
+}
+

@@ -20,7 +20,10 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { MOTION_ROW } from "@/lib/motion";
+import { todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
+
 
 function Section({
   title,
@@ -65,7 +68,8 @@ function Row({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left transition-colors hover:border-primary/40",
+        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left hover:border-primary/40",
+        MOTION_ROW,
         tone === "warn" && "border-warn/40",
       )}
     >
@@ -75,6 +79,7 @@ function Row({
     </button>
   );
 }
+
 
 /**
  * TodaySurface — the front door. It answers what matters now, what's next, what
@@ -107,23 +112,34 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   } = digest;
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
+  const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
+     secondary feeds collapse to one line instead of three empty cards. */
+  const secondaryQuiet =
+    quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
       <header>
         <div className="flex items-center gap-2">
           <Sun className="h-4 w-4 text-primary" />
-          <h1 className="text-xl font-semibold tracking-tight">Today</h1>
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Today</span>
           <Badge variant="outline" className="ml-auto text-[10px]">{destination}</Badge>
         </div>
-        <p className="mt-1.5 text-sm leading-snug text-muted-foreground">
-          {loadingCritical
-            ? "Reading this space…"
-            : quiet
-              ? quietLine
-              : `${attention.length} ${attention.length === 1 ? "thing" : "things"} waiting on you.`}
+        <h1
+          aria-live="polite"
+          className={cn(
+            "mt-2 text-2xl font-semibold leading-tight tracking-tight",
+            tone === "urgent" ? "text-danger" : tone === "attention" ? "text-foreground" : "text-foreground",
+          )}
+        >
+          {loadingCritical ? "Reading this space…" : headline}
+        </h1>
+        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
+          {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
         </p>
       </header>
+
 
       <AskVantaBar />
 
@@ -240,8 +256,25 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             />
           ) : loadingBackground ? (
             <LoadingState rows={1} label="Loading recent activity" />
+          ) : secondaryQuiet ? (
+            /* Quiet state: one calm line instead of three empty cards. */
+            <section className="vanta-card flex items-center gap-2 px-4 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 flex-1 text-[12px] leading-snug text-muted-foreground">
+                Everything important is quiet. Nothing unusual, nothing new to sort.
+              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn("h-9 shrink-0 text-xs", MOTION_ROW)}
+                onClick={() => onNavigate("receipts")}
+              >
+                Receipts
+              </Button>
+            </section>
           ) : (
             <>
+
               <Section
                 title="Security"
                 icon={ShieldCheck}

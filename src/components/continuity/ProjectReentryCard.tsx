@@ -3,7 +3,7 @@
 // Says where things stand, what changed, what was decided, and what's still
 // open — all from recorded activity. It never runs anything.
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { MOTION_PRESS } from "@/lib/motion";
 import { MoreHorizontal, ArrowRight } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,22 +38,19 @@ export function ProjectReentryCard({
     <div className="rounded-lg border border-border/50 bg-surface-elevated p-3">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-foreground/90">{where}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-1">
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-              {STATE_LABEL[c.state]}
-            </Badge>
-            {c.reason ? (
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                {REASON_LABEL[c.reason]}
-              </Badge>
-            ) : null}
-            <span className="text-[11px] text-muted-foreground">
+          <p className="truncate text-[13px] font-semibold text-foreground">{where}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-foreground">
+            <span className="font-medium text-foreground/80">{STATE_LABEL[c.state]}</span>
+            {c.reason ? <span aria-hidden>·</span> : null}
+            {c.reason ? <span>{REASON_LABEL[c.reason]}</span> : null}
+            <span aria-hidden>·</span>
+            <span>
               last activity {lastActiveLabel(c.lastActivityAt)}
               {c.anchorConfidence === "inferred" ? " (from records, not a visit)" : ""}
             </span>
           </div>
           <p className="mt-1.5 text-[11.5px] leading-snug text-foreground/80">{c.summary}</p>
+
           {changes.length > 0 ? (
             <p className="mt-1 text-[11px] text-muted-foreground">Since your last snapshot — {changes.join("; ")}.</p>
           ) : null}
@@ -100,17 +97,18 @@ export function ProjectReentryCard({
       ) : null}
 
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <Button size="sm" variant="secondary" className="min-h-[44px] gap-1 text-xs" onClick={onResume}>
+        <Button size="sm" variant="secondary" className={`min-h-[44px] gap-1 text-xs ${MOTION_PRESS}`} onClick={onResume}>
           Resume <ArrowRight className="h-3.5 w-3.5" />
         </Button>
-        <Button size="sm" variant="ghost" className="min-h-[44px] text-xs" onClick={onAsk}>
+        <Button size="sm" variant="ghost" className={`min-h-[44px] text-xs ${MOTION_PRESS}`} onClick={onAsk}>
           Bring me up to speed
         </Button>
         {onOpen ? (
-          <Button size="sm" variant="ghost" className="min-h-[44px] text-xs" onClick={onOpen}>
+          <Button size="sm" variant="ghost" className={`min-h-[44px] text-xs ${MOTION_PRESS}`} onClick={onOpen}>
             Open project
           </Button>
         ) : null}
+
       </div>
     </div>
   );
