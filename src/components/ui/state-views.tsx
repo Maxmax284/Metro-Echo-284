@@ -42,11 +42,15 @@ export function LoadingState({
  *
  *   title — what is not here yet
  *   hint  — how something gets here (this is the part that teaches)
+ *   flow  — the real path something travels to land here, drawn as a hairline
+ *           diagram. Empty screens are the most-seen screens on a fresh scope,
+ *           so this is where the "custom rig" read is earned.
  */
 export function EmptyState({
   title,
   hint,
   icon,
+  flow,
   actionLabel,
   onAction,
   className,
@@ -54,22 +58,46 @@ export function EmptyState({
   title: string;
   hint?: string;
   icon?: ReactNode;
+  /** e.g. ["Telegram", "Email", "Voice"] → "Inbox". Rendered in mono. */
+  flow?: string[];
   actionLabel?: string;
   onAction?: () => void;
   className?: string;
 }) {
   return (
-    <div className={cn("vanta-card flex flex-col items-center px-4 py-6 text-center", className)}>
+    <div
+      className={cn(
+        "vanta-card vanta-grain flex flex-col items-center px-4 py-7 text-center",
+        className,
+      )}
+    >
       {icon ? <div className="mb-2 text-muted-foreground">{icon}</div> : null}
-      <div className="text-[12.5px] font-medium">{title}</div>
+      <div className="vanta-machine-label text-foreground/70">{title}</div>
       {hint ? (
-        <p className="mt-1 max-w-[36ch] text-[11.5px] leading-snug text-muted-foreground">{hint}</p>
+        <p className="mt-2 max-w-[36ch] text-[11.5px] leading-relaxed text-muted-foreground">{hint}</p>
       ) : null}
+      {flow && flow.length > 0 ? <FlowDiagram steps={flow} /> : null}
       {actionLabel && onAction ? (
-        <Button size="sm" variant="outline" className="mt-3 h-9 text-[11.5px]" onClick={onAction}>
+        <Button size="sm" variant="outline" className="mt-4 h-9 text-[11.5px]" onClick={onAction}>
           {actionLabel}
         </Button>
       ) : null}
+    </div>
+  );
+}
+
+/** Hairline path showing where records come from. Mono nodes, 1px connectors. */
+function FlowDiagram({ steps }: { steps: string[] }) {
+  return (
+    <div aria-hidden className="mt-4 flex w-full max-w-[30ch] items-center justify-center gap-1.5">
+      {steps.map((s, i) => (
+        <div key={s} className="flex min-w-0 items-center gap-1.5">
+          {i > 0 ? <span className="h-px w-3 shrink-0 bg-border" /> : null}
+          <span className="vanta-machine truncate rounded-[2px] px-1.5 py-0.5 text-[9.5px] uppercase tracking-[0.12em] text-muted-foreground ring-1 ring-border/70">
+            {s}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

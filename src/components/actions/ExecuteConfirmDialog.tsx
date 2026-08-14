@@ -73,9 +73,14 @@ export function ExecuteConfirmDialog({
   onConfirm: () => void | Promise<void>;
 }) {
   const [typed, setTyped] = useState("");
+  /* The one moment of drama in the app: on confirm the card presses inward and
+     its border goes solid, so executing feels like a mechanism engaging rather
+     than a button turning grey. */
+  const [committing, setCommitting] = useState(false);
 
   useEffect(() => {
     setTyped("");
+    setCommitting(false);
   }, [action?.id]);
 
   if (!action) {
@@ -110,7 +115,7 @@ export function ExecuteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className={cn("space-y-3 rounded-[calc(var(--radius)-4px)] p-0.5", committing && "motion-commit")}>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline" className={cn("gap-1", riskColor[action.risk])}>
               <Icon className="h-3 w-3" /> {riskLabel[action.risk]}
@@ -198,7 +203,14 @@ export function ExecuteConfirmDialog({
           <Button variant="ghost" className="min-h-[44px]" onClick={onCancel}>
             Cancel
           </Button>
-          <Button className="min-h-[44px] gap-1.5" disabled={!ready || busy} onClick={() => onConfirm()}>
+          <Button
+            className="min-h-[44px] gap-1.5"
+            disabled={!ready || busy}
+            onClick={() => {
+              setCommitting(true);
+              void onConfirm();
+            }}
+          >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             Run it
           </Button>

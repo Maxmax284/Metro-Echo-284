@@ -20,7 +20,15 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import {
+  ActivityTrace,
+  MachineLabel,
+  MachineText,
+  RollingNumber,
+  SectionRail,
+  TickRow,
+} from "@/components/ui/instrument";
 import { todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
 
@@ -29,25 +37,27 @@ function Section({
   title,
   hint,
   icon: Icon,
+  reading,
   children,
   action,
 }: {
   title: string;
   hint?: string;
   icon: typeof Sun;
+  /** A real reading shown in the rail gap — a count, never a label. */
+  reading?: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
     <section className="vanta-card p-4">
-      <div className="flex items-start gap-2">
-        <Icon className="mt-0.5 h-4 w-4 text-primary" />
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-          {hint ? <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p> : null}
-        </div>
-        {action ? <div className="ml-auto shrink-0">{action}</div> : null}
-      </div>
+      <SectionRail
+        label={title}
+        reading={reading}
+        icon={<Icon className="h-3.5 w-3.5" />}
+        action={action}
+      />
+      {hint ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{hint}</p> : null}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -68,13 +78,16 @@ function Row({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left hover:border-primary/40",
+        "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
         MOTION_ROW,
-        tone === "warn" && "border-warn/40",
+        MOTION_FOCUS,
+        /* Leading rail: status is a glance, not a read. */
+        LEAD_BAR,
+        tone === "warn" ? "text-warn" : "text-border",
       )}
     >
       <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">{label}</span>
-      {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
+      {meta ? <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText> : null}
       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
     </button>
   );
@@ -136,27 +149,52 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
-      {/* Hero — where Vanta's presence lives. Ambient purple wash + grain,
-          slight depth separation from the feed. Copy stays grounded. */}
-      <header className={cn("vanta-hero vanta-grain px-4 py-4 sm:px-5 sm:py-5", changeSignal && "vanta-signal")}>
+      {/* Hero — where Vanta's presence lives. Ambient purple wash, grain, one
+          cut corner. The headline wears the mono face because it is a reading
+          of real state, not a marketing line. */}
+      <header
+        className={cn(
+          "vanta-hero vanta-grain vanta-notch px-4 py-4 sm:px-5 sm:py-5",
+          changeSignal && "vanta-signal",
+        )}
+      >
         <div className="flex items-center gap-2">
           <Sun className="h-4 w-4 text-accent" />
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Today</span>
-          <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wide">{destination}</Badge>
+          <MachineLabel className="text-foreground/70">Today</MachineLabel>
+          <Badge variant="outline" className="vanta-machine ml-auto mr-5 text-[9.5px] uppercase tracking-[0.14em]">
+            {destination}
+          </Badge>
         </div>
         <h1
           aria-live="polite"
           className={cn(
-            "mt-2 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em]",
+            // Prose stays in the sans. Mono is reserved for machine data.
+            "mt-2.5 text-[25px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[29px]",
             tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
           {loadingCritical ? "Reading this space…" : headline}
         </h1>
-        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
+        <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
         </p>
+        {/* Data as decoration: the trace is a real 14-day read of recorded
+            activity in this scope. Flat when nothing happened. */}
+        {loadingCritical ? null : (
+          <div className="mt-3 flex items-center gap-2.5">
+            <ActivityTrace timestamps={allEvents.map((e) => e.created_at)} />
+            <span className="h-px flex-1 bg-border/50" />
+            <MachineText className="text-[10px] text-muted-foreground">
+              <RollingNumber value={allEvents.length} /> recorded
+            </MachineText>
+          </div>
+        )}
       </header>
+
+      {/* Registration marks — structural punctuation between hero and feed. */}
+      <TickRow />
+
+
 
 
 
@@ -173,6 +211,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               title="Needs attention"
               hint="Grouped by the work it belongs to."
               icon={AlertTriangle}
+              reading={<RollingNumber value={attention.length} />}
               action={
                 <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("now")}>
                   See all
@@ -185,14 +224,15 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   const open = openGroup === id;
                   const name = g.project ?? "Not in a project yet";
                   return (
-                    <div key={id} className="rounded-lg border border-border/50 bg-surface-elevated">
+                    <div key={id} className="vanta-inset">
                       <button
                         onClick={() => setOpenGroup(open ? null : id)}
-                        className="flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left"
+                        className={cn("flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left", MOTION_FOCUS)}
                         aria-expanded={open}
                       >
                         <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
-                          {name} has {g.count} {g.count === 1 ? "item" : "items"} needing attention
+                          {name} has <MachineText>{g.count}</MachineText>{" "}
+                          {g.count === 1 ? "item" : "items"} needing attention
                         </span>
                         <ChevronDown
                           className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
@@ -225,6 +265,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             title="What's next"
             hint="Promises with a date, soonest first."
             icon={CalendarClock}
+            reading={<RollingNumber value={dueToday.length + upcoming.length} />}
             action={
               <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("next")}>
                 See all
@@ -235,15 +276,20 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               <EmptyState
                 title="No dated promises"
                 hint="When you tell Vanta you'll do something by a date, it lands here."
+                flow={["You say it", "Vanta dates it", "Commitments"]}
               />
             ) : (
               <div className="space-y-1.5">
                 {dueToday.length > 0 ? (
                   <button
                     onClick={() => setDrill("today")}
-                    className="min-h-[44px] w-full rounded-lg border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40"
+                    className={cn(
+                      "min-h-[44px] w-full rounded-[calc(var(--radius)-4px)] border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40",
+                      MOTION_FOCUS,
+                    )}
                   >
-                    {dueToday.length} {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
+                    <MachineText>{dueToday.length}</MachineText>{" "}
+                    {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
                   </button>
                 ) : null}
                 {[...dueToday, ...upcoming].slice(0, 5).map((c) => (
@@ -340,6 +386,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 title="What changed"
                 hint="The last few things Vanta recorded, in plain English."
                 icon={Receipt}
+                reading={<RollingNumber value={allEvents.length} />}
                 action={
                   <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("changed")}>
                     See all
@@ -350,34 +397,51 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   <EmptyState
                     title="Nothing recorded yet"
                     hint="Every save, approval and run leaves a receipt here."
+                    flow={["Change", "Receipt", "Receipts room"]}
                   />
                 ) : (
                   <ul className="space-y-1.5">
                     {events.map((e) => (
-                      <li key={e.id} className="flex items-center gap-2 text-xs text-foreground/90">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
-                        <span className="min-w-0 flex-1 truncate">{humanizeEvent(e.event)}</span>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
+                      <li
+                        key={e.id}
+                        className={cn(
+                          "flex items-center gap-2 text-xs text-foreground/90",
+                          LEAD_BAR,
+                          "text-primary/50",
+                        )}
+                      >
+                        <span className="min-w-0 flex-1 truncate text-foreground/90">{humanizeEvent(e.event)}</span>
+                        <MachineText className="shrink-0 text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                        </span>
+                        </MachineText>
                       </li>
                     ))}
                   </ul>
                 )}
               </Section>
 
-              <Section title="Fresh in" icon={Inbox}
+              <Section
+                title="Fresh in"
+                icon={Inbox}
+                reading={<RollingNumber value={captureCount} />}
                 action={
                   <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("inbox")}>
                     Open inbox
                   </Button>
                 }
               >
-                <p className="text-xs leading-snug text-muted-foreground">
-                  {captureCount === 0
-                    ? "Nothing new in the last day. Captures from Telegram, email, voice and uploads land in Inbox."
-                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.`}
-                </p>
+                {captureCount === 0 ? (
+                  <EmptyState
+                    title="Nothing new"
+                    hint="Captures land in Inbox, then you sort them into the work they belong to."
+                    flow={["Telegram", "Email", "Voice", "Inbox"]}
+                  />
+                ) : (
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    <MachineText className="text-foreground/90">{captureCount}</MachineText> new{" "}
+                    {captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.
+                  </p>
+                )}
               </Section>
             </>
           )}

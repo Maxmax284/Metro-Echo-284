@@ -71,9 +71,9 @@
 
     /* Vanta intelligence accent — purple. Identity only, never decoration. */
     --vanta-accent: 268 70% 66%;
-    /* Hero ambient: one controlled purple wash. Very low intensity. */
-    --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.14), transparent 62%),
-                     radial-gradient(90% 120% at 95% 10%, hsl(var(--primary) / 0.07), transparent 60%);
+    /* Hero ambient: one controlled purple wash. */
+    --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.18), transparent 62%),
+                     radial-gradient(90% 120% at 95% 10%, hsl(var(--primary) / 0.09), transparent 60%);
     /* Grain: inline SVG noise. Opt-in per surface, never global. */
     --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 
@@ -196,7 +196,7 @@
     pointer-events: none;
     background-image: var(--noise);
     background-size: 120px 120px;
-    opacity: 0.035;
+    opacity: 0.055;
     mix-blend-mode: overlay;
     border-radius: inherit;
   }
@@ -225,6 +225,78 @@
       transform: translateY(-1px);
       box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.9), var(--shadow-sm);
     }
+  }
+
+  /* ---- Instrument language ----
+     Machine data wears mono. Prose wears Rubik. The split is what makes the
+     app read as instrumented rather than styled. */
+  .vanta-machine {
+    font-family: theme("fontFamily.mono");
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+  }
+  .vanta-machine-label {
+    font-family: theme("fontFamily.mono");
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.625rem;
+    line-height: 1.2;
+  }
+
+  /* Section rail: a small-caps mono label, then a hairline that runs to the
+     edge. Reads like an instrument panel instead of a web heading. */
+  .vanta-rail {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+  .vanta-rail::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(90deg, hsl(var(--border) / 0.9), hsl(var(--border) / 0.15));
+  }
+
+  /* Registration marks: machined tick row. Purely structural, no motion. */
+  .vanta-ticks {
+    height: 5px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      hsl(var(--border) / 0.85) 0 1px,
+      transparent 1px 7px
+    );
+    mask-image: linear-gradient(90deg, hsl(0 0% 0%), transparent);
+    -webkit-mask-image: linear-gradient(90deg, hsl(0 0% 0%), transparent);
+  }
+
+  /* One cut corner. Used sparingly — hero and receipt cards only. */
+  .vanta-notch {
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+  }
+
+  /* Leading status bar: a square-cut 2px rail on the left of a row so status
+     is a glance, not a read. Tone comes from the caller's text-* token. */
+  .vanta-lead {
+    position: relative;
+    padding-left: 0.75rem;
+  }
+  .vanta-lead::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    opacity: 0.85;
+  }
+
+  /* Focus that respects keyboard use. 1px accent, 2px offset, eased in. */
+  .vanta-focus:focus-visible {
+    outline: 1px solid hsl(var(--primary));
+    outline-offset: 2px;
+    animation: vanta-focus-in 120ms var(--ease-out) both;
   }
 }
 
@@ -426,6 +498,35 @@
   animation: vanta-snap 180ms var(--ease-out) both;
 }
 
+/* Number roll: a digit block slides up when a real count changes. 240ms, no
+   bounce. Only mounted when the value actually moved. */
+@keyframes vanta-roll {
+  from { transform: translateY(60%); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.motion-roll {
+  animation: vanta-roll var(--motion-base) var(--ease-out) both;
+}
+
+/* Focus ring ease-in. Keyboard use should feel deliberate, not abrupt. */
+@keyframes vanta-focus-in {
+  from { outline-offset: 0; }
+  to   { outline-offset: 2px; }
+}
+
+/* Commit: the one moment of drama. On execute confirm the card presses inward
+   and its border goes solid before the receipt appears under it. */
+@keyframes vanta-commit {
+  0%   { transform: scale(1);     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.6); }
+  35%  { transform: scale(0.985); box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.9); }
+  100% { transform: scale(1);     box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.5); }
+}
+.motion-commit {
+  animation: vanta-commit 320ms var(--ease-out) both;
+}
+
+
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -441,6 +542,8 @@
   .motion-resolve,
   .motion-snap,
   .motion-signal-track,
+  .motion-roll,
+  .motion-commit,
 
   .vanta-hero,
   .motion-surface-in { animation: none; }
