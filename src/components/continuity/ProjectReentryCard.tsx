@@ -3,7 +3,7 @@
 // Says where things stand, what changed, what was decided, and what's still
 // open — all from recorded activity. It never runs anything.
 import { Button } from "@/components/ui/button";
-import { MOTION_PRESS } from "@/lib/motion";
+import { MOTION_HOVER_LIFT, MOTION_PRESS } from "@/lib/motion";
 import { MoreHorizontal, ArrowRight } from "lucide-react";
 import {
   DropdownMenu,
