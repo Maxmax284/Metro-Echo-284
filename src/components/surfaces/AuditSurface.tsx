@@ -14,7 +14,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { MOTION_ARRIVAL, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
-import { MachineLabel, MachineText, SectionRail } from "@/components/ui/instrument";
+import { MachineText, SectionRail } from "@/components/ui/instrument";
 
 type AuditRow = {
   id: string;
