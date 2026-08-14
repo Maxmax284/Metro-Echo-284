@@ -118,6 +118,22 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const secondaryQuiet =
     quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
 
+  /* One-shot signal on the hero when real new change actually lands. It says
+     "Vanta noticed something", then it is gone. Never left on. */
+  const [changeSignal, setChangeSignal] = useState(false);
+  const lastChanged = useRef<number | null>(null);
+  useEffect(() => {
+    if (loadingCritical) return;
+    const next = events.length;
+    if (lastChanged.current === null) { lastChanged.current = next; return; }
+    if (next <= lastChanged.current) { lastChanged.current = next; return; }
+    lastChanged.current = next;
+    setChangeSignal(true);
+    const t = window.setTimeout(() => setChangeSignal(false), 800);
+    return () => window.clearTimeout(t);
+  }, [events.length, loadingCritical]);
+
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
       {/* Hero — where Vanta's presence lives. Ambient purple wash + grain,
