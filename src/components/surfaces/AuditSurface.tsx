@@ -271,9 +271,16 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         </section>
 
         <section>
-          <h3 className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Audit log {quick && <span className="text-muted-foreground/60">· filtered: {quick}</span>}
-          </h3>
+          <SectionRail
+            className="mb-2"
+            label="Audit log"
+            reading={
+              <>
+                {auditFiltered.length}
+                {quick ? ` · ${quick}` : ""}
+              </>
+            }
+          />
           <div className="space-y-1">
             {auditFiltered.length === 0 && (
               <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
