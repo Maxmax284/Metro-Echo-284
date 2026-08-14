@@ -168,7 +168,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <h1
           aria-live="polite"
           className={cn(
-            "mt-2.5 font-mono text-[23px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[26px]",
+            // Prose stays in the sans. Mono is reserved for machine data.
+            "mt-2.5 text-[25px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[29px]",
             tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
