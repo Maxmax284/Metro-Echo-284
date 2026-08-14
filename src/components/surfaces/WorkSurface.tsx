@@ -115,9 +115,11 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                       <a
                         href={`/projects/${p.id}`}
                         className={cn(
-                          "flex min-h-[44px] items-center gap-2 rounded-lg border border-border/60 bg-surface-elevated/40 px-3 py-2 text-left hover:border-primary/40",
+                          "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
                           MOTION_ROW,
+                          MOTION_HOVER_LIFT,
                         )}
+
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-medium">{p.title}</span>
