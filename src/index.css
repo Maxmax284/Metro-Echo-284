@@ -368,6 +368,52 @@
   transform: scale(0.98);
 }
 
+
+/* Hero drift: one slow ambient wash in one controlled area. Nothing else in
+   the app loops. */
+@keyframes vanta-hero-drift {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 40%; }
+}
+
+/* Signal line: the one reusable "Vanta noticed something" motif.
+   A 1px purple line that sweeps once and settles. Event-driven, never looped.
+   Apply to a positioned container. */
+.vanta-signal { position: relative; }
+.vanta-signal::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    hsl(var(--vanta-accent) / 0.9) 45%,
+    hsl(var(--vanta-accent) / 0.35) 70%,
+    transparent);
+  transform-origin: left center;
+  animation: vanta-signal-sweep 720ms var(--ease-out) 1 both;
+  pointer-events: none;
+}
+@keyframes vanta-signal-sweep {
+  0%   { transform: scaleX(0); opacity: 0; }
+  35%  { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* Snap: crisp mechanical settle for a record reaching its next state.
+   Short, controlled, no overshoot. */
+@keyframes vanta-snap {
+  0%   { transform: scale(0.99); opacity: 0.7; }
+  60%  { transform: scale(1);    opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+.motion-snap {
+  animation: vanta-snap 180ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
   .radar-ping-pulse,
@@ -381,10 +427,22 @@
   .motion-breath,
   .motion-arrival,
   .motion-resolve,
+  .motion-snap,
+  .vanta-hero,
   .motion-surface-in { animation: none; }
+
+  /* The signal still marks the change — it just does not travel. */
+  .vanta-signal::before {
+    animation: none;
+    opacity: 0.7;
+    transform: none;
+  }
 
   /* Reduced motion still communicates state — it just does not move. */
   .motion-press { transition: none; }
   .motion-press:active { transform: none; }
+  .vanta-hover-lift { transition: none; }
+  .vanta-hover-lift:hover { transform: none; }
 }
+
 
