@@ -351,8 +351,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                     {m.role === "assistant"
                       ? (m.content
                           ? <StructuredResponse text={m.content} />
-                          : (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : ""))
-                      : (m.content || (streaming && i === msgs.length - 1 ? <Loader2 className="h-4 w-4 animate-spin opacity-60" /> : ""))}
+                          : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))
+                      : (m.content || (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))}
+
                   </div>
 
                   {m.content && m.role !== "system" && (
