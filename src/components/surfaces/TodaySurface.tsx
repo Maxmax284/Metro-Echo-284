@@ -210,6 +210,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               title="Needs attention"
               hint="Grouped by the work it belongs to."
               icon={AlertTriangle}
+              reading={<RollingNumber value={attention.length} />}
               action={
                 <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("now")}>
                   See all
@@ -222,14 +223,15 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   const open = openGroup === id;
                   const name = g.project ?? "Not in a project yet";
                   return (
-                    <div key={id} className="rounded-lg border border-border/50 bg-surface-elevated">
+                    <div key={id} className="vanta-inset">
                       <button
                         onClick={() => setOpenGroup(open ? null : id)}
-                        className="flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left"
+                        className={cn("flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left", MOTION_FOCUS)}
                         aria-expanded={open}
                       >
                         <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
-                          {name} has {g.count} {g.count === 1 ? "item" : "items"} needing attention
+                          {name} has <MachineText>{g.count}</MachineText>{" "}
+                          {g.count === 1 ? "item" : "items"} needing attention
                         </span>
                         <ChevronDown
                           className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
