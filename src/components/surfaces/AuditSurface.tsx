@@ -141,6 +141,17 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   // Reset pagination whenever filters change.
   useEffect(() => { setVisibleCount(30); }, [filter, quick, eventClass]);
 
+  /* Receipts is the stable room — the only motion here is a genuinely new
+     receipt arriving. Anything already seen never animates again. */
+  const seenIds = useRef<Set<string> | null>(null);
+  const isNewReceipt = (id: string) => (seenIds.current ? !seenIds.current.has(id) : false);
+  useEffect(() => {
+    const next = seenIds.current ?? new Set<string>();
+    for (const r of audit) next.add(r.id);
+    seenIds.current = next;
+  }, [audit]);
+
+
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
