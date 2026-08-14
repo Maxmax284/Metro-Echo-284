@@ -13,6 +13,7 @@ import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
+import { MOTION_ARRIVAL, MOTION_ROW } from "@/lib/motion";
 
 type AuditRow = {
   id: string;
