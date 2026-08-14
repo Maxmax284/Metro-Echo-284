@@ -149,27 +149,51 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
-      {/* Hero — where Vanta's presence lives. Ambient purple wash + grain,
-          slight depth separation from the feed. Copy stays grounded. */}
-      <header className={cn("vanta-hero vanta-grain px-4 py-4 sm:px-5 sm:py-5", changeSignal && "vanta-signal")}>
+      {/* Hero — where Vanta's presence lives. Ambient purple wash, grain, one
+          cut corner. The headline wears the mono face because it is a reading
+          of real state, not a marketing line. */}
+      <header
+        className={cn(
+          "vanta-hero vanta-grain vanta-notch px-4 py-4 sm:px-5 sm:py-5",
+          changeSignal && "vanta-signal",
+        )}
+      >
         <div className="flex items-center gap-2">
           <Sun className="h-4 w-4 text-accent" />
-          <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Today</span>
-          <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wide">{destination}</Badge>
+          <MachineLabel className="text-foreground/70">Today</MachineLabel>
+          <Badge variant="outline" className="vanta-machine ml-auto mr-5 text-[9.5px] uppercase tracking-[0.14em]">
+            {destination}
+          </Badge>
         </div>
         <h1
           aria-live="polite"
           className={cn(
-            "mt-2 text-[26px] font-semibold leading-[1.15] tracking-[-0.02em]",
+            "mt-2.5 font-mono text-[23px] font-bold leading-[1.12] tracking-[-0.03em] sm:text-[26px]",
             tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
           {loadingCritical ? "Reading this space…" : headline}
         </h1>
-        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
+        <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
         </p>
+        {/* Data as decoration: the trace is a real 14-day read of recorded
+            activity in this scope. Flat when nothing happened. */}
+        {loadingCritical ? null : (
+          <div className="mt-3 flex items-center gap-2.5">
+            <ActivityTrace timestamps={allEvents.map((e) => e.created_at)} />
+            <span className="h-px flex-1 bg-border/50" />
+            <MachineText className="text-[10px] text-muted-foreground">
+              <RollingNumber value={allEvents.length} /> recorded
+            </MachineText>
+          </div>
+        )}
       </header>
+
+      {/* Registration marks — structural punctuation between hero and feed. */}
+      <TickRow />
+
+
 
 
 
