@@ -303,7 +303,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                     </MachineText>
                     <Badge
                       variant="outline"
-                      className="vanta-machine max-w-[84px] shrink-0 truncate text-[9px] uppercase tracking-[0.08em]"
+                      className="vanta-machine shrink-0 text-[9px] uppercase tracking-[0.08em]"
                       title={r.entity_type}
                     >
                       {kindLabel(r.entity_type)}
