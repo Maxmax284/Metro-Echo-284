@@ -8,9 +8,9 @@ export default {
     container: { center: true, padding: "1.25rem", screens: { "2xl": "1400px" } },
     extend: {
       fontFamily: {
+        /* Body / prose. Rubik: neutral, slightly technical, reads well small. */
         sans: [
-          "InterVariable",
-          "Inter",
+          "Rubik",
           "ui-sans-serif",
           "system-ui",
           "-apple-system",
@@ -18,7 +18,15 @@ export default {
           "Roboto",
           "sans-serif",
         ],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+        /* Machine data: timestamps, ids, counts, status words, receipt hashes.
+           This is the face that makes Vanta read as instrumented. */
+        mono: [
+          "Space Mono",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "monospace",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",
