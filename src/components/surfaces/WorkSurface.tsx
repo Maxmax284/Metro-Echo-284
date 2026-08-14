@@ -21,7 +21,15 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { MOTION_ROW } from "@/lib/motion";
+import {
+  PROJECT_STATUS_LABEL,
+  PROJECT_STATUS_TONE,
+  projectStatus,
+  projectTimeLabel,
+} from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+
 
 type Counts = { inbox: number; commitments: number; actions: number };
 
