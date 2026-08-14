@@ -239,7 +239,11 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
 
       <div className="flex-1 space-y-4 overflow-y-auto p-3 md:p-4">
         <section>
-          <h3 className="mb-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">Action lifecycle</h3>
+          <SectionRail
+            className="mb-2"
+            label="Action lifecycle"
+            reading={events.length > 0 ? String(events.length) : undefined}
+          />
           <div className="space-y-1">
             {events.length === 0 && (
               <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
