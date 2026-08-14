@@ -112,23 +112,34 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   } = digest;
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
+  const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
+     secondary feeds collapse to one line instead of three empty cards. */
+  const secondaryQuiet =
+    quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
       <header>
         <div className="flex items-center gap-2">
           <Sun className="h-4 w-4 text-primary" />
-          <h1 className="text-xl font-semibold tracking-tight">Today</h1>
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Today</span>
           <Badge variant="outline" className="ml-auto text-[10px]">{destination}</Badge>
         </div>
-        <p className="mt-1.5 text-sm leading-snug text-muted-foreground">
-          {loadingCritical
-            ? "Reading this space…"
-            : quiet
-              ? quietLine
-              : `${attention.length} ${attention.length === 1 ? "thing" : "things"} waiting on you.`}
+        <h1
+          aria-live="polite"
+          className={cn(
+            "mt-2 text-2xl font-semibold leading-tight tracking-tight",
+            tone === "urgent" ? "text-danger" : tone === "attention" ? "text-foreground" : "text-foreground",
+          )}
+        >
+          {loadingCritical ? "Reading this space…" : headline}
+        </h1>
+        <p className="mt-1.5 text-[12.5px] leading-snug text-muted-foreground">
+          {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
         </p>
       </header>
+
 
       <AskVantaBar />
 
