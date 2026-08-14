@@ -440,6 +440,8 @@
   .motion-arrival,
   .motion-resolve,
   .motion-snap,
+  .motion-signal-track,
+
   .vanta-hero,
   .motion-surface-in { animation: none; }
 
