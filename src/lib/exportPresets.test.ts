@@ -11,9 +11,12 @@ vi.mock("@/lib/projectSummaryPdf", () => ({
   buildProjectSummaryBrief: vi.fn(() => ({ title: "stub" })),
   renderProjectSummaryPdf: vi.fn(async () => new Blob()),
 }));
+const composeBriefMock = vi.fn();
 vi.mock("@/lib/briefs", () => ({
   approveAndExportBrief: vi.fn(async ({ row }: any) => ({ ...row, storage_path: "x/y.pdf" })),
   getBriefDownloadUrl: vi.fn(async () => "https://example.test/url"),
+  composeBrief: (...args: unknown[]) => composeBriefMock(...args),
+  saveBriefDraft: vi.fn(async ({ brief }: any) => ({ id: "row-1", brief, storage_path: null })),
 }));
 
 import { runExportPreset, EXPORT_PRESETS } from "./exportPresets";
@@ -126,5 +129,69 @@ describe("project-summary-report preset", () => {
     expect(handle.fail.mock.calls[0][0].message).toBe(
       EXPORT_PRESETS["project-summary-report"].failureCopy,
     );
+  });
+});
+
+
+describe("composed system presets", () => {
+  beforeEach(() => {
+    composeBriefMock.mockReset();
+  });
+
+  it("daily-command-brief composes a 1-day system brief and exports a real PDF", async () => {
+    composeBriefMock.mockResolvedValueOnce({
+      title: "Today",
+      sections: [{ id: "overview", kind: "prose", body: "Two commitments due." }],
+    });
+    const handle = makeHandle();
+
+    await runExportPreset("daily-command-brief", { organizationId: null }, handle as any);
+
+    expect(composeBriefMock).toHaveBeenCalledWith({
+      format: "operator",
+      scope_kind: "system",
+      range_days: 1,
+    });
+    expect(handle.fail).not.toHaveBeenCalled();
+    expect(handle.waitForUser).not.toHaveBeenCalled();
+    expect(handle.complete).toHaveBeenCalled();
+  });
+
+  it("receipt-capture-packet uses the audit packet format over a 7-day window", async () => {
+    composeBriefMock.mockResolvedValueOnce({
+      title: "Receipts",
+      sections: [{ id: "receipts", kind: "list", body: [{ text: "Executed a reminder." }] }],
+    });
+    const handle = makeHandle();
+
+    await runExportPreset("receipt-capture-packet", {}, handle as any);
+
+    expect(composeBriefMock).toHaveBeenCalledWith({
+      format: "audit_packet",
+      scope_kind: "system",
+      range_days: 7,
+    });
+    expect(handle.complete).toHaveBeenCalled();
+  });
+
+  it("waits for the user instead of exporting an empty brief", async () => {
+    composeBriefMock.mockResolvedValueOnce({ title: "Empty", sections: [{ id: "a", kind: "prose", body: "  " }] });
+    const handle = makeHandle();
+
+    await runExportPreset("daily-command-brief", {}, handle as any);
+
+    expect(handle.complete).not.toHaveBeenCalled();
+    expect(handle.waitForUser).toHaveBeenCalled();
+  });
+
+  it("fails calmly when composing throws", async () => {
+    composeBriefMock.mockRejectedValueOnce(new Error("boom"));
+    const handle = makeHandle();
+
+    await runExportPreset("receipt-capture-packet", {}, handle as any);
+
+    expect(handle.fail).toHaveBeenCalledWith({
+      message: EXPORT_PRESETS["receipt-capture-packet"].failureCopy,
+    });
   });
 });
