@@ -18,13 +18,25 @@ import {
   detectUnreadRisk,
   driftScopeTargets,
   isInQuietHours,
-  rankDrift,
   scopedDedupeKey,
   type DriftProject,
   type DriftRisk,
 } from "../_shared/drift.ts";
+import {
+  actionToSignal,
+  commitmentToSignal,
+  driftToSignal,
+  evaluateAwareness,
+  signalDedupeKey,
+  type AttentionBudget,
+  type AwarenessSignal,
+  type PriorState,
+} from "../_shared/awareness/index.ts";
 
 type ScopeTarget = { organizationId: string | null };
+type SweepOutcome = "none" | "shadow" | "proposed";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const base = q.eq("user_id", userId);
@@ -36,7 +48,8 @@ async function sweepScope(
   userId: string,
   target: ScopeTarget,
   now: Date,
-): Promise<"none" | "proposed"> {
+  shadowMode: boolean,
+): Promise<SweepOutcome> {
   const orgId = target.organizationId;
   const nowMs = now.getTime();
   const scopeCols = orgId ? { organization_id: orgId } : { organization_id: null };
@@ -254,12 +267,15 @@ Deno.serve(async (req: Request) => {
 
     const now = new Date();
     let proposed = 0;
+    let shadowed = 0;
     let quiet = 0;
     let swept = 0;
 
     for (const p of optedIn) {
       const prefs = (p.preferences ?? {}) as Record<string, any>;
       const tz = (p.timezone as string) || "UTC";
+      // Shadow mode records the full evaluation without ever speaking.
+      const shadowMode = prefs.awareness_shadow_mode === true || body?.shadow === true;
       if (isInQuietHours(tz, prefs.quiet_hours_start ?? "22:00", prefs.quiet_hours_end ?? "07:00", now)) {
         quiet++;
         continue;
@@ -277,8 +293,9 @@ Deno.serve(async (req: Request) => {
 
       for (const t of targets) {
         swept++;
-        const outcome = await sweepScope(sb, p.id, t, now);
+        const outcome = await sweepScope(sb, p.id, t, now, shadowMode);
         if (outcome === "proposed") proposed++;
+        if (outcome === "shadow") shadowed++;
       }
     }
 
@@ -288,6 +305,7 @@ Deno.serve(async (req: Request) => {
       users_quiet: quiet,
       scopes_swept: swept,
       proposed,
+      shadowed,
     });
   } catch (e) {
     console.error("awareness-drift-sweep error:", e);
