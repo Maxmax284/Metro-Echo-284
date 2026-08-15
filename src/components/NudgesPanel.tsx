@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,14 +39,17 @@ const KIND_LABEL: Record<string, string> = {
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
+  const { applyScope, scope, key: scopeKey } = useScope();
   const [nudges, setNudges] = useState<Nudge[]>([]);
   const [open, setOpen] = useState(!collapsed);
   const pulsedRef = useRef(false);
 
   const load = async () => {
-    const { data } = await supabase
-      .from("nudges")
-      .select("id, kind, title, body, priority, related_entity_type, related_entity_id, status, created_at")
+    const { data } = await applyScope(
+      supabase
+        .from("nudges")
+        .select("id, kind, title, body, priority, related_entity_type, related_entity_id, status, created_at"),
+    )
       .in("status", ["pending", "seen"])
       .order("priority", { ascending: false })
       .order("created_at", { ascending: false })
@@ -60,7 +64,9 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
     const geo = pos ?? undefined;
 
     try {
-      await supabase.functions.invoke("ambient-pulse", { body: { geo } });
+      await supabase.functions.invoke("ambient-pulse", {
+        body: { geo, organization_id: scope.organizationId },
+      });
     } catch { /* ignore */ }
     await load();
   };
@@ -84,7 +90,7 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [user]);
+  }, [user, scopeKey]);
 
   const dismiss = async (id: string) => {
     setNudges((n) => n.filter((x) => x.id !== id));
