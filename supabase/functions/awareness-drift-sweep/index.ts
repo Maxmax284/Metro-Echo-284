@@ -98,27 +98,105 @@ async function sweepScope(
     seen: Boolean(a.risk_acknowledged_at),
   }));
 
-  const signal = rankDrift([
+  // ---- normalize every candidate, then let the evaluator decide -------------
+  const scope = { userId, organizationId: orgId };
+  const signals: AwarenessSignal[] = [];
+
+  for (const d of [
     detectUnreadRisk(risks, nowMs),
     detectDriftingCommitment(commitments, nowMs),
     detectSilentProject(projects, nowMs),
-  ]);
-  if (!signal) return "none";
+  ]) {
+    if (d) signals.push(driftToSignal(d, scope, nowMs));
+  }
+  for (const c of commitments) {
+    const s = commitmentToSignal(c, scope, nowMs);
+    if (s) signals.push(s);
+  }
+  for (const a of riskyActions ?? []) {
+    const s = actionToSignal(a as any, scope, nowMs);
+    if (s) signals.push(s);
+  }
+  if (signals.length === 0) return "none";
 
+  // Prior state for these exact situations, plus what Vanta already said
+  // recently in this scope. Suppression needs memory, not guesses.
+  const keys = signals.map((s) => signalDedupeKey(s));
+  const [{ data: priorRows }, { data: recentRows }] = await Promise.all([
+    scoped(
+      sb.from("nudges").select("dedupe_key, status, priority, created_at, updated_at"),
+      userId,
+      orgId,
+    ).in("dedupe_key", keys),
+    scoped(
+      sb.from("nudges").select("status, created_at"),
+      userId,
+      orgId,
+    ).gte("created_at", new Date(nowMs - 7 * DAY_MS).toISOString()).limit(200),
+  ]);
+
+  const priors: Record<string, PriorState> = {};
+  for (const r of priorRows ?? []) {
+    priors[(r as any).dedupe_key] = {
+      dedupeKey: (r as any).dedupe_key,
+      status: (r as any).status,
+      lastSurfacedAt: (r as any).created_at,
+      lastUrgency: null,
+    };
+  }
+
+  const recent = (recentRows ?? []) as any[];
+  const budget: AttentionBudget = {
+    surfacedLast24h: recent.filter((r) => nowMs - new Date(r.created_at).getTime() < DAY_MS).length,
+    dismissedLast7d: recent.filter((r) => r.status === "dismissed").length,
+    inQuietHours: false, // handled by the caller before we get here
+  };
+
+  const result = evaluateAwareness({ signals, priors, budget, now: nowMs });
+
+  // Shadow mode: the full evaluation is recorded either way. This is developer
+  // telemetry, not a user Receipt.
+  await sb.from("audit_log").insert({
+    user_id: userId,
+    ...scopeCols,
+    entity_type: "awareness",
+    entity_id: null,
+    event: "awareness.evaluated",
+    payload: {
+      source: "scheduled_sweep",
+      shadow_mode: shadowMode,
+      candidates: result.records.length,
+      queued: result.queued,
+      would_surface: result.surface
+        ? {
+            dedupe_key: result.surface.dedupeKey,
+            urgency: result.surface.urgency,
+            channel: result.surface.delivery.recommendedChannel,
+            bundled: result.surface.bundledCount,
+          }
+        : null,
+      records: result.records,
+    },
+  });
+
+  if (!result.surface) return "none";
+  if (shadowMode) return "shadow";
+
+  const decision = result.surface;
   const dayKey = now.toISOString().slice(0, 10);
   const { error } = await sb.from("nudges").upsert(
     [{
       user_id: userId,
       ...scopeCols,
-      kind: signal.kind,
-      title: signal.title,
-      body: `${signal.reason} ${signal.next_step}`,
-      related_entity_type: signal.related_entity_type,
-      related_entity_id: signal.related_entity_id,
-      priority: signal.priority,
-      dedupe_key: scopedDedupeKey(signal.dedupe_key, orgId, dayKey),
+      kind: decision.bundle.lead.signal.type,
+      title: decision.title,
+      body: `${decision.why} ${decision.nextStep}`,
+      related_entity_type: decision.entityType ?? null,
+      related_entity_id: decision.entityId ?? null,
+      priority: decision.priority,
+      dedupe_key: scopedDedupeKey(decision.dedupeKey, orgId, dayKey),
       status: "pending",
-      expires_at: new Date(nowMs + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(nowMs + 3 * DAY_MS).toISOString(),
     }],
     { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
   );
@@ -131,17 +209,20 @@ async function sweepScope(
     user_id: userId,
     ...scopeCols,
     entity_type: "nudge",
-    entity_id: signal.related_entity_id,
+    entity_id: decision.entityId ?? null,
     event: "nudge.proposed",
     payload: {
-      kind: signal.kind,
-      reason: signal.reason,
-      next_step: signal.next_step,
+      kind: decision.bundle.lead.signal.type,
+      urgency: decision.urgency,
+      why: decision.why,
+      next_step: decision.nextStep,
+      bundled: decision.bundledCount,
       source: "scheduled_sweep",
     },
   });
   return "proposed";
 }
+
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
