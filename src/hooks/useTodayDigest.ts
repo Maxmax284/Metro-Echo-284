@@ -59,7 +59,7 @@ const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 export function useTodayDigest(): TodayDigest {
   const { session } = useAuth();
-  const { applyScope, key: scopeKey } = useScope();
+  const { applyScope, withScope, key: scopeKey } = useScope();
 
   const [loadingCritical, setLoadingCritical] = useState(true);
   const [loadingBackground, setLoadingBackground] = useState(true);
@@ -196,22 +196,32 @@ export function useTodayDigest(): TodayDigest {
     dismissNoticed: async (id: string) => {
       setNoticed(null);
       await supabase.from("nudges").update({ status: "dismissed" }).eq("id", id);
-      await supabase.from("audit_log").insert({
-        entity_type: "nudge",
-        entity_id: id,
-        event: "nudge.dismissed",
-        payload: {},
-      } as never);
+      if (session?.user?.id) {
+        await supabase.from("audit_log").insert(
+          withScope({
+            user_id: session.user.id,
+            entity_type: "nudge",
+            entity_id: id,
+            event: "nudge.dismissed",
+            payload: {},
+          }) as never,
+        );
+      }
     },
     followNoticed: async (signal: NoticedSignal) => {
       setNoticed(null);
       await supabase.from("nudges").update({ status: "acted" }).eq("id", signal.id);
-      await supabase.from("audit_log").insert({
-        entity_type: "nudge",
-        entity_id: signal.related_entity_id ?? signal.id,
-        event: "nudge.followed",
-        payload: { kind: signal.kind },
-      } as never);
+      if (session?.user?.id) {
+        await supabase.from("audit_log").insert(
+          withScope({
+            user_id: session.user.id,
+            entity_type: "nudge",
+            entity_id: signal.related_entity_id ?? signal.id,
+            event: "nudge.followed",
+            payload: { kind: signal.kind },
+          }) as never,
+        );
+      }
     },
     refresh: () => setNonce((n) => n + 1),
   };
