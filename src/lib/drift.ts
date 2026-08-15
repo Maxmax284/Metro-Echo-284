@@ -5,6 +5,7 @@ export {
   detectDriftingCommitment,
   detectSilentProject,
   detectUnreadRisk,
+  driftScopeTargets,
   isInQuietHours,
   rankDrift,
   scopedDedupeKey,

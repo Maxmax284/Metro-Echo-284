@@ -5,6 +5,7 @@ import {
   detectDriftingCommitment,
   detectSilentProject,
   detectUnreadRisk,
+  driftScopeTargets,
   isInQuietHours,
   rankDrift,
   scopedDedupeKey,
@@ -141,5 +142,19 @@ describe("scope isolation of dedupe keys", () => {
     expect(scopedDedupeKey("drift_silent:p1", null, "2026-08-16")).not.toBe(
       scopedDedupeKey("drift_silent:p1", null, "2026-08-15"),
     );
+  });
+});
+
+describe("driftScopeTargets", () => {
+  it("always sweeps Personal, even with no workspaces", () => {
+    expect(driftScopeTargets([])).toEqual([{ organizationId: null }]);
+  });
+
+  it("adds each active workspace once, Personal first", () => {
+    expect(driftScopeTargets(["org-a", "org-b", "org-a", null, undefined])).toEqual([
+      { organizationId: null },
+      { organizationId: "org-a" },
+      { organizationId: "org-b" },
+    ]);
   });
 });
