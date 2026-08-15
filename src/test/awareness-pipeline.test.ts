@@ -148,7 +148,6 @@ describe("dedupe identity", () => {
 });
 
 describe("suppression", () => {
-  const evaluate = (over: Partial<Parameters<typeof suppress>> = [] as never) => over;
   const run = (
     s: AwarenessSignal,
     prior: Parameters<typeof suppress>[3],
