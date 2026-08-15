@@ -106,11 +106,51 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
     (async () => {
       setLoading(true);
       const since = new Date(Date.now() - windowDays * 86400_000).toISOString();
-      const { data: ents } = await supabase
+
+      // When the canvas was opened from a project, the header says "Scoped to
+      // project" — so the graph has to actually honour that. Walk the project's
+      // attached items to the entities those items mention.
+      let projectEntityIds: string[] | null = null;
+      if (seedProjectId) {
+        const { data: items } = await supabase
+          .from("project_items")
+          .select("item_id")
+          .eq("project_id", seedProjectId)
+          .limit(500);
+        const itemIds = (items ?? []).map((it: { item_id: string }) => it.item_id);
+        if (itemIds.length === 0) {
+          projectEntityIds = [];
+        } else {
+          const { data: plinks } = await supabase
+            .from("entity_links")
+            .select("entity_id")
+            .eq("user_id", user.id)
+            .in("source_id", itemIds)
+            .limit(2000);
+          projectEntityIds = Array.from(
+            new Set((plinks ?? []).map((l: { entity_id: string }) => l.entity_id)),
+          );
+        }
+      }
+
+      let query = supabase
         .from("entities")
         .select("id, display_name, kind, last_seen_at")
         .eq("user_id", user.id)
-        .gte("last_seen_at", since)
+        .gte("last_seen_at", since);
+      if (projectEntityIds) {
+        if (projectEntityIds.length === 0) {
+          if (!alive) return;
+          setEntities([]);
+          setWeights(new Map());
+          setRelations([]);
+          setFindings([]);
+          setLoading(false);
+          return;
+        }
+        query = query.in("id", projectEntityIds);
+      }
+      const { data: ents } = await query
         .order("last_seen_at", { ascending: false })
         .limit(density.maxNodes);
       let list = (ents ?? []) as Entity[];
@@ -122,6 +162,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
         const { data: links } = await supabase
           .from("entity_links")
           .select("entity_id, source_kind, source_id")
+          .eq("user_id", user.id)
           .in("entity_id", ids)
           .limit(2000);
         const buckets = new Map<string, Set<string>>();
@@ -162,7 +203,7 @@ function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string |
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays, kinds, density.maxNodes]);
+  }, [user, seedEntityId, seedProjectId, windowDays, kinds, density.maxNodes]);
 
   const visibleRelations = useMemo(() => {
     return relations.filter((r) => {
