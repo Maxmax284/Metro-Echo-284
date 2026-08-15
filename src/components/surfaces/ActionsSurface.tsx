@@ -87,7 +87,8 @@ export function ActionsSurface() {
       if (error || payload?.error) throw new Error(payload?.error || error?.message || "Transition failed");
       if (to === "rolled_back") {
         // Say what actually happened in the world, not just what the row says.
-        toast.success(payload?.undo?.undone ? "Undone." : "Marked undone.", {
+        toast.success({
+          title: payload?.undo?.undone ? "Undone." : "Marked undone.",
           description: payload?.undo?.detail ?? undefined,
         });
       } else {
