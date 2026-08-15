@@ -17,9 +17,15 @@ export type UndoOutcome = {
 
 const gateway = (path: string) => `https://connector-gateway.lovable.dev/${path}`;
 
+/** Env read that works under Deno (runtime) and the client typecheck (tests). */
+function env(name: string): string | undefined {
+  const d = (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno;
+  return d?.env.get(name);
+}
+
 function connectorHeaders(connectionKey: string) {
   return {
-    Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+    Authorization: `Bearer ${env("LOVABLE_API_KEY")}`,
     "X-Connection-Api-Key": connectionKey,
     "Content-Type": "application/json",
   };
@@ -31,7 +37,7 @@ async function undoTelegram(result: Record<string, unknown>, config: Record<stri
   if (!chat_id || !message_id) {
     return { undone: false, mode: "unsupported", detail: "No chat or message id on the receipt — nothing to delete." };
   }
-  const tgKey = Deno.env.get("TELEGRAM_API_KEY");
+  const tgKey = env("TELEGRAM_API_KEY");
   if (!tgKey) return { undone: false, mode: "failed", detail: "Telegram connector is not linked." };
   const res = await fetch(gateway("telegram/deleteMessage"), {
     method: "POST",
@@ -52,7 +58,7 @@ async function undoTelegram(result: Record<string, unknown>, config: Record<stri
 async function undoGoogleCalendar(result: Record<string, unknown>, config: Record<string, unknown>): Promise<UndoOutcome> {
   const event_id = result?.event_id;
   if (!event_id) return { undone: false, mode: "unsupported", detail: "No event id on the receipt." };
-  const calKey = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
+  const calKey = env("GOOGLE_CALENDAR_API_KEY");
   if (!calKey) return { undone: false, mode: "failed", detail: "Google Calendar connector is not linked." };
   const calendarId = encodeURIComponent(String(result?.calendar_id ?? config?.calendar_id ?? "primary"));
   const res = await fetch(
