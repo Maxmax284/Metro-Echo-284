@@ -42,7 +42,6 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   { key: "sherlock", label: "Sherlock", Icon: Search },
   { key: "awareness", label: "Aware", Icon: Compass },
   { key: "command", label: "Cockpit", Icon: LayoutDashboard },
-  { key: "conversation", label: "Capture chat", Icon: MessageSquare },
 ];
 
 export function SurfaceTabs({

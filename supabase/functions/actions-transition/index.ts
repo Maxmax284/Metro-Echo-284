@@ -1,6 +1,7 @@
 import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
+import { attemptUndo } from "../_shared/actionRollback.ts";
 // actions-transition: validate a state transition for an action and write events + audit.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -57,10 +58,49 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Rollback actually reverses the side effect. If an action advertises that
+    // it can be undone and the undo fails, the status does not move — a receipt
+    // that says "undone" must mean the world changed back.
+    let undo: { undone: boolean; mode: string; detail: string } | null = null;
+    if (to_status === "rolled_back") {
+      const executorId = action.payload?.executor_id ?? null;
+      let executor: { kind: string; config: Record<string, unknown> } | null = null;
+      if (executorId) {
+        const { data } = await supabase
+          .from("action_executors")
+          .select("kind, config")
+          .eq("id", executorId)
+          .maybeSingle();
+        executor = (data as typeof executor) ?? null;
+      }
+      undo = await attemptUndo({
+        executorKind: executor?.kind ?? null,
+        executorConfig: executor?.config ?? null,
+        result: (action.result ?? {}) as Record<string, unknown>,
+      });
+      if (!undo.undone && action.rollback_available) {
+        await supabase.from("audit_log").insert({
+          user_id: user.id,
+          entity_type: "action",
+          entity_id: action_id,
+          organization_id: action.organization_id ?? null,
+          event: "rollback.failed",
+          payload: { detail: undo.detail, mode: undo.mode },
+        });
+        return new Response(JSON.stringify({ error: `Couldn't undo it: ${undo.detail}` }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const patch: Record<string, unknown> = { status: to_status };
     if (to_status === "approved" && action.risk === "high") patch.risk_acknowledged_at = new Date().toISOString();
     if (to_status === "executed") patch.executed_at = new Date().toISOString();
-    if (to_status === "rolled_back") patch.rolled_back_at = new Date().toISOString();
+    if (to_status === "rolled_back") {
+      patch.rolled_back_at = new Date().toISOString();
+      patch.rollback_available = false;
+      patch.rollback_token = null;
+    }
 
     const { error: uErr } = await supabase.from("actions").update(patch).eq("id", action_id);
     if (uErr) throw uErr;
@@ -71,7 +111,7 @@ Deno.serve(async (req: Request) => {
       from_status: from,
       to_status,
       actor: "user",
-      reason: reason ?? null,
+      reason: undo ? `${reason ?? "user rollback"} (${undo.mode})` : reason ?? null,
     });
     await supabase.from("audit_log").insert({
       user_id: user.id,
@@ -80,10 +120,10 @@ Deno.serve(async (req: Request) => {
       // Receipts live in the scope the work happened in, not always Personal.
       organization_id: action.organization_id ?? null,
       event: `transition:${from}->${to_status}`,
-      payload: { reason: reason ?? null },
+      payload: { reason: reason ?? null, undo: undo ? { undone: undo.undone, mode: undo.mode, detail: undo.detail } : null },
     });
 
-    return new Response(JSON.stringify({ ok: true, status: to_status }), {
+    return new Response(JSON.stringify({ ok: true, status: to_status, undo }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

@@ -12,7 +12,6 @@ export type SurfaceId =
   | "projects"
   | "briefs"
   | "schedule"
-  | "conversation"
   | "memory"
   | "commitments"
   | "actions"
@@ -50,8 +49,6 @@ export const SURFACE_PARENT: Record<SurfaceId, RoomKey> = {
   sherlock: "work",
   awareness: "work",
   command: "work",
-  // Legacy chat surface — the Ask room is the real home for conversation.
-  conversation: "ask",
 };
 
 /** Desks that are reachable but no longer compete in the primary nav. */

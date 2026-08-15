@@ -341,7 +341,6 @@ function IndexInner() {
             {surface === "briefs" && <BriefsSurface />}
             {surface === "receipts" && <AuditSurface focusActionId={focusReceiptActionId} />}
             {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
-            {surface === "conversation" && <ConversationSurface onIntent={onIntent} readOnly />}
             {surface === "memory" && <MemorySurface />}
             {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
             {surface === "actions" && <ActionsSurface />}

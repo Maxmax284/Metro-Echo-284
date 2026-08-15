@@ -1,6 +1,7 @@
 import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
+import { isReversibleKind } from "../_shared/actionRollback.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook or telegram).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -128,7 +129,7 @@ async function runTelegram(config: any, action: any) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`telegram ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
-  return { message_id: data?.result?.message_id };
+  return { message_id: data?.result?.message_id, chat_id };
 }
 
 Deno.serve(async (req: Request) => {
@@ -180,13 +181,15 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: msg }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const rollback_available = executor.kind === "telegram" && !!result?.message_id;
+    // Reversible means Vanta can actually undo it later, not just relabel it.
+    const rollback_available = isReversibleKind(executor.kind) && !!(result?.message_id ?? result?.event_id);
+    const rollback_token = String(result?.message_id ?? result?.event_id ?? "") || null;
     await supabase.from("actions").update({
       status: "executed",
       result,
       executed_at: new Date().toISOString(),
       rollback_available,
-      rollback_token: rollback_available ? String(result?.message_id ?? "") : null,
+      rollback_token: rollback_available ? rollback_token : null,
     }).eq("id", action_id);
     await supabase.from("action_events").insert({
       user_id: user.id, action_id, from_status: "approved", to_status: "executed", actor: "executor",
