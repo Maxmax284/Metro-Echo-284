@@ -71,7 +71,7 @@ type SherlockFinding = {
 };
 
 
-function GraphView({ seedEntityId, windowDays, kinds }: { seedEntityId: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
+function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEntityId: string | null; seedProjectId?: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(false);
@@ -665,7 +665,7 @@ export function CommandCanvas() {
               <CanvasBoardView seedEntityId={openCanvasSeed} windowDays={windowDays} />
             </TabsContent>
             <TabsContent value="graph" className="h-full m-0">
-              <GraphView seedEntityId={openCanvasSeed} windowDays={windowDays} kinds={kinds} />
+              <GraphView seedEntityId={openCanvasSeed} seedProjectId={seedProjectId} windowDays={windowDays} kinds={kinds} />
             </TabsContent>
           </div>
         </Tabs>
