@@ -80,11 +80,19 @@ export function ActionsSurface() {
   const transition = async (a: Action, to: Action["status"], reason?: string) => {
     setBusy(a.id);
     try {
-      const { error } = await supabase.functions.invoke("actions-transition", {
+      const { data, error } = await supabase.functions.invoke("actions-transition", {
         body: { action_id: a.id, to_status: to, reason },
       });
-      if (error) throw error;
-      toast.success(`Moved to ${to}`);
+      const payload = data as { undo?: { undone: boolean; detail: string } | null; error?: string } | null;
+      if (error || payload?.error) throw new Error(payload?.error || error?.message || "Transition failed");
+      if (to === "rolled_back") {
+        // Say what actually happened in the world, not just what the row says.
+        toast.success(payload?.undo?.undone ? "Undone." : "Marked undone.", {
+          description: payload?.undo?.detail ?? undefined,
+        });
+      } else {
+        toast.success(`Moved to ${to}`);
+      }
       refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Transition failed");
