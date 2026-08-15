@@ -196,3 +196,22 @@ export function isInQuietHours(tz: string, start = "22:00", end = "07:00", at = 
 export function scopedDedupeKey(key: string, organizationId: string | null, dayKey: string): string {
   return `${key}:${organizationId ?? "personal"}:${dayKey}`;
 }
+
+/**
+ * Every room a scheduled sweep should look at for one user: Personal first,
+ * then each active workspace membership, de-duplicated. Personal is always
+ * present so a user with no workspaces still gets swept.
+ */
+export function driftScopeTargets(
+  organizationIds: (string | null | undefined)[],
+): { organizationId: string | null }[] {
+  const seen = new Set<string>();
+  const targets: { organizationId: string | null }[] = [{ organizationId: null }];
+  for (const id of organizationIds) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    targets.push({ organizationId: id });
+  }
+  return targets;
+}
+
