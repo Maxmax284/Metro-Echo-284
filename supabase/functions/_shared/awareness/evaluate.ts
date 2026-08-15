@@ -71,6 +71,22 @@ export type EvaluateResult = {
   queued: number;
 };
 
+/**
+ * Context the signal already carries. Callers can enrich (pins, revisits) but
+ * should never have to restate what is already inside the record.
+ */
+function inherentContext(signal: AwarenessSignal, now: number): RelevanceContext {
+  const state = (signal.currentState ?? {}) as { due_at?: string | null };
+  const due = state.due_at ? new Date(state.due_at).getTime() : NaN;
+  const hoursUntilDue = Number.isFinite(due) ? (due - now) / 3_600_000 : undefined;
+  const committed = signal.type.startsWith("commitment_") || undefined;
+  const daysUnresolved = Math.max(
+    0,
+    Math.floor((now - new Date(signal.timestamp).getTime()) / 86_400_000),
+  );
+  return { hoursUntilDue, committed, daysUnresolved: Number.isFinite(daysUnresolved) ? daysUnresolved : 0 };
+}
+
 export function evaluateAwareness(input: EvaluateInput): EvaluateResult {
   const now = input.now ?? Date.now();
   const records: ShadowRecord[] = [];
@@ -78,7 +94,11 @@ export function evaluateAwareness(input: EvaluateInput): EvaluateResult {
 
   for (const signal of input.signals) {
     const dedupeKey = signalDedupeKey(signal);
-    const relevance = scoreRelevance(signal, input.context?.[signal.id] ?? {});
+    const relevance = scoreRelevance(signal, {
+      ...inherentContext(signal, now),
+      ...(input.context?.[signal.id] ?? {}),
+    });
+
     const urgency = classifyUrgency(signal, relevance);
     const prior = input.priors?.[dedupeKey] ?? null;
     const verdict = suppress(signal, relevance, urgency, prior, input.budget, now);
