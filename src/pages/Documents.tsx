@@ -88,6 +88,7 @@ export default function DocumentsPage() {
       {
         projectId: project?.id,
         projectName: project?.title,
+        organizationId: orgId,
         onOpenProject: (id) => navigate(`/projects/${id}#living-brief`),
         onRegenerate: (id, name) => {
           const p = (projects ?? []).find((x) => x.id === id)

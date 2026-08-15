@@ -10,7 +10,14 @@ import {
   STEPS_DOCUMENT_EXPORT,
   STEPS_RECEIPT_PACKET,
 } from "@/lib/workStatus";
-import { approveAndExportBrief, getBriefDownloadUrl } from "@/lib/briefs";
+import {
+  approveAndExportBrief,
+  composeBrief,
+  getBriefDownloadUrl,
+  saveBriefDraft,
+  type Brief,
+  type BriefExportRow,
+} from "@/lib/briefs";
 import { buildProjectSummaryBrief, renderProjectSummaryPdf, type StructuredBriefPayload } from "@/lib/projectSummaryPdf";
 
 export type ExportPresetId =
@@ -47,10 +54,7 @@ export const EXPORT_PRESETS: Record<ExportPresetId, ExportPreset> = {
     steps: STEPS_DOCUMENT_EXPORT,
     successCopy: () => "Daily brief ready. Saved to Documents.",
     failureCopy: "We couldn't create the brief. Your notes are safe.",
-    // Brief export pipeline exists (BriefComposerSheet → approveAndExportBrief),
-    // but launching it headlessly from a preset isn't wired yet. Mark not-yet-available
-    // so we never fake completion.
-    available: false,
+    available: true,
   },
   "project-summary-report": {
     id: "project-summary-report",
@@ -80,7 +84,7 @@ export const EXPORT_PRESETS: Record<ExportPresetId, ExportPreset> = {
     steps: STEPS_RECEIPT_PACKET,
     successCopy: () => "Receipt packet ready. Saved with the original actions.",
     failureCopy: "We couldn't build the receipt packet. Your records are safe.",
-    available: false,
+    available: true,
   },
 };
 
@@ -99,6 +103,10 @@ export interface RunPresetContext {
   tone?: "operator" | "narrative";
   /** If false, prior PDF-less mirror rows are kept. Default true. */
   replacePrior?: boolean;
+  /** Active room, so saved briefs land in the right scope. */
+  organizationId?: string | null;
+  /** Days of history for the composed presets. */
+  rangeDays?: number;
 }
 
 /**
@@ -139,8 +147,111 @@ export async function runExportPreset(
     return;
   }
 
-  // Future generators land here.
+  if (presetId === "daily-command-brief") {
+    await runComposedBrief(
+      { format: "operator", rangeDays: ctx.rangeDays ?? 1 },
+      ctx,
+      handle,
+      preset,
+    );
+    return;
+  }
+
+  if (presetId === "receipt-capture-packet") {
+    await runComposedBrief(
+      { format: "audit_packet", rangeDays: ctx.rangeDays ?? 7 },
+      ctx,
+      handle,
+      preset,
+    );
+    return;
+  }
+
   handle.fail({ message: preset.failureCopy });
+}
+
+/** True when a composed brief has nothing real in it — never export an empty PDF. */
+function briefIsEmpty(brief: Brief): boolean {
+  if (!brief?.sections?.length) return true;
+  return brief.sections.every((sec) => {
+    const b = sec.body;
+    if (!b) return true;
+    if (typeof b === "string") return b.trim().length === 0;
+    if (Array.isArray(b)) return b.length === 0;
+    if (typeof b === "object") {
+      return Object.values(b as Record<string, unknown>).every(
+        (v) => v == null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && v.length === 0),
+      );
+    }
+    return false;
+  });
+}
+
+/**
+ * Generator for the system-scope presets (daily brief, receipt packet).
+ * Composes from live data, renders a real PDF, uploads it, and hands back a
+ * working download. Every step is the same pipeline the Command Center uses,
+ * so there is one export path — not a second one.
+ */
+async function runComposedBrief(
+  opts: { format: Brief["format"]; rangeDays: number },
+  ctx: RunPresetContext,
+  handle: WorkHandle,
+  preset: ExportPreset,
+): Promise<void> {
+  try {
+    handle.advance(1); // Collecting the right notes
+
+    const brief = await composeBrief({
+      format: opts.format,
+      scope_kind: "system",
+      range_days: opts.rangeDays,
+    });
+
+    if (briefIsEmpty(brief)) {
+      handle.waitForUser({
+        message:
+          opts.format === "audit_packet"
+            ? "No receipts in that window yet. Execute or roll back something and it lands here."
+            : "Nothing happened in that window yet. Capture something or set a commitment first.",
+      });
+      return;
+    }
+
+    handle.advance(2); // Applying the template
+    const row: BriefExportRow = await saveBriefDraft({
+      brief,
+      organization_id: ctx.organizationId ?? null,
+    });
+
+    handle.advance(3); // Creating the PDF
+    const blob = await renderProjectSummaryPdf(brief);
+
+    handle.advance(4); // Saving the file
+    const exported = await approveAndExportBrief({ row, pdfBlob: blob });
+
+    const openPdf = exported.storage_path
+      ? {
+          label: "Open PDF",
+          onClick: async () => {
+            try {
+              const url = await getBriefDownloadUrl(exported.storage_path!);
+              if (url) window.open(url, "_blank", "noopener,noreferrer");
+            } catch (err) {
+              console.error("[exportPresets] open PDF failed", err);
+            }
+          },
+        }
+      : undefined;
+
+    handle.complete({
+      destination: preset.successCopy({ projectName: ctx.projectName }),
+      primaryAction: openPdf,
+    });
+  } catch (e) {
+    console.error("[exportPresets] runComposedBrief threw", e);
+    handle.fail({ message: preset.failureCopy });
+  }
 }
 
 /**
