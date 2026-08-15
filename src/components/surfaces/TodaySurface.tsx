@@ -5,6 +5,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
+import { NoticedRow } from "@/components/today/NoticedRow";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
@@ -121,6 +122,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     security,
     quiet,
     quietLine,
+    noticed,
+    dismissNoticed,
+    followNoticed,
     refresh,
   } = digest;
 
@@ -204,6 +208,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <LoadingState rows={2} label="Pulling together your day" />
       ) : (
         <>
+          <NoticedRow
+            signal={noticed}
+            onNavigate={onNavigate}
+            onDismiss={dismissNoticed}
+            onFollow={followNoticed}
+          />
+
           <ResumeWorkSection onNavigate={onNavigate} />
 
           {!quiet && (
