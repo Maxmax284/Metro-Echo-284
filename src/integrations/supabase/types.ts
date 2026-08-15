@@ -1882,6 +1882,7 @@ export type Database = {
           expires_at: string | null
           id: string
           kind: string
+          organization_id: string | null
           priority: number
           related_entity_id: string | null
           related_entity_type: string | null
@@ -1897,6 +1898,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind: string
+          organization_id?: string | null
           priority?: number
           related_entity_id?: string | null
           related_entity_type?: string | null
@@ -1912,6 +1914,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind?: string
+          organization_id?: string | null
           priority?: number
           related_entity_id?: string | null
           related_entity_type?: string | null
@@ -1920,7 +1923,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "nudges_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       operational_state_events: {
         Row: {
