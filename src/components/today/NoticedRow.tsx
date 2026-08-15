@@ -15,7 +15,7 @@ const DESTINATION: Record<string, SurfaceKey> = {
   project: "projects",
   commitment: "commitments",
   action: "actions",
-  document: "documents",
+  document: "briefs",
 };
 
 export function NoticedRow({
