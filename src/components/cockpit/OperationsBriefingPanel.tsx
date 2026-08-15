@@ -570,7 +570,7 @@ function labelForSurface(s: SurfaceKey): string {
     case "schedule": return "Schedule";
     case "receipts": return "Receipts";
     case "awareness": return "Awareness";
-    case "conversation": return "Conversation";
+    case "ask": return "Ask";
     case "command":
     default: return "Command";
   }

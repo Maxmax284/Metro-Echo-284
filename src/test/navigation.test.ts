@@ -49,9 +49,10 @@ describe("specialist desks stay reachable", () => {
     }
   });
 
-  it("puts conversation under Ask — one companion, not two", () => {
-    expect(roomForSurface("conversation")).toBe("ask");
+  it("keeps one companion room — legacy chat links resolve to Ask", () => {
     expect(roomForSurface("ask")).toBe("ask");
+    expect(parseSurfaceFromSearch("?surface=conversation")).toBe("ask");
+    expect(isSurfaceId("conversation")).toBe(false);
   });
 
   it("does not orphan any desk from the More sheet", () => {
