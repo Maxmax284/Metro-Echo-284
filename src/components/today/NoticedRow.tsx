@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import type { SurfaceKey } from "@/lib/navigation";
+import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { NoticedSignal } from "@/hooks/useTodayDigest";
 
 const DESTINATION: Record<string, SurfaceKey> = {

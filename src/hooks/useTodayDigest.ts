@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
+import { isDriftKind } from "@/lib/drift";
 import {
   buildAttention,
   groupAttention,
@@ -19,6 +20,15 @@ import {
   type DigestCommitment,
   type DigestEvent,
 } from "@/lib/todayDigest";
+
+export type NoticedSignal = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  related_entity_type: string | null;
+  related_entity_id: string | null;
+};
 
 export type TodayDigest = {
   loadingCritical: boolean;
@@ -38,6 +48,10 @@ export type TodayDigest = {
   security: ReturnType<typeof securityLine>;
   quiet: boolean;
   quietLine: string;
+  /** The single proactive drift signal for this scope, if any. */
+  noticed: NoticedSignal | null;
+  dismissNoticed: (id: string) => void;
+  followNoticed: (signal: NoticedSignal) => void;
   refresh: () => void;
 };
 
@@ -54,6 +68,7 @@ export function useTodayDigest(): TodayDigest {
   const [actions, setActions] = useState<DigestAction[]>([]);
   const [events, setEvents] = useState<DigestEvent[]>([]);
   const [captureCount, setCaptureCount] = useState(0);
+  const [noticed, setNoticed] = useState<NoticedSignal | null>(null);
   const [projectOf, setProjectOf] = useState<Record<string, string | undefined>>({});
   const [nonce, setNonce] = useState(0);
 
@@ -86,6 +101,20 @@ export function useTodayDigest(): TodayDigest {
         applyScope(supabase.from("notes").select("id")).gte("created_at", since).limit(50),
       ]);
       if (e.error) throw e.error;
+      // One proactive signal, scope-filtered, highest priority first.
+      const { data: nudgeRows } = await applyScope(
+        supabase
+          .from("nudges")
+          .select("id, kind, title, body, related_entity_type, related_entity_id, priority, status"),
+      )
+        .eq("status", "pending")
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(10);
+      const drift = ((nudgeRows ?? []) as NoticedSignal[] & { kind: string }[]).find((n) =>
+        isDriftKind(n.kind),
+      );
+      setNoticed(drift ? (drift as NoticedSignal) : null);
       setEvents((e.data as DigestEvent[]) ?? []);
       setCaptureCount((n.data as unknown[])?.length ?? 0);
     } catch (err) {
@@ -163,6 +192,27 @@ export function useTodayDigest(): TodayDigest {
       nextWhen: next?.due_at ? (isSameDay(new Date(next.due_at), now) ? "today" : "later") : null,
       securityTone: security.tone,
     }),
+    noticed,
+    dismissNoticed: async (id: string) => {
+      setNoticed(null);
+      await supabase.from("nudges").update({ status: "dismissed" }).eq("id", id);
+      await supabase.from("audit_log").insert({
+        entity_type: "nudge",
+        entity_id: id,
+        event: "nudge.dismissed",
+        payload: {},
+      } as never);
+    },
+    followNoticed: async (signal: NoticedSignal) => {
+      setNoticed(null);
+      await supabase.from("nudges").update({ status: "acted" }).eq("id", signal.id);
+      await supabase.from("audit_log").insert({
+        entity_type: "nudge",
+        entity_id: signal.related_entity_id ?? signal.id,
+        event: "nudge.followed",
+        payload: { kind: signal.kind },
+      } as never);
+    },
     refresh: () => setNonce((n) => n + 1),
   };
 }
