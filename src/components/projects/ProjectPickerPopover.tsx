@@ -10,7 +10,7 @@ import { listProjects, type Project } from "@/lib/projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Search } from "lucide-react";
-import { InlineLoading } from "@/components/ui/state-views";
+import { LoadingState } from "@/components/ui/state-views";
 
 interface Props {
   /** Small uppercase label above the list, e.g. "Attach to project". */
@@ -71,7 +71,7 @@ export function ProjectPickerBody({
       </div>
 
       {projects === null ? (
-        <InlineLoading label="Loading projects" className="h-20" />
+        <LoadingState rows={2} label="Loading projects" />
       ) : (
         <>
           {all.length > 3 && (
