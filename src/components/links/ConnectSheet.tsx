@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Search, Sparkles, Check, FileText, CheckSquare, Hammer, File as FileIcon, MessageSquare, Tag, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import {
   createCrossLink, searchTargets, suggestForItem,
@@ -38,6 +39,7 @@ export function ConnectSheet({
   onLinked?: () => void;
 }) {
   const { user } = useAuth();
+  const { orgId, key: scopeKey } = useScope();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Target[]>([]);
   const [searching, setSearching] = useState(false);
@@ -51,10 +53,10 @@ export function ConnectSheet({
     if (!open || !user) return;
     setQuery(""); setResults([]); setSelected(null); setRelation("related");
     setLoadingSuggestions(true);
-    suggestForItem({ source_kind: source.kind, source_id: source.id, userId: user.id })
+    suggestForItem({ source_kind: source.kind, source_id: source.id, userId: user.id, organizationId: orgId })
       .then((s) => setSuggestions(s))
       .finally(() => setLoadingSuggestions(false));
-  }, [open, user?.id, source.kind, source.id]);
+  }, [open, user?.id, scopeKey, source.kind, source.id]);
 
   // Debounced search.
   useEffect(() => {
