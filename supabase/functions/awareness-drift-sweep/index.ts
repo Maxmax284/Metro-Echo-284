@@ -12,6 +12,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // Doctrine: detectors observe. This function drafts. Nothing here stages,
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { sendWebPush } from "../_shared/webpush.ts";
 import {
   detectDriftingCommitment,
   detectSilentProject,
