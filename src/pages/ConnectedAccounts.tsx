@@ -72,11 +72,10 @@ export default function ConnectedAccounts() {
     setActivity(acc);
 
     // Sherlock hints matched to channel via their source objects
-    const { data: pendingFindings } = await supabase
+    const { data: pendingFindings } = await applyScope(supabase
       .from("sherlock_findings")
       .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
-      .eq("user_id", session.user.id)
-      .eq("status", "pending")
+      .eq("status", "pending"))
       .order("updated_at", { ascending: false })
       .limit(100);
     const msgIds = (pendingFindings ?? [])

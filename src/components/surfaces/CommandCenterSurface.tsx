@@ -123,18 +123,17 @@ export function CommandCenterSurface({ onNavigate }: { onNavigate: (k: SurfaceKe
         .select("id, filename, source, created_at"))
         .order("created_at", { ascending: false })
         .limit(10),
-      supabase.from("sherlock_findings_cache")
-        .select("id, entity_type, findings, confidence, updated_at")
+      applyScope(supabase.from("sherlock_findings_cache")
+        .select("id, entity_type, findings, confidence, updated_at"))
         .order("updated_at", { ascending: false })
         .limit(8),
       applyScope(supabase.from("audit_log")
         .select("id, event, entity_type, created_at"))
         .order("created_at", { ascending: false })
         .limit(15),
-      supabase.from("sherlock_findings")
+      applyScope(supabase.from("sherlock_findings")
         .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
-        .eq("user_id", session.user.id)
-        .eq("status", "pending")
+        .eq("status", "pending"))
         .order("updated_at", { ascending: false })
         .limit(100),
     ]);

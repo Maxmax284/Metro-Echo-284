@@ -185,11 +185,10 @@ function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEnt
       let f: SherlockFinding[] = [];
       if (ids.length > 0) {
         const inList = ids.join(",");
-        const { data: fdata } = await (supabase as any)
+        const { data: fdata } = await applyScope((supabase as any)
           .from("sherlock_findings")
           .select("id, finding_type, source_object_id, target_object_id, confidence, sensitive_flag, status")
-          .eq("user_id", user.id)
-          .eq("status", "pending")
+          .eq("status", "pending"))
           .or(`source_object_id.in.(${inList}),target_object_id.in.(${inList})`)
           .limit(200);
         f = (fdata ?? []) as SherlockFinding[];
