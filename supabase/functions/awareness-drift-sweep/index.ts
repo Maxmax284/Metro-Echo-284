@@ -491,6 +491,18 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      // Push is only a candidate channel when the user asked for it AND owns a
+      // registered device. Checked once per user, not per scope.
+      let pushSubscribed = false;
+      if (prefs.push_reminders_enabled === true) {
+        const { count } = await sb
+          .from("push_subscriptions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", p.id);
+        pushSubscribed = (count ?? 0) > 0;
+      }
+
+
       const { data: memberships } = await sb
         .from("organization_members")
         .select("organization_id")
