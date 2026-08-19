@@ -12,6 +12,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // Doctrine: detectors observe. This function drafts. Nothing here stages,
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { sendWebPush } from "../_shared/webpush.ts";
 import {
   detectDriftingCommitment,
   detectSilentProject,
@@ -131,6 +132,61 @@ async function retirePendingNudges(
   return retirements.length;
 }
 
+/**
+ * Send the single surfaced note to the user's registered devices. Never called
+ * unless the ladder recommended "phone", which itself requires opt-in plus a
+ * live subscription. Failures are logged, never retried loudly.
+ */
+async function reachPhone(
+  sb: SupabaseClient,
+  userId: string,
+  scopeCols: Record<string, unknown>,
+  decision: { title: string; nextStep: string; entityType?: string; entityId?: string; urgency: string },
+): Promise<void> {
+  const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+  const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
+  if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) return;
+
+  const { data: subs } = await sb
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .eq("user_id", userId);
+  if (!subs?.length) return;
+
+  let sent = 0;
+  let failed = 0;
+  for (const s of subs as any[]) {
+    const r = await sendWebPush(
+      { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
+      { title: decision.title, body: decision.nextStep, tag: "vanta-awareness", url: "/" },
+      { vapidPublicKey, vapidPrivateKey, vapidSubject },
+    );
+    if (r.ok) {
+      sent++;
+      await sb.from("push_subscriptions")
+        .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
+        .eq("id", s.id);
+    } else if (r.shouldDelete) {
+      await sb.from("push_subscriptions").delete().eq("id", s.id);
+    } else {
+      failed++;
+      await sb.from("push_subscriptions")
+        .update({ last_error: r.error ?? `status ${r.status}` })
+        .eq("id", s.id);
+    }
+  }
+
+  await sb.from("audit_log").insert({
+    user_id: userId,
+    ...scopeCols,
+    entity_type: "nudge",
+    entity_id: decision.entityId ?? null,
+    event: "nudge.delivered",
+    payload: { channel: "phone", urgency: decision.urgency, sent, failed, source: "scheduled_sweep" },
+  });
+}
+
 
 async function sweepScope(
   sb: SupabaseClient,
@@ -138,6 +194,8 @@ async function sweepScope(
   target: ScopeTarget,
   now: Date,
   shadowMode: boolean,
+  deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
+
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
   const nowMs = now.getTime();
@@ -303,7 +361,14 @@ async function sweepScope(
     inQuietHours: false, // handled by the caller before we get here
   };
 
-  const result = evaluateAwareness({ signals, priors, budget, now: nowMs });
+  const result = evaluateAwareness({
+    signals,
+    priors,
+    budget,
+    deliveryContext: deliveryCtx,
+    now: nowMs,
+  });
+
 
   // Shadow mode: the full evaluation is recorded either way. This is developer
   // telemetry, not a user Receipt.
@@ -371,7 +436,15 @@ async function sweepScope(
       source: "scheduled_sweep",
     },
   });
+
+  // The nudge always lands in Today. Reaching the phone is a second, narrower
+  // step: only when the ladder asked for it, push is opted into, and a device
+  // is registered. Quiet hours were already honoured by the caller.
+  if (decision.delivery.recommendedChannel === "phone") {
+    await reachPhone(sb, userId, scopeCols, decision);
+  }
   return "proposed";
+
 }
 
 
@@ -419,6 +492,18 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      // Push is only a candidate channel when the user asked for it AND owns a
+      // registered device. Checked once per user, not per scope.
+      let pushSubscribed = false;
+      if (prefs.push_reminders_enabled === true) {
+        const { count } = await sb
+          .from("push_subscriptions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", p.id);
+        pushSubscribed = (count ?? 0) > 0;
+      }
+
+
       const { data: memberships } = await sb
         .from("organization_members")
         .select("organization_id")
@@ -431,7 +516,10 @@ Deno.serve(async (req: Request) => {
 
       for (const t of targets) {
         swept++;
-        const outcome = await sweepScope(sb, p.id, t, now, shadowMode);
+        const outcome = await sweepScope(sb, p.id, t, now, shadowMode, {
+          pushOptIn: prefs.push_reminders_enabled === true,
+          pushSubscribed: pushSubscribed,
+        });
         if (outcome === "proposed") proposed++;
         if (outcome === "shadow") shadowed++;
       }

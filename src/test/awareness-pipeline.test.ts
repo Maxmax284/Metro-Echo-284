@@ -275,6 +275,25 @@ describe("delivery recommendation", () => {
     expect(recommendDelivery("time_sensitive").recommendedFormat).toBe("short");
     expect(recommendDelivery("critical").recommendedFormat).toBe("urgent");
   });
+
+  it("reaches the phone only with opt-in and a registered device", () => {
+    const optInOnly = recommendDelivery("time_sensitive", { pushOptIn: true });
+    expect(optInOnly.recommendedChannel).toBe("today");
+
+    const deviceOnly = recommendDelivery("time_sensitive", { pushSubscribed: true });
+    expect(deviceOnly.recommendedChannel).toBe("today");
+
+    const both = recommendDelivery("time_sensitive", { pushOptIn: true, pushSubscribed: true });
+    expect(both.recommendedChannel).toBe("phone");
+    expect(both.live).toBe(true);
+  });
+
+  it("never reaches the phone below time-sensitive, even when push is ready", () => {
+    const ready = { pushOptIn: true, pushSubscribed: true };
+    expect(recommendDelivery("attention", ready).recommendedChannel).toBe("today");
+    expect(recommendDelivery("useful", ready).recommendedChannel).toBe("silent");
+    expect(recommendDelivery("critical", ready).recommendedChannel).toBe("phone");
+  });
 });
 
 describe("evaluateAwareness", () => {

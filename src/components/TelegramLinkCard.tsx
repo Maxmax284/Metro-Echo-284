@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy, Send } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy, Send, RefreshCw } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { StatusDot } from "@/components/ui/status-dot";
@@ -64,6 +64,25 @@ export function TelegramLinkCard() {
     }
   };
 
+  const registerWebhook = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-register");
+      if (error) throw error;
+      const d = (data ?? {}) as { registered?: boolean; reason?: string; last_error_message?: string | null };
+      if (d.registered) {
+        toast.success("Telegram now delivers messages to Vanta.");
+      } else {
+        toast(d.reason ?? d.last_error_message ?? "Telegram didn't accept the connection.");
+      }
+    } catch (e) {
+      toast.fromError(e, "Couldn't open the Telegram connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   const copyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code);
@@ -115,6 +134,13 @@ export function TelegramLinkCard() {
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Send test Telegram now
           </Button>
+          <Button size="sm" variant="ghost" className="w-full gap-1.5" onClick={registerWebhook} disabled={busy}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reconnect inbound messages
+          </Button>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Run this once so messages you send the bot actually reach Vanta, and again if replies stop arriving.
+          </p>
         </div>
       )}
 
