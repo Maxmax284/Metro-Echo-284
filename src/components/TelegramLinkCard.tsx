@@ -64,6 +64,25 @@ export function TelegramLinkCard() {
     }
   };
 
+  const registerWebhook = async () => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-register");
+      if (error) throw error;
+      const d = (data ?? {}) as { registered?: boolean; reason?: string; last_error_message?: string | null };
+      if (d.registered) {
+        toast.success("Telegram now delivers messages to Vanta.");
+      } else {
+        toast(d.reason ?? d.last_error_message ?? "Telegram didn't accept the connection.");
+      }
+    } catch (e) {
+      toast.fromError(e, "Couldn't open the Telegram connection.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   const copyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code);
