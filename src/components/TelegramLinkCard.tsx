@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy, Send } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, ShieldCheck, Copy, Send, RefreshCw } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { StatusDot } from "@/components/ui/status-dot";
