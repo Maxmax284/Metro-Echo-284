@@ -80,9 +80,9 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
           .select("id, title, updated_at")
           .eq("user_id", session.user.id).in("status", ["staged", "proposed"]).eq("risk", "high")
           .order("updated_at", { ascending: false }).limit(20),
-        supabase.from("sherlock_findings")
+        applyScope(supabase.from("sherlock_findings")
           .select("id, summary, updated_at")
-          .eq("user_id", session.user.id).eq("status", "pending")
+          .eq("status", "pending"))
           .order("updated_at", { ascending: false }).limit(20),
         supabase.from("audit_log")
           .select("id, event, entity_type, created_at")
