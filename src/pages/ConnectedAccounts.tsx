@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, MessageSquare, RefreshCw, Send, Unlink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { useWorkspace } from "@/providers/WorkspaceProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ type ChannelLink = {
 
 export default function ConnectedAccounts() {
   const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { memberships } = useWorkspace();
   const { openSherlock } = useSherlock();
   const [links, setLinks] = useState<ChannelLink[]>([]);

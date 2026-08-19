@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -73,6 +74,7 @@ type SherlockFinding = {
 
 function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEntityId: string | null; seedProjectId?: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
