@@ -134,6 +134,13 @@ export function TelegramLinkCard() {
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Send test Telegram now
           </Button>
+          <Button size="sm" variant="ghost" className="w-full gap-1.5" onClick={registerWebhook} disabled={busy}>
+            <RefreshCw className="h-3.5 w-3.5" />
+            Reconnect inbound messages
+          </Button>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Run this once so messages you send the bot actually reach Vanta, and again if replies stop arriving.
+          </p>
         </div>
       )}
 
