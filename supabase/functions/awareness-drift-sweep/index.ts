@@ -305,7 +305,14 @@ async function sweepScope(
     inQuietHours: false, // handled by the caller before we get here
   };
 
-  const result = evaluateAwareness({ signals, priors, budget, now: nowMs });
+  const result = evaluateAwareness({
+    signals,
+    priors,
+    budget,
+    deliveryContext: deliveryCtx,
+    now: nowMs,
+  });
+
 
   // Shadow mode: the full evaluation is recorded either way. This is developer
   // telemetry, not a user Receipt.
