@@ -255,6 +255,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         entity_type: "message",
         entity_id: userMsgId,
         source: "telegram",
+        organizationId: orgId,
       });
       if (finding && finding.suggested_route !== "ignore") {
         const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
