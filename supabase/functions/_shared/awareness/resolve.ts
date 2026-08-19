@@ -25,6 +25,10 @@ export type EntityState = {
   actions: Record<string, string>;
   /** projects: last updated_at ISO, used for the silent-project detector */
   projects: Record<string, string>;
+  /** documents: current status */
+  documents?: Record<string, string>;
+  /** capture_routes: the user_action recorded, if any */
+  captures?: Record<string, string | null>;
 };
 
 export type ResolutionReason =
@@ -32,6 +36,8 @@ export type ResolutionReason =
   | "action_moved_on"
   | "risk_reviewed"
   | "project_active_again"
+  | "document_moved_on"
+  | "capture_routed"
   | "entity_gone"
   | "expired";
 
@@ -42,6 +48,9 @@ export type ResolutionVerdict =
 const CLOSED_COMMITMENTS = new Set(["done", "cancelled"]);
 /** Anything past staged means the human already touched it. */
 const MOVED_ON_ACTIONS = new Set(["approved", "executed", "audited", "rolled_back", "cancelled"]);
+
+/** A document past these statuses is no longer waiting on the user. */
+const SETTLED_DOCUMENTS = new Set(["archived", "accepted", "signed", "final", "cancelled"]);
 
 const SILENT_PROJECT_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -87,6 +96,20 @@ export function recheckNudge(
       if (nudge.kind === "project_went_silent" && now - new Date(updated).getTime() < SILENT_PROJECT_MS) {
         return { stillTrue: false, reason: "project_active_again" };
       }
+      return { stillTrue: true };
+    }
+    case "document": {
+      const status = (state.documents ?? {})[id];
+      if (status === undefined) return { stillTrue: false, reason: "entity_gone" };
+      if (SETTLED_DOCUMENTS.has(status)) return { stillTrue: false, reason: "document_moved_on" };
+      return { stillTrue: true };
+    }
+    case "capture":
+    case "note":
+    case "file": {
+      const captures = state.captures ?? {};
+      if (!(id in captures)) return { stillTrue: true };
+      if (captures[id]) return { stillTrue: false, reason: "capture_routed" };
       return { stillTrue: true };
     }
     default:

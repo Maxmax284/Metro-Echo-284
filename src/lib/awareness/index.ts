@@ -9,4 +9,5 @@ export * from "../../../supabase/functions/_shared/awareness/bundle";
 export * from "../../../supabase/functions/_shared/awareness/deliver";
 export * from "../../../supabase/functions/_shared/awareness/evaluate";
 export * from "../../../supabase/functions/_shared/awareness/adapters";
+export * from "../../../supabase/functions/_shared/awareness/adapters-more";
 export * from "../../../supabase/functions/_shared/awareness/resolve";
