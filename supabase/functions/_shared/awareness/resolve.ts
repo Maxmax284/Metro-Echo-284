@@ -105,7 +105,9 @@ export function retireResolved(
   const out: Retirement[] = [];
   for (const n of nudges) {
     const verdict = recheckNudge(n, state, now);
-    if (!verdict.stillTrue) out.push({ id: n.id, reason: verdict.reason, dedupeKey: n.dedupe_key });
+    if (verdict.stillTrue === false) {
+      out.push({ id: n.id, reason: verdict.reason, dedupeKey: n.dedupe_key });
+    }
   }
   return out;
 }
