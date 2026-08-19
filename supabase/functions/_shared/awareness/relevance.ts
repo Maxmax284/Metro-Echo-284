@@ -50,6 +50,9 @@ const BASE_IMPACT: Record<string, number> = {
   action_awaiting_approval: 0.6,
   commitment_drifting: 0.6,
   commitment_due_soon: 0.55,
+  document_risk_unreviewed: 0.7,
+  document_stalled: 0.4,
+  capture_unrouted: 0.3,
   project_went_silent: 0.4,
   continuity_changed: 0.35,
 };
