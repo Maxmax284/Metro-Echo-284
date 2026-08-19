@@ -7,4 +7,5 @@ export * from "./bundle.ts";
 export * from "./deliver.ts";
 export * from "./evaluate.ts";
 export * from "./adapters.ts";
+export * from "./adapters-more.ts";
 export * from "./resolve.ts";

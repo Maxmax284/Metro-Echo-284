@@ -18,7 +18,9 @@ export type SignalSource =
   | "commitments"
   | "actions"
   | "continuity"
-  | "security";
+  | "security"
+  | "documents"
+  | "captures";
 
 export type SignalKind =
   // live, existing-product families
@@ -30,7 +32,10 @@ export type SignalKind =
   | "action_awaiting_approval"
   | "action_failed"
   | "continuity_changed"
-  | "security_event";
+  | "security_event"
+  | "document_stalled"
+  | "document_risk_unreviewed"
+  | "capture_unrouted";
 
 export type SourceReference = {
   kind: string;

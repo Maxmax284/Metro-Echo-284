@@ -24,13 +24,17 @@ import {
 } from "../_shared/drift.ts";
 import {
   actionToSignal,
+  captureRouteToSignal,
   commitmentToSignal,
+  documentRiskToSignal,
+  documentToSignal,
   driftToSignal,
   evaluateAwareness,
   retireResolved,
   signalDedupeKey,
   type AttentionBudget,
   type AwarenessSignal,
+  type DocumentRow,
   type EntityState,
   type PriorState,
 } from "../_shared/awareness/index.ts";
@@ -70,8 +74,12 @@ async function retirePendingNudges(
   const commitmentIds = idsFor("commitment");
   const actionIds = idsFor("action");
   const projectIds = idsFor("project");
+  const documentIds = idsFor("document");
+  const captureIds = rows
+    .filter((n) => n.kind === "capture_unrouted" && n.related_entity_id)
+    .map((n) => n.related_entity_id);
 
-  const [c, a, p] = await Promise.all([
+  const [c, a, p, d, cap] = await Promise.all([
     commitmentIds.length
       ? scoped(sb.from("commitments").select("id, status"), userId, orgId).in("id", commitmentIds)
       : Promise.resolve({ data: [] as any[] }),
@@ -81,12 +89,26 @@ async function retirePendingNudges(
     projectIds.length
       ? scoped(sb.from("projects").select("id, updated_at"), userId, orgId).in("id", projectIds)
       : Promise.resolve({ data: [] as any[] }),
+    documentIds.length
+      ? scoped(sb.from("documents").select("id, status"), userId, orgId).in("id", documentIds)
+      : Promise.resolve({ data: [] as any[] }),
+    captureIds.length
+      ? scoped(sb.from("capture_routes").select("capture_id, user_action"), userId, orgId).in(
+          "capture_id",
+          captureIds,
+        )
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
-  const state: EntityState = { commitments: {}, actions: {}, projects: {} };
+  const state: EntityState = { commitments: {}, actions: {}, projects: {}, documents: {}, captures: {} };
   for (const r of (c.data ?? []) as any[]) state.commitments[r.id] = r.status;
   for (const r of (a.data ?? []) as any[]) state.actions[r.id] = r.status;
   for (const r of (p.data ?? []) as any[]) state.projects[r.id] = r.updated_at;
+  for (const r of (d.data ?? []) as any[]) state.documents![r.id] = r.status;
+  for (const r of (cap.data ?? []) as any[]) {
+    const prev = state.captures![r.capture_id];
+    state.captures![r.capture_id] = r.user_action ?? prev ?? null;
+  }
 
   const retirements = retireResolved(rows, state, nowMs);
   if (!retirements.length) return 0;
@@ -121,7 +143,13 @@ async function sweepScope(
   const nowMs = now.getTime();
   const scopeCols = orgId ? { organization_id: orgId } : { organization_id: null };
 
-  const [{ data: projectRows }, { data: openCommitments }, { data: riskyActions }] = await Promise.all([
+  const [
+    { data: projectRows },
+    { data: openCommitments },
+    { data: riskyActions },
+    { data: documentRows },
+    { data: captureRows },
+  ] = await Promise.all([
     scoped(sb.from("projects").select("id, title, status, updated_at"), userId, orgId).limit(50),
     scoped(
       sb.from("commitments").select("id, summary, due_at, status, updated_at, metadata"),
@@ -133,6 +161,18 @@ async function sweepScope(
       userId,
       orgId,
     ).in("status", ["proposed", "staged"]).eq("risk", "high").limit(20),
+    scoped(
+      sb.from("documents").select("id, title, status, updated_at, project_id"),
+      userId,
+      orgId,
+    ).limit(100),
+    scoped(
+      sb.from("capture_routes").select(
+        "id, capture_kind, capture_id, source, suggested_route, user_action, created_at",
+      ),
+      userId,
+      orgId,
+    ).is("user_action", null).limit(100),
   ]);
 
   const projectIds = (projectRows ?? []).map((p: any) => p.id);
@@ -201,6 +241,33 @@ async function sweepScope(
     const s = actionToSignal(a as any, scope, nowMs);
     if (s) signals.push(s);
   }
+
+  // Documents: stalled drafts/reviews, then serious risks nobody answered.
+  const documents = (documentRows ?? []) as DocumentRow[];
+  for (const doc of documents) {
+    const s = documentToSignal(doc, scope, nowMs);
+    if (s) signals.push(s);
+  }
+  if (documents.length) {
+    const byId = new Map(documents.map((d) => [d.id, d]));
+    const { data: riskRows } = await sb
+      .from("document_risks")
+      .select("id, document_id, severity, title, created_at")
+      .eq("user_id", userId)
+      .in("document_id", documents.map((d) => d.id))
+      .limit(100);
+    for (const r of (riskRows ?? []) as any[]) {
+      const s = documentRiskToSignal(r, byId.get(r.document_id), scope, nowMs);
+      if (s) signals.push(s);
+    }
+  }
+
+  // Captures that never got a decision.
+  for (const c of (captureRows ?? []) as any[]) {
+    const s = captureRouteToSignal(c, scope, nowMs);
+    if (s) signals.push(s);
+  }
+
   if (signals.length === 0) return "none";
 
   // Prior state for these exact situations, plus what Vanta already said
