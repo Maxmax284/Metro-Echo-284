@@ -131,6 +131,61 @@ async function retirePendingNudges(
   return retirements.length;
 }
 
+/**
+ * Send the single surfaced note to the user's registered devices. Never called
+ * unless the ladder recommended "phone", which itself requires opt-in plus a
+ * live subscription. Failures are logged, never retried loudly.
+ */
+async function reachPhone(
+  sb: SupabaseClient,
+  userId: string,
+  scopeCols: Record<string, unknown>,
+  decision: { title: string; nextStep: string; entityType?: string; entityId?: string; urgency: string },
+): Promise<void> {
+  const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+  const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
+  if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) return;
+
+  const { data: subs } = await sb
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .eq("user_id", userId);
+  if (!subs?.length) return;
+
+  let sent = 0;
+  let failed = 0;
+  for (const s of subs as any[]) {
+    const r = await sendWebPush(
+      { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
+      { title: decision.title, body: decision.nextStep, tag: "vanta-awareness", url: "/" },
+      { vapidPublicKey, vapidPrivateKey, vapidSubject },
+    );
+    if (r.ok) {
+      sent++;
+      await sb.from("push_subscriptions")
+        .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
+        .eq("id", s.id);
+    } else if (r.shouldDelete) {
+      await sb.from("push_subscriptions").delete().eq("id", s.id);
+    } else {
+      failed++;
+      await sb.from("push_subscriptions")
+        .update({ last_error: r.error ?? `status ${r.status}` })
+        .eq("id", s.id);
+    }
+  }
+
+  await sb.from("audit_log").insert({
+    user_id: userId,
+    ...scopeCols,
+    entity_type: "nudge",
+    entity_id: decision.entityId ?? null,
+    event: "nudge.delivered",
+    payload: { channel: "phone", urgency: decision.urgency, sent, failed, source: "scheduled_sweep" },
+  });
+}
+
 
 async function sweepScope(
   sb: SupabaseClient,
