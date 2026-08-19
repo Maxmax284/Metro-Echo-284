@@ -61,6 +61,8 @@ export type RunSuggestInput = {
   entity_type: string; // e.g. "message"
   entity_id: string | null;
   source?: string; // for audit, e.g. "telegram"
+  /** Owning workspace, or null for personal. Cached findings never cross rooms. */
+  organizationId?: string | null;
 };
 
 /**
@@ -70,6 +72,7 @@ export type RunSuggestInput = {
  */
 export async function runSherlockSuggest(input: RunSuggestInput): Promise<SuggestFinding | null> {
   const { admin, userId, text, entity_type, entity_id, source } = input;
+  const organizationId = input.organizationId ?? null;
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY || !text.trim()) return null;
 
@@ -77,13 +80,14 @@ export async function runSherlockSuggest(input: RunSuggestInput): Promise<Sugges
   const scopeHash = await sha256(`suggest:${entity_type}:${entity_id ?? ""}:${text}`);
 
   // Cache check (1h)
-  const { data: cached } = await admin
+  let cacheQ: any = admin
     .from("sherlock_findings_cache")
     .select("findings, updated_at")
     .eq("user_id", userId)
     .eq("entity_type", cacheType)
-    .eq("scope_hash", scopeHash)
-    .maybeSingle();
+    .eq("scope_hash", scopeHash);
+  cacheQ = organizationId ? cacheQ.eq("organization_id", organizationId) : cacheQ.is("organization_id", null);
+  const { data: cached } = await cacheQ.maybeSingle();
   if (cached && new Date(cached.updated_at).getTime() > Date.now() - 60 * 60 * 1000) {
     return cached.findings as SuggestFinding;
   }
@@ -132,6 +136,7 @@ export async function runSherlockSuggest(input: RunSuggestInput): Promise<Sugges
   try {
     await admin.from("sherlock_findings_cache").upsert({
       user_id: userId,
+      organization_id: organizationId,
       entity_type: cacheType,
       entity_id,
       scope_hash: scopeHash,

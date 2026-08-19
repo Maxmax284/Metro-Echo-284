@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 
 export type SherlockOperation = "observe" | "extract" | "relate" | "suggest" | "investigate";
 
@@ -24,6 +25,7 @@ export function useSherlockCache(
   entityId: string | null | undefined,
 ): { cached: CachedFinding | null; loading: boolean; refresh: () => void } {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [cached, setCached] = useState<CachedFinding | null>(null);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
@@ -37,12 +39,13 @@ export function useSherlockCache(
     (async () => {
       setLoading(true);
       const cacheType = `${operation}:${entityType}`;
-      const { data } = await supabase
-        .from("sherlock_findings_cache")
-        .select("findings, confidence, updated_at")
-        .eq("user_id", user.id)
-        .eq("entity_type", cacheType)
-        .eq("entity_id", entityId)
+      const { data } = await applyScope(
+        supabase
+          .from("sherlock_findings_cache")
+          .select("findings, confidence, updated_at")
+          .eq("entity_type", cacheType)
+          .eq("entity_id", entityId) as any,
+      )
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -54,7 +57,7 @@ export function useSherlockCache(
     return () => {
       cancelled = true;
     };
-  }, [user?.id, operation, entityType, entityId, tick]);
+  }, [user?.id, scopeKey, operation, entityType, entityId, tick]);
 
   return { cached, loading, refresh: () => setTick((t) => t + 1) };
 }

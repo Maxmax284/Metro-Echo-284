@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -73,6 +74,7 @@ type SherlockFinding = {
 
 function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEntityId: string | null; seedProjectId?: string | null; windowDays: CanvasWindow; kinds: Set<CanvasKind> }) {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { openEntity } = useEntitySheet();
   const [loading, setLoading] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -185,11 +187,10 @@ function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEnt
       let f: SherlockFinding[] = [];
       if (ids.length > 0) {
         const inList = ids.join(",");
-        const { data: fdata } = await (supabase as any)
+        const { data: fdata } = await applyScope((supabase as any)
           .from("sherlock_findings")
           .select("id, finding_type, source_object_id, target_object_id, confidence, sensitive_flag, status")
-          .eq("user_id", user.id)
-          .eq("status", "pending")
+          .eq("status", "pending"))
           .or(`source_object_id.in.(${inList}),target_object_id.in.(${inList})`)
           .limit(200);
         f = (fdata ?? []) as SherlockFinding[];
@@ -203,7 +204,7 @@ function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEnt
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, seedProjectId, windowDays, kinds, density.maxNodes]);
+  }, [user, scopeKey, seedEntityId, seedProjectId, windowDays, kinds, density.maxNodes]);
 
   const visibleRelations = useMemo(() => {
     return relations.filter((r) => {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle, HelpCircle, Link2, Sparkles, ShieldAlert, GitBranch, EyeOff, MessageSquarePlus, NotebookPen, ListPlus, BellPlus, CheckSquare, Check, X } from "lucide-react";
 import { useSherlock, SherlockFindings } from "./SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -31,6 +32,7 @@ const SINGLE_OPS = new Set(["observe", "extract", "relate", "suggest"]);
 export function SherlockOverlay() {
   const { open, scope, findings, loading, closeSherlock, setFindings, setLoading } = useSherlock();
   const { user } = useAuth();
+  const { orgId } = useScope();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.key, !!s.defaultOpen]))
   );
@@ -48,6 +50,7 @@ export function SherlockOverlay() {
         const { data, error } = await supabase.functions.invoke("sherlock-investigate", {
           body: {
             mode,
+            organization_id: orgId,
             scope: {
               entity_type: scope.entity_type,
               entity_id: scope.entity_id ?? null,

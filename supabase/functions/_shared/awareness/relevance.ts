@@ -53,6 +53,7 @@ const BASE_IMPACT: Record<string, number> = {
   document_risk_unreviewed: 0.7,
   document_stalled: 0.4,
   capture_unrouted: 0.3,
+  sherlock_finding_pending: 0.4,
   project_went_silent: 0.4,
   continuity_changed: 0.35,
 };

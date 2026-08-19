@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,7 @@ type ChecklistItem = {
 
 export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { intake } = useIntakePrefs();
   const { dismissed, dismiss } = useIntakeDismissals();
   const [needs, setNeeds] = useState<ChecklistItem[]>([]);
@@ -71,22 +73,22 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
       const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const [overdue, highRisk, sherlock, recent] = await Promise.all([
-        supabase.from("commitments")
+        applyScope(supabase.from("commitments")
           .select("id, summary, due_at, updated_at, status")
-          .eq("user_id", session.user.id).eq("status", "open")
-          .lt("due_at", startOfDay.toISOString())
+          .eq("status", "open")
+          .lt("due_at", startOfDay.toISOString()))
           .order("due_at", { ascending: true }).limit(50),
-        supabase.from("actions")
+        applyScope(supabase.from("actions")
           .select("id, title, updated_at")
-          .eq("user_id", session.user.id).in("status", ["staged", "proposed"]).eq("risk", "high")
+          .in("status", ["staged", "proposed"]).eq("risk", "high"))
           .order("updated_at", { ascending: false }).limit(20),
-        supabase.from("sherlock_findings")
+        applyScope(supabase.from("sherlock_findings")
           .select("id, summary, updated_at")
-          .eq("user_id", session.user.id).eq("status", "pending")
+          .eq("status", "pending"))
           .order("updated_at", { ascending: false }).limit(20),
-        supabase.from("audit_log")
+        applyScope(supabase.from("audit_log")
           .select("id, event, entity_type, created_at")
-          .eq("user_id", session.user.id).gte("created_at", dayAgo)
+          .gte("created_at", dayAgo))
           .order("created_at", { ascending: false }).limit(20),
       ]);
       if (cancelled) return;
@@ -175,7 +177,7 @@ export function DailyChecklistCard({ onNavigate }: { onNavigate: (k: SurfaceKey)
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [session, intake.commitment_stale_days, intake.commitment_stale_behavior, intake.today_card_overdue_limit]);
+  }, [session, scopeKey, intake.commitment_stale_days, intake.commitment_stale_behavior, intake.today_card_overdue_limit]);
 
   const windowDays = intake.capture_visibility_days;
   const limit = intake.command_center_section_limit;

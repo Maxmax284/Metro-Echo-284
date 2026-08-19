@@ -19,9 +19,11 @@ async function writeAudit(params: {
   entityType: string;
   entityId?: string | null;
   payload?: Json;
+  organizationId?: string | null;
 }) {
   const { error } = await supabase.from("audit_log").insert({
     user_id: params.userId,
+    organization_id: params.organizationId ?? null,
     event: params.event,
     entity_type: params.entityType,
     entity_id: params.entityId ?? null,
@@ -32,6 +34,8 @@ async function writeAudit(params: {
 
 export interface CreateFindingInput {
   userId: string;
+  /** Owning workspace, or null for personal. Findings never cross rooms. */
+  organizationId?: string | null;
   sourceObjectType: SherlockSourceType | string;
   sourceObjectId?: string | null;
   mode: SherlockMode;
@@ -62,6 +66,7 @@ export async function createFinding(input: CreateFindingInput): Promise<Sherlock
       .eq("user_id", input.userId)
       .eq("source_object_type", input.sourceObjectType)
       .eq("status", "dismissed");
+    q = input.organizationId ? q.eq("organization_id", input.organizationId) : q.is("organization_id", null);
     if (input.sourceObjectId) q = q.eq("source_object_id", input.sourceObjectId);
     if (input.suggestedAction) q = q.eq("suggested_action", input.suggestedAction);
     if (input.targetObjectId) q = q.eq("target_object_id", input.targetObjectId);
@@ -88,6 +93,7 @@ export async function createFinding(input: CreateFindingInput): Promise<Sherlock
     .from("sherlock_findings")
     .insert({
       user_id: input.userId,
+      organization_id: input.organizationId ?? null,
       source_object_type: input.sourceObjectType,
       source_object_id: input.sourceObjectId ?? null,
       mode: input.mode,
@@ -189,25 +195,31 @@ export async function listFindingsForSource(
   userId: string,
   sourceObjectType: string,
   sourceObjectId: string,
+  organizationId: string | null = null,
 ): Promise<SherlockFinding[]> {
-  const { data, error } = await supabase
+  let base = supabase
     .from("sherlock_findings")
     .select("*")
     .eq("user_id", userId)
     .eq("source_object_type", sourceObjectType)
-    .eq("source_object_id", sourceObjectId)
-    .order("updated_at", { ascending: false });
+    .eq("source_object_id", sourceObjectId);
+  base = organizationId ? base.eq("organization_id", organizationId) : base.is("organization_id", null);
+  const { data, error } = await base.order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as SherlockFinding[];
 }
 
-export async function listPending(userId: string, opts: { includeLowConfidence?: boolean } = {}) {
+export async function listPending(
+  userId: string,
+  opts: { includeLowConfidence?: boolean; organizationId?: string | null } = {},
+) {
   let q = supabase
     .from("sherlock_findings")
     .select("*")
     .eq("user_id", userId)
-    .eq("status", "pending")
-    .order("updated_at", { ascending: false });
+    .eq("status", "pending");
+  q = opts.organizationId ? q.eq("organization_id", opts.organizationId) : q.is("organization_id", null);
+  q = q.order("updated_at", { ascending: false });
   if (!opts.includeLowConfidence) q = q.in("confidence", ["medium", "high"]);
   const { data, error } = await q;
   if (error) throw error;

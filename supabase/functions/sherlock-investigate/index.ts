@@ -244,6 +244,10 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const ALLOWED_MODES = ["overlay", "extract", "suggest", "observe", "relate", "full"] as const;
     const mode = (ALLOWED_MODES as readonly string[]).includes(body.mode) ? body.mode : "full";
+    // Active room. Cached findings are never shared between personal and workspace.
+    const orgId: string | null = typeof body.organization_id === "string" ? body.organization_id : null;
+    const roomKey = orgId ?? "personal";
+    const inRoom = (q: any) => (orgId ? q.eq("organization_id", orgId) : q.is("organization_id", null));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -259,16 +263,16 @@ Deno.serve(async (req: Request) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const cacheKey = `${mode}:${entity_type}:${entity_id ?? ""}:${text}`;
+      const cacheKey = `${roomKey}:${mode}:${entity_type}:${entity_id ?? ""}:${text}`;
       const scopeHash = await sha256(cacheKey);
       const cacheType = `${mode}:${entity_type}`;
 
-      const { data: cached } = await supabase
+      const { data: cached } = await inRoom(supabase
         .from("sherlock_findings_cache")
         .select("findings, updated_at")
         .eq("user_id", user.id)
         .eq("entity_type", cacheType)
-        .eq("scope_hash", scopeHash)
+        .eq("scope_hash", scopeHash))
         .maybeSingle();
       if (cached && new Date(cached.updated_at).getTime() > Date.now() - 60 * 60 * 1000) {
         return new Response(JSON.stringify({ findings: cached.findings, cached: true, mode }), {
@@ -335,6 +339,7 @@ Deno.serve(async (req: Request) => {
 
       await supabase.from("sherlock_findings_cache").upsert({
         user_id: user.id,
+        organization_id: orgId,
         entity_type: cacheType,
         entity_id,
         scope_hash: scopeHash,
@@ -368,15 +373,15 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      const scopeHash = await sha256(`${entity_type}:${entity_id ?? ""}:${text}`);
+      const scopeHash = await sha256(`${roomKey}:${entity_type}:${entity_id ?? ""}:${text}`);
 
       // Cache lookup (fresh < 1 hour)
-      const { data: cached } = await supabase
+      const { data: cached } = await inRoom(supabase
         .from("sherlock_findings_cache")
         .select("findings, updated_at")
         .eq("user_id", user.id)
         .eq("entity_type", entity_type)
-        .eq("scope_hash", scopeHash)
+        .eq("scope_hash", scopeHash))
         .maybeSingle();
       if (cached && new Date(cached.updated_at).getTime() > Date.now() - 60 * 60 * 1000) {
         return new Response(JSON.stringify({ findings: cached.findings, cached: true }), {
@@ -427,6 +432,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from("sherlock_findings_cache").upsert(
         {
           user_id: user.id,
+          organization_id: orgId,
           entity_type,
           entity_id,
           scope_hash: scopeHash,

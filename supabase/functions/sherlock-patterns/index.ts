@@ -22,6 +22,32 @@ type FindingDraft = {
   extracted_data?: Record<string, unknown>;
 };
 
+/** Restrict a query to one room: personal (organization_id IS NULL) or one workspace. */
+function scoped(q: any, orgId: string | null) {
+  return orgId ? q.eq("organization_id", orgId) : q.is("organization_id", null);
+}
+
+/** Every room a user owns or belongs to: personal first, then each workspace. */
+async function scopeTargets(admin: any, userId: string): Promise<(string | null)[]> {
+  const { data } = await admin
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  return [null, ...((data ?? []) as any[]).map((m) => m.organization_id as string)];
+}
+
+/** Scan every room the user can see, one at a time. Findings never cross rooms. */
+async function runForAllScopes(admin: any, userId: string) {
+  const targets = await scopeTargets(admin, userId);
+  let drafts = 0, written = 0, suppressed = 0;
+  for (const orgId of targets) {
+    const r = await runForUser(admin, userId, orgId);
+    drafts += r.drafts; written += r.written; suppressed += r.suppressed;
+  }
+  return { drafts, written, suppressed, scopes: targets.length };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -45,7 +71,7 @@ serve(async (req) => {
       const ids = (optedIn ?? []).map((r: any) => r.user_id as string);
       let totalDrafts = 0, totalWritten = 0, totalSuppressed = 0;
       for (const uid of ids) {
-        const r = await runForUser(admin, uid);
+        const r = await runForAllScopes(admin, uid);
         totalDrafts += r.drafts; totalWritten += r.written; totalSuppressed += r.suppressed;
       }
       return json({
@@ -61,7 +87,7 @@ serve(async (req) => {
     });
     const { data: u, error: ue } = await userClient.auth.getUser();
     if (ue || !u?.user) return json({ error: "unauthorized" }, 401);
-    const r = await runForUser(admin, u.user.id);
+    const r = await runForAllScopes(admin, u.user.id);
     return json({ ok: true, mode: "manual", ...r });
   } catch (e) {
     console.error("[sherlock-patterns]", e);
@@ -69,16 +95,16 @@ serve(async (req) => {
   }
 });
 
-async function runForUser(admin: any, userId: string) {
+async function runForUser(admin: any, userId: string, orgId: string | null) {
   const drafts: FindingDraft[] = [];
 
   // ---- 1) Stale commitments: open, due in the past by >2d, no recent reminder
   const twoDaysAgo = new Date(Date.now() - 2 * 86400_000).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
-  const { data: stale } = await admin
+  const { data: stale } = await scoped(admin
     .from("commitments")
     .select("id, summary, due_at, last_reminded_at, updated_at")
-    .eq("user_id", userId)
+    .eq("user_id", userId), orgId)
     .eq("status", "open")
     .lt("due_at", twoDaysAgo)
     .limit(50);
@@ -99,10 +125,10 @@ async function runForUser(admin: any, userId: string) {
 
   // ---- 2) Near-duplicate notes: same lowercased title in last 30 days
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString();
-  const { data: notes } = await admin
+  const { data: notes } = await scoped(admin
     .from("notes")
     .select("id, title, body, created_at")
-    .eq("user_id", userId)
+    .eq("user_id", userId), orgId)
     .gte("created_at", thirtyDaysAgo)
     .limit(300);
   const seen = new Map<string, { id: string; title: string }>();
@@ -129,10 +155,10 @@ async function runForUser(admin: any, userId: string) {
 
   // ---- 3) Recurring entity activity: entity with ≥4 links in last 14d
   const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000).toISOString();
-  const { data: links } = await admin
+  const { data: links } = await scoped(admin
     .from("entity_links")
     .select("entity_id, created_at")
-    .eq("user_id", userId)
+    .eq("user_id", userId), orgId)
     .gte("created_at", fourteenDaysAgo)
     .limit(500);
   const counts = new Map<string, number>();
@@ -162,13 +188,14 @@ async function runForUser(admin: any, userId: string) {
 
   let written = 0, suppressed = 0;
   for (const d of drafts) {
-    const r = await createFinding(admin, userId, d);
+    const r = await createFinding(admin, userId, orgId, d);
     if (r) written++; else suppressed++;
   }
 
   await admin.from("audit_log").insert({
     user_id: userId,
     entity_type: "sherlock_patterns",
+    organization_id: orgId,
     event: "sherlock_patterns_scanned",
     payload: { drafts: drafts.length, written, suppressed },
   });
@@ -176,13 +203,13 @@ async function runForUser(admin: any, userId: string) {
   return { drafts: drafts.length, written, suppressed };
 }
 
-async function createFinding(admin: any, userId: string, d: FindingDraft) {
+async function createFinding(admin: any, userId: string, orgId: string | null, d: FindingDraft) {
   // Cooldown enforcement (mirror of client-side lifecycle helper)
   if (d.suggested_action || d.target_object_id) {
-    let q = admin
+    let q = scoped(admin
       .from("sherlock_findings")
       .select("id, cooldown_until")
-      .eq("user_id", userId)
+      .eq("user_id", userId), orgId)
       .eq("source_object_type", d.source_object_type)
       .eq("status", "dismissed");
     if (d.source_object_id) q = q.eq("source_object_id", d.source_object_id);
@@ -193,10 +220,10 @@ async function createFinding(admin: any, userId: string, d: FindingDraft) {
     }
   }
   // Skip if an identical pending finding already exists
-  const { data: dup } = await admin
+  const { data: dup } = await scoped(admin
     .from("sherlock_findings")
     .select("id")
-    .eq("user_id", userId)
+    .eq("user_id", userId), orgId)
     .eq("source_object_type", d.source_object_type)
     .eq("finding_type", d.finding_type)
     .eq("status", "pending")
@@ -207,6 +234,7 @@ async function createFinding(admin: any, userId: string, d: FindingDraft) {
     .from("sherlock_findings")
     .insert({
       user_id: userId,
+      organization_id: orgId,
       source_object_type: d.source_object_type,
       source_object_id: d.source_object_id ?? null,
       mode: "observe",
@@ -229,6 +257,7 @@ async function createFinding(admin: any, userId: string, d: FindingDraft) {
   }
   await admin.from("audit_log").insert({
     user_id: userId,
+    organization_id: orgId,
     entity_type: "sherlock_finding",
     entity_id: data.id,
     event: "sherlock_finding_created",

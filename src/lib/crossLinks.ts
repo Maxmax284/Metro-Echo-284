@@ -211,6 +211,8 @@ export async function suggestForItem(input: {
   source_kind: CrossKind;
   source_id: string;
   userId: string;
+  /** Active workspace, or null for personal. Cached findings never cross rooms. */
+  organizationId?: string | null;
 }): Promise<LinkSuggestion[]> {
   const out: LinkSuggestion[] = [];
 
@@ -256,12 +258,16 @@ export async function suggestForItem(input: {
   //    already ran Sherlock's "relate" chip, reuse those clusters instead
   //    of re-asking the model. Sherlock suggested; user approves here.
   try {
-    const { data: cachedRows } = await (supabase as any)
+    let cacheQ: any = (supabase as any)
       .from("sherlock_findings_cache")
       .select("findings, updated_at, entity_type")
       .eq("user_id", input.userId)
       .eq("entity_id", input.source_id)
-      .like("entity_type", "relate:%")
+      .like("entity_type", "relate:%");
+    cacheQ = input.organizationId
+      ? cacheQ.eq("organization_id", input.organizationId)
+      : cacheQ.is("organization_id", null);
+    const { data: cachedRows } = await cacheQ
       .order("updated_at", { ascending: false })
       .limit(3);
     for (const row of (cachedRows ?? []) as any[]) {

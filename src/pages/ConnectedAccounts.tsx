@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, MessageSquare, RefreshCw, Send, Unlink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { useWorkspace } from "@/providers/WorkspaceProvider";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ type ChannelLink = {
 
 export default function ConnectedAccounts() {
   const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const { memberships } = useWorkspace();
   const { openSherlock } = useSherlock();
   const [links, setLinks] = useState<ChannelLink[]>([]);
@@ -72,11 +74,10 @@ export default function ConnectedAccounts() {
     setActivity(acc);
 
     // Sherlock hints matched to channel via their source objects
-    const { data: pendingFindings } = await supabase
+    const { data: pendingFindings } = await applyScope(supabase
       .from("sherlock_findings")
       .select("id, source_object_id, source_object_type, mode, summary, confidence, suggested_action")
-      .eq("user_id", session.user.id)
-      .eq("status", "pending")
+      .eq("status", "pending"))
       .order("updated_at", { ascending: false })
       .limit(100);
     const msgIds = (pendingFindings ?? [])
@@ -119,7 +120,7 @@ export default function ConnectedAccounts() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [session]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [session, scopeKey]);
 
   const setRoute = async (id: string, route: string) => {
     setSavingId(id);

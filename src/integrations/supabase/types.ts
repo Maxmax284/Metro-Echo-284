@@ -2412,6 +2412,7 @@ export type Database = {
           finding_type: string
           id: string
           mode: string
+          organization_id: string | null
           rationale: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -2438,6 +2439,7 @@ export type Database = {
           finding_type: string
           id?: string
           mode: string
+          organization_id?: string | null
           rationale?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -2464,6 +2466,7 @@ export type Database = {
           finding_type?: string
           id?: string
           mode?: string
+          organization_id?: string | null
           rationale?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -2480,7 +2483,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sherlock_findings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sherlock_findings_cache: {
         Row: {
@@ -2490,6 +2501,7 @@ export type Database = {
           entity_type: string
           findings: Json
           id: string
+          organization_id: string | null
           scope_hash: string
           updated_at: string
           user_id: string
@@ -2501,6 +2513,7 @@ export type Database = {
           entity_type: string
           findings: Json
           id?: string
+          organization_id?: string | null
           scope_hash: string
           updated_at?: string
           user_id: string
@@ -2512,11 +2525,20 @@ export type Database = {
           entity_type?: string
           findings?: Json
           id?: string
+          organization_id?: string | null
           scope_hash?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sherlock_findings_cache_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sherlock_settings: {
         Row: {

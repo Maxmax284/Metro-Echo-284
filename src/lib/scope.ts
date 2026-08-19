@@ -45,6 +45,8 @@ export const SCOPED_TABLES = [
   "nudges",
   "privacy_settings",
   "projects",
+  "sherlock_findings",
+  "sherlock_findings_cache",
   "user_channel_links",
 ] as const;
 
@@ -74,8 +76,6 @@ export const GLOBAL_TABLES = [
   "cross_links",
   "conversations",
   "note_links",
-  "sherlock_findings",
-  "sherlock_findings_cache",
   "sherlock_settings",
   "research_objects",
   "research_sources",

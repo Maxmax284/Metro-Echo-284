@@ -155,3 +155,58 @@ export function captureRouteToSignal(
     metadata: { age_days: age, capture_kind: c.capture_kind },
   };
 }
+
+/** A pending Sherlock finding — a recognition Vanta made that nobody answered. */
+export type SherlockFindingRow = {
+  id: string;
+  finding_type: string | null;
+  summary: string | null;
+  rationale: string | null;
+  confidence: string | null;
+  status: string;
+  sensitive_flag?: boolean | null;
+  suggested_action?: string | null;
+  source_object_type?: string | null;
+  source_object_id?: string | null;
+  created_at: string;
+};
+
+const SHERLOCK_STALE_AFTER_DAYS = 2;
+/** Sherlock's own words map to evidence strength; low confidence never speaks. */
+const SHERLOCK_CONFIDENCE: Record<string, number> = { high: 0.9, medium: 0.7, low: 0 };
+
+/**
+ * A pending finding that has been sitting unanswered. Sensitive findings are
+ * never surfaced proactively — those wait for the user to come to them.
+ */
+export function sherlockFindingToSignal(
+  f: SherlockFindingRow,
+  scope: ScopeIdentity,
+  now: number,
+): AwarenessSignal | null {
+  if (f.status !== "pending") return null;
+  if (f.sensitive_flag) return null;
+  const confidence = SHERLOCK_CONFIDENCE[(f.confidence ?? "low").toLowerCase()] ?? 0;
+  if (confidence <= 0) return null;
+  const age = days(f.created_at, now);
+  if (!Number.isFinite(age) || age < SHERLOCK_STALE_AFTER_DAYS) return null;
+
+  const label = f.summary?.trim() || "A pattern Vanta noticed";
+  return {
+    id: `sherlock_finding_pending:${f.id}`,
+    source: "sherlock",
+    type: "sherlock_finding_pending",
+    scope,
+    entityType: "sherlock_finding",
+    entityId: f.id,
+    timestamp: new Date(now).toISOString(),
+    summary: "Something Vanta noticed is still waiting on you",
+    why: `${label} — raised ${age} ${age === 1 ? "day" : "days"} ago and still unanswered.`,
+    nextStep: "Take a look and either accept it or wave it off.",
+    confidence,
+    resolved: false,
+    currentState: { status: f.status, confidence: f.confidence },
+    sourceRefs: [{ kind: "sherlock_finding", id: f.id, label }],
+    metadata: { age_days: age, finding_type: f.finding_type },
+  };
+}

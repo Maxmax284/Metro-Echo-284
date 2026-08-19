@@ -29,6 +29,8 @@ export type EntityState = {
   documents?: Record<string, string>;
   /** capture_routes: the user_action recorded, if any */
   captures?: Record<string, string | null>;
+  /** sherlock_findings: current status */
+  sherlockFindings?: Record<string, string>;
 };
 
 export type ResolutionReason =
@@ -38,6 +40,7 @@ export type ResolutionReason =
   | "project_active_again"
   | "document_moved_on"
   | "capture_routed"
+  | "finding_answered"
   | "entity_gone"
   | "expired";
 
@@ -48,6 +51,9 @@ export type ResolutionVerdict =
 const CLOSED_COMMITMENTS = new Set(["done", "cancelled"]);
 /** Anything past staged means the human already touched it. */
 const MOVED_ON_ACTIONS = new Set(["approved", "executed", "audited", "rolled_back", "cancelled"]);
+
+/** Any Sherlock finding out of `pending` has had its answer. */
+const ANSWERED_FINDINGS = new Set(["accepted", "dismissed", "acted", "expired", "snoozed"]);
 
 /** A document past these statuses is no longer waiting on the user. */
 const SETTLED_DOCUMENTS = new Set(["archived", "accepted", "signed", "final", "cancelled"]);
@@ -102,6 +108,14 @@ export function recheckNudge(
       const status = (state.documents ?? {})[id];
       if (status === undefined) return { stillTrue: false, reason: "entity_gone" };
       if (SETTLED_DOCUMENTS.has(status)) return { stillTrue: false, reason: "document_moved_on" };
+      return { stillTrue: true };
+    }
+    case "sherlock_finding": {
+      const status = (state.sherlockFindings ?? {})[id];
+      if (status === undefined) return { stillTrue: false, reason: "entity_gone" };
+      if (status !== "pending" || ANSWERED_FINDINGS.has(status)) {
+        return { stillTrue: false, reason: "finding_answered" };
+      }
       return { stillTrue: true };
     }
     case "capture":

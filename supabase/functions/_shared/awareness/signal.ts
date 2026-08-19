@@ -20,7 +20,8 @@ export type SignalSource =
   | "continuity"
   | "security"
   | "documents"
-  | "captures";
+  | "captures"
+  | "sherlock";
 
 export type SignalKind =
   // live, existing-product families
@@ -35,7 +36,8 @@ export type SignalKind =
   | "security_event"
   | "document_stalled"
   | "document_risk_unreviewed"
-  | "capture_unrouted";
+  | "capture_unrouted"
+  | "sherlock_finding_pending";
 
 export type SourceReference = {
   kind: string;
