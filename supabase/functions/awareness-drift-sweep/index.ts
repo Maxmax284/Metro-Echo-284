@@ -503,7 +503,10 @@ Deno.serve(async (req: Request) => {
 
       for (const t of targets) {
         swept++;
-        const outcome = await sweepScope(sb, p.id, t, now, shadowMode);
+        const outcome = await sweepScope(sb, p.id, t, now, shadowMode, {
+          pushOptIn: prefs.push_reminders_enabled === true,
+          pushSubscribed: pushSubscribed,
+        });
         if (outcome === "proposed") proposed++;
         if (outcome === "shadow") shadowed++;
       }
