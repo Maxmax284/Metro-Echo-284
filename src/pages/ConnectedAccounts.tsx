@@ -120,7 +120,7 @@ export default function ConnectedAccounts() {
     setLoading(false);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [session]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [session, scopeKey]);
 
   const setRoute = async (id: string, route: string) => {
     setSavingId(id);

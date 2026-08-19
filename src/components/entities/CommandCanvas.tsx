@@ -204,7 +204,7 @@ function GraphView({ seedEntityId, seedProjectId, windowDays, kinds }: { seedEnt
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, seedProjectId, windowDays, kinds, density.maxNodes]);
+  }, [user, scopeKey, seedEntityId, seedProjectId, windowDays, kinds, density.maxNodes]);
 
   const visibleRelations = useMemo(() => {
     return relations.filter((r) => {
