@@ -138,6 +138,8 @@ async function sweepScope(
   target: ScopeTarget,
   now: Date,
   shadowMode: boolean,
+  deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
+
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
   const nowMs = now.getTime();
