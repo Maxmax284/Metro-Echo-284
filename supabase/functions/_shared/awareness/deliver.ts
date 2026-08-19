@@ -16,12 +16,16 @@ export type CommunicationChannel =
 
 export type CommunicationFormat = "summary" | "short" | "urgent";
 
-/** Channels this phase is allowed to use. Do not widen without a phase. */
+/**
+ * Channels available with no extra consent. "phone" becomes live only when the
+ * user has opted into push AND a registered device exists — see liveChannels().
+ */
 export const LIVE_CHANNELS: CommunicationChannel[] = ["silent", "today"];
 
 /**
- * Future context object. Not populated in this phase — the seam exists so
- * activity detection can arrive later without reshaping the pipeline.
+ * Context the ladder can read. Activity detection is still future work; the
+ * only populated fields today are the push ones, and both are hard consent
+ * gates rather than heuristics.
  */
 export type DeliveryContext = {
   deskActive?: boolean;
@@ -33,7 +37,17 @@ export type DeliveryContext = {
   sleeping?: boolean;
   earbudsConnected?: boolean;
   wearableAvailable?: boolean;
+  /** User turned "reach my phone" on in settings. */
+  pushOptIn?: boolean;
+  /** At least one live push subscription exists for this user. */
+  pushSubscribed?: boolean;
 };
+
+/** Channels usable for this context. Push is additive and consent-gated. */
+export function liveChannels(ctx: DeliveryContext = {}): CommunicationChannel[] {
+  const pushReady = ctx.pushOptIn === true && ctx.pushSubscribed === true;
+  return pushReady ? [...LIVE_CHANNELS, "phone"] : [...LIVE_CHANNELS];
+}
 
 export type DeliveryRecommendation = {
   recommendedChannel: CommunicationChannel;
@@ -44,13 +58,14 @@ export type DeliveryRecommendation = {
 };
 
 /**
- * The priority ladder. Background/useful stay silent; attention is Today;
- * time-sensitive and critical would earn more reach in future phases but are
- * clamped to Today today.
+ * The priority ladder. Background/useful stay silent; attention is Today.
+ * Time-sensitive and critical reach the phone only when push is opted into and
+ * a device is registered — otherwise they stay clamped to Today. Voice,
+ * wearable and ambient remain seams.
  */
 export function recommendDelivery(
   urgency: Urgency,
-  _ctx: DeliveryContext = {},
+  ctx: DeliveryContext = {},
 ): DeliveryRecommendation {
   const futureChannel: CommunicationChannel =
     urgency === "critical" ? "ambient"
@@ -63,13 +78,18 @@ export function recommendDelivery(
     : urgency === "time_sensitive" ? "short"
     : "summary";
 
+  const available = liveChannels(ctx);
+  const wantsReach = urgencyRank(urgency) >= urgencyRank("time_sensitive");
   const channel: CommunicationChannel =
-    urgencyRank(urgency) >= urgencyRank("attention") ? "today" : "silent";
+    wantsReach && available.includes("phone") ? "phone"
+    : urgencyRank(urgency) >= urgencyRank("attention") ? "today"
+    : "silent";
 
   return {
     recommendedChannel: channel,
     recommendedFormat: format,
     futureChannel,
-    live: LIVE_CHANNELS.includes(channel),
+    live: available.includes(channel),
   };
 }
+
