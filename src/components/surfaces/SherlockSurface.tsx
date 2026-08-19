@@ -61,7 +61,7 @@ type Target =
 
 export function SherlockSurface() {
   const { user } = useAuth();
-  const { applyScope, key: scopeKey } = useScope();
+  const { applyScope, orgId, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
 
   const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
@@ -134,7 +134,7 @@ export function SherlockSurface() {
     try {
       const fullQuestion = `${scopePrefix}${question.trim()}`;
       const { data, error } = await supabase.functions.invoke("sherlock-investigate", {
-        body: { question: fullQuestion },
+        body: { question: fullQuestion, organization_id: orgId },
       });
       if (cancelRef.current) return; // user cancelled; drop result silently
       if (error) throw error;

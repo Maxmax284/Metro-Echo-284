@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +58,7 @@ export function RecognizePanel({
   onAccept: (lane: RouteLane, extra: { title?: string; due_hint?: string; risk?: string }) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const { orgId } = useScope();
   const [loading, setLoading] = useState(false);
   const [extract, setExtract] = useState<ExtractFindings | null>(null);
   const [suggest, setSuggest] = useState<SuggestFindings | null>(null);
@@ -70,8 +72,8 @@ export function RecognizePanel({
     try {
       const scope = { entity_type: entityType, entity_id: entityId ?? null, text };
       const [extRes, sugRes] = await Promise.all([
-        supabase.functions.invoke("sherlock-investigate", { body: { mode: "extract", scope } }),
-        supabase.functions.invoke("sherlock-investigate", { body: { mode: "suggest", scope } }),
+        supabase.functions.invoke("sherlock-investigate", { body: { mode: "extract", scope, organization_id: orgId } }),
+        supabase.functions.invoke("sherlock-investigate", { body: { mode: "suggest", scope, organization_id: orgId } }),
       ]);
       if (extRes.error) throw extRes.error;
       if (sugRes.error) throw sugRes.error;
