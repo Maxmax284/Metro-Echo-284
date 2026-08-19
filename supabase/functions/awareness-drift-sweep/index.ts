@@ -27,9 +27,11 @@ import {
   commitmentToSignal,
   driftToSignal,
   evaluateAwareness,
+  retireResolved,
   signalDedupeKey,
   type AttentionBudget,
   type AwarenessSignal,
+  type EntityState,
   type PriorState,
 } from "../_shared/awareness/index.ts";
 
