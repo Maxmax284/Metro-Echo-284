@@ -45,6 +45,8 @@ export const SCOPED_TABLES = [
   "nudges",
   "privacy_settings",
   "projects",
+  "sherlock_findings",
+  "sherlock_findings_cache",
   "user_channel_links",
 ] as const;
 
