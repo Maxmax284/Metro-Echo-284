@@ -76,8 +76,6 @@ export const GLOBAL_TABLES = [
   "cross_links",
   "conversations",
   "note_links",
-  "sherlock_findings",
-  "sherlock_findings_cache",
   "sherlock_settings",
   "research_objects",
   "research_sources",
