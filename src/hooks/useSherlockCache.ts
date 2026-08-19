@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 
 export type SherlockOperation = "observe" | "extract" | "relate" | "suggest" | "investigate";
 
