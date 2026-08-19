@@ -15,6 +15,8 @@ export type UserPreferences = {
   push_reminders_enabled?: boolean;
   in_app_reminders_enabled?: boolean;
   proactive_awareness_enabled?: boolean;
+  /** Run the full awareness check but stay silent — reasoning lands in Receipts only. */
+  awareness_shadow_mode?: boolean;
   intake?: Record<string, unknown>;
 };
 
@@ -30,6 +32,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   push_reminders_enabled: false,
   in_app_reminders_enabled: true,
   proactive_awareness_enabled: false,
+  awareness_shadow_mode: true,
   intake: {},
 };
 
