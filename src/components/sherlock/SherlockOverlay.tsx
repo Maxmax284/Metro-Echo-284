@@ -32,6 +32,7 @@ const SINGLE_OPS = new Set(["observe", "extract", "relate", "suggest"]);
 export function SherlockOverlay() {
   const { open, scope, findings, loading, closeSherlock, setFindings, setLoading } = useSherlock();
   const { user } = useAuth();
+  const { orgId } = useScope();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.key, !!s.defaultOpen]))
   );
