@@ -44,6 +44,71 @@ function scoped(q: any, userId: string, orgId: string | null) {
   const base = q.eq("user_id", userId);
   return orgId ? base.eq("organization_id", orgId) : base.is("organization_id", null);
 }
+/**
+ * Retire pending nudges whose underlying situation quietly got handled.
+ * Reads only inside the given scope; writes a Receipt for each retirement.
+ */
+async function retirePendingNudges(
+  sb: SupabaseClient,
+  userId: string,
+  orgId: string | null,
+  scopeCols: Record<string, unknown>,
+  nowMs: number,
+): Promise<number> {
+  const { data: pending } = await scoped(
+    sb.from("nudges").select("id, kind, related_entity_type, related_entity_id, dedupe_key, expires_at"),
+    userId,
+    orgId,
+  ).in("status", ["pending", "seen"]).limit(50);
+
+  const rows = (pending ?? []) as any[];
+  if (!rows.length) return 0;
+
+  const idsFor = (type: string) =>
+    rows.filter((n) => n.related_entity_type === type && n.related_entity_id).map((n) => n.related_entity_id);
+
+  const commitmentIds = idsFor("commitment");
+  const actionIds = idsFor("action");
+  const projectIds = idsFor("project");
+
+  const [c, a, p] = await Promise.all([
+    commitmentIds.length
+      ? scoped(sb.from("commitments").select("id, status"), userId, orgId).in("id", commitmentIds)
+      : Promise.resolve({ data: [] as any[] }),
+    actionIds.length
+      ? scoped(sb.from("actions").select("id, status"), userId, orgId).in("id", actionIds)
+      : Promise.resolve({ data: [] as any[] }),
+    projectIds.length
+      ? scoped(sb.from("projects").select("id, updated_at"), userId, orgId).in("id", projectIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const state: EntityState = { commitments: {}, actions: {}, projects: {} };
+  for (const r of (c.data ?? []) as any[]) state.commitments[r.id] = r.status;
+  for (const r of (a.data ?? []) as any[]) state.actions[r.id] = r.status;
+  for (const r of (p.data ?? []) as any[]) state.projects[r.id] = r.updated_at;
+
+  const retirements = retireResolved(rows, state, nowMs);
+  if (!retirements.length) return 0;
+
+  await sb
+    .from("nudges")
+    .update({ status: "dismissed", updated_at: new Date(nowMs).toISOString() })
+    .in("id", retirements.map((r) => r.id));
+
+  await sb.from("audit_log").insert(
+    retirements.map((r) => ({
+      user_id: userId,
+      ...scopeCols,
+      entity_type: "nudge",
+      entity_id: null,
+      event: "nudge.resolved",
+      payload: { nudge_id: r.id, reason: r.reason, dedupe_key: r.dedupeKey, source: "resolution_recheck" },
+    })),
+  );
+  return retirements.length;
+}
+
 
 async function sweepScope(
   sb: SupabaseClient,
