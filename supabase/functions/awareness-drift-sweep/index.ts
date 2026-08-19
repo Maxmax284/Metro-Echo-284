@@ -113,6 +113,10 @@ async function sweepScope(
     seen: Boolean(a.risk_acknowledged_at),
   }));
 
+  // ---- resolution recheck ---------------------------------------------------
+  // A pending note whose situation got handled dies now, not at cooldown.
+  await retirePendingNudges(sb, userId, orgId, scopeCols, nowMs);
+
   // ---- normalize every candidate, then let the evaluator decide -------------
   const scope = { userId, organizationId: orgId };
   const signals: AwarenessSignal[] = [];
