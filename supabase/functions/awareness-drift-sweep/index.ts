@@ -380,7 +380,15 @@ async function sweepScope(
       source: "scheduled_sweep",
     },
   });
+
+  // The nudge always lands in Today. Reaching the phone is a second, narrower
+  // step: only when the ladder asked for it, push is opted into, and a device
+  // is registered. Quiet hours were already honoured by the caller.
+  if (decision.delivery.recommendedChannel === "phone") {
+    await reachPhone(sb, userId, scopeCols, decision);
+  }
   return "proposed";
+
 }
 
 
