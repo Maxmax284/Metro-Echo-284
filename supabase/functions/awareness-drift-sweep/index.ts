@@ -26,6 +26,8 @@ import {
 import {
   actionToSignal,
   captureRouteToSignal,
+  sherlockFindingToSignal,
+  type SherlockFindingRow,
   commitmentToSignal,
   documentRiskToSignal,
   documentToSignal,
@@ -76,11 +78,12 @@ async function retirePendingNudges(
   const actionIds = idsFor("action");
   const projectIds = idsFor("project");
   const documentIds = idsFor("document");
+  const findingIds = idsFor("sherlock_finding");
   const captureIds = rows
     .filter((n) => n.kind === "capture_unrouted" && n.related_entity_id)
     .map((n) => n.related_entity_id);
 
-  const [c, a, p, d, cap] = await Promise.all([
+  const [c, a, p, d, cap, sf] = await Promise.all([
     commitmentIds.length
       ? scoped(sb.from("commitments").select("id, status"), userId, orgId).in("id", commitmentIds)
       : Promise.resolve({ data: [] as any[] }),
@@ -99,9 +102,14 @@ async function retirePendingNudges(
           captureIds,
         )
       : Promise.resolve({ data: [] as any[] }),
+    findingIds.length
+      ? scoped(sb.from("sherlock_findings").select("id, status"), userId, orgId).in("id", findingIds)
+      : Promise.resolve({ data: [] as any[] }),
   ]);
 
-  const state: EntityState = { commitments: {}, actions: {}, projects: {}, documents: {}, captures: {} };
+  const state: EntityState = {
+    commitments: {}, actions: {}, projects: {}, documents: {}, captures: {}, sherlockFindings: {},
+  };
   for (const r of (c.data ?? []) as any[]) state.commitments[r.id] = r.status;
   for (const r of (a.data ?? []) as any[]) state.actions[r.id] = r.status;
   for (const r of (p.data ?? []) as any[]) state.projects[r.id] = r.updated_at;
@@ -110,6 +118,8 @@ async function retirePendingNudges(
     const prev = state.captures![r.capture_id];
     state.captures![r.capture_id] = r.user_action ?? prev ?? null;
   }
+
+  for (const r of (sf.data ?? []) as any[]) state.sherlockFindings![r.id] = r.status;
 
   const retirements = retireResolved(rows, state, nowMs);
   if (!retirements.length) return 0;
@@ -207,6 +217,7 @@ async function sweepScope(
     { data: riskyActions },
     { data: documentRows },
     { data: captureRows },
+    { data: sherlockRows },
   ] = await Promise.all([
     scoped(sb.from("projects").select("id, title, status, updated_at"), userId, orgId).limit(50),
     scoped(
@@ -231,6 +242,13 @@ async function sweepScope(
       userId,
       orgId,
     ).is("user_action", null).limit(100),
+    scoped(
+      sb.from("sherlock_findings").select(
+        "id, finding_type, summary, rationale, confidence, status, sensitive_flag, suggested_action, source_object_type, source_object_id, created_at",
+      ),
+      userId,
+      orgId,
+    ).eq("status", "pending").limit(100),
   ]);
 
   const projectIds = (projectRows ?? []).map((p: any) => p.id);
@@ -323,6 +341,12 @@ async function sweepScope(
   // Captures that never got a decision.
   for (const c of (captureRows ?? []) as any[]) {
     const s = captureRouteToSignal(c, scope, nowMs);
+    if (s) signals.push(s);
+  }
+
+  // Sherlock recognitions nobody answered.
+  for (const f of (sherlockRows ?? []) as SherlockFindingRow[]) {
+    const s = sherlockFindingToSignal(f, scope, nowMs);
     if (s) signals.push(s);
   }
 
