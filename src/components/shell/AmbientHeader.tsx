@@ -58,7 +58,9 @@ export function AmbientHeader({
             )}
             title="Inferred operational posture"
           >
-            <Activity className="h-3 w-3 text-primary" />
+            {/* The one always-on tell that the system is awake: a 4.8s opacity
+                breath on the posture glyph. Nothing else in the chrome loops. */}
+            <Activity className="h-3 w-3 text-primary motion-breath motion-reduce:animate-none" />
             <span className="text-foreground/90 hidden sm:inline">{stateLabel[state]}</span>
           </span>
           {place && (

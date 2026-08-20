@@ -237,7 +237,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-3 md:p-4">
+      <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
         <section>
           <SectionRail
             className="mb-2"
