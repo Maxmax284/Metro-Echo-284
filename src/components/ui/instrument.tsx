@@ -76,23 +76,60 @@ export function SectionRail({
   );
 }
 
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 /**
- * Rolling number — slides once when the value genuinely changes. If the value
- * is the same as last render, nothing moves.
+ * Rolling number — a machine readout that settles.
+ *
+ * On first paint it counts up from zero (~420ms) so the number reads as a
+ * reading being taken rather than a printed label. After that it only moves
+ * when the value genuinely changes: same value, nothing moves. Reduced motion
+ * gets the final number immediately.
  */
 export function RollingNumber({
   value,
   className,
+  /** Set false for values where counting up would be misleading. */
+  countOnMount = true,
 }: {
   value: number;
   className?: string;
+  countOnMount?: boolean;
 }) {
   const [rolling, setRolling] = useState(false);
+  const [shown, setShown] = useState(() =>
+    countOnMount && value > 1 && !prefersReducedMotion() ? 0 : value,
+  );
   const prev = useRef(value);
+  const mounted = useRef(false);
+
+  /* Count-up on mount only. rAF, eased out, no library, no timers left behind. */
+  useEffect(() => {
+    if (mounted.current) return;
+    mounted.current = true;
+    if (shown === value) return;
+    const from = shown;
+    const start = performance.now();
+    const duration = 420;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setShown(Math.round(from + (value - from) * eased));
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (prev.current === value) return;
     prev.current = value;
+    setShown(value);
     setRolling(true);
     const t = window.setTimeout(() => setRolling(false), 260);
     return () => window.clearTimeout(t);
@@ -100,10 +137,11 @@ export function RollingNumber({
 
   return (
     <span className={cn("inline-block overflow-hidden align-bottom", className)}>
-      <span className={cn("vanta-machine inline-block", rolling && "motion-roll")}>{value}</span>
+      <span className={cn("vanta-machine inline-block", rolling && "motion-roll")}>{shown}</span>
     </span>
   );
 }
+
 
 /**
  * Activity trace — a 14-day sparkline built from real recorded timestamps.
