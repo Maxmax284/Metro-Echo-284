@@ -198,8 +198,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         )}
       </header>
 
-      {/* Registration marks — structural punctuation between hero and feed. */}
-      <TickRow />
+      {/* Registration marks — structural punctuation between hero and feed.
+          They shift one notch when the change count genuinely moves. */}
+      <TickRow live={changeSignal} />
+
 
 
 
