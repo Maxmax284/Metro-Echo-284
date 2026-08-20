@@ -676,8 +676,9 @@
   /* Rails still draw fully, rows still show their status bar, markers still
      mark — nothing moves to get there. */
   .vanta-rail::after,
-  .vanta-marker-h,
   .vanta-marker-v { transform: none; opacity: 1; }
+  .vanta-marker-h { transform: translateX(-50%); opacity: 1; }
+
   .vanta-scan::before { display: none; }
   .vanta-lead::before { transform: none; opacity: 0.85; transition: none; }
   .vanta-lead > * { transition: none; }
