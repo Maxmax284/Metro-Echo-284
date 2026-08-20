@@ -67,10 +67,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "vanta-card vanta-grain flex flex-col items-center px-4 py-7 text-center",
+        /* One slow scanline pass: an empty surface should read as watched,
+           not as broken. Removed entirely under reduced motion. */
+        "vanta-card vanta-grain vanta-scan flex flex-col items-center px-4 py-7 text-center",
         className,
       )}
     >
+
       {icon ? <div className="mb-2 text-muted-foreground">{icon}</div> : null}
       <div className="vanta-machine-label text-foreground/70">{title}</div>
       {hint ? (
