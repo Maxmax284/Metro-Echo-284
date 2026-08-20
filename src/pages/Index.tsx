@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
 import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { MemorySurface } from "@/components/surfaces/MemorySurface";
 import { CommitmentsSurface } from "@/components/surfaces/CommitmentsSurface";
