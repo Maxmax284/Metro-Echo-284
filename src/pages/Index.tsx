@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
 import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { MemorySurface } from "@/components/surfaces/MemorySurface";
 import { CommitmentsSurface } from "@/components/surfaces/CommitmentsSurface";
@@ -330,7 +331,7 @@ function IndexInner() {
           </div>
           <MissingSecretsBanner />
 
-          <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+          <SurfaceCrossfade surfaceKey={surface} innerRef={surfaceWrapperRef}>
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
             {surface === "work" && <WorkSurface onNavigate={setSurface} />}
             {surface === "ask" && <ConversationSurface onIntent={onIntent} />}
@@ -346,7 +347,7 @@ function IndexInner() {
             {surface === "actions" && <ActionsSurface />}
             {surface === "sherlock" && <SherlockSurface />}
             {surface === "awareness" && <AwarenessSurface />}
-          </div>
+          </SurfaceCrossfade>
         </main>
       </div>
 
