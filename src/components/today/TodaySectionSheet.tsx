@@ -11,6 +11,8 @@ import { humanizeEvent } from "@/lib/plainLabels";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_SHEET } from "@/lib/motion";
+
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
 
