@@ -21,7 +21,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { LEAD_BAR, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   MachineLabel,
   MachineText,
