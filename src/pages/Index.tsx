@@ -330,7 +330,7 @@ function IndexInner() {
           </div>
           <MissingSecretsBanner />
 
-          <div ref={surfaceWrapperRef} key={surface} className="motion-surface-in flex flex-1 min-h-0 flex-col">
+          <SurfaceCrossfade surfaceKey={surface} innerRef={surfaceWrapperRef}>
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
             {surface === "work" && <WorkSurface onNavigate={setSurface} />}
             {surface === "ask" && <ConversationSurface onIntent={onIntent} />}
