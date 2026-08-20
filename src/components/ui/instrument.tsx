@@ -219,8 +219,10 @@ export function SyncStamp({
 
 /**
  * Registration marks — a machined tick row. Structural punctuation between a
- * hero and the feed below it. No motion, no meaning to decode.
+ * hero and the feed below it. When `live` is set the marks shift one notch,
+ * once, because real new data just landed.
  */
-export function TickRow({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("vanta-ticks w-full", className)} />;
+export function TickRow({ className, live = false }: { className?: string; live?: boolean }) {
+  return <div aria-hidden className={cn("vanta-ticks w-full", live && "vanta-ticks-live", className)} />;
 }
+
