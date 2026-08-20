@@ -61,4 +61,24 @@ export const MOTION_FOCUS = "vanta-focus";
 /** Leading 2px status rail on a row. Tone comes from the row's text-* token. */
 export const LEAD_BAR = "vanta-lead";
 
+/**
+ * Boot order — put on a feed container so its children arrive in sequence
+ * (45ms apart, capped at six deep) instead of the whole room painting at once.
+ * One-shot per mount, so it re-runs on room entry and nowhere else.
+ */
+export const MOTION_BOOT = "vanta-boot";
+
+/**
+ * Overlay continuity — a sheet or drawer rising from the edge so it reads as
+ * the tapped card expanding rather than a modal appearing on top.
+ */
+export const MOTION_SHEET = "motion-sheet-in";
+
+/** One slow scan pass. Empty surfaces only: says watching, not broken. */
+export const MOTION_SCAN = "vanta-scan";
+
+/** Registration marks shift once when real new data lands. */
+export const MOTION_TICKS_LIVE = "vanta-ticks-live";
+
+
 

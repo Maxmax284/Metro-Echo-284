@@ -21,7 +21,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import {
   ActivityTrace,
   MachineLabel,
@@ -152,7 +152,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
+    /* Boot order: the room paints hero-first, then the feed rises in sequence,
+       so entering Today reads as a rig coming up rather than a page appearing. */
+    <div className={cn("mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8", MOTION_BOOT)}>
+
       {/* Hero — where Vanta's presence lives. Ambient purple wash, grain, one
           cut corner. The headline wears the mono face because it is a reading
           of real state, not a marketing line. */}
@@ -195,8 +198,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         )}
       </header>
 
-      {/* Registration marks — structural punctuation between hero and feed. */}
-      <TickRow />
+      {/* Registration marks — structural punctuation between hero and feed.
+          They shift one notch when the change count genuinely moves. */}
+      <TickRow live={changeSignal} />
+
 
 
 

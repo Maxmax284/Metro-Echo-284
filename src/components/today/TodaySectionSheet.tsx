@@ -11,6 +11,8 @@ import { humanizeEvent } from "@/lib/plainLabels";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_SHEET } from "@/lib/motion";
+
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
 
@@ -194,7 +196,10 @@ export function TodaySectionSheet({
           </SheetTitle>
           <SheetDescription className="text-xs">{meta?.hint}</SheetDescription>
         </SheetHeader>
-        <div className="mt-3 pb-6">{body()}</div>
+        {/* Content lands a beat after the panel, so the sheet reads as the
+            tapped row expanding rather than a modal dropping in on top. */}
+        <div className={cn("mt-3 pb-6", MOTION_SHEET)}>{body()}</div>
+
       </SheetContent>
     </Sheet>
   );

@@ -13,7 +13,7 @@ import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
-import { MOTION_ARRIVAL, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { MOTION_ARRIVAL, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
 
 type AuditRow = {
@@ -237,7 +237,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-3 md:p-4">
+      <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
         <section>
           <SectionRail
             className="mb-2"

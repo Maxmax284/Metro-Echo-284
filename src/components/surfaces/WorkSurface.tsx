@@ -21,7 +21,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { LEAD_BAR, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   MachineLabel,
   MachineText,
@@ -86,7 +86,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
-      <div className="mx-auto max-w-3xl space-y-3">
+      <div className={cn("mx-auto max-w-3xl space-y-3", MOTION_BOOT)}>
         <header className="flex items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
