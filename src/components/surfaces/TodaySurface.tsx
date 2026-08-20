@@ -152,7 +152,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8">
+    /* Boot order: the room paints hero-first, then the feed rises in sequence,
+       so entering Today reads as a rig coming up rather than a page appearing. */
+    <div className={cn("mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8", MOTION_BOOT)}>
+
       {/* Hero — where Vanta's presence lives. Ambient purple wash, grain, one
           cut corner. The headline wears the mono face because it is a reading
           of real state, not a marketing line. */}
