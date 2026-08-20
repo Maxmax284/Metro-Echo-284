@@ -662,9 +662,27 @@
   .motion-signal-track,
   .motion-roll,
   .motion-commit,
+  .vanta-boot > *,
+  .vanta-rail::after,
+  .motion-sheet-in,
+  .vanta-ticks-live,
+  .vanta-marker-h,
+  .vanta-marker-v,
+  .vanta-scan::before,
 
   .vanta-hero,
   .motion-surface-in { animation: none; }
+
+  /* Rails still draw fully, rows still show their status bar, markers still
+     mark — nothing moves to get there. */
+  .vanta-rail::after,
+  .vanta-marker-h,
+  .vanta-marker-v { transform: none; opacity: 1; }
+  .vanta-scan::before { display: none; }
+  .vanta-lead::before { transform: none; opacity: 0.85; transition: none; }
+  .vanta-lead > * { transition: none; }
+  .vanta-lead:hover > *:first-child { transform: none; }
+
 
   /* The signal still marks the change — it just does not travel. */
   .vanta-signal::before {
