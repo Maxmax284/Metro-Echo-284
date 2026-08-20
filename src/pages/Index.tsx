@@ -346,7 +346,7 @@ function IndexInner() {
             {surface === "actions" && <ActionsSurface />}
             {surface === "sherlock" && <SherlockSurface />}
             {surface === "awareness" && <AwarenessSurface />}
-          </div>
+          </SurfaceCrossfade>
         </main>
       </div>
 
