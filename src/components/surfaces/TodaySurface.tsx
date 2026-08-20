@@ -21,7 +21,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import {
   ActivityTrace,
   MachineLabel,
