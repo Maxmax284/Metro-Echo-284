@@ -147,11 +147,14 @@ export function SurfaceTabs({
             >
               {/* Machined marker: square-cut 2px bar, not a soft pill. */}
               <span
+                /* Keyed on the active room so the marker cuts in from its own
+                   centre each time you change rooms — the eye follows it. */
+                key={isActive ? `on-${activeRoom}` : "off"}
                 aria-hidden
                 className={cn(
                   "pointer-events-none absolute -top-0.5 left-1/2 h-[2px] -translate-x-1/2 rounded-[1px] transition-[width,opacity] duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
                   tone === "accent" ? "bg-accent" : "bg-primary",
-                  isActive ? "w-7 opacity-100" : "w-0 opacity-0",
+                  isActive ? "w-7 opacity-100 vanta-marker-h" : "w-0 opacity-0",
                 )}
               />
               <Icon
@@ -198,9 +201,10 @@ export function SurfaceTabs({
             <span className="text-[9px] leading-tight tracking-[0.02em]">{label}</span>
             {isActive && (
               <span
+                key={`rail-${activeRoom}`}
                 aria-hidden
                 className={cn(
-                  "absolute -left-0.5 h-6 w-[2px] rounded-r-[1px]",
+                  "absolute -left-0.5 h-6 w-[2px] rounded-r-[1px] vanta-marker-v",
                   accent ? "bg-accent" : "bg-primary",
                 )}
               />
