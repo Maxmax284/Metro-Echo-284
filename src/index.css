@@ -470,24 +470,28 @@
   --weather-grain: 0.055;   /* grain opacity multiplier baseline */
   --weather-drift: 42s;     /* hero wash period */
   --weather-edge: hsl(var(--border) / 0.5);
+  --weather-marker: hsl(var(--primary) / 0.28);
 }
 
 html[data-weather="calm"] {
   --weather-grain: 0.032;
   --weather-drift: 64s;
   --weather-edge: hsl(var(--primary) / 0.28);
+  --weather-marker: hsl(var(--primary) / 0.3);
 }
 
 html[data-weather="drift"] {
   --weather-grain: 0.062;
   --weather-drift: 34s;
   --weather-edge: hsl(var(--accent) / 0.5);
+  --weather-marker: hsl(var(--accent) / 0.45);
 }
 
 html[data-weather="pressure"] {
   --weather-grain: 0.085;
   --weather-drift: 22s;
   --weather-edge: hsl(var(--destructive) / 0.55);
+  --weather-marker: hsl(var(--destructive) / 0.5);
 }
 
 /* Grain and hero pick their values up from the weather, with a long
@@ -711,6 +715,15 @@ html.vanta-exhale-once body {
 .vanta-marker-v {
   transform-origin: center;
   animation: vanta-marker-in-v 220ms var(--ease-out) both;
+}
+
+/* Room-aware nav weather: the active marker carries the same ambient halo as
+   the rest of the shell, so pressure is legible even from the nav. Ambient
+   only — the marker's position still carries all the information. */
+.vanta-marker-h,
+.vanta-marker-v {
+  box-shadow: 0 0 6px var(--weather-marker);
+  transition: box-shadow 1200ms var(--ease-out);
 }
 
 /* Scan: one slow pass across an empty surface. Says "watching", not "broken".
