@@ -10,6 +10,8 @@ import { formatInTimeZone } from "date-fns-tz";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { Code2 } from "lucide-react";
+import { ReceiptSlip } from "@/components/audit/ReceiptSlip";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 
 type AuditRow = {
   id: string;
