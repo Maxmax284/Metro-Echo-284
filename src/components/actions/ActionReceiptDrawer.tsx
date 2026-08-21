@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowUpRight } from "lucide-react";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { fetchActionReceipt, openReceiptsFor, waitForActionReceipt, type ReceiptRow } from "@/lib/receipts";
+import { pulseGlyph } from "@/components/shell/PostureGlyph";
 
 export function ActionReceiptDrawer({
   actionId,
