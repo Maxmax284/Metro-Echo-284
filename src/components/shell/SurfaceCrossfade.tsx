@@ -30,6 +30,7 @@ export function SurfaceCrossfade({
   const ghostHostRef = useRef<HTMLDivElement | null>(null);
   const prevKey = useRef(surfaceKey);
   const [ghosting, setGhosting] = useState(false);
+  const ghostMs = useRef(180);
 
   useLayoutEffect(() => {
     if (prevKey.current === surfaceKey) return;
@@ -38,9 +39,12 @@ export function SurfaceCrossfade({
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    // Per-device knob from Settings > Room switching. Off = plain swap.
+    const prefs = readRoomSwapPrefs();
+    ghostMs.current = Math.round(prefs.durationMs * 0.9) + 40;
     const outgoing = liveRef.current;
     const ghostHost = ghostHostRef.current;
-    if (reduced || !outgoing || !ghostHost) return;
+    if (reduced || !prefs.enabled || !outgoing || !ghostHost) return;
 
     // Snapshot the outgoing surface at its current size and scroll position.
     const rect = outgoing.getBoundingClientRect();
@@ -70,7 +74,7 @@ export function SurfaceCrossfade({
     const t = window.setTimeout(() => {
       ghostHostRef.current?.replaceChildren();
       setGhosting(false);
-    }, 200);
+    }, ghostMs.current);
     return () => window.clearTimeout(t);
   }, [ghosting, surfaceKey]);
 
