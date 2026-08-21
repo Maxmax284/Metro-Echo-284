@@ -800,6 +800,7 @@ html.vanta-exhale-once body {
   .motion-roll,
   .motion-commit,
   .vanta-boot > *,
+  html.vanta-exhale-once body,
   .vanta-rail::after,
   .motion-sheet-in,
   .vanta-ticks-live,
