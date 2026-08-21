@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS nudges_user_dedupe_conflict_uniq ON public.nudges (user_id, dedupe_key);
