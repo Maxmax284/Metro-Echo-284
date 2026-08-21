@@ -183,6 +183,18 @@ export function SurfaceTabs({
           );
         })}
 
+        <a
+          href="/settings"
+          aria-label="Settings"
+          className={cn(
+            "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px] text-muted-foreground hover:text-foreground",
+            MOTION_ROW,
+          )}
+        >
+          <SettingsIcon className="h-5 w-5" />
+          <span className="tracking-[0.02em]">Settings</span>
+        </a>
+
         {MoreSheet}
       </nav>
     );
