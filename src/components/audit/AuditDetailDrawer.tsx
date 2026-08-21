@@ -165,6 +165,7 @@ export function AuditDetailDrawer({
             </pre>
           )}
         </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
