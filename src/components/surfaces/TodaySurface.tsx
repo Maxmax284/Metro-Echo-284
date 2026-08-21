@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/instrument";
 import { todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 
 
 function Section({
@@ -299,7 +300,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             icon={CalendarClock}
             reading={<RollingNumber value={dueToday.length + upcoming.length} />}
             action={
-              <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("next")}>
+              <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
               </Button>
             }
@@ -314,7 +315,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               <div className="space-y-1.5">
                 {dueToday.length > 0 ? (
                   <button
-                    onClick={() => setDrill("today")}
+                    onClick={(e) => { markFlipOriginFromEvent(e); setDrill("today"); }}
                     className={cn(
                       "min-h-[44px] w-full rounded-[calc(var(--radius)-4px)] border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40",
                       MOTION_FOCUS,
@@ -420,7 +421,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 icon={Receipt}
                 reading={<RollingNumber value={allEvents.length} />}
                 action={
-                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("changed")}>
+                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
                   </Button>
                 }

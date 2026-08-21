@@ -15,6 +15,7 @@ import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlock
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 
 type Action = {
@@ -231,7 +232,7 @@ export function ActionsSurface() {
                                     ))}
                                   </select>
                                 )}
-                                <Button size="sm" disabled={busy === a.id} onClick={() => setExecuteTarget(a)} className="gap-1">
+                                <Button size="sm" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className="gap-1">
                                   <Check className="h-3.5 w-3.5" /> Execute
                                 </Button>
                               </>
@@ -246,7 +247,7 @@ export function ActionsSurface() {
                                 size="sm"
                                 variant="ghost"
                                 className="gap-1"
-                                onClick={() => { setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
+                                onClick={(e) => { markFlipOriginFromEvent(e); setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
                               >
                                 <ScrollText className="h-3.5 w-3.5" /> Receipt
                               </Button>
