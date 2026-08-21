@@ -9,6 +9,7 @@ import { type Urgency, urgencyRank } from "./urgency.ts";
 export type CommunicationChannel =
   | "silent"
   | "today"
+  | "messaging"
   | "phone"
   | "wearable"
   | "voice"
@@ -41,12 +42,21 @@ export type DeliveryContext = {
   pushOptIn?: boolean;
   /** At least one live push subscription exists for this user. */
   pushSubscribed?: boolean;
+  /** User turned "reach me on Telegram" on in settings. */
+  messagingOptIn?: boolean;
+  /** A linked Telegram chat exists for this user. */
+  messagingLinked?: boolean;
 };
 
-/** Channels usable for this context. Push is additive and consent-gated. */
+/**
+ * Channels usable for this context. Push and messaging are additive and each
+ * gated by two hard consents: the user asked for it, and the endpoint exists.
+ */
 export function liveChannels(ctx: DeliveryContext = {}): CommunicationChannel[] {
-  const pushReady = ctx.pushOptIn === true && ctx.pushSubscribed === true;
-  return pushReady ? [...LIVE_CHANNELS, "phone"] : [...LIVE_CHANNELS];
+  const out: CommunicationChannel[] = [...LIVE_CHANNELS];
+  if (ctx.messagingOptIn === true && ctx.messagingLinked === true) out.push("messaging");
+  if (ctx.pushOptIn === true && ctx.pushSubscribed === true) out.push("phone");
+  return out;
 }
 
 export type DeliveryRecommendation = {
@@ -82,6 +92,7 @@ export function recommendDelivery(
   const wantsReach = urgencyRank(urgency) >= urgencyRank("time_sensitive");
   const channel: CommunicationChannel =
     wantsReach && available.includes("phone") ? "phone"
+    : wantsReach && available.includes("messaging") ? "messaging"
     : urgencyRank(urgency) >= urgencyRank("attention") ? "today"
     : "silent";
 
