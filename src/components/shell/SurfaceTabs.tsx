@@ -16,6 +16,7 @@ import {
   Sun,
   Briefcase,
   Sparkles,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
