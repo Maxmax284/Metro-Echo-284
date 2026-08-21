@@ -460,6 +460,74 @@
   to   { background-position: 100% 40%; }
 }
 
+/* ---- Shell weather ----------------------------------------------------
+   The room reacts to the state of the world. Three settings, written onto
+   <html data-weather> by src/lib/weather.ts. Every value here is ambient:
+   texture density, drift speed, and the hairline at the top of the shell.
+   Nothing here carries information the words don't already carry. */
+
+:root {
+  --weather-grain: 0.055;   /* grain opacity multiplier baseline */
+  --weather-drift: 42s;     /* hero wash period */
+  --weather-edge: hsl(var(--border) / 0.5);
+}
+
+html[data-weather="calm"] {
+  --weather-grain: 0.032;
+  --weather-drift: 64s;
+  --weather-edge: hsl(var(--primary) / 0.28);
+}
+
+html[data-weather="drift"] {
+  --weather-grain: 0.062;
+  --weather-drift: 34s;
+  --weather-edge: hsl(var(--accent) / 0.5);
+}
+
+html[data-weather="pressure"] {
+  --weather-grain: 0.085;
+  --weather-drift: 22s;
+  --weather-edge: hsl(var(--destructive) / 0.55);
+}
+
+/* Grain and hero pick their values up from the weather, with a long
+   transition so a change in the world never snaps the room. */
+.vanta-grain::after {
+  opacity: var(--weather-grain);
+  transition: opacity 1200ms var(--ease-out);
+}
+.vanta-hero {
+  animation-duration: var(--weather-drift);
+}
+
+/* The shell hairline: one 1px line under the header that carries the tone of
+   the day. Calm reads purple-cool, pressure reads warm. */
+.vanta-weather-edge {
+  position: relative;
+}
+.vanta-weather-edge::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--weather-edge), transparent);
+  transition: background 1200ms var(--ease-out);
+}
+
+/* Earned calm: when the world settles from drift/pressure into calm, the shell
+   exhales once. One 1.4s brightness/scale release — no confetti, no toast. */
+html.vanta-exhale-once body {
+  animation: vanta-exhale 1400ms var(--ease-out) 1;
+}
+@keyframes vanta-exhale {
+  0%   { filter: saturate(1.06) brightness(1.03); }
+  100% { filter: none; }
+}
+
+
+
 /* Signal line: the one reusable "Vanta noticed something" motif.
    A 1px purple line that sweeps once and settles. Event-driven, never looped.
    Apply to a positioned container. */
