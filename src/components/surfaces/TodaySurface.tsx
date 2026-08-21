@@ -53,7 +53,7 @@ function Section({
   action?: React.ReactNode;
 }) {
   return (
-    <section className="vanta-card p-4">
+    <section className="vanta-focus-card vanta-card border border-transparent p-4">
       <SectionRail
         label={title}
         reading={reading}
@@ -246,7 +246,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               icon={AlertTriangle}
               reading={<RollingNumber value={attention.length} />}
               action={
-                <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
+                <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
                   See all
                 </Button>
               }
@@ -300,7 +300,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             icon={CalendarClock}
             reading={<RollingNumber value={dueToday.length + upcoming.length} />}
             action={
-              <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
+              <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
               </Button>
             }
@@ -356,7 +356,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             <LoadingState rows={1} label="Loading recent activity" />
           ) : secondaryQuiet ? (
             /* Quiet state: one calm line instead of three empty cards. */
-            <section className="vanta-card flex items-center gap-2 px-4 py-3">
+            <section className="vanta-focus-card vanta-card flex items-center gap-2 border border-transparent px-4 py-3">
               <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="min-w-0 flex-1 text-[12px] leading-snug text-muted-foreground">
                 Everything important is quiet. Nothing unusual, nothing new to sort.
@@ -364,7 +364,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               <Button
                 size="sm"
                 variant="ghost"
-                className={cn("h-9 shrink-0 text-xs", MOTION_ROW)}
+                className={cn("h-9 shrink-0 text-xs", MOTION_ROW, MOTION_FOCUS)}
                 onClick={() => onNavigate("receipts")}
               >
                 Receipts
@@ -421,7 +421,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 icon={Receipt}
                 reading={<RollingNumber value={allEvents.length} />}
                 action={
-                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
+                  <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
                   </Button>
                 }
@@ -458,7 +458,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
                 action={
-                  <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("inbox")}>
+                  <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
                     Open inbox
                   </Button>
                 }
