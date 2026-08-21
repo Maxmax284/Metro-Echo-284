@@ -245,7 +245,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               icon={AlertTriangle}
               reading={<RollingNumber value={attention.length} />}
               action={
-                <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setDrill("now")}>
+                <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
                   See all
                 </Button>
               }
