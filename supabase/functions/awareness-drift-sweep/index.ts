@@ -46,6 +46,7 @@ type ScopeTarget = { organizationId: string | null };
 type SweepOutcome = "none" | "shadow" | "proposed";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const base = q.eq("user_id", userId);
@@ -466,11 +467,77 @@ async function sweepScope(
   // is registered. Quiet hours were already honoured by the caller.
   if (decision.delivery.recommendedChannel === "phone") {
     await reachPhone(sb, userId, scopeCols, decision);
+  } else if (decision.delivery.recommendedChannel === "messaging") {
+    await reachMessaging(sb, userId, scopeCols, decision);
   }
   return "proposed";
 
 }
 
+
+/**
+ * Reach the user where they actually are: their linked Telegram chat.
+ *
+ * Messaging is a notification surface only. The line says what changed and
+ * where to look — it never carries an approve/execute control, because nothing
+ * executes from messaging. Consent is double-gated by the caller (pref on AND
+ * a linked chat), and quiet hours were already honoured before we got here.
+ */
+async function reachMessaging(
+  sb: SupabaseClient,
+  userId: string,
+  scopeCols: Record<string, unknown>,
+  decision: { title: string; nextStep: string; why: string; entityType?: string; entityId?: string; urgency: string },
+): Promise<void> {
+  if (!Deno.env.get("TELEGRAM_API_KEY")) return;
+
+  const { data: link } = await sb
+    .from("telegram_chat_links")
+    .select("chat_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const chatId = (link as { chat_id?: number } | null)?.chat_id;
+  if (!chatId) return;
+
+  const text = [decision.title, decision.why, `${decision.nextStep} Open Vanta to act on it.`]
+    .filter(Boolean)
+    .join("\n");
+
+  let ok = false;
+  let err: string | null = null;
+  try {
+    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
+        "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    });
+    ok = r.ok;
+    if (!ok) err = JSON.stringify(await r.json().catch(() => ({}))).slice(0, 200);
+  } catch (e) {
+    err = e instanceof Error ? e.message : "send failed";
+  }
+
+  await sb.from("audit_log").insert({
+    user_id: userId,
+    ...scopeCols,
+    entity_type: "nudge",
+    entity_id: decision.entityId ?? null,
+    event: ok ? "nudge.reached_messaging" : "nudge.reach_messaging_failed",
+    payload: {
+      channel: "telegram",
+      urgency: decision.urgency,
+      title: decision.title,
+      source: "scheduled_sweep",
+      ...(err ? { error: err } : {}),
+    },
+  });
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -527,6 +594,16 @@ Deno.serve(async (req: Request) => {
         pushSubscribed = (count ?? 0) > 0;
       }
 
+      // Same shape for messaging: opted in AND a linked Telegram chat exists.
+      let messagingLinked = false;
+      if (prefs.telegram_awareness_enabled === true) {
+        const { count } = await sb
+          .from("telegram_chat_links")
+          .select("chat_id", { count: "exact", head: true })
+          .eq("user_id", p.id);
+        messagingLinked = (count ?? 0) > 0;
+      }
+
 
       const { data: memberships } = await sb
         .from("organization_members")
@@ -543,6 +620,8 @@ Deno.serve(async (req: Request) => {
         const outcome = await sweepScope(sb, p.id, t, now, shadowMode, {
           pushOptIn: prefs.push_reminders_enabled === true,
           pushSubscribed: pushSubscribed,
+          messagingOptIn: prefs.telegram_awareness_enabled === true,
+          messagingLinked: messagingLinked,
         });
         if (outcome === "proposed") proposed++;
         if (outcome === "shadow") shadowed++;
