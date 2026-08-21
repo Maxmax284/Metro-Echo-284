@@ -9,6 +9,7 @@ import { NoticedRow } from "@/components/today/NoticedRow";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
+import { applyWeather, deriveWeather } from "@/lib/weather";
 import { formatDistanceToNow, isToday, isTomorrow } from "date-fns";
 import {
   AlertTriangle,
