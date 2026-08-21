@@ -35,7 +35,11 @@ export function ActionReceiptDrawer({
       if (!alive) return;
       setRow(found);
       setState(found ? "ready" : "missing");
+      /* The receipt landing is a real event — the posture glyph acknowledges it
+         once, then goes back to breathing. */
+      if (found && awaitWrite) pulseGlyph("commit");
     })();
+
     return () => {
       alive = false;
     };
