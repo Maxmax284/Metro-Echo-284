@@ -2,6 +2,7 @@
 // Used right after Execute (so the user can verify what ran) and from the
 // Receipt button on any action card.
 import { useEffect, useState } from "react";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowUpRight } from "lucide-react";
@@ -73,7 +74,7 @@ export function ActionReceiptDrawer({
 
   return (
     <Sheet open onOpenChange={(next) => !next && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom),12px)]">
+      <SheetContent ref={flipRef} side="bottom" className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom),12px)]">
         <SheetHeader className="text-left">
           <SheetTitle className="text-[14px]">
             {state === "missing" ? "No receipt yet" : "Writing the receipt"}
