@@ -17,6 +17,8 @@ export type UserPreferences = {
   proactive_awareness_enabled?: boolean;
   /** Run the full awareness check but stay silent — reasoning lands in Receipts only. */
   awareness_shadow_mode?: boolean;
+  /** Let time-sensitive awareness notes reach the linked Telegram chat. */
+  telegram_awareness_enabled?: boolean;
   intake?: Record<string, unknown>;
 };
 
@@ -33,6 +35,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   in_app_reminders_enabled: true,
   proactive_awareness_enabled: false,
   awareness_shadow_mode: true,
+  telegram_awareness_enabled: false,
   intake: {},
 };
 
