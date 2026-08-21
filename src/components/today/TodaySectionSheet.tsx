@@ -12,6 +12,7 @@ import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_SHEET } from "@/lib/motion";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
@@ -182,9 +183,11 @@ export function TodaySectionSheet({
           ? dueToday.length + upcoming.length
           : events.length;
 
+  const flipRef = useFlipEntry<HTMLDivElement>(!!section);
+
   return (
     <Sheet open={!!section} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+      <SheetContent ref={flipRef} side="bottom" className="max-h-[85vh] overflow-y-auto">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2 text-base">
             {meta?.title}
