@@ -90,7 +90,18 @@ export function SurfaceTabs({
             These all live inside Work or open from Today. Come here when you want one on its own.
           </SheetDescription>
         </SheetHeader>
+        <a
+          href="/settings"
+          className={cn(
+            "mt-3 flex min-h-[44px] items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary",
+            MOTION_ROW,
+          )}
+        >
+          <SettingsIcon className="h-4 w-4" />
+          Settings — Control Room
+        </a>
         <div className="mt-3 grid grid-cols-2 gap-2">
+
           {overflowItems.map(({ key, label, Icon }) => {
             const isActive = key === active;
             return (
