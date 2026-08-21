@@ -292,11 +292,28 @@
     opacity: 0.85;
   }
 
-  /* Focus that respects keyboard use. 1px accent, 2px offset, eased in. */
+  /* Focus that respects keyboard use. 1px ring, 2px offset, plus a halo that
+     snaps out once and settles — so keyboard travel is as legible as a tap.
+     One vocabulary: nav, Today and Actions all use this. */
   .vanta-focus:focus-visible {
-    outline: 1px solid hsl(var(--primary));
+    outline: 1px solid hsl(var(--focus-ring, var(--primary)));
     outline-offset: 2px;
-    animation: vanta-focus-in 120ms var(--ease-out) both;
+    box-shadow: 0 0 0 3px hsl(var(--focus-ring, var(--primary)) / 0.14);
+    animation: vanta-focus-in 180ms var(--ease-out) both;
+  }
+
+  /* Ask and other intelligence controls focus in accent purple. */
+  .vanta-focus-accent {
+    --focus-ring: var(--accent);
+  }
+
+  /* A card whose interior just received focus lifts its edge, so you can see
+     which record you are inside while tabbing through its buttons. */
+  .vanta-focus-card:focus-within {
+    box-shadow: inset 2px 0 0 0 hsl(var(--primary) / 0.55);
+    border-color: hsl(var(--primary) / 0.35);
+    transition: box-shadow var(--motion-base) var(--ease-out),
+                border-color var(--motion-base) var(--ease-out);
   }
 }
 
@@ -607,8 +624,9 @@ html.vanta-exhale-once body {
 
 /* Focus ring ease-in. Keyboard use should feel deliberate, not abrupt. */
 @keyframes vanta-focus-in {
-  from { outline-offset: 0; }
-  to   { outline-offset: 2px; }
+  0%   { outline-offset: 0;   box-shadow: 0 0 0 0 hsl(var(--focus-ring, var(--primary)) / 0.30); }
+  60%  { outline-offset: 3px; box-shadow: 0 0 0 5px hsl(var(--focus-ring, var(--primary)) / 0.18); }
+  100% { outline-offset: 2px; box-shadow: 0 0 0 3px hsl(var(--focus-ring, var(--primary)) / 0.14); }
 }
 
 /* Commit: the one moment of drama. On execute confirm the card presses inward
@@ -847,6 +865,8 @@ html.vanta-exhale-once body {
   /* Rails still draw fully, rows still show their status bar, markers still
      mark — nothing moves to get there. */
   .vanta-rail::after,
+  .vanta-focus:focus-visible { animation: none; }
+  .vanta-focus-card:focus-within { transition: none; }
   .vanta-marker-v { transform: none; opacity: 1; }
   .vanta-marker-h { transform: translateX(-50%); opacity: 1; }
 
