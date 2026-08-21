@@ -238,6 +238,19 @@ export function SurfaceTabs({
       })}
 
       <div className="mt-1">{MoreSheet}</div>
+
+      <a
+        href="/settings"
+        title="Settings"
+        aria-label="Settings"
+        className={cn(
+          "group mt-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
+          MOTION_MICRO,
+        )}
+      >
+        <SettingsIcon className="h-5 w-5" />
+        <span className="text-[9px] leading-tight tracking-[0.02em]">Settings</span>
+      </a>
     </nav>
   );
 }
