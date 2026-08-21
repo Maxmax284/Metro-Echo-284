@@ -22,6 +22,8 @@ export function ActionReceiptDrawer({
 }) {
   const [row, setRow] = useState<ReceiptRow | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "missing">("idle");
+  // The pending/missing drawer grows out of the button that was just tapped.
+  const flipRef = useFlipEntry<HTMLDivElement>(!!actionId);
 
   useEffect(() => {
     let alive = true;
