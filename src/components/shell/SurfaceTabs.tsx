@@ -16,6 +16,7 @@ import {
   Sun,
   Briefcase,
   Sparkles,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
@@ -90,7 +91,18 @@ export function SurfaceTabs({
             These all live inside Work or open from Today. Come here when you want one on its own.
           </SheetDescription>
         </SheetHeader>
+        <a
+          href="/settings"
+          className={cn(
+            "mt-3 flex min-h-[44px] items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary",
+            MOTION_ROW,
+          )}
+        >
+          <SettingsIcon className="h-4 w-4" />
+          Settings — Control Room
+        </a>
         <div className="mt-3 grid grid-cols-2 gap-2">
+
           {overflowItems.map(({ key, label, Icon }) => {
             const isActive = key === active;
             return (
@@ -171,6 +183,18 @@ export function SurfaceTabs({
           );
         })}
 
+        <a
+          href="/settings"
+          aria-label="Settings"
+          className={cn(
+            "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px] text-muted-foreground hover:text-foreground",
+            MOTION_ROW,
+          )}
+        >
+          <SettingsIcon className="h-5 w-5" />
+          <span className="tracking-[0.02em]">Settings</span>
+        </a>
+
         {MoreSheet}
       </nav>
     );
@@ -214,6 +238,19 @@ export function SurfaceTabs({
       })}
 
       <div className="mt-1">{MoreSheet}</div>
+
+      <a
+        href="/settings"
+        title="Settings"
+        aria-label="Settings"
+        className={cn(
+          "group mt-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
+          MOTION_MICRO,
+        )}
+      >
+        <SettingsIcon className="h-5 w-5" />
+        <span className="text-[9px] leading-tight tracking-[0.02em]">Settings</span>
+      </a>
     </nav>
   );
 }
