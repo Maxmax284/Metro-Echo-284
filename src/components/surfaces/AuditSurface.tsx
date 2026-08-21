@@ -13,6 +13,7 @@ import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { MOTION_ARRIVAL, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
 
@@ -291,7 +292,12 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_ARRIVAL)}>
                 <button
                   type="button"
-                  onClick={() => setDrawerRow(r)}
+                  onClick={(e) => {
+                    /* Record where the tap happened so the drawer can travel
+                       out of this row instead of fading in from nowhere. */
+                    markFlipOriginFromEvent(e);
+                    setDrawerRow(r);
+                  }}
                   className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW, MOTION_FOCUS)}
                 >
 

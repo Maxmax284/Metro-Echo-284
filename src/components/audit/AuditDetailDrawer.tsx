@@ -10,6 +10,8 @@ import { formatInTimeZone } from "date-fns-tz";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { Code2 } from "lucide-react";
+import { ReceiptSlip } from "@/components/audit/ReceiptSlip";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 
 type AuditRow = {
   id: string;
@@ -86,6 +88,8 @@ export function AuditDetailDrawer({
   footer?: ReactNode;
 }) {
   const { timezone } = useUserTimezone();
+  /* Matched-layout travel: the sheet body grows out of the row you tapped. */
+  const flipRef = useFlipEntry<HTMLDivElement>(open && !!row);
   const [showDev, setShowDev] = useState<boolean>(() => {
     try { return localStorage.getItem(DEV_KEY) === "1"; } catch { return false; }
   });
@@ -100,9 +104,29 @@ export function AuditDetailDrawer({
   const exact = formatInTimeZone(new Date(row.created_at), timezone, "PPpp");
   const ago = formatDistanceToNow(new Date(row.created_at), { addSuffix: true });
 
+  /* The verdict word on the stamp. Receipts are printed, so they get a mark. */
+  const stamp = /execut/i.test(row.event)
+    ? "executed"
+    : /rollback|revert|undo/i.test(row.event)
+      ? "rolled back"
+      : /approve/i.test(row.event)
+        ? "approved"
+        : "logged";
+
+  const slipLines = [
+    { label: "When", value: ago, tone: "default" as const },
+    { label: "Exact", value: `${exact}`, tone: "muted" as const },
+    { label: "Zone", value: timezone, tone: "muted" as const },
+    ...(row.entity_id
+      ? [{ label: kindLabel(row.entity_type), value: `${row.entity_id.slice(0, 8)}…`, tone: "muted" as const }]
+      : []),
+    ...facts.map((f) => ({ label: f.label, value: f.value, tone: "default" as const })),
+  ];
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl pb-[max(env(safe-area-inset-bottom),12px)]">
+        <div ref={flipRef}>
         <SheetHeader className="text-left">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-[10px]">{kindLabel(row.entity_type)}</Badge>
@@ -114,32 +138,13 @@ export function AuditDetailDrawer({
         </SheetHeader>
 
         <div className="mt-3 space-y-3 text-[12px]">
-          <div className="rounded-md border border-border/40 bg-muted/20 p-2.5">
-            <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">When</div>
-            <div className="mt-0.5">{ago}</div>
-            <div className="text-[11px] text-muted-foreground">{exact} · {timezone}</div>
-          </div>
+          <ReceiptSlip
+            title={humanizeEvent(row.event)}
+            meta={`${exact} · ${timezone}`}
+            lines={slipLines}
+            stamp={stamp}
+          />
 
-          {row.entity_id && (
-            <div className="rounded-md border border-border/40 bg-muted/20 p-2.5">
-              <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">Touched</div>
-              <div className="mt-0.5 font-mono text-[11px]">{kindLabel(row.entity_type)} · {row.entity_id.slice(0, 8)}…</div>
-            </div>
-          )}
-
-          {facts.length > 0 && (
-            <div className="rounded-md border border-border/40 bg-muted/20 p-2.5">
-              <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">What changed</div>
-              <ul className="space-y-1">
-                {facts.map((f) => (
-                  <li key={f.label} className="flex items-baseline justify-between gap-2">
-                    <span className="text-[11px] text-muted-foreground">{f.label}</span>
-                    <span className="truncate text-right text-[11.5px] text-foreground/90">{f.value}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {footer && <div className="flex items-center justify-end pt-0.5">{footer}</div>}
 
@@ -163,6 +168,7 @@ export function AuditDetailDrawer({
               {JSON.stringify({ event: row.event, entity_type: row.entity_type, entity_id: row.entity_id, payload: row.payload }, null, 2)}
             </pre>
           )}
+        </div>
         </div>
       </SheetContent>
     </Sheet>

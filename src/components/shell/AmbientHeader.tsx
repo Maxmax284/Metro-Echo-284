@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { OperationalState } from "@/lib/operationalState";
-import { Activity, Compass, MapPin, Moon, Sun } from "lucide-react";
+import { Compass, MapPin, Moon, Sun } from "lucide-react";
+import { PostureGlyph } from "@/components/shell/PostureGlyph";
 import { cn } from "@/lib/utils";
 
 const stateLabel: Record<OperationalState, string> = {
@@ -36,12 +37,15 @@ export function AmbientHeader({
   awareness,
   onAwarenessClick,
   right,
+  room,
 }: {
   state: OperationalState;
   place?: string;
   awareness?: AwarenessHeaderState;
   onAwarenessClick?: () => void;
   right?: ReactNode;
+  /** Active surface — the posture glyph leans toward it. */
+  room?: string;
 }) {
   const hour = new Date().getHours();
   const Time = hour < 6 || hour >= 19 ? Moon : Sun;
@@ -60,7 +64,7 @@ export function AmbientHeader({
           >
             {/* The one always-on tell that the system is awake: a 4.8s opacity
                 breath on the posture glyph. Nothing else in the chrome loops. */}
-            <Activity className="h-3 w-3 text-primary motion-breath motion-reduce:animate-none" />
+            <PostureGlyph state={state} room={room} />
             <span className="text-foreground/90 hidden sm:inline">{stateLabel[state]}</span>
           </span>
           {place && (

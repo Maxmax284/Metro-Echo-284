@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowUpRight } from "lucide-react";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { fetchActionReceipt, openReceiptsFor, waitForActionReceipt, type ReceiptRow } from "@/lib/receipts";
+import { pulseGlyph } from "@/components/shell/PostureGlyph";
 
 export function ActionReceiptDrawer({
   actionId,
@@ -35,7 +36,11 @@ export function ActionReceiptDrawer({
       if (!alive) return;
       setRow(found);
       setState(found ? "ready" : "missing");
+      /* The receipt landing is a real event — the posture glyph acknowledges it
+         once, then goes back to breathing. */
+      if (found && awaitWrite) pulseGlyph("commit");
     })();
+
     return () => {
       alive = false;
     };

@@ -656,6 +656,63 @@
   animation: vanta-scan 8s linear infinite;
 }
 
+/* ── Living glyph ──────────────────────────────────────────────────────────
+   The posture mark is the only thing in the chrome that never stops moving:
+   a slow ring breath (awake), plus a single expanding hairline when something
+   actually happened (noticed / committed). */
+@keyframes vanta-glyph-breath {
+  0%, 100% { transform: scale(1);    opacity: 0.75; }
+  50%      { transform: scale(1.09); opacity: 1; }
+}
+.vanta-glyph-breath {
+  animation: vanta-glyph-breath 4.8s ease-in-out infinite;
+}
+@keyframes vanta-glyph-ping {
+  0%   { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+.vanta-glyph-ping {
+  animation: vanta-glyph-ping 520ms var(--ease-out) both;
+}
+
+/* ── Printed receipt ──────────────────────────────────────────────────────
+   Perforated top edge, lines stamping in per-line, verdict stamp landing
+   slightly off-axis. Receipts read as artifacts, not JSON dumps. */
+.vanta-slip {
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-top: none;
+}
+.vanta-slip::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 5px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 3px 0, transparent 0 2.6px, hsl(var(--border) / 0.55) 2.6px 3.1px, transparent 3.2px)
+    repeat-x;
+  background-size: 7px 5px;
+}
+@keyframes vanta-slip-line {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.vanta-slip-line {
+  animation: vanta-slip-line 140ms var(--ease-out) both;
+}
+@keyframes vanta-slip-stamp {
+  0%   { opacity: 0; transform: rotate(-7deg) scale(1.5); }
+  70%  { opacity: 1; transform: rotate(-2.4deg) scale(0.98); }
+  100% { opacity: 1; transform: rotate(-1.6deg) scale(1); }
+}
+.vanta-slip-stamp {
+  animation: vanta-slip-stamp 260ms var(--ease-out) 220ms both;
+}
+
+
+
 
 @media (prefers-reduced-motion: reduce) {
   .radar-sweep,
@@ -681,6 +738,10 @@
   .vanta-marker-h,
   .vanta-marker-v,
   .vanta-scan::before,
+  .vanta-glyph-breath,
+  .vanta-glyph-ping,
+  .vanta-slip-line,
+  .vanta-slip-stamp,
 
   .vanta-hero,
   .motion-surface-out,
