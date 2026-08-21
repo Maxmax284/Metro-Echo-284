@@ -52,7 +52,10 @@ export function AmbientHeader({
   const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <header className="safe-top sticky top-0 z-30 glass">
+    /* The weather edge: one 1px hairline that carries the tone of the day.
+       Cool when calm, warm under pressure. Ambient only — never the source of
+       truth for anything the user has to act on. */
+    <header className="safe-top sticky top-0 z-30 glass vanta-weather-edge">
       <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-muted-foreground md:px-4 md:py-2.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span

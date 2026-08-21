@@ -9,6 +9,7 @@ import { NoticedRow } from "@/components/today/NoticedRow";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
+import { applyWeather, deriveWeather } from "@/lib/weather";
 import { formatDistanceToNow, isToday, isTomorrow } from "date-fns";
 import {
   AlertTriangle,
@@ -134,6 +135,21 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
     quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
+
+  /* Shell weather: Today owns the read on the state of the world, so it is the
+     one place that writes it onto <html>. Everything visual follows from CSS. */
+  useEffect(() => {
+    if (loadingCritical) return;
+    applyWeather(
+      deriveWeather({
+        overdue: digest.overdue.length,
+        attention: attention.length,
+        captures: captureCount,
+        securityAlert: security.tone === "critical" || security.tone === "attention",
+        noticed: !!noticed,
+      }),
+    );
+  }, [loadingCritical, digest.overdue.length, attention.length, captureCount, security.tone, noticed]);
 
   /* One-shot signal on the hero when real new change actually lands. It says
      "Vanta noticed something", then it is gone. Never left on. */

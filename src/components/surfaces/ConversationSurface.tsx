@@ -355,6 +355,13 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                           ? <StructuredResponse text={m.content} />
                           : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))
                       : (m.content || (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))}
+                    {/* Writing caret: a mono block that sits at the end of the
+                        answer while tokens are still arriving, then vanishes.
+                        The only tell that the text is not final yet. */}
+                    {m.role === "assistant" && m.content && streaming && i === msgs.length - 1 && (
+                      <span aria-hidden className="vanta-caret ml-0.5 align-[-1px] motion-reduce:animate-none" />
+                    )}
+
 
                   </div>
 
