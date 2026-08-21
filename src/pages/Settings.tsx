@@ -22,6 +22,7 @@ import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
+import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -159,6 +160,8 @@ export default function Settings() {
       <RecapSettingsPanel />
 
       <DeviceSignalsSection />
+
+      <RoomMotionSection />
 
       <PushReadinessSection />
 
