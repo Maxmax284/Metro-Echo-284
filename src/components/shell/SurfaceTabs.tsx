@@ -19,7 +19,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
+import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
@@ -70,6 +70,7 @@ export function SurfaceTabs({
               ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px]"
               : "group relative flex h-11 w-11 items-center justify-center rounded-xl",
             MOTION_ROW,
+            MOTION_FOCUS,
             activeInOverflow
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
@@ -96,6 +97,7 @@ export function SurfaceTabs({
           className={cn(
             "mt-3 flex min-h-[44px] items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary",
             MOTION_ROW,
+            MOTION_FOCUS,
           )}
         >
           <SettingsIcon className="h-4 w-4" />
@@ -115,6 +117,7 @@ export function SurfaceTabs({
                 className={cn(
                   "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm",
                   MOTION_ROW,
+                  MOTION_FOCUS,
                   isActive
                     ? "bg-primary/15 text-primary border-primary/30"
                     : "bg-surface-elevated text-foreground/90 hover:text-foreground"
@@ -149,6 +152,8 @@ export function SurfaceTabs({
               className={cn(
                 "relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px]",
                 MOTION_ROW,
+                MOTION_FOCUS,
+                tone === "accent" && "vanta-focus-accent",
                 isActive
                   ? tone === "accent" ? "text-accent" : "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -215,6 +220,8 @@ export function SurfaceTabs({
             className={cn(
               "group relative flex h-11 w-11 flex-col items-center justify-center rounded-lg",
               MOTION_MICRO,
+              MOTION_FOCUS,
+              accent && "vanta-focus-accent",
               isActive
                 ? accent ? "bg-accent/15 text-accent" : "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:bg-surface-elevated hover:text-foreground"
@@ -246,6 +253,7 @@ export function SurfaceTabs({
         className={cn(
           "group mt-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
           MOTION_MICRO,
+          MOTION_FOCUS,
         )}
       >
         <SettingsIcon className="h-5 w-5" />

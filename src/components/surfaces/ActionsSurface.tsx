@@ -16,6 +16,7 @@ import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
 import { markFlipOriginFromEvent } from "@/lib/flip";
+import { MOTION_FOCUS } from "@/lib/motion";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 
 type Action = {
@@ -157,7 +158,7 @@ export function ActionsSurface() {
                 {list.map((a) => {
                   const Icon = RiskIcon[a.risk];
                   return (
-                    <li key={a.id} className="rounded-xl surface-elevated p-3 ring-1 ring-border/60">
+                    <li key={a.id} className="vanta-focus-card rounded-xl surface-elevated border border-transparent p-3 ring-1 ring-border/60">
                       <div className="flex items-start gap-2">
                         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", riskColor[a.risk])} />
                         <div className="flex-1 min-w-0">
@@ -198,7 +199,7 @@ export function ActionsSurface() {
                           </div>
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {a.status === "proposed" && (
-                              <Button size="sm" variant="secondary" disabled={busy === a.id} onClick={() => transition(a, "staged")}>
+                              <Button size="sm" variant="secondary" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "staged")}>
                                 Stage
                               </Button>
                             )}
@@ -232,13 +233,13 @@ export function ActionsSurface() {
                                     ))}
                                   </select>
                                 )}
-                                <Button size="sm" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className="gap-1">
+                                <Button size="sm" className={MOTION_FOCUS} disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className="gap-1">
                                   <Check className="h-3.5 w-3.5" /> Execute
                                 </Button>
                               </>
                             )}
                             {a.status === "executed" && (
-                              <Button size="sm" variant="secondary" disabled={busy === a.id} onClick={() => transition(a, "audited", "reviewed")}>
+                              <Button size="sm" variant="secondary" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "audited", "reviewed")}>
                                 Mark reviewed
                               </Button>
                             )}
@@ -253,12 +254,12 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
+                              <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
                                 <RotateCcw className="h-3.5 w-3.5" /> Undo
                               </Button>
                             )}
                             {(a.status === "proposed" || a.status === "staged") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
+                              <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
                                 Cancel
                               </Button>
                             )}
