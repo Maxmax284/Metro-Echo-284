@@ -294,6 +294,24 @@ describe("delivery recommendation", () => {
     expect(recommendDelivery("useful", ready).recommendedChannel).toBe("silent");
     expect(recommendDelivery("critical", ready).recommendedChannel).toBe("phone");
   });
+
+  it("uses messaging only when opted in, linked, and time-sensitive", () => {
+    const optInOnly = { messagingOptIn: true };
+    expect(recommendDelivery("time_sensitive", optInOnly).recommendedChannel).toBe("today");
+    const linkedOnly = { messagingLinked: true };
+    expect(recommendDelivery("time_sensitive", linkedOnly).recommendedChannel).toBe("today");
+    const ready = { messagingOptIn: true, messagingLinked: true };
+    expect(recommendDelivery("attention", ready).recommendedChannel).toBe("today");
+    expect(recommendDelivery("useful", ready).recommendedChannel).toBe("silent");
+    const reach = recommendDelivery("time_sensitive", ready);
+    expect(reach.recommendedChannel).toBe("messaging");
+    expect(reach.live).toBe(true);
+  });
+
+  it("prefers push over messaging when both are ready", () => {
+    const both = { pushOptIn: true, pushSubscribed: true, messagingOptIn: true, messagingLinked: true };
+    expect(recommendDelivery("critical", both).recommendedChannel).toBe("phone");
+  });
 });
 
 describe("evaluateAwareness", () => {
