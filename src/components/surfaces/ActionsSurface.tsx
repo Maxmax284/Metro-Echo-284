@@ -206,6 +206,7 @@ export function ActionsSurface() {
                             {a.status === "staged" && (
                               <Button
                                 size="sm"
+                                className={MOTION_FOCUS}
                                 disabled={busy === a.id}
                                 onClick={() => {
                                   if (a.risk === "low_reversible") {
@@ -233,7 +234,7 @@ export function ActionsSurface() {
                                     ))}
                                   </select>
                                 )}
-                                <Button size="sm" className={MOTION_FOCUS} disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className="gap-1">
+                                <Button size="sm" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
                                   <Check className="h-3.5 w-3.5" /> Execute
                                 </Button>
                               </>
@@ -247,14 +248,14 @@ export function ActionsSurface() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="gap-1"
+                                className={cn("gap-1", MOTION_FOCUS)}
                                 onClick={(e) => { markFlipOriginFromEvent(e); setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
                               >
                                 <ScrollText className="h-3.5 w-3.5" /> Receipt
                               </Button>
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className="gap-1">
+                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
                                 <RotateCcw className="h-3.5 w-3.5" /> Undo
                               </Button>
                             )}
