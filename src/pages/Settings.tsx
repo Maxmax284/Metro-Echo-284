@@ -161,6 +161,8 @@ export default function Settings() {
 
       <DeviceSignalsSection />
 
+      <RoomMotionSection />
+
       <PushReadinessSection />
 
       {/* Global mode */}
