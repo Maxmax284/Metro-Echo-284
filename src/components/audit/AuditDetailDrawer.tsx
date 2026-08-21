@@ -88,6 +88,8 @@ export function AuditDetailDrawer({
   footer?: ReactNode;
 }) {
   const { timezone } = useUserTimezone();
+  /* Matched-layout travel: the sheet body grows out of the row you tapped. */
+  const flipRef = useFlipEntry<HTMLDivElement>(open && !!row);
   const [showDev, setShowDev] = useState<boolean>(() => {
     try { return localStorage.getItem(DEV_KEY) === "1"; } catch { return false; }
   });
