@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { OperationalState } from "@/lib/operationalState";
-import { Activity, Compass, MapPin, Moon, Sun } from "lucide-react";
+import { Compass, MapPin, Moon, Sun } from "lucide-react";
+import { PostureGlyph } from "@/components/shell/PostureGlyph";
 import { cn } from "@/lib/utils";
 
 const stateLabel: Record<OperationalState, string> = {
