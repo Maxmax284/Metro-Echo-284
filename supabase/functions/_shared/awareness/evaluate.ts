@@ -105,7 +105,9 @@ export function evaluateAwareness(input: EvaluateInput): EvaluateResult {
     const delivery = recommendDelivery(urgency, input.deliveryContext ?? {});
 
     const reaches =
-      delivery.recommendedChannel === "today" || delivery.recommendedChannel === "phone";
+      delivery.recommendedChannel === "today" ||
+      delivery.recommendedChannel === "messaging" ||
+      delivery.recommendedChannel === "phone";
     if (!verdict.suppressed && delivery.live && reaches) {
       survivors.push({ signal, urgency, score: relevance.score });
     }

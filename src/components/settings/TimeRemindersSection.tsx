@@ -288,6 +288,24 @@ export function TimeRemindersSection() {
               />
             </div>
           )}
+          {prefs.proactive_awareness_enabled && !prefs.awareness_shadow_mode && (
+            <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
+              <div className="min-w-0">
+                <div className="text-xs font-medium">Reach me on Telegram when it's time-sensitive</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Only for notes Vanta considers time-sensitive, and only if your chat is linked. The message tells you
+                  what changed and where to look — you still approve and run everything inside Vanta.
+                </div>
+              </div>
+              <Switch
+                checked={!!prefs.telegram_awareness_enabled}
+                onCheckedChange={(v) => {
+                  update({ telegram_awareness_enabled: v });
+                  audit("preferences.updated", { field: "telegram_awareness_enabled", value: v });
+                }}
+              />
+            </div>
+          )}
         </div>
 
 
