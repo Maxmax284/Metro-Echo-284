@@ -521,6 +521,19 @@ html[data-weather="pressure"] {
 html.vanta-exhale-once body {
   animation: vanta-exhale 1400ms var(--ease-out) 1;
 }
+/* Writing caret: a mono block at the tail of a streaming answer. */
+.vanta-caret {
+  display: inline-block;
+  width: 0.42em;
+  height: 1em;
+  background: hsl(var(--accent) / 0.8);
+  animation: vanta-caret-blink 1s steps(1, end) infinite;
+}
+@keyframes vanta-caret-blink {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0.1; }
+}
+
 @keyframes vanta-exhale {
   0%   { filter: saturate(1.06) brightness(1.03); }
   100% { filter: none; }
