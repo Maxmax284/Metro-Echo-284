@@ -36,12 +36,15 @@ export function AmbientHeader({
   awareness,
   onAwarenessClick,
   right,
+  room,
 }: {
   state: OperationalState;
   place?: string;
   awareness?: AwarenessHeaderState;
   onAwarenessClick?: () => void;
   right?: ReactNode;
+  /** Active surface — the posture glyph leans toward it. */
+  room?: string;
 }) {
   const hour = new Date().getHours();
   const Time = hour < 6 || hour >= 19 ? Moon : Sun;
