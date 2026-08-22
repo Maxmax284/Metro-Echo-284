@@ -9,6 +9,8 @@
 // Nothing here executes anything. A signal becomes a capture and, at most, a
 // notice. Approve/execute stays inside the platform.
 import { urgencyRank, type Urgency } from "./urgency.ts";
+import { compressNotice, type Verbosity } from "./compress.ts";
+
 
 export type SignalDetail = {
   /** One-line headline, safe to use as a capture summary. */
