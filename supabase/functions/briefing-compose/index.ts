@@ -19,7 +19,7 @@ const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
 };
 
 const PLATFORM_DISPLAY: Record<string, string> = {
-  ground_truth_hub: "Ground Truth Hub",
+  ground_truth_hub: "LMT Camp State",
   campcore: "CampCore",
   fenrir_lock: "Fenrir Lock",
   website_forms: "Website Forms",

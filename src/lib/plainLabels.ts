@@ -212,7 +212,7 @@ export function secretConnectionLabel(name: string): string {
   const exact: Record<string, string> = {
     CAMPCORE_WEBHOOK_SECRET: "CampCore inbound connection",
     FENRIR_WEBHOOK_SECRET: "Fenrir inbound connection",
-    GTH_WEBHOOK_SECRET: "Ground Truth Hub inbound connection",
+    GTH_WEBHOOK_SECRET: "LMT Camp State inbound connection",
     WEBSITE_FORMS_SECRET: "Public web forms connection",
     TELEGRAM_API_KEY: "Telegram bot connection",
     WHATSAPP_PROVIDER_TOKEN: "WhatsApp provider connection",

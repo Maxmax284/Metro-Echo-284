@@ -49,7 +49,7 @@ type Item = {
 };
 
 const PLATFORM_DISPLAY: Record<string, string> = {
-  ground_truth_hub: "GroundStay",
+  ground_truth_hub: "LMT Camp State",
   campcore: "CampCore",
   fenrir_lock: "Fenrir",
   website_forms: "Website",

@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import {
   actionToSignal,
+  buildSignalDetail,
   bundleSignals,
   budgetFloor,
   classifyUrgency,
@@ -10,10 +11,13 @@ import {
   driftToSignal,
   evaluateAwareness,
   isCriticalCondition,
+  inboundNoticeText,
+  inboundUrgency,
   isGrounded,
   LIVE_CHANNELS,
   recommendDelivery,
   scoreRelevance,
+  shouldReachNow,
   signalDedupeKey,
   suppress,
   urgencyPriority,
@@ -378,5 +382,82 @@ describe("evaluateAwareness", () => {
     });
     expect(res.surface).toBeNull();
     expect(res.records[0].suppression_reason).toBe("acknowledged");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Inbound external signals: detail must be concrete, urgency must be earned.
+// ---------------------------------------------------------------------------
+describe("inbound signal detail", () => {
+  it("builds full booking detail with nights and status transition", () => {
+    const d = buildSignalDetail("LMT Camp State", "booking.state_changed", {
+      guest_name: "Nikki",
+      room: "Bungalow 3",
+      check_in: "2026-08-24",
+      check_out: "2026-08-28",
+      guests: 2,
+      previous_status: "confirmed",
+      status: "cancelled",
+      amount: "18400",
+      currency: "thb",
+      booking_reference: "LMT-4471",
+      channel: "direct",
+    });
+    expect(d.title).toBe("LMT Camp State booking state changed: Nikki · room Bungalow 3");
+    expect(d.lines).toContain("Stay: 2026-08-24 → 2026-08-28 (4 nights)");
+    expect(d.lines).toContain("Status: confirmed → cancelled");
+    expect(d.lines).toContain("Amount: 18400 THB");
+    expect(d.lines).toContain("Reference: LMT-4471");
+  });
+
+  it("omits missing fields instead of inventing them", () => {
+    const d = buildSignalDetail("LMT Camp State", "booking.created", { guest_name: "Sam" });
+    expect(d.lines).toEqual(["Guest: Sam"]);
+  });
+
+  it("keeps the guest's actual words on messages", () => {
+    const d = buildSignalDetail("LMT Camp State", "guest_message.received", {
+      room: "4",
+      message: "  Aircon in the room stopped\n working tonight  ",
+    });
+    expect(d.lines).toContain("Room: 4");
+    expect(d.lines).toContain("Message: Aircon in the room stopped working tonight");
+  });
+
+  it("surfaces payment failure reasons", () => {
+    const d = buildSignalDetail("LMT Camp State", "payment.failed", {
+      amount: "4200",
+      currency: "thb",
+      failure_reason: "card declined",
+      booking_reference: "LMT-9001",
+    });
+    expect(d.title).toBe("LMT Camp State payment failed: 4200 THB");
+    expect(d.lines).toContain("Reason: card declined");
+  });
+
+  it("maps urgency by what actually changed", () => {
+    expect(inboundUrgency("payment.failed", {})).toBe("time_sensitive");
+    expect(inboundUrgency("booking.state_changed", { status: "cancelled" })).toBe("critical");
+    expect(inboundUrgency("booking.state_changed", { status: "confirmed" })).toBe("attention");
+    expect(inboundUrgency("booking.created", {})).toBe("attention");
+    expect(inboundUrgency("payment.received", {})).toBe("useful");
+    expect(inboundUrgency("integration.test", {})).toBe("background");
+    expect(inboundUrgency("guest_request.created", { urgency: "high" })).toBe("critical");
+  });
+
+  it("only interrupts for time-sensitive and above", () => {
+    expect(shouldReachNow("critical")).toBe(true);
+    expect(shouldReachNow("time_sensitive")).toBe(true);
+    expect(shouldReachNow("attention")).toBe(false);
+    expect(shouldReachNow("useful")).toBe(false);
+  });
+
+  it("notice text is notification-only and points back into Vanta", () => {
+    const d = buildSignalDetail("LMT Camp State", "payment.failed", { amount: "10", currency: "usd" });
+    const text = inboundNoticeText(d, { publicUrl: "https://vanta.example.com/" });
+    expect(text).toContain("Amount: 10 USD");
+    expect(text).toContain("nothing was actioned");
+    expect(text).toContain("Open Vanta: https://vanta.example.com/");
+    expect(text).not.toMatch(/approve|execute|\/run/i);
   });
 });

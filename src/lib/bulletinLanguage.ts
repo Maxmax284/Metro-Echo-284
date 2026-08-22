@@ -76,7 +76,7 @@ export function formatAuditEvent(
   if (e === "telegram.message_in")
     return { ...base, bucket: "captures", text: `New Telegram note came in.` };
   if (e === "ecosystem.gth.captured")
-    return { ...base, bucket: "captures", text: `New update from Ground Truth Hub.` };
+    return { ...base, bucket: "captures", text: `New update from LMT Camp State.` };
   if (e === "capture.routed")
     return { ...base, bucket: "captures", text: `A capture was sent where it belongs.` };
   if (e === "file.uploaded" || e === "file.staged")

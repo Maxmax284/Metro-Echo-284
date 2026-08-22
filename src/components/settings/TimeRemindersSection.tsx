@@ -40,6 +40,41 @@ export function TimeRemindersSection() {
   const { browserTimezone, storedTimezone, drifted } = useUserTimezone();
   const [tzQuery, setTzQuery] = useState("");
   const [tgStatus, setTgStatus] = useState<{ lastSent: string | null; skipped: number; failed: number } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  /** Send a realistic sample notice to the linked chat and report plainly. */
+  const sendTelegramTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("telegram-test", {
+        body: { sample: "camp_state" },
+      });
+      if (error) {
+        setTestResult("Couldn't send — the delivery service returned an error.");
+        toast.error({ title: "Test send failed" });
+        return;
+      }
+      const res = (data ?? {}) as { sent?: number; failed?: number; reason?: string; errors?: string[] };
+      if (res.reason === "no_links") {
+        setTestResult("No Telegram chat is linked yet. Link your chat first, then test again.");
+        return;
+      }
+      if ((res.sent ?? 0) > 0) {
+        setTestResult("Sent. Check Telegram — it's formatted like a real notice.");
+        toast.success({ title: "Test notice sent" });
+        return;
+      }
+      setTestResult(res.errors?.[0] ? `Couldn't send: ${res.errors[0]}` : "Couldn't send — nothing was delivered.");
+    } catch (e) {
+      setTestResult(e instanceof Error ? e.message : "Couldn't send.");
+    } finally {
+      setTesting(false);
+      await audit("telegram.test_requested", { sample: "camp_state" });
+    }
+  };
+
 
   // Pull last 7 days of Telegram delivery audit so the user can see what's actually happening.
   useEffect(() => {
@@ -306,6 +341,25 @@ export function TimeRemindersSection() {
               />
             </div>
           )}
+          {prefs.proactive_awareness_enabled && !prefs.awareness_shadow_mode && (
+            <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-border/40 py-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 min-h-[44px] gap-1.5 text-xs sm:min-h-0"
+                disabled={testing}
+                onClick={sendTelegramTest}
+              >
+                <MessageSquare className="h-3 w-3" />
+                {testing ? "Sending…" : "Send test message"}
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                {testResult ?? "Sends a sample LMT Camp State notice so you can check the wording."}
+              </span>
+            </div>
+          )}
+
         </div>
 
 
