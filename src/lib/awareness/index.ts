@@ -11,6 +11,7 @@ export * from "../../../supabase/functions/_shared/awareness/deliver";
 export * from "../../../supabase/functions/_shared/awareness/evaluate";
 export * from "../../../supabase/functions/_shared/awareness/adapters";
 export * from "../../../supabase/functions/_shared/awareness/adapters-more";
+export * from "../../../supabase/functions/_shared/awareness/adapters-calendar";
 export * from "../../../supabase/functions/_shared/awareness/resolve";
 export * from "../../../supabase/functions/_shared/awareness/inbound";
 export * from "../../../supabase/functions/_shared/awareness/compress";
