@@ -26,6 +26,8 @@ import {
 } from "../_shared/drift.ts";
 import {
   actionToSignal,
+  calendarSignals,
+  type CalendarEventRow,
   captureRouteToSignal,
   sherlockFindingToSignal,
   type SherlockFindingRow,
@@ -352,6 +354,26 @@ async function sweepScope(
     const s = sherlockFindingToSignal(f, scope, nowMs);
     if (s) signals.push(s);
   }
+
+  // The calendar sense: what starts soon, and which promise lands mid-meeting.
+  // Read-only, scope-filtered, and it only ever supplies facts.
+  const { data: calendarRows } = await scoped(
+    sb.from("calendar_events").select("id, title, location, starts_at, ends_at, all_day, feed_id"),
+    userId,
+    orgId,
+  )
+    .gte("starts_at", new Date(nowMs - 60 * 60 * 1000).toISOString())
+    .lte("starts_at", new Date(nowMs + 3 * DAY_MS).toISOString())
+    .limit(200);
+  for (const s of calendarSignals(
+    (calendarRows ?? []) as CalendarEventRow[],
+    commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at, status: c.status })),
+    scope,
+    nowMs,
+  )) {
+    signals.push(s);
+  }
+
 
   if (signals.length === 0) return "none";
 
