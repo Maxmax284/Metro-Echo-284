@@ -137,7 +137,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
   {
     key: "gth",
     sourcePlatform: "ground_truth_hub",
-    name: "Ground Truth Hub",
+    name: "LMT Camp State",
     role: "Property and hotel operations.",
     description: "Bookings, guest requests, room notes, payments, accommodation files.",
     direction: "inbound_approved_outbound",

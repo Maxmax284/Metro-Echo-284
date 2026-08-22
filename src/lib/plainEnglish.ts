@@ -67,7 +67,7 @@ export function confidenceWord(raw?: string | null): ConfidenceWord {
 // ── Platform / source display ───────────────────────────────────────────────
 const PLATFORM_DISPLAY: Record<string, string> = {
   ground_truth_hub: "LMT Camp State",
-  gth: "GroundStay",
+  gth: "LMT Camp State",
   campcore: "CampCore",
   fenrir_lock: "Fenrir",
   vineyard_lock: "Fenrir",
@@ -88,7 +88,7 @@ export const displayPlatform = (k?: string | null): string =>
 // New codes can be added without touching consumers.
 type EventTemplate = { subject?: string; verb: string; object?: string };
 const EVENT_CODE_MAP: Record<string, EventTemplate> = {
-  // GroundStay / GTH
+  // LMT Camp State
   "gth.booking.created": { verb: "opened", object: "a new booking" },
   "gth.booking.confirmed": { verb: "confirmed", object: "a booking" },
   "gth.booking.state_changed": { verb: "moved", object: "a booking between states" },
