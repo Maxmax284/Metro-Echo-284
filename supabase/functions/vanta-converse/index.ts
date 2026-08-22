@@ -5,6 +5,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
+import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 
@@ -267,7 +268,17 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
-    const sysWithCorrections = [SYSTEM_PROMPT, scopeBlock, timeBlock, workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
+    // Brand voice — the user's chosen tone for anything they read.
+    const { data: voiceProfile } = await supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("id", user.id)
+      .maybeSingle();
+    const brandBlock = brandVoiceDirective(
+      readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
+    );
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [

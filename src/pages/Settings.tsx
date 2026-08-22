@@ -23,6 +23,7 @@ import { OperatorProfileSection } from "@/components/settings/OperatorProfileSec
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
+import { BrandVoiceSection } from "@/components/settings/BrandVoiceSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -156,6 +157,8 @@ export default function Settings() {
 
 
       <TimeRemindersSection />
+
+      <BrandVoiceSection />
 
       <RecapSettingsPanel />
 
