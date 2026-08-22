@@ -9,6 +9,7 @@
 // signals may break them. The item is always in the inbox first — messaging is
 // notification only and can never approve or execute anything.
 import { isInQuietHours } from "../drift.ts";
+import { readBrandVoice, styleNotice } from "../brandVoice.ts";
 import type { Urgency } from "./urgency.ts";
 import {
   buildSignalDetail,
@@ -90,10 +91,13 @@ export async function reachInboundSignal(
   const apiKey = Deno.env.get("TELEGRAM_API_KEY");
   if (!apiKey) return done("connector_missing");
 
-  const text = inboundNoticeText(detail, {
-    publicUrl: Deno.env.get("VANTA_PUBLIC_URL"),
-    nextStep: "In Vanta's inbox for review — nothing was actioned.",
-  });
+  const text = styleNotice(
+    inboundNoticeText(detail, {
+      publicUrl: Deno.env.get("VANTA_PUBLIC_URL"),
+      nextStep: "In Vanta's inbox for review — nothing was actioned.",
+    }),
+    readBrandVoice(prefs),
+  );
 
   let ok = false;
   let err: string | null = null;

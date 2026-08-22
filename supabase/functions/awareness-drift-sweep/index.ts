@@ -13,6 +13,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
 import {
   detectDriftingCommitment,
   detectSilentProject,
@@ -501,9 +502,17 @@ async function reachMessaging(
   const chatId = (link as { chat_id?: number } | null)?.chat_id;
   if (!chatId) return;
 
-  const text = [decision.title, decision.why, `${decision.nextStep} Open Vanta to act on it.`]
-    .filter(Boolean)
-    .join("\n");
+  const { data: voiceProfile } = await sb
+    .from("profiles")
+    .select("preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const text = styleNotice(
+    [decision.title, decision.why, `${decision.nextStep} Open Vanta to act on it.`]
+      .filter(Boolean)
+      .join("\n"),
+    readBrandVoice((voiceProfile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}),
+  );
 
   let ok = false;
   let err: string | null = null;
