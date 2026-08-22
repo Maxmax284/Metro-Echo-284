@@ -40,6 +40,9 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   proactive_awareness_enabled: false,
   awareness_shadow_mode: true,
   telegram_awareness_enabled: false,
+  brand_voice: "neutral",
+  brand_voice_intensity: 2,
+  brand_voice_no_jargon: true,
   intake: {},
 };
 
