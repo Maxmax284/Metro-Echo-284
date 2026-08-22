@@ -571,6 +571,101 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          all_day: boolean
+          created_at: string
+          ends_at: string | null
+          feed_id: string
+          id: string
+          location: string | null
+          organization_id: string | null
+          starts_at: string
+          title: string | null
+          uid: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          created_at?: string
+          ends_at?: string | null
+          feed_id: string
+          id?: string
+          location?: string | null
+          organization_id?: string | null
+          starts_at: string
+          title?: string | null
+          uid: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          created_at?: string
+          ends_at?: string | null
+          feed_id?: string
+          id?: string
+          location?: string | null
+          organization_id?: string | null
+          starts_at?: string
+          title?: string | null
+          uid?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_feeds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_feeds: {
+        Row: {
+          active: boolean
+          created_at: string
+          event_count: number
+          id: string
+          label: string
+          last_error: string | null
+          last_synced_at: string | null
+          organization_id: string | null
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          event_count?: number
+          id?: string
+          label: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          organization_id?: string | null
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          event_count?: number
+          id?: string
+          label?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          organization_id?: string | null
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       capture_routes: {
         Row: {
           audit_event_id: string | null
