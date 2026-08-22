@@ -4,6 +4,8 @@
 // matter?" using grounded factors only. AI may later phrase a signal; it never
 // decides whether the user gets interrupted.
 import type { AwarenessSignal } from "./signal.ts";
+import { signalBaseImpact } from "./registry.ts";
+
 
 export type RelevanceFactors = {
   /** What happens if ignored. 0..1 */
