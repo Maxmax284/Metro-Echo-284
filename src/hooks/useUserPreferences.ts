@@ -19,6 +19,10 @@ export type UserPreferences = {
   awareness_shadow_mode?: boolean;
   /** Let time-sensitive awareness notes reach the linked Telegram chat. */
   telegram_awareness_enabled?: boolean;
+  /** Tone applied to everything Vanta says out loud. */
+  brand_voice?: "neutral" | "east_coast";
+  brand_voice_intensity?: 1 | 2 | 3;
+  brand_voice_no_jargon?: boolean;
   intake?: Record<string, unknown>;
 };
 
