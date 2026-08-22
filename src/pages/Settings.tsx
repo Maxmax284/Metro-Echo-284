@@ -157,6 +157,8 @@ export default function Settings() {
 
       <TimeRemindersSection />
 
+      <BrandVoiceSection />
+
       <RecapSettingsPanel />
 
       <DeviceSignalsSection />
