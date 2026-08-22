@@ -5,6 +5,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // No automatic invocation. No persistence beyond audit_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { BRIEFING_VOICE } from "../_shared/vantaVoice.ts";
+import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -541,6 +542,15 @@ Deno.serve(async (req: Request) => {
           ? `\nSherlock observe (recent): ${observedSalient.map((s) => `"${s}"`).join("; ")}`
           : "";
 
+        const { data: voiceProfile } = await sb
+          .from("profiles")
+          .select("preferences")
+          .eq("id", user.id)
+          .maybeSingle();
+        const brandBlock = brandVoiceDirective(
+          readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
+        );
+
         const prompt = `Compose a ${variant} briefing in two short sentences max. ${VARIANT_TONE[variant]} End with: "${best_first_move}" verbatim. No greetings, no exclamation marks, no markdown.\n\nCounts: ${headline}.\nTimezone: ${timezone}.${observedBlock}\nTop items:\n${top || "- none"}`;
 
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -552,7 +562,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: BRIEFING_VOICE },
+              { role: "system", content: `${BRIEFING_VOICE}\n\n${brandBlock}` },
               { role: "user", content: prompt },
             ],
             temperature: 0.4,
