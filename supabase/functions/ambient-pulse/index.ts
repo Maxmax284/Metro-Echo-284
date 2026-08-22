@@ -360,7 +360,7 @@ Deno.serve(async (req: Request) => {
         const calSignals = calendarSignals(
           (calendarRows ?? []) as CalendarEventRow[],
           commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at, status: c.status })),
-          { userId: scope.userId, organizationId: scope.scope.organizationId },
+          { userId: user.id, organizationId: orgId },
           nowMs,
         );
 
