@@ -1,0 +1,254 @@
+// CalendarFeedsSection — the calendar sense, honestly presented.
+//
+// Doctrine:
+//  - Read-only sense. Subscribing to a calendar never lets Vanta write to it,
+//    move anything, or act on anything. It only earns Vanta the ability to know
+//    what starts soon and which promise lands mid-meeting.
+//  - Scope-filtered: a calendar added in a workspace belongs to that room only.
+//  - Honest status: last check, how many entries, and the real error text when a
+//    link stops answering.
+import { useCallback, useEffect, useState } from "react";
+import { CalendarClock, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { vantaToast as toast } from "@/lib/vantaVoice";
+import { cn } from "@/lib/utils";
+
+type Feed = {
+  id: string;
+  label: string;
+  url: string;
+  active: boolean;
+  last_synced_at: string | null;
+  last_error: string | null;
+  event_count: number;
+};
+
+type UpcomingEvent = { id: string; title: string | null; starts_at: string; all_day: boolean };
+
+function whenLabel(iso: string | null): string {
+  if (!iso) return "never checked";
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return "checked just now";
+  if (mins < 60) return `checked ${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `checked ${hrs}h ago`;
+  return `checked ${Math.round(hrs / 24)}d ago`;
+}
+
+function eventLine(e: UpcomingEvent): string {
+  const d = new Date(e.starts_at);
+  const day = d.toLocaleDateString(undefined, { weekday: "short" });
+  const time = e.all_day
+    ? "all day"
+    : d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${day} ${time} · ${e.title?.trim() || "Untitled entry"}`;
+}
+
+export function CalendarFeedsSection() {
+  const { session } = useAuth();
+  const { applyScope, withScope, key } = useScope();
+  const [feeds, setFeeds] = useState<Feed[]>([]);
+  const [upcoming, setUpcoming] = useState<UpcomingEvent[]>([]);
+  const [label, setLabel] = useState("");
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!session) return;
+    const { data } = await applyScope(
+      supabase.from("calendar_feeds").select("id,label,url,active,last_synced_at,last_error,event_count"),
+    ).order("created_at", { ascending: true });
+    setFeeds((data ?? []) as Feed[]);
+
+    const { data: ev } = await applyScope(
+      supabase.from("calendar_events").select("id,title,starts_at,all_day"),
+    )
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(3);
+    setUpcoming((ev ?? []) as UpcomingEvent[]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, key]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const sync = async (feedId?: string) => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("calendar-sync", {
+        body: feedId ? { feed_id: feedId } : {},
+      });
+      if (error) throw error;
+      const failed = ((data as { results?: { ok: boolean }[] } | null)?.results ?? []).filter((r) => !r.ok).length;
+      toast[failed ? "error" : "success"](
+        failed ? "One of your calendars did not answer. Check the link." : "Calendar read. Vanta knows the day ahead.",
+      );
+      await load();
+    } catch {
+      toast.error("Could not read the calendar right now.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const add = async () => {
+    const cleanUrl = url.trim().replace(/^webcal:\/\//i, "https://");
+    if (!/^https:\/\//i.test(cleanUrl)) {
+      toast.error("Paste the secret address of a calendar. It has to start with https or webcal.");
+      return;
+    }
+    setBusy(true);
+    const { data, error } = await supabase
+      .from("calendar_feeds")
+      .insert(withScope({ user_id: session!.user.id, label: label.trim() || "My calendar", url: cleanUrl }))
+      .select("id")
+      .maybeSingle();
+    setBusy(false);
+    if (error) {
+      toast.error("Could not save that calendar.");
+      return;
+    }
+    setLabel("");
+    setUrl("");
+    setAdding(false);
+    await load();
+    await sync((data as { id: string } | null)?.id);
+  };
+
+  const toggle = async (feed: Feed, active: boolean) => {
+    await supabase.from("calendar_feeds").update({ active }).eq("id", feed.id);
+    await load();
+  };
+
+  const remove = async (feed: Feed) => {
+    await supabase.from("calendar_feeds").delete().eq("id", feed.id);
+    toast.success("Calendar unlinked. Its entries are gone with it.");
+    await load();
+  };
+
+  if (!session) return null;
+
+  return (
+    <section className="vanta-card mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            Your calendar
+          </h2>
+          <p className="mt-0.5 text-[12px] text-muted-foreground">
+            Link a calendar and Vanta can see what starts soon and when a promise lands mid-meeting.
+            Reading only — nothing gets changed, moved or answered on your behalf.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 shrink-0 text-[11.5px]"
+          onClick={() => void sync()}
+          disabled={busy || feeds.length === 0}
+        >
+          <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", busy && "animate-spin")} />
+          Check now
+        </Button>
+      </div>
+
+      {feeds.length === 0 && !adding && (
+        <p className="mt-3 rounded-lg bg-background/40 p-3 text-[12px] text-muted-foreground ring-1 ring-border/50">
+          Nothing linked yet. In Google Calendar, Apple Calendar or Outlook, copy the calendar's private
+          address (it ends in <span className="font-mono">.ics</span>) and paste it below. Entries land here
+          and feed Today — they never become tasks on their own.
+        </p>
+      )}
+
+      {feeds.length > 0 && (
+        <ul className="mt-3 divide-y divide-border/40">
+          {feeds.map((f) => (
+            <li key={f.id} className="flex items-start gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-medium">{f.label}</div>
+                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                  {f.event_count} {f.event_count === 1 ? "entry" : "entries"} · {whenLabel(f.last_synced_at)}
+                </div>
+                {f.last_error && (
+                  <div className="mt-1 text-[11px] text-destructive">{f.last_error}</div>
+                )}
+              </div>
+              <Switch
+                checked={f.active}
+                onCheckedChange={(v) => void toggle(f, v)}
+                aria-label={`Use ${f.label}`}
+              />
+              <button
+                onClick={() => void remove(f)}
+                aria-label={`Unlink ${f.label}`}
+                className="vanta-focus rounded-md p-1.5 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {upcoming.length > 0 && (
+        <div className="mt-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Next up</div>
+          <ul className="mt-1.5 space-y-1">
+            {upcoming.map((e) => (
+              <li key={e.id} className="font-mono text-[11.5px] text-foreground/85">{eventLine(e)}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {adding ? (
+        <div className="mt-3 space-y-2">
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="What is this calendar? (Work, Camp, Personal)"
+            className="h-9 text-[13px]"
+          />
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://… .ics"
+            className="h-9 font-mono text-[12px]"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" className="h-8 text-[11.5px]" disabled={busy} onClick={() => void add()}>
+              Link calendar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-[11.5px]"
+              onClick={() => setAdding(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          className="mt-3 h-8 text-[11.5px]"
+          onClick={() => setAdding(true)}
+        >
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Link a calendar
+        </Button>
+      )}
+    </section>
+  );
+}
