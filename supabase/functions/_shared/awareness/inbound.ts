@@ -8,7 +8,7 @@
 //
 // Nothing here executes anything. A signal becomes a capture and, at most, a
 // notice. Approve/execute stays inside the platform.
-import type { Urgency } from "./urgency.ts";
+import { urgencyRank, type Urgency } from "./urgency.ts";
 
 export type SignalDetail = {
   /** One-line headline, safe to use as a capture summary. */
@@ -176,6 +176,14 @@ export function inboundUrgency(eventType: string, payload: Payload = {}): Urgenc
   if (eventType === "integration.test") return "background";
   if (severity === "critical") return "critical";
   return "attention";
+}
+
+/**
+ * Does this signal earn an immediate interruption? Time-sensitive and above
+ * only — everything quieter waits for Today.
+ */
+export function shouldReachNow(urgency: Urgency): boolean {
+  return urgencyRank(urgency) >= urgencyRank("time_sensitive");
 }
 
 /**

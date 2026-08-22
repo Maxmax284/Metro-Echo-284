@@ -9,8 +9,14 @@
 // signals may break them. The item is always in the inbox first — messaging is
 // notification only and can never approve or execute anything.
 import { isInQuietHours } from "../drift.ts";
-import { urgencyRank, type Urgency } from "./urgency.ts";
-import { buildSignalDetail, inboundNoticeText, inboundUrgency, type SignalDetail } from "./inbound.ts";
+import type { Urgency } from "./urgency.ts";
+import {
+  buildSignalDetail,
+  inboundNoticeText,
+  inboundUrgency,
+  shouldReachNow,
+  type SignalDetail,
+} from "./inbound.ts";
 
 const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
@@ -28,14 +34,6 @@ export type InboundReachResult = {
     | "send_failed";
   urgency: Urgency;
 };
-
-/**
- * Decide whether this signal earns an immediate interruption.
- * Time-sensitive and above only — everything quieter waits for Today.
- */
-export function shouldReachNow(urgency: Urgency): boolean {
-  return urgencyRank(urgency) >= urgencyRank("time_sensitive");
-}
 
 export async function reachInboundSignal(
   admin: any,
