@@ -341,6 +341,25 @@ export function TimeRemindersSection() {
               />
             </div>
           )}
+          {prefs.proactive_awareness_enabled && !prefs.awareness_shadow_mode && (
+            <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-border/40 py-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 min-h-[44px] gap-1.5 text-xs sm:min-h-0"
+                disabled={testing}
+                onClick={sendTelegramTest}
+              >
+                <MessageSquare className="h-3 w-3" />
+                {testing ? "Sending…" : "Send test message"}
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                {testResult ?? "Sends a sample LMT Camp State notice so you can check the wording."}
+              </span>
+            </div>
+          )}
+
         </div>
 
 
