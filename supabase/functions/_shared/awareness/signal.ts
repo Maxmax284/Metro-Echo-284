@@ -12,32 +12,17 @@ export type ScopeIdentity = {
   organizationId: string | null;
 };
 
-/** Where a signal came from. Future adapters add their own source strings. */
-export type SignalSource =
-  | "drift"
-  | "commitments"
-  | "actions"
-  | "continuity"
-  | "security"
-  | "documents"
-  | "captures"
-  | "sherlock";
+// Vocabulary lives in registry.ts so a new adapter registers its kinds in one
+// place instead of editing a union here and a score table in relevance.ts. The
+// known values stay authoritative for autocomplete; the `(string & {})` arm is
+// what lets a future sense plug in without a core edit.
+import type { KnownSignalKind, KnownSignalSource } from "./registry.ts";
 
-export type SignalKind =
-  // live, existing-product families
-  | "project_went_silent"
-  | "commitment_drifting"
-  | "commitment_due_soon"
-  | "commitment_overdue"
-  | "risk_unread"
-  | "action_awaiting_approval"
-  | "action_failed"
-  | "continuity_changed"
-  | "security_event"
-  | "document_stalled"
-  | "document_risk_unreviewed"
-  | "capture_unrouted"
-  | "sherlock_finding_pending";
+/** Where a signal came from. Future adapters add their own source strings. */
+export type SignalSource = KnownSignalSource | (string & {});
+
+export type SignalKind = KnownSignalKind | (string & {});
+
 
 export type SourceReference = {
   kind: string;

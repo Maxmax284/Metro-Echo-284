@@ -35,6 +35,7 @@ import {
   driftToSignal,
   evaluateAwareness,
   retireResolved,
+  compressNotice,
   signalDedupeKey,
   type AttentionBudget,
   type AwarenessSignal,
@@ -508,9 +509,14 @@ async function reachMessaging(
     .eq("id", userId)
     .maybeSingle();
   const text = styleNotice(
-    [decision.title, decision.why, `${decision.nextStep} Open Vanta to act on it.`]
-      .filter(Boolean)
-      .join("\n"),
+    compressNotice(
+      {
+        title: decision.title,
+        why: decision.why,
+        nextStepLine: `${decision.nextStep} Open Vanta to act on it.`,
+      },
+      "brief",
+    ),
     readBrandVoice((voiceProfile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}),
   );
 

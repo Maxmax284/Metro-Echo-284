@@ -1,4 +1,5 @@
 // One import site for the awareness pipeline.
+export * from "./registry.ts";
 export * from "./signal.ts";
 export * from "./relevance.ts";
 export * from "./urgency.ts";
@@ -10,3 +11,5 @@ export * from "./adapters.ts";
 export * from "./adapters-more.ts";
 export * from "./resolve.ts";
 export * from "./inbound.ts";
+export * from "./compress.ts";
+export * from "./context.ts";

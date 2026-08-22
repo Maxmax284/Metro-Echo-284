@@ -9,6 +9,8 @@
 // Nothing here executes anything. A signal becomes a capture and, at most, a
 // notice. Approve/execute stays inside the platform.
 import { urgencyRank, type Urgency } from "./urgency.ts";
+import { compressNotice, type Verbosity } from "./compress.ts";
+
 
 export type SignalDetail = {
   /** One-line headline, safe to use as a capture summary. */
@@ -189,14 +191,22 @@ export function shouldReachNow(urgency: Urgency): boolean {
 /**
  * The exact text sent to a messaging channel. Notification only: what happened,
  * the concrete facts, and where to act. No buttons, no commands, no execution.
+ *
+ * Wording is composed by the compression seam so every channel reads from one
+ * definition; this function only supplies the facts and the verbosity.
  */
 export function inboundNoticeText(
   detail: SignalDetail,
-  opts: { publicUrl?: string | null; nextStep?: string } = {},
+  opts: { publicUrl?: string | null; nextStep?: string; verbosity?: Verbosity } = {},
 ): string {
-  const out = [detail.title, ...detail.lines];
-  out.push(opts.nextStep ?? "In Vanta's inbox for review — nothing was actioned.");
-  const url = (opts.publicUrl ?? "").replace(/\/$/, "");
-  if (url) out.push(`Open Vanta: ${url}/`);
-  return out.join("\n");
+  return compressNotice(
+    {
+      title: detail.title,
+      lines: detail.lines,
+      nextStepLine: opts.nextStep ?? "In Vanta's inbox for review — nothing was actioned.",
+      publicUrl: opts.publicUrl,
+    },
+    opts.verbosity ?? "brief",
+  );
 }
+

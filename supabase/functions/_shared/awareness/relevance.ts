@@ -4,6 +4,8 @@
 // matter?" using grounded factors only. AI may later phrase a signal; it never
 // decides whether the user gets interrupted.
 import type { AwarenessSignal } from "./signal.ts";
+import { signalBaseImpact } from "./registry.ts";
+
 
 export type RelevanceFactors = {
   /** What happens if ignored. 0..1 */
@@ -42,21 +44,8 @@ export type RelevanceContext = {
 
 const clamp01 = (n: number) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0);
 
-const BASE_IMPACT: Record<string, number> = {
-  security_event: 0.9,
-  risk_unread: 0.8,
-  action_failed: 0.75,
-  commitment_overdue: 0.7,
-  action_awaiting_approval: 0.6,
-  commitment_drifting: 0.6,
-  commitment_due_soon: 0.55,
-  document_risk_unreviewed: 0.7,
-  document_stalled: 0.4,
-  capture_unrouted: 0.3,
-  sherlock_finding_pending: 0.4,
-  project_went_silent: 0.4,
-  continuity_changed: 0.35,
-};
+// Impact weights now live in the registry, alongside the kind that owns them.
+
 
 /** Time sensitivity purely from the clock, not from vibes. */
 export function timeSensitivity(hoursUntilDue: number | null | undefined): number {
@@ -72,7 +61,7 @@ export function scoreRelevance(
   signal: AwarenessSignal,
   ctx: RelevanceContext = {},
 ): RelevanceResult {
-  const impact = clamp01(BASE_IMPACT[signal.type] ?? 0.3);
+  const impact = clamp01(signalBaseImpact(signal.type));
   const time = clamp01(timeSensitivity(ctx.hoursUntilDue));
 
   // Change magnitude: an unresolved situation that has been sitting is a bigger
