@@ -1,5 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { buildSignalDetail, type SignalDetail } from "./awareness/inbound.ts";
+import { reachInboundSignal } from "./awareness/inboundReach.ts";
 
 type PlatformConfig = {
   sourcePlatform: string;
@@ -15,8 +17,11 @@ type PlatformConfig = {
 export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
   {
     sourcePlatform: "ground_truth_hub",
-    displayName: "Ground Truth Hub",
-    aliases: ["ground_truth_hub", "gth", "ground_truth", "ground-truth-hub", "GroundTruthHub"],
+    displayName: "LMT Camp State",
+    aliases: [
+      "ground_truth_hub", "gth", "ground_truth", "ground-truth-hub", "GroundTruthHub",
+      "camp_state", "lmt_camp_state", "campstate", "camp-state", "lmt-camp-state", "CampState", "LMTCampState",
+    ],
     secretName: "GTH_WEBHOOK_SECRET",
     allowedEvents: [
       "integration.test",
@@ -242,17 +247,8 @@ async function loadSecret(admin: any, ownerId: string, config: PlatformConfig) {
   return { value: null as string | null, wrongSource: wrongSource?.integration_key ?? null };
 }
 
-function summarize(config: PlatformConfig, eventType: string, payload: Record<string, unknown>): string {
-  if (config.sourcePlatform === "ground_truth_hub") {
-    const guest = String(payload.guest_name ?? payload.guest ?? "guest");
-    const room = payload.room ? ` · room ${String(payload.room)}` : "";
-    const message = String(payload.message ?? payload.summary ?? payload.note ?? "signal received");
-    if (eventType.startsWith("booking.")) return `GTH ${eventType.replace(".", " ")}: ${guest}${room}`;
-    if (eventType === "guest_message.received") return `GTH guest message${room}: ${message}`;
-    if (eventType === "guest_request.created") return `GTH guest request${room}: ${message}`;
-    if (eventType.startsWith("payment.")) return `GTH ${eventType.replace(".", " ")}: ${String(payload.amount ?? "?")} ${String(payload.currency ?? "")}${payload.guest_name ? ` · ${guest}` : ""}`;
-  }
-  return `${config.displayName} ${eventType}: signal received`;
+function detailFor(config: PlatformConfig, eventType: string, payload: Record<string, unknown>): SignalDetail {
+  return buildSignalDetail(config.displayName, eventType, payload);
 }
 
 export async function handleExternalPlatformWebhook(req: Request, forcedSource?: string): Promise<Response> {
@@ -413,7 +409,8 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   }
   if (!convId) return rejectWithDiagnostic(admin, { ...baseDiagnostic, signatureStatus: "valid" }, "could not establish conversation", 500);
 
-  const content = summarize(config, eventType, payload as Record<string, unknown>);
+  const detail = detailFor(config, eventType, payload as Record<string, unknown>);
+  const content = detail.title;
   const { data: ins, error: insErr } = await admin
     .from("messages")
     .insert({
@@ -427,6 +424,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
         event_type: eventType,
         idempotency_key: idempotencyKey,
         external_payload: payload,
+        detail_lines: detail.lines,
         signal_only: true,
         needs_review: true,
         confidence: "low",
@@ -453,10 +451,41 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     entity_type: "capture",
     entity_id: ins.id,
     event: `${config.auditPrefix}captured`,
-    payload: { source_platform: config.sourcePlatform, event_type: eventType, idempotency_key: idempotencyKey, summary: content.slice(0, 200) },
+    payload: {
+      source_platform: config.sourcePlatform,
+      event_type: eventType,
+      idempotency_key: idempotencyKey,
+      summary: content.slice(0, 200),
+      detail_lines: detail.lines,
+    },
   });
 
   await recordDiagnostic(admin, { ...baseDiagnostic, signatureStatus: "valid", accepted: true });
 
-  return json({ ok: true, source_platform: config.sourcePlatform, event_type: eventType, capture_id: ins.id });
+  // Immediate reach. The capture already landed, so a delivery problem must
+  // never fail the webhook — worst case the signal waits for Today.
+  let reach = { reached: false, reason: "not_attempted" as string };
+  try {
+    reach = await reachInboundSignal(admin, {
+      ownerId,
+      displayName: config.displayName,
+      sourcePlatform: config.sourcePlatform,
+      eventType,
+      payload: payload as Record<string, unknown>,
+      captureId: ins.id,
+      idempotencyKey,
+    });
+  } catch (e) {
+    console.warn("inbound reach failed", e instanceof Error ? e.message : e);
+    reach = { reached: false, reason: "send_failed" };
+  }
+
+  return json({
+    ok: true,
+    source_platform: config.sourcePlatform,
+    event_type: eventType,
+    capture_id: ins.id,
+    reached: reach.reached,
+    reach_reason: reach.reason,
+  });
 }
