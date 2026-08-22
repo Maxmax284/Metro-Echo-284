@@ -107,8 +107,7 @@ export function commitmentCollisionToSignal(
   if (c.status !== "open") return null;
   const due = ms(c.due_at);
   if (!Number.isFinite(due) || due <= now) return null;
-  // Only worth saying while the collision can still be moved.
-  if (due - now > 2 * 24 * 60 * MIN / 60) { /* keeps the 48h horizon readable */ }
+  // Only worth saying inside a 48h horizon, while it can still be moved.
   if (due - now > 48 * 60 * MIN) return null;
 
   const clash = events.find((e) => {
