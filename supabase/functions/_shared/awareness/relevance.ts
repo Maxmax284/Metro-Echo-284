@@ -61,7 +61,7 @@ export function scoreRelevance(
   signal: AwarenessSignal,
   ctx: RelevanceContext = {},
 ): RelevanceResult {
-  const impact = clamp01(BASE_IMPACT[signal.type] ?? 0.3);
+  const impact = clamp01(signalBaseImpact(signal.type));
   const time = clamp01(timeSensitivity(ctx.hoursUntilDue));
 
   // Change magnitude: an unresolved situation that has been sitting is a bigger
