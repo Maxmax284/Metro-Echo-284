@@ -12,6 +12,11 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { applyServerScope, resolveScopeContext, serverScopeFields } from "../_shared/authContext.ts";
 import {
+  calendarSignals,
+  signalDedupeKey,
+  type CalendarEventRow,
+} from "../_shared/awareness/index.ts";
+import {
   detectDriftingCommitment,
   detectSilentProject,
   detectUnreadRisk,
@@ -339,11 +344,49 @@ Deno.serve(async (req: Request) => {
           seen: Boolean(a.risk_acknowledged_at),
         }));
 
-        const signal = rankDrift([
-          detectUnreadRisk(risks, nowMs),
-          detectDriftingCommitment(commitments, nowMs),
-          detectSilentProject(projects, nowMs),
-        ]);
+        // The calendar sense, on open: something imminent beats every slow
+        // drift signal, so it is checked first. Facts only — no writes back to
+        // the calendar, ever.
+        const { data: calendarRows } = await applyServerScope(
+          supabase
+            .from("calendar_events")
+            .select("id, title, location, starts_at, ends_at, all_day, feed_id") as any,
+          scope,
+        )
+          .gte("starts_at", new Date(nowMs).toISOString())
+          .lte("starts_at", new Date(nowMs + 3 * 24 * 60 * 60 * 1000).toISOString())
+          .limit(200);
+
+        const calSignals = calendarSignals(
+          (calendarRows ?? []) as CalendarEventRow[],
+          commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at, status: c.status })),
+          { userId: scope.userId, organizationId: scope.scope.organizationId },
+          nowMs,
+        );
+
+        if (calSignals.length) {
+          const lead = calSignals[0];
+          driftState = "proposed";
+          nudges.push({
+            kind: lead.type,
+            title: lead.summary,
+            body: `${lead.why} ${lead.nextStep}`,
+            related_entity_type: lead.entityType,
+            related_entity_id: lead.entityId,
+            priority: 80,
+            dedupe_key: scopedKey(signalDedupeKey(lead)),
+            expires_at: new Date(nowMs + 12 * 60 * 60 * 1000).toISOString(),
+          });
+        }
+
+        const signal = calSignals.length
+          ? null
+          : rankDrift([
+              detectUnreadRisk(risks, nowMs),
+              detectDriftingCommitment(commitments, nowMs),
+              detectSilentProject(projects, nowMs),
+            ]);
+
 
         if (signal) {
           driftState = "proposed";
