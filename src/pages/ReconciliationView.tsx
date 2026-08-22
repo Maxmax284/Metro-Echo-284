@@ -27,7 +27,7 @@ import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date
 import { cn } from "@/lib/utils";
 
 const PLATFORM_DISPLAY: Record<string, string> = {
-  ground_truth_hub: "Ground Truth Hub",
+  ground_truth_hub: "LMT Camp State",
   campcore: "CampCore",
   fenrir_lock: "Fenrir Lock",
   website_forms: "Website Forms",

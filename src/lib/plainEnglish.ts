@@ -66,7 +66,7 @@ export function confidenceWord(raw?: string | null): ConfidenceWord {
 
 // ── Platform / source display ───────────────────────────────────────────────
 const PLATFORM_DISPLAY: Record<string, string> = {
-  ground_truth_hub: "GroundStay",
+  ground_truth_hub: "LMT Camp State",
   gth: "GroundStay",
   campcore: "CampCore",
   fenrir_lock: "Fenrir",

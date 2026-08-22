@@ -9,3 +9,4 @@ export * from "./evaluate.ts";
 export * from "./adapters.ts";
 export * from "./adapters-more.ts";
 export * from "./resolve.ts";
+export * from "./inbound.ts";
