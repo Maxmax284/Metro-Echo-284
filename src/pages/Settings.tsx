@@ -24,6 +24,7 @@ import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
 import { BrandVoiceSection } from "@/components/settings/BrandVoiceSection";
+import { CalendarFeedsSection } from "@/components/settings/CalendarFeedsSection";
 
 const MODES: UsageMode[] = ["conservative", "balanced", "power", "custom", "manual", "lockdown"];
 
@@ -155,6 +156,8 @@ export default function Settings() {
 
       <FollowOneNoteDemo open={demoOpen} onOpenChange={setDemoOpen} />
 
+
+      <CalendarFeedsSection />
 
       <TimeRemindersSection />
 
