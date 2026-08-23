@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
         body: body || `(empty email from ${from})`,
         tags: ["imported", "email"],
         organization_id: addr.default_organization_id ?? null,
-        project_id: addr.default_project_id ?? null,
+        
         metadata: { from, to, subject, ingested_file_id: file?.id, scope: addr.default_scope ?? "personal" },
       })
       .select("id")
