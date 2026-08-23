@@ -664,6 +664,15 @@ Deno.serve(async (req: Request) => {
       }
 
 
+      let calendarFeedCount = 0;
+      if (prefs.sensor_consent?.calendar !== false) {
+        const { count } = await sb
+          .from("calendar_feeds")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", p.id);
+        calendarFeedCount = count ?? 0;
+      }
+
       const { data: memberships } = await sb
         .from("organization_members")
         .select("organization_id")
@@ -682,7 +691,9 @@ Deno.serve(async (req: Request) => {
           messagingOptIn: prefs.telegram_awareness_enabled === true,
           messagingLinked: messagingLinked,
         }, {
-          calendar: sensorAllowed(prefs, "calendar"),
+          // Adding a feed IS consent for the calendar sense; the toggle can
+          // withdraw it without deleting the feed.
+          calendar: sensorAllowed(prefs, "calendar") || calendarFeedCount > 0,
           postureHold: postureHolds(prefs, "attention", now.getTime()),
         });
         if (outcome === "proposed") proposed++;
