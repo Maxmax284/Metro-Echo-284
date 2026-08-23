@@ -15,14 +15,20 @@ import { cn } from "@/lib/utils";
 
 export function LiveBulletin({
   live,
+  seed = [],
   connected,
   onNavigate,
 }: {
   live: LiveEvent[];
+  /** Already-recorded changes, so the board reads as a board even before
+      anything new lands. Live arrivals get pushed on top of these. */
+  seed?: LiveEvent[];
   connected: boolean;
   onNavigate: (k: SurfaceKey) => void;
 }) {
-  if (live.length === 0) return null;
+  const liveIds = new Set(live.map((e) => e.id));
+  const rows = [...live, ...seed.filter((e) => !liveIds.has(e.id))].slice(0, 6);
+  if (rows.length === 0) return null;
 
   return (
     <section className="vanta-focus-card vanta-card vanta-notch border border-transparent p-4">
@@ -35,7 +41,8 @@ export function LiveBulletin({
       </div>
 
       <ul className="mt-3 space-y-1.5">
-        {live.slice(0, 5).map((e) => {
+        {rows.map((e) => {
+          const isNew = liveIds.has(e.id);
           const where = eventWhere(e.entity_type);
           return (
             <li key={e.id}>
@@ -43,7 +50,7 @@ export function LiveBulletin({
                 onClick={() => onNavigate(where.surface as SurfaceKey)}
                 className={cn(
                   "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
-                  "vanta-bulletin-row",
+                  isNew && "vanta-bulletin-row",
                   MOTION_ROW,
                   MOTION_FOCUS,
                   LEAD_BAR,
@@ -54,6 +61,11 @@ export function LiveBulletin({
                   {humanizeEvent(e.event)}
                   <span className="text-muted-foreground"> — filed in {where.label}</span>
                 </span>
+                {isNew ? (
+                  <MachineText className="shrink-0 rounded-full bg-primary/15 px-1.5 text-[9px] text-primary">
+                    new
+                  </MachineText>
+                ) : null}
                 <MachineText className="shrink-0 text-[10px] text-muted-foreground">
                   {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                 </MachineText>
@@ -64,7 +76,7 @@ export function LiveBulletin({
         })}
       </ul>
       <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-        Arrivals only. Nothing here ran on its own — every line is something already recorded.
+        Every line is something already recorded. Tap one to open where it landed. Nothing here ran on its own.
       </p>
     </section>
   );

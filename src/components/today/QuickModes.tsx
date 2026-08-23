@@ -54,7 +54,9 @@ function Pill({
 export function QuickModes() {
   const { context, setPosture } = useVantaContext();
   const { prefs, update } = useUserPreferences();
-  const [open, setOpen] = useState(false);
+  // Open by default: these are the switches worth seeing, and hiding them was
+  // just Settings with extra steps.
+  const [open, setOpen] = useState(true);
 
   const current = context.posture ?? null;
 

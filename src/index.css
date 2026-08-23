@@ -904,10 +904,10 @@ html.vanta-exhale-once body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.9;
   background-image:
-    linear-gradient(to right, hsl(var(--primary) / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.05) 1px, transparent 1px);
+    linear-gradient(to right, hsl(var(--primary) / 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.09) 1px, transparent 1px);
   background-size: 96px 96px, 96px 96px;
   mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
   -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
