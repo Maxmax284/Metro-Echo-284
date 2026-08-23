@@ -40,6 +40,12 @@ export type Tool = {
   buildPrompt?: (ctx: ToolBuildCtx) => string;
   /** Direct-action tool id: handled by CompanionTools' action router. */
   directAction?: "open-sherlock" | "open-research";
+  /** Scopes this tool may run in. Omitted = any scope. */
+  allowedScopes?: ToolScope[];
+  /** Which structured block the tool's answer should land as. */
+  outputBlockType?: ToolOutputBlock;
+  /** Registry-only capability: never offered in the slash menu / tool tray. */
+  hiddenFromDirectInvocation?: boolean;
   auditEvent?: string;
 };
 
