@@ -36,7 +36,6 @@ import { exportDraftDocx } from "@/lib/documentDocxExport";
 
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
-import { useCompanion } from "@/components/companion/CompanionContext";
 import { useAskContext } from "@/hooks/useAskContext";
 import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
 import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
@@ -63,7 +62,6 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
 
 
   const [revisionText, setRevisionText] = useState("");
-  const { openWithPrefill } = useCompanion();
   const { openAskWithContext } = useAskContext();
 
   const isDraft = !!doc && isDraftDocument(doc);

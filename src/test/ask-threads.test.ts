@@ -59,3 +59,20 @@ describe("plain time", () => {
     expect(relTime(null, now)).toBe("");
   });
 });
+
+describe("thread outputs", () => {
+  it("summarizes aftermath with plural forms", () => {
+    expect(outputChips({ draft: 2, note: 1 })).toEqual(["2 drafts", "1 note"]);
+    expect(outputSummary({ draft: 2, note: 1 })).toBe("2 drafts · 1 note");
+  });
+
+  it("stays quiet when a thread produced nothing", () => {
+    expect(outputSummary(null)).toBeNull();
+    expect(outputSummary({ draft: 0 })).toBeNull();
+  });
+
+  it("bumps one counter without losing the others", () => {
+    expect(bumpOutput({ draft: 1, note: 2 }, "draft")).toEqual({ draft: 2, note: 2 });
+    expect(bumpOutput(undefined, "commitment")).toEqual({ commitment: 1 });
+  });
+});
