@@ -4,6 +4,7 @@ import {
   groupAttention,
   quietSummary,
   securityLine,
+  stateOfDay,
   type DigestAction,
   type DigestCommitment,
   type DigestEvent,
@@ -139,5 +140,35 @@ describe("Today reads stay scoped", () => {
     const q = fakeQuery();
     applyScope(q, toScope({ kind: "workspace", organization_id: "org-1" } as any));
     expect(q.calls).toContain("eq:organization_id=org-1");
+  });
+});
+
+describe("stateOfDay", () => {
+  it("leads with what is past due", () => {
+    expect(stateOfDay({ overdue: 2, waitingOnYou: 1, dueToday: 0 })).toBe(
+      "2 promises are past their date and one thing is waiting on your approval.",
+    );
+  });
+
+  it("joins three clauses in plain English", () => {
+    expect(stateOfDay({ overdue: 1, waitingOnYou: 2, dueToday: 3 })).toBe(
+      "One promise is past its date, 2 things are waiting on your approval and 3 promises land today.",
+    );
+  });
+
+  it("says nothing is pressing, and what did move", () => {
+    expect(stateOfDay({ overdue: 0, waitingOnYou: 0, dueToday: 0, captures: 1 })).toBe(
+      "Nothing is pressing and one new capture came in.",
+    );
+    expect(stateOfDay({ overdue: 0, waitingOnYou: 0, dueToday: 0 })).toBe("Nothing is pressing.");
+  });
+
+  it("appends the noticed clause without stacking sentences", () => {
+    expect(stateOfDay({ overdue: 0, waitingOnYou: 0, dueToday: 0, noticed: true })).toBe(
+      "Nothing is pressing. Vanta noticed something worth a look.",
+    );
+    expect(stateOfDay({ overdue: 1, waitingOnYou: 0, dueToday: 0, noticed: true })).toBe(
+      "One promise is past its date. Vanta also noticed something worth a look.",
+    );
   });
 });
