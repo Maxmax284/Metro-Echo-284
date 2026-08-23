@@ -234,7 +234,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       <QuickModes />
 
-      <LiveBulletin live={live} connected={connected} onNavigate={onNavigate} />
+      <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
 
       {loadingCritical ? (
         <LoadingState rows={2} label="Pulling together your day" />
