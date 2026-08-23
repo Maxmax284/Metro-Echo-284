@@ -14,3 +14,4 @@ export * from "./resolve.ts";
 export * from "./inbound.ts";
 export * from "./compress.ts";
 export * from "./context.ts";
+export * from "./prefs.ts";

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { CurrentContextProvider } from "@/providers/CurrentContextProvider";
+import { VantaContextProvider } from "@/providers/VantaContextProvider";
 import { AwarenessProvider } from "@/providers/AwarenessProvider";
 import { WorkspaceProvider } from "@/providers/WorkspaceProvider";
 import { CompanionProvider } from "@/components/companion/CompanionContext";
@@ -45,6 +46,7 @@ const App = () => (
             <EntityProvider>
               <CanvasProvider>
                 <CurrentContextProvider>
+                 <VantaContextProvider>
                   <AwarenessProvider>
                     <WorkspaceProvider>
                       <CompanionProvider>
@@ -75,6 +77,7 @@ const App = () => (
                       </CompanionProvider>
                     </WorkspaceProvider>
                   </AwarenessProvider>
+                 </VantaContextProvider>
                 </CurrentContextProvider>
               </CanvasProvider>
             </EntityProvider>
