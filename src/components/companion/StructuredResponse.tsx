@@ -132,7 +132,7 @@ function Blocks({
           default:
             return null;
         }
-      })}
+      })()))}
     </div>
   );
 }
@@ -141,20 +141,31 @@ function Blocks({
  * Structured renderer for assistant text. Falls back to plain prose when the
  * answer has no structure (short replies, mid-stream partials).
  *
- * The container arrives once — 4px rise plus fade — so a structured object
- * reads as something placed into the conversation. Individual lines never
- * animate.
+ * The container arrives once, then each top-level block lands in sequence, so
+ * a structured answer reads as something being assembled rather than a wall
+ * appearing at once. Blocks already on screen never re-animate: while tokens
+ * are still arriving we only animate the blocks that are genuinely new, which
+ * is what makes streaming feel like writing instead of redrawing. The gap
+ * between landings is the per-device Feel setting.
  */
 export function StructuredResponse({ text }: { text: string }) {
   const blocks = parseVantaBlocks(text);
+  /* How many top-level blocks were already on screen last render. */
+  const settled = useRef(0);
+  const landFrom = Math.min(settled.current, blocks.length);
+  useEffect(() => {
+    settled.current = blocks.length;
+  }, [blocks.length]);
+
   if (!blocks.length) return null;
   if (!isStructured(blocks)) {
     return <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-foreground/95">{text}</div>;
   }
   return (
     <div className={MOTION_ARRIVAL}>
-      <Blocks blocks={blocks} />
+      <Blocks blocks={blocks} landFrom={landFrom} />
     </div>
   );
 }
+
 
