@@ -12,7 +12,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAskThreads } from "@/providers/AskThreadProvider";
-import { relTime, threadLabel, type AskThread } from "@/lib/askThreads";
+import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
 
 function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
@@ -54,6 +54,11 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
           )}
           {archived && <span className="text-muted-foreground/70">archived</span>}
         </span>
+        {outputSummary(t.outputs) && (
+          <span className="mt-0.5 block font-mono text-[10px] text-primary/80">
+            {outputSummary(t.outputs)}
+          </span>
+        )}
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

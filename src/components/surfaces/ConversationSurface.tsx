@@ -78,7 +78,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const isOwner = useIsOwner();
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
-  const { activeId: convId, ensureThread, noteActivity } = useAskThreads();
+  const { activeId: convId, ensureThread, noteActivity, recordOutput } = useAskThreads();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -90,6 +90,11 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const internalIntent = useIntentHandler((ack) => {
     const meta = RECEIPT_META[ack.kind];
     if (!meta) return;
+    // Threads remember their aftermath, so the spine can say what came of them.
+    if (convId) {
+      const outKind = ack.kind === "stage_action" ? "draft" : ack.kind === "add_commitment" ? "commitment" : "note";
+      void recordOutput(convId, outKind);
+    }
     setMsgs((prev) => [
       ...prev,
       {
