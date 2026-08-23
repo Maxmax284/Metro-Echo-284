@@ -40,6 +40,15 @@ export function CompanionWidget() {
   const isMobile = useIsMobile();
   const onIntent = useIntentHandler();
   const location = useLocation();
+  const { active } = useAskThreads();
+
+  const inAskRoom = context.surface === "ask";
+  const producedSummary = outputSummary(active?.outputs);
+  const suggestPromotion = shouldSuggestPromotion({
+    messageCount: active ? 1 : 0,
+    hasOutputs: !!producedSummary,
+    inAskRoom,
+  });
 
   if (!user || location.pathname === "/auth") return null;
 
