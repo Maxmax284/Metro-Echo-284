@@ -23,6 +23,8 @@ export type UserPreferences = {
   brand_voice?: "neutral" | "east_coast";
   brand_voice_intensity?: 1 | 2 | 3;
   brand_voice_no_jargon?: boolean;
+  /** Per-sensor consent. Absent means off. */
+  sensor_consent?: Record<string, boolean>;
   intake?: Record<string, unknown>;
 };
 
@@ -43,6 +45,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   brand_voice: "neutral",
   brand_voice_intensity: 2,
   brand_voice_no_jargon: true,
+  sensor_consent: {},
   intake: {},
 };
 
