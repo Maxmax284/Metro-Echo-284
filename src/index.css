@@ -941,7 +941,7 @@ html.vanta-exhale-once body {
   50%  { transform: translate3d(20%, 14%, 0) scale(1.25); opacity: 0.8; }
   100% { transform: translate3d(-22%, -12%, 0) scale(1); opacity: 0.35; }
 }
-}
+
 
 /* Live dot: the one place that loops on the dashboard, and only while the
    realtime channel is genuinely connected. */
