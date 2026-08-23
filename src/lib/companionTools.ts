@@ -19,6 +19,12 @@ export type ToolSurface =
 
 export type ToolProvider = "none" | "lovable-ai" | "serpapi" | "open-meteo";
 
+/** Scope a tool is allowed to run in — scope is absolute, tools included. */
+export type ToolScope = "personal" | "organization" | "admin";
+
+/** Structured block a tool's output should render as (see vantaBlocks). */
+export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list";
+
 export type ToolBuildCtx = {
   surface: string;
   placeLabel?: string;
