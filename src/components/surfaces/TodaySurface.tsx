@@ -35,7 +35,7 @@ import {
   SectionRail,
   TickRow,
 } from "@/components/ui/instrument";
-import { todayHeadline } from "@/lib/todayDigest";
+import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { cn } from "@/lib/utils";
 import { markFlipOriginFromEvent } from "@/lib/flip";
 
@@ -129,7 +129,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     captureCount,
     security,
     quiet,
-    quietLine,
     noticed,
     dismissNoticed,
     followNoticed,
