@@ -122,8 +122,12 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   }, [msgs, streaming]);
 
   const send = async (text: string) => {
-    if (!session || !convId) return;
+    if (!session) return;
+    const threadId = convId ?? (await ensureThread());
+    if (!threadId) return;
+    const firstTurn = msgs.length === 0;
     setMsgs((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
+
     setBusy(true);
     setStreaming(true);
 
