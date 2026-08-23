@@ -76,7 +76,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const isOwner = useIsOwner();
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
-  const [convId, setConvId] = useState<string | null>(null);
+  const { activeId: convId, ensureThread, noteActivity } = useAskThreads();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -98,35 +98,22 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     ]);
   });
 
-  // Load or create conversation
+  // Thread selection lives in the shared engine; this surface only loads turns.
   useEffect(() => {
-    if (!session) return;
+    if (!session || !convId) { setMsgs([]); return; }
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("conversations")
-        .select("id")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (data?.id) {
-        setConvId(data.id);
-        const { data: m } = await supabase
-          .from("messages")
-          .select("id, role, content, metadata")
-          .eq("conversation_id", data.id)
-          .order("created_at", { ascending: true })
-          .limit(200);
-        setMsgs((m ?? []).filter((x) => x.role !== "system" && x.role !== "tool") as any);
-      } else {
-        const { data: c } = await supabase
-          .from("conversations")
-          .insert({ user_id: session.user.id, title: "New thread" })
-          .select("id")
-          .single();
-        setConvId(c?.id ?? null);
-      }
+      const { data: m } = await supabase
+        .from("messages")
+        .select("id, role, content, metadata")
+        .eq("conversation_id", convId)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (!cancelled) setMsgs((m ?? []).filter((x) => x.role !== "system" && x.role !== "tool") as any);
     })();
-  }, [session]);
+    return () => { cancelled = true; };
+  }, [session, convId]);
+
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
