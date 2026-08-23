@@ -205,9 +205,21 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         >
           {loadingCritical ? "Reading this space…" : headline}
         </h1>
+        {/* One grounded state-of-day line: where today's pressure actually
+            comes from, counted off real records. Not advice, not a slogan. */}
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-          {loadingCritical ? "" : quiet ? quietLine : "Nothing runs until you approve it."}
+          {loadingCritical
+            ? ""
+            : stateOfDay({
+                overdue: digest.overdue.length,
+                waitingOnYou: digest.actions.length,
+                dueToday: dueToday.length,
+                changed: events.length,
+                captures: captureCount,
+                noticed: !!noticed,
+              })}
         </p>
+
         {/* Data as decoration: the trace is a real 14-day read of recorded
             activity in this scope. Flat when nothing happened. */}
         {loadingCritical ? null : (
