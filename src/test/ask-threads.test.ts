@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  autoTitle, isFiller, relTime, sortThreads, threadMatchesScope, type AskThread,
+  autoTitle, bumpOutput, isFiller, outputChips, outputSummary, relTime, sortThreads,
+  threadMatchesScope, type AskThread,
 } from "@/lib/askThreads";
 
 const base: AskThread = {
@@ -57,5 +58,22 @@ describe("plain time", () => {
     expect(relTime("2026-01-10T09:00:00Z", now)).toBe("3h ago");
     expect(relTime("2026-01-09T09:00:00Z", now)).toBe("yesterday");
     expect(relTime(null, now)).toBe("");
+  });
+});
+
+describe("thread outputs", () => {
+  it("summarizes aftermath with plural forms", () => {
+    expect(outputChips({ draft: 2, note: 1 })).toEqual(["2 drafts", "1 note"]);
+    expect(outputSummary({ draft: 2, note: 1 })).toBe("2 drafts · 1 note");
+  });
+
+  it("stays quiet when a thread produced nothing", () => {
+    expect(outputSummary(null)).toBeNull();
+    expect(outputSummary({ draft: 0 })).toBeNull();
+  });
+
+  it("bumps one counter without losing the others", () => {
+    expect(bumpOutput({ draft: 1, note: 2 }, "draft")).toEqual({ draft: 2, note: 2 });
+    expect(bumpOutput(undefined, "commitment")).toEqual({ commitment: 1 });
   });
 });

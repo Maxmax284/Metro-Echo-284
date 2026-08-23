@@ -36,7 +36,7 @@ import { exportDraftDocx } from "@/lib/documentDocxExport";
 
 import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
-import { useCompanion } from "@/components/companion/CompanionContext";
+import { useAskContext } from "@/hooks/useAskContext";
 import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
 import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
 import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
@@ -62,7 +62,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
 
 
   const [revisionText, setRevisionText] = useState("");
-  const { openWithPrefill } = useCompanion();
+  const { openAskWithContext } = useAskContext();
 
   const isDraft = !!doc && isDraftDocument(doc);
 
@@ -249,7 +249,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       soften:  `Suggest a warmer, more human revision of "${doc.title}" while keeping every commitment the same.`,
       boardroom: `Suggest a more boardroom-formal revision of "${doc.title}". Keep the structure; tighten the language.`,
     };
-    openWithPrefill(map[kind]);
+    void openAskWithContext({ kind: "document", id: doc.id, label: doc.title, question: map[kind] });
     onOpenChange(false);
   }
 
@@ -263,7 +263,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       "money":
         `Summarize the money terms in "${doc.title}" — fees, deposits, late charges, refunds, who pays when. Plain English, no legal interpretation.`,
     };
-    openWithPrefill(map[kind]);
+    void openAskWithContext({ kind: "document", id: doc.id, label: doc.title, question: map[kind] });
     onOpenChange(false);
   }
 

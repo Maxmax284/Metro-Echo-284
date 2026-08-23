@@ -8,12 +8,12 @@ import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import {
-  autoTitle, isLive, sortThreads, threadMatchesScope,
-  type AskThread, type ThreadContext,
+  autoTitle, bumpOutput, isLive, sortThreads, threadMatchesScope,
+  type AskThread, type ThreadContext, type ThreadOutputKind,
 } from "@/lib/askThreads";
 
 const COLS =
-  "id, title, scope, organization_id, pinned, archived_at, deleted_at, auto_titled, context_kind, context_id, context_label, last_message_at, created_at, updated_at";
+  "id, title, scope, organization_id, pinned, archived_at, deleted_at, auto_titled, context_kind, context_id, context_label, last_message_at, outputs, created_at, updated_at";
 
 type Ctx = {
   threads: AskThread[];
@@ -35,6 +35,8 @@ type Ctx = {
   bindContext: (id: string, context: ThreadContext | null) => Promise<void>;
   /** Called by the conversation surface after a message lands. */
   noteActivity: (id: string, firstUserText?: string) => Promise<void>;
+  /** Record what a thread produced, so the spine can show its aftermath. */
+  recordOutput: (id: string, kind: ThreadOutputKind) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -173,12 +175,17 @@ export function AskThreadProvider({ children }: { children: ReactNode }) {
     await patch(id, values);
   }, [all, patch]);
 
+  const recordOutput = useCallback(async (id: string, kind: ThreadOutputKind) => {
+    const t = all.find((x) => x.id === id);
+    await patch(id, { outputs: bumpOutput(t?.outputs, kind) });
+  }, [all, patch]);
+
   const value = useMemo<Ctx>(() => ({
     threads, archived, active, activeId, loading,
     openThread: setActiveId,
-    newThread, ensureThread, rename, togglePin, archive, remove, bindContext, noteActivity,
+    newThread, ensureThread, rename, togglePin, archive, remove, bindContext, noteActivity, recordOutput,
     refresh: load,
-  }), [threads, archived, active, activeId, loading, newThread, ensureThread, rename, togglePin, archive, remove, bindContext, noteActivity, load]);
+  }), [threads, archived, active, activeId, loading, newThread, ensureThread, rename, togglePin, archive, remove, bindContext, noteActivity, recordOutput, load]);
 
   return <AskThreadCtx.Provider value={value}>{children}</AskThreadCtx.Provider>;
 }
