@@ -50,14 +50,16 @@ export function isFiller(text: string): boolean {
 export function autoTitle(text: string): string | null {
   if (isFiller(text)) return null;
   let t = text.trim().replace(/\s+/g, " ");
-  t = t.replace(
+  // Strip stacked lead-ins ("hey so I need you to ...") until intent is left.
+  const LEAD_INS = [
     /^(hey|hi|hello|yo|ok|okay|so|umm?|hmm?)[,\s]+/i,
-    "",
-  );
-  t = t.replace(
-    /^(can you|could you|please|i want you to|i need you to|i need|i want|help me|let'?s)\s+/i,
-    "",
-  );
+    /^(can you|could you|would you|please|i want you to|i need you to|i need|i want|help me|let'?s)\s+/i,
+  ];
+  for (let pass = 0; pass < 4; pass++) {
+    const before = t;
+    for (const re of LEAD_INS) t = t.replace(re, "");
+    if (t === before) break;
+  }
   t = t.replace(/^(tell me about|explain|look into|check on)\s+/i, "");
   t = t.replace(/[?.!,;:]+$/, "");
   if (!t) return null;
