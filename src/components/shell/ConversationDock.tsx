@@ -2,7 +2,8 @@ import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
-import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
+import { COMPANION_TOOLS, getToolAvailability, type Tool, type ToolScope } from "@/lib/companionTools";
+import { useScope } from "@/hooks/useScope";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
 
