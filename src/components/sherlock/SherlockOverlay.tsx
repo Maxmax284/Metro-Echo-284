@@ -175,6 +175,9 @@ export function SherlockOverlay() {
     toast.success("Reminder set for tomorrow.");
   };
 
+  /* The overlay grows out of the finding row that opened it. */
+  const flipRef = useFlipEntry<HTMLDivElement>(open);
+
   const opLabel = operation ? vantaSay.sherlock.operation[operation as keyof typeof vantaSay.sherlock.operation] : null;
 
   return (

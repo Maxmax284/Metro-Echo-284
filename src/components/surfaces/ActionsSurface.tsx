@@ -60,8 +60,11 @@ export function ActionsSurface() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [approvalTarget, setApprovalTarget] = useState<Action | null>(null);
+  /* Matched travel: each dialog grows out of the button that opened it. */
+  const approvalFlipRef = useFlipEntry<HTMLDivElement>(!!approvalTarget);
   const [confirmText, setConfirmText] = useState("");
   const [rollbackTarget, setRollbackTarget] = useState<Action | null>(null);
+  const rollbackFlipRef = useFlipEntry<HTMLDivElement>(!!rollbackTarget);
   const [executeTarget, setExecuteTarget] = useState<Action | null>(null);
   const [rollbackText, setRollbackText] = useState("");
   const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
