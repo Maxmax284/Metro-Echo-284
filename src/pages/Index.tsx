@@ -50,6 +50,7 @@ import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBa
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
+import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
 
