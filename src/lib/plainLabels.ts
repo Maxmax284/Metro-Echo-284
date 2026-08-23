@@ -1,3 +1,4 @@
+import type { SurfaceId } from "@/lib/navigation";
 // Plain-English labels — single source of truth.
 // Use these everywhere instead of raw event/type tokens. Goal: a returning
 // user can answer "what changed / what needs me / where did this go" without
@@ -267,3 +268,35 @@ export const BRIEFING_SECTION_LABEL = {
   useful_connections: "Connected items",
   source_grounding: "Why this appears here",
 } as const;
+
+/**
+ * Where a recorded change actually landed — the missing half of "30 recorded".
+ * Maps an audit entity type to a plain place name and the room that owns it, so
+ * a bulletin line can say what happened *and* where to go look.
+ */
+export function eventWhere(entityType: string | null | undefined): { label: string; surface: SurfaceId } {
+  const t = (entityType ?? "").toLowerCase();
+  const map: Record<string, { label: string; surface: SurfaceId }> = {
+    note: { label: "Memory", surface: "memory" },
+    capture: { label: "Inbox", surface: "inbox" },
+    message: { label: "Ask", surface: "ask" },
+    commitment: { label: "Promises", surface: "commitments" },
+    action: { label: "Actions", surface: "actions" },
+    project: { label: "Projects", surface: "projects" },
+    project_item: { label: "Projects", surface: "projects" },
+    entity: { label: "Projects", surface: "projects" },
+    document: { label: "Documents", surface: "work" },
+    file: { label: "Files", surface: "inbox" },
+    ingested_file: { label: "Files", surface: "inbox" },
+    brief: { label: "Briefs", surface: "briefs" },
+    brief_export: { label: "Briefs", surface: "briefs" },
+    calendar_event: { label: "Schedule", surface: "schedule" },
+    calendar_feed: { label: "Schedule", surface: "schedule" },
+    nudge: { label: "Today", surface: "today" },
+    sherlock_finding: { label: "Sherlock", surface: "sherlock" },
+    place: { label: "Awareness", surface: "awareness" },
+    telegram: { label: "Receipts", surface: "receipts" },
+    cross_link: { label: "Projects", surface: "projects" },
+  };
+  return map[t] ?? { label: "Receipts", surface: "receipts" };
+}
