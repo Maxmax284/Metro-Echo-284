@@ -124,6 +124,22 @@ export function CompanionWidget() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {!inAskRoom && (
+            <button
+              type="button"
+              onClick={() => { promoteToAskRoom(); close(); }}
+              title={producedSummary ? `This thread made ${producedSummary}` : "Same thread, more room"}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] uppercase tracking-wider ring-1 transition-colors",
+                suggestPromotion
+                  ? "bg-primary/15 text-primary ring-primary/40"
+                  : "bg-surface-elevated text-muted-foreground ring-border/60 hover:text-foreground",
+              )}
+            >
+              Continue in Ask
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
+          )}
           <Button
             variant="ghost"
             size="icon"
