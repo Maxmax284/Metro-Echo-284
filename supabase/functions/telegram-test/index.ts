@@ -76,6 +76,7 @@ Deno.serve(async (req: Request) => {
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
+    const receipts: { chat_id: string; message_id?: number }[] = [];
     for (const l of links) {
       try {
         const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
@@ -87,12 +88,34 @@ Deno.serve(async (req: Request) => {
           },
           body: JSON.stringify({ chat_id: l.chat_id, text }),
         });
-        if (r.ok) {
+        // A 200 from the gateway is not proof of delivery. Telegram answers
+        // with { ok, result: { message_id } } on a real send and { ok: false,
+        // description } when the chat is unreachable (bot never started, chat
+        // blocked, wrong bot token). Trust the body, not the status.
+        const raw = await r.text();
+        let body: any = null;
+        try { body = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
+        const result = body?.result ?? body?.data?.result ?? null;
+        const messageId = typeof result?.message_id === "number" ? result.message_id : undefined;
+        const okFlag = body?.ok ?? body?.data?.ok;
+        const delivered = r.ok && okFlag !== false && messageId !== undefined;
+
+        if (delivered) {
           sent++;
+          receipts.push({ chat_id: String(l.chat_id), message_id: messageId });
         } else {
           failed++;
-          const j = await r.json().catch(() => ({}));
-          errors.push(JSON.stringify(j).slice(0, 160));
+          const description =
+            body?.description ?? body?.data?.description ?? body?.error ?? body?.message ?? null;
+          if (description) {
+            errors.push(String(description).slice(0, 200));
+          } else if (r.ok && messageId === undefined) {
+            errors.push(
+              "The delivery service accepted it but Telegram never confirmed a message. Re-link this chat: open the bot in Telegram, send /start, then link again.",
+            );
+          } else {
+            errors.push((raw || `HTTP ${r.status}`).slice(0, 200));
+          }
         }
       } catch (e) {
         failed++;
@@ -104,10 +127,10 @@ Deno.serve(async (req: Request) => {
       user_id: user.id,
       entity_type: "telegram",
       event: "telegram.test_sent",
-      payload: { sent, failed, public_url_present: !!publicUrl, errors: errors.slice(0, 3) },
+      payload: { sent, failed, public_url_present: !!publicUrl, receipts, errors: errors.slice(0, 3) },
     });
 
-    return new Response(JSON.stringify({ sent, failed, public_url_present: !!publicUrl, errors }), {
+    return new Response(JSON.stringify({ sent, failed, public_url_present: !!publicUrl, receipts, errors }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

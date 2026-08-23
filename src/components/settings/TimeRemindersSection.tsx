@@ -56,17 +56,29 @@ export function TimeRemindersSection() {
         toast.error({ title: "Test send failed" });
         return;
       }
-      const res = (data ?? {}) as { sent?: number; failed?: number; reason?: string; errors?: string[] };
+      const res = (data ?? {}) as {
+        sent?: number;
+        failed?: number;
+        reason?: string;
+        errors?: string[];
+        receipts?: { message_id?: number }[];
+      };
       if (res.reason === "no_links") {
         setTestResult("No Telegram chat is linked yet. Link your chat first, then test again.");
         return;
       }
       if ((res.sent ?? 0) > 0) {
-        setTestResult("Sent. Check Telegram — it's formatted like a real notice.");
-        toast.success({ title: "Test notice sent" });
+        const id = res.receipts?.[0]?.message_id;
+        setTestResult(
+          id
+            ? `Delivered — Telegram confirmed message #${id}. It's formatted like a real notice.`
+            : "Delivered. Check Telegram — it's formatted like a real notice.",
+        );
+        toast.success({ title: "Test notice delivered" });
         return;
       }
       setTestResult(res.errors?.[0] ? `Couldn't send: ${res.errors[0]}` : "Couldn't send — nothing was delivered.");
+
     } catch (e) {
       setTestResult(e instanceof Error ? e.message : "Couldn't send.");
     } finally {

@@ -7,7 +7,10 @@ import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/Toda
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { AgendaStrip } from "@/components/today/AgendaStrip";
 import { NoticedRow } from "@/components/today/NoticedRow";
-import { humanizeEvent } from "@/lib/plainLabels";
+import { LiveBulletin } from "@/components/today/LiveBulletin";
+import { QuickModes } from "@/components/today/QuickModes";
+import { useLiveFeed } from "@/hooks/useLiveFeed";
+import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
 import { applyWeather, deriveWeather } from "@/lib/weather";
@@ -110,6 +113,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
+  /* Live layer: the board refetches itself when something genuinely lands. */
+  const { live, pulse, connected } = useLiveFeed({ onChange: () => digest.refresh() });
 
   const {
     loadingCritical,
@@ -166,7 +171,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     setChangeSignal(true);
     const t = window.setTimeout(() => setChangeSignal(false), 800);
     return () => window.clearTimeout(t);
-  }, [events.length, loadingCritical]);
+  }, [events.length, pulse, loadingCritical]);
 
 
   return (
@@ -210,7 +215,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             <ActivityTrace timestamps={allEvents.map((e) => e.created_at)} />
             <span className="h-px flex-1 bg-border/50" />
             <MachineText className="text-[10px] text-muted-foreground">
-              <RollingNumber value={allEvents.length} /> recorded
+              <RollingNumber value={allEvents.length} /> changes recorded
             </MachineText>
           </div>
         )}
@@ -226,6 +231,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
 
       <AskVantaBar />
+
+      <QuickModes />
+
+      <LiveBulletin live={live} connected={connected} onNavigate={onNavigate} />
 
       {loadingCritical ? (
         <LoadingState rows={2} label="Pulling together your day" />
@@ -438,21 +447,34 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   />
                 ) : (
                   <ul className="space-y-1.5">
-                    {events.map((e) => (
-                      <li
-                        key={e.id}
-                        className={cn(
-                          "flex items-center gap-2 text-xs text-foreground/90",
-                          LEAD_BAR,
-                          "text-primary/50",
-                        )}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-foreground/90">{humanizeEvent(e.event)}</span>
-                        <MachineText className="shrink-0 text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
-                        </MachineText>
-                      </li>
-                    ))}
+                    {events.map((e) => {
+                      /* A count is not an answer: each line names the change and
+                         the place it landed, and taps through to that place. */
+                      const where = eventWhere(e.entity_type);
+                      return (
+                        <li key={e.id}>
+                          <button
+                            onClick={() => onNavigate(where.surface as SurfaceKey)}
+                            className={cn(
+                              "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+                              MOTION_ROW,
+                              MOTION_FOCUS,
+                              LEAD_BAR,
+                              "text-primary/50",
+                            )}
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
+                              {humanizeEvent(e.event)}
+                              <span className="text-muted-foreground"> — filed in {where.label}</span>
+                            </span>
+                            <MachineText className="shrink-0 text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+                            </MachineText>
+                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </Section>
