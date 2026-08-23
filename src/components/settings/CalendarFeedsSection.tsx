@@ -12,6 +12,7 @@ import { CalendarClock, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
+import { listProjects, type Project } from "@/lib/projects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +27,7 @@ type Feed = {
   last_synced_at: string | null;
   last_error: string | null;
   event_count: number;
+  default_project_id: string | null;
 };
 
 type UpcomingEvent = { id: string; title: string | null; starts_at: string; all_day: boolean };
@@ -51,18 +53,20 @@ function eventLine(e: UpcomingEvent): string {
 
 export function CalendarFeedsSection() {
   const { session } = useAuth();
-  const { applyScope, withScope, key } = useScope();
+  const { applyScope, withScope, key, orgId, destination } = useScope();
   const [feeds, setFeeds] = useState<Feed[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [upcoming, setUpcoming] = useState<UpcomingEvent[]>([]);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
 
+
   const load = useCallback(async () => {
     if (!session) return;
     const { data } = await applyScope(
-      supabase.from("calendar_feeds").select("id,label,url,active,last_synced_at,last_error,event_count"),
+      supabase.from("calendar_feeds").select("id,label,url,active,last_synced_at,last_error,event_count,default_project_id"),
     ).order("created_at", { ascending: true });
     setFeeds((data ?? []) as Feed[]);
 
@@ -73,8 +77,23 @@ export function CalendarFeedsSection() {
       .order("starts_at", { ascending: true })
       .limit(3);
     setUpcoming((ev ?? []) as UpcomingEvent[]);
+
+    setProjects(
+      await listProjects({ userId: session.user.id, organizationId: orgId ?? null }).catch(() => [] as Project[]),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, key]);
+  }, [session, key, orgId]);
+
+  /** Everything from this calendar gets filed here from now on. Existing links stay. */
+  const setDefaultProject = async (feed: Feed, projectId: string | null) => {
+    await supabase.from("calendar_feeds").update({ default_project_id: projectId }).eq("id", feed.id);
+    setFeeds((prev) => prev.map((f) => (f.id === feed.id ? { ...f, default_project_id: projectId } : f)));
+    toast.success(
+      projectId
+        ? "New entries from this calendar will be filed there."
+        : "New entries from this calendar will not be filed anywhere.",
+    );
+  };
 
   useEffect(() => {
     void load();
@@ -154,6 +173,11 @@ export function CalendarFeedsSection() {
             Link a calendar and Vanta can see what starts soon and when a promise lands mid-meeting.
             Reading only — nothing gets changed, moved or answered on your behalf.
           </p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Calendars linked here belong to{" "}
+            <span className="font-medium text-foreground/80">{destination}</span> and are invisible in every
+            other room. Entries show on Today and in the week ahead in Work.
+          </p>
         </div>
         <Button
           size="sm"
@@ -219,6 +243,20 @@ export function CalendarFeedsSection() {
                 {f.last_error && (
                   <div className="mt-1 text-[11px] text-destructive">{f.last_error}</div>
                 )}
+                <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="shrink-0">Files under</span>
+                  <select
+                    value={f.default_project_id ?? ""}
+                    onChange={(e) => void setDefaultProject(f, e.target.value || null)}
+                    className="vanta-focus min-w-0 flex-1 rounded-md bg-background/60 px-1.5 py-1 text-[11px] ring-1 ring-border/60"
+                    aria-label={`Default project for ${f.label}`}
+                  >
+                    <option value="">Nothing by default</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
               <Switch
                 checked={f.active}

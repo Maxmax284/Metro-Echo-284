@@ -580,6 +580,7 @@ export type Database = {
           id: string
           location: string | null
           organization_id: string | null
+          project_id: string | null
           starts_at: string
           title: string | null
           uid: string
@@ -594,6 +595,7 @@ export type Database = {
           id?: string
           location?: string | null
           organization_id?: string | null
+          project_id?: string | null
           starts_at: string
           title?: string | null
           uid: string
@@ -608,6 +610,7 @@ export type Database = {
           id?: string
           location?: string | null
           organization_id?: string | null
+          project_id?: string | null
           starts_at?: string
           title?: string | null
           uid?: string
@@ -622,12 +625,20 @@ export type Database = {
             referencedRelation: "calendar_feeds"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       calendar_feeds: {
         Row: {
           active: boolean
           created_at: string
+          default_project_id: string | null
           event_count: number
           id: string
           label: string
@@ -641,6 +652,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          default_project_id?: string | null
           event_count?: number
           id?: string
           label: string
@@ -654,6 +666,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          default_project_id?: string | null
           event_count?: number
           id?: string
           label?: string
@@ -664,7 +677,15 @@ export type Database = {
           url?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feeds_default_project_id_fkey"
+            columns: ["default_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       capture_routes: {
         Row: {
