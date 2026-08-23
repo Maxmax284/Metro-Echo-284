@@ -105,6 +105,12 @@ export function CalendarFeedsSection() {
       toast.error("Paste the secret address of a calendar. It has to start with https or webcal.");
       return;
     }
+    if (/calendar\.google\.com\/calendar\/ical\/.*\/public\/basic\.ics/i.test(cleanUrl)) {
+      toast.error(
+        "That is Google's public address, which only works if the calendar is public. Copy \"Secret address in iCal format\" instead — it has private- in the middle.",
+      );
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase
       .from("calendar_feeds")
