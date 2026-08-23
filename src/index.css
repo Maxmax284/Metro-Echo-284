@@ -982,3 +982,249 @@ html.vanta-exhale-once body {
   animation: vanta-block-in var(--motion-base) var(--ease-out) both;
   animation-delay: calc(var(--block-i, 0) * var(--block-stagger, 60ms));
 }
+
+/* ================= Ambient backdrop and skins =========================
+   One fixed layer behind the whole app, built from the same five sub-layers
+   in every skin. A skin only changes the weights and hues — it never adds a
+   second system, and it never carries information.
+
+   Attributes on <html>:
+     data-skin     substation | blueprint | neon-rain | concrete | circuit
+     data-ambient  on | off        (off keeps the wash, kills every motion)
+     data-room     the room you are in — the world has four corners
+     data-idle     the world dims after a minute of no input
+     data-overlay  something is layered above the room
+     data-press    a finger is being held down
+   Weather (data-weather) still tints on top of all of it.                */
+
+:root {
+  --bd-hue-a: 188;             /* leading wash hue */
+  --bd-hue-b: 268;             /* trailing wash hue */
+  --bd-wash-a: 0.09;
+  --bd-wash-b: 0.07;
+  --bd-grid: 0;
+  --bd-grid-size: 44px;
+  --bd-streaks: 0;
+  --bd-traces: 0;
+  --bd-sheen: 0;
+  --bd-sheen-hue: 188;
+  --bd-grain: 0.03;
+  --bd-scroll: 0px;
+  --bd-x: 50%;
+  --bd-y: 0%;
+  --bd-throw-x: 50%;
+  --bd-throw-y: 50%;
+}
+
+.vanta-backdrop {
+  position: fixed;
+  inset: -6vh -6vw;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  transform: translate3d(0, calc(var(--bd-scroll) * -1), 0);
+  transition: transform 120ms linear, opacity 1200ms var(--ease-out), filter 320ms var(--ease-out);
+}
+.vanta-backdrop > * {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Idle: the world quiets down. First input snaps it back awake. */
+html[data-idle="on"] .vanta-backdrop { opacity: 0.5; filter: saturate(0.75); }
+/* Depth of field: the room recedes behind a sheet or dialog. */
+html[data-overlay="on"] .vanta-backdrop { filter: blur(1.5px) saturate(0.9); }
+
+/* ---- Layer 1: the wash. Present in every skin, moves with the room. ---- */
+.vanta-bd-wash {
+  background-image:
+    radial-gradient(1200px 620px at var(--bd-x) var(--bd-y), hsl(var(--bd-hue-a) 70% 50% / var(--bd-wash-a)), transparent 62%),
+    radial-gradient(860px 460px at calc(100% - var(--bd-x)) calc(100% - var(--bd-y)), hsl(var(--bd-hue-b) 70% 52% / var(--bd-wash-b)), transparent 62%);
+  transition: background-image 900ms var(--ease-out), background-position 900ms var(--ease-out);
+}
+
+/* Room-keyed position: switching rooms moves the world instead of swapping it. */
+html[data-room="today"]    { --bd-x: 30%; --bd-y: -6%; }
+html[data-room="work"]     { --bd-x: 68%; --bd-y: 4%;  }
+html[data-room="ask"]      { --bd-x: 50%; --bd-y: 18%; }
+html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
+
+/* ---- Layer 2: drafting grid + registration ticks ---- */
+.vanta-bd-grid {
+  opacity: var(--bd-grid);
+  background-image:
+    linear-gradient(to right, hsl(var(--bd-hue-a) 60% 60% / 0.5) 0 1px, transparent 1px 100%),
+    linear-gradient(to bottom, hsl(var(--bd-hue-a) 60% 60% / 0.5) 0 1px, transparent 1px 100%);
+  background-size: var(--bd-grid-size) var(--bd-grid-size);
+  transition: opacity 600ms var(--ease-out);
+  animation: vanta-bd-grid-drift 90s linear infinite;
+}
+/* Held finger: the grid brightens under the press, then settles. */
+html[data-press="on"] .vanta-bd-grid { opacity: calc(var(--bd-grid) * 2.4); }
+
+@keyframes vanta-bd-grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: var(--bd-grid-size) var(--bd-grid-size), var(--bd-grid-size) var(--bd-grid-size); }
+}
+
+/* ---- Layer 3: neon rain. Vertical light streaks, slow. ---- */
+.vanta-bd-streaks {
+  opacity: var(--bd-streaks);
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      transparent 0 62px,
+      hsl(var(--bd-hue-a) 90% 62% / 0.5) 62px 63px,
+      transparent 63px 150px,
+      hsl(var(--bd-hue-b) 90% 68% / 0.4) 150px 151px,
+      transparent 151px 260px
+    );
+  background-size: 260px 160%;
+  transition: opacity 600ms var(--ease-out);
+  animation: vanta-bd-rain 26s linear infinite;
+}
+@keyframes vanta-bd-rain {
+  from { background-position: 0 -30%; }
+  to   { background-position: -260px 30%; }
+}
+
+/* ---- Layer 4: circuit traces, with one pulse travelling a single path ---- */
+.vanta-bd-traces {
+  opacity: var(--bd-traces);
+  background-image:
+    linear-gradient(90deg, transparent 0 12%, hsl(var(--bd-hue-a) 70% 58% / 0.55) 12% 12.1%, transparent 12.1% 100%),
+    linear-gradient(90deg, transparent 0 71%, hsl(var(--bd-hue-b) 70% 62% / 0.45) 71% 71.1%, transparent 71.1% 100%),
+    linear-gradient(0deg, transparent 0 34%, hsl(var(--bd-hue-a) 70% 58% / 0.35) 34% 34.08%, transparent 34.08% 100%),
+    linear-gradient(0deg, transparent 0 78%, hsl(var(--bd-hue-a) 70% 58% / 0.28) 78% 78.08%, transparent 78.08% 100%);
+  transition: opacity 600ms var(--ease-out);
+}
+.vanta-bd-traces::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  width: 2px;
+  height: 90px;
+  margin-left: -0.5px;
+  background: linear-gradient(180deg, transparent, hsl(var(--bd-hue-a) 90% 70% / 0.9), transparent);
+  animation: vanta-bd-trace-pulse 11s var(--ease-out) infinite;
+}
+@keyframes vanta-bd-trace-pulse {
+  0%, 70%   { transform: translateY(-20vh); opacity: 0; }
+  74%       { opacity: 1; }
+  100%      { transform: translateY(110vh); opacity: 0; }
+}
+
+/* ---- Layer 5: wet-asphalt sheen along the bottom edge ---- */
+.vanta-bd-sheen {
+  opacity: var(--bd-sheen);
+  background-image:
+    radial-gradient(140% 60% at 50% 118%, hsl(var(--bd-sheen-hue) 80% 58% / 0.4), transparent 60%);
+  transition: opacity 600ms var(--ease-out);
+  animation: vanta-bd-sheen-breathe 38s ease-in-out infinite alternate;
+}
+@keyframes vanta-bd-sheen-breathe {
+  from { transform: translateY(2%) scaleX(1); }
+  to   { transform: translateY(-1%) scaleX(1.08); }
+}
+
+/* ---- Grain on the backdrop itself, weighted per skin ---- */
+.vanta-bd-grain {
+  background-image: var(--noise);
+  background-size: 140px 140px;
+  opacity: var(--bd-grain);
+  mix-blend-mode: overlay;
+  transition: opacity 1200ms var(--ease-out);
+}
+
+/* ---- One-shot events: room scan and nav light throw ---- */
+.vanta-bd-scan {
+  background: linear-gradient(90deg, transparent, hsl(var(--bd-hue-a) 90% 66% / 0.16), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: vanta-bd-scan-pass 420ms var(--ease-out) 1 both;
+}
+@keyframes vanta-bd-scan-pass {
+  from { background-position: -40% 0; opacity: 1; }
+  to   { background-position: 140% 0; opacity: 0; }
+}
+
+.vanta-bd-throw {
+  top: var(--bd-throw-y);
+  left: 0;
+  right: 0;
+  height: 1px;
+  bottom: auto;
+  background: linear-gradient(90deg, transparent, hsl(var(--vanta-accent) / 0.7), transparent);
+  transform-origin: var(--bd-throw-x) 50%;
+  animation: vanta-bd-throw-pass 520ms var(--ease-out) 1 both;
+}
+@keyframes vanta-bd-throw-pass {
+  from { transform: scaleX(0.02); opacity: 0.9; }
+  to   { transform: scaleX(1); opacity: 0; }
+}
+
+/* ---- Skins: weights only ---- */
+html[data-skin="blueprint"] {
+  --bd-wash-a: 0.06; --bd-wash-b: 0.03;
+  --bd-grid: 0.06; --bd-grid-size: 40px;
+  --bd-grain: 0.022;
+}
+html[data-skin="neon-rain"] {
+  --bd-hue-a: 194; --bd-hue-b: 282;
+  --bd-wash-a: 0.11; --bd-wash-b: 0.12;
+  --bd-streaks: 0.09;
+  --bd-sheen: 0.5; --bd-sheen-hue: 282;
+  --bd-grain: 0.04;
+}
+html[data-skin="concrete"] {
+  --bd-hue-a: 32; --bd-hue-b: 24;
+  --bd-wash-a: 0.05; --bd-wash-b: 0.03;
+  --bd-sheen: 0.28; --bd-sheen-hue: 38;
+  --bd-grain: 0.085;
+}
+html[data-skin="circuit"] {
+  --bd-hue-a: 176; --bd-hue-b: 268;
+  --bd-wash-a: 0.07; --bd-wash-b: 0.06;
+  --bd-traces: 0.16;
+  --bd-grid: 0.02; --bd-grid-size: 88px;
+  --bd-grain: 0.03;
+}
+
+/* Ambient off: keep the wash, drop everything that moves or textures. */
+html[data-ambient="off"] .vanta-bd-grid,
+html[data-ambient="off"] .vanta-bd-streaks,
+html[data-ambient="off"] .vanta-bd-traces,
+html[data-ambient="off"] .vanta-bd-sheen,
+html[data-ambient="off"] .vanta-bd-grain,
+html[data-ambient="off"] .vanta-bd-scan,
+html[data-ambient="off"] .vanta-bd-throw { display: none; }
+
+/* ---- Tap pulse: square-cut, dies in place. Never a Material circle. ---- */
+.vanta-pulse {
+  position: fixed;
+  z-index: 60;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  pointer-events: none;
+  border: 1px solid hsl(var(--primary) / 0.55);
+  border-radius: 1px;
+  animation: vanta-pulse-out 320ms var(--ease-out) 1 both;
+}
+@keyframes vanta-pulse-out {
+  from { transform: scale(0.5); opacity: 0.9; }
+  to   { transform: scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vanta-backdrop,
+  .vanta-bd-grid,
+  .vanta-bd-streaks,
+  .vanta-bd-traces::after,
+  .vanta-bd-sheen { animation: none !important; transition: none !important; }
+  .vanta-bd-scan,
+  .vanta-bd-throw,
+  .vanta-pulse { display: none !important; }
+  .vanta-backdrop { transform: none !important; }
+}

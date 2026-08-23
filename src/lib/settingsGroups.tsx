@@ -18,6 +18,7 @@ import { SensorConsentSection } from "@/components/settings/SensorConsentSection
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
+import { SkinSection } from "@/components/settings/SkinSection";
 import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
 import { UsageModeSection } from "@/components/settings/UsageModeSection";
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
@@ -111,7 +112,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     title: "Look and feel",
     blurb: "How fast rooms change and how much the interface moves.",
     icon: Sparkles,
-    render: () => <RoomMotionSection />,
+    render: () => (
+      <>
+        <SkinSection />
+        <RoomMotionSection />
+      </>
+    ),
   },
   {
     id: "connections",
