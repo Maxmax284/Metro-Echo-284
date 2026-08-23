@@ -22,6 +22,7 @@ import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { WeekAgenda } from "@/components/work/WeekAgenda";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   MachineLabel,
@@ -232,9 +233,19 @@ function Desk({
     MOTION_FOCUS,
   );
 
+  /* Matched travel: record the desk's rect on the way out so whatever opens
+     next grows out of this row rather than fading in from nowhere. */
   return href ? (
-    <a href={href} className={className}>{body}</a>
+    <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
   ) : (
-    <button onClick={onOpen} className={className}>{body}</button>
+    <button
+      onClick={(e) => {
+        markFlipOriginFromEvent(e);
+        onOpen?.();
+      }}
+      className={className}
+    >
+      {body}
+    </button>
   );
 }

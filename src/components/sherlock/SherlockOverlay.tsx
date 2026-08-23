@@ -11,6 +11,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
 import { cn } from "@/lib/utils";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 
 const sections: Array<{
   key: keyof SherlockFindings;
@@ -174,6 +175,9 @@ export function SherlockOverlay() {
     toast.success("Reminder set for tomorrow.");
   };
 
+  /* The overlay grows out of the finding row that opened it. */
+  const flipRef = useFlipEntry<HTMLDivElement>(open);
+
   const opLabel = operation ? vantaSay.sherlock.operation[operation as keyof typeof vantaSay.sherlock.operation] : null;
 
   return (
@@ -181,6 +185,7 @@ export function SherlockOverlay() {
       <SheetContent
         side="right"
         className="w-full sm:max-w-md md:max-w-lg p-0 flex flex-col"
+        ref={flipRef}
       >
         <SheetHeader className="border-b border-border/60 px-4 py-3">
           <div className="flex items-center gap-2">

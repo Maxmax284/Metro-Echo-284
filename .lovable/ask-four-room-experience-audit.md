@@ -56,14 +56,14 @@ Status legend: **Live** / **Partial** / **Missing** / **Duplicated** / **Reuse**
 |---|---|---|
 | Motion primitives (single system) | Live | `motion.ts`, `flip.ts`, `motionPrefs.ts`, kinetic focus in `index.css`. Reduced motion respected. |
 | Today living bulletin | Live | `LiveBulletin.tsx`, rolling counters, staggered arrival, nouns-not-numbers change rows. |
-| Today state-of-day line | Partial | Digest header exists; not yet a single grounded pressure sentence. |
+| Today state-of-day line | Live | `stateOfDay()` in `todayDigest.ts` — one grounded sentence counted off overdue / waiting-on-you / due-today, with a quiet variant and a noticed clause. |
 | Work week horizon | Live | `WeekAgenda.tsx` + `AgendaStrip.tsx`. |
 | Work project vitality | Live | Real-data sparklines, `projectHealth.ts`, stale markers. |
-| Ask streaming / thinking state | Partial | Writing caret + `ProcessingLine.tsx`; blocks do not land one at a time, no per-block settle. |
+| Ask streaming / thinking state | Live | Writing caret + `ProcessingLine.tsx`; `StructuredResponse` lands top-level blocks one at a time (`.vanta-block-in`, stagger from Feel) and only animates blocks that are genuinely new mid-stream. |
 | Receipts physicality | Live | `ReceiptSlip.tsx` thermal treatment, expand to full audit trail. |
-| FLIP shared travel breadth | Partial | Wired for sheets and re-entry; not yet on Work project cards, action rows, Sherlock findings. |
+| FLIP shared travel breadth | Live | Origins now persist through a route change (sessionStorage, 2.2s). Wired on Work desk rows, Actions approve/rollback dialogs, Sherlock finding rows and the Sherlock overlay. |
 | Shell weather / ambient grid | Live | `weather.ts` → `data-weather`, drifting topographic background. |
-| Feel intensity levels | Partial | Room-motion duration/drift controls exist; no Minimal/Standard/Expressive preset. |
+| Feel intensity levels | Live | `FEEL_PRESETS` (Minimal / Standard / Expressive) in `motionPrefs.ts`, plus an answer-landing stagger. Hand-tuning reports itself as Custom. Settings → Feel. |
 | Four-room navigation unchanged | Live | Today / Work / Ask / Receipts. No fifth room. |
 
 ## Intentionally deferred
@@ -76,10 +76,8 @@ Status legend: **Live** / **Partial** / **Missing** / **Duplicated** / **Reuse**
 
 `SECURITY DEFINER` function execute grants and two `public` extensions predate this work. Tracked separately; not part of the Ask pass.
 
-## Recommended next order
+## Remaining
 
-1. `openAskWithContext()` contract + remaining context bindings (1B).
-2. Thread output references (1B).
-3. Desktop dock → right-side drawer + explicit "Continue in Ask" promotion (1C).
-4. Registry metadata + `/` menu (1D).
-5. Ask block-by-block streaming settle, Today state-of-day line, broader FLIP (2C/2A/2E).
+1. Remaining context bindings (commitment, action, receipt, Sherlock, Today-signal, calendar, mailbox) — 1B.
+2. Inbound email attachments into file intake — Phase 0. Needs storage work, not a UI pass.
+3. Mobile quick-Ask drag escalation (sheet already expands by control) — 1C.

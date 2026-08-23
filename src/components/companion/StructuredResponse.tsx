@@ -1,6 +1,8 @@
 // Renders a Vanta answer as structured blocks: a lead summary, status rows,
 // checklists, section cards, approval notices and next steps.
+import { useEffect, useRef } from "react";
 import { AlertTriangle, CheckCircle2, CircleDot, ShieldCheck } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { parseVantaBlocks, isStructured, type Tone, type VantaBlock } from "@/lib/vantaBlocks";
 import { InlineApprovalActions } from "@/components/companion/InlineApprovalActions";

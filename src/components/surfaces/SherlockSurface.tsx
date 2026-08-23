@@ -10,6 +10,7 @@ import { Loader2, Search, Sparkles, Maximize2, FileText, CheckSquare, ListTodo, 
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
@@ -340,7 +341,8 @@ export function SherlockSurface() {
                 <div className="flex items-start justify-between gap-2">
                   <button
                     className="flex-1 text-left"
-                    onClick={() => {
+                    onClick={(e) => {
+                      markFlipOriginFromEvent(e);
                       const next = isOpen ? null : inv.id;
                       setOpenId(next);
                       if (next) loadFindings(next);
@@ -364,12 +366,13 @@ export function SherlockSurface() {
                       variant="ghost"
                       className="h-7 w-7 p-0"
                       title="Open in overlay"
-                      onClick={() =>
-                        openSherlock(
+                      onClick={(e) => {
+                        markFlipOriginFromEvent(e);
+                        return openSherlock(
                           { entity_type: "freeform", title: inv.question, text: inv.summary ?? "" },
                           inv.summary ? { summary: inv.summary } : undefined,
-                        )
-                      }
+                        );
+                      }}
                     >
                       <Maximize2 className="h-3 w-3" />
                     </Button>
