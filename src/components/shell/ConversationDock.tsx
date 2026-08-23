@@ -103,12 +103,12 @@ export function ConversationDock({
   const paletteTools: Tool[] = useMemo(() => {
     if (!slashActive) return [];
     return COMPANION_TOOLS.filter((t) => {
-      const a = getToolAvailability(t, { surface, mode, isOwner, controls });
+      const a = getToolAvailability(t, { surface, mode, isOwner, controls, scope: toolScope, direct: true });
       if (!a.available) return false;
       if (!slashQuery) return true;
       return t.label.toLowerCase().includes(slashQuery) || t.id.includes(slashQuery);
     });
-  }, [slashActive, slashQuery, surface, mode, isOwner, controls]);
+  }, [slashActive, slashQuery, surface, mode, isOwner, controls, toolScope]);
 
   useEffect(() => { setPaletteIdx(0); }, [slashQuery, slashActive]);
 
