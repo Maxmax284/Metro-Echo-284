@@ -157,6 +157,5 @@ export function ProjectReentryCard({
       ) : null}
     </div>
 
-    </div>
   );
 }
