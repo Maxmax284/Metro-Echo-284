@@ -8,6 +8,7 @@ import { CurrentContextProvider } from "@/providers/CurrentContextProvider";
 import { VantaContextProvider } from "@/providers/VantaContextProvider";
 import { AwarenessProvider } from "@/providers/AwarenessProvider";
 import { WorkspaceProvider } from "@/providers/WorkspaceProvider";
+import { AskThreadProvider } from "@/providers/AskThreadProvider";
 import { CompanionProvider } from "@/components/companion/CompanionContext";
 import { CompanionWidget } from "@/components/companion/CompanionWidget";
 import { SherlockProvider } from "@/components/sherlock/SherlockContext";
@@ -50,6 +51,7 @@ const App = () => (
                  <VantaContextProvider>
                   <AwarenessProvider>
                     <WorkspaceProvider>
+                     <AskThreadProvider>
                       <CompanionProvider>
                         <ActivityProvider>
                           <TutorialProvider>
@@ -77,6 +79,7 @@ const App = () => (
                           </TutorialProvider>
                         </ActivityProvider>
                       </CompanionProvider>
+                     </AskThreadProvider>
                     </WorkspaceProvider>
                   </AwarenessProvider>
                  </VantaContextProvider>

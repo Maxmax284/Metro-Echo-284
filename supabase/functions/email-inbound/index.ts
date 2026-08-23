@@ -58,7 +58,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: addr } = await supabase
       .from("email_inbound_addresses")
-      .select("user_id, active")
+      .select("user_id, active, default_organization_id, default_scope, default_project_id")
       .eq("slug", slug)
       .maybeSingle();
     if (!addr || !addr.active) {
@@ -83,7 +83,8 @@ Deno.serve(async (req: Request) => {
         size_bytes: body.length,
         source: "email",
         status: "processing",
-        metadata: { from, to, subject },
+        organization_id: addr.default_organization_id ?? null,
+        metadata: { from, to, subject, scope: addr.default_scope ?? "personal" },
       })
       .select("id")
       .single();
@@ -95,7 +96,9 @@ Deno.serve(async (req: Request) => {
         title,
         body: body || `(empty email from ${from})`,
         tags: ["imported", "email"],
-        metadata: { from, to, subject, ingested_file_id: file?.id },
+        organization_id: addr.default_organization_id ?? null,
+        
+        metadata: { from, to, subject, ingested_file_id: file?.id, scope: addr.default_scope ?? "personal" },
       })
       .select("id")
       .single();
@@ -119,7 +122,8 @@ Deno.serve(async (req: Request) => {
     } catch {/* ignore */}
     await supabase.from("audit_log").insert({
       user_id: addr.user_id, entity_type: "note", entity_id: note!.id,
-      event: "email.ingest", payload: { from, subject, slug },
+      event: "email.ingest",
+      payload: { from, subject, slug, organization_id: addr.default_organization_id ?? null, project_id: addr.default_project_id ?? null },
     });
 
     return new Response(JSON.stringify({ ok: true, note_id: note!.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

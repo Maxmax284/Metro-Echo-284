@@ -799,24 +799,54 @@ export type Database = {
       }
       conversations: {
         Row: {
+          archived_at: string | null
+          auto_titled: boolean
+          context_id: string | null
+          context_kind: string | null
+          context_label: string | null
           created_at: string
+          deleted_at: string | null
           id: string
+          last_message_at: string | null
+          organization_id: string | null
+          pinned: boolean
+          scope: string
           state: Json
           title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
+          auto_titled?: boolean
+          context_id?: string | null
+          context_kind?: string | null
+          context_label?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          last_message_at?: string | null
+          organization_id?: string | null
+          pinned?: boolean
+          scope?: string
           state?: Json
           title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          archived_at?: string | null
+          auto_titled?: boolean
+          context_id?: string | null
+          context_kind?: string | null
+          context_label?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          last_message_at?: string | null
+          organization_id?: string | null
+          pinned?: boolean
+          scope?: string
           state?: Json
           title?: string | null
           updated_at?: string
@@ -1248,6 +1278,9 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          default_organization_id: string | null
+          default_project_id: string | null
+          default_scope: string
           id: string
           last_received_at: string | null
           slug: string
@@ -1256,6 +1289,9 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          default_organization_id?: string | null
+          default_project_id?: string | null
+          default_scope?: string
           id?: string
           last_received_at?: string | null
           slug: string
@@ -1264,6 +1300,9 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          default_organization_id?: string | null
+          default_project_id?: string | null
+          default_scope?: string
           id?: string
           last_received_at?: string | null
           slug?: string
