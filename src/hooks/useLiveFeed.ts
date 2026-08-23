@@ -14,7 +14,7 @@ export type LiveEvent = {
   id: string;
   event: string;
   entity_type: string | null;
-  entity_id: string | null;
+  entity_id?: string | null;
   created_at: string;
 };
 
