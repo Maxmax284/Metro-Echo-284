@@ -14,6 +14,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { MachineText } from "@/components/ui/instrument";
 import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { AskAboutButton } from "@/components/ask/AskAboutButton";
 import type { AgendaEvent } from "@/hooks/useAgenda";
 
 export function eventTimeLabel(e: AgendaEvent): string {
@@ -85,6 +86,15 @@ export function AgendaRow({
           ) : null}
         </div>
       </div>
+
+      <AskAboutButton
+        kind="calendar"
+        id={event.id}
+        label={event.title?.trim() || "Calendar entry"}
+        question={`What should I know about “${event.title?.trim() || "this entry"}”?`}
+        size="icon"
+        className={MOTION_FOCUS}
+      />
 
       {showFiling && onSetProject ? (
         <Popover open={open} onOpenChange={setOpen}>

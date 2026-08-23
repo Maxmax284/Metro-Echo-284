@@ -14,6 +14,28 @@ function extractSlug(toField: string | null | undefined): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
+type InboundAttachment = { filename: string; mime: string; bytes: Uint8Array };
+
+const MAX_ATTACHMENTS = 10;
+const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const BODY_FIELDS = new Set([
+  "to", "recipient", "from", "sender", "subject", "text", "html",
+  "body-plain", "body-html", "headers", "envelope", "charsets",
+  "attachment-info", "attachment-count", "spam_score", "dkim", "SPF",
+]);
+
+function safeName(name: string): string {
+  const cleaned = (name || "attachment").replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 120);
+  return cleaned || "attachment";
+}
+
+function b64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64.replace(/\s+/g, ""));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
 function htmlToText(html: string): string {
   return html.replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -33,6 +55,7 @@ Deno.serve(async (req: Request) => {
     );
 
     let to = ""; let from = ""; let subject = ""; let text = ""; let html = "";
+    const attachments: InboundAttachment[] = [];
     const ctype = req.headers.get("content-type") ?? "";
 
     if (ctype.includes("application/json")) {
@@ -40,6 +63,20 @@ Deno.serve(async (req: Request) => {
       to = j.to ?? j.recipient ?? ""; from = j.from ?? j.sender ?? "";
       subject = j.subject ?? ""; text = j.text ?? j["body-plain"] ?? "";
       html = j.html ?? j["body-html"] ?? "";
+      const list = Array.isArray(j.attachments) ? j.attachments : [];
+      for (const a of list.slice(0, MAX_ATTACHMENTS)) {
+        const content = a?.content ?? a?.data ?? a?.Content ?? null;
+        if (typeof content !== "string" || !content) continue;
+        try {
+          const bytes = b64ToBytes(content);
+          if (bytes.byteLength > MAX_ATTACHMENT_BYTES) continue;
+          attachments.push({
+            filename: safeName(a.filename ?? a.name ?? a.Name ?? "attachment"),
+            mime: String(a.contentType ?? a.type ?? a.ContentType ?? "application/octet-stream"),
+            bytes,
+          });
+        } catch { /* skip unreadable attachment */ }
+      }
     } else if (ctype.includes("multipart/form-data") || ctype.includes("application/x-www-form-urlencoded")) {
       const form = await req.formData();
       to = String(form.get("to") ?? form.get("recipient") ?? "");
@@ -47,6 +84,17 @@ Deno.serve(async (req: Request) => {
       subject = String(form.get("subject") ?? "");
       text = String(form.get("text") ?? form.get("body-plain") ?? "");
       html = String(form.get("html") ?? form.get("body-html") ?? "");
+      for (const [key, value] of form.entries()) {
+        if (attachments.length >= MAX_ATTACHMENTS) break;
+        if (BODY_FIELDS.has(key)) continue;
+        if (!(value instanceof File)) continue;
+        if (value.size > MAX_ATTACHMENT_BYTES) continue;
+        attachments.push({
+          filename: safeName(value.name || key),
+          mime: value.type || "application/octet-stream",
+          bytes: new Uint8Array(await value.arrayBuffer()),
+        });
+      }
     } else {
       text = await req.text();
       to = req.headers.get("x-to") ?? ""; from = req.headers.get("x-from") ?? "";
@@ -108,6 +156,52 @@ Deno.serve(async (req: Request) => {
       throw noteErr;
     }
 
+    // Attachments land as files needing review. Nothing is routed or executed;
+    // the file intake surface decides what happens next.
+    const storedAttachments: { id: string; filename: string }[] = [];
+    for (const att of attachments) {
+      const path = `${addr.user_id}/email/${crypto.randomUUID()}-${att.filename}`;
+      const { error: upErr } = await supabase.storage
+        .from("memory-uploads")
+        .upload(path, att.bytes, { contentType: att.mime || undefined, upsert: false });
+      if (upErr) { console.error("email-inbound attachment upload", upErr.message); continue; }
+      const { data: attRow, error: attErr } = await supabase
+        .from("ingested_files")
+        .insert({
+          user_id: addr.user_id,
+          filename: att.filename,
+          mime_type: att.mime,
+          size_bytes: att.bytes.byteLength,
+          storage_path: path,
+          source: "email",
+          status: "pending",
+          review_status: "new",
+          note_id: note!.id,
+          organization_id: addr.default_organization_id ?? null,
+          metadata: { from, to, subject, via: "email_attachment", scope: addr.default_scope ?? "personal" },
+        })
+        .select("id")
+        .single();
+      if (attErr || !attRow) { console.error("email-inbound attachment row", attErr?.message); continue; }
+      storedAttachments.push({ id: attRow.id, filename: att.filename });
+      await supabase.from("audit_log").insert({
+        user_id: addr.user_id, entity_type: "file", entity_id: attRow.id,
+        event: "email.attachment_received",
+        payload: { from, subject, filename: att.filename, note_id: note!.id, bytes: att.bytes.byteLength },
+      });
+    }
+
+    if (storedAttachments.length) {
+      await supabase.from("notes").update({
+        metadata: {
+          from, to, subject, ingested_file_id: file?.id,
+          scope: addr.default_scope ?? "personal",
+          attachment_count: storedAttachments.length,
+          attachment_file_ids: storedAttachments.map((a) => a.id),
+        },
+      }).eq("id", note!.id);
+    }
+
     if (file) await supabase.from("ingested_files").update({ status: "done", note_id: note!.id }).eq("id", file.id);
     await supabase.from("email_inbound_addresses").update({ last_received_at: new Date().toISOString() }).eq("slug", slug);
 
@@ -123,10 +217,10 @@ Deno.serve(async (req: Request) => {
     await supabase.from("audit_log").insert({
       user_id: addr.user_id, entity_type: "note", entity_id: note!.id,
       event: "email.ingest",
-      payload: { from, subject, slug, organization_id: addr.default_organization_id ?? null, project_id: addr.default_project_id ?? null },
+      payload: { from, subject, slug, attachments: storedAttachments.length, organization_id: addr.default_organization_id ?? null, project_id: addr.default_project_id ?? null },
     });
 
-    return new Response(JSON.stringify({ ok: true, note_id: note!.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, note_id: note!.id, attachments: storedAttachments.length }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("email-inbound", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "unknown" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

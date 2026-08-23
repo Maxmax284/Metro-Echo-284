@@ -15,6 +15,7 @@ import { SherlockReviewModal } from "./SherlockReviewModal";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { sherlockWhyFallback } from "@/lib/plainEnglish";
+import { AskAboutButton } from "@/components/ask/AskAboutButton";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
 // "Detected by Sherlock" appears as a small trailing label elsewhere.
@@ -178,6 +179,14 @@ export function SherlockFindingCard({
             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onInspect(finding)}>
               <Eye className="mr-1 h-3 w-3" /> Inspect
             </Button>
+          )}
+          {!finding.sensitive_flag && (
+            <AskAboutButton
+              kind="sherlock"
+              id={finding.id}
+              label={finding.summary?.slice(0, 80) || "Finding"}
+              question="Walk me through this finding and what it changes."
+            />
           )}
           <AttachToProjectMenu
             itemType="finding"

@@ -5,9 +5,11 @@ import { CheckCircle2, Clock, X, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { AskAboutButton } from "@/components/ask/AskAboutButton";
 
 export type CommitmentLike = {
   id: string;
+  title?: string | null;
   due_at: string | null;
   remind_at: string | null;
   status?: string;
@@ -116,6 +118,13 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
 
   return (
     <div className="flex shrink-0 items-center gap-1">
+      <AskAboutButton
+        kind="commitment"
+        id={c.id}
+        label={c.title?.trim() || (isReminder ? "Reminder" : "Commitment")}
+        question={`Where does “${c.title?.trim() || "this one"}” stand?`}
+        size="icon"
+      />
       <button
         onClick={markDone}
         disabled={!!busy}
