@@ -25,6 +25,8 @@ import { StructuredResponse } from "@/components/companion/StructuredResponse";
 import { ProcessingLine } from "@/components/companion/ProcessingLine";
 
 import { useScope } from "@/hooks/useScope";
+import { useAskThreads } from "@/providers/AskThreadProvider";
+
 
 
 type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
