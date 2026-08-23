@@ -164,3 +164,71 @@ export function todayHeadline(input: {
   };
 }
 
+
+/**
+ * The state-of-day line — one grounded sentence under the headline.
+ *
+ * It answers "what is the pressure right now, and where is it coming from",
+ * using only counts of real records. It never advises, never speculates and
+ * never pads. When there is genuinely nothing, it says so in one clause.
+ */
+export function stateOfDay(input: {
+  overdue: number;
+  waitingOnYou: number;
+  dueToday: number;
+  meetingsToday?: number;
+  changed?: number;
+  captures?: number;
+  noticed?: boolean;
+}): string {
+  const clauses: string[] = [];
+
+  if (input.overdue > 0) {
+    clauses.push(
+      input.overdue === 1
+        ? "One promise is past its date"
+        : `${input.overdue} promises are past their date`,
+    );
+  }
+  if (input.waitingOnYou > 0) {
+    clauses.push(
+      input.waitingOnYou === 1
+        ? "one thing is waiting on your approval"
+        : `${input.waitingOnYou} things are waiting on your approval`,
+    );
+  }
+  if (input.dueToday > 0) {
+    clauses.push(
+      input.dueToday === 1 ? "one promise lands today" : `${input.dueToday} promises land today`,
+    );
+  }
+  if ((input.meetingsToday ?? 0) > 0) {
+    const m = input.meetingsToday!;
+    clauses.push(m === 1 ? "one meeting on the calendar" : `${m} meetings on the calendar`);
+  }
+
+  if (clauses.length === 0) {
+    const quiet: string[] = ["Nothing is pressing"];
+    if ((input.captures ?? 0) > 0) {
+      const c = input.captures!;
+      quiet.push(c === 1 ? "one new capture came in" : `${c} new captures came in`);
+    } else if ((input.changed ?? 0) > 0) {
+      const c = input.changed!;
+      quiet.push(c === 1 ? "one thing moved in the last day" : `${c} things moved in the last day`);
+    }
+    let line = `${sentenceJoin(quiet)}.`;
+    if (input.noticed) line += " Vanta noticed something worth a look.";
+    return line;
+  }
+
+  let line = `${sentenceJoin(clauses)}.`;
+  if (input.noticed) line += " Vanta also noticed something worth a look.";
+  return line;
+}
+
+/** "a", "a and b", "a, b and c" — plain English, no Oxford comma. */
+function sentenceJoin(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}

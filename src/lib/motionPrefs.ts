@@ -7,8 +7,13 @@
 //    index.css reads them without any component re-rendering.
 //  - prefers-reduced-motion still wins: the media query in index.css disables
 //    the animations regardless of what's set here.
+//  - "Feel" is the front door: three honest presets. The sliders are still
+//    there for anyone who wants to tune, and tuning marks the feel custom.
 
 const STORE_KEY = "vanta.motion.roomSwap";
+
+/** How expressive the whole app is allowed to be on this device. */
+export type Feel = "minimal" | "standard" | "expressive" | "custom";
 
 export type RoomSwapPrefs = {
   /** Crossfade on/off. Off = instant swap, no ghost layer. */
@@ -17,36 +22,82 @@ export type RoomSwapPrefs = {
   durationMs: number;
   /** Vertical drift of the swap in px. 0 = pure fade, no movement. */
   driftPx: number;
-};
-
-export const ROOM_SWAP_DEFAULTS: RoomSwapPrefs = {
-  enabled: true,
-  durationMs: 200,
-  driftPx: 4,
+  /** Gap between Ask answer blocks landing, in ms. 0 = all at once. */
+  blockStaggerMs: number;
+  /** Which preset produced these numbers. */
+  feel: Feel;
 };
 
 export const ROOM_SWAP_LIMITS = {
   durationMs: { min: 80, max: 420, step: 20 },
   driftPx: { min: 0, max: 12, step: 1 },
+  blockStaggerMs: { min: 0, max: 180, step: 10 },
 };
+
+/** The three presets. Order is the order they are offered. */
+export const FEEL_PRESETS: Record<Exclude<Feel, "custom">, Omit<RoomSwapPrefs, "feel">> = {
+  minimal: { enabled: true, durationMs: 120, driftPx: 0, blockStaggerMs: 0 },
+  standard: { enabled: true, durationMs: 200, driftPx: 4, blockStaggerMs: 60 },
+  expressive: { enabled: true, durationMs: 300, driftPx: 10, blockStaggerMs: 110 },
+};
+
+export const FEEL_COPY: Record<Exclude<Feel, "custom">, { label: string; hint: string }> = {
+  minimal: { label: "Minimal", hint: "Almost nothing moves. Fastest to read." },
+  standard: { label: "Standard", hint: "Movement where it means something." },
+  expressive: { label: "Expressive", hint: "Rooms and answers take a beat to settle." },
+};
+
+export const ROOM_SWAP_DEFAULTS: RoomSwapPrefs = { ...FEEL_PRESETS.standard, feel: "standard" };
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+function num(raw: unknown, fallback: number, range: { min: number; max: number }) {
+  return Number.isFinite(raw as number)
+    ? clamp(Math.round(Number(raw)), range.min, range.max)
+    : fallback;
+}
+
 export function normalizeRoomSwapPrefs(raw: unknown): RoomSwapPrefs {
   const r = (raw ?? {}) as Partial<RoomSwapPrefs>;
-  const d = ROOM_SWAP_LIMITS.durationMs;
-  const p = ROOM_SWAP_LIMITS.driftPx;
+  const feel: Feel =
+    r.feel === "minimal" || r.feel === "standard" || r.feel === "expressive" || r.feel === "custom"
+      ? r.feel
+      : ROOM_SWAP_DEFAULTS.feel;
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : ROOM_SWAP_DEFAULTS.enabled,
-    durationMs: Number.isFinite(r.durationMs)
-      ? clamp(Math.round(Number(r.durationMs)), d.min, d.max)
-      : ROOM_SWAP_DEFAULTS.durationMs,
-    driftPx: Number.isFinite(r.driftPx)
-      ? clamp(Math.round(Number(r.driftPx)), p.min, p.max)
-      : ROOM_SWAP_DEFAULTS.driftPx,
+    durationMs: num(r.durationMs, ROOM_SWAP_DEFAULTS.durationMs, ROOM_SWAP_LIMITS.durationMs),
+    driftPx: num(r.driftPx, ROOM_SWAP_DEFAULTS.driftPx, ROOM_SWAP_LIMITS.driftPx),
+    blockStaggerMs: num(
+      r.blockStaggerMs,
+      ROOM_SWAP_DEFAULTS.blockStaggerMs,
+      ROOM_SWAP_LIMITS.blockStaggerMs,
+    ),
+    feel,
   };
+}
+
+/** Resolve a preset into concrete numbers. Custom keeps whatever is set. */
+export function applyFeelPreset(current: RoomSwapPrefs, feel: Feel): RoomSwapPrefs {
+  if (feel === "custom") return { ...current, feel: "custom" };
+  return { ...FEEL_PRESETS[feel], feel };
+}
+
+/** Which preset (if any) a set of numbers matches. Used to keep the UI honest. */
+export function detectFeel(prefs: Omit<RoomSwapPrefs, "feel">): Feel {
+  for (const key of ["minimal", "standard", "expressive"] as const) {
+    const p = FEEL_PRESETS[key];
+    if (
+      p.enabled === prefs.enabled &&
+      p.durationMs === prefs.durationMs &&
+      p.driftPx === prefs.driftPx &&
+      p.blockStaggerMs === prefs.blockStaggerMs
+    ) {
+      return key;
+    }
+  }
+  return "custom";
 }
 
 export function readRoomSwapPrefs(): RoomSwapPrefs {
@@ -62,16 +113,17 @@ export function readRoomSwapPrefs(): RoomSwapPrefs {
 
 export function writeRoomSwapPrefs(next: RoomSwapPrefs): RoomSwapPrefs {
   const clean = normalizeRoomSwapPrefs(next);
+  const withFeel: RoomSwapPrefs = { ...clean, feel: detectFeel(clean) };
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(STORE_KEY, JSON.stringify(clean));
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(withFeel));
     } catch {
       /* storage blocked — the session still honours the in-memory value */
     }
-    applyRoomSwapPrefs(clean);
-    window.dispatchEvent(new CustomEvent("vanta:room-swap-prefs", { detail: clean }));
+    applyRoomSwapPrefs(withFeel);
+    window.dispatchEvent(new CustomEvent("vanta:room-swap-prefs", { detail: withFeel }));
   }
-  return clean;
+  return withFeel;
 }
 
 /** Push the prefs onto <html> as CSS variables the crossfade reads. */
@@ -82,5 +134,7 @@ export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   root.style.setProperty("--room-swap-ms", `${ms}ms`);
   root.style.setProperty("--room-swap-out-ms", `${Math.round(ms * 0.9)}ms`);
   root.style.setProperty("--room-swap-drift", `${prefs.enabled ? prefs.driftPx : 0}px`);
+  root.style.setProperty("--block-stagger", `${prefs.enabled ? prefs.blockStaggerMs : 0}ms`);
   root.dataset.roomSwap = prefs.enabled ? "on" : "off";
+  root.dataset.feel = prefs.feel;
 }
