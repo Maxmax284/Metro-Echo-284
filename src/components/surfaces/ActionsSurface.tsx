@@ -16,6 +16,7 @@ import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
 import { markFlipOriginFromEvent } from "@/lib/flip";
+import { useFlipEntry } from "@/hooks/useFlipEntry";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 
@@ -208,7 +209,8 @@ export function ActionsSurface() {
                                 size="sm"
                                 className={MOTION_FOCUS}
                                 disabled={busy === a.id}
-                                onClick={() => {
+                                onClick={(e) => {
+                                  markFlipOriginFromEvent(e);
                                   if (a.risk === "low_reversible") {
                                     transition(a, "approved");
                                   } else {
@@ -255,7 +257,7 @@ export function ActionsSurface() {
                               </Button>
                             )}
                             {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={() => { setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
+                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
                                 <RotateCcw className="h-3.5 w-3.5" /> Undo
                               </Button>
                             )}
@@ -300,7 +302,7 @@ export function ActionsSurface() {
       />
 
       <Dialog open={!!approvalTarget} onOpenChange={(o) => !o && setApprovalTarget(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg" ref={approvalFlipRef}>
           {approvalTarget && (() => {
             const t = approvalTarget;
             const Icon = RiskIcon[t.risk];
@@ -395,7 +397,7 @@ export function ActionsSurface() {
       </Dialog>
 
       <Dialog open={!!rollbackTarget} onOpenChange={(o) => !o && setRollbackTarget(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" ref={rollbackFlipRef}>
           {rollbackTarget && (() => {
             const t = rollbackTarget;
             const ok = rollbackText.trim().toLowerCase() === "rollback";

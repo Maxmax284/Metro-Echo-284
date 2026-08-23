@@ -340,7 +340,8 @@ export function SherlockSurface() {
                 <div className="flex items-start justify-between gap-2">
                   <button
                     className="flex-1 text-left"
-                    onClick={() => {
+                    onClick={(e) => {
+                      markFlipOriginFromEvent(e);
                       const next = isOpen ? null : inv.id;
                       setOpenId(next);
                       if (next) loadFindings(next);
@@ -364,12 +365,13 @@ export function SherlockSurface() {
                       variant="ghost"
                       className="h-7 w-7 p-0"
                       title="Open in overlay"
-                      onClick={() =>
-                        openSherlock(
+                      onClick={(e) => {
+                        markFlipOriginFromEvent(e);
+                        return openSherlock(
                           { entity_type: "freeform", title: inv.question, text: inv.summary ?? "" },
                           inv.summary ? { summary: inv.summary } : undefined,
-                        )
-                      }
+                        );
+                      }}
                     >
                       <Maximize2 className="h-3 w-3" />
                     </Button>
