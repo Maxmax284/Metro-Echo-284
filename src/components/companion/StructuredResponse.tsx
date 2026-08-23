@@ -25,11 +25,34 @@ function ToneDot({ tone }: { tone: Tone }) {
   return <Icon className={cn("mt-[3px] h-3.5 w-3.5 shrink-0", TONE_TEXT[tone])} />;
 }
 
-function Blocks({ blocks, depth = 0 }: { blocks: VantaBlock[]; depth?: number }) {
+function Blocks({
+  blocks,
+  depth = 0,
+  landFrom,
+}: {
+  blocks: VantaBlock[];
+  depth?: number;
+  /** Top-level index from which blocks are new and should land. */
+  landFrom?: number;
+}) {
+  /* One block per row so a landing animation can be attached per block. */
+  const wrap = (i: number, node: React.ReactNode) => {
+    if (depth > 0 || landFrom === undefined || i < landFrom) return node;
+    return (
+      <div
+        key={`land-${i}`}
+        className="vanta-block-in"
+        style={{ ["--block-i" as string]: String(i - landFrom) }}
+      >
+        {node}
+      </div>
+    );
+  };
   return (
     <div className={cn("space-y-2.5", depth > 0 && "space-y-2")}>
-      {blocks.map((b, i) => {
+      {blocks.map((b, i) => wrap(i, ((): React.ReactNode => {
         switch (b.type) {
+
           case "summary":
             return (
               <p key={i} className="text-[15px] font-medium leading-snug text-foreground">
