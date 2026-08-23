@@ -175,6 +175,9 @@ export function CalendarFeedsSection() {
           <p>
             <span className="font-medium text-foreground/90">Google Calendar (computer):</span> Settings →
             pick the calendar on the left → Integrate calendar → copy <em>Secret address in iCal format</em>.
+            Not the public address above it — that one only works on calendars you have published to the
+            world, and it answers 404 otherwise. The right link has{" "}
+            <span className="font-mono">private-</span> in the middle.
           </p>
           <p>
             <span className="font-medium text-foreground/90">Apple Calendar (iCloud.com):</span> Calendar →
