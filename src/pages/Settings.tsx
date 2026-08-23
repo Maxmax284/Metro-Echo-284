@@ -22,6 +22,8 @@ import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
+import { PostureSection } from "@/components/settings/PostureSection";
+import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
 import { BrandVoiceSection } from "@/components/settings/BrandVoiceSection";
 import { CalendarFeedsSection } from "@/components/settings/CalendarFeedsSection";
@@ -165,6 +167,8 @@ export default function Settings() {
 
       <RecapSettingsPanel />
 
+      <PostureSection />
+      <SensorConsentSection />
       <DeviceSignalsSection />
 
       <RoomMotionSection />
