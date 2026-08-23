@@ -27,6 +27,18 @@ type FeedRow = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
+/** Turn an HTTP status into something a person can act on. */
+function explainStatus(status: number, url: string): string {
+  const isGooglePublic = /calendar\.google\.com\/calendar\/ical\/.*\/public\/basic\.ics/i.test(url);
+  if ((status === 404 || status === 403) && isGooglePublic) {
+    return "That is the public address, and this calendar is not public. In Google Calendar use Secret address in iCal format instead.";
+  }
+  if (status === 404) return "That address does not exist any more. Copy the calendar's private iCal link again.";
+  if (status === 401 || status === 403) return "The calendar refused the link. It may have been reset — copy a fresh private iCal link.";
+  return `The calendar answered ${status}.`;
+}
+
+
 async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now: number) {
   const url = normalizeCalendarUrl(feed.url);
   const stamp = new Date(now).toISOString();
@@ -38,7 +50,7 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   let text = "";
   try {
     const r = await fetch(url, { headers: { Accept: "text/calendar, text/plain" } });
-    if (!r.ok) throw new Error(`the calendar answered ${r.status}`);
+    if (!r.ok) throw new Error(explainStatus(r.status, url));
     text = await r.text();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "the calendar did not answer";

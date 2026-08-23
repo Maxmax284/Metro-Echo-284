@@ -105,6 +105,12 @@ export function CalendarFeedsSection() {
       toast.error("Paste the secret address of a calendar. It has to start with https or webcal.");
       return;
     }
+    if (/calendar\.google\.com\/calendar\/ical\/.*\/public\/basic\.ics/i.test(cleanUrl)) {
+      toast.error(
+        "That is Google's public address, which only works if the calendar is public. Copy \"Secret address in iCal format\" instead — it has private- in the middle.",
+      );
+      return;
+    }
     setBusy(true);
     const { data, error } = await supabase
       .from("calendar_feeds")
@@ -169,6 +175,9 @@ export function CalendarFeedsSection() {
           <p>
             <span className="font-medium text-foreground/90">Google Calendar (computer):</span> Settings →
             pick the calendar on the left → Integrate calendar → copy <em>Secret address in iCal format</em>.
+            Not the public address above it — that one only works on calendars you have published to the
+            world, and it answers 404 otherwise. The right link has{" "}
+            <span className="font-mono">private-</span> in the middle.
           </p>
           <p>
             <span className="font-medium text-foreground/90">Apple Calendar (iCloud.com):</span> Calendar →
