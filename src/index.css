@@ -904,28 +904,44 @@ html.vanta-exhale-once body {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.9;
+  background-color: hsl(var(--background));
   background-image:
-    linear-gradient(to right, hsl(var(--primary) / 0.09) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.09) 1px, transparent 1px);
-  background-size: 96px 96px, 96px 96px;
-  mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
-  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
+    linear-gradient(to right, hsl(var(--primary) / 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.13) 1px, transparent 1px);
+  background-size: 72px 72px, 72px 72px;
+  mask-image: radial-gradient(130% 110% at 50% 0%, hsl(0 0% 0% / 0.95), hsl(0 0% 0% / 0.25) 70%, transparent 100%);
+  -webkit-mask-image: radial-gradient(130% 110% at 50% 0%, hsl(0 0% 0% / 0.95), hsl(0 0% 0% / 0.25) 70%, transparent 100%);
   animation: vanta-field-drift var(--weather-drift, 42s) linear infinite;
   will-change: background-position;
+}
+/* A slow light sweep crossing the field, so the shell reads as breathing even
+   when nothing is happening. Weather tints it; calm keeps it faint. */
+.vanta-field::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(38% 32% at 50% 50%, hsl(var(--primary) / 0.14), transparent 70%);
+  animation: vanta-field-sweep calc(var(--weather-drift, 42s) * 2.2) ease-in-out infinite;
+  will-change: transform, opacity;
 }
 .vanta-field::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(60% 40% at 80% 10%, var(--weather-marker, transparent), transparent 70%);
-  opacity: 0.35;
+  background: radial-gradient(70% 45% at 78% 6%, var(--weather-marker, transparent), transparent 72%);
+  opacity: 0.4;
   transition: background 1200ms var(--ease-out);
 }
 @keyframes vanta-field-drift {
   0%   { background-position: 0 0, 0 0; }
-  100% { background-position: 96px 48px, 48px 96px; }
+  100% { background-position: 72px 36px, 36px 72px; }
 }
+@keyframes vanta-field-sweep {
+  0%   { transform: translate3d(-22%, -12%, 0) scale(1); opacity: 0.35; }
+  50%  { transform: translate3d(20%, 14%, 0) scale(1.25); opacity: 0.8; }
+  100% { transform: translate3d(-22%, -12%, 0) scale(1); opacity: 0.35; }
+}
+
 
 /* Live dot: the one place that loops on the dashboard, and only while the
    realtime channel is genuinely connected. */
@@ -948,6 +964,7 @@ html.vanta-exhale-once body {
 
 @media (prefers-reduced-motion: reduce) {
   .vanta-field,
+  .vanta-field::before,
   .vanta-live-dot,
   .vanta-bulletin-row { animation: none; }
 }
