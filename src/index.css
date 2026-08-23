@@ -968,3 +968,15 @@ html.vanta-exhale-once body {
   .vanta-live-dot,
   .vanta-bulletin-row { animation: none; }
 }
+
+/* Ask answer blocks land one at a time. Each top-level block gets its own
+   index, so a structured answer assembles itself instead of appearing whole.
+   Stagger is the per-device Feel setting (see src/lib/motionPrefs.ts). */
+@keyframes vanta-block-in {
+  from { opacity: 0; transform: translate3d(0, 5px, 0) scale(0.996); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+.vanta-block-in {
+  animation: vanta-block-in var(--motion-base) var(--ease-out) both;
+  animation-delay: calc(var(--block-i, 0) * var(--block-stagger, 60ms));
+}
