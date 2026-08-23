@@ -809,6 +809,7 @@ export type Database = {
           id: string
           last_message_at: string | null
           organization_id: string | null
+          outputs: Json
           pinned: boolean
           scope: string
           state: Json
@@ -827,6 +828,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           organization_id?: string | null
+          outputs?: Json
           pinned?: boolean
           scope?: string
           state?: Json
@@ -845,6 +847,7 @@ export type Database = {
           id?: string
           last_message_at?: string | null
           organization_id?: string | null
+          outputs?: Json
           pinned?: boolean
           scope?: string
           state?: Json
