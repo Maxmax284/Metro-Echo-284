@@ -142,7 +142,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ conversation_id: convId, message: text, scope: { type: scope.type, organization_id: scope.organizationId } }),
+        body: JSON.stringify({ conversation_id: threadId, message: text, scope: { type: scope.type, organization_id: scope.organizationId } }),
         signal: ctrl.signal,
       });
 
@@ -190,13 +190,14 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
       if (finalContent) {
         const { data: inserted } = await supabase.from("messages").insert([
-          { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
-          { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+          { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
+          { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
         ]).select("id");
         if (inserted) {
           const { generateEmbedding } = await import("@/lib/embeddings");
           inserted.forEach((m) => generateEmbedding("message", m.id));
         }
+        await noteActivity(threadId, firstTurn ? text : undefined);
       }
     } catch (e: any) {
       if (e?.name === "AbortError") {
@@ -205,8 +206,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
         try {
           await supabase.from("messages").insert([
-            { user_id: session.user.id, conversation_id: convId, role: "user", content: text },
-            { user_id: session.user.id, conversation_id: convId, role: "assistant", content: finalContent },
+            { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
+            { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
           ]);
         } catch { /* noop */ }
       } else {
