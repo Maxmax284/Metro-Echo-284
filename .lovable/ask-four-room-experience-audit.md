@@ -37,17 +37,17 @@ Status legend: **Live** / **Partial** / **Missing** / **Duplicated** / **Reuse**
 | Item | Status | Notes |
 |---|---|---|
 | One thread engine | Live | `AskThreadProvider` owns identity/scope/messages/state; room + dock both consume it. |
-| Desktop quick Ask as drawer | Partial / Replace | `ConversationDock.tsx` is still a floating widget rather than a right-side snap drawer. |
-| Mobile quick Ask sheet depth (partial → full height) | Partial | Sheet exists; no depth escalation. |
-| "Continue in Ask" promotion, same thread | Partial | Thread identity survives, but there is no explicit promotion control or promotion suggestion rules. |
+| Desktop quick Ask as right-side drawer | Live | `CompanionWidget` renders a right-side `Sheet` (440px) with expand-to-full. |
+| Mobile quick Ask sheet depth (partial → full height) | Partial | Sheet exists; 80dvh → 95dvh via expand, no drag escalation. |
+| "Continue in Ask" promotion, same thread | Live | `askPromotion.ts` + `OPEN_ASK_EVENT`; dock header control navigates to the room, thread identity untouched. Suggestion rule: thread produced outputs, or 6+ messages. |
 
 ## Phase 1D — Capability registry
 
 | Item | Status | Notes |
 |---|---|---|
 | Central registry | Live (Reuse) | `src/lib/companionTools.ts` — surface/mode/owner/provider gating, `createsDraft`, `needsApproval`, honest disabled reasons. Do not build a second registry. |
-| Registry metadata gaps | Partial | Missing `allowedScopes`, `outputBlockType`, `hiddenFromDirectInvocation`, device-capability gate. |
-| Slash menu bound to registry | Partial | Tool menu reads the registry; a `/` inline command menu is **Missing**. |
+| Registry metadata | Live | `allowedScopes`, `outputBlockType`, `hiddenFromDirectInvocation` on `Tool`; scope + direct-invocation gates in `getToolAvailability`. Device-capability gate still open. |
+| Slash menu bound to registry | Live | `/` palette in `ConversationDock` filters the registry by surface, mode, owner, provider, active scope, and direct-invocation visibility. |
 | Capabilities as blocks not rooms | Live | `vantaBlocks.ts` + `StructuredResponse.tsx` is the expansion seam. |
 
 ## Phase 2 — Four-room experience

@@ -50,6 +50,7 @@ import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBa
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
+import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
 
@@ -121,6 +122,16 @@ function IndexInner() {
     return () => window.removeEventListener(OPEN_RECEIPTS_EVENT, onOpenReceipts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // "Continue in Ask" — the quick dock hands the same thread to the full room.
+  useEffect(() => {
+    const onOpenAsk = () => setSurface("ask");
+    window.addEventListener(OPEN_ASK_EVENT, onOpenAsk);
+    return () => window.removeEventListener(OPEN_ASK_EVENT, onOpenAsk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   // Deep-link from push notifications: /?commitment=<id> opens the Commitments
   // surface and focuses that specific commitment. We strip the param so it

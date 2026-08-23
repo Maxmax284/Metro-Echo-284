@@ -2,7 +2,8 @@ import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
-import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companionTools";
+import { COMPANION_TOOLS, getToolAvailability, type Tool, type ToolScope } from "@/lib/companionTools";
+import { useScope } from "@/hooks/useScope";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
 
@@ -97,18 +98,21 @@ export function ConversationDock({
   const speechSupported = !!SRClass;
 
   // Slash palette state
+  const { scope: activeScope } = useScope();
+  const toolScope: ToolScope =
+    activeScope.type === "organization" ? "organization" : activeScope.type === "admin" ? "admin" : "personal";
   const slashActive = !!onSlashPick && v.startsWith("/");
   const slashQuery = slashActive ? v.slice(1).trim().toLowerCase() : "";
 
   const paletteTools: Tool[] = useMemo(() => {
     if (!slashActive) return [];
     return COMPANION_TOOLS.filter((t) => {
-      const a = getToolAvailability(t, { surface, mode, isOwner, controls });
+      const a = getToolAvailability(t, { surface, mode, isOwner, controls, scope: toolScope, direct: true });
       if (!a.available) return false;
       if (!slashQuery) return true;
       return t.label.toLowerCase().includes(slashQuery) || t.id.includes(slashQuery);
     });
-  }, [slashActive, slashQuery, surface, mode, isOwner, controls]);
+  }, [slashActive, slashQuery, surface, mode, isOwner, controls, toolScope]);
 
   useEffect(() => { setPaletteIdx(0); }, [slashQuery, slashActive]);
 

@@ -19,6 +19,12 @@ export type ToolSurface =
 
 export type ToolProvider = "none" | "lovable-ai" | "serpapi" | "open-meteo";
 
+/** Scope a tool is allowed to run in — scope is absolute, tools included. */
+export type ToolScope = "personal" | "organization" | "admin";
+
+/** Structured block a tool's output should render as (see vantaBlocks). */
+export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list";
+
 export type ToolBuildCtx = {
   surface: string;
   placeLabel?: string;
@@ -40,6 +46,12 @@ export type Tool = {
   buildPrompt?: (ctx: ToolBuildCtx) => string;
   /** Direct-action tool id: handled by CompanionTools' action router. */
   directAction?: "open-sherlock" | "open-research";
+  /** Scopes this tool may run in. Omitted = any scope. */
+  allowedScopes?: ToolScope[];
+  /** Which structured block the tool's answer should land as. */
+  outputBlockType?: ToolOutputBlock;
+  /** Registry-only capability: never offered in the slash menu / tool tray. */
+  hiddenFromDirectInvocation?: boolean;
   auditEvent?: string;
 };
 
@@ -243,8 +255,20 @@ export function getToolAvailability(
     mode: AppMode;
     isOwner: boolean | null;
     controls: SystemControls | null;
+    /** Active scope, when the caller knows it. Omitted = no scope gate. */
+    scope?: ToolScope;
+    /** True when the user is picking the tool by hand (slash menu, tool tray). */
+    direct?: boolean;
   }
 ): ToolAvailability {
+  // Direct-invocation gate — some capabilities exist only for Vanta to reach for.
+  if (opts.direct && tool.hiddenFromDirectInvocation) {
+    return { available: false, reason: "Vanta uses this on its own" };
+  }
+  // Scope gate — scope is absolute.
+  if (opts.scope && tool.allowedScopes && !tool.allowedScopes.includes(opts.scope)) {
+    return { available: false, reason: `Not available in ${opts.scope === "organization" ? "a workspace" : opts.scope} scope` };
+  }
   // Surface gate
   if (!tool.surfaces.includes("*") && !tool.surfaces.includes(opts.surface as ToolSurface)) {
     return { available: false, reason: `Not available on ${opts.surface}` };

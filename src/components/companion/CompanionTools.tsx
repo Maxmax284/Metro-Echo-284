@@ -27,12 +27,13 @@ export function CompanionTools({ onPick, onAction, className }: Props) {
   return (
     <TooltipProvider delayDuration={300}>
       <div className={cn("flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2", className)}>
-        {COMPANION_TOOLS.map((t) => {
+        {COMPANION_TOOLS.filter((t) => !t.hiddenFromDirectInvocation).map((t) => {
           const avail = getToolAvailability(t, {
             surface: context.surface,
             mode,
             isOwner,
             controls,
+            direct: true,
           });
           const Icon = t.icon;
           const disabled = !avail.available;

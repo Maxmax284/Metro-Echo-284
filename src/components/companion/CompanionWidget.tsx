@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { MessageCircle, X, Maximize2, Minimize2, Check } from "lucide-react";
+import { MessageCircle, X, Maximize2, Minimize2, Check, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -12,6 +12,9 @@ import { useAwareness } from "@/providers/AwarenessProvider";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { useIntentHandler } from "@/hooks/useIntentHandler";
 import { useAuth } from "@/lib/auth";
+import { useAskThreads } from "@/providers/AskThreadProvider";
+import { outputSummary } from "@/lib/askThreads";
+import { promoteToAskRoom, shouldSuggestPromotion } from "@/lib/askPromotion";
 import { useMode, MODE_LABEL, MODE_DESCRIPTION, type AppMode } from "@/hooks/useMode";
 
 const MODE_TINT: Record<AppMode, string> = {
@@ -37,6 +40,15 @@ export function CompanionWidget() {
   const isMobile = useIsMobile();
   const onIntent = useIntentHandler();
   const location = useLocation();
+  const { active } = useAskThreads();
+
+  const inAskRoom = context.surface === "ask";
+  const producedSummary = outputSummary(active?.outputs);
+  const suggestPromotion = shouldSuggestPromotion({
+    messageCount: active ? 1 : 0,
+    hasOutputs: !!producedSummary,
+    inAskRoom,
+  });
 
   if (!user || location.pathname === "/auth") return null;
 
@@ -112,6 +124,22 @@ export function CompanionWidget() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {!inAskRoom && (
+            <button
+              type="button"
+              onClick={() => { promoteToAskRoom(); close(); }}
+              title={producedSummary ? `This thread made ${producedSummary}` : "Same thread, more room"}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] uppercase tracking-wider ring-1 transition-colors",
+                suggestPromotion
+                  ? "bg-primary/15 text-primary ring-primary/40"
+                  : "bg-surface-elevated text-muted-foreground ring-border/60 hover:text-foreground",
+              )}
+            >
+              Continue in Ask
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
+          )}
           <Button
             variant="ghost"
             size="icon"
