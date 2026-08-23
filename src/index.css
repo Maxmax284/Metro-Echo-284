@@ -891,3 +891,63 @@ html.vanta-exhale-once body {
 }
 
 
+
+/* ---- Living dashboard --------------------------------------------------
+   Three ambient pieces, all cosmetic, all weather-aware, none of them the
+   source of truth for anything: the field behind the shell, the live dot on
+   the bulletin, and the one-shot arrival on a bulletin row. */
+
+/* Ambient field: a very low-contrast drifting grid behind everything. It moves
+   faster and warmer as the weather turns, and it never rises above ~4% ink. */
+.vanta-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to right, hsl(var(--primary) / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.05) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px;
+  mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, hsl(0 0% 0% / 0.85), transparent 78%);
+  animation: vanta-field-drift var(--weather-drift, 42s) linear infinite;
+  will-change: background-position;
+}
+.vanta-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 40% at 80% 10%, var(--weather-marker, transparent), transparent 70%);
+  opacity: 0.35;
+  transition: background 1200ms var(--ease-out);
+}
+@keyframes vanta-field-drift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 96px 48px, 48px 96px; }
+}
+
+/* Live dot: the one place that loops on the dashboard, and only while the
+   realtime channel is genuinely connected. */
+.vanta-live-dot {
+  animation: vanta-live-pulse 2.4s var(--ease-out) infinite;
+}
+@keyframes vanta-live-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* Arrival: a bulletin row lands once — slides 6px, brightens its rail, stops. */
+.vanta-bulletin-row {
+  animation: vanta-bulletin-in 320ms var(--ease-out) 1;
+}
+@keyframes vanta-bulletin-in {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vanta-field,
+  .vanta-live-dot,
+  .vanta-bulletin-row { animation: none; }
+}
