@@ -14,12 +14,41 @@ let lastOrigin: OriginRect | null = null;
 /** Freshness window — an origin older than this is stale, so we skip the FLIP. */
 const MAX_AGE_MS = 900;
 
+/** A persisted origin has to survive a document load, so it gets more room. */
+const PERSIST_MAX_AGE_MS = 2200;
+
+const PERSIST_KEY = "vanta.flip.origin";
+
+function persist(o: OriginRect) {
+  try {
+    window.sessionStorage.setItem(PERSIST_KEY, JSON.stringify(o));
+  } catch {
+    /* storage blocked — the in-memory origin still works inside this document */
+  }
+}
+
+function readPersisted(): OriginRect | null {
+  try {
+    const raw = window.sessionStorage.getItem(PERSIST_KEY);
+    if (!raw) return null;
+    window.sessionStorage.removeItem(PERSIST_KEY);
+    const o = JSON.parse(raw) as OriginRect;
+    if (!o || !Number.isFinite(o.at) || !o.w || !o.h) return null;
+    if (Date.now() - o.at > PERSIST_MAX_AGE_MS) return null;
+    return o;
+  } catch {
+    return null;
+  }
+}
+
 /** Call from the tap handler (or onPointerDown) of the element being opened. */
 export function markFlipOrigin(el: Element | null | undefined) {
   if (!el) return;
   const r = el.getBoundingClientRect();
   if (!r.width || !r.height) return;
   lastOrigin = { x: r.left, y: r.top, w: r.width, h: r.height, at: Date.now() };
+  // Persisted too: a card that opens a whole route still gets to travel.
+  persist(lastOrigin);
 }
 
 /** Record the origin straight from an event's current target. */
@@ -30,16 +59,30 @@ export function markFlipOriginFromEvent(e: { currentTarget: unknown }) {
 
 export function clearFlipOrigin() {
   lastOrigin = null;
+  try {
+    window.sessionStorage.removeItem(PERSIST_KEY);
+  } catch {
+    /* noop */
+  }
 }
 
 /** Consume the pending origin, if it is still fresh. */
 export function takeFlipOrigin(): OriginRect | null {
-  if (!lastOrigin) return null;
+  if (!lastOrigin) {
+    const persisted = typeof window === "undefined" ? null : readPersisted();
+    return persisted;
+  }
   const o = lastOrigin;
   lastOrigin = null;
+  try {
+    window.sessionStorage.removeItem(PERSIST_KEY);
+  } catch {
+    /* noop */
+  }
   if (Date.now() - o.at > MAX_AGE_MS) return null;
   return o;
 }
+
 
 function reducedMotion() {
   try {
