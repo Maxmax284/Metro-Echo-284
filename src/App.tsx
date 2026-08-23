@@ -21,6 +21,8 @@ import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import { FirstRunWalkthrough } from "@/components/tutorial/FirstRunWalkthrough";
 import { ActivityProvider } from "@/components/workstatus/ActivityStore";
 import { ActivityTray } from "@/components/workstatus/ActivityTray";
+import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
+import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -42,6 +44,8 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <AmbientBackdrop />
+      <AmbientInteractions />
       <BrowserRouter>
         <AuthProvider>
           <SherlockProvider>
