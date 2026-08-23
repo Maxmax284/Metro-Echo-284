@@ -38,7 +38,7 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   let text = "";
   try {
     const r = await fetch(url, { headers: { Accept: "text/calendar, text/plain" } });
-    if (!r.ok) throw new Error(`the calendar answered ${r.status}`);
+    if (!r.ok) throw new Error(explainStatus(r.status, url));
     text = await r.text();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "the calendar did not answer";
