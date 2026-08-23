@@ -145,15 +145,43 @@ export function RoomMotionSection() {
         </div>
 
         <div>
+          <div className="flex items-baseline justify-between">
+            <label className="text-[13px] font-medium">Answer landing</label>
+            <span className="font-mono text-[12px] text-muted-foreground">
+              {prefs.blockStaggerMs}ms
+            </span>
+          </div>
+          <Slider
+            className="mt-2"
+            value={[prefs.blockStaggerMs]}
+            min={ROOM_SWAP_LIMITS.blockStaggerMs.min}
+            max={ROOM_SWAP_LIMITS.blockStaggerMs.max}
+            step={ROOM_SWAP_LIMITS.blockStaggerMs.step}
+            onValueChange={([v]) => commit({ blockStaggerMs: v })}
+            aria-label="Gap between answer blocks landing, in milliseconds"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Gap between the parts of an Ask answer settling into place. Zero shows the whole answer
+            at once.
+          </p>
+        </div>
+
+        <div>
           <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Preview</p>
           <div className="mt-2 overflow-hidden rounded-lg ring-1 ring-border/60">
             <div key={replayKey} className="motion-surface-in bg-muted/30 p-3">
               <div className="h-2 w-24 rounded bg-foreground/20" />
-              <div className="mt-2 h-2 w-40 rounded bg-foreground/10" />
-              <div className="mt-2 h-2 w-32 rounded bg-foreground/10" />
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="vanta-block-in mt-2 h-2 rounded bg-foreground/10"
+                  style={{ ["--block-i" as string]: String(i), width: `${10 - i * 2}rem` }}
+                />
+              ))}
             </div>
           </div>
         </div>
+
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
