@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  autoTitle, isFiller, relTime, sortThreads, threadMatchesScope, type AskThread,
+  autoTitle, bumpOutput, isFiller, outputChips, outputSummary, relTime, sortThreads,
+  threadMatchesScope, type AskThread,
 } from "@/lib/askThreads";
 
 const base: AskThread = {
