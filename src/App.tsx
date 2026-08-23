@@ -23,6 +23,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
+import SettingsGroup from "./pages/SettingsGroup.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
 import ReconciliationView from "./pages/ReconciliationView.tsx";
 import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
