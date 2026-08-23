@@ -2,16 +2,23 @@
 //
 // Says where things stand, what changed, what was decided, and what's still
 // open — all from recorded activity. It never runs anything.
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MOTION_HOVER_LIFT, MOTION_PRESS } from "@/lib/motion";
-import { MoreHorizontal, ArrowRight } from "lucide-react";
+import { MoreHorizontal, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { REASON_LABEL, STATE_LABEL, lastActiveLabel, type ContinuityCandidate } from "@/lib/continuity";
+import {
+  REASON_LABEL,
+  STATE_LABEL,
+  catchUpSummary,
+  lastActiveLabel,
+  type ContinuityCandidate,
+} from "@/lib/continuity";
 
 export function ProjectReentryCard({
   candidate: c,
@@ -26,13 +33,17 @@ export function ProjectReentryCard({
   candidate: ContinuityCandidate;
   changes?: string[];
   onResume: () => void;
-  onAsk: () => void;
+  /** Optional hand-off to Vanta for a deeper read. Never the primary path. */
+  onAsk?: () => void;
   onOpen?: () => void;
   onPin?: (next: boolean) => void;
   onDismiss?: () => void;
   onFinish?: () => void;
 }) {
   const where = c.projectTitle ?? "Work outside a project";
+  const [briefOpen, setBriefOpen] = useState(false);
+  const brief = catchUpSummary(c, changes);
+
 
   return (
     <div className={`vanta-inset vanta-grain p-3 ${MOTION_HOVER_LIFT}`}>
@@ -101,16 +112,50 @@ export function ProjectReentryCard({
         <Button size="sm" variant="secondary" className={`min-h-[44px] gap-1 text-xs ${MOTION_PRESS}`} onClick={onResume}>
           Resume <ArrowRight className="h-3.5 w-3.5" />
         </Button>
-        <Button size="sm" variant="ghost" className={`min-h-[44px] text-xs ${MOTION_PRESS}`} onClick={onAsk}>
-          Bring me up to speed
+        <Button
+          size="sm"
+          variant="ghost"
+          className={`min-h-[44px] gap-1 text-xs ${MOTION_PRESS}`}
+          onClick={() => setBriefOpen((v) => !v)}
+          aria-expanded={briefOpen}
+        >
+          {briefOpen ? "Hide the catch-up" : "Bring me up to speed"}
+          {briefOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         </Button>
         {onOpen ? (
           <Button size="sm" variant="ghost" className={`min-h-[44px] text-xs ${MOTION_PRESS}`} onClick={onOpen}>
             Open project
           </Button>
         ) : null}
-
       </div>
+
+      {briefOpen ? (
+        <div className="mt-2 rounded-md border border-border/50 bg-background/40 p-2.5">
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Catch-up</p>
+          <p className="mt-0.5 text-[11.5px] font-medium text-foreground/90">{brief.headline}</p>
+          <ul className="mt-1.5 space-y-1">
+            {brief.lines.map((l, i) => (
+              <li key={i} className="text-[11.5px] leading-snug text-foreground/80">
+                {l}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[10.5px] italic text-muted-foreground/80">
+            Read straight from your recorded activity — nothing here runs anything.
+          </p>
+          {onAsk ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`mt-1 min-h-[40px] px-0 text-[11px] ${MOTION_PRESS}`}
+              onClick={onAsk}
+            >
+              Ask Vanta to go deeper
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
+
   );
 }
