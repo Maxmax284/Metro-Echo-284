@@ -2,16 +2,23 @@
 //
 // Says where things stand, what changed, what was decided, and what's still
 // open — all from recorded activity. It never runs anything.
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MOTION_HOVER_LIFT, MOTION_PRESS } from "@/lib/motion";
-import { MoreHorizontal, ArrowRight } from "lucide-react";
+import { MoreHorizontal, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { REASON_LABEL, STATE_LABEL, lastActiveLabel, type ContinuityCandidate } from "@/lib/continuity";
+import {
+  REASON_LABEL,
+  STATE_LABEL,
+  catchUpSummary,
+  lastActiveLabel,
+  type ContinuityCandidate,
+} from "@/lib/continuity";
 
 export function ProjectReentryCard({
   candidate: c,
@@ -26,13 +33,17 @@ export function ProjectReentryCard({
   candidate: ContinuityCandidate;
   changes?: string[];
   onResume: () => void;
-  onAsk: () => void;
+  /** Optional hand-off to Vanta for a deeper read. Never the primary path. */
+  onAsk?: () => void;
   onOpen?: () => void;
   onPin?: (next: boolean) => void;
   onDismiss?: () => void;
   onFinish?: () => void;
 }) {
   const where = c.projectTitle ?? "Work outside a project";
+  const [briefOpen, setBriefOpen] = useState(false);
+  const brief = catchUpSummary(c, changes);
+
 
   return (
     <div className={`vanta-inset vanta-grain p-3 ${MOTION_HOVER_LIFT}`}>
