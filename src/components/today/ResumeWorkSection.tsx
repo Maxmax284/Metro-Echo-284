@@ -47,9 +47,11 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
         <div className="min-w-0">
           <h2 className="text-sm font-semibold tracking-tight">Continue where you left off</h2>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {ask ?? "Recent work in this space, with what's still open."}
+            {ask ??
+              "Work you touched recently, and what's still open on it. Resume opens the room; \"Bring me up to speed\" reads the catch-up right here."}
           </p>
         </div>
+
         {live.length > 2 ? (
           <div className="ml-auto shrink-0">
             <Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => setExpanded((v) => !v)}>
