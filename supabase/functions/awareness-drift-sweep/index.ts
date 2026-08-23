@@ -210,6 +210,8 @@ async function sweepScope(
   now: Date,
   shadowMode: boolean,
   deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
+  /** Consent + posture, resolved once per user by the caller. */
+  senses: { calendar: boolean; postureHold: boolean } = { calendar: true, postureHold: false },
 
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
@@ -357,14 +359,14 @@ async function sweepScope(
 
   // The calendar sense: what starts soon, and which promise lands mid-meeting.
   // Read-only, scope-filtered, and it only ever supplies facts.
-  const { data: calendarRows } = await scoped(
+  const { data: calendarRows } = senses.calendar ? await scoped(
     sb.from("calendar_events").select("id, title, location, starts_at, ends_at, all_day, feed_id"),
     userId,
     orgId,
   )
     .gte("starts_at", new Date(nowMs - 60 * 60 * 1000).toISOString())
     .lte("starts_at", new Date(nowMs + 3 * DAY_MS).toISOString())
-    .limit(200);
+    .limit(200) : { data: [] as CalendarEventRow[] };
   for (const s of calendarSignals(
     (calendarRows ?? []) as CalendarEventRow[],
     commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at, status: c.status })),
@@ -446,6 +448,24 @@ async function sweepScope(
 
   if (!result.surface) return "none";
   if (shadowMode) return "shadow";
+
+  // A posture the user set by hand holds ordinary notes. Critical still speaks.
+  if (senses.postureHold && result.surface.urgency !== "critical") {
+    await sb.from("audit_log").insert({
+      user_id: userId,
+      ...scopeCols,
+      entity_type: "awareness",
+      entity_id: null,
+      event: "awareness.held",
+      payload: {
+        source: "scheduled_sweep",
+        reason: "posture",
+        dedupe_key: result.surface.dedupeKey,
+        urgency: result.surface.urgency,
+      },
+    });
+    return "none";
+  }
 
   const decision = result.surface;
   const dayKey = now.toISOString().slice(0, 10);
@@ -659,6 +679,9 @@ Deno.serve(async (req: Request) => {
           pushSubscribed: pushSubscribed,
           messagingOptIn: prefs.telegram_awareness_enabled === true,
           messagingLinked: messagingLinked,
+        }, {
+          calendar: sensorAllowed(prefs, "calendar"),
+          postureHold: postureHolds(prefs, "attention", now.getTime()),
         });
         if (outcome === "proposed") proposed++;
         if (outcome === "shadow") shadowed++;
