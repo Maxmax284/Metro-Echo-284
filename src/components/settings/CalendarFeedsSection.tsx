@@ -152,14 +152,43 @@ export function CalendarFeedsSection() {
         <Button
           size="sm"
           variant="outline"
-          className="h-8 shrink-0 text-[11.5px]"
+          className="vanta-focus h-8 shrink-0 text-[11.5px]"
           onClick={() => void sync()}
           disabled={busy || feeds.length === 0}
         >
           <RefreshCw className={cn("mr-1.5 h-3.5 w-3.5", busy && "animate-spin")} />
-          Check now
+          {busy ? "Syncing…" : "Sync now"}
         </Button>
       </div>
+
+      <details className="mt-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
+        <summary className="vanta-focus cursor-pointer list-none text-[12px] font-medium">
+          How do I find my calendar link?
+        </summary>
+        <div className="mt-2 space-y-2 text-[11.5px] leading-relaxed text-muted-foreground">
+          <p>
+            <span className="font-medium text-foreground/90">Google Calendar (computer):</span> Settings →
+            pick the calendar on the left → Integrate calendar → copy <em>Secret address in iCal format</em>.
+          </p>
+          <p>
+            <span className="font-medium text-foreground/90">Apple Calendar (iCloud.com):</span> Calendar →
+            click the broadcast icon next to a calendar → Public Calendar → copy the link (it starts with
+            webcal, that is fine).
+          </p>
+          <p>
+            <span className="font-medium text-foreground/90">Outlook / Microsoft 365:</span> Settings →
+            Calendar → Shared calendars → Publish a calendar → choose <em>Can view all details</em> → copy
+            the ICS link.
+          </p>
+          <p>
+            Paste it below, then hit Sync now. Vanta re-reads every 20 minutes on its own; the button is for
+            when you just changed something and do not feel like waiting.
+          </p>
+          <p className="text-foreground/70">
+            Keep that link private — anyone holding it can read the calendar.
+          </p>
+        </div>
+      </details>
 
       {feeds.length === 0 && !adding && (
         <p className="mt-3 rounded-lg bg-background/40 p-3 text-[12px] text-muted-foreground ring-1 ring-border/50">
