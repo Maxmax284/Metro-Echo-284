@@ -29,12 +29,13 @@ export function PostureSection() {
     const until = p && window.ms ? new Date(Date.now() + window.ms).toISOString() : null;
     await setPosture(p, until);
     setSaving(null);
-    vantaToast.info(
-      p ? `Posture set to ${POSTURE_LABEL[p]}.` : "Posture cleared.",
-      p && postureHoldsNoise(p)
-        ? "Ordinary notes will hold. Anything critical still reaches you."
-        : "Vanta speaks as normal.",
-    );
+    vantaToast.info({
+      title: p ? `Posture set to ${POSTURE_LABEL[p]}.` : "Posture cleared.",
+      description:
+        p && postureHoldsNoise(p)
+          ? "Ordinary notes will hold. Anything critical still reaches you."
+          : "Vanta speaks as normal.",
+    });
   };
 
   return (
