@@ -255,8 +255,20 @@ export function getToolAvailability(
     mode: AppMode;
     isOwner: boolean | null;
     controls: SystemControls | null;
+    /** Active scope, when the caller knows it. Omitted = no scope gate. */
+    scope?: ToolScope;
+    /** True when the user is picking the tool by hand (slash menu, tool tray). */
+    direct?: boolean;
   }
 ): ToolAvailability {
+  // Direct-invocation gate — some capabilities exist only for Vanta to reach for.
+  if (opts.direct && tool.hiddenFromDirectInvocation) {
+    return { available: false, reason: "Vanta uses this on its own" };
+  }
+  // Scope gate — scope is absolute.
+  if (opts.scope && tool.allowedScopes && !tool.allowedScopes.includes(opts.scope)) {
+    return { available: false, reason: `Not available in ${opts.scope === "organization" ? "a workspace" : opts.scope} scope` };
+  }
   // Surface gate
   if (!tool.surfaces.includes("*") && !tool.surfaces.includes(opts.surface as ToolSurface)) {
     return { available: false, reason: `Not available on ${opts.surface}` };
