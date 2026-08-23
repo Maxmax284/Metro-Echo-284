@@ -15,6 +15,7 @@ import {
   calendarSignals,
   signalDedupeKey,
   type CalendarEventRow,
+  postureHolds,
 } from "../_shared/awareness/index.ts";
 import {
   detectDriftingCommitment,

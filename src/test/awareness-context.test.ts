@@ -18,6 +18,12 @@ import {
   signalKindSpec,
   verbosityForChannel,
   scoreRelevance,
+  activePosture,
+  readStoredContext,
+  sensorAllowed,
+  postureHolds,
+  storedFromContext,
+  contextFromStored,
   type AwarenessSignal,
 } from "@/lib/awareness";
 
@@ -160,5 +166,42 @@ describe("cross-device context", () => {
     expect(
       describeContext({ posture: "training", deviceClass: "phone", quietHours: true }),
     ).toBe("Training · on phone · quiet hours");
+  });
+});
+
+describe("persisted context + consent", () => {
+  it("restores a stored posture and expires it", () => {
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const past = new Date(Date.now() - 60_000).toISOString();
+    expect(activePosture({ posture: "driving", postureUntil: future })).toBe("driving");
+    expect(activePosture({ posture: "driving", postureUntil: past })).toBe(null);
+    expect(activePosture({ posture: "driving" })).toBe("driving");
+  });
+
+  it("reads the stored slice defensively", () => {
+    expect(readStoredContext(null)).toEqual({});
+    expect(readStoredContext({ context: { posture: "nonsense", threadId: "t1" } }).posture).toBe(null);
+    expect(readStoredContext({ context: { posture: "deep_work" } }).posture).toBe("deep_work");
+  });
+
+  it("treats a missing sensor as off", () => {
+    expect(sensorAllowed({}, "calendar")).toBe(false);
+    expect(sensorAllowed({ sensor_consent: { calendar: true } }, "calendar")).toBe(true);
+    expect(sensorAllowed({ sensor_consent: { calendar: true } }, "location")).toBe(false);
+  });
+
+  it("holds ordinary notes on a holding posture but never critical", () => {
+    const prefs = { context: { posture: "training" } };
+    expect(postureHolds(prefs, "attention")).toBe(true);
+    expect(postureHolds(prefs, "critical")).toBe(false);
+    expect(postureHolds({ context: { posture: "at_desk" } }, "attention")).toBe(false);
+  });
+
+  it("round-trips context through the stored slice", () => {
+    const stored = storedFromContext({ posture: "meeting", threadId: "t1", deviceClass: "phone" }, null);
+    const back = contextFromStored(stored);
+    expect(back.posture).toBe("meeting");
+    expect(back.threadId).toBe("t1");
+    expect(back.lastDeviceClass).toBe("phone");
   });
 });
