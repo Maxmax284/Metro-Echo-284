@@ -16,3 +16,4 @@ export * from "../../../supabase/functions/_shared/awareness/resolve";
 export * from "../../../supabase/functions/_shared/awareness/inbound";
 export * from "../../../supabase/functions/_shared/awareness/compress";
 export * from "../../../supabase/functions/_shared/awareness/context";
+export * from "../../../supabase/functions/_shared/awareness/prefs";

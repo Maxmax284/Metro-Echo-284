@@ -56,7 +56,7 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
-      const prefs = ((data?.preferences ?? {}) as Record<string, unknown>) ?? {};
+      const prefs = (data?.preferences ?? {}) as Record<string, unknown>;
       prefsRef.current = prefs;
       const stored = readStoredContext(prefs);
       setPostureUntil(stored.postureUntil ?? null);
