@@ -10,6 +10,7 @@ import { Loader2, Search, Sparkles, Maximize2, FileText, CheckSquare, ListTodo, 
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
 import { StatusDot, confidenceTone } from "@/components/ui/status-dot";

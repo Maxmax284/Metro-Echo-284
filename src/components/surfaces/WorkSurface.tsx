@@ -22,6 +22,7 @@ import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { WeekAgenda } from "@/components/work/WeekAgenda";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { markFlipOriginFromEvent } from "@/lib/flip";
 import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   MachineLabel,
