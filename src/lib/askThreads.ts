@@ -19,6 +19,7 @@ export type AskThread = {
   context_id: string | null;
   context_label: string | null;
   last_message_at: string | null;
+  outputs?: ThreadOutputs | null;
   created_at: string;
   updated_at: string;
 };
@@ -113,4 +114,44 @@ export function relTime(iso: string | null | undefined, now = Date.now()): strin
   const w = Math.round(d / 7);
   if (w < 5) return `${w}w ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/** What a thread produced. Counts only — the records live in their own rooms. */
+export type ThreadOutputKind = "draft" | "note" | "commitment" | "document" | "finding";
+export type ThreadOutputs = Partial<Record<ThreadOutputKind, number>>;
+
+const OUTPUT_WORDS: Record<ThreadOutputKind, [string, string]> = {
+  draft: ["draft", "drafts"],
+  note: ["note", "notes"],
+  commitment: ["commitment", "commitments"],
+  document: ["document", "documents"],
+  finding: ["finding", "findings"],
+};
+
+const OUTPUT_ORDER: ThreadOutputKind[] = ["draft", "commitment", "note", "document", "finding"];
+
+/** Short chips describing a thread's aftermath: ["2 drafts", "1 note"]. */
+export function outputChips(outputs: ThreadOutputs | null | undefined): string[] {
+  if (!outputs) return [];
+  const chips: string[] = [];
+  for (const kind of OUTPUT_ORDER) {
+    const n = Number(outputs[kind] ?? 0);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    const [one, many] = OUTPUT_WORDS[kind];
+    chips.push(`${n} ${n === 1 ? one : many}`);
+  }
+  return chips;
+}
+
+/** One-line aftermath summary, or null when the thread produced nothing yet. */
+export function outputSummary(outputs: ThreadOutputs | null | undefined): string | null {
+  const chips = outputChips(outputs);
+  return chips.length ? chips.join(" · ") : null;
+}
+
+/** Increment one output counter without losing the others. */
+export function bumpOutput(outputs: ThreadOutputs | null | undefined, kind: ThreadOutputKind): ThreadOutputs {
+  const base = { ...(outputs ?? {}) };
+  base[kind] = Number(base[kind] ?? 0) + 1;
+  return base;
 }
