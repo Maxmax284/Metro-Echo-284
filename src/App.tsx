@@ -23,6 +23,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
+import SettingsGroup from "./pages/SettingsGroup.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
 import ReconciliationView from "./pages/ReconciliationView.tsx";
 import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
@@ -60,6 +61,7 @@ const App = () => (
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />
+                              <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
                               <Route path="/settings/integrations" element={<IntegrationsSettings />} />
                               <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
                               <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
