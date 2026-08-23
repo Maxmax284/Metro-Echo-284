@@ -5,6 +5,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
+import { AgendaStrip } from "@/components/today/AgendaStrip";
 import { NoticedRow } from "@/components/today/NoticedRow";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
@@ -238,6 +239,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           />
 
           <ResumeWorkSection onNavigate={onNavigate} />
+
+          <AgendaStrip onOpenWeek={() => onNavigate("work")} />
+
 
           {!quiet && (
             <Section

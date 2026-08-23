@@ -19,6 +19,7 @@ import { listProjects, type Project } from "@/lib/projects";
 import { useAuth } from "@/lib/auth";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
+import { WeekAgenda } from "@/components/work/WeekAgenda";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
@@ -96,6 +97,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         </header>
 
         <ResumeWorkSection onNavigate={onNavigate} />
+
+        <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
+
 
         {error ? (
           <ErrorState detail={error} onRetry={refresh} />

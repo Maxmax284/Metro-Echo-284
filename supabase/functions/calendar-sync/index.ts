@@ -22,6 +22,7 @@ type FeedRow = {
   organization_id: string | null;
   label: string;
   url: string;
+  default_project_id: string | null;
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -67,6 +68,19 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   const toMs = now + WINDOW_FORWARD_DAYS * DAY_MS;
   const events = parseIcs(text, { fromMs, toMs }).slice(0, MAX_EVENTS_PER_FEED);
 
+  // Project links are the user's own structural work, not the calendar's. The
+  // feed is the source of truth for *what* is on the day, never for how the
+  // user filed it — so remember the links before replacing the window.
+  const { data: priorRows } = await sb
+    .from("calendar_events")
+    .select("uid, starts_at, project_id")
+    .eq("feed_id", feed.id)
+    .not("project_id", "is", null);
+  const priorLinks = new Map<string, string>();
+  for (const r of (priorRows ?? []) as { uid: string; starts_at: string; project_id: string | null }[]) {
+    if (r.project_id) priorLinks.set(`${r.uid}|${r.starts_at}`, r.project_id);
+  }
+
   // Replace the window: the feed is the source of truth, so removed entries
   // must disappear instead of lingering as ghosts.
   await sb.from("calendar_events").delete().eq("feed_id", feed.id).gte("starts_at", new Date(fromMs).toISOString());
@@ -82,6 +96,7 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
       starts_at: e.startsAt,
       ends_at: e.endsAt,
       all_day: e.allDay,
+      project_id: priorLinks.get(`${e.uid}|${e.startsAt}`) ?? feed.default_project_id ?? null,
     }));
     const { error } = await sb.from("calendar_events").upsert(rows, { onConflict: "feed_id,uid,starts_at", ignoreDuplicates: false });
     if (error) {
@@ -89,6 +104,7 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
       return { feed: feed.id, ok: false, error: error.message };
     }
   }
+
 
   await sb.from("calendar_feeds")
     .update({ last_error: null, last_synced_at: stamp, event_count: events.length })
@@ -122,14 +138,14 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await sb.auth.getUser(token);
     const userId = userData?.user?.id;
     if (!userId) return jsonResponse({ error: "sign in required" }, 401);
-    let q = sb.from("calendar_feeds").select("id, user_id, organization_id, label, url").eq("user_id", userId).eq("active", true);
+    let q = sb.from("calendar_feeds").select("id, user_id, organization_id, label, url, default_project_id").eq("user_id", userId).eq("active", true);
     if (body?.feed_id) q = q.eq("id", body.feed_id);
     const { data } = await q.limit(20);
     feeds = (data ?? []) as FeedRow[];
   } else {
     const { data } = await sb
       .from("calendar_feeds")
-      .select("id, user_id, organization_id, label, url")
+      .select("id, user_id, organization_id, label, url, default_project_id")
       .eq("active", true)
       .limit(200);
     feeds = (data ?? []) as FeedRow[];
