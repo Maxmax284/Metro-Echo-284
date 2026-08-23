@@ -9,12 +9,12 @@ import { History } from "lucide-react";
 import { useContinuity } from "@/hooks/useContinuity";
 import { clarificationPrompt, type ContinuityCandidate } from "@/lib/continuity";
 import { ProjectReentryCard } from "@/components/continuity/ProjectReentryCard";
-import { useCompanion } from "@/components/companion/CompanionContext";
+import { useAskContext } from "@/hooks/useAskContext";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 
 export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { loading, live, dormant, changes, pin, dismiss, markFinished } = useContinuity();
-  const { openWithPrefill } = useCompanion();
+  const { openAskWithContext } = useAskContext();
   const [expanded, setExpanded] = useState(false);
 
   if (loading || (live.length === 0 && dormant.length === 0)) return null;
@@ -29,9 +29,12 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
       changes={changes[c.key] ?? []}
       onResume={() => onNavigate(c.projectId ? "projects" : "actions")}
       onAsk={() =>
-        openWithPrefill(
-          `Bring me back up to speed on ${c.projectTitle ?? "the work outside a project"} — what changed, what was decided, what's still open?`,
-        )
+        void openAskWithContext({
+          kind: "project",
+          id: c.projectId ?? null,
+          label: c.projectTitle ?? "Work outside a project",
+          question: `Bring me back up to speed on ${c.projectTitle ?? "the work outside a project"} — what changed, what was decided, what's still open?`,
+        })
       }
       onOpen={c.projectId ? () => onNavigate("projects") : undefined}
       onPin={c.projectId ? (next) => void pin(c.projectId!, next) : undefined}
