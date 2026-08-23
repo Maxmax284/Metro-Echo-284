@@ -97,6 +97,9 @@ export function ConversationDock({
   const speechSupported = !!SRClass;
 
   // Slash palette state
+  const { scope: activeScope } = useScope();
+  const toolScope: ToolScope =
+    activeScope.type === "organization" ? "organization" : activeScope.type === "admin" ? "admin" : "personal";
   const slashActive = !!onSlashPick && v.startsWith("/");
   const slashQuery = slashActive ? v.slice(1).trim().toLowerCase() : "";
 
