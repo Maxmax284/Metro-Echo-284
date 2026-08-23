@@ -44,6 +44,8 @@ import {
   type DocumentRow,
   type EntityState,
   type PriorState,
+  sensorAllowed,
+  postureHolds,
 } from "../_shared/awareness/index.ts";
 
 type ScopeTarget = { organizationId: string | null };

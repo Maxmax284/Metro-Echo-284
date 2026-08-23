@@ -269,7 +269,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 7. Drift detection — opt-in, quiet-hours aware, one signal at a time.
-    let driftState: "off" | "quiet_hours" | "none" | "proposed" = "off";
+    let driftState: "off" | "quiet_hours" | "posture" | "none" | "proposed" = "off";
     const { data: profile } = await supabase
       .from("profiles")
       .select("timezone, preferences")
@@ -282,6 +282,9 @@ Deno.serve(async (req: Request) => {
       const tz = (profile?.timezone as string) || "UTC";
       if (isInQuietHours(tz, prefs.quiet_hours_start ?? "22:00", prefs.quiet_hours_end ?? "07:00", now)) {
         driftState = "quiet_hours";
+      } else if (postureHolds(prefs, "attention", now.getTime())) {
+        // The user told Vanta what kind of moment this is. Ordinary drift waits.
+        driftState = "posture";
       } else {
         const nowMs = now.getTime();
 
