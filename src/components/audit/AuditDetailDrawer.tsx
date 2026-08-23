@@ -12,6 +12,7 @@ import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { Code2 } from "lucide-react";
 import { ReceiptSlip } from "@/components/audit/ReceiptSlip";
 import { useFlipEntry } from "@/hooks/useFlipEntry";
+import { AskAboutButton } from "@/components/ask/AskAboutButton";
 
 type AuditRow = {
   id: string;
@@ -146,7 +147,15 @@ export function AuditDetailDrawer({
           />
 
 
-          {footer && <div className="flex items-center justify-end pt-0.5">{footer}</div>}
+          <div className="flex flex-wrap items-center justify-end gap-1.5 pt-0.5">
+            <AskAboutButton
+              kind="receipt"
+              id={row.id}
+              label={humanizeEvent(row.event)}
+              question={`Explain this receipt: ${humanizeEvent(row.event)}.`}
+            />
+            {footer}
+          </div>
 
           <div className="flex items-center justify-between gap-2 pt-1">
             <p className="text-[10.5px] italic text-muted-foreground">
