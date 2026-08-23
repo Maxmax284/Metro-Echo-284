@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MessageSquare,
   Notebook,
@@ -23,6 +23,7 @@ import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
+import { setRoom, throwFrom } from "@/lib/skins";
 
 export type SurfaceKey = SurfaceId;
 
@@ -60,6 +61,20 @@ export function SurfaceTabs({
   const overflowItems = items.filter((i) => !(PRIMARY_ROOMS as string[]).includes(i.key));
   const activeRoom = roomForSurface(active);
   const activeInOverflow = overflowItems.some((i) => i.key === active);
+
+  // The world has four corners: tell the backdrop which room we are in so the
+  // ambient wash moves with navigation instead of being swapped out.
+  useEffect(() => {
+    setRoom(activeRoom);
+  }, [activeRoom]);
+
+  /* A nav press throws a light line across the background from where you
+     tapped, so the change of room registers physically before it registers
+     visually. Presentation only — navigation itself is unchanged. */
+  const go = (key: SurfaceKey, e: { clientX: number; clientY: number }) => {
+    throwFrom(e.clientX, e.clientY);
+    onChange(key);
+  };
 
   const MoreSheet = (
     <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
@@ -110,8 +125,8 @@ export function SurfaceTabs({
             return (
               <button
                 key={key}
-                onClick={() => {
-                  onChange(key);
+                onClick={(e) => {
+                  go(key, e);
                   setMoreOpen(false);
                 }}
                 className={cn(
@@ -148,7 +163,7 @@ export function SurfaceTabs({
           return (
             <button
               key={key}
-              onClick={() => onChange(key)}
+              onClick={(e) => go(key, e)}
               className={cn(
                 "relative flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px]",
                 MOTION_ROW,
@@ -213,7 +228,7 @@ export function SurfaceTabs({
         return (
           <button
             key={key}
-            onClick={() => onChange(key)}
+            onClick={(e) => go(key, e)}
             title={label}
             aria-label={label}
             aria-current={isActive ? "page" : undefined}
