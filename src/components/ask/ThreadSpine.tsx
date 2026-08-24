@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
+import { useAskStreaming } from "@/hooks/useAskStreaming";
+
 
 function LiveDot({ label }: { label: string }) {
   return (
