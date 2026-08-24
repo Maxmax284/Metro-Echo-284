@@ -95,6 +95,10 @@ type Props = {
   onStop?: () => void;
   /** Rendered inside the sticky dock, directly above the composer (staged chips, trays, etc). */
   aboveComposer?: ReactNode;
+  /** Wave 4 — persisted composer text, so a half-typed line survives moving
+      between quick Ask and the Ask room. */
+  draft?: string;
+  onDraftChange?: (text: string) => void;
 };
 
 export function ConversationDock({
@@ -111,8 +115,27 @@ export function ConversationDock({
   onInitialTextConsumed,
   onStop,
   aboveComposer,
+  draft,
+  onDraftChange,
 }: Props) {
-  const [v, setV] = useState("");
+  const [v, setV] = useState(draft ?? "");
+
+  // The draft belongs to the thread, not to this mount: adopt it when the
+  // owning surface hands us a different one (thread switch, surface switch).
+  const lastDraft = useRef(draft ?? "");
+  useEffect(() => {
+    const next = draft ?? "";
+    if (next !== lastDraft.current) { lastDraft.current = next; setV(next); }
+  }, [draft]);
+  // The callback identity changes every parent render, so it lives in a ref and
+  // only a real text change publishes upward. Otherwise draft -> render -> draft.
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
+  useEffect(() => {
+    if (v === lastDraft.current) return;
+    lastDraft.current = v;
+    onDraftChangeRef.current?.(v);
+  }, [v]);
 
   // Stage 6 — apply external prefill, focus, and ack so parent can clear it.
   useEffect(() => {

@@ -29,6 +29,11 @@ import { ProcessingLine } from "@/components/companion/ProcessingLine";
 
 import { useScope } from "@/hooks/useScope";
 import { useAskThreads } from "@/providers/AskThreadProvider";
+import {
+  getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
+  beginAskStream, endAskStream, stopAskStream,
+  type AskSession,
+} from "@/lib/askSession";
 
 
 
@@ -82,15 +87,27 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
   const { activeId: convId, ensureThread, noteActivity, recordOutput } = useAskThreads();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [streaming, setStreaming] = useState(false);
+  // Wave 4 — the live half of a thread lives in the shared Ask session, not in
+  // this component. Quick Ask and the Ask room mount the same session, so a
+  // turn in flight and a half-typed line survive moving between them.
+  const [askSession, setAskSession] = useState<AskSession>(() => getAskSession(convId ?? "_none"));
+  useEffect(() => {
+    const key = convId ?? "_none";
+    setAskSession(getAskSession(key));
+    return subscribeAskSession(key, setAskSession);
+  }, [convId]);
+  const msgs = askSession.messages as Msg[];
+  const streaming = askSession.streaming;
+  const busy = streaming;
+  const setMsgs = (update: Msg[] | ((prev: Msg[]) => Msg[])) => {
+    setAskMessages(convId ?? "_none", update as never);
+  };
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
   // send() runs before the staged-upload hook is declared below, so it reads
   // the live upload controller through this mirror.
   const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
+
 
 
   // Internal intent handler — emits inline receipt cards on successful drafts.
@@ -114,7 +131,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   // Thread selection lives in the shared engine; this surface only loads turns.
   useEffect(() => {
-    if (!session || !convId) { setMsgs([]); return; }
+    if (!session || !convId) return;
+    // A live turn or an already-loaded transcript is authoritative — never
+    // clobber it with a refetch when a surface remounts.
+    if (askSession.hydrated || askSession.streaming) return;
     let cancelled = false;
     (async () => {
       const { data: m } = await supabase
@@ -123,10 +143,16 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         .eq("conversation_id", convId)
         .order("created_at", { ascending: true })
         .limit(200);
-      if (!cancelled) setMsgs((m ?? []).filter((x) => x.role !== "system" && x.role !== "tool") as any);
+      if (!cancelled) {
+        setAskMessages(
+          convId,
+          (m ?? []).filter((x) => x.role !== "system" && x.role !== "tool") as never,
+          { hydrated: true },
+        );
+      }
     })();
     return () => { cancelled = true; };
-  }, [session, convId]);
+  }, [session, convId, askSession.hydrated, askSession.streaming]);
 
 
   useEffect(() => {
@@ -138,13 +164,11 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     const threadId = convId ?? (await ensureThread());
     if (!threadId) return;
     const firstTurn = msgs.length === 0;
-    setMsgs((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
-
-    setBusy(true);
-    setStreaming(true);
+    const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never, { hydrated: true });
+    write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
     const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    beginAskStream(threadId, ctrl);
     let aborted = false;
     let assistantSoFar = "";
     let hints: AttachmentHint[] = [];
@@ -203,7 +227,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
             const delta = p.choices?.[0]?.delta?.content as string | undefined;
             if (delta) {
               assistantSoFar += delta;
-              setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
+              write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
             }
             if (p.intent) {
               onIntent?.(p.intent.name, p.intent.args);
@@ -217,7 +241,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         ? `${assistantSoFar}\n\n_Stopped._`
         : assistantSoFar;
       if (aborted) {
-        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
       }
 
       if (finalContent) {
@@ -235,7 +259,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       if (e?.name === "AbortError") {
         aborted = true;
         const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
-        setMsgs((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
         try {
           await supabase.from("messages").insert([
             { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
@@ -246,9 +270,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         toast.fromError(e);
       }
     } finally {
-      abortRef.current = null;
-      setBusy(false);
-      setStreaming(false);
+      endAskStream(threadId);
       // Attachments that made it into this turn stop being "pending"; their
       // aftermath tray is where they live on.
       if (hints.length) stagedUploadRef.current?.clearCompleted();
@@ -257,7 +279,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   };
 
   const handleStop = () => {
-    abortRef.current?.abort();
+    if (convId) stopAskStream(convId);
   };
 
   // Staged file flow — capture is deliberate. No auto AI on attach.
@@ -448,6 +470,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           onAttach={handleAttach}
           onSlashPick={handleSlashPick}
           onStop={handleStop}
+          draft={askSession.draft}
+          onDraftChange={(t) => setAskDraft(convId ?? "_none", t)}
           surface={context.surface}
           mode={mode}
           isOwner={isOwner}
