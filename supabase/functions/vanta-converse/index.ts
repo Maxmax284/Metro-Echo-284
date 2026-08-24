@@ -315,14 +315,23 @@ Deno.serve(async (req: Request) => {
         .select("timezone, preferences")
         .eq("id", user.id)
         .maybeSingle(),
+      // Attachments on this turn win over recency: read exactly what was sent.
       wantsFileContext
-        ? scoped(supabase
-            .from("ingested_files")
-            .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(3)
+        ? (attachedIds.length
+            ? scoped(supabase
+                .from("ingested_files")
+                .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
+                .eq("user_id", user.id)
+                .in("id", attachedIds)
+                .limit(6)
+            : scoped(supabase
+                .from("ingested_files")
+                .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(3))
         : Promise.resolve({ data: [] }),
+
     ]);
 
     const correctionsBlock = (corrections ?? []).length
