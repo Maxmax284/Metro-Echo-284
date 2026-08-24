@@ -14,11 +14,26 @@ import { cn } from "@/lib/utils";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
+import { useAskStreaming } from "@/hooks/useAskStreaming";
+
+
+function LiveDot({ label }: { label: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1" title={label} aria-label={label}>
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inset-0 rounded-full bg-accent/60 motion-breath motion-reduce:animate-none" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-accent" />
+      </span>
+    </span>
+  );
+}
 
 function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
   const { activeId, openThread, rename, togglePin, archive, remove } = useAskThreads();
   const active = t.id === activeId;
   const archived = !!t.archived_at;
+  const streaming = useAskStreaming(t.id);
+
 
   const doRename = () => {
     const next = window.prompt("Rename thread", threadLabel(t));
@@ -40,9 +55,13 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
         <span className="flex items-center gap-1.5">
           {t.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
           <span className="truncate text-[13px] text-foreground/90">{threadLabel(t)}</span>
+          {streaming && <LiveDot label="Answering now" />}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="font-mono">{relTime(t.last_message_at ?? t.updated_at)}</span>
+          <span className="font-mono">
+            {streaming ? "answering now" : relTime(t.last_message_at ?? t.updated_at)}
+          </span>
+
           <span className="rounded-full bg-surface-elevated/70 px-1.5 py-0.5 uppercase tracking-wider ring-1 ring-border/40">
             {t.scope === "organization" ? "Workspace" : "Personal"}
           </span>
@@ -144,6 +163,7 @@ export function ThreadRail() {
 export function ThreadBar() {
   const [open, setOpen] = useState(false);
   const { active, threads } = useAskThreads();
+  const streaming = useAskStreaming(active?.id);
   return (
     <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2 md:hidden">
       <button
@@ -153,14 +173,20 @@ export function ThreadBar() {
       >
         <MessageSquare className="h-3.5 w-3.5 shrink-0 text-primary/80" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] text-foreground/90">
-            {active ? threadLabel(active) : "New thread"}
+          <span className="flex items-center gap-1.5">
+            <span className="min-w-0 truncate text-[13px] text-foreground/90">
+              {active ? threadLabel(active) : "New thread"}
+            </span>
+            {streaming && <LiveDot label="Answering now" />}
           </span>
           <span className="block truncate text-[10px] text-muted-foreground">
-            {threads.length} thread{threads.length === 1 ? "" : "s"} in this room · tap to switch
+            {streaming
+              ? "answering now · tap to switch"
+              : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap to switch`}
           </span>
         </span>
       </button>
+
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
           <SheetHeader className="pb-2">
