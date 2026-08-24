@@ -80,8 +80,8 @@ function retrievalFor(text: string, hasAttachment: boolean, internal: boolean): 
     out.add("projects");
   }
   if (/\b(document|contract|invoice|agreement|draft)\b/i.test(text) || hasAttachment) out.add("documents");
-  if (/\b(promis|commit|owe|deadline|due)\b/i.test(text)) out.add("commitments");
-  if (/\b(decid|decision|what happened|receipt|audit|history)\b/i.test(text)) out.add("receipts");
+  if (/(promis|commit|owe|deadline|due)/i.test(text)) out.add("commitments");
+  if (/(decid|decision|what happened|receipt|audit|history)/i.test(text)) out.add("receipts");
   if (/\b(meeting|calendar|schedule|agenda)\b/i.test(text)) out.add("calendar");
   return [...out];
 }
