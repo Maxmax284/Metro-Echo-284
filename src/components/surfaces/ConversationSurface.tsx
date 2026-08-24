@@ -147,11 +147,12 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     abortRef.current = ctrl;
     let aborted = false;
     let assistantSoFar = "";
+    let hints: AttachmentHint[] = [];
     try {
       // Wave 3 — anything staged travels with this turn. Files are ingested
       // first (bytes go through the file pipeline), then Ask is told what it
       // is looking at: kind, name, and whether it can be read at all.
-      let hints: AttachmentHint[] = [];
+
       if (stagedUploadRef.current?.staged.length) {
         const settled = await stagedUploadRef.current.commitAll();
         hints = attachmentHints(
