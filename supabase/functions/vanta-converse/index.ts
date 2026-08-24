@@ -8,6 +8,88 @@ import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
+import {
+  routeRequest,
+  sanitizeQuery,
+  safeResearchLog,
+  normalizeSource,
+  rankSources,
+  type PerceptionInput,
+  type PerceptionInputKind,
+  type RoutePlan,
+  type SourceResult,
+} from "../_shared/orchestration/index.ts";
+
+/** What the composer tells us about each attachment. Never raw bytes. */
+type AttachmentHint = {
+  kind?: string | null;
+  name?: string | null;
+  readable?: boolean | null;
+  ingested_file_id?: string | null;
+};
+
+const PERCEPTION_KIND: Record<string, PerceptionInputKind> = {
+  image: "image",
+  document: "document",
+  audio: "audio",
+  video: "file",
+  other: "file",
+  text: "text",
+};
+
+function perceptionInputs(hints: AttachmentHint[]): PerceptionInput[] {
+  return hints.map((h) => ({
+    kind: PERCEPTION_KIND[String(h.kind ?? "other")] ?? "file",
+    ref: h.ingested_file_id ?? null,
+    filename: h.name ?? null,
+  }));
+}
+
+/** The plan is a directive, not a menu. It tells the model how to answer. */
+function planBlock(plan: RoutePlan, hints: AttachmentHint[]): string {
+  const unreadable = hints.filter((h) => h.readable === false).map((h) => h.name ?? "attachment");
+  const lines = [
+    "Answer plan for this turn (follow it; never describe it to the user):",
+    `- methods: ${plan.capabilities.join(", ")}`,
+    plan.perception.length ? `- perception jobs: ${plan.perception.join(", ")}` : "",
+    plan.retrieval.length ? `- read from: ${plan.retrieval.join(", ")}` : "",
+    plan.research ? `- external research: ${plan.research.intent} (${plan.research.depth})` : "- external research: none",
+    `- state a conclusion only at confidence ${plan.min_confidence} or better; below that, say what you can see and what you cannot.`,
+    plan.may_prepare_action
+      ? "- you may stage a draft for approval. You never execute anything."
+      : "- do not stage anything unless the user asked for it.",
+    unreadable.length
+      ? `- these attachments are kept but cannot be read yet: ${unreadable.join(", ")}. Say so plainly in one line; do not guess at their contents.`
+      : "",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+/** Quick external lookup, sanitized. Provider stays behind this seam. */
+async function lookupSources(query: string, limit: number): Promise<SourceResult[]> {
+  const key = Deno.env.get("SERPAPI_KEY") ?? "";
+  if (!key) return [];
+  const u = new URL("https://serpapi.com/search.json");
+  u.searchParams.set("q", query);
+  u.searchParams.set("engine", "google");
+  u.searchParams.set("num", String(Math.min(limit, 6)));
+  u.searchParams.set("api_key", key);
+  const r = await fetch(u.toString());
+  if (!r.ok) return [];
+  const j = await r.json();
+  const organic = Array.isArray(j?.organic_results) ? j.organic_results : [];
+  const now = new Date();
+  const out: SourceResult[] = [];
+  for (const o of organic.slice(0, limit)) {
+    const s = normalizeSource(
+      { title: o?.title, url: o?.link, snippet: o?.snippet, provider: "serpapi" },
+      { now },
+    );
+    if (s) out.push(s);
+  }
+  return rankSources(out);
+}
+
 
 
 const SYSTEM_PROMPT = `${COMPANION_VOICE}
@@ -165,7 +247,9 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { conversation_id, message, scope } = await req.json();
+    const { conversation_id, message, scope, attachments, verbosity } = await req.json();
+    const hints: AttachmentHint[] = Array.isArray(attachments) ? attachments.slice(0, 6) : [];
+
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id and message required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,7 +270,20 @@ Deno.serve(async (req: Request) => {
     const workingCandidates = await buildWorkingContext(supabase, scoped).catch(() => []);
     const workingBlock = workingContextBlock(workingCandidates);
 
-    const wantsFileContext = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+    // One router decides what this turn needs: perception, retrieval, research.
+    // It can never authorize execution — at most it says a draft may be prepared.
+    const plan = routeRequest({
+      text: String(message),
+      attachments: perceptionInputs(hints),
+      scope: scopeType as "personal" | "organization" | "admin",
+      organization_id: scopeOrgId,
+      verbosity: ["brief", "signal", "spoken", "cue"].includes(String(verbosity)) ? (verbosity as any) : "rich",
+    });
+
+    const attachedIds = hints.map((h) => h.ingested_file_id).filter((x): x is string => typeof x === "string" && !!x);
+    const wantsFileContext = attachedIds.length > 0
+      || /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+
 
     // Load recent context (last ~30 messages)
     const { data: history } = await supabase
@@ -218,14 +315,23 @@ Deno.serve(async (req: Request) => {
         .select("timezone, preferences")
         .eq("id", user.id)
         .maybeSingle(),
+      // Attachments on this turn win over recency: read exactly what was sent.
       wantsFileContext
-        ? scoped(supabase
-            .from("ingested_files")
-            .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(3)
+        ? (attachedIds.length
+            ? scoped(supabase
+                .from("ingested_files")
+                .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
+                .eq("user_id", user.id)
+                .in("id", attachedIds)
+                .limit(6)
+            : scoped(supabase
+                .from("ingested_files")
+                .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
+                .eq("user_id", user.id)
+                .order("created_at", { ascending: false })
+                .limit(3))
         : Promise.resolve({ data: [] }),
+
     ]);
 
     const correctionsBlock = (corrections ?? []).length
@@ -268,6 +374,49 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
+    // External research — private context shapes the query, never leaves as-is.
+    let researchBlock = "";
+    if (plan.research) {
+      const { data: projectRows } = await scoped(supabase.from("projects").select("title"))
+        .neq("status", "archived")
+        .limit(60);
+      const privateNames = (projectRows ?? [])
+        .map((p: any) => String(p.title ?? "").trim())
+        .filter((t: string) => t.length > 2);
+      const sanitized = sanitizeQuery(String(message), { private_names: privateNames });
+      if (sanitized.blocked) {
+        researchBlock = [
+          "External research: not run.",
+          "- Nothing safe to search survived after private details were held back.",
+          "- Say you did not search outside, and ask for the public detail you need.",
+        ].join("\n");
+      } else {
+        const limit = plan.research.depth === "deep" ? 6 : plan.research.depth === "standard" ? 4 : 3;
+        const sources = await lookupSources(sanitized.query, limit).catch(() => [] as SourceResult[]);
+        console.log("research", JSON.stringify(safeResearchLog(sanitized, {
+          intent: plan.research.intent,
+          depth: plan.research.depth,
+          provider: "serpapi",
+        })), "sources", sources.length);
+        researchBlock = sources.length
+          ? [
+              `External sources for "${sanitized.query}" (${plan.research.intent}, ${plan.research.depth}). Cite by name, never invent a source:`,
+              ...sources.map((s, i) =>
+                `[${i + 1}] ${s.title} — ${s.source} (${s.authority}, ${s.freshness})\n${s.url}${s.excerpt ? `\n${s.excerpt}` : ""}`,
+              ),
+              sanitized.withheld.length
+                ? `- Held back from the search: ${sanitized.withheld.join(", ")}. Mention this only if it limits the answer.`
+                : "",
+              "- If the sources disagree or are only anecdotal, say so instead of picking a side.",
+            ].filter(Boolean).join("\n")
+          : [
+              "External research: no usable sources came back.",
+              "- Say plainly that you could not verify this outside, and answer from what you do have.",
+            ].join("\n");
+      }
+    }
+
+
     // Brand voice — the user's chosen tone for anything they read.
     const { data: voiceProfile } = await supabase
       .from("profiles")
@@ -278,8 +427,9 @@ Deno.serve(async (req: Request) => {
       readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
     );
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
+
 
     const messages = [
       { role: "system", content: sysWithCorrections },

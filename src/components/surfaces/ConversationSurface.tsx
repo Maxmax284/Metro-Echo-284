@@ -20,6 +20,8 @@ import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { attachmentHints, type AttachmentHint } from "@/lib/askCapabilities";
+
 import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
@@ -86,6 +88,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // send() runs before the staged-upload hook is declared below, so it reads
+  // the live upload controller through this mirror.
+  const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
+
 
   // Internal intent handler — emits inline receipt cards on successful drafts.
   const internalIntent = useIntentHandler((ack) => {
@@ -141,16 +147,36 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     abortRef.current = ctrl;
     let aborted = false;
     let assistantSoFar = "";
+    let hints: AttachmentHint[] = [];
     try {
+      // Wave 3 — anything staged travels with this turn. Files are ingested
+      // first (bytes go through the file pipeline), then Ask is told what it
+      // is looking at: kind, name, and whether it can be read at all.
+
+      if (stagedUploadRef.current?.staged.length) {
+        const settled = await stagedUploadRef.current.commitAll();
+        hints = attachmentHints(
+          settled
+            .filter((s) => s.status === "saved" || s.status === "reading")
+            .map((s) => ({ name: s.file.name, type: s.file.type, ingestedFileId: s.ingestedFileId })),
+        );
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ conversation_id: threadId, message: text, scope: { type: scope.type, organization_id: scope.organizationId } }),
+        body: JSON.stringify({
+          conversation_id: threadId,
+          message: text,
+          scope: { type: scope.type, organization_id: scope.organizationId },
+          ...(hints.length ? { attachments: hints } : {}),
+        }),
         signal: ctrl.signal,
       });
+
 
       if (resp.status === 429) throw new Error("Rate limited — please slow down a moment.");
       if (resp.status === 402) throw new Error("Workspace AI credits exhausted.");
@@ -223,7 +249,11 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       abortRef.current = null;
       setBusy(false);
       setStreaming(false);
+      // Attachments that made it into this turn stop being "pending"; their
+      // aftermath tray is where they live on.
+      if (hints.length) stagedUploadRef.current?.clearCompleted();
     }
+
   };
 
   const handleStop = () => {
@@ -240,6 +270,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       }
     },
   });
+  stagedUploadRef.current = stagedUpload;
+
+
 
   // Conversation attach → just stage. User must press Ingest.
   const handleAttach = (files: FileList) => {
