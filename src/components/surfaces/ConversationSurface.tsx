@@ -284,6 +284,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   return (
     <div className="flex h-full flex-col">
+      {/* What this thread is bound to — scope, kind, object. Always visible. */}
+      <AskContextStrip />
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
         <span className="font-medium text-foreground/80">Capture Log.</span>{" "}
         Capture only — nothing here executes. Approvals live in Actions.
