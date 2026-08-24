@@ -228,22 +228,68 @@ export function ConversationDock({
               ref={fileRef}
               type="file"
               multiple
+              accept={ACCEPT.any}
               className="hidden"
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) void onAttach(e.target.files);
                 if (fileRef.current) fileRef.current.value = "";
               }}
             />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={busy}
-              aria-label="Attach file"
-              title="Attach"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-elevated text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground"
-            >
-              <Paperclip className="h-4 w-4" />
-            </button>
+            <input
+              ref={photoRef}
+              type="file"
+              multiple
+              accept={ACCEPT.image}
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) void onAttach(e.target.files);
+                if (photoRef.current) photoRef.current.value = "";
+              }}
+            />
+            {/* Camera is an input method, not a section: same composer, same thread. */}
+            <input
+              ref={cameraRef}
+              type="file"
+              accept={ACCEPT.image}
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) void onAttach(e.target.files);
+                if (cameraRef.current) cameraRef.current.value = "";
+              }}
+            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label="Attach"
+                  title="Attach"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-elevated text-muted-foreground ring-1 ring-border/60 transition-colors hover:text-foreground active:scale-95"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" side="top" className="w-52 p-1">
+                {hasCamera && (
+                  <AttachOption icon={Camera} label="Take a photo" onClick={() => cameraRef.current?.click()} />
+                )}
+                <AttachOption icon={ImageIcon} label="Photo library" onClick={() => photoRef.current?.click()} />
+                <AttachOption icon={FileText} label="Document" onClick={() => docRef.current?.click()} />
+                <AttachOption icon={Paperclip} label="Any file" onClick={() => fileRef.current?.click()} />
+              </PopoverContent>
+            </Popover>
+            <input
+              ref={docRef}
+              type="file"
+              multiple
+              accept={ACCEPT.document}
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) void onAttach(e.target.files);
+                if (docRef.current) docRef.current.value = "";
+              }}
+            />
           </>
         )}
         <textarea
