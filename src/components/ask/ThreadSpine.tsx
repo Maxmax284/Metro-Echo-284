@@ -163,6 +163,7 @@ export function ThreadRail() {
 export function ThreadBar() {
   const [open, setOpen] = useState(false);
   const { active, threads } = useAskThreads();
+  const streaming = useAskStreaming(active?.id);
   return (
     <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2 md:hidden">
       <button
@@ -172,14 +173,20 @@ export function ThreadBar() {
       >
         <MessageSquare className="h-3.5 w-3.5 shrink-0 text-primary/80" />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] text-foreground/90">
-            {active ? threadLabel(active) : "New thread"}
+          <span className="flex items-center gap-1.5">
+            <span className="min-w-0 truncate text-[13px] text-foreground/90">
+              {active ? threadLabel(active) : "New thread"}
+            </span>
+            {streaming && <LiveDot label="Answering now" />}
           </span>
           <span className="block truncate text-[10px] text-muted-foreground">
-            {threads.length} thread{threads.length === 1 ? "" : "s"} in this room · tap to switch
+            {streaming
+              ? "answering now · tap to switch"
+              : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap to switch`}
           </span>
         </span>
       </button>
+
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
           <SheetHeader className="pb-2">
