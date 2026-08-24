@@ -427,8 +427,9 @@ Deno.serve(async (req: Request) => {
       readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
     );
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock]
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
+
 
     const messages = [
       { role: "system", content: sysWithCorrections },
