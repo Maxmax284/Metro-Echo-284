@@ -249,7 +249,11 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       abortRef.current = null;
       setBusy(false);
       setStreaming(false);
+      // Attachments that made it into this turn stop being "pending"; their
+      // aftermath tray is where they live on.
+      if (hints.length) stagedUploadRef.current?.clearCompleted();
     }
+
   };
 
   const handleStop = () => {
