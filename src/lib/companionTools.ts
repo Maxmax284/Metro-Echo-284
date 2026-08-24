@@ -290,10 +290,11 @@ export function getToolAvailability(
   if (tool.requiredInput?.length) {
     const have = opts.inputs ?? [];
     if (!tool.requiredInput.some((k) => have.includes(k))) {
-      const need = tool.requiredInput.filter((k) => k !== "text").join(" or ") || "input";
-      return { available: false, reason: `Attach ${need === "text" ? "something" : `${need === "document" ? "a document" : `a${/^[aeiou]/.test(need) ? "n" : ""} ${need}`}`} first` };
+      const need = tool.requiredInput.filter((k) => k !== "text");
+      return { available: false, reason: `Attach ${need.length ? need.join(" or ") : "something"} first` };
     }
   }
+
 
   // Surface gate
   if (!tool.surfaces.includes("*") && !tool.surfaces.includes(opts.surface as ToolSurface)) {
