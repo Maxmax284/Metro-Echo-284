@@ -421,11 +421,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
               <div className="space-y-2 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
                 {stagedUpload.staged.length > 0 && (
                   <div className="space-y-2">
-                    <StagedFileChips
+                    <AttachmentStrip
                       items={stagedUpload.staged}
                       onRemove={stagedUpload.remove}
                       onRetry={stagedUpload.retry}
-                      compact
                     />
                     {stagedUpload.staged.some((s) => s.status === "staged") && (
                       <div className="flex justify-end">
@@ -440,6 +439,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                     )}
                   </div>
                 )}
+
                 {trays.map((id) => (
                   <FileAftermathTray
                     key={id}
