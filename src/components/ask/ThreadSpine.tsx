@@ -15,10 +15,23 @@ import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
 
+function LiveDot({ label }: { label: string }) {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1" title={label} aria-label={label}>
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inset-0 rounded-full bg-accent/60 motion-breath motion-reduce:animate-none" />
+        <span className="relative h-1.5 w-1.5 rounded-full bg-accent" />
+      </span>
+    </span>
+  );
+}
+
 function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
   const { activeId, openThread, rename, togglePin, archive, remove } = useAskThreads();
   const active = t.id === activeId;
   const archived = !!t.archived_at;
+  const streaming = useAskStreaming(t.id);
+
 
   const doRename = () => {
     const next = window.prompt("Rename thread", threadLabel(t));
