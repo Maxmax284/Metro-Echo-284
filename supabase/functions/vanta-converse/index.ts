@@ -8,6 +8,88 @@ import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
+import {
+  routeRequest,
+  sanitizeQuery,
+  safeResearchLog,
+  normalizeSource,
+  rankSources,
+  type PerceptionInput,
+  type PerceptionInputKind,
+  type RoutePlan,
+  type SourceResult,
+} from "../_shared/orchestration/index.ts";
+
+/** What the composer tells us about each attachment. Never raw bytes. */
+type AttachmentHint = {
+  kind?: string | null;
+  name?: string | null;
+  readable?: boolean | null;
+  ingested_file_id?: string | null;
+};
+
+const PERCEPTION_KIND: Record<string, PerceptionInputKind> = {
+  image: "image",
+  document: "document",
+  audio: "audio",
+  video: "file",
+  other: "file",
+  text: "text",
+};
+
+function perceptionInputs(hints: AttachmentHint[]): PerceptionInput[] {
+  return hints.map((h) => ({
+    kind: PERCEPTION_KIND[String(h.kind ?? "other")] ?? "file",
+    ref: h.ingested_file_id ?? null,
+    filename: h.name ?? null,
+  }));
+}
+
+/** The plan is a directive, not a menu. It tells the model how to answer. */
+function planBlock(plan: RoutePlan, hints: AttachmentHint[]): string {
+  const unreadable = hints.filter((h) => h.readable === false).map((h) => h.name ?? "attachment");
+  const lines = [
+    "Answer plan for this turn (follow it; never describe it to the user):",
+    `- methods: ${plan.capabilities.join(", ")}`,
+    plan.perception.length ? `- perception jobs: ${plan.perception.join(", ")}` : "",
+    plan.retrieval.length ? `- read from: ${plan.retrieval.join(", ")}` : "",
+    plan.research ? `- external research: ${plan.research.intent} (${plan.research.depth})` : "- external research: none",
+    `- state a conclusion only at confidence ${plan.min_confidence} or better; below that, say what you can see and what you cannot.`,
+    plan.may_prepare_action
+      ? "- you may stage a draft for approval. You never execute anything."
+      : "- do not stage anything unless the user asked for it.",
+    unreadable.length
+      ? `- these attachments are kept but cannot be read yet: ${unreadable.join(", ")}. Say so plainly in one line; do not guess at their contents.`
+      : "",
+  ];
+  return lines.filter(Boolean).join("\n");
+}
+
+/** Quick external lookup, sanitized. Provider stays behind this seam. */
+async function lookupSources(query: string, limit: number): Promise<SourceResult[]> {
+  const key = Deno.env.get("SERPAPI_KEY") ?? "";
+  if (!key) return [];
+  const u = new URL("https://serpapi.com/search.json");
+  u.searchParams.set("q", query);
+  u.searchParams.set("engine", "google");
+  u.searchParams.set("num", String(Math.min(limit, 6)));
+  u.searchParams.set("api_key", key);
+  const r = await fetch(u.toString());
+  if (!r.ok) return [];
+  const j = await r.json();
+  const organic = Array.isArray(j?.organic_results) ? j.organic_results : [];
+  const now = new Date();
+  const out: SourceResult[] = [];
+  for (const o of organic.slice(0, limit)) {
+    const s = normalizeSource(
+      { title: o?.title, url: o?.link, snippet: o?.snippet, provider: "serpapi" },
+      { now },
+    );
+    if (s) out.push(s);
+  }
+  return rankSources(out);
+}
+
 
 
 const SYSTEM_PROMPT = `${COMPANION_VOICE}
