@@ -20,6 +20,8 @@ import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { attachmentHints, type AttachmentHint } from "@/lib/askCapabilities";
+
 import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
