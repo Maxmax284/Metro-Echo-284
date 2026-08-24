@@ -94,6 +94,8 @@ export const COMPANION_TOOLS: Tool[] = [
     costsCredits: true,
     createsDraft: true,
     needsApproval: true,
+    requiredInput: ["image", "document"],
+    outputBlockType: "document",
     buildPrompt: () =>
       `Explain the most recent receipt/file I uploaded — what was bought, totals, anomalies, and whether anything needs follow-up. Stage a draft action only if needed.`,
     auditEvent: "companion.tool.receipt",
@@ -216,6 +218,8 @@ export const COMPANION_TOOLS: Tool[] = [
     costsCredits: true,
     createsDraft: false,
     needsApproval: false,
+    requiredInput: ["image", "document"],
+    outputBlockType: "document",
     buildPrompt: () =>
       `Analyze the most recently ingested file: type, key facts, dates, totals, anything that should become a commitment or note. Source-label everything.`,
     auditEvent: "companion.tool.analyze_file",
@@ -234,6 +238,7 @@ export const COMPANION_TOOLS: Tool[] = [
     createsDraft: false,
     needsApproval: false,
     directAction: "open-sherlock",
+    outputBlockType: "sherlock",
     auditEvent: "companion.tool.sherlock",
   },
   {
@@ -248,6 +253,7 @@ export const COMPANION_TOOLS: Tool[] = [
     createsDraft: false,
     needsApproval: false,
     directAction: "open-research",
+    outputBlockType: "research",
     auditEvent: "companion.tool.research",
   },
 ];
