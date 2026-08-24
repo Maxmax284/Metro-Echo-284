@@ -88,6 +88,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // send() runs before the staged-upload hook is declared below, so it reads
+  // the live upload controller through this mirror.
+  const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
+
 
   // Internal intent handler — emits inline receipt cards on successful drafts.
   const internalIntent = useIntentHandler((ack) => {
