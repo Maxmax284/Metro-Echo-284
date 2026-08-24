@@ -1,11 +1,51 @@
-import { ArrowUp, Loader2, Mic, MicOff, Paperclip, Square } from "lucide-react";
+import {
+  ArrowUp,
+  Camera,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Mic,
+  MicOff,
+  Paperclip,
+  Square,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { COMPANION_TOOLS, getToolAvailability, type Tool, type ToolScope } from "@/lib/companionTools";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScope } from "@/hooks/useScope";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
+
+/** What each attach route accepts. Camera is a route, not a separate surface. */
+const ACCEPT = {
+  any: undefined as unknown as string | undefined,
+  image: "image/*",
+  document: ".pdf,.doc,.docx,.txt,.md,.rtf,.csv,.xls,.xlsx,application/pdf",
+} as const;
+
+function AttachOption({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: typeof Camera;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left text-[13px] text-foreground/90 transition-colors hover:bg-surface-elevated"
+    >
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      {label}
+    </button>
+  );
+}
+
 
 function timeAwarePlaceholder(): string {
   const h = new Date().getHours();
