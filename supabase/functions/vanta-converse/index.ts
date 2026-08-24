@@ -247,7 +247,9 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { conversation_id, message, scope } = await req.json();
+    const { conversation_id, message, scope, attachments, verbosity } = await req.json();
+    const hints: AttachmentHint[] = Array.isArray(attachments) ? attachments.slice(0, 6) : [];
+
     if (!conversation_id || !message) {
       return new Response(JSON.stringify({ error: "conversation_id and message required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
