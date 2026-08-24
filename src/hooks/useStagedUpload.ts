@@ -176,14 +176,17 @@ export function useStagedUpload(opts?: {
     [user, patch, opts],
   );
 
-  // Commit every still-staged file.
+  // Commit every still-staged file. Returns the settled files so a caller can
+  // hand their ingested ids to Ask in the same turn.
   const commitAll = useCallback(async () => {
     const keys = ref.current
       .filter((s) => s.status === "staged")
       .map((s) => s.key);
     // serial to keep storage / RLS calm
     for (const k of keys) await uploadOne(k);
+    return ref.current;
   }, [uploadOne]);
+
 
   const retry = useCallback(
     async (key: string) => {
