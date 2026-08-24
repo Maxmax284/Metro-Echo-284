@@ -265,6 +265,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       }
     },
   });
+  stagedUploadRef.current = stagedUpload;
+
+
 
   // Conversation attach → just stage. User must press Ingest.
   const handleAttach = (files: FileList) => {
