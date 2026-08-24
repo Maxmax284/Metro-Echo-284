@@ -31,7 +31,7 @@ import { useScope } from "@/hooks/useScope";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
-  beginAskStream, endAskStream, stopAskStream, patchAskSession,
+  beginAskStream, endAskStream, stopAskStream,
   type AskSession,
 } from "@/lib/askSession";
 

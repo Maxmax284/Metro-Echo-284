@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { clearAskSession } from "@/lib/askSession";
 import {
   autoTitle, bumpOutput, isLive, sortThreads, threadMatchesScope,
   type AskThread, type ThreadContext, type ThreadOutputKind,
@@ -137,6 +138,7 @@ export function AskThreadProvider({ children }: { children: ReactNode }) {
 
   const archive = useCallback(async (id: string, archived = true) => {
     await patch(id, { archived_at: archived ? new Date().toISOString() : null });
+    if (archived) clearAskSession(id);
     if (archived && activeId === id) setActiveId(null);
   }, [patch, activeId]);
 
@@ -144,6 +146,7 @@ export function AskThreadProvider({ children }: { children: ReactNode }) {
     const now = new Date().toISOString();
     await patch(id, { deleted_at: now });
     setAll((p) => p.filter((t) => t.id !== id));
+    clearAskSession(id);
     if (activeId === id) setActiveId(null);
     // Deleting a thread is a real state change, so it leaves a receipt.
     if (session) {

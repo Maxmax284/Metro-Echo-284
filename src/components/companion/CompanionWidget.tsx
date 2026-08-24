@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageCircle, X, Maximize2, Minimize2, Check, ArrowUpRight } from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -13,6 +14,7 @@ import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { useIntentHandler } from "@/hooks/useIntentHandler";
 import { useAuth } from "@/lib/auth";
 import { useAskThreads } from "@/providers/AskThreadProvider";
+import { getAskSession, subscribeAskSession } from "@/lib/askSession";
 import { outputSummary } from "@/lib/askThreads";
 import { promoteToAskRoom, shouldSuggestPromotion } from "@/lib/askPromotion";
 import { useMode, MODE_LABEL, MODE_DESCRIPTION, type AppMode } from "@/hooks/useMode";
@@ -41,6 +43,15 @@ export function CompanionWidget() {
   const onIntent = useIntentHandler();
   const location = useLocation();
   const { active } = useAskThreads();
+
+  // Wave 4 — a turn keeps running when the drawer is closed, so the bubble says
+  // so instead of pretending nothing is happening.
+  const [thinking, setThinking] = useState(false);
+  useEffect(() => {
+    if (!active?.id) { setThinking(false); return; }
+    setThinking(getAskSession(active.id).streaming);
+    return subscribeAskSession(active.id, (s) => setThinking(s.streaming));
+  }, [active?.id]);
 
   const inAskRoom = context.surface === "ask";
   const producedSummary = outputSummary(active?.outputs);
@@ -171,8 +182,10 @@ export function CompanionWidget() {
             "fixed bottom-24 right-3 z-40 flex h-12 w-12 items-center justify-center rounded-full",
             "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow",
             "transition-transform hover:scale-105 active:scale-95",
+            thinking && "ring-2 ring-primary/50 ring-offset-2 ring-offset-background motion-safe:animate-pulse",
             "md:bottom-6 md:right-6"
           )}
+          title={thinking ? "Still working on your last question" : "Open companion"}
         >
           <MessageCircle className="h-5 w-5" />
           <span
