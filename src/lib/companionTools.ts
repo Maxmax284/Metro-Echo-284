@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
+import type { AskInputKind } from "@/lib/askCapabilities";
 
 export type ToolSurface =
   | "command" | "conversation" | "memory" | "commitments"
@@ -23,7 +24,10 @@ export type ToolProvider = "none" | "lovable-ai" | "serpapi" | "open-meteo";
 export type ToolScope = "personal" | "organization" | "admin";
 
 /** Structured block a tool's output should render as (see vantaBlocks). */
-export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list";
+export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list" | "perception" | "document" | "research" | "sherlock";
+
+/** Device classes a capability is usable on. Omitted = both. */
+export type ToolDevice = "phone" | "desk";
 
 export type ToolBuildCtx = {
   surface: string;
@@ -50,10 +54,15 @@ export type Tool = {
   allowedScopes?: ToolScope[];
   /** Which structured block the tool's answer should land as. */
   outputBlockType?: ToolOutputBlock;
+  /** Input the capability needs before it can do anything useful. */
+  requiredInput?: AskInputKind[];
+  /** Devices the capability is usable on. Omitted = both. */
+  devices?: ToolDevice[];
   /** Registry-only capability: never offered in the slash menu / tool tray. */
   hiddenFromDirectInvocation?: boolean;
   auditEvent?: string;
 };
+
 
 export const COMPANION_TOOLS: Tool[] = [
   // --- existing 4 (preserve behavior) ---
@@ -85,6 +94,8 @@ export const COMPANION_TOOLS: Tool[] = [
     costsCredits: true,
     createsDraft: true,
     needsApproval: true,
+    requiredInput: ["image", "document"],
+    outputBlockType: "document",
     buildPrompt: () =>
       `Explain the most recent receipt/file I uploaded — what was bought, totals, anomalies, and whether anything needs follow-up. Stage a draft action only if needed.`,
     auditEvent: "companion.tool.receipt",
@@ -207,6 +218,8 @@ export const COMPANION_TOOLS: Tool[] = [
     costsCredits: true,
     createsDraft: false,
     needsApproval: false,
+    requiredInput: ["image", "document"],
+    outputBlockType: "document",
     buildPrompt: () =>
       `Analyze the most recently ingested file: type, key facts, dates, totals, anything that should become a commitment or note. Source-label everything.`,
     auditEvent: "companion.tool.analyze_file",
@@ -225,6 +238,7 @@ export const COMPANION_TOOLS: Tool[] = [
     createsDraft: false,
     needsApproval: false,
     directAction: "open-sherlock",
+    outputBlockType: "sherlock",
     auditEvent: "companion.tool.sherlock",
   },
   {
@@ -239,6 +253,7 @@ export const COMPANION_TOOLS: Tool[] = [
     createsDraft: false,
     needsApproval: false,
     directAction: "open-research",
+    outputBlockType: "research",
     auditEvent: "companion.tool.research",
   },
 ];
@@ -259,6 +274,10 @@ export function getToolAvailability(
     scope?: ToolScope;
     /** True when the user is picking the tool by hand (slash menu, tool tray). */
     direct?: boolean;
+    /** Input kinds currently attached to the composer. */
+    inputs?: AskInputKind[];
+    /** Device class this session is running on. */
+    device?: ToolDevice;
   }
 ): ToolAvailability {
   // Direct-invocation gate — some capabilities exist only for Vanta to reach for.
@@ -269,6 +288,20 @@ export function getToolAvailability(
   if (opts.scope && tool.allowedScopes && !tool.allowedScopes.includes(opts.scope)) {
     return { available: false, reason: `Not available in ${opts.scope === "organization" ? "a workspace" : opts.scope} scope` };
   }
+  // Device gate — a capability the device can't do is hidden, never faked.
+  if (opts.device && tool.devices && !tool.devices.includes(opts.device)) {
+    return { available: false, reason: opts.device === "phone" ? "Not available on a phone" : "Not available on this device" };
+  }
+  // Input gate — some capabilities need something attached first.
+  if (tool.requiredInput?.length) {
+    const have = opts.inputs ?? [];
+    if (!tool.requiredInput.some((k) => have.includes(k))) {
+      const need = tool.requiredInput.filter((k) => k !== "text");
+      return { available: false, reason: `Attach ${need.length ? need.join(" or ") : "something"} first` };
+    }
+  }
+
+
   // Surface gate
   if (!tool.surfaces.includes("*") && !tool.surfaces.includes(opts.surface as ToolSurface)) {
     return { available: false, reason: `Not available on ${opts.surface}` };

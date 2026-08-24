@@ -19,7 +19,8 @@ import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companion
 import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
-import { StagedFileChips } from "@/components/files/StagedFileChips";
+import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
 import { ProcessingLine } from "@/components/companion/ProcessingLine";
@@ -283,6 +284,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   return (
     <div className="flex h-full flex-col">
+      {/* What this thread is bound to — scope, kind, object. Always visible. */}
+      <AskContextStrip />
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
         <span className="font-medium text-foreground/80">Capture Log.</span>{" "}
         Capture only — nothing here executes. Approvals live in Actions.
@@ -421,11 +424,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
               <div className="space-y-2 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
                 {stagedUpload.staged.length > 0 && (
                   <div className="space-y-2">
-                    <StagedFileChips
+                    <AttachmentStrip
                       items={stagedUpload.staged}
                       onRemove={stagedUpload.remove}
                       onRetry={stagedUpload.retry}
-                      compact
                     />
                     {stagedUpload.staged.some((s) => s.status === "staged") && (
                       <div className="flex justify-end">
@@ -440,6 +442,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                     )}
                   </div>
                 )}
+
                 {trays.map((id) => (
                   <FileAftermathTray
                     key={id}
