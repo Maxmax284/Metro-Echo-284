@@ -268,6 +268,10 @@ export function getToolAvailability(
     scope?: ToolScope;
     /** True when the user is picking the tool by hand (slash menu, tool tray). */
     direct?: boolean;
+    /** Input kinds currently attached to the composer. */
+    inputs?: AskInputKind[];
+    /** Device class this session is running on. */
+    device?: ToolDevice;
   }
 ): ToolAvailability {
   // Direct-invocation gate — some capabilities exist only for Vanta to reach for.
@@ -278,6 +282,19 @@ export function getToolAvailability(
   if (opts.scope && tool.allowedScopes && !tool.allowedScopes.includes(opts.scope)) {
     return { available: false, reason: `Not available in ${opts.scope === "organization" ? "a workspace" : opts.scope} scope` };
   }
+  // Device gate — a capability the device can't do is hidden, never faked.
+  if (opts.device && tool.devices && !tool.devices.includes(opts.device)) {
+    return { available: false, reason: opts.device === "phone" ? "Not available on a phone" : "Not available on this device" };
+  }
+  // Input gate — some capabilities need something attached first.
+  if (tool.requiredInput?.length) {
+    const have = opts.inputs ?? [];
+    if (!tool.requiredInput.some((k) => have.includes(k))) {
+      const need = tool.requiredInput.filter((k) => k !== "text").join(" or ") || "input";
+      return { available: false, reason: `Attach ${need === "text" ? "something" : `${need === "document" ? "a document" : `a${/^[aeiou]/.test(need) ? "n" : ""} ${need}`}`} first` };
+    }
+  }
+
   // Surface gate
   if (!tool.surfaces.includes("*") && !tool.surfaces.includes(opts.surface as ToolSurface)) {
     return { available: false, reason: `Not available on ${opts.surface}` };
