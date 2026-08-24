@@ -55,9 +55,13 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
         <span className="flex items-center gap-1.5">
           {t.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
           <span className="truncate text-[13px] text-foreground/90">{threadLabel(t)}</span>
+          {streaming && <LiveDot label="Answering now" />}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-          <span className="font-mono">{relTime(t.last_message_at ?? t.updated_at)}</span>
+          <span className="font-mono">
+            {streaming ? "answering now" : relTime(t.last_message_at ?? t.updated_at)}
+          </span>
+
           <span className="rounded-full bg-surface-elevated/70 px-1.5 py-0.5 uppercase tracking-wider ring-1 ring-border/40">
             {t.scope === "organization" ? "Workspace" : "Personal"}
           </span>
