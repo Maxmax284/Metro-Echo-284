@@ -270,7 +270,20 @@ Deno.serve(async (req: Request) => {
     const workingCandidates = await buildWorkingContext(supabase, scoped).catch(() => []);
     const workingBlock = workingContextBlock(workingCandidates);
 
-    const wantsFileContext = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+    // One router decides what this turn needs: perception, retrieval, research.
+    // It can never authorize execution — at most it says a draft may be prepared.
+    const plan = routeRequest({
+      text: String(message),
+      attachments: perceptionInputs(hints),
+      scope: scopeType as "personal" | "organization" | "admin",
+      organization_id: scopeOrgId,
+      verbosity: verbosity === "terse" || verbosity === "compact" ? verbosity : "rich",
+    });
+
+    const attachedIds = hints.map((h) => h.ingested_file_id).filter((x): x is string => typeof x === "string" && !!x);
+    const wantsFileContext = attachedIds.length > 0
+      || /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+
 
     // Load recent context (last ~30 messages)
     const { data: history } = await supabase
