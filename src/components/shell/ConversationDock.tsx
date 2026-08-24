@@ -133,6 +133,12 @@ export function ConversationDock({
   const recRef = useRef<SR | null>(null);
   const baseRef = useRef("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const docRef = useRef<HTMLInputElement>(null);
+  // Camera only where there is one to point: never offer a route that dead-ends.
+  const hasCamera =
+    typeof window !== "undefined" && (window.matchMedia?.("(pointer: coarse)").matches ?? false);
   const ph = placeholder ?? timeAwarePlaceholder();
   const SRClass = getSpeechRecognition();
   const speechSupported = !!SRClass;
