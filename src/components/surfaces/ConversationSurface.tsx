@@ -142,15 +142,34 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     let aborted = false;
     let assistantSoFar = "";
     try {
+      // Wave 3 — anything staged travels with this turn. Files are ingested
+      // first (bytes go through the file pipeline), then Ask is told what it
+      // is looking at: kind, name, and whether it can be read at all.
+      let hints: AttachmentHint[] = [];
+      if (stagedUploadRef.current?.staged.length) {
+        const settled = await stagedUploadRef.current.commitAll();
+        hints = attachmentHints(
+          settled
+            .filter((s) => s.status === "saved" || s.status === "reading")
+            .map((s) => ({ name: s.file.name, type: s.file.type, ingestedFileId: s.ingestedFileId })),
+        );
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ conversation_id: threadId, message: text, scope: { type: scope.type, organization_id: scope.organizationId } }),
+        body: JSON.stringify({
+          conversation_id: threadId,
+          message: text,
+          scope: { type: scope.type, organization_id: scope.organizationId },
+          ...(hints.length ? { attachments: hints } : {}),
+        }),
         signal: ctrl.signal,
       });
+
 
       if (resp.status === 429) throw new Error("Rate limited — please slow down a moment.");
       if (resp.status === 402) throw new Error("Workspace AI credits exhausted.");
