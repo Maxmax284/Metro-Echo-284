@@ -164,7 +164,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     const threadId = convId ?? (await ensureThread());
     if (!threadId) return;
     const firstTurn = msgs.length === 0;
-    const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never);
+    const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never, { hydrated: true });
     write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
 
     const ctrl = new AbortController();
@@ -470,6 +470,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           onAttach={handleAttach}
           onSlashPick={handleSlashPick}
           onStop={handleStop}
+          draft={askSession.draft}
+          onDraftChange={(t) => setAskDraft(convId ?? "_none", t)}
           surface={context.surface}
           mode={mode}
           isOwner={isOwner}
