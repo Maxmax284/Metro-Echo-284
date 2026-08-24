@@ -43,7 +43,7 @@ export function AskContextStrip({ className }: { className?: string }) {
           {href ? (
             <a
               href={href}
-              onClick={(e) => markFlipOriginFromEvent(e, `ask-context-${active.id}`)}
+              onClick={(e) => markFlipOriginFromEvent(e)}
               className="inline-flex min-w-0 items-center gap-1 rounded-[2px] bg-primary/10 px-1.5 py-0.5 text-primary ring-1 ring-primary/25 hover:bg-primary/15"
               title={`Open ${active.context_label}`}
             >
