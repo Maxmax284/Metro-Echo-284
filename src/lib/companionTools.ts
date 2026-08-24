@@ -23,7 +23,10 @@ export type ToolProvider = "none" | "lovable-ai" | "serpapi" | "open-meteo";
 export type ToolScope = "personal" | "organization" | "admin";
 
 /** Structured block a tool's output should render as (see vantaBlocks). */
-export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list";
+export type ToolOutputBlock = "summary" | "card" | "status" | "approval" | "list" | "perception" | "document" | "research" | "sherlock";
+
+/** Device classes a capability is usable on. Omitted = both. */
+export type ToolDevice = "phone" | "desk";
 
 export type ToolBuildCtx = {
   surface: string;
