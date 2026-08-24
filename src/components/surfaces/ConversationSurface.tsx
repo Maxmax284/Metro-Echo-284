@@ -82,15 +82,27 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
   const { activeId: convId, ensureThread, noteActivity, recordOutput } = useAskThreads();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [streaming, setStreaming] = useState(false);
+  // Wave 4 — the live half of a thread lives in the shared Ask session, not in
+  // this component. Quick Ask and the Ask room mount the same session, so a
+  // turn in flight and a half-typed line survive moving between them.
+  const [session, setSession] = useState<AskSession>(() => getAskSession(convId ?? "_none"));
+  useEffect(() => {
+    const key = convId ?? "_none";
+    setSession(getAskSession(key));
+    return subscribeAskSession(key, setSession);
+  }, [convId]);
+  const msgs = session.messages as Msg[];
+  const streaming = session.streaming;
+  const busy = streaming;
+  const setMsgs = (update: Msg[] | ((prev: Msg[]) => Msg[])) => {
+    setAskMessages(convId ?? "_none", update as never);
+  };
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
   // send() runs before the staged-upload hook is declared below, so it reads
   // the live upload controller through this mirror.
   const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
+
 
 
   // Internal intent handler — emits inline receipt cards on successful drafts.
