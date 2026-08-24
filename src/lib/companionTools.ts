@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
+import type { AskInputKind } from "@/lib/askCapabilities";
 
 export type ToolSurface =
   | "command" | "conversation" | "memory" | "commitments"
@@ -53,10 +54,15 @@ export type Tool = {
   allowedScopes?: ToolScope[];
   /** Which structured block the tool's answer should land as. */
   outputBlockType?: ToolOutputBlock;
+  /** Input the capability needs before it can do anything useful. */
+  requiredInput?: AskInputKind[];
+  /** Devices the capability is usable on. Omitted = both. */
+  devices?: ToolDevice[];
   /** Registry-only capability: never offered in the slash menu / tool tray. */
   hiddenFromDirectInvocation?: boolean;
   auditEvent?: string;
 };
+
 
 export const COMPANION_TOOLS: Tool[] = [
   // --- existing 4 (preserve behavior) ---
