@@ -19,7 +19,8 @@ import { COMPANION_TOOLS, getToolAvailability, type Tool } from "@/lib/companion
 import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
-import { StagedFileChips } from "@/components/files/StagedFileChips";
+import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
 import { ProcessingLine } from "@/components/companion/ProcessingLine";
