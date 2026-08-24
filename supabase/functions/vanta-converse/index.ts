@@ -277,7 +277,7 @@ Deno.serve(async (req: Request) => {
       attachments: perceptionInputs(hints),
       scope: scopeType as "personal" | "organization" | "admin",
       organization_id: scopeOrgId,
-      verbosity: verbosity === "terse" || verbosity === "compact" ? verbosity : "rich",
+      verbosity: ["brief", "signal", "spoken", "cue"].includes(String(verbosity)) ? (verbosity as any) : "rich",
     });
 
     const attachedIds = hints.map((h) => h.ingested_file_id).filter((x): x is string => typeof x === "string" && !!x);
