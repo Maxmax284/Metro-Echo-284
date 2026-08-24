@@ -374,6 +374,49 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
+    // External research — private context shapes the query, never leaves as-is.
+    let researchBlock = "";
+    if (plan.research) {
+      const { data: projectRows } = await scoped(supabase.from("projects").select("title"))
+        .neq("status", "archived")
+        .limit(60);
+      const privateNames = (projectRows ?? [])
+        .map((p: any) => String(p.title ?? "").trim())
+        .filter((t: string) => t.length > 2);
+      const sanitized = sanitizeQuery(String(message), { private_names: privateNames });
+      if (sanitized.blocked) {
+        researchBlock = [
+          "External research: not run.",
+          "- Nothing safe to search survived after private details were held back.",
+          "- Say you did not search outside, and ask for the public detail you need.",
+        ].join("\n");
+      } else {
+        const limit = plan.research.depth === "deep" ? 6 : plan.research.depth === "standard" ? 4 : 3;
+        const sources = await lookupSources(sanitized.query, limit).catch(() => [] as SourceResult[]);
+        console.log("research", JSON.stringify(safeResearchLog(sanitized, {
+          intent: plan.research.intent,
+          depth: plan.research.depth,
+          provider: "serpapi",
+        })), "sources", sources.length);
+        researchBlock = sources.length
+          ? [
+              `External sources for "${sanitized.query}" (${plan.research.intent}, ${plan.research.depth}). Cite by name, never invent a source:`,
+              ...sources.map((s, i) =>
+                `[${i + 1}] ${s.title} — ${s.source} (${s.authority}, ${s.freshness})\n${s.url}${s.excerpt ? `\n${s.excerpt}` : ""}`,
+              ),
+              sanitized.withheld.length
+                ? `- Held back from the search: ${sanitized.withheld.join(", ")}. Mention this only if it limits the answer.`
+                : "",
+              "- If the sources disagree or are only anecdotal, say so instead of picking a side.",
+            ].filter(Boolean).join("\n")
+          : [
+              "External research: no usable sources came back.",
+              "- Say plainly that you could not verify this outside, and answer from what you do have.",
+            ].join("\n");
+      }
+    }
+
+
     // Brand voice — the user's chosen tone for anything they read.
     const { data: voiceProfile } = await supabase
       .from("profiles")
