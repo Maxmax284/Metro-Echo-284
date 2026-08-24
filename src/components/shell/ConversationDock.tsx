@@ -127,7 +127,15 @@ export function ConversationDock({
     const next = draft ?? "";
     if (next !== lastDraft.current) { lastDraft.current = next; setV(next); }
   }, [draft]);
-  useEffect(() => { lastDraft.current = v; onDraftChange?.(v); }, [v, onDraftChange]);
+  // The callback identity changes every parent render, so it lives in a ref and
+  // only a real text change publishes upward. Otherwise draft -> render -> draft.
+  const onDraftChangeRef = useRef(onDraftChange);
+  onDraftChangeRef.current = onDraftChange;
+  useEffect(() => {
+    if (v === lastDraft.current) return;
+    lastDraft.current = v;
+    onDraftChangeRef.current?.(v);
+  }, [v]);
 
   // Stage 6 — apply external prefill, focus, and ack so parent can clear it.
   useEffect(() => {
