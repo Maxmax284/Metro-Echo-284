@@ -89,8 +89,7 @@ export default function DocumentsPage() {
         organizationId: orgId,
         onOpenProject: (id) => navigate(`/projects/${id}#living-brief`),
         onRegenerate: (id, name) => {
-          const p = (projects ?? []).find((x) => x.id === id)
-            ?? (project && project.id === id ? project : undefined)
+          const p = (project && project.id === id ? project : undefined)
             ?? ({ id, title: name ?? "Project" } as Project);
           startPresetRun(presetId, p);
         },
