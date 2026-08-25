@@ -79,3 +79,19 @@ describe("context strip", () => {
     expect(contextHref(null, null)).toBeNull();
   });
 });
+
+describe("processingLabel", () => {
+  it("names what it is actually reading", () => {
+    expect(processingLabel("reading", [{ kind: "document" }])).toBe("Reading the document");
+    expect(processingLabel("reading", [{ kind: "image" }])).toBe("Looking at the image");
+    expect(processingLabel("reading", [{ kind: "audio" }])).toBe("Listening to the recording");
+  });
+
+  it("falls back to context when nothing is attached", () => {
+    expect(processingLabel("reading")).toBe("Checking your context");
+  });
+
+  it("says writing once tokens arrive", () => {
+    expect(processingLabel("writing", [{ kind: "document" }])).toBe("Writing");
+  });
+});
