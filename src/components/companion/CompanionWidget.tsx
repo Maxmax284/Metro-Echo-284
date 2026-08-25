@@ -176,7 +176,7 @@ export function CompanionWidget() {
       {/* Docked Ask trigger — part of the shell, not a bubble floating over it.
           Desktop: a tab welded to the right edge. Mobile: a pill flush with the
           bottom nav, so Ask reads as the fifth edge of the rig, not an overlay. */}
-      {panelMode === "closed" && (
+      {panelMode === "closed" && !inAskRoom && (
         <button
           onClick={open}
           aria-label="Open Ask"
