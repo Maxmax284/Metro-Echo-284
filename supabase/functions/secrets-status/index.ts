@@ -31,15 +31,23 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const apiKey = Deno.env.get("SUPABASE_ANON_KEY") ??
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ??
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      apiKey,
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: userData, error: userErr } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", ""),
     );
     if (userErr || !userData?.user) {
+      console.log("secrets-status auth failed", {
+        anon: !!Deno.env.get("SUPABASE_ANON_KEY"),
+        publishable: !!Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
+        reason: userErr?.message ?? "no user",
+      });
       return new Response(JSON.stringify({ error: "unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
