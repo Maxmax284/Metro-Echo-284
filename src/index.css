@@ -83,6 +83,9 @@
     --motion-fast: 140ms;
     --motion-base: 240ms;
     --motion-slow: 480ms;
+    /* Feel scale — overwritten on <html> by src/lib/motionPrefs.ts. Every
+       one-shot motif multiplies by this so the Settings knob is honest. */
+    --feel-k: 1;
 
     --sidebar-background: 220 18% 8%;
     --sidebar-foreground: 210 25% 90%;
