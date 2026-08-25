@@ -10,7 +10,8 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { listAllDocuments, kindLabel, statusLabel, isDraftDocument, type DocumentRow } from "@/lib/documents";
-import { listProjects, type Project } from "@/lib/projects";
+import { type Project } from "@/lib/projects";
+import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -43,9 +44,6 @@ export default function DocumentsPage() {
 
   // Project picker for presets that need one (e.g. project-summary-report).
   const [projectPickerFor, setProjectPickerFor] = useState<ExportPresetId | null>(null);
-  const [projects, setProjects] = useState<Project[] | null>(null);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [projectQuery, setProjectQuery] = useState("");
   const [recentProjectIds, setRecentProjectIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
