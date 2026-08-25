@@ -10,7 +10,8 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { listAllDocuments, kindLabel, statusLabel, isDraftDocument, type DocumentRow } from "@/lib/documents";
-import { listProjects, type Project } from "@/lib/projects";
+import { type Project } from "@/lib/projects";
+import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -43,9 +44,6 @@ export default function DocumentsPage() {
 
   // Project picker for presets that need one (e.g. project-summary-report).
   const [projectPickerFor, setProjectPickerFor] = useState<ExportPresetId | null>(null);
-  const [projects, setProjects] = useState<Project[] | null>(null);
-  const [projectsLoading, setProjectsLoading] = useState(false);
-  const [projectQuery, setProjectQuery] = useState("");
   const [recentProjectIds, setRecentProjectIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -91,8 +89,7 @@ export default function DocumentsPage() {
         organizationId: orgId,
         onOpenProject: (id) => navigate(`/projects/${id}#living-brief`),
         onRegenerate: (id, name) => {
-          const p = (projects ?? []).find((x) => x.id === id)
-            ?? (project && project.id === id ? project : undefined)
+          const p = (project && project.id === id ? project : undefined)
             ?? ({ id, title: name ?? "Project" } as Project);
           startPresetRun(presetId, p);
         },
@@ -101,25 +98,13 @@ export default function DocumentsPage() {
     );
   }
 
-  async function launchPreset(presetId: ExportPresetId) {
+  // The shared picker loads and scopes its own project list, so this only has
+  // to decide whether a preset needs one.
+  function launchPreset(presetId: ExportPresetId) {
     const preset = EXPORT_PRESETS[presetId];
     if (!preset) return;
     if (preset.requiresProject) {
       setProjectPickerFor(presetId);
-      setProjectQuery("");
-      if (!projects && user) {
-        setProjectsLoading(true);
-        try {
-          const rows = await listProjects({ userId: user.id, organizationId: orgId });
-          setProjects(rows);
-        } catch (e) {
-          console.error("[documents] load projects failed", e);
-          toast.error("Couldn't load your projects");
-          setProjects([]);
-        } finally {
-          setProjectsLoading(false);
-        }
-      }
       return;
     }
     startPresetRun(presetId);
@@ -335,135 +320,37 @@ export default function DocumentsPage() {
                 : ""}
             </DialogDescription>
           </DialogHeader>
-          {projectsLoading || projects === null ? (
-            <div className="flex h-32 items-center justify-center text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading projects…
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              <p className="text-foreground/85">No projects in this workspace yet.</p>
-              <p className="mt-1 text-[12px]">
-                Create one from <Link to="/projects" onClick={() => setProjectPickerFor(null)} className="underline-offset-2 hover:underline">Projects</Link> and attach a few notes or files, then come back.
-              </p>
-            </div>
-          ) : (
-            <ProjectPickerBody
-              projects={projects}
-              query={projectQuery}
-              onQueryChange={setProjectQuery}
-              recentIds={recentProjectIds}
-              onPick={(p) => {
-                const id = projectPickerFor;
-                rememberRecentProject(p.id);
-                setProjectPickerFor(null);
-                if (id) startPresetRun(id, p);
-              }}
-            />
-          )}
+          <ProjectPickerBody
+            recentIds={recentProjectIds}
+            showSummary
+            alwaysShowSearch
+            autoFocusSearch
+            emptyHint={
+              <>
+                <p className="text-foreground/85">No projects in this workspace yet.</p>
+                <p className="mt-1 text-[12px]">
+                  Create one from{" "}
+                  <Link
+                    to="/projects"
+                    onClick={() => setProjectPickerFor(null)}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    Projects
+                  </Link>{" "}
+                  and attach a few notes or files, then come back.
+                </p>
+              </>
+            }
+            onPick={(p) => {
+              const id = projectPickerFor;
+              rememberRecentProject(p.id);
+              setProjectPickerFor(null);
+              if (id) startPresetRun(id, p);
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function ProjectPickerBody({
-  projects,
-  query,
-  onQueryChange,
-  recentIds,
-  onPick,
-}: {
-  projects: Project[];
-  query: string;
-  onQueryChange: (q: string) => void;
-  recentIds: string[];
-  onPick: (p: Project) => void;
-}) {
-  const needle = query.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (needle ? projects.filter((p) => p.title.toLowerCase().includes(needle)) : projects),
-    [projects, needle],
-  );
-
-  const recent = useMemo(() => {
-    if (needle) return [];
-    const map = new Map(projects.map((p) => [p.id, p]));
-    return recentIds
-      .map((id) => map.get(id))
-      .filter((p): p is Project => !!p)
-      .slice(0, 3);
-  }, [projects, recentIds, needle]);
-
-  const recentSet = new Set(recent.map((p) => p.id));
-  const rest = filtered.filter((p) => !recentSet.has(p.id));
-
-  return (
-    <div className="space-y-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Search projects by title"
-          className="h-9 pl-7 text-sm"
-          autoFocus
-        />
-      </div>
-
-      {filtered.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">
-          Nothing matches "{query}".
-        </p>
-      ) : (
-        <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-          {recent.length > 0 && (
-            <div className="space-y-1">
-              <div className="px-1 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Recent
-              </div>
-              <ul className="space-y-1">
-                {recent.map((p) => (
-                  <ProjectPickRow key={p.id} project={p} onPick={onPick} />
-                ))}
-              </ul>
-            </div>
-          )}
-          {rest.length > 0 && (
-            <div className="space-y-1">
-              {recent.length > 0 && (
-                <div className="px-1 text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  All projects
-                </div>
-              )}
-              <ul className="space-y-1">
-                {rest.map((p) => (
-                  <ProjectPickRow key={p.id} project={p} onPick={onPick} />
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ProjectPickRow({ project, onPick }: { project: Project; onPick: (p: Project) => void }) {
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={() => onPick(project)}
-        className="w-full rounded-md border border-border/60 bg-background p-2.5 text-left transition-colors hover:bg-accent/30"
-      >
-        <div className="text-sm font-medium truncate">{project.title}</div>
-        {project.summary && (
-          <div className="mt-0.5 text-[11px] text-muted-foreground line-clamp-2">
-            {project.summary}
-          </div>
-        )}
-      </button>
-    </li>
   );
 }
 
