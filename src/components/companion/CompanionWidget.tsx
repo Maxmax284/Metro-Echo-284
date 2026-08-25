@@ -173,27 +173,31 @@ export function CompanionWidget() {
 
   return (
     <>
-      {/* Floating bubble */}
+      {/* Docked Ask trigger — part of the shell, not a bubble floating over it.
+          Desktop: a tab welded to the right edge. Mobile: a pill flush with the
+          bottom nav, so Ask reads as the fifth edge of the rig, not an overlay. */}
       {panelMode === "closed" && (
         <button
           onClick={open}
-          aria-label="Open companion"
+          aria-label="Open Ask"
           className={cn(
-            "fixed bottom-24 right-3 z-40 flex h-12 w-12 items-center justify-center rounded-full",
-            "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow",
-            "transition-transform hover:scale-105 active:scale-95",
-            thinking && "ring-2 ring-primary/50 ring-offset-2 ring-offset-background motion-safe:animate-pulse",
-            "md:bottom-6 md:right-6"
+            "fixed z-40 inline-flex items-center gap-1.5 border border-border/70 border-r-0 bg-surface/95 backdrop-blur",
+            "text-[10px] font-mono uppercase tracking-[0.18em] text-muted-foreground",
+            "transition-colors hover:text-foreground hover:bg-surface-elevated",
+            "right-0 bottom-[76px] rounded-l-[3px] px-3 py-2.5",
+            "md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:flex-col md:px-2 md:py-3.5",
+            thinking && "text-accent border-accent/50",
           )}
-          title={thinking ? "Still working on your last question" : "Open companion"}
+          title={thinking ? "Still working on your last question" : "Ask Vanta"}
         >
-          <MessageCircle className="h-5 w-5" />
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="md:[writing-mode:vertical-rl]">Ask</span>
           <span
             className={cn(
-              "absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background",
-              FRESHNESS_DOT[awareness.freshness] ?? FRESHNESS_DOT.missing,
+              "h-1.5 w-1.5 rounded-full",
+              thinking ? "bg-accent motion-safe:animate-pulse" : FRESHNESS_DOT[awareness.freshness] ?? FRESHNESS_DOT.missing,
             )}
-            aria-label={`awareness ${awareness.freshness}`}
+            aria-label={thinking ? "answering now" : `awareness ${awareness.freshness}`}
           />
         </button>
       )}
@@ -201,7 +205,7 @@ export function CompanionWidget() {
       {/* Mobile drawer / desktop sheet */}
       {isMobile ? (
         <Drawer open={panelMode !== "closed"} onOpenChange={(o) => (!o ? close() : open())}>
-          <DrawerContent className={cn("p-0", panelMode === "full" ? "h-[95dvh]" : "h-[80dvh]")}>
+          <DrawerContent className={cn("p-0", panelMode === "full" ? "h-[95dvh]" : "h-[68dvh]")}>
             {Body}
           </DrawerContent>
         </Drawer>
