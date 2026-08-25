@@ -35,6 +35,12 @@ const MAX_ATTEMPTS = 6;
 /** Backoff in seconds per attempt index: ~30s, 2m, 8m, 30m, 2h. */
 const BACKOFF_SECONDS = [30, 120, 480, 1800, 7200, 21600];
 
+/** Read an env var without assuming a Deno global (this module is also unit-tested). */
+function env(name: string): string | undefined {
+  const g = globalThis as unknown as { Deno?: { env: { get(k: string): string | undefined } } };
+  return g.Deno?.env.get(name) ?? undefined;
+}
+
 /** Resolve the hub target from env. Returns null when the bridge is unconfigured. */
 export function resolveBridgeTarget(target = "ground_truth_hub"): BridgeTarget | null {
   const map: Record<string, { url: string; secret: string }> = {
@@ -42,11 +48,12 @@ export function resolveBridgeTarget(target = "ground_truth_hub"): BridgeTarget |
   };
   const names = map[target];
   if (!names) return null;
-  const url = Deno.env.get(names.url)?.trim();
-  const secret = Deno.env.get(names.secret)?.trim();
+  const url = env(names.url)?.trim();
+  const secret = env(names.secret)?.trim();
   if (!url || !secret) return null;
   return { target, url, secret };
 }
+
 
 export function backoffSecondsFor(attempts: number): number {
   const i = Math.max(0, Math.min(attempts, BACKOFF_SECONDS.length - 1));
