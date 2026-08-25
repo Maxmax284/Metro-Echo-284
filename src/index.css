@@ -83,6 +83,9 @@
     --motion-fast: 140ms;
     --motion-base: 240ms;
     --motion-slow: 480ms;
+    /* Feel scale — overwritten on <html> by src/lib/motionPrefs.ts. Every
+       one-shot motif multiplies by this so the Settings knob is honest. */
+    --feel-k: 1;
 
     --sidebar-background: 220 18% 8%;
     --sidebar-foreground: 210 25% 90%;
@@ -351,19 +354,9 @@
   transform-box: fill-box;
   animation: radar-fade-in 420ms var(--ease-out) both;
 }
-@keyframes drawer-slide-up {
-  from { transform: translate3d(0, 12px, 0); opacity: 0; }
-  to   { transform: translate3d(0, 0, 0); opacity: 1; }
-}
-.motion-drawer-in {
-  animation: drawer-slide-up var(--motion-base) var(--ease-out) both;
-}
 @keyframes vanta-fade-in {
   from { opacity: 0; transform: translate3d(0, 4px, 0); }
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-.motion-fade-in {
-  animation: vanta-fade-in var(--motion-base) var(--ease-out) both;
 }
 /* Calm staggered entrance — children fade in one after another. */
 .motion-stagger > * {
@@ -389,15 +382,6 @@
   animation: vanta-count-pulse 520ms var(--ease-out) 1;
 }
 
-/* Dismiss = slide left + fade out (180ms). Apply just before unmount. */
-@keyframes vanta-dismiss-left {
-  from { transform: translate3d(0, 0, 0); opacity: 1; max-height: 200px; }
-  to   { transform: translate3d(-12%, 0, 0); opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; }
-}
-.motion-dismiss-left {
-  animation: vanta-dismiss-left 180ms var(--ease-out) both;
-  overflow: hidden;
-}
 
 /* Confirmation scale-in (160ms) — attach success, checkmark swap, etc. */
 @keyframes vanta-confirm {
@@ -443,22 +427,14 @@
   will-change: opacity, transform;
 }
 
-/* Arrival: a row that just showed up because real new data landed. One time. */
+/* Arrival: a row that just showed up because real new data landed. One time.
+   Duration and travel both ride the Feel knobs so the setting is honest. */
 @keyframes vanta-arrival {
-  from { opacity: 0; transform: translate3d(0, 2px, 0); }
+  from { opacity: 0; transform: translate3d(0, calc(var(--room-swap-drift, 4px) * 0.5), 0); }
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .motion-arrival {
-  animation: vanta-arrival var(--motion-base) var(--ease-out) both;
-}
-
-/* Resolve: a record settling into its next state (staged → approved → executed). */
-@keyframes vanta-resolve {
-  0%   { opacity: 0.55; transform: translate3d(0, 2px, 0); }
-  100% { opacity: 1;    transform: translate3d(0, 0, 0); }
-}
-.motion-resolve {
-  animation: vanta-resolve var(--motion-base) var(--ease-out) both;
+  animation: vanta-arrival calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
 }
 
 /* Press: tap compression. Micro feedback only — never a bounce. */
@@ -601,16 +577,6 @@ html.vanta-exhale-once body {
 
 
 
-/* Snap: crisp mechanical settle for a record reaching its next state.
-   Short, controlled, no overshoot. */
-@keyframes vanta-snap {
-  0%   { transform: scale(0.99); opacity: 0.7; }
-  60%  { transform: scale(1);    opacity: 1; }
-  100% { transform: scale(1);    opacity: 1; }
-}
-.motion-snap {
-  animation: vanta-snap 180ms var(--ease-out) both;
-}
 
 /* Number roll: a digit block slides up when a real count changes. 240ms, no
    bounce. Only mounted when the value actually moved. */
@@ -637,7 +603,7 @@ html.vanta-exhale-once body {
   100% { transform: scale(1);     box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.5); }
 }
 .motion-commit {
-  animation: vanta-commit 320ms var(--ease-out) both;
+  animation: vanta-commit calc(320ms * var(--feel-k, 1)) var(--ease-out) both;
 }
 
 
@@ -652,15 +618,18 @@ html.vanta-exhale-once body {
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .vanta-boot > * {
-  animation: vanta-boot-in 260ms var(--ease-out) both;
+  animation: vanta-boot-in calc(260ms * var(--feel-k, 1)) var(--ease-out) both;
 }
+/* Steps come off the same stagger knob as Ask answer blocks, so the Feel
+   setting governs how a room paints in, not just how rooms hand over. */
 .vanta-boot > *:nth-child(1) { animation-delay: 0ms; }
-.vanta-boot > *:nth-child(2) { animation-delay: 45ms; }
-.vanta-boot > *:nth-child(3) { animation-delay: 90ms; }
-.vanta-boot > *:nth-child(4) { animation-delay: 135ms; }
-.vanta-boot > *:nth-child(5) { animation-delay: 180ms; }
-.vanta-boot > *:nth-child(6) { animation-delay: 225ms; }
-.vanta-boot > *:nth-child(n+7) { animation-delay: 270ms; }
+.vanta-boot > *:nth-child(2) { animation-delay: calc(var(--block-stagger, 60ms) * 0.75); }
+.vanta-boot > *:nth-child(3) { animation-delay: calc(var(--block-stagger, 60ms) * 1.5); }
+.vanta-boot > *:nth-child(4) { animation-delay: calc(var(--block-stagger, 60ms) * 2.25); }
+.vanta-boot > *:nth-child(5) { animation-delay: calc(var(--block-stagger, 60ms) * 3); }
+.vanta-boot > *:nth-child(6) { animation-delay: calc(var(--block-stagger, 60ms) * 3.75); }
+.vanta-boot > *:nth-child(n+7) { animation-delay: calc(var(--block-stagger, 60ms) * 4.5); }
+
 
 /* Rail draw: the section hairline plots itself left to right on arrival. */
 @keyframes vanta-rail-draw {
@@ -704,7 +673,7 @@ html.vanta-exhale-once body {
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 .motion-sheet-in {
-  animation: vanta-sheet-in 280ms var(--ease-out) both;
+  animation: vanta-sheet-in calc(280ms * var(--feel-k, 1)) var(--ease-out) both;
 }
 
 /* Registration marks shift a few px once when new data actually lands. */
@@ -830,16 +799,11 @@ html.vanta-exhale-once body {
   .radar-sweep,
   .radar-ping-pulse,
   .radar-fade-in,
-  .motion-drawer-in,
-  .motion-fade-in,
   .motion-stagger > *,
   .motion-count-pulse,
-  .motion-dismiss-left,
   .motion-confirm,
   .motion-breath,
   .motion-arrival,
-  .motion-resolve,
-  .motion-snap,
   .motion-signal-track,
   .motion-roll,
   .motion-commit,

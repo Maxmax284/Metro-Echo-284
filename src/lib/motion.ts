@@ -16,18 +16,11 @@
 export const MOTION_MICRO =
   "transition-colors duration-[var(--motion-fast)] ease-[var(--ease-out)] motion-reduce:transition-none";
 
-/** Standard UI transition: state, size, position. */
-export const MOTION_UI =
-  "transition-all duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none";
-
 /** Tap compression. Pair with MOTION_MICRO on buttons and tappable cards. */
 export const MOTION_PRESS = "motion-press";
 
 /** One-time arrival for a row that just showed up from real new data. */
 export const MOTION_ARRIVAL = "motion-arrival";
-
-/** One-time settle when a record resolves (staged → approved → executed). */
-export const MOTION_RESOLVE = "motion-resolve";
 
 /** Tappable row: micro colour feedback plus press compression. */
 export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
@@ -35,18 +28,12 @@ export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
 /** Desktop-only 1px depth response for interactive cards. Touch uses press. */
 export const MOTION_HOVER_LIFT = "vanta-hover-lift";
 
-/** Interactive card: desktop depth on hover, compression on touch. */
-export const MOTION_CARD = `${MOTION_HOVER_LIFT} ${MOTION_PRESS}`;
-
 /**
  * The one "Vanta noticed something" motif: a 1px purple line that sweeps once
  * and settles. Event-driven only — apply while a real change is acknowledged,
  * then remove. Never left on.
  */
 export const MOTION_SIGNAL = "vanta-signal";
-
-/** Crisp mechanical settle when a record reaches its next state. */
-export const MOTION_SNAP = "motion-snap";
 
 /**
  * Commit — the one moment of drama in the whole app. Fires when an execute is
@@ -63,8 +50,8 @@ export const LEAD_BAR = "vanta-lead";
 
 /**
  * Boot order — put on a feed container so its children arrive in sequence
- * (45ms apart, capped at six deep) instead of the whole room painting at once.
- * One-shot per mount, so it re-runs on room entry and nowhere else.
+ * (off the Feel stagger knob, capped at six deep) instead of the whole room
+ * painting at once. One-shot per mount, so it re-runs on room entry only.
  */
 export const MOTION_BOOT = "vanta-boot";
 
@@ -79,6 +66,7 @@ export const MOTION_SCAN = "vanta-scan";
 
 /** Registration marks shift once when real new data lands. */
 export const MOTION_TICKS_LIVE = "vanta-ticks-live";
+
 
 
 

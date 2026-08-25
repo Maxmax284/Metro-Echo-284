@@ -126,7 +126,14 @@ export function writeRoomSwapPrefs(next: RoomSwapPrefs): RoomSwapPrefs {
   return withFeel;
 }
 
-/** Push the prefs onto <html> as CSS variables the crossfade reads. */
+/**
+ * Push the prefs onto <html> as CSS variables.
+ *
+ * --feel-k is the honest part: a unitless scale applied to every one-shot
+ * motif (arrival, boot, resolve, snap, commit, sheet) so the Feel setting
+ * changes what you actually feel during use, not just the room crossfade.
+ * 200ms of room swap == k of 1.
+ */
 export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -135,6 +142,7 @@ export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   root.style.setProperty("--room-swap-out-ms", `${Math.round(ms * 0.9)}ms`);
   root.style.setProperty("--room-swap-drift", `${prefs.enabled ? prefs.driftPx : 0}px`);
   root.style.setProperty("--block-stagger", `${prefs.enabled ? prefs.blockStaggerMs : 0}ms`);
+  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 200) * 100) / 100) : "0");
   root.dataset.roomSwap = prefs.enabled ? "on" : "off";
   root.dataset.feel = prefs.feel;
 }

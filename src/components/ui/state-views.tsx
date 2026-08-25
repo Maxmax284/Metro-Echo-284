@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MOTION_SCAN } from "@/lib/motion";
 
 /** Skeleton rows sized like list content. Use inside the container it replaces. */
 export function LoadingState({
@@ -69,7 +70,7 @@ export function EmptyState({
       className={cn(
         /* One slow scanline pass: an empty surface should read as watched,
            not as broken. Removed entirely under reduced motion. */
-        "vanta-card vanta-grain vanta-scan flex flex-col items-center px-4 py-7 text-center",
+        `vanta-card vanta-grain ${MOTION_SCAN} flex flex-col items-center px-4 py-7 text-center`,
         className,
       )}
     >

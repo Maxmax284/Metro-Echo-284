@@ -5,9 +5,13 @@
 // pointer-events none, aria-hidden, no data, no interaction.
 import { useEffect, useRef, useState } from "react";
 import { THROW_EVENT } from "@/lib/skins";
-// One painted wall per room. Today's is real artwork on the CDN; the rest are
-// still CSS. index.css owns every visual consequence — this only hands over URLs.
+// One painted wall per room, all five now real artwork on the CDN.
+// index.css owns every visual consequence — this only hands over the URLs.
 import todayWall from "@/assets/wall-today-dawn.jpg.asset.json";
+import workWall from "@/assets/wall-work-railyard.jpg.asset.json";
+import askWall from "@/assets/wall-ask-alley.jpg.asset.json";
+import receiptsWall from "@/assets/wall-receipts-pasteup.jpg.asset.json";
+import settingsWall from "@/assets/wall-settings-door.jpg.asset.json";
 
 export function AmbientBackdrop() {
   const [throwKey, setThrowKey] = useState(0);
