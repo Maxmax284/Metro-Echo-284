@@ -470,7 +470,6 @@ async function sweepScope(
   }
 
   const decision = result.surface;
-  const dayKey = now.toISOString().slice(0, 10);
   const { error } = await sb.from("nudges").upsert(
     [{
       user_id: userId,
@@ -481,7 +480,10 @@ async function sweepScope(
       related_entity_type: decision.entityType ?? null,
       related_entity_id: decision.entityId ?? null,
       priority: decision.priority,
-      dedupe_key: scopedDedupeKey(decision.dedupeKey, orgId, dayKey),
+      // Situation identity, not day identity. signalDedupeKey() is already
+      // scope-segmented, and it is the same key the priors lookup above reads —
+      // day-keying it here made suppression memory permanently blind.
+      dedupe_key: decision.dedupeKey,
       status: "pending",
       expires_at: new Date(nowMs + 3 * DAY_MS).toISOString(),
     }],
