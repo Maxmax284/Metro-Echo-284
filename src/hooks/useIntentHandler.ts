@@ -180,12 +180,12 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           // Filed against a project when Ask knew which one; otherwise it sits
           // in Memory with its aftermath tray, never orphaned.
           if (data?.id && args.project_id) {
-            await supabase.from("project_items").insert(withScope({
+            await supabase.from("project_items").insert({
               user_id: user.id,
               project_id: args.project_id,
               item_type: "note",
               item_id: data.id,
-            }));
+            });
           }
           await audit("memory", { note_id: data?.id, as: "artifact", project_id: args.project_id ?? null });
           toast.success({ title: "Artifact saved", description: args.project_id ? "Filed against the project." : "Saved to memory." });
