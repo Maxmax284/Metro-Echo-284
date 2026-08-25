@@ -199,6 +199,18 @@ export function ThreadBar() {
           </span>
         </span>
       </button>
+      {streaming && active && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 gap-1.5 px-2.5 text-[12px]"
+          onClick={() => stopAskStream(active.id)}
+        >
+          <Square className="h-3 w-3 fill-current" />Stop
+        </Button>
+      )}
+
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
