@@ -158,3 +158,31 @@ describe("driftScopeTargets", () => {
     ]);
   });
 });
+
+describe("re-proposal gate", () => {
+  const now = Date.parse("2026-08-25T00:00:00Z");
+  const at = (days: number) => new Date(now - days * 86400000).toISOString();
+
+  it("asks once when nothing was ever said", () => {
+    expect(mayRepropose(null, now)).toBe(true);
+  });
+
+  it("stays quiet while the same situation is already pending", () => {
+    expect(mayRepropose({ status: "pending", created_at: at(30) }, now)).toBe(false);
+  });
+
+  it("never re-asks something already acted on", () => {
+    expect(mayRepropose({ status: "acted", created_at: at(60) }, now)).toBe(false);
+  });
+
+  it("respects a dismissal cooldown before asking again", () => {
+    expect(mayRepropose({ status: "dismissed", created_at: at(3) }, now)).toBe(false);
+    expect(mayRepropose({ status: "dismissed", created_at: at(8) }, now)).toBe(true);
+  });
+
+  it("keys a situation by scope but not by day", () => {
+    expect(situationDedupeKey("note_stale:n1", null)).toBe("note_stale:n1:personal");
+    expect(situationDedupeKey("note_stale:n1", "org1")).toBe("note_stale:n1:org1");
+    expect(situationDedupeKey("note_stale:n1", null)).not.toContain("2026");
+  });
+});
