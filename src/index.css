@@ -642,15 +642,18 @@ html.vanta-exhale-once body {
   to   { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 .vanta-boot > * {
-  animation: vanta-boot-in 260ms var(--ease-out) both;
+  animation: vanta-boot-in calc(260ms * var(--feel-k, 1)) var(--ease-out) both;
 }
+/* Steps come off the same stagger knob as Ask answer blocks, so the Feel
+   setting governs how a room paints in, not just how rooms hand over. */
 .vanta-boot > *:nth-child(1) { animation-delay: 0ms; }
-.vanta-boot > *:nth-child(2) { animation-delay: 45ms; }
-.vanta-boot > *:nth-child(3) { animation-delay: 90ms; }
-.vanta-boot > *:nth-child(4) { animation-delay: 135ms; }
-.vanta-boot > *:nth-child(5) { animation-delay: 180ms; }
-.vanta-boot > *:nth-child(6) { animation-delay: 225ms; }
-.vanta-boot > *:nth-child(n+7) { animation-delay: 270ms; }
+.vanta-boot > *:nth-child(2) { animation-delay: calc(var(--block-stagger, 60ms) * 0.75); }
+.vanta-boot > *:nth-child(3) { animation-delay: calc(var(--block-stagger, 60ms) * 1.5); }
+.vanta-boot > *:nth-child(4) { animation-delay: calc(var(--block-stagger, 60ms) * 2.25); }
+.vanta-boot > *:nth-child(5) { animation-delay: calc(var(--block-stagger, 60ms) * 3); }
+.vanta-boot > *:nth-child(6) { animation-delay: calc(var(--block-stagger, 60ms) * 3.75); }
+.vanta-boot > *:nth-child(n+7) { animation-delay: calc(var(--block-stagger, 60ms) * 4.5); }
+
 
 /* Rail draw: the section hairline plots itself left to right on arrival. */
 @keyframes vanta-rail-draw {
