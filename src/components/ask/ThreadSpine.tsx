@@ -3,7 +3,7 @@
 // Mobile: the same list inside a sheet, opened from the thread bar.
 import { useState } from "react";
 import {
-  Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare,
+  Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare, Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
+import { stopAskStream } from "@/lib/askSession";
 
 
 function LiveDot({ label }: { label: string }) {
