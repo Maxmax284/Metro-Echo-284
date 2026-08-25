@@ -36,6 +36,8 @@ export function AmbientBackdrop() {
   return (
     <div ref={rootRef} className="vanta-backdrop" aria-hidden>
       <div className="vanta-bd-wash" />
+      {/* One painted wall per room — static, edge-weighted, behind everything. */}
+      <div className="vanta-bd-wall" />
       <div className="vanta-bd-grid" />
       <div className="vanta-bd-streaks" />
       <div className="vanta-bd-traces" />

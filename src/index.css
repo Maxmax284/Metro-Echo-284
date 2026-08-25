@@ -1191,7 +1191,69 @@ html[data-skin="circuit"] {
   --bd-grain: 0.03;
 }
 
+/* ---- Layer 0.5: the wall. One painted surface per room, one city. ----------
+   Doctrine: art lives behind content and stays at the edges. The middle of the
+   screen — where the reading happens — is always left clear. No motion here at
+   all: the wall is a place, not an animation. Heaviest at the bottom and the
+   outer thirds, so headlines and rows sit on quiet ground.                    */
+.vanta-bd-wall {
+  opacity: var(--bd-wall, 0);
+  transition: opacity 900ms var(--ease-out), background-image 900ms var(--ease-out);
+  background-repeat: no-repeat, no-repeat, repeat;
+  mask-image: radial-gradient(120% 90% at 50% 42%, transparent 34%, #000 78%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 42%, transparent 34%, #000 78%);
+}
+
+/* Today — rolling shutter at dawn. Horizontal slats, one sodium bleed. */
+html[data-room="today"] .vanta-bd-wall {
+  --bd-wall: 0.5;
+  background-image:
+    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.14), transparent 70%),
+    linear-gradient(105deg, transparent 18%, hsl(0 0% 100% / 0.05) 19% 22%, transparent 23% 44%, hsl(0 0% 100% / 0.04) 45% 47%, transparent 48%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.035) 0 2px, transparent 2px 13px);
+}
+
+/* Work — rail-yard wall. Stacked block letters, chalk marks, brick overspray. */
+html[data-room="work"] .vanta-bd-wall {
+  --bd-wall: 0.42;
+  background-image:
+    radial-gradient(52% 40% at 96% 88%, hsl(188 80% 55% / 0.1), transparent 68%),
+    repeating-linear-gradient(90deg, hsl(0 0% 100% / 0.05) 0 3px, transparent 3px 26px),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.03) 0 1px, transparent 1px 34px);
+}
+
+/* Ask — wet alley at night. One tall thin tag under a single lamp. */
+html[data-room="ask"] .vanta-bd-wall {
+  --bd-wall: 0.55;
+  background-image:
+    radial-gradient(34% 62% at 50% -6%, hsl(var(--accent) / 0.18), transparent 72%),
+    linear-gradient(180deg, transparent 8%, hsl(var(--accent) / 0.1) 30% 31%, transparent 62%),
+    radial-gradient(70% 26% at 50% 104%, hsl(var(--accent) / 0.1), transparent 72%);
+}
+
+/* Receipts — paste-up wall. Torn posters, stencil edges, tape. */
+html[data-room="receipts"] .vanta-bd-wall {
+  --bd-wall: 0.4;
+  background-image:
+    linear-gradient(96deg, hsl(0 0% 100% / 0.045) 0 14%, transparent 14% 17%, hsl(0 0% 100% / 0.03) 17% 27%, transparent 27%),
+    linear-gradient(272deg, hsl(0 0% 100% / 0.04) 0 11%, transparent 11% 15%, hsl(0 0% 100% / 0.025) 15% 22%, transparent 22%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 21px);
+}
+
+/* Settings / control room — maintenance door. Hazard stripes worn to metal. */
+html[data-room="settings"] .vanta-bd-wall {
+  --bd-wall: 0.34;
+  background-image:
+    repeating-linear-gradient(135deg, hsl(45 90% 55% / 0.07) 0 10px, transparent 10px 22px),
+    linear-gradient(180deg, transparent 62%, hsl(0 0% 100% / 0.035) 63% 64%, transparent 65%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 40px);
+}
+
+/* Concrete has no glow, so the wall reads heavier and colder there. */
+html[data-skin="concrete"] .vanta-bd-wall { filter: saturate(0.35) contrast(1.1); }
+
 /* Ambient off: keep the wash, drop everything that moves or textures. */
+html[data-ambient="off"] .vanta-bd-wall,
 html[data-ambient="off"] .vanta-bd-grid,
 html[data-ambient="off"] .vanta-bd-streaks,
 html[data-ambient="off"] .vanta-bd-traces,
