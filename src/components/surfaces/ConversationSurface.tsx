@@ -284,6 +284,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
   // Staged file flow — capture is deliberate. No auto AI on attach.
   const [trays, setTrays] = useState<string[]>([]);
+  const [dropping, setDropping] = useState(false);
   const stagedUpload = useStagedUpload({
     source: "conversation",
     onSaved: (s) => {
