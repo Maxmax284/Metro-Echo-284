@@ -75,6 +75,9 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
   stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
   add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
   capture_note: { label: "Saved to memory", icon: BookmarkPlus, surface: "memory" },
+  mark_waiting: { label: "Marked as waiting", icon: CheckSquare, surface: "commitments" },
+  record_decision: { label: "Decision logged", icon: BookmarkPlus, surface: "memory" },
+  save_artifact: { label: "Artifact saved", icon: BookmarkPlus, surface: "memory" },
 };
 
 export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
@@ -301,7 +304,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   // never a generic "thinking".
   const readingLabel = processingLabel(
     "reading",
-    attachmentHints(stagedUpload.staged.map((f) => ({ name: f.name, type: f.type }))),
+    attachmentHints(stagedUpload.staged.map((f) => ({ name: f.file.name, type: f.file.type }))),
   );
 
   // Conversation attach → just stage. User must press Ingest.

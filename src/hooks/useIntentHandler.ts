@@ -66,7 +66,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             title: args.title,
             description: args.description ?? null,
             risk: args.risk ?? "standard",
-            status: "staged",
+            status: "staged" as const,
             source: "companion",
           })).select("id").single();
           await audit("actions", { action_id: data?.id });
@@ -181,7 +181,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           // in Memory with its aftermath tray, never orphaned.
           if (data?.id && args.project_id) {
             await supabase.from("project_items").insert({
-              user_id: user.id,
+              added_by: user.id,
               project_id: args.project_id,
               item_type: "note",
               item_id: data.id,
