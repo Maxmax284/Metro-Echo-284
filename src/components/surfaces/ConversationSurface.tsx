@@ -20,7 +20,7 @@ import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
-import { attachmentHints, type AttachmentHint } from "@/lib/askCapabilities";
+import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 
 import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
@@ -296,6 +296,13 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
 
 
+  // What Vanta is honestly reading this turn — the label follows the attachment,
+  // never a generic "thinking".
+  const readingLabel = processingLabel(
+    "reading",
+    attachmentHints(stagedUpload.staged.map((f) => ({ name: f.name, type: f.type }))),
+  );
+
   // Conversation attach → just stage. User must press Ingest.
   const handleAttach = (files: FileList) => {
     stagedUpload.stage(files);
@@ -338,7 +345,35 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
 
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      onDragOver={(e) => {
+        if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+        // Drops inside Ask belong to this thread, so they must not fall through
+        // to the global staging card.
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        if (!dropping) setDropping(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+        setDropping(false);
+      }}
+      onDrop={(e) => {
+        if (!Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setDropping(false);
+        const files = Array.from(e.dataTransfer.files ?? []);
+        if (files.length) stagedUpload.stage(files);
+      }}
+    >
+      {dropping && (
+        <div className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-[4px] border border-dashed border-accent/60 bg-background/70 text-[11px] font-mono uppercase tracking-[0.18em] text-accent">
+          Drop to attach to this thread
+        </div>
+      )}
       {/* What this thread is bound to — scope, kind, object. Always visible. */}
       <AskContextStrip />
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
@@ -410,8 +445,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                     {m.role === "assistant"
                       ? (m.content
                           ? <StructuredResponse text={m.content} />
-                          : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))
-                      : (m.content || (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" /> : ""))}
+                          : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" label={readingLabel} /> : ""))
+                      : (m.content || (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" label={readingLabel} /> : ""))}
                     {/* Writing caret: a mono block that sits at the end of the
                         answer while tokens are still arriving, then vanishes.
                         The only tell that the text is not final yet. */}
