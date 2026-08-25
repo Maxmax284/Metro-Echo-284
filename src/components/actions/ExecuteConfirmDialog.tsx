@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Boxes, FileCode2, History, Loader2, Play, Receipt, RotateCcw, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_COMMIT } from "@/lib/motion";
 
 export type ExecutableAction = {
   id: string;
@@ -115,7 +116,7 @@ export function ExecuteConfirmDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className={cn("space-y-3 rounded-[calc(var(--radius)-4px)] p-0.5", committing && "motion-commit")}>
+        <div className={cn("space-y-3 rounded-[calc(var(--radius)-4px)] p-0.5", committing && MOTION_COMMIT)}>
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline" className={cn("gap-1", riskColor[action.risk])}>
               <Icon className="h-3 w-3" /> {riskLabel[action.risk]}

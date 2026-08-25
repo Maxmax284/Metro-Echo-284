@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { bucketByDay, isFlat, sparklinePath } from "@/lib/sparkline";
 import { cn } from "@/lib/utils";
+import { MOTION_TICKS_LIVE } from "@/lib/motion";
 
 /** Small-caps mono label. Section names, field names, scope tags. */
 export function MachineLabel({
@@ -223,6 +224,6 @@ export function SyncStamp({
  * once, because real new data just landed.
  */
 export function TickRow({ className, live = false }: { className?: string; live?: boolean }) {
-  return <div aria-hidden className={cn("vanta-ticks w-full", live && "vanta-ticks-live", className)} />;
+  return <div aria-hidden className={cn("vanta-ticks w-full", live && MOTION_TICKS_LIVE, className)} />;
 }
 
