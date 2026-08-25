@@ -99,25 +99,13 @@ export default function DocumentsPage() {
     );
   }
 
-  async function launchPreset(presetId: ExportPresetId) {
+  // The shared picker loads and scopes its own project list, so this only has
+  // to decide whether a preset needs one.
+  function launchPreset(presetId: ExportPresetId) {
     const preset = EXPORT_PRESETS[presetId];
     if (!preset) return;
     if (preset.requiresProject) {
       setProjectPickerFor(presetId);
-      setProjectQuery("");
-      if (!projects && user) {
-        setProjectsLoading(true);
-        try {
-          const rows = await listProjects({ userId: user.id, organizationId: orgId });
-          setProjects(rows);
-        } catch (e) {
-          console.error("[documents] load projects failed", e);
-          toast.error("Couldn't load your projects");
-          setProjects([]);
-        } finally {
-          setProjectsLoading(false);
-        }
-      }
       return;
     }
     startPresetRun(presetId);
