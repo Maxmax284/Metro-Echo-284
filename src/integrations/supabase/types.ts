@@ -2204,6 +2204,57 @@ export type Database = {
         }
         Relationships: []
       }
+      outbound_bridge_deliveries: {
+        Row: {
+          attempts: number
+          body: Json
+          created_at: string
+          delivered_at: string | null
+          event_type: string
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          next_attempt_at: string
+          organization_id: string | null
+          owner_id: string
+          status: string
+          target: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          body: Json
+          created_at?: string
+          delivered_at?: string | null
+          event_type: string
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          next_attempt_at?: string
+          organization_id?: string | null
+          owner_id: string
+          status?: string
+          target: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          body?: Json
+          created_at?: string
+          delivered_at?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          organization_id?: string | null
+          owner_id?: string
+          status?: string
+          target?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       privacy_settings: {
         Row: {
           allow_shared_aggregation: boolean

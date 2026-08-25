@@ -38,6 +38,7 @@ import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
+import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 
 const ROUTE_LABEL: Record<string, string> = {
   memory: "a note for Memory",
@@ -82,7 +83,50 @@ const tools = [
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
 
-async function applyIntent(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
+// Telegram → hub bridge. Anything captured from Telegram that actually routed
+// somewhere is forwarded to LMT Camp State as an awareness notice: durable
+// queue, signed body, retried by bridge-dispatch. Notification only — the hub
+// is told what Vanta noticed, never what to do.
+async function applyIntent(
+  sb: SupabaseClient,
+  userId: string,
+  name: string,
+  args: any,
+  defaults: UserDefaults,
+  orgId: string | null = null,
+) {
+  const res = await applyIntentCore(sb, userId, name, args, defaults, orgId);
+  if (res?.routedTo) {
+    const title = String(args?.title ?? args?.summary ?? res.detectedType ?? "Captured from Telegram");
+    await enqueueBridgeUpdate(sb, {
+      ownerId: userId,
+      organizationId: orgId,
+      eventType: `awareness.capture_routed.${res.routedTo}`,
+      title: `Vanta captured ${res.detectedType ?? "an item"}: ${title}`,
+      lines: [
+        `Captured via: Telegram`,
+        `Landed in: ${res.routedTo}`,
+        "Nothing was executed — it is waiting for review in Vanta.",
+      ],
+      urgency: "normal",
+      payload: {
+        channel: "telegram",
+        detected_type: res.detectedType ?? null,
+        routed_to: res.routedTo,
+        organization_id: orgId,
+      },
+      idempotencyKey: `tg:${userId}:${res.routedTo}:${await shortHash(`${title}|${res.detectedType}`)}`,
+    });
+  }
+  return res;
+}
+
+async function shortHash(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});

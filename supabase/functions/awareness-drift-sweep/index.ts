@@ -13,6 +13,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
 import {
   detectDriftingCommitment,
@@ -509,6 +510,27 @@ async function sweepScope(
     },
   });
 
+
+  // Forward the same awareness update to the hub. Durable queue + signed body,
+  // retried by bridge-dispatch. Notification only: the hub never approves or
+  // executes anything, it just learns what Vanta noticed.
+  await enqueueBridgeUpdate(sb, {
+    ownerId: userId,
+    organizationId: (scopeCols as { organization_id?: string | null }).organization_id ?? null,
+    eventType: `awareness.nudge.${decision.bundle.lead.signal.type}`,
+    title: decision.title,
+    lines: [decision.why, decision.nextStep].filter(Boolean) as string[],
+    urgency: decision.urgency === "critical" ? "critical" : decision.urgency === "high" ? "high" : "normal",
+    payload: {
+      kind: decision.bundle.lead.signal.type,
+      priority: decision.priority,
+      related_entity_type: decision.entityType ?? null,
+      related_entity_id: decision.entityId ?? null,
+      bundled: decision.bundledCount,
+    },
+    idempotencyKey: `nudge:${userId}:${decision.dedupeKey}`,
+  });
+
   // The nudge always lands in Today. Reaching the phone is a second, narrower
   // step: only when the ladder asked for it, push is opted into, and a device
   // is registered. Quiet hours were already honoured by the caller.
@@ -518,6 +540,7 @@ async function sweepScope(
     await reachMessaging(sb, userId, scopeCols, decision);
   }
   return "proposed";
+
 
 }
 
