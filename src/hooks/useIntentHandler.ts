@@ -393,6 +393,6 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         toast.fromError(e);
       }
     },
-    [user, openSherlock, mode, onAck]
+    [user, openSherlock, mode, onAck, withScope, scope]
   );
 }
