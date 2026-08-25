@@ -45,7 +45,15 @@ export function AmbientBackdrop() {
       ref={rootRef}
       className="vanta-backdrop"
       aria-hidden
-      style={{ ["--bd-wall-today" as any]: `url(${todayWall.url})` }}
+      style={
+        {
+          "--bd-wall-today": `url(${todayWall.url})`,
+          "--bd-wall-work": `url(${workWall.url})`,
+          "--bd-wall-ask": `url(${askWall.url})`,
+          "--bd-wall-receipts": `url(${receiptsWall.url})`,
+          "--bd-wall-settings": `url(${settingsWall.url})`,
+        } as React.CSSProperties
+      }
     >
       <div className="vanta-bd-wash" />
       {/* One painted wall per room — static, edge-weighted, behind everything. */}
