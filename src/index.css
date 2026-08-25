@@ -694,7 +694,7 @@ html.vanta-exhale-once body {
   to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 .motion-sheet-in {
-  animation: vanta-sheet-in 280ms var(--ease-out) both;
+  animation: vanta-sheet-in calc(280ms * var(--feel-k, 1)) var(--ease-out) both;
 }
 
 /* Registration marks shift a few px once when new data actually lands. */
