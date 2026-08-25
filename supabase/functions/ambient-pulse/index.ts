@@ -22,8 +22,10 @@ import {
   detectSilentProject,
   detectUnreadRisk,
   isInQuietHours,
+  mayRepropose,
   rankDrift,
   scopedDedupeKey,
+  situationDedupeKey,
   type DriftProject,
   type DriftRisk,
 } from "../_shared/drift.ts";
