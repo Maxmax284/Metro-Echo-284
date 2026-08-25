@@ -80,6 +80,18 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
           </span>
         )}
       </button>
+      {streaming && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+          aria-label={`Stop answering ${threadLabel(t)}`}
+          title="Stop answering"
+          onClick={(e) => { e.stopPropagation(); stopAskStream(t.id); }}
+        >
+          <Square className="h-3 w-3 fill-current" />
+        </Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Thread options for ${threadLabel(t)}`}>
