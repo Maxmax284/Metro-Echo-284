@@ -425,10 +425,55 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Re-proposal gate: a situation already pending, already acted on, or
+    // dismissed inside the cooldown window does not get asked again. Without
+    // this, a still-true situation quietly piled up one nudge per day.
+    let suppressed = 0;
+    let candidates = nudges;
+    if (nudges.length) {
+      const keys = nudges.map((n) => n.dedupe_key).filter(Boolean) as string[];
+      const { data: priors } = await supabase
+        .from("nudges")
+        .select("dedupe_key, status, created_at")
+        .eq("user_id", user.id)
+        .in("dedupe_key", keys);
+
+      const priorByKey = new Map<string, { status: string; created_at: string }>();
+      for (const p of priors ?? []) {
+        const existing = priorByKey.get(p.dedupe_key);
+        // Pending always wins; otherwise keep the most recent verdict.
+        if (!existing || p.status === "pending" || p.created_at > existing.created_at) {
+          priorByKey.set(p.dedupe_key, { status: p.status, created_at: p.created_at });
+        }
+      }
+
+      candidates = nudges.filter((n) =>
+        !n.dedupe_key || mayRepropose(priorByKey.get(n.dedupe_key), now.getTime())
+      );
+      suppressed = nudges.length - candidates.length;
+    }
+
+    // Attention budget: quiet, low-priority reminders never become a list.
+    const QUIET_CEILING = 60;
+    const quiet = candidates.filter((n) => (n.priority ?? 0) < QUIET_CEILING);
+    const loud = candidates.filter((n) => (n.priority ?? 0) >= QUIET_CEILING);
+    if (quiet.length > 1) {
+      const { count: pendingQuiet } = await supabase
+        .from("nudges")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .lt("priority", QUIET_CEILING);
+      const room = Math.max(0, 2 - (pendingQuiet ?? 0));
+      const keep = quiet.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).slice(0, room);
+      suppressed += quiet.length - keep.length;
+      candidates = [...loud, ...keep];
+    }
+
     // Insert (dedupe_key unique partial index will silently skip duplicates)
     let created = 0;
-    if (nudges.length) {
-      const rows = nudges.map((n) => ({ ...n, user_id: user.id, ...scopeCols }));
+    if (candidates.length) {
+      const rows = candidates.map((n) => ({ ...n, user_id: user.id, ...scopeCols }));
       const { data: inserted, error } = await supabase
         .from("nudges")
         .upsert(rows, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
@@ -444,7 +489,7 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", user.id)
       .lt("expires_at", now.toISOString());
 
-    return json({ proposed: nudges.length, created, drift: driftState });
+    return json({ proposed: nudges.length, created, suppressed, drift: driftState });
   } catch (e) {
     console.error("ambient-pulse error:", e);
     return json({ error: e instanceof Error ? e.message : "unknown" }, 500);
