@@ -22,8 +22,10 @@ import {
   detectSilentProject,
   detectUnreadRisk,
   isInQuietHours,
+  mayRepropose,
   rankDrift,
   scopedDedupeKey,
+  situationDedupeKey,
   type DriftProject,
   type DriftRisk,
 } from "../_shared/drift.ts";
@@ -86,7 +88,12 @@ Deno.serve(async (req: Request) => {
     const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
     const dayKey = now.toISOString().slice(0, 10);
     const nudges: NudgeIn[] = [];
+    // Day-keyed: questions that are genuinely worth re-asking each day and
+    // always carry an expiry (arrival, weekly synthesis).
     const scopedKey = (base: string) => scopedDedupeKey(base, orgId, dayKey);
+    // Situation-keyed: one nudge per situation, for as long as the situation
+    // lasts. Re-proposal is gated below by pending state and a dismissal cooldown.
+    const situationKey = (base: string) => situationDedupeKey(base, orgId);
 
     // 1. Overdue commitments
     const { data: overdue } = await applyServerScope(
@@ -106,7 +113,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "commitment",
         related_entity_id: c.id,
         priority: 90,
-        dedupe_key: scopedKey(`overdue:${c.id}`),
+        dedupe_key: situationKey(`overdue:${c.id}`),
       });
     }
 
@@ -128,7 +135,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "commitment",
         related_entity_id: c.id,
         priority: 75,
-        dedupe_key: scopedKey(`due_today:${c.id}`),
+        dedupe_key: situationKey(`due_today:${c.id}`),
       });
     }
 
@@ -149,7 +156,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "action",
         related_entity_id: a.id,
         priority: 70,
-        dedupe_key: scopedKey(`action_ready:${a.id}`),
+        dedupe_key: situationKey(`action_ready:${a.id}`),
       });
     }
 
@@ -171,7 +178,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "note",
         related_entity_id: n.id,
         priority: 30,
-        dedupe_key: scopedKey(`note_stale:${n.id}`),
+        dedupe_key: situationKey(`note_stale:${n.id}`),
       });
     }
 
@@ -220,7 +227,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: "place",
             related_entity_id: nearest.id,
             priority: 40,
-            dedupe_key: scopedKey(`arrival_known:${nearest.id}`),
+            dedupe_key: situationKey(`arrival_known:${nearest.id}`),
             expires_at: todayEnd.toISOString(),
           });
         }
@@ -378,7 +385,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: lead.entityType,
             related_entity_id: lead.entityId,
             priority: 80,
-            dedupe_key: scopedKey(signalDedupeKey(lead)),
+            dedupe_key: situationKey(signalDedupeKey(lead)),
             expires_at: new Date(nowMs + 12 * 60 * 60 * 1000).toISOString(),
           });
         }
@@ -401,7 +408,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: signal.related_entity_type,
             related_entity_id: signal.related_entity_id,
             priority: signal.priority,
-            dedupe_key: scopedKey(signal.dedupe_key),
+            dedupe_key: situationKey(signal.dedupe_key),
             expires_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
           });
           await supabase.from("audit_log").insert({
@@ -418,10 +425,55 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Re-proposal gate: a situation already pending, already acted on, or
+    // dismissed inside the cooldown window does not get asked again. Without
+    // this, a still-true situation quietly piled up one nudge per day.
+    let suppressed = 0;
+    let candidates = nudges;
+    if (nudges.length) {
+      const keys = nudges.map((n) => n.dedupe_key).filter(Boolean) as string[];
+      const { data: priors } = await supabase
+        .from("nudges")
+        .select("dedupe_key, status, created_at")
+        .eq("user_id", user.id)
+        .in("dedupe_key", keys);
+
+      const priorByKey = new Map<string, { status: string; created_at: string }>();
+      for (const p of priors ?? []) {
+        const existing = priorByKey.get(p.dedupe_key);
+        // Pending always wins; otherwise keep the most recent verdict.
+        if (!existing || p.status === "pending" || p.created_at > existing.created_at) {
+          priorByKey.set(p.dedupe_key, { status: p.status, created_at: p.created_at });
+        }
+      }
+
+      candidates = nudges.filter((n) =>
+        !n.dedupe_key || mayRepropose(priorByKey.get(n.dedupe_key), now.getTime())
+      );
+      suppressed = nudges.length - candidates.length;
+    }
+
+    // Attention budget: quiet, low-priority reminders never become a list.
+    const QUIET_CEILING = 60;
+    const quiet = candidates.filter((n) => (n.priority ?? 0) < QUIET_CEILING);
+    const loud = candidates.filter((n) => (n.priority ?? 0) >= QUIET_CEILING);
+    if (quiet.length > 1) {
+      const { count: pendingQuiet } = await supabase
+        .from("nudges")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .lt("priority", QUIET_CEILING);
+      const room = Math.max(0, 2 - (pendingQuiet ?? 0));
+      const keep = quiet.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).slice(0, room);
+      suppressed += quiet.length - keep.length;
+      candidates = [...loud, ...keep];
+    }
+
     // Insert (dedupe_key unique partial index will silently skip duplicates)
     let created = 0;
-    if (nudges.length) {
-      const rows = nudges.map((n) => ({ ...n, user_id: user.id, ...scopeCols }));
+    if (candidates.length) {
+      const rows = candidates.map((n) => ({ ...n, user_id: user.id, ...scopeCols }));
       const { data: inserted, error } = await supabase
         .from("nudges")
         .upsert(rows, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true })
@@ -437,7 +489,7 @@ Deno.serve(async (req: Request) => {
       .eq("user_id", user.id)
       .lt("expires_at", now.toISOString());
 
-    return json({ proposed: nudges.length, created, drift: driftState });
+    return json({ proposed: nudges.length, created, suppressed, drift: driftState });
   } catch (e) {
     console.error("ambient-pulse error:", e);
     return json({ error: e instanceof Error ? e.message : "unknown" }, 500);

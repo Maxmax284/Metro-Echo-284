@@ -198,6 +198,32 @@ export function scopedDedupeKey(key: string, organizationId: string | null, dayK
 }
 
 /**
+ * Situation identity, scope-segmented but NOT day-segmented. A situation that
+ * is still true tomorrow is the same situation, not a new one — day-keying it
+ * makes the same nudge pile up once per calendar day, which reads as spam.
+ */
+export function situationDedupeKey(key: string, organizationId: string | null): string {
+  return `${key}:${organizationId ?? "personal"}`;
+}
+
+/**
+ * A situation may be re-proposed only when nothing is pending for it and any
+ * earlier dismissal has cooled off. Pure so the rule is testable.
+ */
+export function mayRepropose(
+  prior: { status: string; created_at: string } | undefined | null,
+  nowMs: number,
+  cooldownDays = 7,
+): boolean {
+  if (!prior) return true;
+  if (prior.status === "pending") return false;
+  if (prior.status === "acted") return false;
+  const age = nowMs - new Date(prior.created_at).getTime();
+  return Number.isFinite(age) && age >= cooldownDays * 86_400_000;
+}
+
+
+/**
  * Every room a scheduled sweep should look at for one user: Personal first,
  * then each active workspace membership, de-duplicated. Personal is always
  * present so a user with no workspaces still gets swept.
