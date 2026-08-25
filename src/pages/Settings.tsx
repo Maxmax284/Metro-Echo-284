@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useIsOwner } from "@/hooks/useIsOwner";
@@ -6,11 +7,19 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
+import { setRoom } from "@/lib/skins";
 
 export default function Settings() {
   const { session } = useAuth();
   const isOwner = useIsOwner();
   const { controls, loading, update } = useSystemControls();
+
+  // The control room is its own wall: a maintenance door, not one of the four
+  // rooms. Restored on the way out so the backdrop follows navigation again.
+  useEffect(() => {
+    setRoom("settings");
+    return () => setRoom("today");
+  }, []);
 
   if (!session) {
     return <div className="p-8 text-sm text-muted-foreground">Sign in required.</div>;

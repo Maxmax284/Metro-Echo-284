@@ -8,6 +8,7 @@ import {
   contextHref,
   contextStripParts,
   attachmentHints,
+  processingLabel,
 } from "@/lib/askCapabilities";
 
 describe("attachment classification", () => {
@@ -77,5 +78,21 @@ describe("context strip", () => {
     expect(contextHref("commitment", "c1")).toBe("/?commitment=c1");
     expect(contextHref("receipt", null)).toBe("/?surface=receipts");
     expect(contextHref(null, null)).toBeNull();
+  });
+});
+
+describe("processingLabel", () => {
+  it("names what it is actually reading", () => {
+    expect(processingLabel("reading", [{ kind: "document" }])).toBe("Reading the document");
+    expect(processingLabel("reading", [{ kind: "image" }])).toBe("Looking at the image");
+    expect(processingLabel("reading", [{ kind: "audio" }])).toBe("Listening to the recording");
+  });
+
+  it("falls back to context when nothing is attached", () => {
+    expect(processingLabel("reading")).toBe("Checking your context");
+  });
+
+  it("says writing once tokens arrive", () => {
+    expect(processingLabel("writing", [{ kind: "document" }])).toBe("Writing");
   });
 });

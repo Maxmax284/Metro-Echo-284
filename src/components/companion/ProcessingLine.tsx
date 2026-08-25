@@ -11,13 +11,16 @@ import { cn } from "@/lib/utils";
 
 export function ProcessingLine({
   phase,
+  label: labelOverride,
   className,
 }: {
   /** reading = request sent, nothing back yet. writing = tokens arriving. */
   phase: "reading" | "writing";
+  /** Plain-English override — what is genuinely being read this turn. */
+  label?: string;
   className?: string;
 }) {
-  const label = phase === "reading" ? "Reading your context" : "Writing";
+  const label = labelOverride ?? (phase === "reading" ? "Checking your context" : "Writing");
   return (
     <span className={cn("inline-flex flex-col gap-1.5", className)}>
       <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground" aria-live="polite">

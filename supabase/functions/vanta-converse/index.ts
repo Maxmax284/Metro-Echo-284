@@ -180,6 +180,58 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "mark_waiting",
+      description: "Mark that the user is waiting on someone or something. Use when they say they're blocked, waiting on a reply, or chasing a person.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "What is being waited on." },
+          who: { type: "string", description: "Person, company or system being waited on, if named." },
+          due_at: { type: "string", description: "ISO timestamp for when it should have landed, optional." },
+          project_id: { type: "string", description: "Project this belongs to, if known from context." },
+        },
+        required: ["summary"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "record_decision",
+      description: "Log a decision the user has made, so it reads back later as part of the project's history. Only for settled decisions, never for options still being weighed.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "The decision, in one line." },
+          reasoning: { type: "string", description: "Why it was decided that way, if the user said." },
+          project_id: { type: "string", description: "Project this belongs to, if known from context." },
+        },
+        required: ["summary"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "save_artifact",
+      description: "Save something produced in this conversation — a draft, a list, a summary — as a keepable artifact, optionally filed against a project.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Short name for the artifact." },
+          body: { type: "string", description: "The artifact content." },
+          project_id: { type: "string", description: "Project to file it against, if known from context." },
+        },
+        required: ["title", "body"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "run_sherlock",
       description: "Invoke Sherlock to surface risks, missing info, contradictions, assumptions, dependencies, and blind spots over a target text or recent thread.",
       parameters: {
