@@ -20,7 +20,6 @@ import {
   detectUnreadRisk,
   driftScopeTargets,
   isInQuietHours,
-  scopedDedupeKey,
   type DriftProject,
   type DriftRisk,
 } from "../_shared/drift.ts";
