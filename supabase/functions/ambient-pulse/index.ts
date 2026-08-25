@@ -113,7 +113,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "commitment",
         related_entity_id: c.id,
         priority: 90,
-        dedupe_key: scopedKey(`overdue:${c.id}`),
+        dedupe_key: situationKey(`overdue:${c.id}`),
       });
     }
 
@@ -135,7 +135,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "commitment",
         related_entity_id: c.id,
         priority: 75,
-        dedupe_key: scopedKey(`due_today:${c.id}`),
+        dedupe_key: situationKey(`due_today:${c.id}`),
       });
     }
 
@@ -156,7 +156,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "action",
         related_entity_id: a.id,
         priority: 70,
-        dedupe_key: scopedKey(`action_ready:${a.id}`),
+        dedupe_key: situationKey(`action_ready:${a.id}`),
       });
     }
 
@@ -178,7 +178,7 @@ Deno.serve(async (req: Request) => {
         related_entity_type: "note",
         related_entity_id: n.id,
         priority: 30,
-        dedupe_key: scopedKey(`note_stale:${n.id}`),
+        dedupe_key: situationKey(`note_stale:${n.id}`),
       });
     }
 
@@ -227,7 +227,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: "place",
             related_entity_id: nearest.id,
             priority: 40,
-            dedupe_key: scopedKey(`arrival_known:${nearest.id}`),
+            dedupe_key: situationKey(`arrival_known:${nearest.id}`),
             expires_at: todayEnd.toISOString(),
           });
         }
@@ -385,7 +385,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: lead.entityType,
             related_entity_id: lead.entityId,
             priority: 80,
-            dedupe_key: scopedKey(signalDedupeKey(lead)),
+            dedupe_key: situationKey(signalDedupeKey(lead)),
             expires_at: new Date(nowMs + 12 * 60 * 60 * 1000).toISOString(),
           });
         }
@@ -408,7 +408,7 @@ Deno.serve(async (req: Request) => {
             related_entity_type: signal.related_entity_type,
             related_entity_id: signal.related_entity_id,
             priority: signal.priority,
-            dedupe_key: scopedKey(signal.dedupe_key),
+            dedupe_key: situationKey(signal.dedupe_key),
             expires_at: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
           });
           await supabase.from("audit_log").insert({
