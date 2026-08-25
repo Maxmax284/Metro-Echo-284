@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { parseReminderHint } from "@/lib/reminderParse";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { linkEntities } from "@/lib/entityGraph";
+import { useScope } from "@/hooks/useScope";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -18,13 +19,19 @@ import { linkEntities } from "@/lib/entityGraph";
 export type IntentAck =
   | { kind: "stage_action"; id?: string; summary: string }
   | { kind: "add_commitment"; id?: string; summary: string }
-  | { kind: "capture_note"; id?: string; summary: string };
+  | { kind: "capture_note"; id?: string; summary: string }
+  | { kind: "mark_waiting"; id?: string; summary: string }
+  | { kind: "record_decision"; id?: string; summary: string }
+  | { kind: "save_artifact"; id?: string; summary: string };
 
 export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
   const { mode } = useMode();
   const { prefs } = useUserPreferences();
+  // Scope is authoritative: anything Ask creates belongs to the workspace the
+  // user is standing in, never to whichever row happened to be default.
+  const { withScope, scope } = useScope();
 
   return useCallback(
     async (kind: string, args: any) => {
@@ -45,7 +52,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         if (kind === "capture_note") {
           const { data } = await supabase
             .from("notes")
-            .insert({ user_id: user.id, title: args.title ?? null, body: args.body ?? "" })
+            .insert(withScope({ user_id: user.id, title: args.title ?? null, body: args.body ?? "" }))
             .select("id")
             .single();
           if (data) generateEmbedding("note", data.id);
@@ -54,14 +61,14 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           toast.success(vantaSay.capturedToMemory());
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
-          const { data } = await supabase.from("actions").insert({
+          const { data } = await supabase.from("actions").insert(withScope({
             user_id: user.id,
             title: args.title,
             description: args.description ?? null,
             risk: args.risk ?? "standard",
             status: "staged",
             source: "companion",
-          }).select("id").single();
+          })).select("id").single();
           await audit("actions", { action_id: data?.id });
           toast.success(vantaSay.actionDrafted());
           onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
@@ -71,12 +78,12 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             : null;
           const { data } = await supabase
             .from("commitments")
-            .insert({
+            .insert(withScope({
               user_id: user.id,
               summary: args.summary,
               due_at: args.due_at ?? null,
               remind_at: remindAt,
-            })
+            }))
             .select("id")
             .single();
           if (data) generateEmbedding("commitment", data.id);
@@ -106,18 +113,83 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             toast.warning(vantaSay.reminderNeedsTz());
             return;
           }
-          const { data } = await supabase.from("commitments").insert({
+          const { data } = await supabase.from("commitments").insert(withScope({
             user_id: user.id,
             summary: args.summary,
             due_at: parsed.due_at,
             remind_at: parsed.remind_at,
             metadata: { kind: "reminder", source: "companion", timezone: parsed.timezone, when_hint: args.when },
-          }).select("id").single();
+          })).select("id").single();
           if (data) generateEmbedding("commitment", data.id);
           if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" });
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
           toast.success(vantaSay.reminderCreated(parsed.phrasing));
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
+        } else if (kind === "mark_waiting") {
+          // Waiting on someone is a promise with a name attached, so it lives
+          // where every other promise lives — no parallel table.
+          const who = String(args.who ?? "").trim();
+          const summary = String(args.summary ?? "").trim() || (who ? `Waiting on ${who}` : "Waiting");
+          const { data } = await supabase
+            .from("commitments")
+            .insert(withScope({
+              user_id: user.id,
+              summary: who && !summary.toLowerCase().includes(who.toLowerCase()) ? `${summary} — waiting on ${who}` : summary,
+              due_at: args.due_at ?? null,
+              metadata: { kind: "waiting_on", source: "ask", waiting_on: who || null, project_id: args.project_id ?? null },
+            }))
+            .select("id")
+            .single();
+          if (data) generateEmbedding("commitment", data.id);
+          await audit("commitments", { commitment_id: data?.id, waiting_on: who || null });
+          toast.success({ title: who ? `Waiting on ${who}` : "Marked as waiting", description: "It shows in Work until it clears." });
+          onAck?.({ kind: "mark_waiting", id: data?.id, summary });
+        } else if (kind === "record_decision") {
+          const summary = String(args.summary ?? "").trim();
+          if (!summary) return;
+          const { data } = await supabase
+            .from("notes")
+            .insert(withScope({
+              user_id: user.id,
+              title: summary.slice(0, 120),
+              body: String(args.reasoning ?? summary),
+              tags: ["decision"],
+              metadata: { kind: "decision", source: "ask", project_id: args.project_id ?? null, decided_at: new Date().toISOString() },
+            }))
+            .select("id")
+            .single();
+          if (data) generateEmbedding("note", data.id);
+          if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: summary });
+          await audit("memory", { note_id: data?.id, as: "decision" });
+          toast.success({ title: "Decision logged", description: "It reads back in the project's brief." });
+          onAck?.({ kind: "record_decision", id: data?.id, summary });
+        } else if (kind === "save_artifact") {
+          const title = String(args.title ?? "").trim() || "Artifact";
+          const { data } = await supabase
+            .from("notes")
+            .insert(withScope({
+              user_id: user.id,
+              title: title.slice(0, 120),
+              body: String(args.body ?? args.summary ?? ""),
+              tags: ["artifact"],
+              metadata: { kind: "artifact", source: "ask", project_id: args.project_id ?? null },
+            }))
+            .select("id")
+            .single();
+          if (data) generateEmbedding("note", data.id);
+          // Filed against a project when Ask knew which one; otherwise it sits
+          // in Memory with its aftermath tray, never orphaned.
+          if (data?.id && args.project_id) {
+            await supabase.from("project_items").insert(withScope({
+              user_id: user.id,
+              project_id: args.project_id,
+              item_type: "note",
+              item_id: data.id,
+            }));
+          }
+          await audit("memory", { note_id: data?.id, as: "artifact", project_id: args.project_id ?? null });
+          toast.success({ title: "Artifact saved", description: args.project_id ? "Filed against the project." : "Saved to memory." });
+          onAck?.({ kind: "save_artifact", id: data?.id, summary: title });
         } else if (kind === "run_sherlock") {
           openSherlock({
             entity_type: "freeform",
