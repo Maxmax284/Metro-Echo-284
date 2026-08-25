@@ -8,6 +8,7 @@ import {
   contextHref,
   contextStripParts,
   attachmentHints,
+  processingLabel,
 } from "@/lib/askCapabilities";
 
 describe("attachment classification", () => {
