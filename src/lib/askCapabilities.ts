@@ -241,3 +241,20 @@ export function attachmentHints(
     };
   });
 }
+
+/**
+ * What Vanta says while a turn is in flight. Real states only: what it is
+ * reading right now, or that it is writing. No invented reasoning stages.
+ */
+export function processingLabel(
+  phase: "reading" | "writing",
+  hints: Array<{ kind: AskInputKind }> = [],
+): string {
+  if (phase === "writing") return "Writing";
+  const kinds = new Set(hints.map((h) => h.kind));
+  if (kinds.has("document")) return "Reading the document";
+  if (kinds.has("image")) return "Looking at the image";
+  if (kinds.has("audio")) return "Listening to the recording";
+  if (kinds.size > 0) return "Looking at what you sent";
+  return "Checking your context";
+}
