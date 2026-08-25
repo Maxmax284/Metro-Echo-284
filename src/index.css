@@ -591,16 +591,6 @@ html.vanta-exhale-once body {
 
 
 
-/* Snap: crisp mechanical settle for a record reaching its next state.
-   Short, controlled, no overshoot. */
-@keyframes vanta-snap {
-  0%   { transform: scale(0.99); opacity: 0.7; }
-  60%  { transform: scale(1);    opacity: 1; }
-  100% { transform: scale(1);    opacity: 1; }
-}
-.motion-snap {
-  animation: vanta-snap 180ms var(--ease-out) both;
-}
 
 /* Number roll: a digit block slides up when a real count changes. 240ms, no
    bounce. Only mounted when the value actually moved. */
