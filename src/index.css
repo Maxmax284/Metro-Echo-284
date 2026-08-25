@@ -1194,40 +1194,80 @@ html[data-room="today"] .vanta-bd-wall {
   }
 }
 
-/* Work — rail-yard wall. Stacked block letters, chalk marks, brick overspray. */
+/* Work — rail-yard wall. Real paint: brick, stacked block letters, chalk
+   freight marks. Teal wash on the right keeps the tag in the family. */
 html[data-room="work"] .vanta-bd-wall {
-  --bd-wall: 0.42;
+  --bd-wall: 0.92;
   background-image:
     radial-gradient(52% 40% at 96% 88%, hsl(188 80% 55% / 0.1), transparent 68%),
-    repeating-linear-gradient(90deg, hsl(0 0% 100% / 0.05) 0 3px, transparent 3px 26px),
-    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.03) 0 1px, transparent 1px 34px);
+    repeating-linear-gradient(90deg, hsl(0 0% 100% / 0.04) 0 3px, transparent 3px 26px),
+    var(--bd-wall-work, none);
+  background-repeat: no-repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center, center, center center;
+  filter: brightness(1.45) saturate(1.1);
+  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.52) 18%, #000 70%);
+  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.52) 18%, #000 70%);
 }
 
-/* Ask — wet alley at night. One tall thin tag under a single lamp. */
+/* Ask — wet alley at night. Real paint: one tall thin tag under a lamp. */
 html[data-room="ask"] .vanta-bd-wall {
-  --bd-wall: 0.55;
+  --bd-wall: 0.6;
   background-image:
-    radial-gradient(34% 62% at 50% -6%, hsl(var(--accent) / 0.18), transparent 72%),
-    linear-gradient(180deg, transparent 8%, hsl(var(--accent) / 0.1) 30% 31%, transparent 62%),
-    radial-gradient(70% 26% at 50% 104%, hsl(var(--accent) / 0.1), transparent 72%);
+    radial-gradient(34% 62% at 50% -6%, hsl(var(--accent) / 0.16), transparent 72%),
+    linear-gradient(180deg, transparent 8%, hsl(var(--accent) / 0.08) 30% 31%, transparent 62%),
+    var(--bd-wall-ask, none);
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center, center, center center;
+  filter: brightness(0.85) saturate(0.6);
+  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
+  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
 }
 
-/* Receipts — paste-up wall. Torn posters, stencil edges, tape. */
+/* Receipts — paste-up wall. Real paint: torn posters, tape, stencil edges. */
 html[data-room="receipts"] .vanta-bd-wall {
-  --bd-wall: 0.4;
+  --bd-wall: 0.58;
   background-image:
-    linear-gradient(96deg, hsl(0 0% 100% / 0.045) 0 14%, transparent 14% 17%, hsl(0 0% 100% / 0.03) 17% 27%, transparent 27%),
-    linear-gradient(272deg, hsl(0 0% 100% / 0.04) 0 11%, transparent 11% 15%, hsl(0 0% 100% / 0.025) 15% 22%, transparent 22%),
-    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 21px);
+    radial-gradient(48% 38% at 4% 22%, hsl(28 90% 56% / 0.12), transparent 70%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 21px),
+    var(--bd-wall-receipts, none);
+  background-repeat: no-repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center, center, center center;
+  filter: brightness(0.9) saturate(0.7);
+  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
+  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
 }
 
-/* Settings / control room — maintenance door. Hazard stripes worn to metal. */
+/* Settings / control room — maintenance door. Real paint: hazard stripes worn
+   to bare metal under one work light. */
 html[data-room="settings"] .vanta-bd-wall {
-  --bd-wall: 0.34;
+  --bd-wall: 0.7;
   background-image:
-    repeating-linear-gradient(135deg, hsl(45 90% 55% / 0.07) 0 10px, transparent 10px 22px),
-    linear-gradient(180deg, transparent 62%, hsl(0 0% 100% / 0.035) 63% 64%, transparent 65%),
-    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 40px);
+    repeating-linear-gradient(135deg, hsl(45 90% 55% / 0.05) 0 10px, transparent 10px 22px),
+    var(--bd-wall-settings, none);
+  background-repeat: repeat, no-repeat;
+  background-size: auto, cover;
+  background-position: center, center center;
+  filter: brightness(1.4) saturate(1.05);
+  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.46) 18%, #000 70%);
+  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.46) 18%, #000 70%);
+}
+
+/* Narrow screens: content fills the width, so pull each tag into frame instead
+   of showing empty wall. */
+@media (max-width: 640px) {
+  html[data-room="work"] .vanta-bd-wall,
+  html[data-room="ask"] .vanta-bd-wall,
+  html[data-room="receipts"] .vanta-bd-wall {
+    background-size: auto, auto, auto 108%;
+    background-position: center, center, 70% center;
+  }
+  html[data-room="settings"] .vanta-bd-wall {
+    background-size: auto, auto 108%;
+    background-position: center, 50% center;
+  }
 }
 
 /* Concrete has no glow, so the wall reads heavier and colder there. */
