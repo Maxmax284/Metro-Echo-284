@@ -190,7 +190,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter event, entity, payload…"
+              placeholder="Filter by what happened, who, or details…"
               className="h-7 pl-7 text-xs"
             />
           </div>
