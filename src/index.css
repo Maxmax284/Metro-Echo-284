@@ -1204,13 +1204,30 @@ html[data-skin="circuit"] {
   -webkit-mask-image: radial-gradient(120% 90% at 50% 42%, transparent 34%, #000 78%);
 }
 
-/* Today — rolling shutter at dawn. Horizontal slats, one sodium bleed. */
+/* Today — rolling shutter at dawn. Real paint: photographed shutter + one
+   throw-up, with the slats kept on top so it stays crisp at any size. */
 html[data-room="today"] .vanta-bd-wall {
-  --bd-wall: 0.5;
+  --bd-wall: 1;
   background-image:
-    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.14), transparent 70%),
-    linear-gradient(105deg, transparent 18%, hsl(0 0% 100% / 0.05) 19% 22%, transparent 23% 44%, hsl(0 0% 100% / 0.04) 45% 47%, transparent 48%),
-    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.035) 0 2px, transparent 2px 13px);
+    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.2), transparent 70%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.03) 0 2px, transparent 2px 13px),
+    var(--bd-wall-today, none);
+  background-repeat: no-repeat, repeat, no-repeat;
+  background-size: auto, auto, cover;
+  background-position: center, center, center bottom;
+  filter: brightness(1.5) saturate(1.15);
+  /* Softer centre punch-out so the paint actually reads under content. */
+  mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
+  -webkit-mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
+}
+
+/* Narrow screens: content fills the width, so pull the tag itself into frame
+   instead of showing empty shutter. */
+@media (max-width: 640px) {
+  html[data-room="today"] .vanta-bd-wall {
+    background-position: center, center, 30% bottom;
+    background-size: auto, auto, auto 105%;
+  }
 }
 
 /* Work — rail-yard wall. Stacked block letters, chalk marks, brick overspray. */

@@ -5,6 +5,9 @@
 // pointer-events none, aria-hidden, no data, no interaction.
 import { useEffect, useRef, useState } from "react";
 import { THROW_EVENT } from "@/lib/skins";
+// One painted wall per room. Today's is real artwork on the CDN; the rest are
+// still CSS. index.css owns every visual consequence — this only hands over URLs.
+import todayWall from "@/assets/wall-today-dawn.jpg.asset.json";
 
 export function AmbientBackdrop() {
   const [throwKey, setThrowKey] = useState(0);
@@ -34,7 +37,12 @@ export function AmbientBackdrop() {
   }, []);
 
   return (
-    <div ref={rootRef} className="vanta-backdrop" aria-hidden>
+    <div
+      ref={rootRef}
+      className="vanta-backdrop"
+      aria-hidden
+      style={{ ["--bd-wall-today" as any]: `url(${todayWall.url})` }}
+    >
       <div className="vanta-bd-wash" />
       {/* One painted wall per room — static, edge-weighted, behind everything. */}
       <div className="vanta-bd-wall" />
