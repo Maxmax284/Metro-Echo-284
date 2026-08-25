@@ -3,7 +3,7 @@
 // Mobile: the same list inside a sheet, opened from the thread bar.
 import { useState } from "react";
 import {
-  Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare,
+  Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare, Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
+import { stopAskStream } from "@/lib/askSession";
 
 
 function LiveDot({ label }: { label: string }) {
@@ -79,6 +80,18 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
           </span>
         )}
       </button>
+      {streaming && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+          aria-label={`Stop answering ${threadLabel(t)}`}
+          title="Stop answering"
+          onClick={(e) => { e.stopPropagation(); stopAskStream(t.id); }}
+        >
+          <Square className="h-3 w-3 fill-current" />
+        </Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Thread options for ${threadLabel(t)}`}>
@@ -186,6 +199,18 @@ export function ThreadBar() {
           </span>
         </span>
       </button>
+      {streaming && active && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 shrink-0 gap-1.5 px-2.5 text-[12px]"
+          onClick={() => stopAskStream(active.id)}
+        >
+          <Square className="h-3 w-3 fill-current" />Stop
+        </Button>
+      )}
+
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
