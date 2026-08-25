@@ -88,7 +88,12 @@ Deno.serve(async (req: Request) => {
     const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
     const dayKey = now.toISOString().slice(0, 10);
     const nudges: NudgeIn[] = [];
+    // Day-keyed: questions that are genuinely worth re-asking each day and
+    // always carry an expiry (arrival, weekly synthesis).
     const scopedKey = (base: string) => scopedDedupeKey(base, orgId, dayKey);
+    // Situation-keyed: one nudge per situation, for as long as the situation
+    // lasts. Re-proposal is gated below by pending state and a dismissal cooldown.
+    const situationKey = (base: string) => situationDedupeKey(base, orgId);
 
     // 1. Overdue commitments
     const { data: overdue } = await applyServerScope(
