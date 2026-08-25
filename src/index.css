@@ -1207,17 +1207,27 @@ html[data-skin="circuit"] {
 /* Today — rolling shutter at dawn. Real paint: photographed shutter + one
    throw-up, with the slats kept on top so it stays crisp at any size. */
 html[data-room="today"] .vanta-bd-wall {
-  --bd-wall: 0.85;
+  --bd-wall: 1;
   background-image:
-    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.16), transparent 70%),
+    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.2), transparent 70%),
     repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.03) 0 2px, transparent 2px 13px),
     var(--bd-wall-today, none);
   background-repeat: no-repeat, repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center bottom;
+  filter: brightness(1.5) saturate(1.15);
   /* Softer centre punch-out so the paint actually reads under content. */
-  mask-image: radial-gradient(130% 100% at 50% 44%, hsl(0 0% 0% / 0.35) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(130% 100% at 50% 44%, hsl(0 0% 0% / 0.35) 22%, #000 72%);
+  mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
+  -webkit-mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
+}
+
+/* Narrow screens: content fills the width, so pull the tag itself into frame
+   instead of showing empty shutter. */
+@media (max-width: 640px) {
+  html[data-room="today"] .vanta-bd-wall {
+    background-position: center, center, 30% bottom;
+    background-size: auto, auto, auto 105%;
+  }
 }
 
 /* Work — rail-yard wall. Stacked block letters, chalk marks, brick overspray. */
