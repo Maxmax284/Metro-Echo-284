@@ -21,6 +21,9 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { WeekAgenda } from "@/components/work/WeekAgenda";
 import { formatDistanceToNow } from "date-fns";
+import { SectionNote } from "@/components/ui/section-note";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
+import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
 import { markFlipOriginFromEvent } from "@/lib/flip";
 import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
@@ -94,6 +97,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
           <span className="ml-auto flex items-center gap-2">
             <SyncStamp at={lastRead} timezone={timezone} />
+            <ExplainThisButton room="work" />
           </span>
         </header>
 
@@ -166,30 +170,45 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </section>
         )}
 
+        {/* Desks, grouped by how often you touch them. Presentation only —
+            every destination is the same surface it always was. */}
         <section className="vanta-card p-3" aria-label="Desks">
           <SectionRail label="Desks" />
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Each desk owns its own records. Open one when you want to work inside it.
-          </p>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk label="Inbox" hint="What came in" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-            <Desk label="Commitments" hint="What you owe" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-            <Desk label="Actions" hint="Waiting on approval" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
-            <Desk label="Briefs" hint="Composed exports" Icon={FileText} onOpen={() => onNavigate("briefs")} />
-            <Desk label="Documents" hint="Drafts & reviews" Icon={FileText} href="/documents" />
-            <Desk label="Memory" hint="Search everything" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+          <SectionNote sectionKey="work.desks">{sectionNote("work.desks")}</SectionNote>
+
+          <div className="mt-3">
+            <MachineLabel className="text-foreground/60">Daily work</MachineLabel>
+            <SectionNote sectionKey="work.daily">{sectionNote("work.daily")}</SectionNote>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Desk label="Inbox" hint="What came in" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
+              <Desk label="Commitments" hint="What you owe" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
+              <Desk label="Actions" hint="Waiting on approval" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+            </div>
+          </div>
+
+          <div className="mt-3 border-t border-border/40 pt-3">
+            <MachineLabel className="text-foreground/60">Knowledge</MachineLabel>
+            <SectionNote sectionKey="work.knowledge">{sectionNote("work.knowledge")}</SectionNote>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Desk label="Briefs" hint="Composed exports" Icon={FileText} onOpen={() => onNavigate("briefs")} />
+              <Desk label="Documents" hint="Drafts & reviews" Icon={FileText} href="/documents" />
+              <Desk label="Memory" hint="Search everything" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+            </div>
           </div>
         </section>
 
-        <section className="vanta-card p-3" aria-label="Deeper tools">
+        {/* Deeper tools sit quieter on purpose: useful, not the main road. */}
+        <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Deeper tools">
           <SectionRail label="Deeper tools" />
+          <SectionNote sectionKey="work.deeper">{sectionNote("work.deeper")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
             <Desk label="Schedule" hint="Day view" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
             <Desk label="Sherlock" hint="Investigate" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk label="Awareness" hint="Where you are" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            <Desk label="Cockpit" hint="Dense operations view" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
+            <Desk label="Cockpit" hint="Advanced dense view" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
         </section>
+
       </div>
     </div>
   );
