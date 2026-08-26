@@ -358,6 +358,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             sectionKey="today.next"
             icon={CalendarClock}
             reading={<RollingNumber value={dueToday.length + upcoming.length} />}
+            summary={
+              dueToday.length + upcoming.length === 0
+                ? "No dated promises."
+                : `${dueToday.length} due today, ${upcoming.length} coming up.`
+            }
             action={
               <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
