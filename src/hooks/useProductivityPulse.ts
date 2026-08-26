@@ -123,7 +123,7 @@ export function useProductivityPulse(): ProductivityPulse {
       });
     })();
     return () => { alive = false; };
-  }, [user]);
+  }, [user, scopeKey]);
 
   return state;
 }
