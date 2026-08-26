@@ -549,6 +549,12 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.fresh"
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
+                defaultOpen={captureCount > 0}
+                summary={
+                  captureCount === 0
+                    ? "Nothing new to sort."
+                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} to sort.`
+                }
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
                     Open inbox
