@@ -75,7 +75,9 @@ export function LiveBulletin({
                     new
                   </MachineText>
                 ) : null}
-                <MachineText className="shrink-0 text-[10px] text-muted-foreground">
+                <MachineText
+                  className={cn("shrink-0 text-[10px] text-muted-foreground", animates && MOTION_TIME_LOCK)}
+                >
                   {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                 </MachineText>
                 <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
