@@ -125,6 +125,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                 </button>
               }
             />
+            <SectionNote sectionKey="work.projects">{sectionNote("work.projects")}</SectionNote>
             {projects.length === 0 ? (
               <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
                 No projects yet. Start one in the Projects desk and anything you capture can be attached to it.
