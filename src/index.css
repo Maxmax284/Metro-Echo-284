@@ -222,7 +222,6 @@
     background-size: 140% 140%;
     background-position: 0% 0%;
     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.5);
-    animation: vanta-hero-drift 42s ease-in-out infinite alternate;
   }
 
   /* Desktop-only depth response for interactive cards. Touch uses press. */
@@ -499,9 +498,6 @@ html[data-weather="pressure"] {
 .vanta-grain::after {
   opacity: var(--weather-grain);
   transition: opacity 1200ms var(--ease-out);
-}
-.vanta-hero {
-  animation-duration: var(--weather-drift);
 }
 
 /* The shell hairline: one 1px line under the header that carries the tone of
@@ -870,50 +866,6 @@ html.vanta-exhale-once body {
    source of truth for anything: the field behind the shell, the live dot on
    the bulletin, and the one-shot arrival on a bulletin row. */
 
-/* Ambient field: a very low-contrast drifting grid behind everything. It moves
-   faster and warmer as the weather turns, and it never rises above ~4% ink. */
-.vanta-field {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: hsl(var(--background));
-  background-image:
-    linear-gradient(to right, hsl(var(--primary) / 0.16) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.13) 1px, transparent 1px);
-  background-size: 72px 72px, 72px 72px;
-  mask-image: radial-gradient(130% 110% at 50% 0%, hsl(0 0% 0% / 0.95), hsl(0 0% 0% / 0.25) 70%, transparent 100%);
-  -webkit-mask-image: radial-gradient(130% 110% at 50% 0%, hsl(0 0% 0% / 0.95), hsl(0 0% 0% / 0.25) 70%, transparent 100%);
-  animation: vanta-field-drift var(--weather-drift, 42s) linear infinite;
-  will-change: background-position;
-}
-/* A slow light sweep crossing the field, so the shell reads as breathing even
-   when nothing is happening. Weather tints it; calm keeps it faint. */
-.vanta-field::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  background: radial-gradient(38% 32% at 50% 50%, hsl(var(--primary) / 0.14), transparent 70%);
-  animation: vanta-field-sweep calc(var(--weather-drift, 42s) * 2.2) ease-in-out infinite;
-  will-change: transform, opacity;
-}
-.vanta-field::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(70% 45% at 78% 6%, var(--weather-marker, transparent), transparent 72%);
-  opacity: 0.4;
-  transition: background 1200ms var(--ease-out);
-}
-@keyframes vanta-field-drift {
-  0%   { background-position: 0 0, 0 0; }
-  100% { background-position: 72px 36px, 36px 72px; }
-}
-@keyframes vanta-field-sweep {
-  0%   { transform: translate3d(-22%, -12%, 0) scale(1); opacity: 0.35; }
-  50%  { transform: translate3d(20%, 14%, 0) scale(1.25); opacity: 0.8; }
-  100% { transform: translate3d(-22%, -12%, 0) scale(1); opacity: 0.35; }
-}
 
 
 /* Live dot: the one place that loops on the dashboard, and only while the
@@ -993,8 +945,7 @@ html.vanta-exhale-once body {
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  transform: translate3d(0, calc(var(--bd-scroll) * -1), 0);
-  transition: transform 120ms linear, opacity 1200ms var(--ease-out), filter 320ms var(--ease-out);
+  transition: opacity 1200ms var(--ease-out), filter 320ms var(--ease-out);
 }
 .vanta-backdrop > * {
   position: absolute;
@@ -1003,7 +954,6 @@ html.vanta-exhale-once body {
 }
 
 /* Idle: the world quiets down. First input snaps it back awake. */
-html[data-idle="on"] .vanta-backdrop { opacity: 0.5; filter: saturate(0.75); }
 /* Depth of field: the room recedes behind a sheet or dialog. */
 html[data-overlay="on"] .vanta-backdrop { filter: blur(1.5px) saturate(0.9); }
 
@@ -1029,10 +979,8 @@ html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
     linear-gradient(to bottom, hsl(var(--bd-hue-a) 60% 60% / 0.5) 0 1px, transparent 1px 100%);
   background-size: var(--bd-grid-size) var(--bd-grid-size);
   transition: opacity 600ms var(--ease-out);
-  animation: vanta-bd-grid-drift 90s linear infinite;
 }
 /* Held finger: the grid brightens under the press, then settles. */
-html[data-press="on"] .vanta-bd-grid { opacity: calc(var(--bd-grid) * 2.4); }
 
 @keyframes vanta-bd-grid-drift {
   from { background-position: 0 0, 0 0; }
@@ -1053,7 +1001,6 @@ html[data-press="on"] .vanta-bd-grid { opacity: calc(var(--bd-grid) * 2.4); }
     );
   background-size: 260px 160%;
   transition: opacity 600ms var(--ease-out);
-  animation: vanta-bd-rain 26s linear infinite;
 }
 @keyframes vanta-bd-rain {
   from { background-position: 0 -30%; }
@@ -1070,21 +1017,6 @@ html[data-press="on"] .vanta-bd-grid { opacity: calc(var(--bd-grid) * 2.4); }
     linear-gradient(0deg, transparent 0 78%, hsl(var(--bd-hue-a) 70% 58% / 0.28) 78% 78.08%, transparent 78.08% 100%);
   transition: opacity 600ms var(--ease-out);
 }
-.vanta-bd-traces::after {
-  content: "";
-  position: absolute;
-  left: 12%;
-  width: 2px;
-  height: 90px;
-  margin-left: -0.5px;
-  background: linear-gradient(180deg, transparent, hsl(var(--bd-hue-a) 90% 70% / 0.9), transparent);
-  animation: vanta-bd-trace-pulse 11s var(--ease-out) infinite;
-}
-@keyframes vanta-bd-trace-pulse {
-  0%, 70%   { transform: translateY(-20vh); opacity: 0; }
-  74%       { opacity: 1; }
-  100%      { transform: translateY(110vh); opacity: 0; }
-}
 
 /* ---- Layer 5: wet-asphalt sheen along the bottom edge ---- */
 .vanta-bd-sheen {
@@ -1092,7 +1024,6 @@ html[data-press="on"] .vanta-bd-grid { opacity: calc(var(--bd-grid) * 2.4); }
   background-image:
     radial-gradient(140% 60% at 50% 118%, hsl(var(--bd-sheen-hue) 80% 58% / 0.4), transparent 60%);
   transition: opacity 600ms var(--ease-out);
-  animation: vanta-bd-sheen-breathe 38s ease-in-out infinite alternate;
 }
 @keyframes vanta-bd-sheen-breathe {
   from { transform: translateY(2%) scaleX(1); }
