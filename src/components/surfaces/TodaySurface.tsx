@@ -298,6 +298,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               sectionKey="today.attention"
               icon={AlertTriangle}
               reading={<RollingNumber value={attention.length} />}
+              summary={
+                attention.length === 1
+                  ? "1 item is waiting on you."
+                  : `${attention.length} items are waiting on you.`
+              }
               action={
                 <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
                   See all
