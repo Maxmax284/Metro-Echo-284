@@ -443,6 +443,43 @@
   animation: vanta-arrival calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
 }
 
+/* ---- Motion doctrine --------------------------------------------------
+   Live data arrives. History settles. Actions confirm. Navigation travels.
+   Backgrounds and graffiti do not move. These two classes carry the first
+   two clauses; everything else already exists above.
+
+   Arrive: a live record sliding in from the left with its status rail
+   drawing itself, then locking. Used for genuinely new rows only. */
+@keyframes vanta-arrive {
+  from { opacity: 0; transform: translate3d(-6px, 0, 0); }
+  60%  { opacity: 1; transform: translate3d(0, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes vanta-arrive-rail {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.motion-arrive {
+  animation: vanta-arrive calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
+}
+.motion-arrive.vanta-lead::before,
+.motion-arrive .vanta-lead::before {
+  transform-origin: top;
+  animation: vanta-arrive-rail calc(var(--motion-fast) * var(--feel-k, 1)) var(--ease-out) both;
+}
+
+/* Stamp: recorded history landing. Heavier, shorter travel, a single press
+   inward as if pressed onto paper. Never used for live rows. */
+@keyframes vanta-stamp {
+  from { opacity: 0; transform: scale(1.012); }
+  70%  { opacity: 1; transform: scale(0.997); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.motion-stamp {
+  animation: vanta-stamp calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
+}
+
+
 /* Press: tap compression. Micro feedback only — never a bounce. */
 .motion-press {
   transition: transform var(--motion-fast) var(--ease-out);
