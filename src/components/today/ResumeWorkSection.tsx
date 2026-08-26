@@ -10,6 +10,9 @@ import { useContinuity } from "@/hooks/useContinuity";
 import { clarificationPrompt, type ContinuityCandidate } from "@/lib/continuity";
 import { ProjectReentryCard } from "@/components/continuity/ProjectReentryCard";
 import { useAskContext } from "@/hooks/useAskContext";
+import { SectionNote } from "@/components/ui/section-note";
+import { sectionNote } from "@/lib/roomCopy";
+
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 
 export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
