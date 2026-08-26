@@ -40,6 +40,7 @@ import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { ProjectDocumentsSection } from "@/components/documents/ProjectDocumentsSection";
 import { useCanvas } from "@/components/entities/CanvasContext";
+import { useScope } from "@/hooks/useScope";
 
 export interface ProjectBriefViewProps {
   id: string;
@@ -49,6 +50,7 @@ export interface ProjectBriefViewProps {
 }
 
 export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProps) {
+  const { applyScope, key: scopeKey } = useScope();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [items, setItems] = useState<ProjectItem[]>([]);
   const [resolved, setResolved] = useState<ResolvedItems | null>(null);

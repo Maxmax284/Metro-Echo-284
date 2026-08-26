@@ -3,6 +3,7 @@
 // All defaults are private. Nothing leaves the user's account until they flip a switch.
 
 import { useEffect, useState } from "react";
+import { useScope } from "@/hooks/useScope";
 import { supabase } from "@/integrations/supabase/client";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { Download, Loader2, ShieldAlert, Trash2 } from "lucide-react";
@@ -23,6 +24,7 @@ const DEFAULTS: Settings = {
 };
 
 export function PrivacySettingsPanel() {
+  const { applyScope } = useScope();
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

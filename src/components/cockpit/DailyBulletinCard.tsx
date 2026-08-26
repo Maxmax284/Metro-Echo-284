@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,7 @@ type Props = {
 
 export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
   const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [loading, setLoading] = useState(true);
   const [lines, setLines] = useState<BulletinLine[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
