@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
 import { useContinuity } from "@/hooks/useContinuity";
-import { clarificationPrompt, type ContinuityCandidate } from "@/lib/continuity";
+import { clarificationPrompt, continuityName, type ContinuityCandidate } from "@/lib/continuity";
 import { ProjectReentryCard } from "@/components/continuity/ProjectReentryCard";
 import { useAskContext } from "@/hooks/useAskContext";
 import { SectionNote } from "@/components/ui/section-note";
@@ -35,8 +35,8 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
         void openAskWithContext({
           kind: "project",
           id: c.projectId ?? null,
-          label: c.projectTitle ?? "Work outside a project",
-          question: `Bring me back up to speed on ${c.projectTitle ?? "the work outside a project"} — what changed, what was decided, what's still open?`,
+          label: continuityName(c),
+          question: `Bring me back up to speed on ${continuityName(c)} — what changed, what was decided, what's still open?`,
         })
       }
       onOpen={c.projectId ? () => onNavigate("projects") : undefined}
