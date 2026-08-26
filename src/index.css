@@ -156,14 +156,14 @@
 
 @layer components {
   .glass {
-    background: var(--glass);
-    backdrop-filter: blur(18px) saturate(160%);
-    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    background: hsl(var(--surface-elevated) / 0.62);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
     border: 1px solid var(--glass-border);
   }
 
-  .surface { background: hsl(var(--surface)); }
-  .surface-elevated { background: hsl(var(--surface-elevated)); }
+  .surface { background: hsl(var(--surface) / 0.78); }
+  .surface-elevated { background: hsl(var(--surface-elevated) / 0.82); }
 
   .text-balance { text-wrap: balance; }
 
@@ -173,21 +173,28 @@
   .hairline { border-color: hsl(var(--border) / 0.6); }
 
   /* One card surface for the whole app. Replaces ad-hoc combinations of
-     surface-elevated + rounded-{md,lg,xl,2xl} + ring-border/{30,40,50,60,70}. */
+     surface-elevated + rounded-{md,lg,xl,2xl} + ring-border/{30,40,50,60,70}.
+     Translucent so the room artwork shows through, but blurred enough to keep
+     text readable. */
   .vanta-card {
-    background: hsl(var(--surface-elevated));
+    background: hsl(var(--surface-elevated) / 0.72);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
     border-radius: var(--radius);
-    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.6);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.45);
   }
 
   /* ---- Street-tech surface levels ----
      Four levels only: page background → surface → inset → elevated dialog.
      Depth comes from tone, not from adding borders everywhere. */
   .vanta-inset {
-    background: hsl(var(--background) / 0.6);
+    background: hsl(var(--background) / 0.48);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
     border-radius: calc(var(--radius) - 4px);
     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.35);
   }
+
 
   /* Grain: opt-in texture so dark surfaces don't read as sterile flat SaaS.
      Extremely low opacity, no movement, no cost beyond one composited layer. */
