@@ -461,3 +461,28 @@ describe("inbound signal detail", () => {
     expect(text).not.toMatch(/approve|execute|\/run/i);
   });
 });
+
+describe("universal platform notices ride Vanta's own pipe", () => {
+  it("builds a notice from a title and lines", () => {
+    const d = buildSignalDetail("CampCore", "notice.raised", {
+      title: "Two waivers missing for tonight",
+      lines: ["Class: 18:00 Muay Thai", "Members: 2"],
+      reference: "CC-88",
+    });
+    expect(d.title).toBe("CampCore: Two waivers missing for tonight");
+    expect(d.lines).toEqual(["Class: 18:00 Muay Thai", "Members: 2", "Reference: CC-88"]);
+  });
+
+  it("falls back to the message when no lines are given", () => {
+    const d = buildSignalDetail("LMT Camp State", "notice.raised", { message: "Water pump is down." });
+    expect(d.title).toBe("LMT Camp State notice");
+    expect(d.lines).toEqual(["Water pump is down."]);
+  });
+
+  it("lets the raising platform state urgency but never bypass the gates", () => {
+    expect(inboundUrgency("notice.raised", { severity: "critical" })).toBe("critical");
+    expect(inboundUrgency("notice.raised", { urgency: "high" })).toBe("time_sensitive");
+    expect(inboundUrgency("notice.raised", {})).toBe("attention");
+    expect(shouldReachNow(inboundUrgency("notice.raised", {}))).toBe(false);
+  });
+});
