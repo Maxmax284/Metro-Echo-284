@@ -1189,9 +1189,8 @@ html[data-room="door"] .vanta-bd-wall {
 /* Narrow screens: content fills the width, so pull the tag itself into frame
    instead of showing empty shutter. */
 @media (max-width: 640px) {
-  html[data-room="door"] { --bd-x: 30%; --bd-y: -6%; }
-html[data-room="today"] .vanta-bd-wall,
-html[data-room="door"] .vanta-bd-wall {
+  html[data-room="today"] .vanta-bd-wall,
+  html[data-room="door"] .vanta-bd-wall {
     background-position: center, center, 34% bottom;
     background-size: auto, auto, auto 112%;
   }
