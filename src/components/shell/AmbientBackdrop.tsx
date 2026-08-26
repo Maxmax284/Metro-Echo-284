@@ -5,13 +5,13 @@
 // pointer-events none, aria-hidden, no data, no interaction.
 import { useEffect, useRef, useState } from "react";
 import { THROW_EVENT } from "@/lib/skins";
-// One painted wall per room, all five now real artwork on the CDN.
+// One painted wall per room — heavy artwork, bundled with the app.
 // index.css owns every visual consequence — this only hands over the URLs.
-import todayWall from "@/assets/wall-today-dawn.jpg.asset.json";
-import workWall from "@/assets/wall-work-railyard.jpg.asset.json";
-import askWall from "@/assets/wall-ask-alley.jpg.asset.json";
-import receiptsWall from "@/assets/wall-receipts-pasteup.jpg.asset.json";
-import settingsWall from "@/assets/wall-settings-door.jpg.asset.json";
+import todayWall from "@/assets/wall-today-dawn.jpg";
+import workWall from "@/assets/wall-work-railyard.jpg";
+import askWall from "@/assets/wall-ask-alley.jpg";
+import receiptsWall from "@/assets/wall-receipts-pasteup.jpg";
+import settingsWall from "@/assets/wall-settings-door.jpg";
 
 export function AmbientBackdrop() {
   const [throwKey, setThrowKey] = useState(0);
@@ -47,11 +47,11 @@ export function AmbientBackdrop() {
       aria-hidden
       style={
         {
-          "--bd-wall-today": `url(${todayWall.url})`,
-          "--bd-wall-work": `url(${workWall.url})`,
-          "--bd-wall-ask": `url(${askWall.url})`,
-          "--bd-wall-receipts": `url(${receiptsWall.url})`,
-          "--bd-wall-settings": `url(${settingsWall.url})`,
+          "--bd-wall-today": `url(${todayWall})`,
+          "--bd-wall-work": `url(${workWall})`,
+          "--bd-wall-ask": `url(${askWall})`,
+          "--bd-wall-receipts": `url(${receiptsWall})`,
+          "--bd-wall-settings": `url(${settingsWall})`,
         } as React.CSSProperties
       }
     >
