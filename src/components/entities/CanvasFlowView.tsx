@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Loader2, Inbox, Shuffle, FileText, ShieldCheck, Zap, ScrollText } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ const LANES: { key: LaneKey; label: string; Icon: typeof Inbox; tone: string }[]
 
 export function CanvasFlowView({ seedEntityId, windowDays = 30 }: Props) {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Item[]>([]);
 
@@ -59,24 +61,24 @@ export function CanvasFlowView({ seedEntityId, windowDays = 30 }: Props) {
       }
 
       const [routes, actions, audit] = await Promise.all([
-        supabase.from("capture_routes")
+        applyScope(supabase.from("capture_routes")
           .select("id, capture_kind, user_action, suggested_route, source, created_at, payload")
           .eq("user_id", user.id)
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(60),
-        supabase.from("actions")
+          .limit(60)),
+        applyScope(supabase.from("actions")
           .select("id, title, status, risk, risk_acknowledged_at, executed_at, created_at, updated_at")
           .eq("user_id", user.id)
           .gte("updated_at", since)
           .order("updated_at", { ascending: false })
-          .limit(80),
-        supabase.from("audit_log")
+          .limit(80)),
+        applyScope(supabase.from("audit_log")
           .select("id, event, entity_type, entity_id, created_at, payload")
           .eq("user_id", user.id)
           .gte("created_at", since)
           .order("created_at", { ascending: false })
-          .limit(80),
+          .limit(80)),
       ]);
 
       const merged: Item[] = [];
@@ -125,7 +127,7 @@ export function CanvasFlowView({ seedEntityId, windowDays = 30 }: Props) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays]);
+  }, [user, seedEntityId, windowDays, scopeKey]);
 
   const grouped = useMemo(() => {
     const map = new Map<LaneKey, Item[]>();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { Loader2, FileText, CheckSquare, Zap, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 
@@ -24,6 +25,7 @@ const ICON: Record<Item["kind"], any> = {
 // chronologically. Scoped by entity when a seed is provided (via entity_links).
 export function CanvasTimelineView({ seedEntityId, windowDays = 30 }: Props) {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<Item[]>([]);
 
@@ -72,26 +74,26 @@ export function CanvasTimelineView({ seedEntityId, windowDays = 30 }: Props) {
           (cIds && cIds.length === 0)
             ? Promise.resolve({ data: [] })
             : (cIds
-              ? supabase.from("commitments").select("id, summary, created_at").eq("user_id", user.id).in("id", cIds).order("created_at", { ascending: false }).limit(30)
-              : supabase.from("commitments").select("id, summary, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20))),
+              ? applyScope(supabase.from("commitments").select("id, summary, created_at").eq("user_id", user.id).in("id", cIds).order("created_at", { ascending: false }).limit(30))
+              : applyScope(supabase.from("commitments").select("id, summary, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20)))),
         inOrAll("action",
           (aIds && aIds.length === 0)
             ? Promise.resolve({ data: [] })
             : (aIds
-              ? supabase.from("actions").select("id, title, created_at").eq("user_id", user.id).in("id", aIds).order("created_at", { ascending: false }).limit(30)
-              : supabase.from("actions").select("id, title, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20))),
+              ? applyScope(supabase.from("actions").select("id, title, created_at").eq("user_id", user.id).in("id", aIds).order("created_at", { ascending: false }).limit(30))
+              : applyScope(supabase.from("actions").select("id, title, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20)))),
         inOrAll("note",
           (nIds && nIds.length === 0)
             ? Promise.resolve({ data: [] })
             : (nIds
-              ? supabase.from("notes").select("id, title, created_at").eq("user_id", user.id).in("id", nIds).order("created_at", { ascending: false }).limit(30)
-              : supabase.from("notes").select("id, title, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20))),
+              ? applyScope(supabase.from("notes").select("id, title, created_at").eq("user_id", user.id).in("id", nIds).order("created_at", { ascending: false }).limit(30))
+              : applyScope(supabase.from("notes").select("id, title, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20)))),
         inOrAll("file",
           (fIds && fIds.length === 0)
             ? Promise.resolve({ data: [] })
             : (fIds
-              ? supabase.from("ingested_files").select("id, filename, created_at").eq("user_id", user.id).in("id", fIds).order("created_at", { ascending: false }).limit(30)
-              : supabase.from("ingested_files").select("id, filename, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20))),
+              ? applyScope(supabase.from("ingested_files").select("id, filename, created_at").eq("user_id", user.id).in("id", fIds).order("created_at", { ascending: false }).limit(30))
+              : applyScope(supabase.from("ingested_files").select("id, filename, created_at").eq("user_id", user.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20)))),
       ]);
 
       const merged = [...cs, ...as, ...ns, ...fs]
@@ -103,7 +105,7 @@ export function CanvasTimelineView({ seedEntityId, windowDays = 30 }: Props) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays]);
+  }, [user, seedEntityId, windowDays, scopeKey]);
 
   if (loading) {
     return (

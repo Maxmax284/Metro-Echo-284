@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 
 export type ProductivityPulse = {
   loading: boolean;
@@ -38,6 +39,7 @@ function median(nums: number[]): number | null {
 
 export function useProductivityPulse(): ProductivityPulse {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [state, setState] = useState<ProductivityPulse>(EMPTY);
 
   useEffect(() => {
@@ -49,22 +51,22 @@ export function useProductivityPulse(): ProductivityPulse {
       const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
 
       const [routes, actions, commits] = await Promise.all([
-        supabase.from("capture_routes")
+        applyScope(supabase.from("capture_routes")
           .select("user_action, created_at")
           .eq("user_id", user.id)
           .gte("created_at", weekStart.toISOString())
-          .limit(1000),
-        supabase.from("actions")
+          .limit(1000)),
+        applyScope(supabase.from("actions")
           .select("id, status, created_at, executed_at, risk_acknowledged_at, updated_at")
           .eq("user_id", user.id)
           .gte("updated_at", weekStart.toISOString())
-          .limit(1000),
-        supabase.from("commitments")
+          .limit(1000)),
+        applyScope(supabase.from("commitments")
           .select("status, updated_at")
           .eq("user_id", user.id)
           .eq("status", "done")
           .gte("updated_at", weekStart.toISOString())
-          .limit(1000),
+          .limit(1000)),
       ]);
 
       if (!alive) return;
@@ -121,7 +123,7 @@ export function useProductivityPulse(): ProductivityPulse {
       });
     })();
     return () => { alive = false; };
-  }, [user]);
+  }, [user, scopeKey]);
 
   return state;
 }

@@ -40,6 +40,7 @@ import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { ProjectDocumentsSection } from "@/components/documents/ProjectDocumentsSection";
 import { useCanvas } from "@/components/entities/CanvasContext";
+import { useScope } from "@/hooks/useScope";
 
 export interface ProjectBriefViewProps {
   id: string;
@@ -49,6 +50,7 @@ export interface ProjectBriefViewProps {
 }
 
 export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProps) {
+  const { applyScope, key: scopeKey } = useScope();
   const [project, setProject] = useState<Project | null | undefined>(undefined);
   const [items, setItems] = useState<ProjectItem[]>([]);
   const [resolved, setResolved] = useState<ResolvedItems | null>(null);
@@ -75,17 +77,17 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
     if (!id) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data } = await applyScope(supabase
         .from("audit_log")
         .select("id,event,created_at,payload")
         .eq("entity_type", "project")
         .eq("entity_id", id)
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(15));
       if (!cancelled) setReceipts((data ?? []) as any);
     })();
     return () => { cancelled = true; };
-  }, [id, project?.updated_at]);
+  }, [id, project?.updated_at, scopeKey]);
 
   // If the URL points at #living-brief (e.g. opened from the Activity Tray),
   // scroll the brief into view once the project has loaded.
