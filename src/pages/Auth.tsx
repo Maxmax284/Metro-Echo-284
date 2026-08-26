@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -15,6 +15,17 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // The front door is a room too: it gets the shutter wall while you stand there.
+  useEffect(() => {
+    const root = document.documentElement;
+    const prev = root.getAttribute("data-room");
+    root.setAttribute("data-room", "door");
+    return () => {
+      if (prev) root.setAttribute("data-room", prev);
+      else root.removeAttribute("data-room");
+    };
+  }, []);
 
   const onEmail = async (e: React.FormEvent) => {
     e.preventDefault();

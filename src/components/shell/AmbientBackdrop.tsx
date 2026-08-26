@@ -55,6 +55,10 @@ export function AmbientBackdrop() {
         } as React.CSSProperties
       }
     >
+      {/* Warm every wall once so switching rooms never waits on a download. */}
+      {[todayWall, workWall, askWall, receiptsWall, settingsWall].map((src) => (
+        <img key={src} src={src} alt="" width={1} height={1} decoding="async" className="sr-only" />
+      ))}
       <div className="vanta-bd-wash" />
       {/* One painted wall per room — static, edge-weighted, behind everything. */}
       <div className="vanta-bd-wall" />

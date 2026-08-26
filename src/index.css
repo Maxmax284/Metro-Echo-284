@@ -1170,7 +1170,9 @@ html[data-skin="circuit"] {
 
 /* Today — rolling shutter at dawn. Heavy wildstyle throw-up, slats kept on top
    so the metal reads at any size. */
-html[data-room="today"] .vanta-bd-wall {
+html[data-room="door"] { --bd-x: 30%; --bd-y: -6%; }
+html[data-room="today"] .vanta-bd-wall,
+html[data-room="door"] .vanta-bd-wall {
   --bd-wall: 1;
   background-image:
     radial-gradient(64% 46% at 8% 96%, hsl(28 94% 56% / 0.24), transparent 70%),
@@ -1180,14 +1182,16 @@ html[data-room="today"] .vanta-bd-wall {
   background-size: auto, auto, cover;
   background-position: center, center, center bottom;
   filter: brightness(1.02) saturate(1.18) contrast(1.06);
-  mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.24) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.24) 22%, #000 72%);
+  mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.36) 24%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.36) 24%, #000 72%);
 }
 
 /* Narrow screens: content fills the width, so pull the tag itself into frame
    instead of showing empty shutter. */
 @media (max-width: 640px) {
-  html[data-room="today"] .vanta-bd-wall {
+  html[data-room="door"] { --bd-x: 30%; --bd-y: -6%; }
+html[data-room="today"] .vanta-bd-wall,
+html[data-room="door"] .vanta-bd-wall {
     background-position: center, center, 34% bottom;
     background-size: auto, auto, auto 112%;
   }
@@ -1204,8 +1208,8 @@ html[data-room="work"] .vanta-bd-wall {
   background-size: auto, auto, cover;
   background-position: center, center, center center;
   filter: brightness(1) saturate(1.14) contrast(1.05);
-  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.22) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.22) 22%, #000 72%);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
 }
 
 /* Ask — wet alley at night. One deep piece under a lamp, neon in the puddle. */
@@ -1219,8 +1223,8 @@ html[data-room="ask"] .vanta-bd-wall {
   background-size: auto, auto, cover;
   background-position: center, center, center center;
   filter: brightness(1.04) saturate(1.1) contrast(1.04);
-  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
 }
 
 /* Receipts — paste-up wall. Torn bills, tape, stencil over the top. */
@@ -1234,8 +1238,8 @@ html[data-room="receipts"] .vanta-bd-wall {
   background-size: auto, auto, cover;
   background-position: center, center, center center;
   filter: brightness(0.66) saturate(1.02) contrast(1.08);
-  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
 }
 
 /* Settings / control room — maintenance door. Hazard stripes worn to metal. */
@@ -1248,8 +1252,8 @@ html[data-room="settings"] .vanta-bd-wall {
   background-size: auto, cover;
   background-position: center, center center;
   filter: brightness(1.12) saturate(1.05) contrast(1.04);
-  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
-  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.34) 24%, #000 72%);
 }
 
 /* Narrow screens: content fills the width, so pull each tag into frame instead
