@@ -6,7 +6,8 @@
 // since you opened Vanta, this renders nothing at all — silence is valid.
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpRight, Radio } from "lucide-react";
-import { MachineLabel, MachineText } from "@/components/ui/instrument";
+import { MachineText } from "@/components/ui/instrument";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import type { LiveEvent } from "@/hooks/useLiveFeed";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -34,18 +35,18 @@ export function LiveBulletin({
   if (rows.length === 0) return null;
 
   return (
-    <section className="vanta-focus-card vanta-card vanta-notch border border-transparent p-4">
-      <div className="flex items-center gap-2">
-        <Radio className={cn("h-3.5 w-3.5 text-primary", connected && "vanta-live-dot")} />
-        <MachineLabel className="text-foreground/70">Happening now</MachineLabel>
-        <MachineText className="ml-auto text-[10px] text-muted-foreground">
-          {connected ? "live" : "reconnecting"}
-        </MachineText>
-      </div>
-
+    <CollapsibleSection
+      title="Happening now"
+      storageKey="today.live"
+      className="vanta-notch"
+      icon={<Radio className={cn("h-3.5 w-3.5 text-primary", connected && "vanta-live-dot")} />}
+      reading={connected ? "live" : "reconnecting"}
+      summary={`${rows.length} recent ${rows.length === 1 ? "change" : "changes"} — ${humanizeEvent(rows[0].event).toLowerCase()}`}
+    >
       <SectionNote sectionKey="today.live">{sectionNote("today.live")}</SectionNote>
 
       <ul className="mt-3 space-y-1.5">
+
         {rows.map((e, i) => {
           /* Burst control: only the first few genuinely new rows animate. A
              flood of arrivals settles instantly rather than staggering. */
@@ -83,7 +84,6 @@ export function LiveBulletin({
           );
         })}
       </ul>
-
-    </section>
+    </CollapsibleSection>
   );
 }

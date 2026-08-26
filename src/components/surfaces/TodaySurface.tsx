@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/instrument";
 import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { SectionNote } from "@/components/ui/section-note";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
@@ -52,6 +53,9 @@ function Section({
   reading,
   children,
   action,
+  storageKey,
+  defaultOpen = true,
+  summary,
 }: {
   title: string;
   hint?: string;
@@ -62,26 +66,34 @@ function Section({
   reading?: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
+  /** Where the fold state is remembered. Defaults to the helper key. */
+  storageKey?: string;
+  defaultOpen?: boolean;
+  /** One line shown while folded. */
+  summary?: React.ReactNode;
 }) {
   return (
-    <section className="vanta-focus-card vanta-card border border-transparent p-4">
-      <SectionRail
-        label={title}
-        reading={reading}
-        icon={<Icon className="h-3.5 w-3.5" />}
-        action={action}
-      />
+    <CollapsibleSection
+      title={title}
+      storageKey={storageKey ?? sectionKey ?? title}
+      icon={<Icon className="h-3.5 w-3.5" />}
+      reading={reading}
+      action={action}
+      defaultOpen={defaultOpen}
+      summary={summary}
+    >
       {hint ? (
         sectionKey ? (
           <SectionNote sectionKey={sectionKey}>{hint}</SectionNote>
         ) : (
-          <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{hint}</p>
+          <p className="text-[12px] leading-snug text-muted-foreground">{hint}</p>
         )
       ) : null}
-      <div className="mt-3">{children}</div>
-    </section>
+      <div className={hint ? "mt-3" : undefined}>{children}</div>
+    </CollapsibleSection>
   );
 }
+
 
 
 function Row({
@@ -286,6 +298,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               sectionKey="today.attention"
               icon={AlertTriangle}
               reading={<RollingNumber value={attention.length} />}
+              summary={
+                attention.length === 1
+                  ? "1 item is waiting on you."
+                  : `${attention.length} items are waiting on you.`
+              }
               action={
                 <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
                   See all
@@ -341,6 +358,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             sectionKey="today.next"
             icon={CalendarClock}
             reading={<RollingNumber value={dueToday.length + upcoming.length} />}
+            summary={
+              dueToday.length + upcoming.length === 0
+                ? "No dated promises."
+                : `${dueToday.length} due today, ${upcoming.length} coming up.`
+            }
             action={
               <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
@@ -420,6 +442,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 hint={sectionNote("today.security")}
                 sectionKey="today.security"
                 icon={ShieldCheck}
+                defaultOpen={security.tone !== "good"}
+                summary={security.line}
                 action={
                   securityEvents.length > 0 ? (
                     <Button
@@ -465,6 +489,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.changed"
                 icon={Receipt}
                 reading={<RollingNumber value={allEvents.length} />}
+                summary={
+                  events.length === 0
+                    ? "Nothing recorded yet."
+                    : `${events.length} recent ${events.length === 1 ? "change" : "changes"} on file.`
+                }
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
@@ -520,6 +549,12 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.fresh"
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
+                defaultOpen={captureCount > 0}
+                summary={
+                  captureCount === 0
+                    ? "Nothing new to sort."
+                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} to sort.`
+                }
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
                     Open inbox
