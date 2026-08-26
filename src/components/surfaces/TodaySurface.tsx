@@ -26,7 +26,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, feelMs } from "@/lib/motion";
 import {
   ActivityTrace,
   MachineLabel,
@@ -168,7 +168,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     if (next <= lastChanged.current) { lastChanged.current = next; return; }
     lastChanged.current = next;
     setChangeSignal(true);
-    const t = window.setTimeout(() => setChangeSignal(false), 800);
+    const t = window.setTimeout(() => setChangeSignal(false), feelMs(800, { min: 200 }));
     return () => window.clearTimeout(t);
   }, [events.length, pulse, loadingCritical]);
 

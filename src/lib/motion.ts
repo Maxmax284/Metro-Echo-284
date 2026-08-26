@@ -67,6 +67,36 @@ export const MOTION_SCAN = "vanta-scan";
 /** Registration marks shift once when real new data lands. */
 export const MOTION_TICKS_LIVE = "vanta-ticks-live";
 
+/**
+ * The Feel knob, readable from JavaScript.
+ *
+ * `--feel-k` is written to <html> by motionPrefs (1 == Standard, 0 == motion
+ * off). CSS animations already scale with it; timers used to ignore it, so the
+ * setting felt honest in one room and cosmetic in the next. Every JS-held
+ * "flash this for a moment" duration goes through feelMs() now.
+ */
+export function feelK(): number {
+  if (typeof document === "undefined") return 1;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--feel-k");
+  const k = Number.parseFloat(raw);
+  return Number.isFinite(k) ? Math.max(0, Math.min(2.5, k)) : 1;
+}
+
+/**
+ * Scale a one-shot decorative duration by the Feel knob.
+ *
+ * `min` keeps a flash perceptible when someone tuned Feel way down; pass
+ * `min: 0` for purely decorative flashes that may vanish entirely when motion
+ * is off. Never use this for data timing (polls, debounces, retries) — those
+ * are correctness, not feel.
+ */
+export function feelMs(ms: number, { min = 0 }: { min?: number } = {}): number {
+  const k = feelK();
+  if (k === 0) return min;
+  return Math.max(min, Math.round(ms * k));
+}
+
+
 
 
 

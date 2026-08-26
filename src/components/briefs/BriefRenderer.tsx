@@ -18,6 +18,7 @@ import {
   type FootnoteMap,
 } from "@/lib/briefFootnotes";
 import { templateFor } from "@/lib/briefTemplates";
+import { feelMs } from "@/lib/motion";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -50,7 +51,7 @@ function FootnoteMarks({ numbers }: { numbers: number[] }) {
                 e.preventDefault();
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
                 el.classList.add("ring-2", "ring-primary/60");
-                setTimeout(() => el.classList.remove("ring-2", "ring-primary/60"), 1600);
+                setTimeout(() => el.classList.remove("ring-2", "ring-primary/60"), feelMs(1600, { min: 400 }));
               }
             }}
             className="hover:underline"

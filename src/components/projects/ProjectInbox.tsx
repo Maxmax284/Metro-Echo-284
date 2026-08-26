@@ -24,6 +24,7 @@ import {
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockFindingsChips } from "@/components/sherlock/SherlockFindingsChips";
+import { LoadingState, EmptyState } from "@/components/ui/state-views";
 
 const SHERLOCK_SOURCE: Partial<Record<SuggestedItem["type"], string>> = {
   note: "note",
@@ -139,13 +140,13 @@ export function ProjectInbox({ project, attached, onAttached }: Props) {
       {open && (
         <div className="border-t border-border/60 px-4 py-3">
           {items === null ? (
-            <div className="flex h-16 items-center justify-center text-xs text-muted-foreground">
-              <Loader2 className="mr-2 h-3 w-3 animate-spin" /> Looking through recent items…
-            </div>
+            <LoadingState rows={2} label="Looking through recent items" />
           ) : items.length === 0 ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              Nothing new looks related. As things land in your Inbox, they'll show up here.
-            </p>
+            <EmptyState
+              icon={<Inbox className="h-5 w-5" />}
+              title="Nothing new looks related"
+              hint="Anything you capture, note or upload gets matched against this project. Attach it here when it fits."
+            />
           ) : (
             <ul className="space-y-1.5">
               {items.map((s) => {
@@ -284,9 +285,7 @@ function IgnoredList({
         </button>
       </div>
       {rows === null ? (
-        <div className="flex h-12 items-center justify-center text-xs text-muted-foreground">
-          <Loader2 className="mr-2 h-3 w-3 animate-spin" /> Loading…
-        </div>
+        <LoadingState rows={1} label="Loading ignored items" />
       ) : rows.length === 0 ? (
         <p className="py-2 text-center text-[11.5px] text-muted-foreground">
           Nothing's been ignored on this project.

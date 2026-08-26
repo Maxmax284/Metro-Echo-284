@@ -1,3 +1,4 @@
+import { feelMs } from "@/lib/motion";
 // flip — matched-layout travel between a tapped element and the overlay it opens.
 //
 // Why: a crossfade tells you the screen changed. A matched layout tells you the
@@ -109,6 +110,9 @@ export function flipFrom(el: HTMLElement | null, durationMs = 300): () => void {
   const sx = Math.max(0.2, Math.min(1, origin.w / target.width));
   const sy = Math.max(0.2, Math.min(1, origin.h / target.height));
 
+  const duration = feelMs(durationMs, { min: 0 });
+  if (!duration) return () => {};
+
   let anim: Animation | null = null;
   try {
     anim = el.animate(
@@ -116,7 +120,7 @@ export function flipFrom(el: HTMLElement | null, durationMs = 300): () => void {
         { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 0.35 },
         { transform: "translate(0px, 0px) scale(1, 1)", opacity: 1 },
       ],
-      { duration: durationMs, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" },
+      { duration, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" },
     );
   } catch {
     return () => {};
