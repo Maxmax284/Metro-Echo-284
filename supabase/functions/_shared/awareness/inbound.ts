@@ -189,6 +189,13 @@ export function inboundUrgency(eventType: string, payload: Payload = {}): Urgenc
       ? "critical"
       : "time_sensitive";
   }
+  if (eventType === "notice.raised") {
+    // The raising platform states how loud it is; Vanta still owns the gates.
+    if (severity === "critical") return "critical";
+    if (severity === "urgent" || severity === "high" || severity === "time_sensitive") return "time_sensitive";
+    if (severity === "low" || severity === "background") return "background";
+    return "attention";
+  }
   if (eventType === "booking.created") return "attention";
   if (eventType === "payment.received") return "useful";
   if (eventType === "integration.test") return "background";
