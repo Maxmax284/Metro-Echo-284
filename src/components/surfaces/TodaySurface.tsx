@@ -52,6 +52,9 @@ function Section({
   reading,
   children,
   action,
+  storageKey,
+  defaultOpen = true,
+  summary,
 }: {
   title: string;
   hint?: string;
@@ -62,26 +65,34 @@ function Section({
   reading?: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
+  /** Where the fold state is remembered. Defaults to the helper key. */
+  storageKey?: string;
+  defaultOpen?: boolean;
+  /** One line shown while folded. */
+  summary?: React.ReactNode;
 }) {
   return (
-    <section className="vanta-focus-card vanta-card border border-transparent p-4">
-      <SectionRail
-        label={title}
-        reading={reading}
-        icon={<Icon className="h-3.5 w-3.5" />}
-        action={action}
-      />
+    <CollapsibleSection
+      title={title}
+      storageKey={storageKey ?? sectionKey ?? title}
+      icon={<Icon className="h-3.5 w-3.5" />}
+      reading={reading}
+      action={action}
+      defaultOpen={defaultOpen}
+      summary={summary}
+    >
       {hint ? (
         sectionKey ? (
           <SectionNote sectionKey={sectionKey}>{hint}</SectionNote>
         ) : (
-          <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{hint}</p>
+          <p className="text-[12px] leading-snug text-muted-foreground">{hint}</p>
         )
       ) : null}
-      <div className="mt-3">{children}</div>
-    </section>
+      <div className={hint ? "mt-3" : undefined}>{children}</div>
+    </CollapsibleSection>
   );
 }
+
 
 
 function Row({
