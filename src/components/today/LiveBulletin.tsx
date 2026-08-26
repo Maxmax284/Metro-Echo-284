@@ -83,7 +83,6 @@ export function LiveBulletin({
           );
         })}
       </ul>
-
-    </section>
+    </CollapsibleSection>
   );
 }
