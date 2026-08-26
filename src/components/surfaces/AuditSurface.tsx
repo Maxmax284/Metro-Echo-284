@@ -14,7 +14,11 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { markFlipOriginFromEvent } from "@/lib/flip";
-import { MOTION_ARRIVAL, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP } from "@/lib/motion";
+import { SectionNote } from "@/components/ui/section-note";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
+import { sectionNote } from "@/lib/roomCopy";
+import { ReceiptUnfold, receiptFacts } from "@/components/audit/ReceiptUnfold";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
 
 type AuditRow = {
@@ -85,6 +89,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   const [loading, setLoading] = useState(false);
   const [visibleCount, setVisibleCount] = useState(30);
   const [drawerRow, setDrawerRow] = useState<AuditRow | null>(null);
+  /* Unfold in place: the receipt opens where it sits. One at a time, because
+     evidence is read one item at a time. */
+  const [openId, setOpenId] = useState<string | null>(null);
 
   // Deep-link from an action card's "See in Receipts": narrow to that action.
   useEffect(() => {
@@ -171,9 +178,12 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               every change, who did it, and when
             </span>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ExplainThisButton room="receipts" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={load} aria-label="Refresh">
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
@@ -245,6 +255,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             label="Action lifecycle"
             reading={events.length > 0 ? String(events.length) : undefined}
           />
+          <SectionNote className="mb-2 mt-0" sectionKey="receipts.lifecycle">
+            {sectionNote("receipts.lifecycle")}
+          </SectionNote>
           <div className="space-y-1">
             {events.length === 0 && (
               <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
@@ -282,21 +295,27 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               </>
             }
           />
+          <SectionNote className="mb-2 mt-0" sectionKey="receipts.log">
+            {sectionNote("receipts.log")}
+          </SectionNote>
           <div className="space-y-1">
             {auditFiltered.length === 0 && (
               <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
                 Nothing matches. Clear filters above.
               </p>
             )}
-            {auditFiltered.slice(0, visibleCount).map((r, i) => (
-              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_ARRIVAL)}>
+            {auditFiltered.slice(0, visibleCount).map((r, i) => {
+              const open = openId === r.id;
+              return (
+              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_STAMP)}>
                 <button
                   type="button"
+                  aria-expanded={open}
                   onClick={(e) => {
-                    /* Record where the tap happened so the drawer can travel
-                       out of this row instead of fading in from nowhere. */
+                    /* Record where the tap happened so any drawer opened from
+                       the unfold travels out of this row. */
                     markFlipOriginFromEvent(e);
-                    setDrawerRow(r);
+                    setOpenId(open ? null : r.id);
                   }}
                   className={cn("block w-full rounded-md p-2 text-left hover:bg-muted/30", MOTION_ROW, MOTION_FOCUS)}
                 >
@@ -328,11 +347,21 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                     </MachineText>
                   </div>
                   <div className="ml-5 mt-0.5 text-[10.5px] text-muted-foreground">
-                    {trustNote(r.event)} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })} · tap to open
+                    {trustNote(r.event)} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })} ·{" "}
+                    {open ? "tap to close" : "tap to unfold"}
                   </div>
                 </button>
+                {open ? (
+                  <ReceiptUnfold
+                    facts={receiptFacts(r, humanizeEvent(r.event))}
+                    at={r.created_at}
+                    timezone={timezone}
+                    onOpenFull={() => setDrawerRow(r)}
+                  />
+                ) : null}
               </Card>
-            ))}
+              );
+            })}
             {auditFiltered.length > visibleCount && (
               <div className="pt-1 text-center">
                 <Button
