@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { describeFunctionError } from "@/lib/aiErrors";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -80,13 +82,14 @@ export function RecognizePanel({
       setExtract((extRes.data as any)?.findings ?? {});
       setSuggest((sugRes.data as any)?.findings ?? null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Sherlock couldn't read that";
-      setError(msg);
-      toast.error(msg);
+      const failure = await describeFunctionError(e);
+      setError(failure.message);
+      toast.error(failure.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   if (!open) {
     return (
