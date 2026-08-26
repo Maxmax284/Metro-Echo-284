@@ -20,6 +20,7 @@ import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { useIntakePrefs } from "@/hooks/useIntakePrefs";
 import { classifyCommitment } from "@/lib/commitmentLifecycle";
 import { ChevronDown, ChevronRight, Archive } from "lucide-react";
+import { EmptyState, LoadingState } from "@/components/ui/state-views";
 
 type Commitment = {
   id: string;
@@ -234,9 +235,13 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
         {loading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
+          <LoadingState rows={3} label="Loading commitments" />
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Nothing on the list. Quiet runway.</div>
+          <EmptyState
+            title="Nothing on the list"
+            hint="Commitments arrive when you promise something in Ask, or when a capture gets turned into a promise. Quiet runway until then."
+            flow={["Capture", "Commitment", "Receipt"]}
+          />
         ) : (() => {
           const staleDays = intake.commitment_stale_days;
           const useTray = intake.commitment_stale_behavior === "tray" && filter === "open";

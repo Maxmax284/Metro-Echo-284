@@ -23,6 +23,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/state-views";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -490,9 +491,12 @@ export function AwarenessSurface() {
               </Button>
             </div>
             {places.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                No places yet. Tap "Use here" to capture this location.
-              </div>
+              <EmptyState
+                icon={<MapPin className="h-4 w-4" />}
+                title="No places saved"
+                hint="Tap Use here to save where you are. Saved places are what layers read from, so nothing is scanned until one exists."
+                flow={["Use here", "Place", "Layer read"]}
+              />
             ) : (
               <ul className="space-y-2">
                 {places.map((p) => {
