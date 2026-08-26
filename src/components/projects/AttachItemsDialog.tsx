@@ -25,7 +25,7 @@ interface Props {
   onAttached: () => void;
 }
 
-export function AddToProjectComposer({
+export function AttachItemsDialog({
   project, attached, open, onOpenChange, onAttached,
 }: Props) {
   const { user } = useAuth();
