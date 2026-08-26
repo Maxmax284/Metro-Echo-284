@@ -10,8 +10,11 @@ import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import type { LiveEvent } from "@/hooks/useLiveFeed";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_ARRIVE, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { SectionNote } from "@/components/ui/section-note";
+import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
+
 
 export function LiveBulletin({
   live,
