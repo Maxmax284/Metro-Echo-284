@@ -1164,95 +1164,92 @@ html[data-skin="circuit"] {
   opacity: var(--bd-wall, 0);
   transition: opacity 900ms var(--ease-out), background-image 900ms var(--ease-out);
   background-repeat: no-repeat, no-repeat, repeat;
-  mask-image: radial-gradient(120% 90% at 50% 42%, transparent 34%, #000 78%);
-  -webkit-mask-image: radial-gradient(120% 90% at 50% 42%, transparent 34%, #000 78%);
+  mask-image: radial-gradient(130% 100% at 50% 42%, hsl(0 0% 0% / 0.2) 26%, #000 74%);
+  -webkit-mask-image: radial-gradient(130% 100% at 50% 42%, hsl(0 0% 0% / 0.2) 26%, #000 74%);
 }
 
-/* Today — rolling shutter at dawn. Real paint: photographed shutter + one
-   throw-up, with the slats kept on top so it stays crisp at any size. */
+/* Today — rolling shutter at dawn. Heavy wildstyle throw-up, slats kept on top
+   so the metal reads at any size. */
 html[data-room="today"] .vanta-bd-wall {
   --bd-wall: 1;
   background-image:
-    radial-gradient(60% 42% at 8% 96%, hsl(28 92% 56% / 0.2), transparent 70%),
-    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.03) 0 2px, transparent 2px 13px),
+    radial-gradient(64% 46% at 8% 96%, hsl(28 94% 56% / 0.24), transparent 70%),
+    repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.035) 0 2px, transparent 2px 13px),
     var(--bd-wall-today, none);
   background-repeat: no-repeat, repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center bottom;
-  filter: brightness(1.5) saturate(1.15);
-  /* Softer centre punch-out so the paint actually reads under content. */
-  mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
-  -webkit-mask-image: radial-gradient(140% 110% at 50% 44%, hsl(0 0% 0% / 0.5) 18%, #000 68%);
+  filter: brightness(1.02) saturate(1.18) contrast(1.06);
+  mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.24) 22%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 104% at 50% 44%, hsl(0 0% 0% / 0.24) 22%, #000 72%);
 }
 
 /* Narrow screens: content fills the width, so pull the tag itself into frame
    instead of showing empty shutter. */
 @media (max-width: 640px) {
   html[data-room="today"] .vanta-bd-wall {
-    background-position: center, center, 30% bottom;
-    background-size: auto, auto, auto 105%;
+    background-position: center, center, 34% bottom;
+    background-size: auto, auto, auto 112%;
   }
 }
 
-/* Work — rail-yard wall. Real paint: brick, stacked block letters, chalk
-   freight marks. Teal wash on the right keeps the tag in the family. */
+/* Work — rail-yard wall. Stacked block letters on brick, chalk freight marks. */
 html[data-room="work"] .vanta-bd-wall {
-  --bd-wall: 0.92;
+  --bd-wall: 1;
   background-image:
-    radial-gradient(52% 40% at 96% 88%, hsl(188 80% 55% / 0.1), transparent 68%),
-    repeating-linear-gradient(90deg, hsl(0 0% 100% / 0.04) 0 3px, transparent 3px 26px),
+    radial-gradient(54% 42% at 96% 88%, hsl(188 82% 55% / 0.14), transparent 68%),
+    repeating-linear-gradient(90deg, hsl(0 0% 100% / 0.035) 0 3px, transparent 3px 26px),
     var(--bd-wall-work, none);
   background-repeat: no-repeat, repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center center;
-  filter: brightness(1.45) saturate(1.1);
-  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.52) 18%, #000 70%);
-  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.52) 18%, #000 70%);
+  filter: brightness(1) saturate(1.14) contrast(1.05);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.22) 22%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.22) 22%, #000 72%);
 }
 
-/* Ask — wet alley at night. Real paint: one tall thin tag under a lamp. */
+/* Ask — wet alley at night. One deep piece under a lamp, neon in the puddle. */
 html[data-room="ask"] .vanta-bd-wall {
-  --bd-wall: 0.6;
+  --bd-wall: 0.95;
   background-image:
-    radial-gradient(34% 62% at 50% -6%, hsl(var(--accent) / 0.16), transparent 72%),
+    radial-gradient(34% 62% at 50% -6%, hsl(var(--accent) / 0.18), transparent 72%),
     linear-gradient(180deg, transparent 8%, hsl(var(--accent) / 0.08) 30% 31%, transparent 62%),
     var(--bd-wall-ask, none);
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center center;
-  filter: brightness(0.85) saturate(0.6);
-  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
-  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
+  filter: brightness(1.04) saturate(1.1) contrast(1.04);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
 }
 
-/* Receipts — paste-up wall. Real paint: torn posters, tape, stencil edges. */
+/* Receipts — paste-up wall. Torn bills, tape, stencil over the top. */
 html[data-room="receipts"] .vanta-bd-wall {
-  --bd-wall: 0.58;
+  --bd-wall: 0.82;
   background-image:
-    radial-gradient(48% 38% at 4% 22%, hsl(28 90% 56% / 0.12), transparent 70%),
+    radial-gradient(48% 38% at 4% 22%, hsl(28 90% 56% / 0.14), transparent 70%),
     repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 21px),
     var(--bd-wall-receipts, none);
   background-repeat: no-repeat, repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center center;
-  filter: brightness(0.9) saturate(0.7);
-  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
-  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.5) 18%, #000 70%);
+  filter: brightness(0.66) saturate(1.02) contrast(1.08);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
 }
 
-/* Settings / control room — maintenance door. Real paint: hazard stripes worn
-   to bare metal under one work light. */
+/* Settings / control room — maintenance door. Hazard stripes worn to metal. */
 html[data-room="settings"] .vanta-bd-wall {
-  --bd-wall: 0.7;
+  --bd-wall: 0.95;
   background-image:
     repeating-linear-gradient(135deg, hsl(45 90% 55% / 0.05) 0 10px, transparent 10px 22px),
     var(--bd-wall-settings, none);
   background-repeat: repeat, no-repeat;
   background-size: auto, cover;
   background-position: center, center center;
-  filter: brightness(1.4) saturate(1.05);
-  mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.46) 18%, #000 70%);
-  -webkit-mask-image: radial-gradient(140% 112% at 50% 46%, hsl(0 0% 0% / 0.46) 18%, #000 70%);
+  filter: brightness(1.12) saturate(1.05) contrast(1.04);
+  mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
+  -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
 }
 
 /* Narrow screens: content fills the width, so pull each tag into frame instead
