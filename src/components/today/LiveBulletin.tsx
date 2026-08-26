@@ -6,7 +6,8 @@
 // since you opened Vanta, this renders nothing at all — silence is valid.
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpRight, Radio } from "lucide-react";
-import { MachineLabel, MachineText } from "@/components/ui/instrument";
+import { MachineText } from "@/components/ui/instrument";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import type { LiveEvent } from "@/hooks/useLiveFeed";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
