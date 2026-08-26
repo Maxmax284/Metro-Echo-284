@@ -186,6 +186,121 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
     }
   }
 
+  // ---- 4) Cross-analysis: contract obligation with nothing tracking it
+  // Documents carry promises. If none of the open commitments mention the same
+  // words, the promise is living only inside a PDF.
+  const { data: reviewedDocs } = await scoped(admin
+    .from("documents")
+    .select("id, title, status")
+    .eq("user_id", userId), orgId)
+    .in("status", ["reviewed", "extracted", "approved"])
+    .limit(50);
+  const docIds = (reviewedDocs ?? []).map((d: any) => d.id);
+  if (docIds.length > 0) {
+    const { data: obligations } = await admin
+      .from("document_obligations")
+      .select("id, document_id, party, what, when_text")
+      .eq("user_id", userId)
+      .in("document_id", docIds)
+      .limit(120);
+    const { data: openCommitments } = await scoped(admin
+      .from("commitments")
+      .select("id, summary")
+      .eq("user_id", userId), orgId)
+      .eq("status", "open")
+      .limit(200);
+    const commitmentText = (openCommitments ?? []).map((c: any) => (c.summary ?? "").toLowerCase());
+    const flaggedDocs = new Set<string>();
+    for (const o of obligations ?? []) {
+      if (!o.what || flaggedDocs.has(o.document_id)) continue;
+      if (commitmentText.some((t) => overlaps(t, String(o.what)))) continue;
+      flaggedDocs.add(o.document_id);
+      const doc = (reviewedDocs ?? []).find((d: any) => d.id === o.document_id);
+      drafts.push({
+        source_object_type: "document",
+        source_object_id: o.document_id,
+        finding_type: "obligation_untracked",
+        summary: `"${truncate(doc?.title ?? "A document", 40)}" promises something nothing is tracking`,
+        rationale: `${o.party ? o.party + ": " : ""}${truncate(String(o.what), 90)}${o.when_text ? ` (${truncate(String(o.when_text), 30)})` : ""} — no open commitment looks like this.`,
+        confidence: "medium",
+        suggested_action: "create_commitment",
+        target_object_type: "document_obligation",
+        target_object_id: o.id,
+        extracted_data: { what: o.what, when_text: o.when_text, party: o.party },
+      });
+    }
+
+    // ---- 5) Cross-analysis: a high risk sitting on a document nobody signed off on
+    const { data: risks } = await admin
+      .from("document_risks")
+      .select("id, document_id, severity, title, plain_english")
+      .eq("user_id", userId)
+      .eq("severity", "high")
+      .in("document_id", docIds)
+      .limit(60);
+    const flaggedRiskDocs = new Set<string>();
+    for (const r of risks ?? []) {
+      const doc = (reviewedDocs ?? []).find((d: any) => d.id === r.document_id);
+      if (!doc || doc.status === "approved" || flaggedRiskDocs.has(r.document_id)) continue;
+      flaggedRiskDocs.add(r.document_id);
+      drafts.push({
+        source_object_type: "document",
+        source_object_id: r.document_id,
+        finding_type: "unapproved_high_risk",
+        summary: `High risk still open on "${truncate(doc.title ?? "a document", 40)}"`,
+        rationale: `${truncate(String(r.title ?? "Flagged clause"), 60)} — ${truncate(String(r.plain_english ?? "worth a second read"), 90)}. The document has not been approved.`,
+        confidence: "high",
+        suggested_action: "review_document",
+        target_object_type: "document_risk",
+        target_object_id: r.id,
+        extracted_data: { severity: r.severity, clause: r.title },
+      });
+    }
+  }
+
+  // ---- 6) Cross-analysis: meeting soon with no context anywhere near it
+  const now = new Date();
+  const in48h = new Date(now.getTime() + 48 * 3600_000).toISOString();
+  const { data: upcoming } = await scoped(admin
+    .from("calendar_events")
+    .select("id, title, starts_at, project_id")
+    .eq("user_id", userId), orgId)
+    .gte("starts_at", now.toISOString())
+    .lte("starts_at", in48h)
+    .order("starts_at", { ascending: true })
+    .limit(20);
+  if ((upcoming ?? []).length > 0) {
+    const { data: recentNotes } = await scoped(admin
+      .from("notes")
+      .select("title, body")
+      .eq("user_id", userId), orgId)
+      .gte("created_at", fourteenDaysAgo)
+      .limit(200);
+    const noteText = (recentNotes ?? []).map((n: any) => `${n.title ?? ""} ${String(n.body ?? "").slice(0, 200)}`.toLowerCase());
+    const commitmentAll = (await scoped(admin
+      .from("commitments")
+      .select("summary")
+      .eq("user_id", userId), orgId)
+      .eq("status", "open")
+      .limit(200)).data ?? [];
+    const commitmentText = (commitmentAll as any[]).map((c) => String(c.summary ?? "").toLowerCase());
+    for (const ev of upcoming ?? []) {
+      if (!ev.title || ev.project_id) continue;
+      const hay = [...noteText, ...commitmentText];
+      if (hay.some((t) => overlaps(t, String(ev.title)))) continue;
+      drafts.push({
+        source_object_type: "calendar_event",
+        source_object_id: ev.id,
+        finding_type: "meeting_without_context",
+        summary: `"${truncate(ev.title, 45)}" is coming up with nothing behind it`,
+        rationale: `Starts ${human(ev.starts_at)} · no note, commitment, or project points at it.`,
+        confidence: "low",
+        suggested_action: "prepare_context",
+        extracted_data: { starts_at: ev.starts_at },
+      });
+    }
+  }
+
   let written = 0, suppressed = 0;
   for (const d of drafts) {
     const r = await createFinding(admin, userId, orgId, d);
@@ -220,14 +335,15 @@ async function createFinding(admin: any, userId: string, orgId: string | null, d
     }
   }
   // Skip if an identical pending finding already exists
-  const { data: dup } = await scoped(admin
+  let dupQuery = scoped(admin
     .from("sherlock_findings")
     .select("id")
     .eq("user_id", userId), orgId)
     .eq("source_object_type", d.source_object_type)
     .eq("finding_type", d.finding_type)
-    .eq("status", "pending")
-    .limit(1);
+    .eq("status", "pending");
+  if (d.source_object_id) dupQuery = dupQuery.eq("source_object_id", d.source_object_id);
+  const { data: dup } = await dupQuery.limit(1);
   if (dup?.[0]) return null;
 
   const { data, error } = await admin
@@ -284,4 +400,20 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+/**
+ * Cheap word-overlap check. Two strings "look like each other" when they share
+ * at least two meaningful words. Deliberately conservative: a false negative
+ * just means one more draft for the user to dismiss, never a wrong execution.
+ */
+function overlaps(haystack: string, needle: string): boolean {
+  const words = String(needle)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 4);
+  if (words.length === 0) return false;
+  const hits = words.filter((w) => haystack.includes(w)).length;
+  return hits >= Math.min(2, words.length);
 }
