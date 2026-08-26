@@ -58,6 +58,8 @@ export default function Settings() {
           <h1 className="text-lg font-semibold tracking-tight">Control Room</h1>
           <p className="text-xs text-muted-foreground">Pick a shelf. Everything is one tap deep.</p>
         </div>
+        <ExplainThisButton room="settings" />
+
         <Button
           size="sm" variant="destructive"
           className="ml-auto gap-1"
