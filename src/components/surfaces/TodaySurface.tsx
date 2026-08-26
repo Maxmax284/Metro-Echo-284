@@ -43,6 +43,7 @@ import { markFlipOriginFromEvent } from "@/lib/flip";
 function Section({
   title,
   hint,
+  sectionKey,
   icon: Icon,
   reading,
   children,
@@ -50,6 +51,8 @@ function Section({
 }: {
   title: string;
   hint?: string;
+  /** Stable key for adaptive helper copy. Omit for sections with no note. */
+  sectionKey?: string;
   icon: typeof Sun;
   /** A real reading shown in the rail gap — a count, never a label. */
   reading?: React.ReactNode;
@@ -64,11 +67,18 @@ function Section({
         icon={<Icon className="h-3.5 w-3.5" />}
         action={action}
       />
-      {hint ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{hint}</p> : null}
+      {hint ? (
+        sectionKey ? (
+          <SectionNote sectionKey={sectionKey}>{hint}</SectionNote>
+        ) : (
+          <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{hint}</p>
+        )
+      ) : null}
       <div className="mt-3">{children}</div>
     </section>
   );
 }
+
 
 function Row({
   label,
