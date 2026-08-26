@@ -86,7 +86,7 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
     if (!session) return;
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, refreshKey, reloadTick]);
+  }, [session, refreshKey, reloadTick, scopeKey]);
 
   async function load() {
     setLoading(true);

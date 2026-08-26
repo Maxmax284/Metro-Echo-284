@@ -87,7 +87,7 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
       if (!cancelled) setReceipts((data ?? []) as any);
     })();
     return () => { cancelled = true; };
-  }, [id, project?.updated_at]);
+  }, [id, project?.updated_at, scopeKey]);
 
   // If the URL points at #living-brief (e.g. opened from the Activity Tray),
   // scroll the brief into view once the project has loaded.
