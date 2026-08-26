@@ -454,10 +454,6 @@
 
 /* Hero drift: one slow ambient wash in one controlled area. Nothing else in
    the app loops. */
-@keyframes vanta-hero-drift {
-  from { background-position: 0% 0%; }
-  to   { background-position: 100% 40%; }
-}
 
 /* ---- Shell weather ----------------------------------------------------
    The room reacts to the state of the world. Three settings, written onto
@@ -888,8 +884,6 @@ html.vanta-exhale-once body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vanta-field,
-  .vanta-field::before,
   .vanta-live-dot,
   .vanta-bulletin-row { animation: none; }
 }
@@ -915,9 +909,7 @@ html.vanta-exhale-once body {
      data-skin     substation | blueprint | neon-rain | concrete | circuit
      data-ambient  on | off        (off keeps the wash, kills every motion)
      data-room     the room you are in — the world has four corners
-     data-idle     the world dims after a minute of no input
      data-overlay  something is layered above the room
-     data-press    a finger is being held down
    Weather (data-weather) still tints on top of all of it.                */
 
 :root {
@@ -932,7 +924,6 @@ html.vanta-exhale-once body {
   --bd-sheen: 0;
   --bd-sheen-hue: 188;
   --bd-grain: 0.03;
-  --bd-scroll: 0px;
   --bd-x: 50%;
   --bd-y: 0%;
   --bd-throw-x: 50%;
@@ -982,10 +973,6 @@ html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
 }
 /* Held finger: the grid brightens under the press, then settles. */
 
-@keyframes vanta-bd-grid-drift {
-  from { background-position: 0 0, 0 0; }
-  to   { background-position: var(--bd-grid-size) var(--bd-grid-size), var(--bd-grid-size) var(--bd-grid-size); }
-}
 
 /* ---- Layer 3: neon rain. Vertical light streaks, slow. ---- */
 .vanta-bd-streaks {
@@ -1001,10 +988,6 @@ html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
     );
   background-size: 260px 160%;
   transition: opacity 600ms var(--ease-out);
-}
-@keyframes vanta-bd-rain {
-  from { background-position: 0 -30%; }
-  to   { background-position: -260px 30%; }
 }
 
 /* ---- Layer 4: circuit traces, with one pulse travelling a single path ---- */
@@ -1024,10 +1007,6 @@ html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
   background-image:
     radial-gradient(140% 60% at 50% 118%, hsl(var(--bd-sheen-hue) 80% 58% / 0.4), transparent 60%);
   transition: opacity 600ms var(--ease-out);
-}
-@keyframes vanta-bd-sheen-breathe {
-  from { transform: translateY(2%) scaleX(1); }
-  to   { transform: translateY(-1%) scaleX(1.08); }
 }
 
 /* ---- Grain on the backdrop itself, weighted per skin ---- */

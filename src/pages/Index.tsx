@@ -238,9 +238,6 @@ function IndexInner() {
 
   return (
     <div className="relative flex min-h-dvh flex-col">
-      {/* Ambient field — cosmetic depth behind the shell. Drifts with the
-          weather, sits under everything, and carries no information. */}
-      <div className="vanta-field" aria-hidden="true" />
       <AmbientHeader
 
         state={state}
