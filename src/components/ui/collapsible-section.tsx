@@ -4,6 +4,14 @@ import { cn } from "@/lib/utils";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { MOTION_FOCUS } from "@/lib/motion";
 
+/** Broadcast event every CollapsibleSection obeys. */
+export const PANELS_SET_EVENT = "vanta:panels-set";
+
+/** Fold or unfold every panel on the current surface at once. */
+export function setAllPanels(open: boolean) {
+  window.dispatchEvent(new CustomEvent(PANELS_SET_EVENT, { detail: { open } }));
+}
+
 /**
  * CollapsibleSection — a panel that can be folded away.
  *
@@ -48,6 +56,18 @@ export function CollapsibleSection({
       /* private mode: fold state is a nicety, not a requirement */
     }
   }, [key, open]);
+
+  /* Room-level sweep: "Expand all" / "Collapse all" broadcasts one event and
+     every panel follows. Each panel still remembers the result as its own
+     saved state, so the tidy-up survives reloads. */
+  useEffect(() => {
+    const onSetAll = (e: Event) => {
+      const detail = (e as CustomEvent<{ open?: boolean }>).detail;
+      if (typeof detail?.open === "boolean") setOpen(detail.open);
+    };
+    window.addEventListener(PANELS_SET_EVENT, onSetAll);
+    return () => window.removeEventListener(PANELS_SET_EVENT, onSetAll);
+  }, []);
 
   return (
     <section
