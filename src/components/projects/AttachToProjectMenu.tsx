@@ -17,6 +17,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useActivity } from "@/components/workstatus/ActivityStore";
 import { stepsInboxAttach, humanizeWorkError } from "@/lib/workStatus";
 import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
+import { feelMs } from "@/lib/motion";
 
 interface AttachToProjectMenuProps {
   itemType: ProjectItemType;
@@ -46,7 +47,7 @@ export function AttachToProjectMenu({
 
   const flashAttached = () => {
     setJustAttached(true);
-    setTimeout(() => setJustAttached(false), 1600);
+    setTimeout(() => setJustAttached(false), feelMs(1600, { min: 400 }));
   };
 
   async function doAttach(p: Project) {

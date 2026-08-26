@@ -12,6 +12,7 @@ import { MOTION_MICRO, MOTION_PRESS, MOTION_SIGNAL } from "@/lib/motion";
 import { useEffect, useRef, useState } from "react";
 import { useWorkspace, scopeLabel, type Membership } from "@/providers/WorkspaceProvider";
 import { useRole } from "@/hooks/useRole";
+import { feelMs } from "@/lib/motion";
 
 export function WorkspaceSwitcher() {
   const { memberships, scope, activeMembership, setScope, loading } = useWorkspace();
@@ -25,7 +26,7 @@ export function WorkspaceSwitcher() {
     if (lastScope.current === scopeKey) return;
     lastScope.current = scopeKey;
     setSwitching(true);
-    const t = window.setTimeout(() => setSwitching(false), 900);
+    const t = window.setTimeout(() => setSwitching(false), feelMs(900, { min: 200 }));
     return () => window.clearTimeout(t);
   }, [scopeKey]);
 

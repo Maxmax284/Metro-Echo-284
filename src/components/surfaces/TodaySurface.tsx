@@ -168,7 +168,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     if (next <= lastChanged.current) { lastChanged.current = next; return; }
     lastChanged.current = next;
     setChangeSignal(true);
-    const t = window.setTimeout(() => setChangeSignal(false), 800);
+    const t = window.setTimeout(() => setChangeSignal(false), feelMs(800, { min: 200 }));
     return () => window.clearTimeout(t);
   }, [events.length, pulse, loadingCritical]);
 

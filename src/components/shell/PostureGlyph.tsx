@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { OperationalState } from "@/lib/operationalState";
+import { feelMs } from "@/lib/motion";
 
 /** Fire once when a real state change deserves a tell (execute, capture land). */
 export function pulseGlyph(kind: "commit" | "notice" = "commit") {
@@ -50,7 +51,7 @@ export function PostureGlyph({
       const kind = (e as CustomEvent).detail?.kind === "notice" ? "notice" : "commit";
       setPulse(kind);
       if (timer.current) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setPulse(null), 520);
+      timer.current = window.setTimeout(() => setPulse(null), feelMs(520, { min: 120 }));
     };
     window.addEventListener("vanta:glyph-pulse", onPulse);
     return () => {
