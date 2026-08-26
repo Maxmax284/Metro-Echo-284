@@ -26,6 +26,8 @@ import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type Runtime
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { SpokeKitPanel } from "@/components/integrations/SpokeKitPanel";
+import type { SpokeKitInput } from "@/lib/integrations/spokeKit";
 
 type Props = { def: IntegrationDef; signals: RuntimeSignals; secretStatus: SecretStatus; diagnostic?: ExternalPlatformDiagnostic; onSecretsChanged?: () => void | Promise<void> };
 
@@ -45,6 +47,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const [pasteFor, setPasteFor] = useState<string | null>(null);
   const [secretValue, setSecretValue] = useState("");
   const [savingSecret, setSavingSecret] = useState(false);
+  const [kit, setKit] = useState<SpokeKitInput | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<null | {
     ok: boolean;
@@ -143,6 +146,14 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
       return;
     }
     toast.success("Secret saved.");
+    if (def.sourcePlatform && webhookUrl) {
+      setKit({
+        platformName: def.name,
+        sourceKey: def.sourcePlatform,
+        webhookUrl,
+        secret: value,
+      });
+    }
     setPasteFor(null);
     setSecretValue("");
     await onSecretsChanged?.();
@@ -267,6 +278,8 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
           </p>
         </div>
       )}
+
+      {kit && <SpokeKitPanel kit={kit} onDone={() => setKit(null)} />}
 
       {diagnostic && (
         <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
