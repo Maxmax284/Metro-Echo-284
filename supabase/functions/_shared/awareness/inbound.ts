@@ -138,6 +138,22 @@ export function buildSignalDetail(
     };
   }
 
+  if (family === "notice") {
+    // Universal notice: any connected platform can raise one and it rides
+    // Vanta's own messaging pipe. Still capture-first, still notification only.
+    const headline = pick(payload, ["title", "headline", "subject"]);
+    const detailLines = Array.isArray(payload.lines)
+      ? (payload.lines as unknown[]).map((l) => str(l)).filter((l): l is string => !!l)
+      : [];
+    for (const l of detailLines) lines.push(excerpt(l, 200));
+    if (!detailLines.length && message) lines.push(excerpt(message));
+    push("Reference", reference);
+    return {
+      title: headline ? `${displayName}: ${excerpt(headline, 120)}` : `${displayName} notice`,
+      lines,
+    };
+  }
+
   // Guest messages, requests, member requests, security events, form posts.
   push("Guest", guest);
   push("Room", room);
