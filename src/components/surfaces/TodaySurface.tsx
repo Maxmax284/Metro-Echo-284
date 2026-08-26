@@ -489,6 +489,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.changed"
                 icon={Receipt}
                 reading={<RollingNumber value={allEvents.length} />}
+                summary={
+                  events.length === 0
+                    ? "Nothing recorded yet."
+                    : `${events.length} recent ${events.length === 1 ? "change" : "changes"} on file.`
+                }
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
