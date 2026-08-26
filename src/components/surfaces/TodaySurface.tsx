@@ -442,6 +442,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 hint={sectionNote("today.security")}
                 sectionKey="today.security"
                 icon={ShieldCheck}
+                defaultOpen={security.tone !== "good"}
+                summary={security.line}
                 action={
                   securityEvents.length > 0 ? (
                     <Button
