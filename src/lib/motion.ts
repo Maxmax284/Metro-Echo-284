@@ -22,6 +22,25 @@ export const MOTION_PRESS = "motion-press";
 /** One-time arrival for a row that just showed up from real new data. */
 export const MOTION_ARRIVAL = "motion-arrival";
 
+/**
+ * Motion doctrine, in four words:
+ *
+ *   live data     → arrives  (MOTION_ARRIVE)
+ *   history       → settles  (MOTION_STAMP)
+ *   user actions  → confirm  (MOTION_COMMIT / MOTION_PRESS)
+ *   navigation    → travels  (flip.ts, MOTION_SHEET)
+ *
+ * Background and graffiti never move. Both classes below are one-shot: apply
+ * them only to rows that are genuinely new to this session, never on re-render.
+ */
+
+/** Live arrival: slides in from the left, status rail draws, then locks. */
+export const MOTION_ARRIVE = "motion-arrive";
+
+/** Recorded history: presses onto the page and settles. Heavier, shorter. */
+export const MOTION_STAMP = "motion-stamp";
+
+
 /** Tappable row: micro colour feedback plus press compression. */
 export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
 
