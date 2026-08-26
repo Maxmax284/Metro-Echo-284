@@ -567,12 +567,29 @@ export function groundedRelations(
   return out;
 }
 
+/**
+ * A grounded name for a re-entry card.
+ *
+ * A project title always wins. Without one, name the work after the strongest
+ * record actually behind it rather than the generic "Work outside a project" —
+ * inference only, never invention: if there is no record to name, we say so
+ * plainly.
+ */
+export function continuityName(c: ContinuityCandidate): string {
+  if (c.projectTitle) return c.projectTitle;
+  const thread = c.unresolved[0];
+  if (thread?.label) return thread.label;
+  const decision = c.decisions[0];
+  if (decision?.label) return decision.label;
+  return "Not filed under a project yet";
+}
+
 /** "Bring me back up to speed" — ordered: state, changes, decision, open, next. */
 export function catchUpSummary(
   c: ContinuityCandidate,
   changes: string[] = [],
 ): { headline: string; lines: string[] } {
-  const where = c.projectTitle ?? "Work outside a project";
+  const where = continuityName(c);
   const lines: string[] = [];
   lines.push(`Where it stands: ${STATE_LABEL[c.state].toLowerCase()}, last activity ${lastActiveLabel(c.lastActivityAt)}.`);
   if (changes.length) lines.push(`What changed: ${changes.join("; ")}.`);

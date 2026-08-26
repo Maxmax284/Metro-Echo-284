@@ -40,7 +40,7 @@ export function ProjectReentryCard({
   onDismiss?: () => void;
   onFinish?: () => void;
 }) {
-  const where = c.projectTitle ?? "Work outside a project";
+  const where = continuityName(c);
   const [briefOpen, setBriefOpen] = useState(false);
   const brief = catchUpSummary(c, changes);
 
