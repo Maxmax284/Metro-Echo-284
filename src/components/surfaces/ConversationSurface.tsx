@@ -71,6 +71,21 @@ const SUGGESTIONS_BY_SURFACE: Record<string, string[]> = {
   conversation: ["area", "save-memory", "draft-action"],
 };
 
+/* When a thread is bound to a record, the chips key off the binding, not the
+   room — "ask about this project" beats "you're standing in Work". */
+const SUGGESTIONS_BY_KIND: Record<string, string[]> = {
+  project: ["related", "summarize-page", "create-commitment"],
+  document: ["summarize-page", "save-memory", "related"],
+  receipt: ["summarize-page", "related", "draft"],
+  today: ["area", "create-commitment", "summarize-page"],
+  calendar: ["summarize-page", "create-commitment", "related"],
+  commitment: ["related", "summarize-page", "draft-action"],
+  action: ["draft-action", "related", "summarize-page"],
+  sherlock: ["run-sherlock", "related", "summarize-page"],
+  note: ["save-memory", "related", "translate"],
+  mail: ["summarize-page", "save-memory", "related"],
+};
+
 const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
   stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
   add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
