@@ -1225,7 +1225,7 @@ html[data-room="ask"] .vanta-bd-wall {
 
 /* Receipts — paste-up wall. Torn bills, tape, stencil over the top. */
 html[data-room="receipts"] .vanta-bd-wall {
-  --bd-wall: 0.9;
+  --bd-wall: 0.82;
   background-image:
     radial-gradient(48% 38% at 4% 22%, hsl(28 90% 56% / 0.14), transparent 70%),
     repeating-linear-gradient(180deg, hsl(0 0% 100% / 0.02) 0 1px, transparent 1px 21px),
@@ -1233,7 +1233,7 @@ html[data-room="receipts"] .vanta-bd-wall {
   background-repeat: no-repeat, repeat, no-repeat;
   background-size: auto, auto, cover;
   background-position: center, center, center center;
-  filter: brightness(0.86) saturate(1.05) contrast(1.05);
+  filter: brightness(0.66) saturate(1.02) contrast(1.08);
   mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
   -webkit-mask-image: radial-gradient(132% 106% at 50% 46%, hsl(0 0% 0% / 0.2) 22%, #000 72%);
 }
