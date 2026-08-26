@@ -394,7 +394,10 @@ export function summarizeContinuity(input: {
   lastDecision: string | null;
   openLabels: string[];
 }): string {
-  const where = input.projectTitle ?? "Work outside a project";
+  /* Grounded fallback: name the work after the record behind it rather than a
+     generic placeholder. */
+  const where =
+    input.projectTitle ?? input.openLabels[0] ?? input.lastLabel ?? "Not filed under a project yet";
   const parts: string[] = [];
   if (input.lastDecision) parts.push(`last recorded decision: ${input.lastDecision}`);
   else parts.push(`last recorded activity: ${input.lastLabel}`);
