@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   CalendarClock,
   ChevronDown,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Inbox,
   Receipt,
   ArrowRight,
@@ -272,6 +274,28 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       <AskVantaBar />
 
       <QuickModes />
+
+      {/* Room sweep: fold or unfold every panel on Today in one tap. */}
+      <div className="flex items-center justify-end gap-1 -mb-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
+          onClick={() => setAllPanels(true)}
+        >
+          <ChevronsUpDown className="h-3 w-3" />
+          Expand all
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
+          onClick={() => setAllPanels(false)}
+        >
+          <ChevronsDownUp className="h-3 w-3" />
+          Collapse all
+        </Button>
+      </div>
 
       <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
 
