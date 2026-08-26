@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
