@@ -840,6 +840,11 @@ html.vanta-exhale-once body {
   .motion-confirm,
   .motion-breath,
   .motion-arrival,
+  .motion-arrive,
+  .motion-arrive.vanta-lead::before,
+  .motion-arrive .vanta-lead::before,
+  .motion-stamp,
+
   .motion-signal-track,
   .motion-roll,
   .motion-commit,
