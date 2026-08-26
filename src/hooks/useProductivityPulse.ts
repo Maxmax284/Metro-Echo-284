@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 
 export type ProductivityPulse = {
   loading: boolean;
@@ -38,6 +39,7 @@ function median(nums: number[]): number | null {
 
 export function useProductivityPulse(): ProductivityPulse {
   const { user } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
   const [state, setState] = useState<ProductivityPulse>(EMPTY);
 
   useEffect(() => {
