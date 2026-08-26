@@ -127,7 +127,7 @@ export function CanvasFlowView({ seedEntityId, windowDays = 30 }: Props) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays]);
+  }, [user, seedEntityId, windowDays, scopeKey]);
 
   const grouped = useMemo(() => {
     const map = new Map<LaneKey, Item[]>();

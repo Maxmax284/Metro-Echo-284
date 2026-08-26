@@ -105,7 +105,7 @@ export function CanvasTimelineView({ seedEntityId, windowDays = 30 }: Props) {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [user, seedEntityId, windowDays]);
+  }, [user, seedEntityId, windowDays, scopeKey]);
 
   if (loading) {
     return (
