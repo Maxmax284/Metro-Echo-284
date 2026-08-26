@@ -104,7 +104,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const isOwner = useIsOwner();
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
-  const { activeId: convId, ensureThread, noteActivity, recordOutput } = useAskThreads();
+  const { activeId: convId, active: activeThread, ensureThread, noteActivity, recordOutput } = useAskThreads();
   // Wave 4 — the live half of a thread lives in the shared Ask session, not in
   // this component. Quick Ask and the Ask room mount the same session, so a
   // turn in flight and a half-typed line survive moving between them.
@@ -349,7 +349,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   };
 
   const suggestions = useMemo<Tool[]>(() => {
-    const ids = SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
+    const kindIds = activeThread?.context_kind
+      ? SUGGESTIONS_BY_KIND[activeThread.context_kind]
+      : undefined;
+    const ids = kindIds ?? SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
     const picked: Tool[] = [];
     for (const id of ids) {
       const t = COMPANION_TOOLS.find((x) => x.id === id);
@@ -359,7 +362,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       if (picked.length >= 3) break;
     }
     return picked;
-  }, [context.surface, mode, isOwner, controls]);
+  }, [activeThread?.context_kind, context.surface, mode, isOwner, controls]);
 
   const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
 
