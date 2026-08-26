@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
+import { SectionNote } from "@/components/ui/section-note";
+import { sectionNote } from "@/lib/roomCopy";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
 
@@ -124,6 +126,8 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
   const { threads, archived, newThread } = useAskThreads();
   const { destination } = useScope();
   const [showArchived, setShowArchived] = useState(false);
+  const pinned = threads.filter((t) => t.pinned);
+  const recent = threads.filter((t) => !t.pinned);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -138,6 +142,9 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
           <Plus className="h-3.5 w-3.5" />New
         </Button>
       </div>
+      <SectionNote className="mt-0 px-2 pb-2" sectionKey="ask.threads">
+        {sectionNote("ask.threads")}
+      </SectionNote>
       <div className="scrollbar-thin min-h-0 flex-1 space-y-1 overflow-y-auto pb-4">
         {threads.length === 0 && (
           <p className="px-2 py-6 text-[12px] leading-relaxed text-muted-foreground">
@@ -145,7 +152,20 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
             keeps that context so you never re-explain it.
           </p>
         )}
-        {threads.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+        {/* Pinned first, under its own label, so the spine reads as an ordered
+            workspace rather than one long log. */}
+        {pinned.length > 0 && (
+          <>
+            <GroupLabel>Pinned</GroupLabel>
+            {pinned.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+          </>
+        )}
+        {recent.length > 0 && (
+          <>
+            {pinned.length > 0 && <GroupLabel>Recent</GroupLabel>}
+            {recent.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+          </>
+        )}
         {archived.length > 0 && (
           <div className="pt-2">
             <button
@@ -160,6 +180,12 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
         )}
       </div>
     </div>
+  );
+}
+
+function GroupLabel({ children }: { children: string }) {
+  return (
+    <p className="vanta-machine-label px-2 pb-1 pt-2 text-muted-foreground/70">{children}</p>
   );
 }
 
