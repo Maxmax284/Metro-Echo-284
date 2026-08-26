@@ -11,7 +11,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import type { LiveEvent } from "@/hooks/useLiveFeed";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_ARRIVE, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { LEAD_BAR, MOTION_ARRIVE, MOTION_FOCUS, MOTION_ROW, MOTION_TIME_LOCK } from "@/lib/motion";
 import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";

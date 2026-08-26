@@ -40,6 +40,13 @@ export const MOTION_ARRIVE = "motion-arrive";
 /** Recorded history: presses onto the page and settles. Heavier, shorter. */
 export const MOTION_STAMP = "motion-stamp";
 
+/**
+ * Timestamp lock — the clock on a genuinely new row lights once, then
+ * settles. Pair with MOTION_ARRIVE (live) or MOTION_STAMP (receipts) on the
+ * row; this goes on the timestamp element only. Never re-applied.
+ */
+export const MOTION_TIME_LOCK = "vanta-time-lock";
+
 
 /** Tappable row: micro colour feedback plus press compression. */
 export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
