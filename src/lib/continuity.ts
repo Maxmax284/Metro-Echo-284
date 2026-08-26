@@ -441,7 +441,7 @@ export function isContinuityAmbiguous(candidates: ContinuityCandidate[], margin 
 
 export function clarificationPrompt(candidates: ContinuityCandidate[], max = 3): string | null {
   if (candidates.length < 2 || !isContinuityAmbiguous(candidates)) return null;
-  const names = candidates.slice(0, max).map((c) => c.projectTitle ?? "work outside a project");
+  const names = candidates.slice(0, max).map((c) => continuityName(c));
   return `You had ${names.length} threads open: ${names.join(", ")}. Which one?`;
 }
 
