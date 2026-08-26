@@ -75,13 +75,13 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
     if (!id) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data } = await applyScope(supabase
         .from("audit_log")
         .select("id,event,created_at,payload")
         .eq("entity_type", "project")
         .eq("entity_id", id)
         .order("created_at", { ascending: false })
-        .limit(15);
+        .limit(15));
       if (!cancelled) setReceipts((data ?? []) as any);
     })();
     return () => { cancelled = true; };

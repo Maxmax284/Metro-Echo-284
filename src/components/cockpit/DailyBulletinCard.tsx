@@ -97,20 +97,20 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
 
     const [audit, exportsRes, itemsRes, dismissalsRes, channelsRes, emailRes, pushRes] =
       await Promise.all([
-        supabase
+        applyScope(supabase
           .from("audit_log")
           .select("id,event,entity_type,entity_id,created_at,payload")
           .eq("user_id", userId)
           .gte("created_at", sinceIso)
           .order("created_at", { ascending: false })
-          .limit(120),
-        supabase
+          .limit(120)),
+        applyScope(supabase
           .from("brief_exports")
           .select("id,title,project_id,created_at,status,scope_kind")
           .eq("user_id", userId)
           .gte("created_at", sinceIso)
           .order("created_at", { ascending: false })
-          .limit(20),
+          .limit(20)),
         supabase
           .from("project_items")
           .select("id,project_id,added_at,item_type")
@@ -153,10 +153,10 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
     }
     const projectNames = new Map<string, string>();
     if (projectIds.size > 0) {
-      const { data: projs } = await supabase
+      const { data: projs } = await applyScope(supabase
         .from("projects")
         .select("id,title")
-        .in("id", Array.from(projectIds));
+        .in("id", Array.from(projectIds)));
       for (const p of (projs ?? []) as Array<{ id: string; title: string }>)
         projectNames.set(p.id, p.title);
     }
@@ -164,7 +164,10 @@ export function DailyBulletinCard({ refreshKey = 0, onNavigate }: Props) {
     // Project updates rollup (by project name).
     const projCounts: Record<string, number> = {};
     for (const it of itemsRes.data ?? []) {
-      const name = projectNames.get(it.project_id) ?? "A project";
+      // project_items has no organization_id; the scoped projects lookup above is
+      // the room filter. Unknown project = another room, so it is skipped.
+      const name = projectNames.get(it.project_id);
+      if (!name) continue;
       projCounts[name] = (projCounts[name] ?? 0) + 1;
     }
     setProjectUpdates(projCounts);
