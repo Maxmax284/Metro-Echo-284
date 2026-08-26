@@ -1018,32 +1018,6 @@ html[data-room="receipts"] { --bd-x: 82%; --bd-y: -2%; }
   transition: opacity 1200ms var(--ease-out);
 }
 
-/* ---- One-shot events: room scan and nav light throw ---- */
-.vanta-bd-scan {
-  background: linear-gradient(90deg, transparent, hsl(var(--bd-hue-a) 90% 66% / 0.16), transparent);
-  background-size: 40% 100%;
-  background-repeat: no-repeat;
-  animation: vanta-bd-scan-pass 420ms var(--ease-out) 1 both;
-}
-@keyframes vanta-bd-scan-pass {
-  from { background-position: -40% 0; opacity: 1; }
-  to   { background-position: 140% 0; opacity: 0; }
-}
-
-.vanta-bd-throw {
-  top: var(--bd-throw-y);
-  left: 0;
-  right: 0;
-  height: 1px;
-  bottom: auto;
-  background: linear-gradient(90deg, transparent, hsl(var(--vanta-accent) / 0.7), transparent);
-  transform-origin: var(--bd-throw-x) 50%;
-  animation: vanta-bd-throw-pass 520ms var(--ease-out) 1 both;
-}
-@keyframes vanta-bd-throw-pass {
-  from { transform: scaleX(0.02); opacity: 0.9; }
-  to   { transform: scaleX(1); opacity: 0; }
-}
 
 /* ---- Skins: weights only ---- */
 html[data-skin="blueprint"] {
@@ -1197,8 +1171,6 @@ html[data-ambient="off"] .vanta-bd-streaks,
 html[data-ambient="off"] .vanta-bd-traces,
 html[data-ambient="off"] .vanta-bd-sheen,
 html[data-ambient="off"] .vanta-bd-grain,
-html[data-ambient="off"] .vanta-bd-scan,
-html[data-ambient="off"] .vanta-bd-throw { display: none; }
 
 /* ---- Tap pulse: square-cut, dies in place. Never a Material circle. ---- */
 .vanta-pulse {
@@ -1223,8 +1195,6 @@ html[data-ambient="off"] .vanta-bd-throw { display: none; }
   .vanta-bd-streaks,
   .vanta-bd-traces::after,
   .vanta-bd-sheen { animation: none !important; transition: none !important; }
-  .vanta-bd-scan,
-  .vanta-bd-throw,
   .vanta-pulse { display: none !important; }
   .vanta-backdrop { transform: none !important; }
 }
