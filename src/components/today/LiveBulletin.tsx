@@ -43,9 +43,14 @@ export function LiveBulletin({
         </MachineText>
       </div>
 
+      <SectionNote sectionKey="today.live">{sectionNote("today.live")}</SectionNote>
+
       <ul className="mt-3 space-y-1.5">
-        {rows.map((e) => {
+        {rows.map((e, i) => {
+          /* Burst control: only the first few genuinely new rows animate. A
+             flood of arrivals settles instantly rather than staggering. */
           const isNew = liveIds.has(e.id);
+          const animates = isNew && i < 3;
           const where = eventWhere(e.entity_type);
           return (
             <li key={e.id}>
@@ -53,7 +58,7 @@ export function LiveBulletin({
                 onClick={() => onNavigate(where.surface as SurfaceKey)}
                 className={cn(
                   "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
-                  isNew && "vanta-bulletin-row",
+                  animates && MOTION_ARRIVE,
                   MOTION_ROW,
                   MOTION_FOCUS,
                   LEAD_BAR,
@@ -78,9 +83,7 @@ export function LiveBulletin({
           );
         })}
       </ul>
-      <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-        Every line is something already recorded. Tap one to open where it landed. Nothing here ran on its own.
-      </p>
+
     </section>
   );
 }
