@@ -306,8 +306,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             )}
             {auditFiltered.slice(0, visibleCount).map((r, i) => {
               const open = openId === r.id;
+              const fresh = isNewReceipt(r.id);
               return (
-              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_STAMP)}>
+              <Card key={r.id} className={cn("p-0 text-xs", fresh && MOTION_STAMP)}>
                 <button
                   type="button"
                   aria-expanded={open}
