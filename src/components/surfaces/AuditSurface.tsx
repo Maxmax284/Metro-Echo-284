@@ -14,7 +14,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { humanizeEvent, kindLabel, trustNote } from "@/lib/plainLabels";
 import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { markFlipOriginFromEvent } from "@/lib/flip";
-import { MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP } from "@/lib/motion";
+import { MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, MOTION_TIME_LOCK } from "@/lib/motion";
 import { SectionNote } from "@/components/ui/section-note";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
@@ -306,8 +306,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             )}
             {auditFiltered.slice(0, visibleCount).map((r, i) => {
               const open = openId === r.id;
+              const fresh = isNewReceipt(r.id);
               return (
-              <Card key={r.id} className={cn("p-0 text-xs", isNewReceipt(r.id) && MOTION_STAMP)}>
+              <Card key={r.id} className={cn("p-0 text-xs", fresh && MOTION_STAMP)}>
                 <button
                   type="button"
                   aria-expanded={open}
@@ -340,7 +341,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
                       {humanizeEvent(r.event)}
                     </span>
                     <MachineText
-                      className="ml-auto shrink-0 text-[10px] text-muted-foreground"
+                      className={cn("ml-auto shrink-0 text-[10px] text-muted-foreground", fresh && MOTION_TIME_LOCK)}
                       title={`${formatInTimeZone(new Date(r.created_at), timezone, "PPpp")} ${timezone}`}
                     >
                       {formatInTimeZone(new Date(r.created_at), timezone, "HH:mm:ss")}

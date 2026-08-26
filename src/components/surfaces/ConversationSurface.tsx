@@ -71,6 +71,21 @@ const SUGGESTIONS_BY_SURFACE: Record<string, string[]> = {
   conversation: ["area", "save-memory", "draft-action"],
 };
 
+/* When a thread is bound to a record, the chips key off the binding, not the
+   room — "ask about this project" beats "you're standing in Work". */
+const SUGGESTIONS_BY_KIND: Record<string, string[]> = {
+  project: ["related", "summarize-page", "create-commitment"],
+  document: ["summarize-page", "save-memory", "related"],
+  receipt: ["summarize-page", "related", "draft"],
+  today: ["area", "create-commitment", "summarize-page"],
+  calendar: ["summarize-page", "create-commitment", "related"],
+  commitment: ["related", "summarize-page", "draft-action"],
+  action: ["draft-action", "related", "summarize-page"],
+  sherlock: ["run-sherlock", "related", "summarize-page"],
+  note: ["save-memory", "related", "translate"],
+  mail: ["summarize-page", "save-memory", "related"],
+};
+
 const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
   stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
   add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
@@ -89,7 +104,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const isOwner = useIsOwner();
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
-  const { activeId: convId, ensureThread, noteActivity, recordOutput } = useAskThreads();
+  const { activeId: convId, active: activeThread, ensureThread, noteActivity, recordOutput } = useAskThreads();
   // Wave 4 — the live half of a thread lives in the shared Ask session, not in
   // this component. Quick Ask and the Ask room mount the same session, so a
   // turn in flight and a half-typed line survive moving between them.
@@ -334,7 +349,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   };
 
   const suggestions = useMemo<Tool[]>(() => {
-    const ids = SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
+    const kindIds = activeThread?.context_kind
+      ? SUGGESTIONS_BY_KIND[activeThread.context_kind]
+      : undefined;
+    const ids = kindIds ?? SUGGESTIONS_BY_SURFACE[context.surface] ?? SUGGESTIONS_BY_SURFACE.conversation;
     const picked: Tool[] = [];
     for (const id of ids) {
       const t = COMPANION_TOOLS.find((x) => x.id === id);
@@ -344,7 +362,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       if (picked.length >= 3) break;
     }
     return picked;
-  }, [context.surface, mode, isOwner, controls]);
+  }, [activeThread?.context_kind, context.surface, mode, isOwner, controls]);
 
   const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
 
@@ -389,7 +407,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           {msgs.length === 0 && (
             <div className="mt-10 space-y-4 animate-fade-in">
               <p className="text-balance text-center text-sm text-muted-foreground">
-                {surfaceHint}
+                {activeThread?.context_label
+                  ? <>About <span className="font-medium text-foreground/85">{activeThread.context_label}</span>. {surfaceHint}</>
+                  : surfaceHint}
               </p>
               {suggestions.length > 0 && !readOnly && (
                 <div className="flex flex-wrap justify-center gap-1.5">
