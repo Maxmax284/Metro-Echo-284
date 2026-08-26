@@ -25,6 +25,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     secretName: "GTH_WEBHOOK_SECRET",
     allowedEvents: [
       "integration.test",
+      "notice.raised",
       "booking.created",
       "booking.updated",
       "booking.state_changed",
@@ -43,6 +44,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     aliases: ["campcore", "camp_core", "camp-core", "CampCore"],
     secretName: "CAMPCORE_WEBHOOK_SECRET",
     allowedEvents: [
+      "notice.raised",
       "member_request.created",
       "schedule_change.requested",
       "class_booking.created",
@@ -65,6 +67,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     aliases: ["fenrir_lock", "fenrir", "fenrir-lock", "FenrirLock"],
     secretName: "FENRIR_WEBHOOK_SECRET",
     allowedEvents: [
+      "notice.raised",
       "security_event.detected",
       "login_anomaly.detected",
       "suspicious_activity.detected",
@@ -81,6 +84,7 @@ export const EXTERNAL_PLATFORMS: PlatformConfig[] = [
     aliases: ["website_forms", "website", "public_forms", "website-forms"],
     secretName: "WEBSITE_FORMS_SECRET",
     allowedEvents: [
+      "notice.raised",
       "contact_form.submitted",
       "support_request.created",
       "lead.created",
