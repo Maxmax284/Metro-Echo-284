@@ -407,7 +407,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           {msgs.length === 0 && (
             <div className="mt-10 space-y-4 animate-fade-in">
               <p className="text-balance text-center text-sm text-muted-foreground">
-                {surfaceHint}
+                {activeThread?.context_label
+                  ? <>About <span className="font-medium text-foreground/85">{activeThread.context_label}</span>. {surfaceHint}</>
+                  : surfaceHint}
               </p>
               {suggestions.length > 0 && !readOnly && (
                 <div className="flex flex-wrap justify-center gap-1.5">
