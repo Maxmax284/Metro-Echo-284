@@ -1,7 +1,11 @@
-// In-project "+ Add to project" composer (slice 2b).
-// Reuses SeedItemsPicker so the search/suggest/attach surface stays identical
-// to the New Project flow. Excludes already-attached items so they don't
-// reappear as suggestions.
+// AttachItemsDialog — the one composer for attaching existing items to a project.
+//
+// Formerly AddToProjectComposer, which ran parallel to the picker family. This
+// is now the single search-and-attach dialog: it reuses SeedItemsPicker for the
+// list and `attachToProject` for the write, the same write the
+// AttachToProjectMenu / BulkAttachToProjectMenu chips use. Already-attached
+// items are excluded so they don't come back as suggestions.
+
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
