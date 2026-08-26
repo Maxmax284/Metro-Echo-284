@@ -16,6 +16,7 @@ import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askTh
 import { useScope } from "@/hooks/useScope";
 import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
 
@@ -193,6 +194,10 @@ function GroupLabel({ children }: { children: string }) {
 export function ThreadRail() {
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border/50 py-3 md:block" aria-label="Ask threads">
+      <div className="flex items-center gap-1 px-2 pb-1">
+        <span className="vanta-machine-label text-foreground/70">Ask</span>
+        <ExplainThisButton room="ask" className="ml-auto" />
+      </div>
       <ThreadList />
     </aside>
   );
@@ -225,6 +230,7 @@ export function ThreadBar() {
           </span>
         </span>
       </button>
+      <ExplainThisButton room="ask" />
       {streaming && active && (
         <Button
           variant="outline"
