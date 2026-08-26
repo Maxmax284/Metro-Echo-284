@@ -49,11 +49,17 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
         <History className="mt-0.5 h-4 w-4 text-primary" />
         <div className="min-w-0">
           <h2 className="text-sm font-semibold tracking-tight">Continue where you left off</h2>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {ask ??
-              "Work you touched recently, and what's still open on it. Resume opens the room; \"Bring me up to speed\" reads the catch-up right here."}
-          </p>
+          {/* One line, and it gets out of the way once the section is familiar.
+              A real clarification question always outranks the description. */}
+          {ask ? (
+            <p className="mt-0.5 text-[12px] text-muted-foreground">{ask}</p>
+          ) : (
+            <SectionNote className="mt-0.5" sectionKey="today.resume">
+              {sectionNote("today.resume")}
+            </SectionNote>
+          )}
         </div>
+
 
         {live.length > 2 ? (
           <div className="ml-auto shrink-0">
