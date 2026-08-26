@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { describeFunctionError } from "@/lib/aiErrors";
+
 import { cn } from "@/lib/utils";
 
 /**
