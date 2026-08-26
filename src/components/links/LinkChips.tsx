@@ -9,6 +9,7 @@ import {
 import { Plus, User, Briefcase, MapPin, X, Paperclip } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { useScope } from "@/hooks/useScope";
 
 export type LinkKind = "person" | "project" | "place";
 export type EntityLink = { kind: LinkKind; label: string; ref?: string | null };
@@ -45,6 +46,7 @@ export function LinkChips({
   compact?: boolean;
 }) {
   const { user } = useAuth();
+  const { applyScope, withScope, key: scopeKey } = useScope();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [tab, setTab] = useState<LinkKind>("project");
   const [value, setValue] = useState("");
@@ -55,10 +57,10 @@ export function LinkChips({
     if (!user || !sheetOpen) return;
     (async () => {
       const [n, c, f, m] = await Promise.all([
-        supabase.from("notes").select("metadata").order("updated_at", { ascending: false }).limit(120),
-        supabase.from("commitments").select("metadata").order("updated_at", { ascending: false }).limit(120),
-        supabase.from("ingested_files").select("metadata").order("updated_at", { ascending: false }).limit(80),
-        supabase.from("messages").select("metadata").eq("role", "user").order("created_at", { ascending: false }).limit(80),
+        applyScope(supabase.from("notes").select("metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(120)),
+        applyScope(supabase.from("commitments").select("metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(120)),
+        applyScope(supabase.from("ingested_files").select("metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(80)),
+        applyScope(supabase.from("messages").select("metadata").eq("user_id", user.id).eq("role", "user").order("created_at", { ascending: false }).limit(80)),
       ]);
       const buckets: Record<LinkKind, Set<string>> = { person: new Set(), project: new Set(), place: new Set() };
       const ingest = (rows: any[] | null) => {
@@ -74,17 +76,17 @@ export function LinkChips({
         place: Array.from(buckets.place).slice(0, 10),
       });
     })();
-  }, [user, sheetOpen]);
+  }, [user, sheetOpen, scopeKey]);
 
   const audit = async (event: string, link: EntityLink) => {
     if (!user) return;
-    await supabase.from("audit_log").insert({
+    await supabase.from("audit_log").insert(withScope({
       user_id: user.id,
       entity_type: entityKind,
       entity_id: entityId,
       event,
       payload: { link },
-    });
+    }));
   };
 
   const persist = async (next: EntityLink[]) => {
