@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/instrument";
 import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { SectionNote } from "@/components/ui/section-note";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
