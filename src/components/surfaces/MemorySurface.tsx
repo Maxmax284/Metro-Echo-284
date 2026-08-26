@@ -22,6 +22,7 @@ import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlock
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
 import { ManualLinkSheet } from "@/components/links/ManualLinkSheet";
+import { EmptyState, LoadingState } from "@/components/ui/state-views";
 
 const STARTER_SEARCHES = [
   "What did I commit to this week?",
@@ -502,13 +503,14 @@ export function MemorySurface() {
             </ul>
           );
         })() : loading ? (
-          <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+          <LoadingState rows={4} label="Loading notes" />
         ) : notes.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border/60 py-12 text-center text-sm text-muted-foreground">
-            <Inbox className="mx-auto mb-2 h-5 w-5 opacity-60" />
-            <p>No notes yet.</p>
-            <p className="mt-1 text-[11.5px]">Capture a thought with <strong>New</strong>, or search across messages and commitments above.</p>
-          </div>
+          <EmptyState
+            icon={<Inbox className="h-5 w-5" />}
+            title="No notes in this room"
+            hint="Notes land here when you tap New, or when something you captured elsewhere gets written down. Search above reaches messages and commitments too."
+            flow={["Capture", "Note", "Project"]}
+          />
         ) : (() => {
           const sourceOf = (n: Note) => {
             const tag = (n.tags || []).find((t) => t.startsWith("source:"));

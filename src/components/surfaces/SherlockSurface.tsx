@@ -17,6 +17,7 @@ import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { SherlockFindingCard } from "@/components/sherlock/SherlockFindingCard";
 import { SherlockSettingsPanel } from "@/components/sherlock/SherlockSettingsPanel";
+import { EmptyState } from "@/components/ui/state-views";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
@@ -321,10 +322,12 @@ export function SherlockSurface() {
 
         <div className="space-y-2">
           {investigations.length === 0 && (
-            <div className="rounded-lg border border-dashed border-border/60 py-8 text-center text-xs text-muted-foreground">
-              <Radar className="mx-auto mb-2 h-4 w-4 opacity-60" />
-              No investigations yet. Ask a question above or tap a target.
-            </div>
+            <EmptyState
+              icon={<Radar className="h-4 w-4" />}
+              title="No investigations in this room"
+              hint="An investigation starts when you ask a question above, or tap a target on a note, action or document. Findings stay here with their receipts."
+              flow={["Target", "Investigate", "Findings"]}
+            />
           )}
           {investigations.map((inv) => {
             const isOpen = openId === inv.id;
