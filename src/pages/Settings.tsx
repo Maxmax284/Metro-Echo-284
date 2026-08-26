@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -58,6 +59,8 @@ export default function Settings() {
           <h1 className="text-lg font-semibold tracking-tight">Control Room</h1>
           <p className="text-xs text-muted-foreground">Pick a shelf. Everything is one tap deep.</p>
         </div>
+        <ExplainThisButton room="settings" />
+
         <Button
           size="sm" variant="destructive"
           className="ml-auto gap-1"

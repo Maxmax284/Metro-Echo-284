@@ -26,7 +26,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, feelMs } from "@/lib/motion";
+import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, feelMs } from "@/lib/motion";
 import {
   ActivityTrace,
   MachineLabel,
@@ -36,13 +36,18 @@ import {
   TickRow,
 } from "@/components/ui/instrument";
 import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
+import { SectionNote } from "@/components/ui/section-note";
+import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
+import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
 import { markFlipOriginFromEvent } from "@/lib/flip";
+
 
 
 function Section({
   title,
   hint,
+  sectionKey,
   icon: Icon,
   reading,
   children,
@@ -50,6 +55,8 @@ function Section({
 }: {
   title: string;
   hint?: string;
+  /** Stable key for adaptive helper copy. Omit for sections with no note. */
+  sectionKey?: string;
   icon: typeof Sun;
   /** A real reading shown in the rail gap — a count, never a label. */
   reading?: React.ReactNode;
@@ -64,11 +71,18 @@ function Section({
         icon={<Icon className="h-3.5 w-3.5" />}
         action={action}
       />
-      {hint ? <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{hint}</p> : null}
+      {hint ? (
+        sectionKey ? (
+          <SectionNote sectionKey={sectionKey}>{hint}</SectionNote>
+        ) : (
+          <p className="mt-2 text-[12px] leading-snug text-muted-foreground">{hint}</p>
+        )
+      ) : null}
       <div className="mt-3">{children}</div>
     </section>
   );
 }
+
 
 function Row({
   label,
@@ -190,9 +204,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <div className="flex items-center gap-2">
           <Sun className="h-4 w-4 text-accent" />
           <MachineLabel className="text-foreground/70">Today</MachineLabel>
-          <Badge variant="outline" className="vanta-machine ml-auto mr-5 text-[9.5px] uppercase tracking-[0.14em]">
+          <Badge variant="outline" className="vanta-machine ml-auto text-[9.5px] uppercase tracking-[0.14em]">
             {destination}
           </Badge>
+          {/* The escape hatch: what is this room, answered from written copy. */}
+          <ExplainThisButton room="today" className="mr-5" />
         </div>
         <h1
           aria-live="polite"
@@ -266,7 +282,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           {!quiet && (
             <Section
               title="Needs attention"
-              hint="Grouped by the work it belongs to."
+              hint={sectionNote("today.attention")}
+              sectionKey="today.attention"
               icon={AlertTriangle}
               reading={<RollingNumber value={attention.length} />}
               action={
@@ -320,7 +337,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
           <Section
             title="What's next"
-            hint="Promises with a date, soonest first."
+            hint={sectionNote("today.next")}
+            sectionKey="today.next"
             icon={CalendarClock}
             reading={<RollingNumber value={dueToday.length + upcoming.length} />}
             action={
@@ -399,6 +417,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
               <Section
                 title="Security"
+                hint={sectionNote("today.security")}
+                sectionKey="today.security"
                 icon={ShieldCheck}
                 action={
                   securityEvents.length > 0 ? (
@@ -441,7 +461,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
               <Section
                 title="What changed"
-                hint="The last few things Vanta recorded, in plain English."
+                hint={sectionNote("today.changed")}
+                sectionKey="today.changed"
                 icon={Receipt}
                 reading={<RollingNumber value={allEvents.length} />}
                 action={
@@ -468,6 +489,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                             onClick={() => onNavigate(where.surface as SurfaceKey)}
                             className={cn(
                               "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+                              /* History settles rather than arriving: this is
+                                 the record, not the event. */
+                              MOTION_STAMP,
                               MOTION_ROW,
                               MOTION_FOCUS,
                               LEAD_BAR,
@@ -492,6 +516,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
               <Section
                 title="Fresh in"
+                hint={sectionNote("today.fresh")}
+                sectionKey="today.fresh"
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
                 action={

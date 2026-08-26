@@ -93,7 +93,10 @@ export function AmbientHeader({
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* At 384px the control cluster is wider than the room. It scrolls
+            inside itself rather than pushing the whole page sideways. */}
+        <div className="scrollbar-thin flex min-w-0 shrink items-center gap-2 overflow-x-auto md:gap-3">
+
           <span className="hidden sm:inline-flex items-center gap-1">
             <Time className="h-3 w-3" />
             {time}

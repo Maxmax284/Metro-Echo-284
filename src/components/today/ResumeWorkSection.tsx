@@ -7,9 +7,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
 import { useContinuity } from "@/hooks/useContinuity";
-import { clarificationPrompt, type ContinuityCandidate } from "@/lib/continuity";
+import { clarificationPrompt, continuityName, type ContinuityCandidate } from "@/lib/continuity";
 import { ProjectReentryCard } from "@/components/continuity/ProjectReentryCard";
 import { useAskContext } from "@/hooks/useAskContext";
+import { SectionNote } from "@/components/ui/section-note";
+import { sectionNote } from "@/lib/roomCopy";
+
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 
 export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
@@ -32,8 +35,8 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
         void openAskWithContext({
           kind: "project",
           id: c.projectId ?? null,
-          label: c.projectTitle ?? "Work outside a project",
-          question: `Bring me back up to speed on ${c.projectTitle ?? "the work outside a project"} — what changed, what was decided, what's still open?`,
+          label: continuityName(c),
+          question: `Bring me back up to speed on ${continuityName(c)} — what changed, what was decided, what's still open?`,
         })
       }
       onOpen={c.projectId ? () => onNavigate("projects") : undefined}
@@ -49,11 +52,17 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
         <History className="mt-0.5 h-4 w-4 text-primary" />
         <div className="min-w-0">
           <h2 className="text-sm font-semibold tracking-tight">Continue where you left off</h2>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {ask ??
-              "Work you touched recently, and what's still open on it. Resume opens the room; \"Bring me up to speed\" reads the catch-up right here."}
-          </p>
+          {/* One line, and it gets out of the way once the section is familiar.
+              A real clarification question always outranks the description. */}
+          {ask ? (
+            <p className="mt-0.5 text-[12px] text-muted-foreground">{ask}</p>
+          ) : (
+            <SectionNote className="mt-0.5" sectionKey="today.resume">
+              {sectionNote("today.resume")}
+            </SectionNote>
+          )}
         </div>
+
 
         {live.length > 2 ? (
           <div className="ml-auto shrink-0">
