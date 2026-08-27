@@ -9,6 +9,7 @@ import { AgendaStrip } from "@/components/today/AgendaStrip";
 import { NoticedRow } from "@/components/today/NoticedRow";
 import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
+import { JumpStrip } from "@/components/today/JumpStrip";
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
@@ -328,6 +329,12 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       {/* Registration marks — structural punctuation between hero and feed.
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
+
+      {/* Jump to a desk — navigation only, counts from reads Today already did. */}
+      <JumpStrip
+        onNavigate={onNavigate}
+        counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
+      />
 
       <AskVantaBar />
 

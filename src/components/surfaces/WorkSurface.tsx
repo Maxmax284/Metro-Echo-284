@@ -42,6 +42,9 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
+import { DeskInfo } from "@/components/work/DeskInfo";
+
 
 
 type Counts = { inbox: number; commitments: number; actions: number };
@@ -181,9 +184,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <MachineLabel className="text-foreground/60">Daily work</MachineLabel>
             <SectionNote sectionKey="work.daily">{sectionNote("work.daily")}</SectionNote>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk label="Inbox" hint="What came in" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-              <Desk label="Commitments" hint="What you owe" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-              <Desk label="Actions" hint="Waiting on approval" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+              <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
+              <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
+              <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
             </div>
           </div>
 
@@ -191,11 +194,12 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <MachineLabel className="text-foreground/60">Knowledge</MachineLabel>
             <SectionNote sectionKey="work.knowledge">{sectionNote("work.knowledge")}</SectionNote>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk label="Briefs" hint="Composed exports" Icon={FileText} onOpen={() => onNavigate("briefs")} />
-              <Desk label="Documents" hint="Drafts & reviews" Icon={FileText} href="/documents" />
-              <Desk label="Memory" hint="Search everything" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+              <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
+              <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
+              <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             </div>
           </div>
+
         </section>
 
         {/* Deeper tools sit quieter on purpose: useful, not the main road. */}
@@ -203,11 +207,12 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <SectionRail label="Deeper tools" />
           <SectionNote sectionKey="work.deeper">{sectionNote("work.deeper")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk label="Schedule" hint="Day view" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <Desk label="Sherlock" hint="Investigate" Icon={Search} onOpen={() => onNavigate("sherlock")} />
-            <Desk label="Awareness" hint="Where you are" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            <Desk label="Cockpit" hint="Advanced dense view" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
+            <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
+            <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
+            <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
+
         </section>
 
       </div>
@@ -216,15 +221,15 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 }
 
 function Desk({
+  deskKey,
   label,
-  hint,
   Icon,
   count,
   onOpen,
   href,
 }: {
+  deskKey: DeskKey;
   label: string;
-  hint: string;
   Icon: typeof Inbox;
   count?: number;
   onOpen?: () => void;
@@ -235,7 +240,7 @@ function Desk({
       <Icon className="h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">{hint}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">{DESK_TILE_HINT[deskKey]}</span>
       </span>
       {typeof count === "number" && count > 0 && (
         <span className="shrink-0 rounded-[2px] bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
@@ -247,25 +252,32 @@ function Desk({
   /* Work is the operational room: crisper corners, tighter rhythm, desks that
      read like machined panels rather than marketing cards. */
   const className = cn(
-    "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] flex-1 items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
     MOTION_ROW,
     MOTION_HOVER_LIFT,
     MOTION_FOCUS,
   );
 
   /* Matched travel: record the desk's rect on the way out so whatever opens
-     next grows out of this row rather than fading in from nowhere. */
-  return href ? (
-    <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
-  ) : (
-    <button
-      onClick={(e) => {
-        markFlipOriginFromEvent(e);
-        onOpen?.();
-      }}
-      className={className}
-    >
-      {body}
-    </button>
+     next grows out of this row rather than fading in from nowhere. The info
+     tap sits outside the row so it never navigates by accident. */
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      {href ? (
+        <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
+      ) : (
+        <button
+          onClick={(e) => {
+            markFlipOriginFromEvent(e);
+            onOpen?.();
+          }}
+          className={className}
+        >
+          {body}
+        </button>
+      )}
+      <DeskInfo deskKey={deskKey} />
+    </div>
   );
 }
+
