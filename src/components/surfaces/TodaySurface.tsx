@@ -215,15 +215,38 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           changeSignal && "vanta-signal",
         )}
       >
-        <div className="flex items-center gap-2">
-          <Sun className="h-4 w-4 text-accent" />
+        {/* One compact control cluster. Room name, scope, freshness, and the
+            fold sweep — nothing else gets to sit above the first real row. */}
+        <div className="flex items-center gap-1.5">
+          <Sun className="h-4 w-4 shrink-0 text-accent" />
           <MachineLabel className="text-foreground/70">Today</MachineLabel>
-          <Badge variant="outline" className="vanta-machine ml-auto text-[9.5px] uppercase tracking-[0.14em]">
+          <Badge variant="outline" className="vanta-machine ml-auto shrink-0 text-[9.5px] uppercase tracking-[0.14em]">
             {destination}
           </Badge>
+          <FreshnessLine at={digest.checkedAt} className="hidden sm:inline" />
+          <button
+            type="button"
+            aria-label="Expand every panel"
+            title="Expand all"
+            onClick={() => setAllPanels(true)}
+            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
+          >
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Collapse every panel"
+            title="Collapse all"
+            onClick={() => setAllPanels(false)}
+            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
+          >
+            <ChevronsDownUp className="h-3.5 w-3.5" />
+          </button>
           {/* The escape hatch: what is this room, answered from written copy. */}
           <ExplainThisButton room="today" className="mr-5" />
         </div>
+        {/* One state line. The headline is the read; there is no second
+            paragraph restating it in other words. */}
         <h1
           aria-live="polite"
           className={cn(
@@ -234,19 +257,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         >
           {loadingCritical ? "Reading this space…" : headline}
         </h1>
-        {/* One grounded state-of-day line: where today's pressure actually
-            comes from, counted off real records. Not advice, not a slogan. */}
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-          {loadingCritical
-            ? ""
-            : stateOfDay({
-                overdue: digest.overdue.length,
-                waitingOnYou: digest.actions.length,
-                dueToday: dueToday.length,
-                changed: events.length,
-                captures: captureCount,
-                noticed: !!noticed,
-              })}
+          {loadingCritical ? "" : dayLine}
         </p>
 
         {/* Data as decoration: the trace is a real 14-day read of recorded
@@ -266,36 +278,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
-
-
-
-
-
       <AskVantaBar />
 
       <QuickModes />
 
-      {/* Room sweep: fold or unfold every panel on Today in one tap. */}
-      <div className="flex items-center justify-end gap-1 -mb-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
-          onClick={() => setAllPanels(true)}
-        >
-          <ChevronsUpDown className="h-3 w-3" />
-          Expand all
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
-          onClick={() => setAllPanels(false)}
-        >
-          <ChevronsDownUp className="h-3 w-3" />
-          Collapse all
-        </Button>
-      </div>
 
       <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
 
