@@ -74,3 +74,40 @@ export type SectionKey = keyof typeof SECTION_NOTE;
 export function sectionNote(key: SectionKey): string {
   return SECTION_NOTE[key];
 }
+
+/**
+ * The structural map: four rooms, one sentence each, and the objects each one
+ * owns. This is a reference screen, not a tour — no steps, no carousel. Object
+ * names here must be the canonical nouns from `vantaNouns.ts`.
+ */
+export const ROOM_MAP: Array<{
+  key: Exclude<RoomKey, "settings">;
+  title: string;
+  purpose: string;
+  owns: string[];
+}> = [
+  {
+    key: "today",
+    title: "Today",
+    purpose: "What matters now.",
+    owns: ["Live activity", "Current attention", "Agenda", "Recent changes"],
+  },
+  {
+    key: "work",
+    title: "Work",
+    purpose: "Where ongoing work lives.",
+    owns: ["Projects", "Commitments", "Actions", "Artifacts", "Memory", "Deeper tools"],
+  },
+  {
+    key: "ask",
+    title: "Ask",
+    purpose: "Talk to Vanta with context.",
+    owns: ["Threads", "Files", "Research", "Questions", "Prepared work"],
+  },
+  {
+    key: "receipts",
+    title: "Receipts",
+    purpose: "What happened and why.",
+    owns: ["State changes", "Approvals", "Actions", "Audit history"],
+  },
+];
