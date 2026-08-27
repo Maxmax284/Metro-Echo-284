@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MOTION_SCAN } from "@/lib/motion";
+import { FIX_ROUTE, readError } from "@/lib/errorCopy";
 
 /** Skeleton rows sized like list content. Use inside the container it replaces. */
 export function LoadingState({

@@ -107,7 +107,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
 
         {error ? (
-          <ErrorState detail={error} onRetry={refresh} />
+          <ErrorState error={error} doing="pulling your work together" onRetry={refresh} />
         ) : loading ? (
           <LoadingState label="Pulling your work together…" />
         ) : (
