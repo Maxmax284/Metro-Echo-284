@@ -42,6 +42,9 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
+import { DeskInfo } from "@/components/work/DeskInfo";
+
 
 
 type Counts = { inbox: number; commitments: number; actions: number };
