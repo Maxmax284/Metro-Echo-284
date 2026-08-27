@@ -48,23 +48,25 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-      <header className="mb-6 flex items-center gap-3">
+      {/* At 384px the kill switch drops to its own row instead of colliding
+          with the room name. */}
+      <header className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link
           to="/"
           aria-label="Back to Vanta"
-          className="vanta-focus inline-flex h-8 w-8 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
+          className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">Control Room</h1>
-          <p className="text-xs text-muted-foreground">Pick a shelf. Everything is one tap deep.</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold tracking-tight">Control Room</h1>
+          <p className="truncate text-xs text-muted-foreground">Everything is one tap deep.</p>
         </div>
         <ExplainThisButton room="settings" />
 
         <Button
           size="sm" variant="destructive"
-          className="ml-auto gap-1"
+          className="ml-auto shrink-0 gap-1"
           onClick={emergencyDisable}
           disabled={lockdown}
         >
@@ -72,6 +74,7 @@ export default function Settings() {
           {lockdown ? "Locked down" : "Emergency disable"}
         </Button>
       </header>
+
 
       {lockdown && (
         <div className="mb-4 flex items-start gap-2 rounded-lg bg-destructive/10 p-3 ring-1 ring-destructive/30">
