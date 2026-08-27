@@ -107,31 +107,56 @@ function FlowDiagram({ steps }: { steps: string[] }) {
 }
 
 /** Plain-English failure with an optional retry. Never shows a stack trace. */
+/**
+ * ErrorState — says what broke, whether the user has to act, and offers one
+ * move. Pass `error` (anything thrown) and `doing` and the copy is read from
+ * `readError()`, so no surface has to invent its own wording or leak a status
+ * code. `detail` still works for hand-written copy.
+ */
 export function ErrorState({
   title = "That didn't load",
   detail,
+  error,
+  doing,
   onRetry,
   className,
 }: {
   title?: string;
   detail?: string;
+  /** The raw failure. When given, the plain-language reading wins. */
+  error?: unknown;
+  /** Short gerund phrase: "reading recent activity". */
+  doing?: string;
   onRetry?: () => void;
   className?: string;
 }) {
+  const reading = error !== undefined ? readError(error, { doing }) : null;
+  const body = reading?.what ?? detail;
+  const fixRoute = reading ? FIX_ROUTE[reading.fix.kind] : null;
+  const retryLabel = reading?.fix.kind === "retry" ? reading.fix.label ?? "Try again" : "Try again";
+
   return (
     <div
       className={cn("vanta-card px-4 py-4 ring-1 ring-danger/40", className)}
       role="alert"
     >
       <div className="text-[12.5px] font-medium text-danger">{title}</div>
-      {detail ? (
-        <p className="mt-1 text-[11.5px] leading-snug text-muted-foreground">{detail}</p>
+      {body ? (
+        <p className="mt-1 text-[11.5px] leading-snug text-muted-foreground">{body}</p>
       ) : null}
-      {onRetry ? (
-        <Button size="sm" variant="outline" className="mt-3 h-9 text-[11.5px]" onClick={onRetry}>
-          Try again
-        </Button>
-      ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {onRetry ? (
+          <Button size="sm" variant="outline" className="h-9 text-[11.5px]" onClick={onRetry}>
+            {retryLabel}
+          </Button>
+        ) : null}
+        {/* One fix, named. Never a status code. */}
+        {reading && fixRoute && reading.fix.label ? (
+          <Button asChild size="sm" variant="ghost" className="h-9 text-[11.5px]">
+            <a href={fixRoute}>{reading.fix.label}</a>
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
