@@ -204,11 +204,12 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <SectionRail label="Deeper tools" />
           <SectionNote sectionKey="work.deeper">{sectionNote("work.deeper")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk label="Schedule" hint="Day view" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <Desk label="Sherlock" hint="Investigate" Icon={Search} onOpen={() => onNavigate("sherlock")} />
-            <Desk label="Awareness" hint="Where you are" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            <Desk label="Cockpit" hint="Advanced dense view" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
+            <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
+            <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
+            <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
+
         </section>
 
       </div>
