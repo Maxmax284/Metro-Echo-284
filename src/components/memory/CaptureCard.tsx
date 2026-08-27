@@ -78,11 +78,6 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
                 {item.confidence} confidence
               </span>
             )}
-            {item.routedTo && (
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary ring-1 ring-primary/30">
-                → {item.routedTo}
-              </span>
-            )}
             {item.needsReview && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-warn ring-1 ring-warn/30">
                 <AlertCircle className="h-3 w-3" /> Needs review
