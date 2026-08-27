@@ -41,7 +41,7 @@ import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { SectionNote } from "@/components/ui/section-note";
 import { FreshnessLine } from "@/components/ui/freshness";
 import { CardMeta } from "@/components/ui/card-meta";
-import { summaryLine } from "@/lib/vantaNouns";
+import { summaryLine, type VantaObject } from "@/lib/vantaNouns";
 import { CollapsibleSection, setAllPanels } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
@@ -105,11 +105,17 @@ function Row({
   label,
   meta,
   tone,
+  object,
+  state,
   onClick,
 }: {
   label: string;
   meta?: string;
   tone?: "warn" | "default";
+  /** Canonical object, so the row can say what it is and where it opens. */
+  object?: VantaObject;
+  /** Plain-English state, read off the record. */
+  state?: string | null;
   onClick: () => void;
 }) {
   return (
@@ -124,8 +130,13 @@ function Row({
         tone === "warn" ? "text-warn" : "text-border",
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">{label}</span>
-      {meta ? <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText> : null}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-xs text-foreground/90">{label}</span>
+        {object ? <CardMeta object={object} state={state} className="mt-0.5" /> : null}
+      </span>
+      {meta && !object ? (
+        <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText>
+      ) : null}
       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
     </button>
   );
@@ -347,6 +358,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               hint={sectionNote("today.attention")}
               sectionKey="today.attention"
               icon={AlertTriangle}
+              defaultOpen={openSection === "attention"}
               reading={<RollingNumber value={attention.length} />}
               summary={
                 attention.length === 1
@@ -402,17 +414,19 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             </Section>
           )}
 
+          {nextTotal > 0 && (
           <Section
             title="What's next"
             hint={sectionNote("today.next")}
             sectionKey="today.next"
             icon={CalendarClock}
-            reading={<RollingNumber value={dueToday.length + upcoming.length} />}
-            summary={
-              dueToday.length + upcoming.length === 0
-                ? "No dated promises."
-                : `${dueToday.length} due today, ${upcoming.length} coming up.`
-            }
+            defaultOpen={openSection === "next"}
+            reading={<RollingNumber value={nextTotal} />}
+            summary={summaryLine(
+              "commitment",
+              nextTotal,
+              dueToday.length > 0 ? `${dueToday.length} due today` : nearestLabel,
+            )}
             action={
               <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
@@ -443,6 +457,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   <Row
                     key={c.id}
                     label={c.summary}
+                    object="commitment"
+                    state={
+                      c.due_at
+                        ? isToday(new Date(c.due_at))
+                          ? "due today"
+                          : isTomorrow(new Date(c.due_at))
+                            ? "due tomorrow"
+                            : `due in ${formatDistanceToNow(new Date(c.due_at))}`
+                        : "no date yet"
+                    }
                     meta={
                       c.due_at
                         ? isToday(new Date(c.due_at))
@@ -458,6 +482,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </div>
             )}
           </Section>
+          )}
 
           {/* Background wave: never blocks the two sections above. */}
           {backgroundError ? (
@@ -538,12 +563,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 hint={sectionNote("today.changed")}
                 sectionKey="today.changed"
                 icon={Receipt}
+                defaultOpen={openSection === "changed"}
                 reading={<RollingNumber value={allEvents.length} />}
-                summary={
-                  events.length === 0
-                    ? "Nothing recorded yet."
-                    : `${events.length} recent ${events.length === 1 ? "change" : "changes"} on file.`
-                }
+                summary={summaryLine("receipt", events.length, "newest first", "Nothing recorded yet.")}
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
@@ -599,12 +621,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.fresh"
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
-                defaultOpen={captureCount > 0}
-                summary={
-                  captureCount === 0
-                    ? "Nothing new to sort."
-                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} to sort.`
-                }
+                defaultOpen={openSection === "fresh"}
+                summary={summaryLine("capture", captureCount, "not sorted yet", "Nothing new to sort.")}
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
                     Open inbox
@@ -619,8 +637,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   />
                 ) : (
                   <p className="text-xs leading-snug text-muted-foreground">
-                    <MachineText className="text-foreground/90">{captureCount}</MachineText> new{" "}
-                    {captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.
+                    <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
+                    {captureCount === 1 ? "capture" : "captures"} in the last day. Sort them into a project when you're ready.
                   </p>
                 )}
               </Section>
@@ -628,6 +646,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           )}
         </>
       )}
+
+      {/* One line for everything that is simply empty right now. */}
+      {!loadingCritical && !loadingBackground && emptyNames.length > 0 ? (
+        <p className="px-1 text-[11.5px] text-muted-foreground/80">
+          Nothing here yet: {emptyNames.join(", ")}.
+        </p>
+      ) : null}
 
       <TodaySectionSheet
         section={drill}
