@@ -218,15 +218,15 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 }
 
 function Desk({
+  deskKey,
   label,
-  hint,
   Icon,
   count,
   onOpen,
   href,
 }: {
+  deskKey: DeskKey;
   label: string;
-  hint: string;
   Icon: typeof Inbox;
   count?: number;
   onOpen?: () => void;
@@ -237,7 +237,7 @@ function Desk({
       <Icon className="h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">{hint}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">{DESK_TILE_HINT[deskKey]}</span>
       </span>
       {typeof count === "number" && count > 0 && (
         <span className="shrink-0 rounded-[2px] bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
@@ -249,25 +249,32 @@ function Desk({
   /* Work is the operational room: crisper corners, tighter rhythm, desks that
      read like machined panels rather than marketing cards. */
   const className = cn(
-    "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] flex-1 items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
     MOTION_ROW,
     MOTION_HOVER_LIFT,
     MOTION_FOCUS,
   );
 
   /* Matched travel: record the desk's rect on the way out so whatever opens
-     next grows out of this row rather than fading in from nowhere. */
-  return href ? (
-    <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
-  ) : (
-    <button
-      onClick={(e) => {
-        markFlipOriginFromEvent(e);
-        onOpen?.();
-      }}
-      className={className}
-    >
-      {body}
-    </button>
+     next grows out of this row rather than fading in from nowhere. The info
+     tap sits outside the row so it never navigates by accident. */
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      {href ? (
+        <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
+      ) : (
+        <button
+          onClick={(e) => {
+            markFlipOriginFromEvent(e);
+            onOpen?.();
+          }}
+          className={className}
+        >
+          {body}
+        </button>
+      )}
+      <DeskInfo deskKey={deskKey} />
+    </div>
   );
 }
+
