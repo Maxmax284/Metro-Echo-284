@@ -30,6 +30,7 @@ import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
+import { aftermathLine } from "@/lib/vantaNouns";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -139,7 +140,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     }
     await stampMessageRoute(item, "memory");
     await logRoute(user.id, item, "memory", { note_id: data?.id });
-    toast.success({ title: "Saved to Memory" });
+    toast.success({ title: "Saved to Memory", description: aftermathLine({ verb: "Filed", filedTo: "Memory", appearsIn: "Receipts" }) });
     refresh();
   };
 
@@ -156,7 +157,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     }
     await stampMessageRoute(item, "commitments");
     await logRoute(user.id, item, "commitments", { commitment_id: data?.id });
-    toast.success({ title: "Tracking as a commitment" });
+    toast.success({ title: "Tracking as a commitment", description: aftermathLine({ verb: "Filed", filedTo: "Commitments", appearsIn: "Receipts" }) });
     refresh();
   };
 
@@ -177,7 +178,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
     }
     await stampMessageRoute(item, "reminders");
     await logRoute(user.id, item, "reminders", { commitment_id: data?.id });
-    toast.success({ title: "Reminder set" });
+    toast.success({ title: "Reminder set", description: aftermathLine({ verb: "Filed", filedTo: "Commitments", appearsIn: "Receipts" }) });
     refresh();
   };
 
@@ -491,7 +492,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
               });
               await stampMessageRoute(item, "actions");
               await logRoute(user.id, item, "actions", { via: "sherlock_suggest" });
-              toast.success({ title: "Staged as action — review before run" });
+              toast.success({ title: "Staged as action — review before run", description: aftermathLine({ verb: "Drafted", filedTo: "Actions", appearsIn: "Receipts" }) });
               refresh();
             }
           };

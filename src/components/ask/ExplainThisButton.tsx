@@ -3,7 +3,8 @@
 // Doctrine: the answer is grounded. The room description is written down, not
 // generated, so tapping this never costs an AI call and never guesses. If the
 // user wants more, they hand the room to Ask from here.
-import { HelpCircle, MessageSquare } from "lucide-react";
+import { HelpCircle, Map, MessageSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useCompanion } from "@/components/companion/CompanionContext";
@@ -54,6 +55,12 @@ export function ExplainThisButton({ room, className }: { room: RoomKey; classNam
           onClick={() => openWithPrefill(`Explain what I'm looking at in ${ROOM_LABEL[room]} right now.`)}
         >
           <MessageSquare className="h-3.5 w-3.5" /> Ask Vanta about this room
+        </Button>
+        {/* The structural answer, one tap away — never a trip through Settings. */}
+        <Button asChild size="sm" variant="ghost" className="mt-0.5 h-8 w-full justify-start gap-1.5 px-2 text-xs">
+          <Link to="/how">
+            <Map className="h-3.5 w-3.5" /> See how Vanta is organized
+          </Link>
         </Button>
       </PopoverContent>
     </Popover>

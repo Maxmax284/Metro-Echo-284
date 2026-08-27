@@ -33,6 +33,8 @@ export type NoticedSignal = {
 export type TodayDigest = {
   loadingCritical: boolean;
   loadingBackground: boolean;
+  /** Epoch ms of the last real read, for the freshness line. */
+  checkedAt: number | null;
   backgroundError: string | null;
   commitments: DigestCommitment[];
   actions: DigestAction[];
@@ -71,6 +73,7 @@ export function useTodayDigest(): TodayDigest {
   const [noticed, setNoticed] = useState<NoticedSignal | null>(null);
   const [projectOf, setProjectOf] = useState<Record<string, string | undefined>>({});
   const [nonce, setNonce] = useState(0);
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
 
   const loadCritical = useCallback(async () => {
     setLoadingCritical(true);
@@ -117,6 +120,7 @@ export function useTodayDigest(): TodayDigest {
       setNoticed(drift ? (drift as NoticedSignal) : null);
       setEvents((e.data as DigestEvent[]) ?? []);
       setCaptureCount((n.data as unknown[])?.length ?? 0);
+      setCheckedAt(Date.now());
     } catch (err) {
       setBackgroundError(err instanceof Error ? err.message : "Couldn't read recent activity.");
     } finally {
@@ -173,6 +177,7 @@ export function useTodayDigest(): TodayDigest {
   return {
     loadingCritical,
     loadingBackground,
+    checkedAt,
     backgroundError,
     commitments,
     actions,

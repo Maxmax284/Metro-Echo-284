@@ -39,6 +39,9 @@ import {
 } from "@/components/ui/instrument";
 import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { SectionNote } from "@/components/ui/section-note";
+import { FreshnessLine } from "@/components/ui/freshness";
+import { CardMeta } from "@/components/ui/card-meta";
+import { summaryLine, type VantaObject } from "@/lib/vantaNouns";
 import { CollapsibleSection, setAllPanels } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
@@ -102,11 +105,17 @@ function Row({
   label,
   meta,
   tone,
+  object,
+  state,
   onClick,
 }: {
   label: string;
   meta?: string;
   tone?: "warn" | "default";
+  /** Canonical object, so the row can say what it is and where it opens. */
+  object?: VantaObject;
+  /** Plain-English state, read off the record. */
+  state?: string | null;
   onClick: () => void;
 }) {
   return (
@@ -121,8 +130,13 @@ function Row({
         tone === "warn" ? "text-warn" : "text-border",
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">{label}</span>
-      {meta ? <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText> : null}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-xs text-foreground/90">{label}</span>
+        {object ? <CardMeta object={object} state={state} className="mt-0.5" /> : null}
+      </span>
+      {meta && !object ? (
+        <MachineText className="shrink-0 text-[10px] text-muted-foreground">{meta}</MachineText>
+      ) : null}
       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
     </button>
   );
@@ -165,6 +179,43 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
   const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  /* One section opens by default — the one that actually deserves the first
+     look. The rest collapse to a line that says whether opening is worth it. */
+  const dayLine = stateOfDay({
+    overdue: digest.overdue.length,
+    waitingOnYou: digest.actions.length,
+    dueToday: dueToday.length,
+    changed: events.length,
+    captures: captureCount,
+    noticed: !!noticed,
+  });
+
+  const nextTotal = dueToday.length + upcoming.length;
+  const nearest = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
+  const nearestLabel = nearest?.due_at
+    ? isToday(new Date(nearest.due_at))
+      ? "nearest today"
+      : isTomorrow(new Date(nearest.due_at))
+        ? "nearest tomorrow"
+        : `nearest in ${formatDistanceToNow(new Date(nearest.due_at))}`
+    : null;
+  const openSection: "attention" | "next" | "fresh" | "changed" | null =
+    attention.length > 0
+      ? "attention"
+      : dueToday.length > 0
+        ? "next"
+        : captureCount > 0
+          ? "fresh"
+          : events.length > 0
+            ? "changed"
+            : null;
+  /* Sections with nothing in them do not get a header, a note, an empty card
+     and a zero count. They get named once, together, at the bottom. */
+  const emptyNames = [
+    nextTotal === 0 ? "Commitments" : null,
+    events.length === 0 ? "Receipts" : null,
+    captureCount === 0 ? "Inbox" : null,
+  ].filter(Boolean) as string[];
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
@@ -215,15 +266,38 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           changeSignal && "vanta-signal",
         )}
       >
-        <div className="flex items-center gap-2">
-          <Sun className="h-4 w-4 text-accent" />
+        {/* One compact control cluster. Room name, scope, freshness, and the
+            fold sweep — nothing else gets to sit above the first real row. */}
+        <div className="flex items-center gap-1.5">
+          <Sun className="h-4 w-4 shrink-0 text-accent" />
           <MachineLabel className="text-foreground/70">Today</MachineLabel>
-          <Badge variant="outline" className="vanta-machine ml-auto text-[9.5px] uppercase tracking-[0.14em]">
+          <Badge variant="outline" className="vanta-machine ml-auto shrink-0 text-[9.5px] uppercase tracking-[0.14em]">
             {destination}
           </Badge>
+          <FreshnessLine at={digest.checkedAt} className="hidden sm:inline" />
+          <button
+            type="button"
+            aria-label="Expand every panel"
+            title="Expand all"
+            onClick={() => setAllPanels(true)}
+            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
+          >
+            <ChevronsUpDown className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Collapse every panel"
+            title="Collapse all"
+            onClick={() => setAllPanels(false)}
+            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
+          >
+            <ChevronsDownUp className="h-3.5 w-3.5" />
+          </button>
           {/* The escape hatch: what is this room, answered from written copy. */}
           <ExplainThisButton room="today" className="mr-5" />
         </div>
+        {/* One state line. The headline is the read; there is no second
+            paragraph restating it in other words. */}
         <h1
           aria-live="polite"
           className={cn(
@@ -234,19 +308,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         >
           {loadingCritical ? "Reading this space…" : headline}
         </h1>
-        {/* One grounded state-of-day line: where today's pressure actually
-            comes from, counted off real records. Not advice, not a slogan. */}
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
-          {loadingCritical
-            ? ""
-            : stateOfDay({
-                overdue: digest.overdue.length,
-                waitingOnYou: digest.actions.length,
-                dueToday: dueToday.length,
-                changed: events.length,
-                captures: captureCount,
-                noticed: !!noticed,
-              })}
+          {loadingCritical ? "" : dayLine}
         </p>
 
         {/* Data as decoration: the trace is a real 14-day read of recorded
@@ -266,36 +329,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
-
-
-
-
-
       <AskVantaBar />
 
       <QuickModes />
 
-      {/* Room sweep: fold or unfold every panel on Today in one tap. */}
-      <div className="flex items-center justify-end gap-1 -mb-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
-          onClick={() => setAllPanels(true)}
-        >
-          <ChevronsUpDown className="h-3 w-3" />
-          Expand all
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className={cn("h-8 px-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground", MOTION_FOCUS)}
-          onClick={() => setAllPanels(false)}
-        >
-          <ChevronsDownUp className="h-3 w-3" />
-          Collapse all
-        </Button>
-      </div>
 
       <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
 
@@ -321,6 +358,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               hint={sectionNote("today.attention")}
               sectionKey="today.attention"
               icon={AlertTriangle}
+              defaultOpen={openSection === "attention"}
               reading={<RollingNumber value={attention.length} />}
               summary={
                 attention.length === 1
@@ -376,17 +414,19 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             </Section>
           )}
 
+          {nextTotal > 0 && (
           <Section
             title="What's next"
             hint={sectionNote("today.next")}
             sectionKey="today.next"
             icon={CalendarClock}
-            reading={<RollingNumber value={dueToday.length + upcoming.length} />}
-            summary={
-              dueToday.length + upcoming.length === 0
-                ? "No dated promises."
-                : `${dueToday.length} due today, ${upcoming.length} coming up.`
-            }
+            defaultOpen={openSection === "next"}
+            reading={<RollingNumber value={nextTotal} />}
+            summary={summaryLine(
+              "commitment",
+              nextTotal,
+              dueToday.length > 0 ? `${dueToday.length} due today` : nearestLabel,
+            )}
             action={
               <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
                 See all
@@ -417,6 +457,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   <Row
                     key={c.id}
                     label={c.summary}
+                    object="commitment"
+                    state={
+                      c.due_at
+                        ? isToday(new Date(c.due_at))
+                          ? "due today"
+                          : isTomorrow(new Date(c.due_at))
+                            ? "due tomorrow"
+                            : `due in ${formatDistanceToNow(new Date(c.due_at))}`
+                        : "no date yet"
+                    }
                     meta={
                       c.due_at
                         ? isToday(new Date(c.due_at))
@@ -432,12 +482,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </div>
             )}
           </Section>
+          )}
 
           {/* Background wave: never blocks the two sections above. */}
           {backgroundError ? (
             <ErrorState
               title="Couldn't read recent activity"
-              detail="The rest of Today still works. Try again when you are ready."
+              error={backgroundError}
+              doing="reading recent activity"
               onRetry={refresh}
             />
           ) : loadingBackground ? (
@@ -512,12 +564,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 hint={sectionNote("today.changed")}
                 sectionKey="today.changed"
                 icon={Receipt}
+                defaultOpen={openSection === "changed"}
                 reading={<RollingNumber value={allEvents.length} />}
-                summary={
-                  events.length === 0
-                    ? "Nothing recorded yet."
-                    : `${events.length} recent ${events.length === 1 ? "change" : "changes"} on file.`
-                }
+                summary={summaryLine("receipt", events.length, "newest first", "Nothing recorded yet.")}
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}>
                     See all
@@ -573,12 +622,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 sectionKey="today.fresh"
                 icon={Inbox}
                 reading={<RollingNumber value={captureCount} />}
-                defaultOpen={captureCount > 0}
-                summary={
-                  captureCount === 0
-                    ? "Nothing new to sort."
-                    : `${captureCount} new ${captureCount === 1 ? "note" : "notes"} to sort.`
-                }
+                defaultOpen={openSection === "fresh"}
+                summary={summaryLine("capture", captureCount, "not sorted yet", "Nothing new to sort.")}
                 action={
                   <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
                     Open inbox
@@ -593,8 +638,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   />
                 ) : (
                   <p className="text-xs leading-snug text-muted-foreground">
-                    <MachineText className="text-foreground/90">{captureCount}</MachineText> new{" "}
-                    {captureCount === 1 ? "note" : "notes"} in the last day. Sort them into a project when you're ready.
+                    <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
+                    {captureCount === 1 ? "capture" : "captures"} in the last day. Sort them into a project when you're ready.
                   </p>
                 )}
               </Section>
@@ -602,6 +647,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           )}
         </>
       )}
+
+      {/* One line for everything that is simply empty right now. */}
+      {!loadingCritical && !loadingBackground && emptyNames.length > 0 ? (
+        <p className="px-1 text-[11.5px] text-muted-foreground/80">
+          Nothing here yet: {emptyNames.join(", ")}.
+        </p>
+      ) : null}
 
       <TodaySectionSheet
         section={drill}

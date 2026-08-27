@@ -3,10 +3,10 @@
 // One signal at a time, always a draft. Tapping hands off to the surface that
 // owns the review → approve → execute → receipt path. Dismiss is one tap and
 // sticks. When there is nothing, this renders nothing at all.
-import { useState } from "react";
 import { Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
+import { WhyThis } from "@/components/ui/why-this";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -30,7 +30,6 @@ export function NoticedRow({
   onDismiss: (id: string) => void;
   onFollow: (signal: NoticedSignal) => void;
 }) {
-  const [showWhy, setShowWhy] = useState(false);
   if (!signal) return null;
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
 
@@ -40,20 +39,8 @@ export function NoticedRow({
       <div className="min-w-0 flex-1">
         <MachineLabel className="text-accent/80">Vanta noticed</MachineLabel>
         <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{signal.title}</p>
-        {signal.body && (
-          <>
-            <button
-              type="button"
-              className="mt-1 text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2"
-              onClick={() => setShowWhy((v) => !v)}
-            >
-              {showWhy ? "Hide why" : "Why am I seeing this?"}
-            </button>
-            {showWhy && (
-              <p className="mt-1 text-[11.5px] leading-snug text-muted-foreground">{signal.body}</p>
-            )}
-          </>
-        )}
+        {/* One shared reason affordance, rendering only what was recorded. */}
+        <WhyThis reason={signal.body} className="mt-1" />
         <Button
           variant="ghost"
           size="sm"

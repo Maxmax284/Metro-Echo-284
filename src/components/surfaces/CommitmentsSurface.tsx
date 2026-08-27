@@ -21,6 +21,7 @@ import { useIntakePrefs } from "@/hooks/useIntakePrefs";
 import { classifyCommitment } from "@/lib/commitmentLifecycle";
 import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
+import { aftermathLine } from "@/lib/vantaNouns";
 
 type Commitment = {
   id: string;
@@ -137,7 +138,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     await supabase.from("commitments").update({ status: "done" }).eq("id", id);
     setItems((p) => p.map((x) => (x.id === id ? { ...x, status: "done" } : x)));
     await audit(id, c && isReminder(c) ? "reminder.completed" : "commitment.completed");
-    toast.success({ title: vantaSay.markedDone() });
+    toast.success({ title: vantaSay.markedDone(), description: aftermathLine({ verb: "Closed out", appearsIn: "Receipts" }) });
   };
 
   const snooze = async (c: Commitment) => {
@@ -145,7 +146,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     const next = new Date(base.getTime() + 24 * 3600 * 1000).toISOString();
     await supabase.from("commitments").update({ due_at: next, remind_at: next }).eq("id", c.id);
     await audit(c.id, isReminder(c) ? "reminder.snoozed" : "commitment.snoozed", { until: next });
-    toast.success({ title: vantaSay.snoozed("tomorrow") });
+    toast.success({ title: vantaSay.snoozed("tomorrow"), description: aftermathLine({ verb: "Moved", filedTo: "tomorrow", appearsIn: "Commitments" }) });
     refresh();
   };
 

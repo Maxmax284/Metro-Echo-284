@@ -34,6 +34,7 @@ import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
 import ProjectsPage from "./pages/Projects.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
 import DocumentsPage from "./pages/Documents.tsx";
+import RoomMapPage from "./pages/RoomMap.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 
@@ -64,6 +65,7 @@ const App = () => (
                               <Route path="/projects" element={<ProjectsPage />} />
                               <Route path="/projects/:id" element={<ProjectBriefPage />} />
                               <Route path="/documents" element={<DocumentsPage />} />
+                              <Route path="/how" element={<RoomMapPage />} />
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />

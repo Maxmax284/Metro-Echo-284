@@ -19,6 +19,7 @@ import { markFlipOriginFromEvent } from "@/lib/flip";
 import { useFlipEntry } from "@/hooks/useFlipEntry";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
+import { aftermathLine } from "@/lib/vantaNouns";
 
 type Action = {
   id: string;
@@ -98,7 +99,10 @@ export function ActionsSurface() {
           description: payload?.undo?.detail ?? undefined,
         });
       } else {
-        toast.success(`Moved to ${to}`);
+        toast.success({
+          title: `Moved to ${to}`,
+          description: aftermathLine({ verb: "Recorded", appearsIn: "Receipts" }),
+        });
       }
       refresh();
     } catch (e) {
@@ -117,7 +121,10 @@ export function ActionsSurface() {
           body: { action_id: a.id, executor_id },
         });
         if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
-        toast.success("Executed.");
+        toast.success({
+          title: "Executed.",
+          description: aftermathLine({ verb: "Ran", appearsIn: "Receipts" }),
+        });
         setReceiptAwaitWrite(true);
         setReceiptActionId(a.id);
         refresh();

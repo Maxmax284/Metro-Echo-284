@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
+import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
 import { setRoom } from "@/lib/skins";
 
 export default function Settings() {
@@ -47,30 +48,34 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-      <header className="mb-6 flex items-center gap-3">
+      {/* At 384px the kill switch drops to its own row instead of colliding
+          with the room name. */}
+      <header className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link
           to="/"
           aria-label="Back to Vanta"
-          className="vanta-focus inline-flex h-8 w-8 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
+          className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">Control Room</h1>
-          <p className="text-xs text-muted-foreground">Pick a shelf. Everything is one tap deep.</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold tracking-tight">Control Room</h1>
+          <p className="truncate text-xs text-muted-foreground">Everything is one tap deep.</p>
         </div>
         <ExplainThisButton room="settings" />
 
         <Button
           size="sm" variant="destructive"
-          className="ml-auto gap-1"
+          className="order-last w-full gap-1 sm:order-none sm:ml-auto sm:w-auto"
           onClick={emergencyDisable}
           disabled={lockdown}
         >
           <Power className="h-3.5 w-3.5" />
           {lockdown ? "Locked down" : "Emergency disable"}
         </Button>
+
       </header>
+
 
       {lockdown && (
         <div className="mb-4 flex items-start gap-2 rounded-lg bg-destructive/10 p-3 ring-1 ring-destructive/30">
@@ -81,6 +86,9 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* One plain read on the connections Vanta relies on. */}
+      <SystemHealthLine />
 
       <ul className="space-y-2">
         {SETTINGS_GROUPS.map((g) => (
