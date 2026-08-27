@@ -168,6 +168,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
   const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  /* One section opens by default — the one that actually deserves the first
+     look. The rest collapse to a line that says whether opening is worth it. */
   const dayLine = stateOfDay({
     overdue: digest.overdue.length,
     waitingOnYou: digest.actions.length,
@@ -176,6 +178,33 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     captures: captureCount,
     noticed: !!noticed,
   });
+
+  const nextTotal = dueToday.length + upcoming.length;
+  const nearest = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
+  const nearestLabel = nearest?.due_at
+    ? isToday(new Date(nearest.due_at))
+      ? "nearest today"
+      : isTomorrow(new Date(nearest.due_at))
+        ? "nearest tomorrow"
+        : `nearest in ${formatDistanceToNow(new Date(nearest.due_at))}`
+    : null;
+  const openSection: "attention" | "next" | "fresh" | "changed" | null =
+    attention.length > 0
+      ? "attention"
+      : dueToday.length > 0
+        ? "next"
+        : captureCount > 0
+          ? "fresh"
+          : events.length > 0
+            ? "changed"
+            : null;
+  /* Sections with nothing in them do not get a header, a note, an empty card
+     and a zero count. They get named once, together, at the bottom. */
+  const emptyNames = [
+    nextTotal === 0 ? "Commitments" : null,
+    events.length === 0 ? "Receipts" : null,
+    captureCount === 0 ? "Inbox" : null,
+  ].filter(Boolean) as string[];
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
