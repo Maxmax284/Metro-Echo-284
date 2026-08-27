@@ -181,9 +181,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <MachineLabel className="text-foreground/60">Daily work</MachineLabel>
             <SectionNote sectionKey="work.daily">{sectionNote("work.daily")}</SectionNote>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk label="Inbox" hint="What came in" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-              <Desk label="Commitments" hint="What you owe" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-              <Desk label="Actions" hint="Waiting on approval" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+              <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
+              <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
+              <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
             </div>
           </div>
 
@@ -191,11 +191,12 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <MachineLabel className="text-foreground/60">Knowledge</MachineLabel>
             <SectionNote sectionKey="work.knowledge">{sectionNote("work.knowledge")}</SectionNote>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk label="Briefs" hint="Composed exports" Icon={FileText} onOpen={() => onNavigate("briefs")} />
-              <Desk label="Documents" hint="Drafts & reviews" Icon={FileText} href="/documents" />
-              <Desk label="Memory" hint="Search everything" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+              <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
+              <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
+              <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             </div>
           </div>
+
         </section>
 
         {/* Deeper tools sit quieter on purpose: useful, not the main road. */}
