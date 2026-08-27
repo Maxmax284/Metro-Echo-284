@@ -66,13 +66,14 @@ export default function Settings() {
 
         <Button
           size="sm" variant="destructive"
-          className="ml-auto shrink-0 gap-1"
+          className="order-last w-full gap-1 sm:order-none sm:ml-auto sm:w-auto"
           onClick={emergencyDisable}
           disabled={lockdown}
         >
           <Power className="h-3.5 w-3.5" />
           {lockdown ? "Locked down" : "Emergency disable"}
         </Button>
+
       </header>
 
 
