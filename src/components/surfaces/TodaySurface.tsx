@@ -39,6 +39,9 @@ import {
 } from "@/components/ui/instrument";
 import { stateOfDay, todayHeadline } from "@/lib/todayDigest";
 import { SectionNote } from "@/components/ui/section-note";
+import { FreshnessLine } from "@/components/ui/freshness";
+import { CardMeta } from "@/components/ui/card-meta";
+import { summaryLine } from "@/lib/vantaNouns";
 import { CollapsibleSection, setAllPanels } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
@@ -165,6 +168,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
   const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  const dayLine = stateOfDay({
+    overdue: digest.overdue.length,
+    waitingOnYou: digest.actions.length,
+    dueToday: dueToday.length,
+    changed: events.length,
+    captures: captureCount,
+    noticed: !!noticed,
+  });
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
