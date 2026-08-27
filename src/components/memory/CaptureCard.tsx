@@ -3,6 +3,9 @@ import { formatDistanceToNow } from "date-fns";
 import { MessageSquare, FileText, MapPin, Bot, Inbox, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
+import { CardMeta } from "@/components/ui/card-meta";
+import { ProvenanceChip } from "@/components/ui/provenance";
+import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
 
 export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "note" | "unknown";
@@ -52,8 +55,18 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <p className="text-foreground/95 line-clamp-2">{item.text || <span className="italic text-muted-foreground">No text</span>}</p>
+          {/* One meta line: what it is, what state it is in, where it opens.
+              The source is the single provenance marker beside it. */}
+          <div className="mt-1 flex min-w-0 items-center gap-1.5">
+            <CardMeta
+              object="capture"
+              state={item.routedTo ? `filed in ${item.routedTo}` : item.needsReview ? "needs review" : "not sorted yet"}
+              destination={item.routedTo ?? "Inbox"}
+              className="min-w-0"
+            />
+            <ProvenanceChip source={item.source} className="hidden sm:inline-flex" />
+          </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-            <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">{meta.label}</span>
             {item.detectedType && (
               <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">
                 {item.detectedType}
@@ -82,9 +95,8 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
             )}
             <span>· {formatDistanceToNow(new Date(item.ts), { addSuffix: true })}</span>
           </div>
-          {item.why && (
-            <p className="mt-1 text-[10.5px] italic text-muted-foreground/80">{item.why}</p>
-          )}
+          {/* The reason Vanta already recorded, on demand. Never invented. */}
+          <WhyThis reason={item.why} className="mt-1" />
           {item.sensitive && (
             <p className="mt-1 text-[10.5px] text-foreground/70">
               This may contain personal or financial information. Review before routing.
