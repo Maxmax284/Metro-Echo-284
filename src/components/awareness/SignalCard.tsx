@@ -10,9 +10,11 @@ import {
   type VantaSignal,
 } from "@/lib/vantaSignal";
 import { stripMarkdown } from "@/lib/markdown";
+import { voice } from "@/lib/vantaVoice";
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { FeedbackBar } from "@/components/feedback/FeedbackBar";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 
 type Props = {
   /** Anything: a full VantaSignal, a partial, legacy briefing, etc. */
@@ -193,6 +195,11 @@ export function SignalCard({
               {ROUTE_LABEL[r] ?? r}
             </Button>
           ))}
+          <AftermathHint
+            bare
+            className="w-full"
+            text={needsConfirm ? voice.tapHint("approval") : voice.tapHint("review")}
+          />
         </div>
       )}
 

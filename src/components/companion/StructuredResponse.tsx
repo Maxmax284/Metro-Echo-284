@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { parseVantaBlocks, isStructured, type Tone, type VantaBlock } from "@/lib/vantaBlocks";
 import { InlineApprovalActions } from "@/components/companion/InlineApprovalActions";
 import { MOTION_ARRIVAL } from "@/lib/motion";
+import { cardMetaLine } from "@/lib/vantaNouns";
 
 const TONE_RING: Record<Tone, string> = {
   neutral: "ring-border/60 bg-surface-elevated/60",
@@ -121,6 +122,9 @@ function Blocks({
                   {b.title}
                 </div>
                 {b.detail && <p className="mt-1 text-[13px] leading-snug text-foreground/90">{b.detail}</p>}
+                <p className="mt-1 text-[10.5px] text-muted-foreground">
+                  {cardMetaLine({ object: "action", state: "needs your approval" })}
+                </p>
                 <InlineApprovalActions detail={b.detail} />
               </div>
             );
