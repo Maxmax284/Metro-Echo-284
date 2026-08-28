@@ -20,6 +20,7 @@ import {
 } from "@/lib/vantaNouns";
 import { PROVENANCE_LABEL } from "@/lib/vantaNouns";
 import { readError, FIX_ROUTE } from "@/lib/errorCopy";
+import { DESK_ROLES, DESK_TILE_HINT } from "@/lib/deskRoles";
 import { ROOM_MAP } from "@/lib/roomCopy";
 import { readHealth } from "@/components/settings/SystemHealthLine";
 
@@ -249,5 +250,31 @@ describe("room map", () => {
     // Every canonical object a room lists must be spelled the canonical way.
     for (const o of recognized) expect(canonical.has(o)).toBe(true);
     expect(recognized.length).toBeGreaterThan(3);
+  });
+});
+
+describe("desk roles", () => {
+  it("explains every desk in four plain-English lines", () => {
+    const keys = Object.keys(DESK_ROLES) as (keyof typeof DESK_ROLES)[];
+    expect(keys.length).toBeGreaterThan(9);
+    for (const k of keys) {
+      const r = DESK_ROLES[k];
+      for (const line of [r.is, r.lands, r.you, r.example]) {
+        expect(line.trim().length).toBeGreaterThan(10);
+        expect(line.endsWith(".") || line.endsWith(".\u201D")).toBe(true);
+      }
+      // A desk explanation never leans on the jargon it is supposed to replace.
+      expect(/\b(entity|payload|record id|schema|endpoint|RLS)\b/i.test(
+        [r.is, r.lands, r.you, r.example].join(" "),
+      )).toBe(false);
+    }
+  });
+
+  it("gives every desk a short tile hint", () => {
+    for (const [k, hint] of Object.entries(DESK_TILE_HINT)) {
+      expect(hint.length).toBeGreaterThan(2);
+      expect(hint.length).toBeLessThan(28);
+      expect(DESK_ROLES[k as keyof typeof DESK_ROLES]).toBeTruthy();
+    }
   });
 });
