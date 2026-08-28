@@ -21,9 +21,25 @@ import { DESK_ROLES, type DeskKey } from "@/lib/deskRoles";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 
-export function DeskInfo({ deskKey, className }: { deskKey: DeskKey; className?: string }) {
+export function DeskInfo({
+  deskKey,
+  className,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  deskKey: DeskKey;
+  className?: string;
+  /** Controlled mode, so a long press on the desk tile can open this panel. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const role = DESK_ROLES[deskKey];
-  const [open, setOpen] = useState(false);
+  const [uncontrolled, setUncontrolled] = useState(false);
+  const open = controlledOpen ?? uncontrolled;
+  const setOpen = (v: boolean) => {
+    setUncontrolled(v);
+    onOpenChange?.(v);
+  };
   const titleId = useId();
 
   /* Labelled rows instead of a bare list: each line says which question it is
@@ -84,6 +100,9 @@ export function DeskInfo({ deskKey, className }: { deskKey: DeskKey; className?:
             </div>
           ))}
         </dl>
+        <p className="mt-2 border-t border-border/40 pt-1.5 text-[10px] italic text-muted-foreground/70">
+          Reading only. Opening the desk is the tile next to this.
+        </p>
       </PopoverContent>
     </Popover>
   );

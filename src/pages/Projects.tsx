@@ -20,6 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2, Pin, Plus } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { aftermathLine } from "@/lib/vantaNouns";
 import { formatDistanceToNow } from "date-fns";
 import { SeedItemsPicker } from "@/components/projects/SeedItemsPicker";
 import type { SuggestedItem } from "@/lib/projectSuggestions";
@@ -106,7 +108,10 @@ export default function ProjectsPage() {
       }
       setOpen(false);
       if (items.length > 0) {
-        toast.success(`Project created with ${items.length} item${items.length === 1 ? "" : "s"}`);
+        toast.success({
+          title: `Project created with ${items.length} item${items.length === 1 ? "" : "s"}`,
+          description: aftermathLine({ verb: "Filed", appearsIn: "Projects" }),
+        });
       }
       navigate(`/projects/${p.id}`);
     } catch (err) {
@@ -282,6 +287,8 @@ export default function ProjectsPage() {
           ))}
         </ul>
       )}
+
+      <AftermathHint text="Opening a project shows everything attached to it. Nothing runs from this list." />
     </div>
   );
 }

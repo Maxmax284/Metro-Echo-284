@@ -9,16 +9,16 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CANONICAL_NOUN, OBJECT_HOME, type VantaObject } from "@/lib/vantaNouns";
+import {
+  ASK_OUTPUT,
+  askDestination,
+  CANONICAL_NOUN,
+  type AskOutputKind,
+} from "@/lib/vantaNouns";
 
-/** What Ask can make, and which desk ends up owning it. */
-const ROUTES: { object: VantaObject; made: string }[] = [
-  { object: "action", made: "Draft something to send" },
-  { object: "commitment", made: "Note a promise or deadline" },
-  { object: "capture", made: "Log a thought or a file" },
-  { object: "artifact", made: "Write a brief or document" },
-  { object: "receipt", made: "Anything that actually ran" },
-];
+/* The same table the confirmations use, so the promise up front and the
+   confirmation afterwards can never disagree. */
+const ROUTES = Object.keys(ASK_OUTPUT) as AskOutputKind[];
 
 export function AskDestinationsNote({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
@@ -35,12 +35,12 @@ export function AskDestinationsNote({ className }: { className?: string }) {
       </button>
       {open && (
         <ul className="mt-1.5 space-y-1 pl-4">
-          {ROUTES.map((r) => (
-            <li key={r.object} className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-foreground/85">{r.made}</span>
+          {ROUTES.map((kind) => (
+            <li key={kind} className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-foreground/85">{ASK_OUTPUT[kind].made}</span>
               <span className="text-muted-foreground/50">→</span>
               <span className="text-foreground/70">
-                {CANONICAL_NOUN[r.object]} in {OBJECT_HOME[r.object].label}
+                {CANONICAL_NOUN[ASK_OUTPUT[kind].object]} in {askDestination(kind).label}
               </span>
             </li>
           ))}

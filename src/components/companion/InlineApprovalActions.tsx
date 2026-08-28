@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { askAftermath, aftermathLine } from "@/lib/vantaNouns";
 
 type PendingStatus = "proposed" | "staged" | "approved";
 
@@ -86,7 +88,15 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
         body: { action_id: a.id, to_status: to, reason: reason ?? "from Ask Vanta" },
       });
       if (error) throw error;
-      toast.success(to === "cancelled" ? "Cancelled." : `Moved to ${to}.`);
+      /* The confirmation names the desk that now owns the record, so the
+         hand-off out of Ask always closes the loop. */
+      toast.success(
+        to === "cancelled"
+          ? aftermathLine({ verb: "Cancelled", appearsIn: "Receipts" })
+          : to === "staged"
+            ? aftermathLine({ verb: "Staged", appearsIn: "Actions" })
+            : aftermathLine({ verb: "Approved", appearsIn: "Actions" }),
+      );
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "That didn't go through.");
@@ -102,7 +112,7 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
         body: { action_id: a.id },
       });
       if (error) throw error;
-      toast.success("Executed. Here's the receipt.");
+      toast.success(askAftermath("receipt"));
       setReceiptActionId(a.id);
       await load();
     } catch (e) {
@@ -184,6 +194,13 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
               </Button>
               {working && <Loader2 className="mt-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             </div>
+            <AftermathHint
+              text={
+                a.status === "approved"
+                  ? "Executing writes a Receipt and opens it here. Nothing else runs."
+                  : `${askAftermath("action")} — approval still happens in Actions.`
+              }
+            />
           </div>
         );
       })}

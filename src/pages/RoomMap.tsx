@@ -6,6 +6,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
 import { ROOM_MAP } from "@/lib/roomCopy";
+import { GlossaryPanel } from "@/components/ui/glossary-panel";
 
 const ICON: Record<string, LucideIcon> = {
   today: Sun,
@@ -60,6 +61,16 @@ export default function RoomMapPage() {
           );
         })}
       </ul>
+
+      <section className="vanta-card mt-4 p-4" aria-labelledby="glossary-heading">
+        <h2 id="glossary-heading" className="text-[14px] font-semibold tracking-tight">
+          What the words mean
+        </h2>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">
+          Plain English for every noun Vanta uses, including the ones people mix up.
+        </p>
+        <GlossaryPanel className="mt-3" />
+      </section>
 
       <p className="mt-5 text-[12px] leading-snug text-muted-foreground">
         Nothing runs on its own. Vanta drafts, you approve, and every change leaves a receipt.

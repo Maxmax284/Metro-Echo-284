@@ -23,6 +23,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
 import { useActivity } from "@/components/workstatus/ActivityStore";
@@ -288,6 +289,8 @@ export default function DocumentsPage() {
           ))}
         </ul>
       )}
+
+      <AftermathHint text="Opening a document shows the draft and its review. Exports appear in Receipts." />
 
       <DocumentDetailSheet
         documentId={selectedId}
