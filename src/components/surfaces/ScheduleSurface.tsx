@@ -11,11 +11,12 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
 import { CalendarSyncPanel } from "@/components/schedule/CalendarSyncPanel";
+import { MonthGrid } from "@/components/schedule/MonthGrid";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
 
-type TabKey = "today" | "upcoming" | "week";
+type TabKey = "today" | "upcoming" | "week" | "month";
 
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
@@ -142,6 +143,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             { id: "today", label: "Day" },
             { id: "upcoming", label: "Upcoming" },
             { id: "week", label: "Week" },
+            { id: "month", label: "Month" },
           ] as const).map((t) => (
 
             <button
@@ -210,6 +212,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             {upcoming.length === 0 ? (
               <Empty>Nothing scheduled in the next 7 days.</Empty>
             ) : upcoming.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
+          </div>
+        ) : tab === "month" ? (
+          <div className="space-y-3">
+            <MonthGrid />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         ) : (
           <div className="space-y-3">
