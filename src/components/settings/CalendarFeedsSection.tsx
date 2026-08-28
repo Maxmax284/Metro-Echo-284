@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { feedStateLine, syncSummary, type FeedSyncResult } from "@/lib/calendarSync";
 
 type Feed = {
   id: string;
@@ -26,6 +27,9 @@ type Feed = {
   active: boolean;
   last_synced_at: string | null;
   last_error: string | null;
+  last_added?: number | null;
+  last_moved?: number | null;
+  last_cancelled?: number | null;
   event_count: number;
   default_project_id: string | null;
 };
@@ -66,7 +70,7 @@ export function CalendarFeedsSection() {
   const load = useCallback(async () => {
     if (!session) return;
     const { data } = await applyScope(
-      supabase.from("calendar_feeds").select("id,label,url,active,last_synced_at,last_error,event_count,default_project_id"),
+      supabase.from("calendar_feeds").select("id,label,url,active,last_synced_at,last_error,event_count,default_project_id,last_added,last_moved,last_cancelled"),
     ).order("created_at", { ascending: true });
     setFeeds((data ?? []) as Feed[]);
 
@@ -106,10 +110,11 @@ export function CalendarFeedsSection() {
         body: feedId ? { feed_id: feedId } : {},
       });
       if (error) throw error;
-      const failed = ((data as { results?: { ok: boolean }[] } | null)?.results ?? []).filter((r) => !r.ok).length;
-      toast[failed ? "error" : "success"](
-        failed ? "One of your calendars did not answer. Check the link." : "Calendar read. Vanta knows the day ahead.",
-      );
+      // A check reports a diff, never a bare "synchronized".
+      const results = ((data as { results?: FeedSyncResult[] } | null)?.results ?? []);
+      const failed = results.filter((r) => !r.ok).length;
+      const { title, description } = syncSummary(results);
+      toast[failed && failed === results.length ? "error" : "success"]({ title, description });
       await load();
     } catch {
       toast.error("Could not read the calendar right now.");
@@ -237,12 +242,9 @@ export function CalendarFeedsSection() {
             <li key={f.id} className="flex items-start gap-3 py-2.5">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[13px] font-medium">{f.label}</div>
-                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                  {f.event_count} {f.event_count === 1 ? "entry" : "entries"} · {whenLabel(f.last_synced_at)}
+                <div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  {feedStateLine(f)}
                 </div>
-                {f.last_error && (
-                  <div className="mt-1 text-[11px] text-destructive">{f.last_error}</div>
-                )}
                 <label className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <span className="shrink-0">Files under</span>
                   <select

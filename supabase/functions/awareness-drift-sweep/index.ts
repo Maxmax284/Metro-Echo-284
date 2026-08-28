@@ -26,8 +26,11 @@ import {
 } from "../_shared/drift.ts";
 import {
   actionToSignal,
+  calendarChangeSignals,
+  type CalendarChangeRow,
   calendarSignals,
   type CalendarEventRow,
+
   captureRouteToSignal,
   sherlockFindingToSignal,
   type SherlockFindingRow,
@@ -377,6 +380,29 @@ async function sweepScope(
   )) {
     signals.push(s);
   }
+
+  // Changes to the shape of the day: a meeting moved, or came off entirely.
+  // calendar-sync records these; the sweep is where they earn the right to
+  // speak, and each one is only ever mentioned once.
+  const { data: changeRows } = senses.calendar ? await scoped(
+    sb.from("calendar_changes").select("id, title, change, old_starts_at, new_starts_at, was_filed, detected_at"),
+    userId,
+    orgId,
+  )
+    .is("signaled_at", null)
+    .gte("detected_at", new Date(nowMs - DAY_MS).toISOString())
+    .order("detected_at", { ascending: false })
+    .limit(40) : { data: [] as CalendarChangeRow[] };
+  const changes = (changeRows ?? []) as CalendarChangeRow[];
+  for (const s of calendarChangeSignals(changes, scope, nowMs)) signals.push(s);
+  if (changes.length) {
+    await sb
+      .from("calendar_changes")
+      .update({ signaled_at: new Date(nowMs).toISOString() })
+      .in("id", changes.map((c) => c.id));
+  }
+
+
 
 
   if (signals.length === 0) return "none";

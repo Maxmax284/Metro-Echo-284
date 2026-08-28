@@ -1,27 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { Card } from "@/components/ui/card";
-import { Calendar, Bell, CheckSquare, FileText, ListChecks, Inbox } from "lucide-react";
+import { Calendar, Bell, CheckSquare, FileText, ListChecks, Inbox, CalendarClock } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
+import { CalendarSyncPanel } from "@/components/schedule/CalendarSyncPanel";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
+import { AgendaRow } from "@/components/calendar/AgendaRow";
+import { useAgenda } from "@/hooks/useAgenda";
 
 type TabKey = "today" | "upcoming" | "week";
 
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
 
+
 export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) => void }) {
   const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const { applyScope, withScope, key: scopeKey } = useScope();
+  // The calendar half of the day. Read-only, and the same rows Vanta reasons on.
+  const { events: agendaEvents, loading: agendaLoading, setProject } = useAgenda({ days: 7 });
   const [tab, setTab] = useState<TabKey>("today");
+
   const [commits, setCommits] = useState<Commitment[]>([]);
   const [reviewCaptures, setReviewCaptures] = useState<number>(0);
   const [reviewFiles, setReviewFiles] = useState<FileRow[]>([]);
@@ -91,12 +98,35 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
     return t > endToday.getTime();
   });
 
+  // Day view: what the calendar says about today, alongside what you owe.
+  const todayEvents = agendaEvents.filter((e) => {
+    const t = new Date(e.starts_at).getTime();
+    return t >= startToday.getTime() && t <= endToday.getTime();
+  });
+
+  const dayName = (iso: string) => formatInTimeZone(new Date(iso), timezone, "EEE MMM d");
+
   const byDay: Record<string, Commitment[]> = {};
   for (const c of [...todayList, ...upcoming]) {
     const d = dueDate(c)!;
-    const key = formatInTimeZone(new Date(d), timezone, "EEE MMM d");
-    (byDay[key] ||= []).push(c);
+    (byDay[dayName(d)] ||= []).push(c);
   }
+
+  // Week view: meetings and dated promises on the same day, in one order.
+  const eventsByDay: Record<string, typeof agendaEvents> = {};
+  for (const e of agendaEvents) (eventsByDay[dayName(e.starts_at)] ||= []).push(e);
+
+  const weekDays = useMemo(() => {
+    const keys = new Set([...Object.keys(byDay), ...Object.keys(eventsByDay)]);
+    const at = (k: string) => {
+      const first = eventsByDay[k]?.[0]?.starts_at ?? (byDay[k]?.[0] ? dueDate(byDay[k][0]) : null);
+      return first ? new Date(first).getTime() : Number.MAX_SAFE_INTEGER;
+    };
+    return [...keys].sort((a, b) => at(a) - at(b));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commits, agendaEvents, timezone]);
+
+
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
@@ -109,10 +139,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
 
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
           {([
-            { id: "today", label: "Today" },
+            { id: "today", label: "Day" },
             { id: "upcoming", label: "Upcoming" },
-            { id: "week", label: "This Week" },
+            { id: "week", label: "Week" },
           ] as const).map((t) => (
+
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -144,6 +175,21 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
                 {overdueList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
               </Section>
             )}
+            <Section
+              title="On the calendar today"
+              Icon={CalendarClock}
+              empty={
+                agendaLoading
+                  ? "Reading the calendars…"
+                  : "Nothing on the calendar today that Vanta can see. Linked calendars are listed at the bottom of this page."
+              }
+            >
+              {todayEvents.map((e) => (
+                <li key={e.id}>
+                  <AgendaRow event={e} onSetProject={(ev, p) => setProject(ev.id, p)} />
+                </li>
+              ))}
+            </Section>
             <Section title="Due today" Icon={CheckSquare} empty="Nothing due. Quiet runway.">
               {todayList.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} onChanged={load} />)}
             </Section>
@@ -157,6 +203,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               ))}
             </Section>
             <QuickJump onNavigate={onNavigate} captures={reviewCaptures} actions={pendingActions} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         ) : tab === "upcoming" ? (
           <div className="space-y-2">
@@ -166,15 +213,32 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           </div>
         ) : (
           <div className="space-y-3">
-            {Object.keys(byDay).length === 0 ? (
-              <Empty>This week is empty.</Empty>
-            ) : Object.entries(byDay).map(([day, list]) => (
-              <Section key={day} title={day} Icon={Calendar} empty="">
-                {list.map((c) => <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />)}
-              </Section>
-            ))}
+            {weekDays.length === 0 ? (
+              <Empty>Nothing on the next seven days — no meetings, no dated promises.</Empty>
+            ) : (
+              weekDays.map((day) => (
+                <Section key={day} title={day} Icon={Calendar} empty="">
+                  {[
+                    ...(eventsByDay[day] ?? []).map((e) => (
+                      <li key={e.id}>
+                        <AgendaRow event={e} onSetProject={(ev, p) => setProject(ev.id, p)} />
+                      </li>
+                    )),
+                    ...(byDay[day] ?? []).map((c) => (
+                      <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />
+                    )),
+                  ]}
+                </Section>
+              ))
+            )}
+            <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+              Meetings are read from your calendars — Vanta never writes back. Filing one under a project is your own
+              structure and survives every re-sync.
+            </p>
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         )}
+
       </div>
     </div>
   );
