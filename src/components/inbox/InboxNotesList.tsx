@@ -198,7 +198,7 @@ export function InboxNotesList() {
       )}
 
       {notes.length > 0 && (
-        <AftermathHint text="Tapping a note opens it for editing. Attaching files it to a project — nothing is sent." />
+        <AftermathHint text="Tapping a note opens it for editing. Attaching puts it in a project — nothing is sent." />
       )}
 
       {picked.size > 0 && (
