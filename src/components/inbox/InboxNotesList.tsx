@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Plus, Trash2, Notebook } from "lucide-react";
 import { LoadingState, EmptyState } from "@/components/ui/state-views";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { formatDistanceToNow } from "date-fns";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -194,6 +195,10 @@ export function InboxNotesList() {
             );
           })}
         </ul>
+      )}
+
+      {notes.length > 0 && (
+        <AftermathHint text="Tapping a note opens it for editing. Attaching files it to a project — nothing is sent." />
       )}
 
       {picked.size > 0 && (

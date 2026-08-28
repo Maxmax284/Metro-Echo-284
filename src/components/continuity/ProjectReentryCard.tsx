@@ -3,6 +3,7 @@
 // Says where things stand, what changed, what was decided, and what's still
 // open — all from recorded activity. It never runs anything.
 import { useState } from "react";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { Button } from "@/components/ui/button";
 import { MOTION_HOVER_LIFT, MOTION_PRESS } from "@/lib/motion";
 import { MoreHorizontal, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
@@ -130,6 +131,8 @@ export function ProjectReentryCard({
           </Button>
         ) : null}
       </div>
+
+      <AftermathHint text="Resume opens the project where you left it. Nothing runs from here." />
 
       {briefOpen ? (
         <div className="mt-2 rounded-md border border-border/50 bg-background/40 p-2.5">
