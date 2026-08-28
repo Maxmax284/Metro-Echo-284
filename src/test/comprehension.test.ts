@@ -24,7 +24,6 @@ import {
   askDestination,
   GLOSSARY,
   PROVENANCE_LABEL,
-  resolveProvenance,
 } from "@/lib/vantaNouns";
 import { readError, FIX_ROUTE } from "@/lib/errorCopy";
 import { DESK_ROLES, DESK_TILE_HINT } from "@/lib/deskRoles";
