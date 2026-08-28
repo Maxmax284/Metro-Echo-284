@@ -61,7 +61,16 @@ export function gapMinutes(a: AgendaEvent, b: AgendaEvent): number | null {
   return mins;
 }
 
-export function useAgenda({ days = 7 }: { days?: number } = {}) {
+/**
+ * The window Vanta can see.
+ *
+ *  - `days` — a rolling window starting an hour ago (the day and week reads).
+ *  - `from`/`to` — an explicit span, for browsing a month that may be behind or
+ *    ahead of today. An explicit span always wins over `days`.
+ */
+export function useAgenda(
+  { days = 7, from: fromDate, to: toDate }: { days?: number; from?: Date; to?: Date } = {},
+) {
   const { user } = useAuth();
   const { applyScope, orgId, key } = useScope();
   const [events, setEvents] = useState<AgendaEvent[]>([]);
@@ -69,13 +78,17 @@ export function useAgenda({ days = 7 }: { days?: number } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const spanFrom = fromDate ? fromDate.getTime() : null;
+  const spanTo = toDate ? toDate.getTime() : null;
+
   const refresh = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const from = new Date(Date.now() - HOUR_MS).toISOString();
-      const to = new Date(Date.now() + days * DAY_MS).toISOString();
+      const explicit = spanFrom != null && spanTo != null;
+      const from = new Date(explicit ? spanFrom! : Date.now() - HOUR_MS).toISOString();
+      const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
       const [{ data, error: err }, projs] = await Promise.all([
         applyScope(
           supabase
@@ -85,10 +98,11 @@ export function useAgenda({ days = 7 }: { days?: number } = {}) {
           .gte("starts_at", from)
           .lte("starts_at", to)
           .order("starts_at", { ascending: true })
-          .limit(120),
+          .limit(explicit ? 500 : 120),
         listProjects({ userId: user.id, organizationId: orgId ?? null }).catch(() => [] as Project[]),
       ]);
       if (err) throw err;
+
       const byId = new Map((projs ?? []).map((p) => [p.id, p.title]));
       setProjects(projs ?? []);
       setEvents(
