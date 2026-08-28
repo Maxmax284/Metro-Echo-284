@@ -4,6 +4,7 @@
 // with an expandable plain-English view + source list, so the Living Brief
 // surface can reference outside research without a new panel or new tab.
 import { useEffect, useState } from "react";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Loader2, Telescope, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
@@ -214,6 +215,9 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
           )}
         </li>
       ))}
+      <li>
+        <AftermathHint text="Downloading keeps the file as it was composed. Every export is already logged in Receipts." />
+      </li>
     </ul>
   );
 }

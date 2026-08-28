@@ -18,7 +18,14 @@ import {
   summaryLine,
   type VantaObject,
 } from "@/lib/vantaNouns";
-import { PROVENANCE_LABEL } from "@/lib/vantaNouns";
+import {
+  ASK_OUTPUT,
+  askAftermath,
+  askDestination,
+  GLOSSARY,
+  PROVENANCE_LABEL,
+  resolveProvenance,
+} from "@/lib/vantaNouns";
 import { readError, FIX_ROUTE } from "@/lib/errorCopy";
 import { DESK_ROLES, DESK_TILE_HINT } from "@/lib/deskRoles";
 import { ROOM_MAP } from "@/lib/roomCopy";
@@ -157,7 +164,7 @@ describe("provenance", () => {
 
   it("keeps every source label plain and human", () => {
     for (const label of Object.values(PROVENANCE_LABEL)) {
-      expect(label).toMatch(/^(From|Added|Spotted|Recorded)/);
+      expect(label).toMatch(/^(From|Added|Spotted|Recorded|Drafted)/);
       expect(label.length).toBeLessThan(30);
     }
   });
@@ -276,5 +283,58 @@ describe("desk roles", () => {
       expect(hint.length).toBeLessThan(28);
       expect(DESK_ROLES[k as keyof typeof DESK_ROLES]).toBeTruthy();
     }
+  });
+});
+
+describe("glossary", () => {
+  it("defines every canonical noun in plain English", () => {
+    const terms = new Set(GLOSSARY.map((e) => e.term.toLowerCase()));
+    for (const noun of Object.values(CANONICAL_NOUN)) {
+      expect(terms.has(noun.toLowerCase())).toBe(true);
+    }
+  });
+
+  it("separates the nouns people confuse", () => {
+    // Brief vs Document is the question users actually ask, so both must say
+    // what they are NOT.
+    for (const term of ["Brief", "Document", "Action", "Capture", "Receipt"]) {
+      const entry = GLOSSARY.find((e) => e.term === term);
+      expect(entry?.notThe, `${term} needs a contrast line`).toBeTruthy();
+    }
+  });
+
+  it("keeps definitions readable and jargon-free", () => {
+    for (const e of GLOSSARY) {
+      expect(e.means.endsWith(".")).toBe(true);
+      expect(e.means.length).toBeLessThan(180);
+      expect(/\b(entity|payload|schema|endpoint|RLS|table|row)\b/i.test(e.means)).toBe(false);
+    }
+  });
+});
+
+describe("ask -> work round trip", () => {
+  it("routes every Ask output to a real desk", () => {
+    for (const kind of Object.keys(ASK_OUTPUT) as (keyof typeof ASK_OUTPUT)[]) {
+      const dest = askDestination(kind);
+      expect(dest.label.length).toBeGreaterThan(2);
+      expect(dest.surface.length).toBeGreaterThan(2);
+    }
+  });
+
+  it("confirms with the same destination it promised", () => {
+    expect(askAftermath("action")).toBe("Drafted · appears in Actions");
+    expect(askAftermath("commitment")).toBe("Recorded · appears in Commitments");
+    expect(askAftermath("receipt")).toBe("Logged · appears in Receipts");
+    expect(askAftermath("artifact", "the project")).toBe(
+      "Saved to the project · appears in Documents",
+    );
+  });
+
+  it("names an Ask-drafted record when it shows up in Work", () => {
+    // The intent handler stores source "companion"; Work must read that back
+    // as words, not as the token.
+    expect(resolveProvenance("companion")).toBe("ask");
+    expect(resolveProvenance("ask")).toBe("ask");
+    expect(PROVENANCE_LABEL.ask).toBe("Drafted in Ask");
   });
 });

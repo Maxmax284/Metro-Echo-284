@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLongPress } from "@/hooks/useLongPress";
 import {
   FolderKanban,
   Inbox,
@@ -235,6 +236,12 @@ function Desk({
   onOpen?: () => void;
   href?: string;
 }) {
+  /* Long press on touch reveals the desk's explanation. It never navigates and
+     never executes — and the tap that ends the hold is swallowed so the tile
+     does not also open the desk underneath the panel. */
+  const [infoOpen, setInfoOpen] = useState(false);
+  const longPress = useLongPress(() => setInfoOpen(true));
+
   const body = (
     <>
       <Icon className="h-4 w-4 shrink-0 text-primary" />
@@ -249,35 +256,50 @@ function Desk({
       )}
     </>
   );
-  /* Work is the operational room: crisper corners, tighter rhythm, desks that
-     read like machined panels rather than marketing cards. */
   const className = cn(
     "flex min-h-[44px] flex-1 items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    /* A hold must not also select the label text on touch. */
+    "select-none touch-manipulation",
     MOTION_ROW,
     MOTION_HOVER_LIFT,
     MOTION_FOCUS,
   );
 
-  /* Matched travel: record the desk's rect on the way out so whatever opens
-     next grows out of this row rather than fading in from nowhere. The info
-     tap sits outside the row so it never navigates by accident. */
   return (
     <div className="flex min-w-0 items-center gap-1">
       {href ? (
-        <a href={href} className={className} onClick={markFlipOriginFromEvent}>{body}</a>
+        <a
+          href={href}
+          className={className}
+          aria-describedby={undefined}
+          {...longPress.handlers}
+          onClick={(e) => {
+            if (longPress.shouldSuppressClick()) {
+              e.preventDefault();
+              return;
+            }
+            markFlipOriginFromEvent(e);
+          }}
+        >
+          {body}
+        </a>
       ) : (
         <button
+          className={className}
+          {...longPress.handlers}
           onClick={(e) => {
+            if (longPress.shouldSuppressClick()) {
+              e.preventDefault();
+              return;
+            }
             markFlipOriginFromEvent(e);
             onOpen?.();
           }}
-          className={className}
         >
           {body}
         </button>
       )}
-      <DeskInfo deskKey={deskKey} />
+      <DeskInfo deskKey={deskKey} open={infoOpen} onOpenChange={setInfoOpen} />
     </div>
   );
 }
-

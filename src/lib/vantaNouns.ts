@@ -175,6 +175,7 @@ export type ProvenanceSource =
   | "upload"
   | "website"
   | "sherlock"
+  | "ask"
   | "vanta";
 
 export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
@@ -186,6 +187,7 @@ export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
   upload: "From an upload",
   website: "From your website",
   sherlock: "Spotted by Sherlock",
+  ask: "Drafted in Ask",
   vanta: "Recorded by Vanta",
 };
 
@@ -201,6 +203,7 @@ export function resolveProvenance(raw: string | null | undefined): ProvenanceSou
   if (s.includes("upload") || s.includes("file")) return "upload";
   if (s.includes("form") || s.includes("website") || s.includes("web")) return "website";
   if (s.includes("sherlock")) return "sherlock";
+  if (s.includes("ask") || s.includes("converse") || s.includes("companion")) return "ask";
   if (s.includes("vanta") || s.includes("system") || s.includes("nudge")) return "vanta";
   return null;
 }
@@ -247,3 +250,119 @@ export function summaryLine(
   const head = `${count} ${nounPlural(object, count)}`;
   return detail ? `${head} · ${detail}` : head;
 }
+
+// ---------- Ask → Work round trip -----------------------------------------
+
+/**
+ * What Ask can produce, where the record lands, and the exact confirmation to
+ * show once it has. One table so the promise Ask makes up front ("this becomes
+ * an Action") and the confirmation it gives afterwards ("Drafted · appears in
+ * Actions") can never disagree.
+ */
+export type AskOutputKind = "action" | "commitment" | "capture" | "artifact" | "receipt";
+
+export const ASK_OUTPUT: Record<
+  AskOutputKind,
+  { object: VantaObject; made: string; verb: string }
+> = {
+  action: { object: "action", made: "Draft something to send", verb: "Drafted" },
+  commitment: { object: "commitment", made: "Note a promise or deadline", verb: "Recorded" },
+  capture: { object: "capture", made: "Log a thought or a file", verb: "Captured" },
+  artifact: { object: "artifact", made: "Write a brief or document", verb: "Saved" },
+  receipt: { object: "receipt", made: "Anything that actually ran", verb: "Logged" },
+};
+
+/** Where an Ask output goes: the desk label and the surface that owns it. */
+export function askDestination(kind: AskOutputKind): { label: string; surface: SurfaceId } {
+  return OBJECT_HOME[ASK_OUTPUT[kind].object];
+}
+
+/**
+ * The confirmation for a completed Ask hand-off.
+ *
+ *   askAftermath("action")                  -> "Drafted · appears in Actions"
+ *   askAftermath("commitment", "Lamai")     -> "Recorded to Lamai · appears in Commitments"
+ */
+export function askAftermath(kind: AskOutputKind, filedTo?: string | null): string {
+  return aftermathLine({
+    verb: ASK_OUTPUT[kind].verb,
+    filedTo: filedTo ?? null,
+    appearsIn: askDestination(kind).label,
+  });
+}
+
+// ---------- Glossary -------------------------------------------------------
+
+/**
+ * The plain-English meaning of every noun the UI uses. Written for someone who
+ * has never seen the app: what it is, and how it differs from the noun next to
+ * it, because "Brief vs Document" is the question people actually ask.
+ */
+export type GlossaryEntry = { term: string; means: string; notThe?: string };
+
+export const GLOSSARY: GlossaryEntry[] = [
+  {
+    term: "Capture",
+    means: "Anything that came in and has not been sorted yet — a note, a forwarded email, a file.",
+    notThe: "It is not a task. Nothing is owed until you turn it into a Commitment.",
+  },
+  {
+    term: "Commitment",
+    means: "A promise with a date on it, yours or someone else's.",
+    notThe: "It is not something Vanta does for you. You complete it or move it.",
+  },
+  {
+    term: "Action",
+    means: "Something Vanta could do on your behalf, written up and waiting for your approval.",
+    notThe: "Nothing runs until you approve it. Drafting is not sending.",
+  },
+  {
+    term: "Decision",
+    means: "A choice you made, written down with the reason, so it survives the week.",
+  },
+  {
+    term: "Waiting On",
+    means: "Work parked because you need something from someone else.",
+  },
+  {
+    term: "Brief",
+    means: "A short read-out Vanta composes from your own records — a catch-up you can send or export.",
+    notThe: "It is not a legal document. It summarises; it does not commit you to anything.",
+  },
+  {
+    term: "Document",
+    means: "A real document you are drafting or having reviewed, like a contract or an agreement.",
+    notThe: "Unlike a Brief, it is the actual thing being written, not a summary of other things.",
+  },
+  {
+    term: "Artifact",
+    means: "The umbrella word for anything Vanta produced that you can open, export or send: briefs, documents, files.",
+  },
+  {
+    term: "Receipt",
+    means: "The record of something that actually happened — who, what, when, and what changed.",
+    notThe: "It is not a plan. If it is in Receipts, it already ran.",
+  },
+  {
+    term: "Project",
+    means: "One job you are working on, holding everything attached to it.",
+  },
+  {
+    term: "Responsibility",
+    means: "An area you own week after week, like scheduling or payroll.",
+    notThe: "Unlike a Project, it never finishes — it just needs tending.",
+  },
+  {
+    term: "Thread",
+    means: "One conversation in Ask, kept so you can come back to it.",
+  },
+  {
+    term: "Scope",
+    means: "Whose world you are looking at: your own, a workspace you share, or admin.",
+    notThe: "Switching scope changes what you can see, not what you own.",
+  },
+  {
+    term: "Posture",
+    means: "What you are doing right now — heads-down, travelling, off. It decides what is allowed to interrupt you.",
+  },
+];

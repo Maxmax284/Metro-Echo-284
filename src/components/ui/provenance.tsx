@@ -13,6 +13,7 @@ import {
   Upload,
   User,
   MessageCircle,
+  MessagesSquare,
   type LucideIcon,
 } from "lucide-react";
 import { PROVENANCE_LABEL, resolveProvenance, type ProvenanceSource } from "@/lib/vantaNouns";
@@ -27,6 +28,7 @@ const ICON: Record<ProvenanceSource, LucideIcon> = {
   upload: Upload,
   website: Globe,
   sherlock: Search,
+  ask: MessagesSquare,
   vanta: Sparkles,
 };
 

@@ -10,6 +10,7 @@ import { parseReminderHint } from "@/lib/reminderParse";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { linkEntities } from "@/lib/entityGraph";
 import { useScope } from "@/hooks/useScope";
+import { askAftermath } from "@/lib/vantaNouns";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -58,7 +59,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (data) generateEmbedding("note", data.id);
           if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` });
           await audit("memory", { note_id: data?.id });
-          toast.success(vantaSay.capturedToMemory());
+          toast.success({ title: vantaSay.capturedToMemory(), description: askAftermath("capture") });
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
           const { data } = await supabase.from("actions").insert(withScope({
@@ -70,7 +71,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             source: "companion",
           })).select("id").single();
           await audit("actions", { action_id: data?.id });
-          toast.success(vantaSay.actionDrafted());
+          toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
           onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {
           const remindAt = args.due_at
@@ -89,7 +90,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (data) generateEmbedding("commitment", data.id);
           if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" });
           await audit("commitments", { commitment_id: data?.id });
-          toast.success(vantaSay.commitmentAdded());
+          toast.success({ title: vantaSay.commitmentAdded(), description: askAftermath("commitment") });
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Commitment" });
         } else if (kind === "set_reminder") {
           const tz = args.timezone || prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -123,7 +124,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (data) generateEmbedding("commitment", data.id);
           if (data?.id) linkEntities({ userId: user.id, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" });
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
-          toast.success(vantaSay.reminderCreated(parsed.phrasing));
+          toast.success({ title: vantaSay.reminderCreated(parsed.phrasing), description: askAftermath("commitment") });
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
         } else if (kind === "mark_waiting") {
           // Waiting on someone is a promise with a name attached, so it lives
@@ -142,7 +143,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .single();
           if (data) generateEmbedding("commitment", data.id);
           await audit("commitments", { commitment_id: data?.id, waiting_on: who || null });
-          toast.success({ title: who ? `Waiting on ${who}` : "Marked as waiting", description: "It shows in Work until it clears." });
+          toast.success({ title: who ? `Waiting on ${who}` : "Marked as waiting", description: askAftermath("commitment") });
           onAck?.({ kind: "mark_waiting", id: data?.id, summary });
         } else if (kind === "record_decision") {
           const summary = String(args.summary ?? "").trim();
@@ -161,7 +162,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (data) generateEmbedding("note", data.id);
           if (data?.id) linkEntities({ userId: user.id, source_kind: "note", source_id: data.id, text: summary });
           await audit("memory", { note_id: data?.id, as: "decision" });
-          toast.success({ title: "Decision logged", description: "It reads back in the project's brief." });
+          toast.success({ title: "Decision logged", description: "Recorded · appears in the project's brief" });
           onAck?.({ kind: "record_decision", id: data?.id, summary });
         } else if (kind === "save_artifact") {
           const title = String(args.title ?? "").trim() || "Artifact";
@@ -188,7 +189,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           await audit("memory", { note_id: data?.id, as: "artifact", project_id: args.project_id ?? null });
-          toast.success({ title: "Artifact saved", description: args.project_id ? "Filed against the project." : "Saved to memory." });
+          toast.success({ title: "Artifact saved", description: askAftermath("artifact", args.project_id ? "the project" : null) });
           onAck?.({ kind: "save_artifact", id: data?.id, summary: title });
         } else if (kind === "run_sherlock") {
           openSherlock({

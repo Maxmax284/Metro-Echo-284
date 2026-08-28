@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2, ScrollText } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { provenanceText } from "@/components/ui/provenance";
 import { formatDistanceToNow } from "date-fns";
 import { SherlockChipTrigger } from "@/components/sherlock/SherlockChipTrigger";
 import { EmbeddedSherlockFindings } from "@/components/sherlock/EmbeddedSherlockFindings";
@@ -344,7 +345,10 @@ export function ActionsSurface() {
                     </Badge>
                     {t.source && (
                       <Badge variant="outline" className="gap-1 text-muted-foreground">
-                        <History className="h-3 w-3" /> via {t.source}
+                        <History className="h-3 w-3" />
+                        {/* Plain-language origin when we can name it — this is
+                            the return leg of the Ask -> Work round trip. */}
+                        {provenanceText(t.source) ?? `via ${t.source}`}
                       </Badge>
                     )}
                     {affectedCount > 0 && (
