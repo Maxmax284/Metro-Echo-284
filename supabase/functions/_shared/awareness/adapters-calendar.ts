@@ -160,3 +160,124 @@ export function calendarSignals(
   }
   return out;
 }
+
+registerSignalKind({
+  kind: "meeting_changed",
+  source: "calendar",
+  baseImpact: 0.7,
+  label: "Something you planned around changed",
+});
+
+export type CalendarChangeRow = {
+  id: string;
+  title: string | null;
+  change: string;
+  old_starts_at: string | null;
+  new_starts_at: string | null;
+  was_filed: boolean;
+  detected_at: string;
+};
+
+/** How near the change is, said in words rather than a timestamp. */
+function nearLabel(iso: string | null, now: number): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const hrs = (t - now) / (60 * MIN);
+  if (hrs < 0) return "already past";
+  if (hrs < 3) return "in the next few hours";
+  if (hrs < 24) return "later today";
+  if (hrs < 48) return "tomorrow";
+  return "later this week";
+}
+
+function whenWords(iso: string | null): string {
+  if (!iso) return "an unknown time";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "an unknown time";
+  return d.toUTCString().replace(/:\d\d GMT$/, " UTC");
+}
+
+/**
+ * A meeting the user planned around moved or came off the calendar.
+ *
+ * This is the only calendar change worth interrupting for. Additions are only
+ * news when they land inside the next day, because that is the only case where
+ * something appeared in time the user already considered spent.
+ */
+export function calendarChangeToSignal(
+  c: CalendarChangeRow,
+  scope: ScopeIdentity,
+  now: number,
+): AwarenessSignal | null {
+  const at = c.change === "cancelled" ? c.old_starts_at : c.new_starts_at;
+  const startMs = at ? new Date(at).getTime() : NaN;
+  if (!Number.isFinite(startMs)) return null;
+
+  // Nothing to do about a change to a slot that has already passed.
+  if (c.change !== "cancelled" && startMs < now) return null;
+
+  if (c.change === "added") {
+    const hrs = (startMs - now) / (60 * MIN);
+    if (hrs > 24) return null;
+  }
+
+  const label = c.title?.trim() || "An untitled calendar entry";
+  const near = nearLabel(at, now);
+
+  const why =
+    c.change === "cancelled"
+      ? `"${label}" is off the calendar — it was ${near || "on the day"}. That time is yours again.`
+      : c.change === "moved"
+        ? `"${label}" moved to ${whenWords(c.new_starts_at)}${near ? ` — ${near}` : ""}.`
+        : `"${label}" appeared on your calendar ${near || "soon"}.`;
+
+  const nextStep =
+    c.change === "cancelled"
+      ? "Decide what that freed slot is for before something else takes it."
+      : "Check what you had promised around that slot still fits.";
+
+  return {
+    id: `meeting_changed:${c.id}`,
+    source: "calendar",
+    type: "meeting_changed",
+    scope,
+    entityType: "calendar_event",
+    entityId: c.id,
+    timestamp: new Date(now).toISOString(),
+    summary:
+      c.change === "cancelled"
+        ? "Something came off your calendar"
+        : c.change === "moved"
+          ? "Something on your calendar moved"
+          : "Something new landed on your calendar",
+    why,
+    nextStep,
+    // Filed entries are ones the user attached to a project by hand, so the
+    // change is known to matter rather than merely suspected to.
+    confidence: c.was_filed ? 0.95 : 0.8,
+    resolved: false,
+    currentState: { due_at: at, change: c.change, title: label },
+    sourceRefs: [{ kind: "calendar_event", id: c.id, label }],
+    metadata: {
+      change: c.change,
+      old_starts_at: c.old_starts_at,
+      new_starts_at: c.new_starts_at,
+      was_filed: c.was_filed,
+    },
+  };
+}
+
+/** Every worthwhile change from one sync pass, in one call. */
+export function calendarChangeSignals(
+  changes: CalendarChangeRow[],
+  scope: ScopeIdentity,
+  now: number,
+): AwarenessSignal[] {
+  const out: AwarenessSignal[] = [];
+  for (const c of changes) {
+    const s = calendarChangeToSignal(c, scope, now);
+    if (s) out.push(s);
+  }
+  return out;
+}

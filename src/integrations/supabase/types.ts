@@ -571,6 +571,66 @@ export type Database = {
           },
         ]
       }
+      calendar_changes: {
+        Row: {
+          change: string
+          detected_at: string
+          event_uid: string
+          feed_id: string
+          id: string
+          new_starts_at: string | null
+          old_starts_at: string | null
+          organization_id: string | null
+          signaled_at: string | null
+          title: string | null
+          user_id: string
+          was_filed: boolean
+        }
+        Insert: {
+          change: string
+          detected_at?: string
+          event_uid: string
+          feed_id: string
+          id?: string
+          new_starts_at?: string | null
+          old_starts_at?: string | null
+          organization_id?: string | null
+          signaled_at?: string | null
+          title?: string | null
+          user_id: string
+          was_filed?: boolean
+        }
+        Update: {
+          change?: string
+          detected_at?: string
+          event_uid?: string
+          feed_id?: string
+          id?: string
+          new_starts_at?: string | null
+          old_starts_at?: string | null
+          organization_id?: string | null
+          signaled_at?: string | null
+          title?: string | null
+          user_id?: string
+          was_filed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_changes_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_feeds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_changes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           all_day: boolean
@@ -642,7 +702,10 @@ export type Database = {
           event_count: number
           id: string
           label: string
+          last_added: number
+          last_cancelled: number
           last_error: string | null
+          last_moved: number
           last_synced_at: string | null
           organization_id: string | null
           updated_at: string
@@ -656,7 +719,10 @@ export type Database = {
           event_count?: number
           id?: string
           label: string
+          last_added?: number
+          last_cancelled?: number
           last_error?: string | null
+          last_moved?: number
           last_synced_at?: string | null
           organization_id?: string | null
           updated_at?: string
@@ -670,7 +736,10 @@ export type Database = {
           event_count?: number
           id?: string
           label?: string
+          last_added?: number
+          last_cancelled?: number
           last_error?: string | null
+          last_moved?: number
           last_synced_at?: string | null
           organization_id?: string | null
           updated_at?: string

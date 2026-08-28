@@ -39,6 +39,81 @@ function explainStatus(status: number, url: string): string {
   return `The calendar answered ${status}.`;
 }
 
+/** A row as it stood before this pass — the before-picture for the diff. */
+type PriorRow = { uid: string; starts_at: string; title: string | null; project_id: string | null };
+
+type ParsedEvent = { uid: string; title: string | null; startsAt: string };
+
+export type CalendarChange = {
+  uid: string;
+  title: string | null;
+  change: "added" | "moved" | "cancelled";
+  oldStartsAt: string | null;
+  newStartsAt: string | null;
+  /** The entry was filed under a project, so the user planned around it. */
+  wasFiled: boolean;
+};
+
+/** An addition is only news while it is close enough to affect the week. */
+const ADDED_HORIZON_DAYS = 7;
+
+/**
+ * What actually changed between two pictures of the same window.
+ *
+ * Recurring entries share one uid, so the comparison works on the set of start
+ * times per uid: a start that disappeared alongside one that appeared is the
+ * same entry moving, not a cancellation plus an addition.
+ *
+ * A first sync (nothing held before) is a baseline, never a wall of "added".
+ */
+export function diffWindow(prior: PriorRow[], events: ParsedEvent[], now: number): CalendarChange[] {
+  if (prior.length === 0) return [];
+
+  const before = new Map<string, PriorRow[]>();
+  for (const r of prior) {
+    const list = before.get(r.uid) ?? [];
+    list.push(r);
+    before.set(r.uid, list);
+  }
+  const after = new Map<string, ParsedEvent[]>();
+  for (const e of events) {
+    const list = after.get(e.uid) ?? [];
+    list.push(e);
+    after.set(e.uid, list);
+  }
+
+  const out: CalendarChange[] = [];
+  const addedCutoff = now + ADDED_HORIZON_DAYS * DAY_MS;
+
+  for (const uid of new Set([...before.keys(), ...after.keys()])) {
+    const wasList = before.get(uid) ?? [];
+    const isList = after.get(uid) ?? [];
+    const isStarts = new Set(isList.map((e) => e.startsAt));
+    const wasStarts = new Set(wasList.map((r) => r.starts_at));
+
+    const gone = wasList.filter((r) => !isStarts.has(r.starts_at)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    const fresh = isList.filter((e) => !wasStarts.has(e.startsAt)).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    const wasFiled = wasList.some((r) => !!r.project_id);
+    const title = isList[0]?.title ?? wasList[0]?.title ?? null;
+
+    const paired = Math.min(gone.length, fresh.length);
+    for (let i = 0; i < paired; i++) {
+      out.push({ uid, title, change: "moved", oldStartsAt: gone[i].starts_at, newStartsAt: fresh[i].startsAt, wasFiled });
+    }
+    for (const r of gone.slice(paired)) {
+      out.push({ uid, title: r.title ?? title, change: "cancelled", oldStartsAt: r.starts_at, newStartsAt: null, wasFiled });
+    }
+    for (const e of fresh.slice(paired)) {
+      const startMs = new Date(e.startsAt).getTime();
+      if (!Number.isFinite(startMs) || startMs > addedCutoff) continue;
+      out.push({ uid, title: e.title ?? title, change: "added", oldStartsAt: null, newStartsAt: e.startsAt, wasFiled });
+    }
+  }
+
+  return out;
+}
+
+
 
 async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now: number) {
   const url = normalizeCalendarUrl(feed.url);
@@ -71,13 +146,16 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   // Project links are the user's own structural work, not the calendar's. The
   // feed is the source of truth for *what* is on the day, never for how the
   // user filed it — so remember the links before replacing the window.
+  // The same read is the before-picture used to work out what actually changed:
+  // "synced" is not news, "your Tuesday meeting moved" is.
   const { data: priorRows } = await sb
     .from("calendar_events")
-    .select("uid, starts_at, project_id")
+    .select("uid, starts_at, title, project_id")
     .eq("feed_id", feed.id)
-    .not("project_id", "is", null);
+    .gte("starts_at", new Date(fromMs).toISOString());
+  const prior = (priorRows ?? []) as PriorRow[];
   const priorLinks = new Map<string, string>();
-  for (const r of (priorRows ?? []) as { uid: string; starts_at: string; project_id: string | null }[]) {
+  for (const r of prior) {
     if (r.project_id) priorLinks.set(`${r.uid}|${r.starts_at}`, r.project_id);
   }
 
@@ -105,9 +183,38 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
     }
   }
 
+  const changes = diffWindow(prior, events, now);
+  if (changes.length) {
+    await sb.from("calendar_changes").insert(
+      changes.map((c) => ({
+        user_id: feed.user_id,
+        organization_id: feed.organization_id,
+        feed_id: feed.id,
+        event_uid: c.uid,
+        title: c.title,
+        change: c.change,
+        old_starts_at: c.oldStartsAt,
+        new_starts_at: c.newStartsAt,
+        was_filed: c.wasFiled,
+      })),
+    );
+  }
+
+  const tally = {
+    added: changes.filter((c) => c.change === "added").length,
+    moved: changes.filter((c) => c.change === "moved").length,
+    cancelled: changes.filter((c) => c.change === "cancelled").length,
+  };
 
   await sb.from("calendar_feeds")
-    .update({ last_error: null, last_synced_at: stamp, event_count: events.length })
+    .update({
+      last_error: null,
+      last_synced_at: stamp,
+      event_count: events.length,
+      last_added: tally.added,
+      last_moved: tally.moved,
+      last_cancelled: tally.cancelled,
+    })
     .eq("id", feed.id);
 
   await sb.from("audit_log").insert({
@@ -116,11 +223,12 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
     entity_type: "calendar_feed",
     entity_id: feed.id,
     event: "calendar.synced",
-    payload: { label: feed.label, events: events.length, window_days: WINDOW_FORWARD_DAYS },
+    payload: { label: feed.label, events: events.length, window_days: WINDOW_FORWARD_DAYS, ...tally },
   });
 
-  return { feed: feed.id, ok: true, events: events.length };
+  return { feed: feed.id, ok: true, label: feed.label, events: events.length, ...tally };
 }
+
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
