@@ -36,15 +36,8 @@ type Feed = {
 
 type UpcomingEvent = { id: string; title: string | null; starts_at: string; all_day: boolean };
 
-function whenLabel(iso: string | null): string {
-  if (!iso) return "never checked";
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return "checked just now";
-  if (mins < 60) return `checked ${mins} min ago`;
-  const hrs = Math.round(mins / 60);
-  if (hrs < 24) return `checked ${hrs}h ago`;
-  return `checked ${Math.round(hrs / 24)}d ago`;
-}
+
+
 
 function eventLine(e: UpcomingEvent): string {
   const d = new Date(e.starts_at);
