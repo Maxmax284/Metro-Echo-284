@@ -125,7 +125,7 @@ export function useAgenda(
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, key, orgId, days]);
+  }, [user?.id, key, orgId, days, spanFrom, spanTo]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
