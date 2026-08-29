@@ -1964,6 +1964,27 @@ export type Database = {
         }
         Relationships: []
       }
+      job_leases: {
+        Row: {
+          expires_at: string
+          job_name: string
+          locked_at: string
+          locked_by: string | null
+        }
+        Insert: {
+          expires_at: string
+          job_name: string
+          locked_at?: string
+          locked_by?: string | null
+        }
+        Update: {
+          expires_at?: string
+          job_name?: string
+          locked_at?: string
+          locked_by?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -2679,6 +2700,48 @@ export type Database = {
           },
         ]
       }
+      sherlock_digests: {
+        Row: {
+          created_at: string
+          delivered_channels: string[]
+          digest: Json
+          id: string
+          look_again_count: number
+          new_count: number
+          organization_id: string | null
+          seen_at: string | null
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_channels?: string[]
+          digest?: Json
+          id?: string
+          look_again_count?: number
+          new_count?: number
+          organization_id?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          delivered_channels?: string[]
+          digest?: Json
+          id?: string
+          look_again_count?: number
+          new_count?: number
+          organization_id?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       sherlock_findings: {
         Row: {
           audit_event_id: string | null
@@ -2822,38 +2885,89 @@ export type Database = {
         Row: {
           ambient_enabled: boolean
           created_at: string
+          detect_entity_gone_quiet: boolean
+          detect_meeting_without_context: boolean
+          detect_near_duplicate_note: boolean
+          detect_notes_disagree: boolean
+          detect_obligation_untracked: boolean
+          detect_promise_collides: boolean
+          detect_recurring_entity: boolean
+          detect_stale_commitment: boolean
+          detect_unapproved_high_risk: boolean
           dismissed_cooldown_days: number
+          duplicate_window_days: number
           manual_only_for_sensitive: boolean
+          meeting_lookahead_hours: number
+          quiet_gap_days: number
+          recurring_min_mentions: number
           sensitive_caution: boolean
           show_in_briefings: boolean
           show_in_canvas: boolean
           show_low_confidence: boolean
+          stale_promise_days: number
           updated_at: string
           user_id: string
+          weekly_digest_enabled: boolean
+          weekly_digest_telegram: boolean
+          weekly_digest_today: boolean
         }
         Insert: {
           ambient_enabled?: boolean
           created_at?: string
+          detect_entity_gone_quiet?: boolean
+          detect_meeting_without_context?: boolean
+          detect_near_duplicate_note?: boolean
+          detect_notes_disagree?: boolean
+          detect_obligation_untracked?: boolean
+          detect_promise_collides?: boolean
+          detect_recurring_entity?: boolean
+          detect_stale_commitment?: boolean
+          detect_unapproved_high_risk?: boolean
           dismissed_cooldown_days?: number
+          duplicate_window_days?: number
           manual_only_for_sensitive?: boolean
+          meeting_lookahead_hours?: number
+          quiet_gap_days?: number
+          recurring_min_mentions?: number
           sensitive_caution?: boolean
           show_in_briefings?: boolean
           show_in_canvas?: boolean
           show_low_confidence?: boolean
+          stale_promise_days?: number
           updated_at?: string
           user_id: string
+          weekly_digest_enabled?: boolean
+          weekly_digest_telegram?: boolean
+          weekly_digest_today?: boolean
         }
         Update: {
           ambient_enabled?: boolean
           created_at?: string
+          detect_entity_gone_quiet?: boolean
+          detect_meeting_without_context?: boolean
+          detect_near_duplicate_note?: boolean
+          detect_notes_disagree?: boolean
+          detect_obligation_untracked?: boolean
+          detect_promise_collides?: boolean
+          detect_recurring_entity?: boolean
+          detect_stale_commitment?: boolean
+          detect_unapproved_high_risk?: boolean
           dismissed_cooldown_days?: number
+          duplicate_window_days?: number
           manual_only_for_sensitive?: boolean
+          meeting_lookahead_hours?: number
+          quiet_gap_days?: number
+          recurring_min_mentions?: number
           sensitive_caution?: boolean
           show_in_briefings?: boolean
           show_in_canvas?: boolean
           show_low_confidence?: boolean
+          stale_promise_days?: number
           updated_at?: string
           user_id?: string
+          weekly_digest_enabled?: boolean
+          weekly_digest_telegram?: boolean
+          weekly_digest_today?: boolean
         }
         Relationships: []
       }
