@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
-import { MachineText } from "@/components/ui/machine-text";
+import { MachineText } from "@/components/ui/instrument";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { MOTION_FOCUS } from "@/lib/motion";
 import {
