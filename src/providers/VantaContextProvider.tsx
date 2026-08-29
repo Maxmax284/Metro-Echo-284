@@ -26,11 +26,17 @@ type Ctx = {
   /** Local-only patch (device class, quiet hours…). Not persisted. */
   observe: (patch: VantaContext) => void;
   /** Patch that should survive a device switch. */
-  remember: (patch: VantaContext) => Promise<void>;
+  remember: (patch: VantaContext, opts?: { scopeKey?: string | null }) => Promise<void>;
   /** Set the posture by hand, optionally with an end time. */
   setPosture: (posture: Posture | null, until?: string | null) => Promise<void>;
   postureUntil: string | null;
+  /**
+   * The durable slice exactly as it was when this body opened, before this
+   * session wrote over it. Cross-device resume reads this, never live context.
+   */
+  arrival: StoredContext | null;
 };
+
 
 const VantaContextCtx = createContext<Ctx | null>(null);
 
