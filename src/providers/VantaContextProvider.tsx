@@ -45,7 +45,11 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
   const [context, setContext] = useState<VantaContext>(EMPTY_CONTEXT);
   const [postureUntil, setPostureUntil] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [arrival, setArrival] = useState<StoredContext | null>(null);
   const prefsRef = useRef<Record<string, unknown>>({});
+  /** Last scope key a caller handed us, so persistence stays scope-stamped. */
+  const scopeKeyRef = useRef<string | null>(null);
+
 
   // Load the persisted slice, then stamp this device on top of it.
   useEffect(() => {
