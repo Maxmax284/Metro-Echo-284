@@ -17,6 +17,7 @@ import { CaptureRouteHistory } from "@/components/memory/CaptureRouteHistory";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
 import { ConnectButton } from "@/components/links/ConnectButton";
 import { LinkedChipsBar } from "@/components/links/LinkedChipsBar";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -565,6 +566,7 @@ export function MemoryFilesView() {
           );
         })}
       </ul>
+      <SurfaceAftermath surface="files" />
     </div>
   );
 }

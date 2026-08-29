@@ -51,6 +51,7 @@ import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
 import { markFlipOriginFromEvent } from "@/lib/flip";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 
 
@@ -669,6 +670,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           Nothing here yet: {emptyNames.join(", ")}.
         </p>
       ) : null}
+
+      <SurfaceAftermath surface="today" />
 
       <TodaySectionSheet
         section={drill}

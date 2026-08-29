@@ -25,6 +25,7 @@ import { useAuth } from "@/lib/auth";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { format, startOfDay, endOfDay, subDays, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 const PLATFORM_DISPLAY: Record<string, string> = {
   ground_truth_hub: "LMT Camp State",
@@ -541,6 +542,8 @@ export default function ReconciliationView() {
             )}
           </ul>
         </Card>
+
+        <SurfaceAftermath surface="reconciliation" />
       </div>
     </div>
   );

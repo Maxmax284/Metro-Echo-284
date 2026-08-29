@@ -48,6 +48,7 @@ import { DeskInfo } from "@/components/work/DeskInfo";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 
 
@@ -216,7 +217,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </div>
         </section>
 
-
+        <SurfaceAftermath surface="work" />
       </div>
     </div>
   );

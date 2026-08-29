@@ -7,6 +7,7 @@ import { CardMeta } from "@/components/ui/card-meta";
 import { ProvenanceChip } from "@/components/ui/provenance";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 
 export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "note" | "unknown";
 
@@ -46,7 +47,18 @@ const confTone: Record<NonNullable<CaptureItem["confidence"]>, DotTone> = {
   low: "destructive",
 };
 
-export function CaptureCard({ item, actions, footer }: { item: CaptureItem; actions?: CaptureAction[]; footer?: ReactNode }) {
+export function CaptureCard({
+  item,
+  actions,
+  footer,
+  /** Pass a specific destination line, or `false` where the parent already says it. */
+  aftermath,
+}: {
+  item: CaptureItem;
+  actions?: CaptureAction[];
+  footer?: ReactNode;
+  aftermath?: string | false;
+}) {
   const meta = sourceMeta[item.source] ?? sourceMeta.unknown;
   const Icon = meta.Icon;
   return (
@@ -118,6 +130,17 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
         </div>
       )}
       {footer}
+      {aftermath === false ? null : (
+        <AftermathHint
+          text={
+            typeof aftermath === "string"
+              ? aftermath
+              : item.routedTo
+                ? `Already filed to ${item.routedTo} · the route is recorded in Receipts`
+                : "Still a draft · routing it makes it a note, a promise or an action"
+          }
+        />
+      )}
     </div>
   );
 }
