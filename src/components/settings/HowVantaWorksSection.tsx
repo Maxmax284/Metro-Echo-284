@@ -16,12 +16,12 @@ export function HowVantaWorksSection() {
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">How Vanta Works</h2>
             <p className="mt-0.5 text-[12px] text-muted-foreground">
-              The whole flow in plain English. Replay the first-run walkthrough any time.
+              The whole flow in plain English. Restart the onboarding walkthrough any time.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2">
             <Button size="sm" variant="outline" className="h-8 text-[11.5px]" onClick={startTutorial}>
-              Replay tutorial
+              Restart onboarding
             </Button>
             <Button size="sm" variant="outline" className="h-8 text-[11.5px]" onClick={() => setDemoOpen(true)}>
               Follow one note
