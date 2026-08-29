@@ -16,6 +16,9 @@ import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { sherlockWhyFallback, sherlockKindLabel } from "@/lib/plainEnglish";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
+import { FindingFeedback } from "./FindingFeedback";
+import { WhyThisTriggered } from "./WhyThisTriggered";
+import { SherlockEvidenceDrawer } from "./SherlockEvidenceDrawer";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
 // "Detected by Sherlock" appears as a small trailing label elsewhere.
