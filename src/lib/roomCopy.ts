@@ -27,10 +27,11 @@ export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
     "Tapping a row opens the place that owns it. Nothing runs on its own.",
   ],
   work: [
-    "Work is where the jobs live.",
-    "Projects are the main jobs. Inbox is what came in. Commitments are promises. Actions are things waiting for your approval.",
-    "Knowledge holds briefs, documents, and memory. Deeper tools are for when you want the dense view.",
+    "Work opens with where things stand, then the desks.",
+    "Start here promotes the single strongest next tap. Needs you, Arrived, Due and Drifting summarize the rest.",
+    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Vanta looks holds Memory, Sherlock, Awareness and Cockpit.",
   ],
+
   ask: [
     "Ask is a conversation with a workspace behind it.",
     "Threads keep their own context: what they were about, which space owned them, and what they produced.",
