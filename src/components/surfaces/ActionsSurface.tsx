@@ -213,7 +213,7 @@ export function ActionsSurface() {
                           {/* Where it came from, then how it got here. Both read
                               off records — nothing inferred, nothing invented. */}
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <ReadNote kind="read" source={a.source ?? "vanta"} />
+                            {a.source ? <ReadNote kind="read" source={a.source} /> : null}
                             {!a.rollback_available && (a.status === "approved" || a.status === "staged") && (
                               <span className="text-[10.5px] text-warn">Not reversible once it runs</span>
                             )}
