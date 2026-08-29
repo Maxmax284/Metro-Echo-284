@@ -331,6 +331,7 @@ function Desk({
   count,
   onOpen,
   href,
+  recommended,
 }: {
   deskKey: DeskKey;
   label: string;
@@ -338,6 +339,8 @@ function Desk({
   count?: number;
   onOpen?: () => void;
   href?: string;
+  /** Truthful next step, derived from counts this room already loaded. */
+  recommended?: string | null;
 }) {
   /* Long press on touch reveals the desk's explanation. It never navigates and
      never executes — and the tap that ends the hold is swallowed so the tile
@@ -350,12 +353,22 @@ function Desk({
      empty instead of showing a bare zero. Nothing here reads new data. */
   const isEmpty = typeof count === "number" && count === 0;
 
+  /* Both shapes of tile open the same place, so the quick actions below can
+     share one handler without knowing which shape it sits under. */
+  const open = () => {
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    onOpen?.();
+  };
+
   const body = (
     <>
       <Icon className="mt-[2px] h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">
+        <span className="block text-[11px] leading-snug text-muted-foreground">
           {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
         </span>
         <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/70">
@@ -370,7 +383,7 @@ function Desk({
     </>
   );
   const className = cn(
-    "flex min-h-[44px] flex-1 items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] w-full items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
     /* A hold must not also select the label text on touch. */
     "select-none touch-manipulation",
     MOTION_ROW,
@@ -379,43 +392,55 @@ function Desk({
   );
 
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      {href ? (
-        <a
-          href={href}
-          className={className}
-          title={role.useWhen}
-          aria-describedby={undefined}
-          {...longPress.handlers}
-          onClick={(e) => {
-            if (longPress.shouldSuppressClick()) {
-              e.preventDefault();
-              return;
-            }
-            markFlipOriginFromEvent(e);
-          }}
-        >
-          {body}
-        </a>
-      ) : (
-        <button
-          className={className}
-          title={role.useWhen}
-          {...longPress.handlers}
-          onClick={(e) => {
-            if (longPress.shouldSuppressClick()) {
-              e.preventDefault();
-              return;
-            }
-            markFlipOriginFromEvent(e);
-            onOpen?.();
-          }}
-        >
-          {body}
-        </button>
-      )}
-      <DeskStartHere deskKey={deskKey} />
-      <DeskInfo deskKey={deskKey} open={infoOpen} onOpenChange={setInfoOpen} />
+    <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 items-start gap-1">
+        {href ? (
+          <a
+            href={href}
+            className={className}
+            title={role.useWhen}
+            aria-describedby={undefined}
+            {...longPress.handlers}
+            onClick={(e) => {
+              if (longPress.shouldSuppressClick()) {
+                e.preventDefault();
+                return;
+              }
+              markFlipOriginFromEvent(e);
+            }}
+          >
+            {body}
+          </a>
+        ) : (
+          <button
+            className={className}
+            title={role.useWhen}
+            {...longPress.handlers}
+            onClick={(e) => {
+              if (longPress.shouldSuppressClick()) {
+                e.preventDefault();
+                return;
+              }
+              markFlipOriginFromEvent(e);
+              onOpen?.();
+            }}
+          >
+            {body}
+          </button>
+        )}
+        <div className="flex shrink-0 flex-col items-center">
+          <DeskStartHere deskKey={deskKey} />
+          <DeskInfo
+            deskKey={deskKey}
+            open={infoOpen}
+            onOpenChange={setInfoOpen}
+            recommended={recommended}
+          />
+        </div>
+      </div>
+      {/* Do this: verb-first taps that only open the desk. */}
+      <DeskQuickActions deskKey={deskKey} count={count} onOpen={open} className="pl-1" />
     </div>
   );
+
 }
