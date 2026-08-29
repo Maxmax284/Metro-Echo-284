@@ -101,6 +101,30 @@ export function DeskInfo({
         <p id={titleId} className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {role.label}
         </p>
+
+        {/* Promoted: what can I do here. The four "what is this" lines stay
+            underneath, because options are the question people actually have. */}
+        <div className="mt-1.5 rounded-[2px] border border-border/60 bg-surface-elevated/40 p-2">
+          <p className="text-[10px] uppercase tracking-wider text-primary/90">What can I do here</p>
+          <ul className="mt-1 space-y-0.5">
+            {role.options.map((o) => (
+              <li key={o} className="flex gap-1.5 text-[11.5px] leading-snug text-foreground/90">
+                <span aria-hidden="true" className="text-muted-foreground">
+                  &middot;
+                </span>
+                {o}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] leading-snug text-foreground/85">
+            <span className="text-muted-foreground">Recommended next: </span>
+            {recommended ?? "Nothing needs you here right now."}
+          </p>
+          <p className="mt-1 text-[10.5px] italic leading-snug text-muted-foreground/80">
+            When you start: {role.onStart}
+          </p>
+        </div>
+
         <dl className="mt-1.5 space-y-1.5">
           {rows.map((r) => (
             <div key={r.term}>
