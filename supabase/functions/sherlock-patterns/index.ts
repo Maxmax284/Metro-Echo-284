@@ -172,7 +172,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
   }
 
   // ---- 2) Near-duplicate notes: same lowercased title in last 30 days
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const thirtyDaysAgo = new Date(Date.now() - tuning.duplicateWindowDays * 86400_000).toISOString();
   const { data: notes } = await scoped(admin
     .from("notes")
     .select("id, title, body, created_at")
@@ -202,7 +202,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
   }
 
   // ---- 3) Recurring entity activity: entity with ≥4 links in last 14d
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400_000).toISOString();
+  const fourteenDaysAgo = new Date(Date.now() - tuning.quietGapDays * 86400_000).toISOString();
   const { data: links } = await scoped(admin
     .from("entity_links")
     .select("entity_id, created_at")
@@ -211,7 +211,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
     .limit(500);
   const counts = new Map<string, number>();
   for (const l of links ?? []) counts.set(l.entity_id, (counts.get(l.entity_id) ?? 0) + 1);
-  const recurring = [...counts.entries()].filter(([, n]) => n >= 4).slice(0, 10);
+  const recurring = [...counts.entries()].filter(([, n]) => n >= tuning.recurringMinMentions).slice(0, 10);
   if (recurring.length > 0) {
     const ids = recurring.map(([id]) => id);
     const { data: ents } = await admin
@@ -308,7 +308,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
 
   // ---- 6) Cross-analysis: meeting soon with no context anywhere near it
   const now = new Date();
-  const in48h = new Date(now.getTime() + 48 * 3600_000).toISOString();
+  const in48h = new Date(now.getTime() + tuning.meetingLookaheadHours * 3600_000).toISOString();
   const { data: upcoming } = await scoped(admin
     .from("calendar_events")
     .select("id, title, starts_at, project_id")
@@ -352,7 +352,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
   // ---- 7) A promise falls due while you are booked elsewhere.
   // Read-only on both sides: the calendar is never written, the commitment is
   // never moved. This only says the two collide.
-  const in7d = new Date(now.getTime() + 7 * 86400_000).toISOString();
+  const in7d = new Date(now.getTime() + tuning.meetingLookaheadHours * 3600_000).toISOString();
   const { data: dueSoon } = await scoped(admin
     .from("commitments")
     .select("id, summary, due_at")
@@ -394,7 +394,7 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
 
   // ---- 8) Something that used to be busy has gone quiet.
   // Busy before (≥3 links in the 30d before last fortnight), silent since.
-  const thirtyDaysAgoIso = new Date(now.getTime() - 30 * 86400_000).toISOString();
+  const thirtyDaysAgoIso = new Date(now.getTime() - (tuning.quietGapDays + 16) * 86400_000).toISOString();
   const { data: olderLinks } = await scoped(admin
     .from("entity_links")
     .select("entity_id, created_at")
@@ -464,8 +464,12 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
     }
   }
 
+  // Detector switches are applied here, before anything is written: a disabled
+  // detector never reaches the queue, so turning one off is immediately true.
+  const kept = drafts.filter((d) => tuning.enabled[d.finding_type] !== false);
+
   let written = 0, suppressed = 0;
-  for (const d of drafts) {
+  for (const d of kept) {
     const r = await createFinding(admin, userId, orgId, d);
     if (r) written++; else suppressed++;
   }
@@ -475,10 +479,10 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
     entity_type: "sherlock_patterns",
     organization_id: orgId,
     event: "sherlock_patterns_scanned",
-    payload: { drafts: drafts.length, written, suppressed },
+    payload: { drafts: drafts.length, kept: kept.length, written, suppressed },
   });
 
-  return { drafts: drafts.length, written, suppressed };
+  return { drafts: kept.length, written, suppressed };
 }
 
 async function createFinding(admin: any, userId: string, orgId: string | null, d: FindingDraft) {
