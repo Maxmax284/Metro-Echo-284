@@ -218,20 +218,31 @@ export function SherlockSurface() {
               </span>
             </div>
             <span className="text-[10.5px] text-muted-foreground">
-              {investigations.length} investigation{investigations.length === 1 ? "" : "s"}
+              {(investigations?.length ?? 0)} investigation{(investigations?.length ?? 0) === 1 ? "" : "s"}
             </span>
           </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Sherlock reads only what you have already saved in this room. It suggests; it never files,
+            links or runs anything on its own.
+          </p>
+        </header>
+
+        {/* Where things stand, before any console. */}
+        <SherlockBriefingPanel
+          briefing={briefing}
+          lastScanAt={lastScanAt}
+          scanning={scanning}
+          onScan={runScan}
+          onChanged={refreshPending}
+        />
+
+        <div className="vanta-card p-3 space-y-3">
           <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-              <StatusDot tone="primary" /> scope: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
+              <StatusDot tone="primary" /> looking at: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
             </span>
             <span className="text-muted-foreground/70">{SCOPES.find((x) => x.id === scope)!.hint}</span>
           </div>
-        </header>
-
-        <SherlockSettingsPanel />
-
-        <Card className="p-3 space-y-3">
           {/* Scope chips */}
           <div className="flex flex-wrap gap-1.5">
             {SCOPES.map((s) => (
