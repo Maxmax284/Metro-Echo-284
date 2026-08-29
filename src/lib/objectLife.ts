@@ -57,7 +57,9 @@ const VERB: Array<{ match: RegExp; text: (e: LifeEvent) => string }> = [
   { match: /\.(linked|filed|attached|routed)$/, text: (e) => (e.target ? `filed to ${e.target}` : "filed") },
   { match: /\.(moved|rescheduled)$/, text: () => "moved" },
   { match: /\.(updated|revised|edited)$/, text: () => "updated" },
-  { match: /\.(reviewed|read)$/, text: () => "reviewed" },
+  { match: /\.(staged|prepared|drafted|proposed)$/, text: () => "prepared" },
+  { match: /\.(reviewed|read|audited)$/, text: () => "reviewed" },
+
   { match: /\.(approved)$/, text: () => "approved" },
   { match: /\.(executed|sent|delivered)$/, text: () => "executed" },
   { match: /\.(rolled_back|reversed|undone)$/, text: () => "reversed" },
