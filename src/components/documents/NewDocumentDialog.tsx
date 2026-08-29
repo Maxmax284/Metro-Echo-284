@@ -42,14 +42,44 @@ export function NewDocumentDialog({
   const [tone, setTone] = useState<DraftTone>("warm");
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  /** Guided intake asks one thing at a time; "all" shows the classic form. */
+  const [mode, setMode] = useState<"guided" | "all">("guided");
+  const [step, setStep] = useState(0);
 
   const template = useMemo(() => getTemplate(templateKey), [templateKey]);
+
+  /* Multi-turn intake: title, each template field, voice, then a read-back.
+     Deterministic — Vanta asks for what it does not have, in order, and never
+     calls a model to decide what to ask. */
+  const steps = useMemo(() => {
+    if (!template) return [] as IntakeStep[];
+    return [
+      { key: "__title", label: "What should we call this internally?", kind: "title" as const },
+      ...template.fields.map((f) => ({
+        key: f.key,
+        label: f.label,
+        kind: "field" as const,
+        field: f,
+      })),
+      { key: "__tone", label: "What voice should it be written in?", kind: "tone" as const },
+      { key: "__review", label: "Read it back before Vanta drafts", kind: "review" as const },
+    ];
+  }, [template]);
+
+  const current = steps[Math.min(step, Math.max(steps.length - 1, 0))];
+  const answeredCount = template
+    ? template.fields.filter((f) => (inputs[f.key] ?? "").trim().length > 0).length
+    : 0;
+  const stepBlocked =
+    current?.kind === "field" && !!current.field?.required && !(inputs[current.field.key] ?? "").trim();
 
   function reset() {
     setTemplateKey(null);
     setInputs({});
     setTitle("");
     setTone("warm");
+    setMode("guided");
+    setStep(0);
   }
 
   function handleClose(next: boolean) {
