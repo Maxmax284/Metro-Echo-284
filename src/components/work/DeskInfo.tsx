@@ -67,7 +67,7 @@ export function DeskInfo({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={`What is ${role.label}?`}
+          aria-label={`What can I do in ${role.label}?`}
           /* Keep the tap contained: the neighbouring tile navigates. */
           onClick={(e) => {
             e.stopPropagation();
