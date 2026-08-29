@@ -1,18 +1,24 @@
 // FirstRunWalkthrough — full-screen mobile-first overlay. 384px target.
 // Skip / Back / Next / dots. No auto-advance. Replayable from Settings.
+// The last slide is a check, not a congratulation: nothing is marked complete
+// until the user says they are oriented.
+import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useTutorial } from "./TutorialProvider";
-import { WALKTHROUGH_SLIDES } from "./tutorialCopy";
+import { WALKTHROUGH_SLIDES, ORIENTED_CHECK } from "./tutorialCopy";
 import { cn } from "@/lib/utils";
 
 export function FirstRunWalkthrough() {
   const { open, step, setStep, closeTutorial } = useTutorial();
+  const [oriented, setOriented] = useState(false);
   const total = WALKTHROUGH_SLIDES.length;
   const slide = WALKTHROUGH_SLIDES[Math.min(step, total - 1)];
   const isLast = step >= total - 1;
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) closeTutorial(false); }}>
