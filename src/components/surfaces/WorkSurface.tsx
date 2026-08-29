@@ -114,7 +114,15 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </span>
         </header>
 
-        {/* The state of work comes before the directory of desks. */}
+        {/* Three tiers, always in the same order, always labelled: where
+            things stand, where work lands, where Vanta looks. The state of
+            work comes before the directory of desks. */}
+        <TierHeading
+          n={1}
+          title="Where things stand"
+          line="Today's state of play — the briefing, what you left open, and the week ahead."
+        />
+
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
 
         <ResumeWorkSection onNavigate={onNavigate} />
@@ -192,8 +200,14 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
         {/* Two shelves instead of ten equal choices: where work lands, and
             where Vanta looks. Presentation only — every route is unchanged. */}
+        <TierHeading
+          n={2}
+          title="Where work lands"
+          line="The desks that hold your records. Everything you route, promise or approve ends up in one of these."
+        />
+
         <section className="vanta-card p-3" aria-label="Where work lands">
-          <SectionRail label="Where work lands" />
+          <SectionRail label="Desks" icon={<FolderKanban className="h-3.5 w-3.5" />} />
           <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
             <Desk deskKey="projects" label="Projects" Icon={FolderKanban} onOpen={() => onNavigate("projects")} />
@@ -206,8 +220,14 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </div>
         </section>
 
+        <TierHeading
+          n={3}
+          title="Where Vanta looks"
+          line="Reading rooms. Vanta reads these and drafts suggestions — nothing here acts on its own."
+        />
+
         <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Where Vanta looks">
-          <SectionRail label="Where Vanta looks" />
+          <SectionRail label="Reading rooms" icon={<Search className="h-3.5 w-3.5" />} />
           <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
             <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
@@ -218,6 +238,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         </section>
 
         <SurfaceAftermath surface="work" />
+      </div>
+    </div>
+  );
+}
+
+/** A tier label. Presentation only — it explains the three levels of Work. */
+function TierHeading({ n, title, line }: { n: 1 | 2 | 3; title: string; line: string }) {
+  return (
+    <div className="flex items-start gap-2 px-1 pt-2">
+      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-primary/40 text-[9px] font-mono text-primary">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <h2 className="text-[12.5px] font-semibold leading-tight text-foreground">{title}</h2>
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{line}</p>
       </div>
     </div>
   );
