@@ -1,42 +1,64 @@
 // All tutorial strings in one place. Edit here, not in components.
+//
+// The walkthrough is the five-minute orientation: the four rooms first, then
+// the three tiers inside Work, then one honest safety line, then a check that
+// the user actually feels oriented. No feature tour, no auto-advance.
 
 export const WALKTHROUGH_SLIDES = [
   {
-    title: "Welcome to Vanta",
-    body: "Vanta is your operations officer. It captures what's going on, organizes it, and tells you what needs you next.",
+    title: "Five minutes, then you know your way around",
+    body: "Vanta has four rooms and nothing else. Today, Work, Ask, Receipts. Everything you ever do lives in one of them.",
     pill: "Start here",
   },
   {
-    title: "1 · Capture lands in your Inbox",
-    body: "Speak, type, drop a file — anything you capture lands in Memory. Nothing executes from a capture.",
-    pill: "Inbox",
+    title: "Room 1 · Today",
+    body: "The short version of what matters now: what needs you, what's next, what changed, and what just arrived. Tap a row and it opens the place that owns it.",
+    pill: "Today",
   },
   {
-    title: "2 · It connects to a Project",
-    body: "Vanta links each item to the right Project automatically. You can also tap Connect to… to link things by hand.",
-    pill: "Projects",
+    title: "Room 2 · Work",
+    body: "Where ongoing work lives — projects, promises, prepared steps, documents and your schedule. This is the room you'll spend the most time in.",
+    pill: "Work",
   },
   {
-    title: "3 · Command Center rolls it up",
-    body: "Your Command Center shows what's going on, what needs you, and what changed — situations first, counts second.",
-    pill: "Command Center",
+    title: "Room 3 · Ask",
+    body: "Talk to Vanta with a file, photo or voice note if you need to. It reads and drafts. It never runs anything from here.",
+    pill: "Ask",
   },
   {
-    title: "4 · Turn it into a Brief",
-    body: "Tap Create brief on any project or on the whole system to draft a shareable summary, PDF, or audio briefing.",
-    pill: "Briefs",
-  },
-  {
-    title: "5 · Every export leaves a Receipt",
-    body: "Approved exports save under the project. Every state change writes a receipt so you can always trust what Vanta did.",
+    title: "Room 4 · Receipts",
+    body: "Every state change writes a line: what happened, who did it, when, and where it came from. If Vanta did something, it's in here.",
     pill: "Receipts",
   },
   {
-    title: "You now understand Vanta",
-    body: "Capture → Inbox → Project → Command Center → Brief → Receipt. That's the whole flow. You can replay this tour any time from Settings.",
-    pill: "Done",
+    title: "Inside Work · Tier 1: Where things stand",
+    body: "The top of Work is the state of play — your briefing, what you left open, and the week ahead. Read this before you decide anything.",
+    pill: "Work · 1",
+  },
+  {
+    title: "Inside Work · Tier 2: Where work lands",
+    body: "The desks that hold your records: Projects, Inbox, Commitments, Actions, Briefs, Documents, Schedule. Anything you route, promise or approve ends up on one of them.",
+    pill: "Work · 2",
+  },
+  {
+    title: "Inside Work · Tier 3: Where Vanta looks",
+    body: "Reading rooms: Memory, Sherlock, Awareness, Cockpit. Vanta reads these and drafts suggestions. Nothing in this tier acts on its own.",
+    pill: "Work · 3",
+  },
+  {
+    title: "One rule that never bends",
+    body: "Capture never executes. Vanta can prepare a step, but you approve it inside Vanta before anything runs. Every desk tile has a \u201C?\u201D that tells you what it is and when to use it.",
+    pill: "Safety",
+  },
+  {
+    title: "Are you oriented?",
+    body: "Four rooms: Today, Work, Ask, Receipts. Three tiers in Work: where things stand, where work lands, where Vanta looks. Tick the box if that landed \u2014 you can replay this any time from Settings.",
+    pill: "Check",
   },
 ] as const;
+
+/** The final slide's confirmation label. */
+export const ORIENTED_CHECK = "I know the four rooms and the three Work tiers.";
 
 export const WHAT_IS_THIS: Record<string, string> = {
   command_center:

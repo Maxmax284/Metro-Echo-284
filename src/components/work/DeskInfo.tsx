@@ -46,10 +46,13 @@ export function DeskInfo({
      answering, which is what makes it readable out of context. */
   const rows: { term: string; detail: string }[] = [
     { term: "What it is", detail: role.is },
+    { term: "Use me when", detail: role.useWhen },
     { term: "How things get here", detail: role.lands },
     { term: "What you do", detail: role.you },
     { term: "For example", detail: role.example },
+    { term: "If it's empty", detail: role.emptyWhy },
   ];
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

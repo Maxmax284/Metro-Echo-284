@@ -43,7 +43,7 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
+import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
@@ -279,12 +279,22 @@ function Desk({
   const [infoOpen, setInfoOpen] = useState(false);
   const longPress = useLongPress(() => setInfoOpen(true));
 
+  const role = DESK_ROLES[deskKey];
+  /* When a desk is countable and currently empty, the tile says why it is
+     empty instead of showing a bare zero. Nothing here reads new data. */
+  const isEmpty = typeof count === "number" && count === 0;
+
   const body = (
     <>
-      <Icon className="h-4 w-4 shrink-0 text-primary" />
+      <Icon className="mt-[2px] h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">{DESK_TILE_HINT[deskKey]}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">
+          {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
+        </span>
+        <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/70">
+          {role.useWhen}
+        </span>
       </span>
       {typeof count === "number" && count > 0 && (
         <span className="shrink-0 rounded-[2px] bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
@@ -294,7 +304,7 @@ function Desk({
     </>
   );
   const className = cn(
-    "flex min-h-[44px] flex-1 items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] flex-1 items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
     /* A hold must not also select the label text on touch. */
     "select-none touch-manipulation",
     MOTION_ROW,
@@ -308,6 +318,7 @@ function Desk({
         <a
           href={href}
           className={className}
+          title={role.useWhen}
           aria-describedby={undefined}
           {...longPress.handlers}
           onClick={(e) => {
@@ -323,6 +334,7 @@ function Desk({
       ) : (
         <button
           className={className}
+          title={role.useWhen}
           {...longPress.handlers}
           onClick={(e) => {
             if (longPress.shouldSuppressClick()) {
