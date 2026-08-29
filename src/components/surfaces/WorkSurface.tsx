@@ -46,15 +46,51 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { DeskStartHere } from "@/components/work/DeskStartHere";
+import { DeskQuickActions } from "@/components/work/DeskQuickActions";
+import { WorkFlowDemo } from "@/components/work/WorkFlowDemo";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { PlayCircle } from "lucide-react";
 
 
 
 
 type Counts = { inbox: number; commitments: number; actions: number };
+
+/**
+ * The next step worth taking at a desk, derived only from counts this room has
+ * already loaded. Returns null rather than inventing a step.
+ */
+function recommendedStep(
+  deskKey: DeskKey,
+  counts: Counts,
+  projectCount: number,
+): string | null {
+  switch (deskKey) {
+    case "inbox":
+      return counts.inbox > 0
+        ? `Route the ${counts.inbox === 1 ? "one arrival" : `${counts.inbox} arrivals`} sitting unsorted.`
+        : "Nothing to sort. Capture something and it lands here.";
+    case "actions":
+      return counts.actions > 0
+        ? `Review the ${counts.actions === 1 ? "draft" : `${counts.actions} drafts`} waiting on your approval.`
+        : "No drafts waiting. Nothing can run without your approval anyway.";
+    case "commitments":
+      return counts.commitments > 0
+        ? `Check the ${counts.commitments === 1 ? "one open promise" : `${counts.commitments} open promises`} and close what is done.`
+        : "No open promises. Record one when somebody is expecting something.";
+    case "projects":
+      return projectCount > 0
+        ? "Open the job you touched last and see what is attached to it."
+        : "Start your first project, then attach what you capture to it.";
+    default:
+      return null;
+  }
+}
+
 
 /**
  * Work — the operational room. It orients you and hands off to the specialist
