@@ -38,7 +38,7 @@ export function useSherlockDigest() {
     const { data } = await applyScope(
       supabase
         .from("sherlock_digests")
-        .select("id, week_start, digest, new_count, look_again_count, seen_at, created_at") as never,
+        .select("id, week_start, digest, new_count, look_again_count, seen_at, created_at"),
     )
       .order("week_start", { ascending: false })
       .limit(1);
