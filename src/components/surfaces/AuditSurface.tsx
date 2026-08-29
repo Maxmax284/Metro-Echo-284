@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { Card } from "@/components/ui/card";
@@ -380,6 +381,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
       </div>
 
       <AuditDetailDrawer row={drawerRow} open={!!drawerRow} onOpenChange={(o) => !o && setDrawerRow(null)} />
+
+      <SurfaceAftermath surface="audit" />
     </div>
   );
 }

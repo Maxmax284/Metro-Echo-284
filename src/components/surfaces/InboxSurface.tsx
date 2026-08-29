@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { Inbox as InboxIcon } from "lucide-react";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
@@ -68,6 +69,8 @@ export function InboxSurface() {
         {tab === "notes" && <InboxNotesList />}
         {tab === "files" && <MemoryFilesView />}
       </div>
+
+      <SurfaceAftermath surface="inbox" />
     </div>
   );
 }

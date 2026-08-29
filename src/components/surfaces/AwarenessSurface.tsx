@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -551,6 +552,8 @@ export function AwarenessSurface() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
+
+      <SurfaceAftermath surface="awareness" />
     </div>
   );
 }

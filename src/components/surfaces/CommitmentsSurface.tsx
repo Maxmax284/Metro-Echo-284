@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
@@ -404,6 +405,8 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
           );
         })()}
       </div>
+
+      <SurfaceAftermath surface="commitments" />
     </div>
   );
 }
