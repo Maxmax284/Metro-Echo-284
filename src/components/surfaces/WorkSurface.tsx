@@ -266,24 +266,33 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <SectionRail label="Desks" icon={<FolderKanban className="h-3.5 w-3.5" />} />
           <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} onOpen={() => onNavigate("projects")} />
-            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
+            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
+            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
+            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} recommended={recommendedStep("actions", counts, projects.length)} onOpen={() => onNavigate("actions")} />
             <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
             <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
             <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
           </div>
         </section>
 
-        <TierHeading
-          n={3}
-          title="Where Vanta looks"
-          line="Reading rooms. Vanta reads these and drafts suggestions — nothing here acts on its own."
-        />
-
-        <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Where Vanta looks">
-          <SectionRail label="Reading rooms" icon={<Search className="h-3.5 w-3.5" />} />
+        {/* Reading rooms fold, but they stop hiding the moment intake starts:
+            once anything has arrived, these desks have something to read, so
+            the shelf opens itself unless you closed it yourself. The fold is a
+            visible control with a count, never a mystery. */}
+        <CollapsibleSection
+          key={hasIntake ? "looks-live" : "looks-quiet"}
+          title="Reading rooms"
+          storageKey="work.looks"
+          icon={<Search className="h-3.5 w-3.5" />}
+          reading="4"
+          defaultOpen={hasIntake}
+          summary="Show reading rooms — 4 places Vanta reads on your behalf."
+          className="border-dashed"
+        >
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            These read what you already captured and draft suggestions. Nothing here acts on its own.
+          </p>
           <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
             <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
@@ -291,7 +300,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
             <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
-        </section>
+        </CollapsibleSection>
+
 
         <SurfaceAftermath surface="work" />
       </div>
