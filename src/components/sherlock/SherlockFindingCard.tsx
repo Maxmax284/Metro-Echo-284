@@ -55,6 +55,7 @@ export function SherlockFindingCard({
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
 
   const needsConfirm = useMemo(
     () => finding.sensitive_flag || (finding.suggested_action && HIGH_IMPACT_ACTIONS.has(finding.suggested_action)),
