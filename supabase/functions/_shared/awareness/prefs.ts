@@ -44,7 +44,14 @@ export type StoredContext = {
   pendingActionId?: string | null;
   lastDeviceClass?: DeviceClass | null;
   lastSeenAt?: string | null;
+  /** Resume anchor. A pointer back to work, never an approval. */
+  lastStep?: string | null;
+  lastAnchorLabel?: string | null;
+  lastAnchorSurface?: string | null;
+  /** The scope the anchor belongs to. Context never crosses scopes. */
+  lastScopeKey?: string | null;
 };
+
 
 export const EMPTY_STORED: StoredContext = {};
 
