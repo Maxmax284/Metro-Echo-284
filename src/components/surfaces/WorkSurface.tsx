@@ -105,9 +105,13 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </span>
         </header>
 
+        {/* The state of work comes before the directory of desks. */}
+        {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
+
         <ResumeWorkSection onNavigate={onNavigate} />
 
         <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
+
 
 
         {error ? (
