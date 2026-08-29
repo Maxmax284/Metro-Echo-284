@@ -40,6 +40,15 @@ import { useAskContext } from "@/hooks/useAskContext";
 import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
 import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
 import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
+import { DictateButton } from "@/components/ui/dictate-button";
+
+// Common revision asks, so the box never starts from a blank page.
+const REVISION_PRESETS = [
+  "Tighten section 3.",
+  "Add a confidentiality clause.",
+  "Make the payment terms clearer.",
+  "Shorten the closing.",
+] as const;
 
 interface Props {
   documentId: string | null;
@@ -217,7 +226,10 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
           : "Revision failed. Try again.",
         );
       } else {
-        toast.success("Draft updated.");
+        const next = await getLatestVersion(documentId);
+        toast.success(
+          next ? `Draft updated — now version ${next.version_no}.` : "Draft updated.",
+        );
         setRevisionText("");
       }
       await refresh();
@@ -641,15 +653,58 @@ function DraftBody({
             onChange={(e) => setRevisionText(e.target.value)}
             placeholder="What should change? (e.g. tighten section 3, add a confidentiality clause)"
             className="min-h-[80px] w-full rounded-md border border-border/60 bg-background p-2.5 text-sm"
+            aria-label="Describe the revision"
           />
-          <Button size="sm" onClick={onRevise} disabled={!!busy} className="gap-1.5">
+          {/* Speak it instead of typing it. Dictation only fills the box —
+              the revision still runs on the button below. */}
+          <div className="flex flex-wrap items-start gap-2">
+            <DictateButton
+              value={revisionText}
+              onChange={setRevisionText}
+              label="Speak the change"
+              disabled={!!busy}
+            />
+            {revisionText.trim() ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8 px-2 text-xs text-muted-foreground"
+                onClick={() => setRevisionText("")}
+                disabled={!!busy}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
+          {REVISION_PRESETS.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {REVISION_PRESETS.map((preset) => (
+                <Button
+                  key={preset}
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-[11px]"
+                  onClick={() =>
+                    setRevisionText(revisionText.trim() ? `${revisionText.trim()} ${preset}` : preset)
+                  }
+                  disabled={!!busy}
+                >
+                  {preset}
+                </Button>
+              ))}
+            </div>
+          )}
+          <Button size="sm" onClick={onRevise} disabled={!!busy || !revisionText.trim()} className="gap-1.5">
             {busy === "revise"
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : <Sparkles className="h-3.5 w-3.5" />}
             Apply revision
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Vanta will rewrite the whole draft preserving every section you didn't ask to change.
+            Vanta rewrites the whole draft, preserving every section you didn't ask to change.
+            {version ? ` This becomes version ${version.version_no + 1} — version ${version.version_no} stays readable in Receipts.` : ""}
           </p>
         </Section>
       )}
