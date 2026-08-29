@@ -177,11 +177,14 @@ export function SherlockFindingCard({
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={busy} onClick={doDismiss}>
             <X className="mr-1 h-3 w-3" /> Dismiss
           </Button>
-          {onInspect && !finding.sensitive_flag && (
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onInspect(finding)}>
-              <Eye className="mr-1 h-3 w-3" /> Inspect
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={() => (onInspect ? onInspect(finding) : setEvidenceOpen(true))}
+          >
+            <Eye className="mr-1 h-3 w-3" /> Show me why
+          </Button>
           {!finding.sensitive_flag && (
             <AskAboutButton
               kind="sherlock"
@@ -196,6 +199,13 @@ export function SherlockFindingCard({
             itemLabel={finding.summary?.slice(0, 80)}
           />
         </div>
+
+        {/* Teach it. A verdict is a signal — it never accepts or dismisses. */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <FindingFeedback finding={finding} cooldownDays={cooldownDays} onChanged={onChanged} />
+        </div>
+
+        {!hideDetails && <WhyThisTriggered finding={finding} />}
         <AftermathFooter
           next={{
             label: onInspect ? "Review in Sherlock" : "Open this finding",
