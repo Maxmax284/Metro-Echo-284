@@ -45,6 +45,17 @@ export function FirstRunWalkthrough() {
             <p id="tutorial-body" className="text-[13.5px] leading-relaxed text-foreground/85">
               {slide.body}
             </p>
+            {isLast && (
+              <label className="flex cursor-pointer items-start gap-2 rounded-[2px] border border-border/50 bg-surface-elevated/40 p-2.5">
+                <Checkbox
+                  checked={oriented}
+                  onCheckedChange={(v) => setOriented(v === true)}
+                  aria-label={ORIENTED_CHECK}
+                  className="mt-[1px]"
+                />
+                <span className="text-[12.5px] leading-snug text-foreground/85">{ORIENTED_CHECK}</span>
+              </label>
+            )}
           </div>
 
           {/* Dots */}
@@ -84,9 +95,10 @@ export function FirstRunWalkthrough() {
               <Button
                 size="sm"
                 className="h-8 text-[12px]"
+                disabled={!oriented}
                 onClick={() => closeTutorial(true)}
               >
-                Got it
+                I&rsquo;m oriented
               </Button>
             )}
           </div>
