@@ -56,6 +56,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "\u201CLamai rollout\u201D holds the notes, promises and files for that job.",
     useWhen: "Use this when you have a job that will take more than one message.",
     emptyWhy: "No projects yet. Start one and captures can be attached to it.",
+    options: ["Start a project", "Attach notes and promises to it", "Read its brief"],
+    onStart: "Opens the Projects desk. Nothing is created until you name a project.",
+    actions: ["Start a project", "Open the newest job"],
+    emptyAction: "Start your first project",
   },
   inbox: {
     label: "Inbox",
@@ -65,6 +69,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "A forwarded quote sits here until you file it.",
     useWhen: "Use this when something arrived and you have not decided where it goes yet.",
     emptyWhy: "Inbox is clear. New captures, forwarded mail and Telegram notes land here.",
+    options: ["File it to a project", "Turn it into a promise", "Keep it as a note", "Discard it"],
+    onStart: "Opens the Inbox. Nothing is filed until you pick a destination.",
+    actions: ["Route what arrived", "Read the oldest one"],
+    emptyAction: "See how things get in",
   },
   commitments: {
     label: "Commitments",
@@ -74,6 +82,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "\u201CSend Nikki the schedule by Friday.\u201D",
     useWhen: "Use this when somebody is expecting something by a date.",
     emptyWhy: "No open promises. Record one, or Vanta adds it when it spots one in a capture.",
+    options: ["Record a promise", "Mark one done", "Move the date", "Hand it to someone else"],
+    onStart: "Opens Commitments. Closing a promise writes a receipt \u2014 nothing else changes.",
+    actions: ["Record a promise", "Check what is due"],
+    emptyAction: "Record your first promise",
   },
   actions: {
     label: "Actions",
@@ -83,6 +95,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "A drafted reminder message, waiting on your yes.",
     useWhen: "Use this when Vanta has prepared a step and you want to check it before it runs.",
     emptyWhy: "Nothing waiting on your approval. Drafts appear here before anything runs.",
+    options: ["Read the draft in full", "Approve it", "Discard it", "Send it back for a change"],
+    onStart: "Opens Actions. Opening a draft never runs it \u2014 approval is a separate tap.",
+    actions: ["Review what is waiting", "Read the newest draft"],
+    emptyAction: "See where drafts come from",
   },
   briefs: {
     label: "Briefs",
@@ -92,6 +108,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "A one-page catch-up on the Lamai rollout for a partner.",
     useWhen: "Use this when you need to tell someone else where things stand.",
     emptyWhy: "No briefs yet. Compose one from a project or a day.",
+    options: ["Compose a brief", "Read an old one", "Export it as PDF or Word"],
+    onStart: "Opens Briefs. Nothing leaves Vanta until you export it yourself.",
+    actions: ["Compose a brief", "Read the last one"],
+    emptyAction: "Compose your first brief",
   },
   documents: {
     label: "Documents",
@@ -101,6 +121,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "A coaching agreement Vanta checks for missing terms.",
     useWhen: "Use this when the thing you need is an actual document, not a note.",
     emptyWhy: "No documents yet. Upload one for review or ask Vanta to draft one.",
+    options: ["Upload one for review", "Ask for a draft", "Revise a draft", "Export it"],
+    onStart: "Opens Documents. Drafts stay drafts until you export them.",
+    actions: ["Draft a document", "Upload one for review"],
+    emptyAction: "Draft your first document",
   },
   memory: {
     label: "Memory",
@@ -110,6 +134,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "Find every mention of \u201Cinsurance\u201D from the last three months.",
     useWhen: "Use this when you half-remember something and need the source.",
     emptyWhy: "Nothing to search yet. Memory reads whatever the other desks hold.",
+    options: ["Search a name or phrase", "Follow a result to its source", "Attach a result to a project"],
+    onStart: "Opens Memory. It only reads \u2014 searching changes nothing.",
+    actions: ["Search everything", "Browse recent notes"],
+    emptyAction: "Capture something first",
   },
   schedule: {
     label: "Schedule",
@@ -119,6 +147,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "Two meetings, one promise due, one gap at 3pm.",
     useWhen: "Use this when you want to know if the day has room before saying yes.",
     emptyWhy: "Nothing dated yet. Connect a calendar or add a dated promise.",
+    options: ["Read the day or week", "Connect a calendar", "Check what changed since last sync"],
+    onStart: "Opens Schedule. Calendars are read-only \u2014 Vanta never writes back.",
+    actions: ["Read the day", "Check what changed"],
+    emptyAction: "Connect a calendar",
   },
   sherlock: {
     label: "Sherlock",
@@ -128,6 +160,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "\u201CThree promises to the same person all slipped.\u201D",
     useWhen: "Use this when something feels off and you want it checked.",
     emptyWhy: "No findings. Sherlock only speaks when it has evidence.",
+    options: ["Read a finding", "See the evidence behind it", "Say helpful or not right", "Accept the link"],
+    onStart: "Opens Sherlock. Findings are suggestions until you accept one.",
+    actions: ["Read the findings", "See this week's digest"],
+    emptyAction: "See what Sherlock watches for",
   },
   awareness: {
     label: "Awareness",
@@ -137,6 +173,10 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "Late night, at home, phone \u2014 so it holds the non-urgent nudges.",
     useWhen: "Use this when you want to know why Vanta is being quiet or loud.",
     emptyWhy: "No signals yet. Awareness fills in as you use Vanta.",
+    options: ["See what Vanta is reading", "Turn a signal off", "Read why a notice appeared"],
+    onStart: "Opens Awareness. Notices here are drafts \u2014 acting on one opens the real desk.",
+    actions: ["See what Vanta reads", "Read recent notices"],
+    emptyAction: "Choose what Vanta may read",
   },
   command: {
     label: "Cockpit",
@@ -146,8 +186,13 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     example: "Full day audit in a single pass.",
     useWhen: "Use this when you want the whole day in one pass.",
     emptyWhy: "Nothing to show yet. Cockpit reformats what the other desks hold.",
+    options: ["Scan every desk at once", "Jump from any row to its desk"],
+    onStart: "Opens Cockpit. Same records as the other desks, tighter layout.",
+    actions: ["See everything at once"],
+    emptyAction: "Fill a desk first",
   },
 };
+
 
 /** The short hint used on desk tiles: what lands here, in a few words. */
 export const DESK_TILE_HINT: Record<DeskKey, string> = {
