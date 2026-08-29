@@ -18,7 +18,9 @@ import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { SherlockFindingCard } from "@/components/sherlock/SherlockFindingCard";
 import { SherlockSettingsPanel } from "@/components/sherlock/SherlockSettingsPanel";
-import { EmptyState } from "@/components/ui/state-views";
+import { EmptyState, LoadingState } from "@/components/ui/state-views";
+import { buildSherlockBriefing } from "@/lib/sherlockBriefing";
+import { SherlockBriefingPanel } from "@/components/sherlock/SherlockBriefing";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
