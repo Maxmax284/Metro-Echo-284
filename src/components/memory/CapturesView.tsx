@@ -31,6 +31,7 @@ import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProje
 import type { CrossKind } from "@/lib/crossLinks";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { aftermathLine } from "@/lib/vantaNouns";
+import { FirstRunCapture } from "./FirstRunCapture";
 
 type InboxLane = "now" | "snoozed" | "done";
 
