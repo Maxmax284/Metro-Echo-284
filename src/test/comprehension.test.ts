@@ -283,7 +283,31 @@ describe("desk roles", () => {
       expect(DESK_ROLES[k as keyof typeof DESK_ROLES]).toBeTruthy();
     }
   });
+
+  it("tells every desk's options, on-start truth and at least one quick action", () => {
+    const keys = Object.keys(DESK_ROLES) as (keyof typeof DESK_ROLES)[];
+    for (const k of keys) {
+      const r = DESK_ROLES[k];
+      expect(r.options.length).toBeGreaterThan(1);
+      for (const o of r.options) expect(o.trim().length).toBeGreaterThan(4);
+      expect(r.onStart.trim().length).toBeGreaterThan(15);
+      expect(r.onStart.endsWith(".")).toBe(true);
+      expect(r.actions.length).toBeGreaterThan(0);
+      expect(r.emptyAction.trim().length).toBeGreaterThan(4);
+      for (const a of [...r.actions, r.emptyAction]) expect(a.length).toBeLessThan(30);
+    }
+  });
+
+  it("never labels a quick action as if it executes something", () => {
+    // A tile tap only opens a desk. Nothing on a tile may promise to run,
+    // send, approve, execute or delete.
+    const forbidden = /\b(execute|run it|send it|approve|delete|publish)\b/i;
+    for (const r of Object.values(DESK_ROLES)) {
+      for (const a of [...r.actions, r.emptyAction]) expect(forbidden.test(a)).toBe(false);
+    }
+  });
 });
+
 
 describe("glossary", () => {
   it("defines every canonical noun in plain English", () => {

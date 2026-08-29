@@ -46,15 +46,51 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { DeskStartHere } from "@/components/work/DeskStartHere";
+import { DeskQuickActions } from "@/components/work/DeskQuickActions";
+import { WorkFlowDemo } from "@/components/work/WorkFlowDemo";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { PlayCircle } from "lucide-react";
 
 
 
 
 type Counts = { inbox: number; commitments: number; actions: number };
+
+/**
+ * The next step worth taking at a desk, derived only from counts this room has
+ * already loaded. Returns null rather than inventing a step.
+ */
+function recommendedStep(
+  deskKey: DeskKey,
+  counts: Counts,
+  projectCount: number,
+): string | null {
+  switch (deskKey) {
+    case "inbox":
+      return counts.inbox > 0
+        ? `Route the ${counts.inbox === 1 ? "one arrival" : `${counts.inbox} arrivals`} sitting unsorted.`
+        : "Nothing to sort. Capture something and it lands here.";
+    case "actions":
+      return counts.actions > 0
+        ? `Review the ${counts.actions === 1 ? "draft" : `${counts.actions} drafts`} waiting on your approval.`
+        : "No drafts waiting. Nothing can run without your approval anyway.";
+    case "commitments":
+      return counts.commitments > 0
+        ? `Check the ${counts.commitments === 1 ? "one open promise" : `${counts.commitments} open promises`} and close what is done.`
+        : "No open promises. Record one when somebody is expecting something.";
+    case "projects":
+      return projectCount > 0
+        ? "Open the job you touched last and see what is attached to it."
+        : "Start your first project, then attach what you capture to it.";
+    default:
+      return null;
+  }
+}
+
 
 /**
  * Work — the operational room. It orients you and hands off to the specialist
@@ -103,6 +139,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  /* Storyboard only. It writes nothing, so it can be replayed at any time. */
+  const [demoOpen, setDemoOpen] = useState(false);
+  const hasIntake = projects.length > 0 || counts.inbox > 0 || counts.commitments > 0;
+
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
       <div className={cn("mx-auto max-w-3xl space-y-3", MOTION_BOOT)}>
@@ -110,10 +150,25 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <Briefcase className="h-4 w-4 text-primary" />
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
           <span className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className={cn(
+                "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2",
+                "text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground",
+                MOTION_FOCUS,
+              )}
+            >
+              <PlayCircle className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              See how Work flows
+            </button>
             <SyncStamp at={lastRead} timezone={timezone} />
             <ExplainThisButton room="work" />
           </span>
         </header>
+
+        <WorkFlowDemo open={demoOpen} onOpenChange={setDemoOpen} />
+
 
         {/* Three tiers, always in the same order, always labelled: where
             things stand, where work lands, where Vanta looks. The state of
@@ -210,33 +265,43 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <section className="vanta-card p-3" aria-label="Where work lands">
           <SectionRail label="Desks" icon={<FolderKanban className="h-3.5 w-3.5" />} />
           <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} onOpen={() => onNavigate("projects")} />
-            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+          <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
+            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
+            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
+            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} recommended={recommendedStep("actions", counts, projects.length)} onOpen={() => onNavigate("actions")} />
             <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
             <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
             <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
           </div>
         </section>
 
-        <TierHeading
-          n={3}
-          title="Where Vanta looks"
-          line="Reading rooms. Vanta reads these and drafts suggestions — nothing here acts on its own."
-        />
-
-        <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Where Vanta looks">
-          <SectionRail label="Reading rooms" icon={<Search className="h-3.5 w-3.5" />} />
+        {/* Reading rooms fold, but they stop hiding the moment intake starts:
+            once anything has arrived, these desks have something to read, so
+            the shelf opens itself unless you closed it yourself. The fold is a
+            visible control with a count, never a mystery. */}
+        <CollapsibleSection
+          key={hasIntake ? "looks-live" : "looks-quiet"}
+          title="Reading rooms"
+          storageKey="work.looks"
+          icon={<Search className="h-3.5 w-3.5" />}
+          reading="4"
+          defaultOpen={hasIntake}
+          summary="Show reading rooms — 4 places Vanta reads on your behalf."
+          className="border-dashed"
+        >
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            These read what you already captured and draft suggestions. Nothing here acts on its own.
+          </p>
           <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
             <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
-        </section>
+        </CollapsibleSection>
+
 
         <SurfaceAftermath surface="work" />
       </div>
@@ -266,6 +331,7 @@ function Desk({
   count,
   onOpen,
   href,
+  recommended,
 }: {
   deskKey: DeskKey;
   label: string;
@@ -273,6 +339,8 @@ function Desk({
   count?: number;
   onOpen?: () => void;
   href?: string;
+  /** Truthful next step, derived from counts this room already loaded. */
+  recommended?: string | null;
 }) {
   /* Long press on touch reveals the desk's explanation. It never navigates and
      never executes — and the tap that ends the hold is swallowed so the tile
@@ -285,12 +353,22 @@ function Desk({
      empty instead of showing a bare zero. Nothing here reads new data. */
   const isEmpty = typeof count === "number" && count === 0;
 
+  /* Both shapes of tile open the same place, so the quick actions below can
+     share one handler without knowing which shape it sits under. */
+  const open = () => {
+    if (href) {
+      window.location.href = href;
+      return;
+    }
+    onOpen?.();
+  };
+
   const body = (
     <>
       <Icon className="mt-[2px] h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">
+        <span className="block text-[11px] leading-snug text-muted-foreground">
           {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
         </span>
         <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/70">
@@ -305,7 +383,7 @@ function Desk({
     </>
   );
   const className = cn(
-    "flex min-h-[44px] flex-1 items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] w-full items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
     /* A hold must not also select the label text on touch. */
     "select-none touch-manipulation",
     MOTION_ROW,
@@ -314,43 +392,55 @@ function Desk({
   );
 
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      {href ? (
-        <a
-          href={href}
-          className={className}
-          title={role.useWhen}
-          aria-describedby={undefined}
-          {...longPress.handlers}
-          onClick={(e) => {
-            if (longPress.shouldSuppressClick()) {
-              e.preventDefault();
-              return;
-            }
-            markFlipOriginFromEvent(e);
-          }}
-        >
-          {body}
-        </a>
-      ) : (
-        <button
-          className={className}
-          title={role.useWhen}
-          {...longPress.handlers}
-          onClick={(e) => {
-            if (longPress.shouldSuppressClick()) {
-              e.preventDefault();
-              return;
-            }
-            markFlipOriginFromEvent(e);
-            onOpen?.();
-          }}
-        >
-          {body}
-        </button>
-      )}
-      <DeskStartHere deskKey={deskKey} />
-      <DeskInfo deskKey={deskKey} open={infoOpen} onOpenChange={setInfoOpen} />
+    <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 items-start gap-1">
+        {href ? (
+          <a
+            href={href}
+            className={className}
+            title={role.useWhen}
+            aria-describedby={undefined}
+            {...longPress.handlers}
+            onClick={(e) => {
+              if (longPress.shouldSuppressClick()) {
+                e.preventDefault();
+                return;
+              }
+              markFlipOriginFromEvent(e);
+            }}
+          >
+            {body}
+          </a>
+        ) : (
+          <button
+            className={className}
+            title={role.useWhen}
+            {...longPress.handlers}
+            onClick={(e) => {
+              if (longPress.shouldSuppressClick()) {
+                e.preventDefault();
+                return;
+              }
+              markFlipOriginFromEvent(e);
+              onOpen?.();
+            }}
+          >
+            {body}
+          </button>
+        )}
+        <div className="flex shrink-0 flex-col items-center">
+          <DeskStartHere deskKey={deskKey} />
+          <DeskInfo
+            deskKey={deskKey}
+            open={infoOpen}
+            onOpenChange={setInfoOpen}
+            recommended={recommended}
+          />
+        </div>
+      </div>
+      {/* Do this: verb-first taps that only open the desk. */}
+      <DeskQuickActions deskKey={deskKey} count={count} onOpen={open} className="pl-1" />
     </div>
   );
+
 }
