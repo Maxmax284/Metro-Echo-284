@@ -45,6 +45,7 @@ import {
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
+import { DeskStartHere } from "@/components/work/DeskStartHere";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
@@ -348,6 +349,7 @@ function Desk({
           {body}
         </button>
       )}
+      <DeskStartHere deskKey={deskKey} />
       <DeskInfo deskKey={deskKey} open={infoOpen} onOpenChange={setInfoOpen} />
     </div>
   );

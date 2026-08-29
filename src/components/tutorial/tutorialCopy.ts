@@ -80,3 +80,27 @@ export const WHAT_IS_THIS: Record<string, string> = {
   project_health:
     "Health is derived from open items, overdue work, and recent activity. It always comes with a one-line reason.",
 };
+
+/**
+ * Which orientation slide explains a given Work desk. Tier 2 desks (where work
+ * lands) point at the tier-2 slide; reading rooms point at tier 3. Used by the
+ * "Start from here" control on each desk card.
+ */
+export const DESK_SLIDE_INDEX: Record<string, number> = {
+  projects: 6,
+  inbox: 6,
+  commitments: 6,
+  actions: 6,
+  briefs: 6,
+  documents: 6,
+  schedule: 6,
+  memory: 7,
+  sherlock: 7,
+  awareness: 7,
+  command: 7,
+};
+
+/** Slide index for a desk, defaulting to the Work room slide. */
+export function slideForDesk(deskKey: string): number {
+  return DESK_SLIDE_INDEX[deskKey] ?? 2;
+}
