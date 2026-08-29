@@ -158,10 +158,15 @@ export function ActionsSurface() {
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
         {loading && <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>}
         {!loading && actions.length === 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            Nothing here yet. Drafts show up when Vanta proposes something.
+          <div className="py-10 text-center text-sm leading-relaxed text-muted-foreground">
+            Nothing waiting on you.
+            <span className="mt-1 block text-xs">
+              When something you capture implies a step, Vanta drafts it here and waits. Nothing runs
+              until you approve it.
+            </span>
           </div>
         )}
+
         {!loading && Object.entries(groups).map(([label, list]) =>
           list.length === 0 ? null : (
             <section key={label} className="mb-6">

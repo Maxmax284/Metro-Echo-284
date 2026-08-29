@@ -239,11 +239,12 @@ export default function DocumentsPage() {
       ) : filtered.length === 0 ? (
         <Card className="border-dashed border-border/60 p-8 text-center">
           <FileText className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground">
             {docs.length === 0
-              ? "No documents yet. Tap New document to draft one, or drop a file into a project to review it."
+              ? "Documents you save for deeper review appear here. Tap New document to draft one, or drop a file into a project and Vanta will read it."
               : "Nothing matches. Try a different filter."}
           </p>
+
         </Card>
       ) : (
         <ul className="space-y-2">
