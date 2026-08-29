@@ -18,7 +18,9 @@ import { StatusDot, confidenceTone } from "@/components/ui/status-dot";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { SherlockFindingCard } from "@/components/sherlock/SherlockFindingCard";
 import { SherlockSettingsPanel } from "@/components/sherlock/SherlockSettingsPanel";
-import { EmptyState } from "@/components/ui/state-views";
+import { EmptyState, LoadingState } from "@/components/ui/state-views";
+import { buildSherlockBriefing } from "@/lib/sherlockBriefing";
+import { SherlockBriefingPanel } from "@/components/sherlock/SherlockBriefing";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
@@ -67,13 +69,15 @@ export function SherlockSurface() {
   const { applyScope, orgId, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
 
-  const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
+  const { items: pending, loading: pendingLoading, refresh: refreshPending } = useSherlockPending({ limit: 25 });
 
   const [scope, setScope] = useState<ScopeId>("all");
   const [question, setQuestion] = useState("");
   const [running, setRunning] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [lastScanAt, setLastScanAt] = useState<string | null>(null);
 
-  const [investigations, setInvestigations] = useState<Investigation[]>([]);
+  const [investigations, setInvestigations] = useState<Investigation[] | null>(null);
   const [findingsByInv, setFindingsByInv] = useState<Record<string, Finding[]>>({});
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -81,14 +85,48 @@ export function SherlockSurface() {
   const cancelRef = useRef(false);
   const [justFinishedId, setJustFinishedId] = useState<string | null>(null);
 
+  // The room opens with where things stand, not with the console.
+  const briefing = useMemo(
+    () => buildSherlockBriefing({ pending, lastScanAt }),
+    [pending, lastScanAt],
+  );
+
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase
+    // Scope isolation: an investigation belongs to the room it was run in.
+    const { data } = await applyScope(supabase
       .from("investigations")
-      .select("id, question, status, summary, created_at")
+      .select("id, question, status, summary, created_at"))
       .order("created_at", { ascending: false })
       .limit(30);
     setInvestigations((data ?? []) as Investigation[]);
+  };
+
+  const loadLastScan = async () => {
+    if (!user) return;
+    const { data } = await applyScope(supabase
+      .from("audit_log")
+      .select("created_at")
+      .eq("event", "sherlock_patterns_scanned"))
+      .order("created_at", { ascending: false })
+      .limit(1);
+    setLastScanAt((data ?? [])[0]?.created_at ?? null);
+  };
+
+  const runScan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sherlock-patterns", {});
+      if (error) throw error;
+      toast.success(vantaSay.sherlock.scanComplete(data?.written ?? 0));
+      refreshPending();
+      void loadLastScan();
+    } catch (e) {
+      toast.fromError(e, vantaSay.sherlockFailed());
+    } finally {
+      setScanning(false);
+    }
   };
 
   const loadTargets = async () => {
@@ -108,7 +146,7 @@ export function SherlockSurface() {
     setTargets(t);
   };
 
-  useEffect(() => { load(); loadTargets(); }, [user, scopeKey]);
+  useEffect(() => { load(); loadTargets(); loadLastScan(); }, [user, scopeKey]);
 
   const loadFindings = async (id: string) => {
     if (findingsByInv[id]) return;
@@ -180,20 +218,31 @@ export function SherlockSurface() {
               </span>
             </div>
             <span className="text-[10.5px] text-muted-foreground">
-              {investigations.length} investigation{investigations.length === 1 ? "" : "s"}
+              {(investigations?.length ?? 0)} investigation{(investigations?.length ?? 0) === 1 ? "" : "s"}
             </span>
           </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Sherlock reads only what you have already saved in this room. It suggests; it never files,
+            links or runs anything on its own.
+          </p>
+        </header>
+
+        {/* Where things stand, before any console. */}
+        <SherlockBriefingPanel
+          briefing={briefing}
+          lastScanAt={lastScanAt}
+          scanning={scanning}
+          onScan={runScan}
+          onChanged={refreshPending}
+        />
+
+        <div className="vanta-card p-3 space-y-3">
           <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-              <StatusDot tone="primary" /> scope: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
+              <StatusDot tone="primary" /> looking at: <strong className="text-foreground/80">{SCOPES.find((x) => x.id === scope)!.label}</strong>
             </span>
             <span className="text-muted-foreground/70">{SCOPES.find((x) => x.id === scope)!.hint}</span>
           </div>
-        </header>
-
-        <SherlockSettingsPanel />
-
-        <Card className="p-3 space-y-3">
           {/* Scope chips */}
           <div className="flex flex-wrap gap-1.5">
             {SCOPES.map((s) => (
@@ -256,32 +305,22 @@ export function SherlockSurface() {
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Pending suggestions queue — Sherlock 3 durable findings */}
+        {/* The waiting queue. "Look again" lives in the briefing — one button, one job. */}
         <div>
           <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>Pending suggestions{pending.length > 0 ? ` · ${pending.length}` : ""}</span>
-            <button
-              onClick={async () => {
-                try {
-                  const { data, error } = await supabase.functions.invoke("sherlock-patterns", {});
-                  if (error) throw error;
-                  toast.success(vantaSay.sherlock.scanComplete(data?.written ?? 0));
-                  refreshPending();
-                } catch (e) {
-                  toast.fromError(e, vantaSay.sherlockFailed());
-                }
-              }}
-              className="rounded-full bg-surface-elevated/60 px-2 py-0.5 text-[10px] normal-case tracking-normal text-foreground/80 ring-1 ring-border/60 transition hover:bg-surface-elevated"
-            >
-              Scan for patterns
-            </button>
+            <span>Waiting on your read{pending.length > 0 ? ` · ${pending.length}` : ""}</span>
           </div>
-          {pending.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border/60 py-4 text-center text-[11px] text-muted-foreground">
-              Nothing waiting. Sherlock will surface things as they emerge.
-            </p>
+          {pendingLoading ? (
+            <LoadingState label="Reading what you have saved…" />
+          ) : pending.length === 0 ? (
+            <EmptyState
+              icon={<Radar className="h-4 w-4" />}
+              title="Nothing waiting"
+              hint="Findings land here when a pattern repeats across your notes, promises and files — or when you tap Analyze on a card. Sherlock never files one for you."
+              flow={["Saved", "Noticed", "Your call"]}
+            />
           ) : (
             <div className="space-y-1.5">
               {pending.slice(0, 8).map((f) => (
@@ -293,6 +332,8 @@ export function SherlockSurface() {
             </div>
           )}
         </div>
+
+        <SherlockSettingsPanel />
 
         {/* Target cards — tap to seed */}
         {targets.length > 0 && (
@@ -322,23 +363,24 @@ export function SherlockSurface() {
         )}
 
         <div className="space-y-2">
-          {investigations.length === 0 && (
+          {investigations === null && <LoadingState label="Opening the case file…" />}
+          {investigations !== null && investigations.length === 0 && (
             <EmptyState
               icon={<Radar className="h-4 w-4" />}
               title="No investigations in this room"
-              hint="An investigation starts when you ask a question above, or tap a target on a note, action or document. Findings stay here with their receipts."
+              hint="An investigation starts when you ask a question above, or tap Analyze on a note, action or document. Answers stay here with the records they came from."
               flow={["Target", "Investigate", "Findings"]}
             />
           )}
-          {investigations.map((inv) => {
+          {(investigations ?? []).map((inv) => {
             const isOpen = openId === inv.id;
             const findings = findingsByInv[inv.id] ?? [];
             const isJustFinished = justFinishedId === inv.id;
             return (
-              <Card
+              <div
                 key={inv.id}
                 className={cn(
-                  "p-3 space-y-2 transition-shadow",
+                  "vanta-card p-3 space-y-2 transition-shadow",
                   isJustFinished && "ring-1 ring-primary/50 shadow-[0_0_0_3px_hsl(var(--primary)/0.08)]",
                 )}
               >
@@ -417,13 +459,13 @@ export function SherlockSurface() {
                     )}
                   </div>
                 )}
-              </Card>
+              </div>
             );
           })}
         </div>
-      </div>
 
-      <SurfaceAftermath surface="sherlock" />
+        <SurfaceAftermath surface="sherlock" />
+      </div>
     </div>
   );
 }

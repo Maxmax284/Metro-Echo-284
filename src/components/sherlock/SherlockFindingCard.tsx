@@ -14,7 +14,7 @@ import { vantaSay, vantaToast } from "@/lib/vantaVoice";
 import { SherlockReviewModal } from "./SherlockReviewModal";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
-import { sherlockWhyFallback } from "@/lib/plainEnglish";
+import { sherlockWhyFallback, sherlockKindLabel } from "@/lib/plainEnglish";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
@@ -66,7 +66,9 @@ export function SherlockFindingCard({
     ? ((finding.extracted_data as any).sensitive_categories as string[])
     : [];
 
-  const modeLabel = MODE_LABEL[finding.mode] ?? finding.mode;
+  // The kind of noticing beats the mode word when the scanner named it.
+  const modeLabel =
+    sherlockKindLabel(finding.finding_type) ?? MODE_LABEL[finding.mode] ?? finding.mode;
   const created = finding.created_at ? formatDistanceToNow(new Date(finding.created_at), { addSuffix: true }) : "";
 
   async function runWithConfirm(fn: () => Promise<void>) {

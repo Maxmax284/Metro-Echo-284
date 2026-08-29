@@ -253,6 +253,28 @@ export function sherlockWhyFallback(f: {
   return `${f.mode.replace(/_/g, " ")} · ${c}`;
 }
 
+/**
+ * What kind of noticing this is, in words an operator uses. Keyed on the
+ * scanner's `finding_type` so a card never leads with a database word.
+ * Unknown types fall through to the mode label.
+ */
+const FINDING_KIND: Record<string, string> = {
+  stale_commitment: "Promise past due",
+  near_duplicate_note: "Looks like a duplicate",
+  recurring_entity: "Keeps coming up",
+  obligation_untracked: "Promise with nothing tracking it",
+  unapproved_high_risk: "Risk still open",
+  meeting_without_context: "Meeting with nothing behind it",
+  promise_collides_with_meeting: "Promise clashes with a meeting",
+  entity_gone_quiet: "Went quiet",
+  notes_disagree: "Two notes disagree",
+};
+
+export function sherlockKindLabel(findingType: string | null | undefined): string | null {
+  if (!findingType) return null;
+  return FINDING_KIND[findingType] ?? null;
+}
+
 /** Plain-English title for Sherlock findings — avoids leading with the name. */
 export function sherlockTitle(f: { mode: string; summary?: string | null }): string {
   switch (f.mode) {
