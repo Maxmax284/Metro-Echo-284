@@ -139,6 +139,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  /* Storyboard only. It writes nothing, so it can be replayed at any time. */
+  const [demoOpen, setDemoOpen] = useState(false);
+  const hasIntake = projects.length > 0 || counts.inbox > 0 || counts.commitments > 0;
+
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
       <div className={cn("mx-auto max-w-3xl space-y-3", MOTION_BOOT)}>
@@ -146,10 +150,25 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <Briefcase className="h-4 w-4 text-primary" />
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
           <span className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setDemoOpen(true)}
+              className={cn(
+                "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2",
+                "text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground",
+                MOTION_FOCUS,
+              )}
+            >
+              <PlayCircle className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              See how Work flows
+            </button>
             <SyncStamp at={lastRead} timezone={timezone} />
             <ExplainThisButton room="work" />
           </span>
         </header>
+
+        <WorkFlowDemo open={demoOpen} onOpenChange={setDemoOpen} />
+
 
         {/* Three tiers, always in the same order, always labelled: where
             things stand, where work lands, where Vanta looks. The state of
