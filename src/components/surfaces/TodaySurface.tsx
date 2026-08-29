@@ -11,6 +11,7 @@ import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
+import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
@@ -340,6 +341,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       {/* One companion across bodies. Quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
+      <TodayDigestLine onNavigate={onNavigate as never} />
 
       <AskVantaBar />
 

@@ -16,6 +16,9 @@ import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { sherlockWhyFallback, sherlockKindLabel } from "@/lib/plainEnglish";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
+import { FindingFeedback } from "./FindingFeedback";
+import { WhyThisTriggered } from "./WhyThisTriggered";
+import { SherlockEvidenceDrawer } from "./SherlockEvidenceDrawer";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
 // "Detected by Sherlock" appears as a small trailing label elsewhere.
@@ -52,6 +55,7 @@ export function SherlockFindingCard({
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
 
   const needsConfirm = useMemo(
     () => finding.sensitive_flag || (finding.suggested_action && HIGH_IMPACT_ACTIONS.has(finding.suggested_action)),
@@ -177,11 +181,14 @@ export function SherlockFindingCard({
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={busy} onClick={doDismiss}>
             <X className="mr-1 h-3 w-3" /> Dismiss
           </Button>
-          {onInspect && !finding.sensitive_flag && (
-            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onInspect(finding)}>
-              <Eye className="mr-1 h-3 w-3" /> Inspect
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-xs"
+            onClick={() => (onInspect ? onInspect(finding) : setEvidenceOpen(true))}
+          >
+            <Eye className="mr-1 h-3 w-3" /> Show me why
+          </Button>
           {!finding.sensitive_flag && (
             <AskAboutButton
               kind="sherlock"
@@ -196,15 +203,22 @@ export function SherlockFindingCard({
             itemLabel={finding.summary?.slice(0, 80)}
           />
         </div>
+
+        {/* Teach it. A verdict is a signal — it never accepts or dismisses. */}
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <FindingFeedback finding={finding} cooldownDays={cooldownDays} onChanged={onChanged} />
+        </div>
+
+        {!hideDetails && <WhyThisTriggered finding={finding} />}
         <AftermathFooter
           next={{
-            label: onInspect ? "Review in Sherlock" : "Open this finding",
-            onClick: () => { if (onInspect) onInspect(finding); else setConfirming(true); },
+            label: onInspect ? "Review in Sherlock" : "See the items behind this",
+            onClick: () => { if (onInspect) onInspect(finding); else setEvidenceOpen(true); },
             hint: finding.sensitive_flag
               ? "Sensitive — review before anything is applied."
               : sherlockWhyFallback(finding),
           }}
-          whatHappensIfTap="Opens the review screen — nothing applies yet."
+          whatHappensIfTap="Opens the records this was read from — nothing applies."
         />
       </Card>
 
@@ -221,6 +235,12 @@ export function SherlockFindingCard({
             onChanged?.();
           } finally { setBusy(false); }
         }}
+      />
+
+      <SherlockEvidenceDrawer
+        finding={finding}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
       />
     </>
   );

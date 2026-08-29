@@ -21,6 +21,8 @@ import { SherlockSettingsPanel } from "@/components/sherlock/SherlockSettingsPan
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { buildSherlockBriefing } from "@/lib/sherlockBriefing";
 import { SherlockBriefingPanel } from "@/components/sherlock/SherlockBriefing";
+import { SherlockDigestCard } from "@/components/sherlock/SherlockDigestCard";
+import { SherlockDetectionPanel } from "@/components/sherlock/SherlockDetectionPanel";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
@@ -236,6 +238,9 @@ export function SherlockSurface() {
           onChanged={refreshPending}
         />
 
+        {/* The weekly read sits under the live briefing: what changed, not a status. */}
+        <SherlockDigestCard />
+
         <div className="vanta-card p-3 space-y-3">
           <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
@@ -333,6 +338,7 @@ export function SherlockSurface() {
           )}
         </div>
 
+        <SherlockDetectionPanel />
         <SherlockSettingsPanel />
 
         {/* Target cards — tap to seed */}
