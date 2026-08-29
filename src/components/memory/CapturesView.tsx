@@ -455,10 +455,15 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
-          <Inbox className="h-5 w-5 opacity-50" />
-          {emptyCopy}
-        </div>
+        // First run teaches the doors; a filtered-empty lane just reports the lane.
+        items.length === 0 && lane === "now" ? (
+          <FirstRunCapture />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
+            <Inbox className="h-5 w-5 opacity-50" />
+            {emptyCopy}
+          </div>
+        )
       )}
 
       <div className="space-y-2">
