@@ -265,7 +265,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <section className="vanta-card p-3" aria-label="Where work lands">
           <SectionRail label="Desks" icon={<FolderKanban className="h-3.5 w-3.5" />} />
           <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
             <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
             <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
@@ -294,7 +294,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             These read what you already captured and draft suggestions. Nothing here acts on its own.
           </p>
           <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
+          <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
