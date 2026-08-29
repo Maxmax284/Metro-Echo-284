@@ -7,7 +7,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useTutorial } from "./TutorialProvider";
 import { WALKTHROUGH_SLIDES, ORIENTED_CHECK } from "./tutorialCopy";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,16 @@ export function FirstRunWalkthrough() {
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Back
             </Button>
+            {step > 0 && !isLast && (
+              <Button
+                size="sm" variant="ghost"
+                className="h-8 gap-1 text-[12px] text-muted-foreground"
+                onClick={() => { setStep(0); setOriented(false); }}
+                aria-label="Restart onboarding from the first slide"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Start over
+              </Button>
+            )}
             {!isLast ? (
               <Button
                 size="sm"
