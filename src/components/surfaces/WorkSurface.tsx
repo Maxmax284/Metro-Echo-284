@@ -157,6 +157,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                     <li key={p.id}>
                       <a
                         href={`/projects/${p.id}`}
+                        onClick={() => void trace({ step: `opened ${p.title}`, label: p.title, surface: "projects", projectId: p.id })}
+
                         className={cn(
                           "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
                           MOTION_ROW,
@@ -187,46 +189,33 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </section>
         )}
 
-        {/* Desks, grouped by how often you touch them. Presentation only —
-            every destination is the same surface it always was. */}
-        <section className="vanta-card p-3" aria-label="Desks">
-          <SectionRail label="Desks" />
-          <SectionNote sectionKey="work.desks">{sectionNote("work.desks")}</SectionNote>
-
-          <div className="mt-3">
-            <MachineLabel className="text-foreground/60">Daily work</MachineLabel>
-            <SectionNote sectionKey="work.daily">{sectionNote("work.daily")}</SectionNote>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
-              <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
-              <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
-            </div>
+        {/* Two shelves instead of ten equal choices: where work lands, and
+            where Vanta looks. Presentation only — every route is unchanged. */}
+        <section className="vanta-card p-3" aria-label="Where work lands">
+          <SectionRail label="Where work lands" />
+          <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
+          <div className="mt-2.5 grid grid-cols-2 gap-2">
+            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} onOpen={() => onNavigate("projects")} />
+            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} onOpen={() => onNavigate("inbox")} />
+            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} onOpen={() => onNavigate("commitments")} />
+            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} onOpen={() => onNavigate("actions")} />
+            <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
+            <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
+            <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
           </div>
-
-          <div className="mt-3 border-t border-border/40 pt-3">
-            <MachineLabel className="text-foreground/60">Knowledge</MachineLabel>
-            <SectionNote sectionKey="work.knowledge">{sectionNote("work.knowledge")}</SectionNote>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
-              <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
-              <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
-            </div>
-          </div>
-
         </section>
 
-        {/* Deeper tools sit quieter on purpose: useful, not the main road. */}
-        <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Deeper tools">
-          <SectionRail label="Deeper tools" />
-          <SectionNote sectionKey="work.deeper">{sectionNote("work.deeper")}</SectionNote>
+        <section className="vanta-card border-dashed p-3 opacity-95" aria-label="Where Vanta looks">
+          <SectionRail label="Where Vanta looks" />
+          <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-2 gap-2">
-            <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
             <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
-
         </section>
+
 
       </div>
     </div>
