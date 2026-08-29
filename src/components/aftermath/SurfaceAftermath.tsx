@@ -16,7 +16,14 @@ export type AftermathSurfaceKey =
   | "audit"
   | "awareness"
   | "sherlock"
-  | "inbox";
+  | "inbox"
+  | "today"
+  | "work"
+  | "ask"
+  | "documents"
+  | "files"
+  | "workspace"
+  | "reconciliation";
 
 const LINE: Record<AftermathSurfaceKey, string> = {
   commitments:
@@ -38,6 +45,20 @@ const LINE: Record<AftermathSurfaceKey, string> = {
     "Findings are suggestions until you accept them · accepting files the link and writes a receipt",
   inbox:
     "Everything here waits as a draft · routing it makes it a note, a promise or an action",
+  today:
+    "Today only reads · every tap opens the real desk, and nothing runs without your approval",
+  work:
+    "Work is the map · desks hold the records, and every change you make writes a receipt",
+  ask:
+    "Ask can draft and suggest · saving sends it to a desk, and nothing executes from this room",
+  documents:
+    "Drafts stay drafts until you export · exports appear in Receipts with what went into them",
+  files:
+    "A file stays attached to its capture · routing it files a note or a promise, never an action",
+  workspace:
+    "Workspace changes affect who sees what · every membership change is written to Receipts",
+  reconciliation:
+    "This is a read-only comparison · nothing here is corrected automatically",
 };
 
 export function SurfaceAftermath({
