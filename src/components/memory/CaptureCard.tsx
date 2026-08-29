@@ -7,6 +7,7 @@ import { CardMeta } from "@/components/ui/card-meta";
 import { ProvenanceChip } from "@/components/ui/provenance";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 
 export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "note" | "unknown";
 
@@ -118,6 +119,15 @@ export function CaptureCard({ item, actions, footer }: { item: CaptureItem; acti
         </div>
       )}
       {footer}
+      {aftermath === false ? null : (
+        <AftermathHint
+          text={
+            typeof aftermath === "string"
+              ? aftermath
+              : "Still a draft · routing it makes it a note, a promise or an action"
+          }
+        />
+      )}
     </div>
   );
 }

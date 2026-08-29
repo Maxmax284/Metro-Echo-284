@@ -16,6 +16,7 @@ import { useFlipEntry } from "@/hooks/useFlipEntry";
 
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 
 export type TodaySectionKey = "now" | "today" | "changed" | "next";
 
@@ -201,7 +202,11 @@ export function TodaySectionSheet({
         </SheetHeader>
         {/* Content lands a beat after the panel, so the sheet reads as the
             tapped row expanding rather than a modal dropping in on top. */}
-        <div className={cn("mt-3 pb-6", MOTION_SHEET)}>{body()}</div>
+        <div className={cn("mt-3", MOTION_SHEET)}>{body()}</div>
+        <AftermathHint
+          className="pb-6"
+          text="This is a read-only list · opening a row takes you to its desk, where changes are made"
+        />
 
       </SheetContent>
     </Sheet>

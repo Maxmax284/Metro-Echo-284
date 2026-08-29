@@ -21,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 type Member = {
   id: string;
@@ -522,6 +523,7 @@ function WorkspaceCard({
         <p className="text-[10.5px] text-muted-foreground">
           Email invites are coming next. For now paste the user's id — find it in their profile or auth records.
         </p>
+        <SurfaceAftermath surface="workspace" />
       </div>
     </Card>
   );

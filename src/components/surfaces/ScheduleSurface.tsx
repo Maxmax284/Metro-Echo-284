@@ -15,6 +15,7 @@ import { MonthGrid } from "@/components/schedule/MonthGrid";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 type TabKey = "today" | "upcoming" | "week" | "month";
 
@@ -246,6 +247,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           </div>
         )}
 
+        <SurfaceAftermath surface="schedule" />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
 
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 
 export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { loading, live, dormant, changes, pin, dismiss, markFinished } = useContinuity();
@@ -83,6 +84,8 @@ export function ResumeWorkSection({ onNavigate }: { onNavigate: (k: SurfaceKey) 
           <div className="mt-2 space-y-1.5">{dormant.slice(0, 3).map(render)}</div>
         </div>
       ) : null}
+
+      <AftermathHint text="Opening one takes you to its desk · nothing is reopened or changed by looking" />
     </section>
   );
 }
