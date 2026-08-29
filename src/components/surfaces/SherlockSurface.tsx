@@ -305,32 +305,22 @@ export function SherlockSurface() {
               </Button>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Pending suggestions queue — Sherlock 3 durable findings */}
+        {/* The waiting queue. "Look again" lives in the briefing — one button, one job. */}
         <div>
           <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>Pending suggestions{pending.length > 0 ? ` · ${pending.length}` : ""}</span>
-            <button
-              onClick={async () => {
-                try {
-                  const { data, error } = await supabase.functions.invoke("sherlock-patterns", {});
-                  if (error) throw error;
-                  toast.success(vantaSay.sherlock.scanComplete(data?.written ?? 0));
-                  refreshPending();
-                } catch (e) {
-                  toast.fromError(e, vantaSay.sherlockFailed());
-                }
-              }}
-              className="rounded-full bg-surface-elevated/60 px-2 py-0.5 text-[10px] normal-case tracking-normal text-foreground/80 ring-1 ring-border/60 transition hover:bg-surface-elevated"
-            >
-              Scan for patterns
-            </button>
+            <span>Waiting on your read{pending.length > 0 ? ` · ${pending.length}` : ""}</span>
           </div>
-          {pending.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-border/60 py-4 text-center text-[11px] text-muted-foreground">
-              Nothing waiting. Sherlock will surface things as they emerge.
-            </p>
+          {pendingLoading ? (
+            <LoadingState label="Reading what you have saved…" />
+          ) : pending.length === 0 ? (
+            <EmptyState
+              icon={<Radar className="h-4 w-4" />}
+              title="Nothing waiting"
+              hint="Findings land here when a pattern repeats across your notes, promises and files — or when you tap Analyze on a card. Sherlock never files one for you."
+              flow={["Saved", "Noticed", "Your call"]}
+            />
           ) : (
             <div className="space-y-1.5">
               {pending.slice(0, 8).map((f) => (
@@ -342,6 +332,8 @@ export function SherlockSurface() {
             </div>
           )}
         </div>
+
+        <SherlockSettingsPanel />
 
         {/* Target cards — tap to seed */}
         {targets.length > 0 && (
