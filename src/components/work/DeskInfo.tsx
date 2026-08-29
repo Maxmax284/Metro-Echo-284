@@ -26,12 +26,18 @@ export function DeskInfo({
   className,
   open: controlledOpen,
   onOpenChange,
+  recommended,
 }: {
   deskKey: DeskKey;
   className?: string;
   /** Controlled mode, so a long press on the desk tile can open this panel. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * The next step worth taking, derived from counts the room already loaded.
+   * Omitted when there is nothing honest to recommend.
+   */
+  recommended?: string | null;
 }) {
   const role = DESK_ROLES[deskKey];
   const [uncontrolled, setUncontrolled] = useState(false);
@@ -52,6 +58,8 @@ export function DeskInfo({
     { term: "For example", detail: role.example },
     { term: "If it's empty", detail: role.emptyWhy },
   ];
+
+
 
 
   return (
