@@ -212,13 +212,13 @@ export function SherlockFindingCard({
         {!hideDetails && <WhyThisTriggered finding={finding} />}
         <AftermathFooter
           next={{
-            label: onInspect ? "Review in Sherlock" : "Open this finding",
-            onClick: () => { if (onInspect) onInspect(finding); else setConfirming(true); },
+            label: onInspect ? "Review in Sherlock" : "See the items behind this",
+            onClick: () => { if (onInspect) onInspect(finding); else setEvidenceOpen(true); },
             hint: finding.sensitive_flag
               ? "Sensitive — review before anything is applied."
               : sherlockWhyFallback(finding),
           }}
-          whatHappensIfTap="Opens the review screen — nothing applies yet."
+          whatHappensIfTap="Opens the records this was read from — nothing applies."
         />
       </Card>
 
