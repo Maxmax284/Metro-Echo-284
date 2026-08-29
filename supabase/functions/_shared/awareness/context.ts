@@ -76,7 +76,20 @@ export type VantaContext = {
   /** Records the current thread is grounded in. */
   sourceRefs?: { kind: string; id: string; label?: string }[];
   /** An approval waiting on the human. Never auto-resolved by a device switch. */
+  /** An approval waiting on the human. Never auto-resolved by a device switch. */
   pendingActionId?: string | null;
+
+  /**
+   * Cross-device resume anchor. Written when the user does something meaningful
+   * on one body so another body can say "you were here". Never an approval, and
+   * never enough on its own to change state.
+   */
+  lastStep?: string | null;
+  /** Human label for the project/object the last step touched. */
+  lastAnchorLabel?: string | null;
+  /** Where the last step happened, so the resume line can point back. */
+  lastAnchorSurface?: string | null;
+
 
   deviceClass?: DeviceClass;
   lastDeviceClass?: DeviceClass;
