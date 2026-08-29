@@ -301,6 +301,121 @@ async function runForUser(admin: any, userId: string, orgId: string | null) {
     }
   }
 
+  // ---- 7) A promise falls due while you are booked elsewhere.
+  // Read-only on both sides: the calendar is never written, the commitment is
+  // never moved. This only says the two collide.
+  const in7d = new Date(now.getTime() + 7 * 86400_000).toISOString();
+  const { data: dueSoon } = await scoped(admin
+    .from("commitments")
+    .select("id, summary, due_at")
+    .eq("user_id", userId), orgId)
+    .eq("status", "open")
+    .gte("due_at", now.toISOString())
+    .lte("due_at", in7d)
+    .limit(60);
+  if ((dueSoon ?? []).length > 0) {
+    const { data: week } = await scoped(admin
+      .from("calendar_events")
+      .select("id, title, starts_at, ends_at")
+      .eq("user_id", userId), orgId)
+      .gte("starts_at", now.toISOString())
+      .lte("starts_at", in7d)
+      .limit(200);
+    for (const c of dueSoon ?? []) {
+      const due = new Date(c.due_at).getTime();
+      const clash = (week ?? []).find((ev: any) => {
+        const s = new Date(ev.starts_at).getTime();
+        const e = ev.ends_at ? new Date(ev.ends_at).getTime() : s + 3600_000;
+        return due >= s && due <= e;
+      });
+      if (!clash) continue;
+      drafts.push({
+        source_object_type: "commitment",
+        source_object_id: c.id,
+        finding_type: "promise_collides_with_meeting",
+        summary: `"${truncate(c.summary, 45)}" comes due while you are in "${truncate(clash.title ?? "a meeting", 35)}"`,
+        rationale: `Due ${human(c.due_at)} · that slot is already booked on a calendar Vanta only reads.`,
+        confidence: "high",
+        suggested_action: "renegotiate_or_close",
+        target_object_type: "calendar_event",
+        target_object_id: clash.id,
+        extracted_data: { due_at: c.due_at, meeting_starts_at: clash.starts_at },
+      });
+    }
+  }
+
+  // ---- 8) Something that used to be busy has gone quiet.
+  // Busy before (≥3 links in the 30d before last fortnight), silent since.
+  const thirtyDaysAgoIso = new Date(now.getTime() - 30 * 86400_000).toISOString();
+  const { data: olderLinks } = await scoped(admin
+    .from("entity_links")
+    .select("entity_id, created_at")
+    .eq("user_id", userId), orgId)
+    .gte("created_at", thirtyDaysAgoIso)
+    .lt("created_at", fourteenDaysAgo)
+    .limit(500);
+  const beforeCounts = new Map<string, number>();
+  for (const l of olderLinks ?? []) beforeCounts.set(l.entity_id, (beforeCounts.get(l.entity_id) ?? 0) + 1);
+  const wentQuiet = [...beforeCounts.entries()]
+    .filter(([id, n]) => n >= 3 && !(counts.get(id) ?? 0))
+    .slice(0, 6);
+  if (wentQuiet.length > 0) {
+    const { data: quietEnts } = await admin
+      .from("entities")
+      .select("id, display_name, kind")
+      .in("id", wentQuiet.map(([id]) => id));
+    for (const [id, n] of wentQuiet) {
+      const e = (quietEnts ?? []).find((x: any) => x.id === id);
+      if (!e) continue;
+      drafts.push({
+        source_object_type: "entity",
+        source_object_id: id,
+        finding_type: "entity_gone_quiet",
+        summary: `"${e.display_name}" has gone quiet`,
+        rationale: `${n} mentions in the month before last fortnight, none in the last 14 days. Either it landed, or it slipped.`,
+        confidence: "medium",
+        suggested_action: "prepare_context",
+        extracted_data: { mentions_before: n, kind: e.kind },
+      });
+    }
+  }
+
+  // ---- 9) Two notes about the same thing that disagree.
+  // Deterministic word test only: one note reads as settled, the other as
+  // called off, and they talk about the same subject. Confidence stays low.
+  const SETTLED = ["confirmed", "booked", "signed", "agreed", "approved", "paid"];
+  const CALLED_OFF = ["cancelled", "canceled", "postponed", "declined", "rejected", "on hold"];
+  const recent = (notes ?? []).map((n: any) => ({
+    id: n.id,
+    title: n.title ?? "",
+    text: `${n.title ?? ""} ${String(n.body ?? "").slice(0, 400)}`.toLowerCase(),
+  }));
+  const flaggedPairs = new Set<string>();
+  for (const a of recent) {
+    const aSettled = SETTLED.some((w) => a.text.includes(w));
+    if (!aSettled) continue;
+    for (const b of recent) {
+      if (a.id === b.id) continue;
+      if (!CALLED_OFF.some((w) => b.text.includes(w))) continue;
+      if (!overlaps(b.text, a.title || a.text.slice(0, 60))) continue;
+      const pair = [a.id, b.id].sort().join(":");
+      if (flaggedPairs.has(pair)) continue;
+      flaggedPairs.add(pair);
+      drafts.push({
+        source_object_type: "note",
+        source_object_id: a.id,
+        finding_type: "notes_disagree",
+        summary: `Two notes disagree about "${truncate(a.title || a.text.slice(0, 40), 40)}"`,
+        rationale: `One reads as settled, another reads as called off. Vanta cannot tell which is current — you can.`,
+        confidence: "low",
+        suggested_action: "merge_or_link",
+        target_object_type: "note",
+        target_object_id: b.id,
+      });
+      break;
+    }
+  }
+
   let written = 0, suppressed = 0;
   for (const d of drafts) {
     const r = await createFinding(admin, userId, orgId, d);
