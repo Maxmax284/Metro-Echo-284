@@ -30,6 +30,7 @@ import { ProcessingLine } from "@/components/companion/ProcessingLine";
 
 import { useScope } from "@/hooks/useScope";
 import { useAskThreads } from "@/providers/AskThreadProvider";
+import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
   beginAskStream, endAskStream, stopAskStream,
