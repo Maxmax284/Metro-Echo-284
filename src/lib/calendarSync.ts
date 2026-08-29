@@ -156,3 +156,89 @@ export function changeLine(c: {
   if (c.change === "moved") return `${name} moved from ${when(c.old_starts_at)} to ${when(c.new_starts_at)}.`;
   return `${name} was added for ${when(c.new_starts_at)}.`;
 }
+
+// ---------------------------------------------------------------------------
+// Diff view — "did it sync, and what exactly changed?"
+//
+// The panel says how many. This part says which, in before → after form, and
+// groups the rows by the check that found them, so a person can see the run
+// itself. Still pure: no IO, no formatting opinions beyond words and times.
+
+export type CalendarChangeRow = {
+  id: string;
+  feed_id: string | null;
+  title: string | null;
+  change: string;
+  old_starts_at: string | null;
+  new_starts_at: string | null;
+  was_filed: boolean;
+  detected_at: string;
+};
+
+export type CalendarCheckRun = {
+  /** The detected_at of the newest row in the run — the time of the check. */
+  at: string;
+  rows: CalendarChangeRow[];
+  added: number;
+  moved: number;
+  cancelled: number;
+};
+
+/** A calendar-sync pass writes its rows within seconds of each other. */
+const RUN_GAP_MS = 2 * MIN;
+
+/**
+ * Buckets changes into the checks that found them. Rows must arrive newest
+ * first; the returned runs keep that order.
+ */
+export function groupChangesByCheck(
+  rows: CalendarChangeRow[],
+  gapMs = RUN_GAP_MS,
+): CalendarCheckRun[] {
+  const runs: CalendarCheckRun[] = [];
+  for (const row of rows) {
+    const t = new Date(row.detected_at).getTime();
+    const open = runs[runs.length - 1];
+    const openT = open ? new Date(open.at).getTime() : NaN;
+    if (open && Number.isFinite(t) && Number.isFinite(openT) && openT - t <= gapMs) {
+      open.rows.push(row);
+    } else {
+      runs.push({ at: row.detected_at, rows: [row], added: 0, moved: 0, cancelled: 0 });
+    }
+  }
+  for (const run of runs) {
+    run.added = run.rows.filter((r) => r.change === "added").length;
+    run.moved = run.rows.filter((r) => r.change === "moved").length;
+    run.cancelled = run.rows.filter((r) => r.change === "cancelled").length;
+  }
+  return runs;
+}
+
+/** "2 added · 1 moved" — what one check actually found. Never "synchronized". */
+export function runHeadline(run: Pick<CalendarCheckRun, "added" | "moved" | "cancelled">): string {
+  const parts: string[] = [];
+  if (run.added) parts.push(`${run.added} added`);
+  if (run.moved) parts.push(`${run.moved} moved`);
+  if (run.cancelled) parts.push(`${run.cancelled} came off`);
+  return parts.length ? parts.join(" · ") : "nothing changed";
+}
+
+export const CHANGE_VERB: Record<string, string> = {
+  added: "Added",
+  moved: "Moved",
+  cancelled: "Came off",
+};
+
+/** The two sides of one change, for a before → after row. */
+export function changeDiff(
+  c: Pick<CalendarChangeRow, "change" | "old_starts_at" | "new_starts_at">,
+  fmt: (iso: string) => string = (iso) =>
+    new Date(iso).toLocaleString(undefined, {
+      weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+    }),
+): { verb: string; before: string | null; after: string | null } {
+  const at = (iso: string | null) => (iso ? fmt(iso) : null);
+  if (c.change === "cancelled") return { verb: CHANGE_VERB.cancelled, before: at(c.old_starts_at), after: null };
+  if (c.change === "moved") return { verb: CHANGE_VERB.moved, before: at(c.old_starts_at), after: at(c.new_starts_at) };
+  return { verb: CHANGE_VERB.added, before: null, after: at(c.new_starts_at) };
+}
