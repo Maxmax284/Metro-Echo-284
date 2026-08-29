@@ -70,6 +70,9 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
       prefsRef.current = prefs;
       const stored = readStoredContext(prefs);
       setPostureUntil(stored.postureUntil ?? null);
+      /* Snapshot the slice as it arrived. Resume reads this, so a device
+         stamping itself on top cannot erase the hand-off it just received. */
+      setArrival(stored);
       const restored = contextFromStored(stored);
       setContext(handoff({ ...restored, scope: { userId: user.id, organizationId: null } }, detectDeviceClass()));
       setLoading(false);
@@ -82,7 +85,8 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
   const persist = useCallback(
     async (next: VantaContext, until: string | null) => {
       if (!user) return;
-      const stored: StoredContext = storedFromContext(next, until);
+      /* Only the travelling half is written. Device-local facts stay local. */
+      const stored: StoredContext = storedFromContext(carryable(next), until, scopeKeyRef.current);
       const prefs = { ...prefsRef.current, context: stored };
       prefsRef.current = prefs;
       await supabase.from("profiles").update({ preferences: prefs as never }).eq("id", user.id);
@@ -95,7 +99,8 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const remember = useCallback(
-    async (patch: VantaContext) => {
+    async (patch: VantaContext, opts?: { scopeKey?: string | null }) => {
+      if (opts?.scopeKey) scopeKeyRef.current = opts.scopeKey;
       const next = mergeContext(context, patch);
       setContext(next);
       await persist(next, postureUntil);
@@ -119,9 +124,10 @@ export function VantaContextProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ context, loading, observe, remember, setPosture, postureUntil }),
-    [context, loading, observe, remember, setPosture, postureUntil],
+    () => ({ context, loading, observe, remember, setPosture, postureUntil, arrival }),
+    [context, loading, observe, remember, setPosture, postureUntil, arrival],
   );
+
 
   return <VantaContextCtx.Provider value={value}>{children}</VantaContextCtx.Provider>;
 }
