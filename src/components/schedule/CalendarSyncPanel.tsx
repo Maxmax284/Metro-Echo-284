@@ -32,6 +32,7 @@ import {
   type FeedSyncResult,
 } from "@/lib/calendarSync";
 import { cn } from "@/lib/utils";
+import { CalendarDiffSheet } from "./CalendarDiffSheet";
 
 type Feed = FeedStatus & { id: string };
 type Change = {
@@ -58,6 +59,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!session) return;
@@ -178,7 +180,15 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
           </ul>
 
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What changed this week</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">What changed this week</p>
+              <button
+                onClick={() => setDiffOpen(true)}
+                className={cn("ml-auto min-h-[36px] text-[11px] text-primary hover:underline", MOTION_FOCUS)}
+              >
+                See every check
+              </button>
+            </div>
             {changes.length === 0 ? (
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                 Nothing has moved or come off since the last seven days of checks. When something does, it is listed
@@ -201,6 +211,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
           </div>
 
           <p className="text-[11px] leading-relaxed text-muted-foreground">{SYNC_CADENCE_NOTE}</p>
+          <CalendarDiffSheet open={diffOpen} onOpenChange={setDiffOpen} />
           <AftermathHint text="Changes to entries you filed under a project reach Today as a nudge — and Telegram too, if you have that turned on in Settings › Time and reminders." />
         </div>
       )}
