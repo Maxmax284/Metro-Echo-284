@@ -21,9 +21,10 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DOCUMENT_TEMPLATES, DRAFT_TONES, getTemplate,
-  type DocumentTemplate, type DraftTone,
+  type DocumentTemplate, type DraftTone, type TemplateField,
 } from "@/lib/documentTemplates";
 import { createDraftDocument, runDraft } from "@/lib/documents";
+import { DictateButton } from "@/components/ui/dictate-button";
 
 interface Props {
   open: boolean;
