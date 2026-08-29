@@ -363,23 +363,24 @@ export function SherlockSurface() {
         )}
 
         <div className="space-y-2">
-          {investigations.length === 0 && (
+          {investigations === null && <LoadingState label="Opening the case file…" />}
+          {investigations !== null && investigations.length === 0 && (
             <EmptyState
               icon={<Radar className="h-4 w-4" />}
               title="No investigations in this room"
-              hint="An investigation starts when you ask a question above, or tap a target on a note, action or document. Findings stay here with their receipts."
+              hint="An investigation starts when you ask a question above, or tap Analyze on a note, action or document. Answers stay here with the records they came from."
               flow={["Target", "Investigate", "Findings"]}
             />
           )}
-          {investigations.map((inv) => {
+          {(investigations ?? []).map((inv) => {
             const isOpen = openId === inv.id;
             const findings = findingsByInv[inv.id] ?? [];
             const isJustFinished = justFinishedId === inv.id;
             return (
-              <Card
+              <div
                 key={inv.id}
                 className={cn(
-                  "p-3 space-y-2 transition-shadow",
+                  "vanta-card p-3 space-y-2 transition-shadow",
                   isJustFinished && "ring-1 ring-primary/50 shadow-[0_0_0_3px_hsl(var(--primary)/0.08)]",
                 )}
               >
