@@ -311,11 +311,20 @@ export function ActionsSurface() {
                                 <ScrollText className="h-3.5 w-3.5" /> Receipt
                               </Button>
                             )}
-                            {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
-                                <RotateCcw className="h-3.5 w-3.5" /> Undo
-                              </Button>
-                            )}
+                            {/* Undo only where the engine can really take it
+                                back. Where it cannot, say so instead of
+                                offering a button that lies. */}
+                            {(a.status === "executed" || a.status === "audited") &&
+                              (a.rollback_available ? (
+                                <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
+                                  <RotateCcw className="h-3.5 w-3.5" /> Undo
+                                </Button>
+                              ) : (
+                                <span className="self-center text-[10.5px] text-muted-foreground">
+                                  This one cannot be undone. The receipt is the record.
+                                </span>
+                              ))}
+
                             {(a.status === "proposed" || a.status === "staged") && (
                               <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
                                 Cancel
