@@ -459,13 +459,13 @@ export function SherlockSurface() {
                     )}
                   </div>
                 )}
-              </Card>
+              </div>
             );
           })}
         </div>
-      </div>
 
-      <SurfaceAftermath surface="sherlock" />
+        <SurfaceAftermath surface="sherlock" />
+      </div>
     </div>
   );
 }
