@@ -136,7 +136,7 @@ export function WorkFlowDemo({
             {/* The pretend screen. Dashed on purpose: nothing here is real. */}
             <div className="rounded-md border border-dashed border-border/60 bg-surface-elevated/30 p-2.5">
               <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {s.frame.room} \u00b7 example
+                {s.frame.room} · example
               </p>
               <ul className="mt-1.5 space-y-1">
                 {s.frame.rows.map((r) => (
