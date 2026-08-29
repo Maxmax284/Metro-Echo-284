@@ -135,7 +135,9 @@ export function CaptureCard({
           text={
             typeof aftermath === "string"
               ? aftermath
-              : "Still a draft · routing it makes it a note, a promise or an action"
+              : item.routedTo
+                ? `Already filed to ${item.routedTo} · the route is recorded in Receipts`
+                : "Still a draft · routing it makes it a note, a promise or an action"
           }
         />
       )}
