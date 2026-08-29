@@ -30,6 +30,7 @@ import { ProcessingLine } from "@/components/companion/ProcessingLine";
 
 import { useScope } from "@/hooks/useScope";
 import { useAskThreads } from "@/providers/AskThreadProvider";
+import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
   beginAskStream, endAskStream, stopAskStream,
@@ -106,6 +107,18 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
   const { activeId: convId, active: activeThread, ensureThread, noteActivity, recordOutput } = useAskThreads();
+  // A thread leaves a pointer, not a permission: the next device can offer to
+  // reopen where the thinking stopped. Nothing about approval travels with it.
+  const trace = useHandoffTrace();
+  useEffect(() => {
+    if (!activeThread) return;
+    void trace({
+      step: `was reading ${activeThread.title ?? "an Ask thread"}`,
+      label: activeThread.title ?? "Ask thread",
+      surface: "ask",
+      threadId: activeThread.id,
+    });
+  }, [activeThread?.id, activeThread?.title]);
   // Wave 4 — the live half of a thread lives in the shared Ask session, not in
   // this component. Quick Ask and the Ask room mount the same session, so a
   // turn in flight and a half-typed line survive moving between them.

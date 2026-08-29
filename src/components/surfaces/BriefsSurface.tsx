@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { Button } from "@/components/ui/button";
 import { FileText, Plus } from "lucide-react";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
@@ -35,6 +36,8 @@ export function BriefsSurface() {
         onOpenChange={setComposerOpen}
         defaultScope="system"
       />
+
+      <SurfaceAftermath surface="briefs" />
     </div>
   );
 }

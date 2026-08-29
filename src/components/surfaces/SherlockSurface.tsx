@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
@@ -421,6 +422,8 @@ export function SherlockSurface() {
           })}
         </div>
       </div>
+
+      <SurfaceAftermath surface="sherlock" />
     </div>
   );
 }

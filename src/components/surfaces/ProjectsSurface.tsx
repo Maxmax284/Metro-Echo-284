@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { Project, createProject, listProjects } from "@/lib/projects";
@@ -190,6 +191,8 @@ export function ProjectsSurface() {
           ))}
         </ul>
       )}
+
+      <SurfaceAftermath surface="projects" />
     </div>
   );
 }
