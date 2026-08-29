@@ -45,6 +45,10 @@ import {
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
+import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
+import { useWorkBriefing } from "@/hooks/useWorkBriefing";
+import { useHandoffTrace } from "@/hooks/useHandoffTrace";
+
 
 
 
@@ -64,6 +68,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   /* When Vanta last actually looked. Shown as a real stamp, never faked. */
   const [lastRead, setLastRead] = useState<number | null>(null);
   const { timezone } = useUserTimezone();
+  const { briefing, loading: briefingLoading } = useWorkBriefing();
+  const trace = useHandoffTrace();
+
+
 
   const refresh = useCallback(async () => {
     if (!user) return;
