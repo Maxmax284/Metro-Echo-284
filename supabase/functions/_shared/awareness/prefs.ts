@@ -76,8 +76,13 @@ export function readStoredContext(prefs: Record<string, unknown> | null | undefi
     pendingActionId: str("pendingActionId"),
     lastDeviceClass: (str("lastDeviceClass") as DeviceClass | null) ?? null,
     lastSeenAt: str("lastSeenAt"),
+    lastStep: str("lastStep"),
+    lastAnchorLabel: str("lastAnchorLabel"),
+    lastAnchorSurface: str("lastAnchorSurface"),
+    lastScopeKey: str("lastScopeKey"),
   };
 }
+
 
 /** A manual posture only counts while it hasn't expired. */
 export function activePosture(stored: StoredContext, now = Date.now()): Posture | null {
