@@ -21,6 +21,10 @@ import { useFlipEntry } from "@/hooks/useFlipEntry";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 import { aftermathLine } from "@/lib/vantaNouns";
+import { ObjectLife } from "@/components/ui/object-life";
+import { ReadNote } from "@/components/ui/inferred";
+import type { LifeEvent } from "@/lib/objectLife";
+
 
 type Action = {
   id: string;
@@ -72,18 +76,38 @@ export function ActionsSurface() {
   const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
   const [receiptAwaitWrite, setReceiptAwaitWrite] = useState(false);
 
+  /** Recorded life per action, so a card can explain itself without Receipts. */
+  const [lives, setLives] = useState<Record<string, LifeEvent[]>>({});
+
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
       applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
-    setActions((a.data ?? []) as Action[]);
+    const rows = (a.data ?? []) as Action[];
+    setActions(rows);
     setExecutors((e.data ?? []) as Executor[]);
+    /* Real recorded transitions only. No events means no history line. */
+    if (rows.length > 0) {
+      const { data: evs } = await supabase
+        .from("action_events")
+        .select("action_id, to_status, created_at")
+        .in("action_id", rows.map((r) => r.id))
+        .order("created_at", { ascending: true });
+      const map: Record<string, LifeEvent[]> = {};
+      for (const ev of (evs ?? []) as { action_id: string; to_status: string; created_at: string }[]) {
+        (map[ev.action_id] ??= []).push({ event: `action.${ev.to_status}`, at: ev.created_at });
+      }
+      setLives(map);
+    } else {
+      setLives({});
+    }
     setLoading(false);
   };
 
   useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
+
 
   const transition = async (a: Action, to: Action["status"], reason?: string) => {
     setBusy(a.id);
@@ -158,10 +182,15 @@ export function ActionsSurface() {
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
         {loading && <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>}
         {!loading && actions.length === 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">
-            Nothing here yet. Drafts show up when Vanta proposes something.
+          <div className="py-10 text-center text-sm leading-relaxed text-muted-foreground">
+            Nothing waiting on you.
+            <span className="mt-1 block text-xs">
+              When something you capture implies a step, Vanta drafts it here and waits. Nothing runs
+              until you approve it.
+            </span>
           </div>
         )}
+
         {!loading && Object.entries(groups).map(([label, list]) =>
           list.length === 0 ? null : (
             <section key={label} className="mb-6">
@@ -181,6 +210,21 @@ export function ActionsSurface() {
                             </span>
                           </div>
                           {a.description && <p className="mt-1 text-[13px] text-muted-foreground">{a.description}</p>}
+                          {/* Where it came from, then how it got here. Both read
+                              off records — nothing inferred, nothing invented. */}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <ReadNote kind="read" source={a.source ?? "vanta"} />
+                            {!a.rollback_available && (a.status === "approved" || a.status === "staged") && (
+                              <span className="text-[10.5px] text-warn">Not reversible once it runs</span>
+                            )}
+                          </div>
+                          <ObjectLife
+                            className="mt-1"
+                            events={lives[a.id] ?? []}
+                            tail={a.status === "rolled_back" ? "undone" : null}
+                            onOpenReceipts={() => { setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
+                          />
+
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <SherlockChipTrigger
                               operation="relate"
@@ -267,11 +311,20 @@ export function ActionsSurface() {
                                 <ScrollText className="h-3.5 w-3.5" /> Receipt
                               </Button>
                             )}
-                            {(a.status === "executed" || a.status === "audited") && (
-                              <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
-                                <RotateCcw className="h-3.5 w-3.5" /> Undo
-                              </Button>
-                            )}
+                            {/* Undo only where the engine can really take it
+                                back. Where it cannot, say so instead of
+                                offering a button that lies. */}
+                            {(a.status === "executed" || a.status === "audited") &&
+                              (a.rollback_available ? (
+                                <Button size="sm" variant="ghost" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setRollbackText(""); setRollbackTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
+                                  <RotateCcw className="h-3.5 w-3.5" /> Undo
+                                </Button>
+                              ) : (
+                                <span className="self-center text-[10.5px] text-muted-foreground">
+                                  This one cannot be undone. The receipt is the record.
+                                </span>
+                              ))}
+
                             {(a.status === "proposed" || a.status === "staged") && (
                               <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
                                 Cancel

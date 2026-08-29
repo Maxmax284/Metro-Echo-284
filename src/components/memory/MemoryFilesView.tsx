@@ -365,11 +365,14 @@ export function MemoryFilesView() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
+        <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 px-4 py-10 text-center text-[12px] leading-relaxed text-muted-foreground">
           <Inbox className="h-5 w-5 opacity-50" />
-          {filter === "archived" ? "Nothing archived." : "No files match these filters."}
+          {filter === "archived"
+            ? "Nothing archived yet. Files you finish with end up here."
+            : "Files land here from uploads, email attachments, and anything you send Vanta on Telegram."}
         </div>
       )}
+
 
       <ul className="space-y-2">
         {filtered.map((f) => {

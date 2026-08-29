@@ -44,7 +44,14 @@ export type StoredContext = {
   pendingActionId?: string | null;
   lastDeviceClass?: DeviceClass | null;
   lastSeenAt?: string | null;
+  /** Resume anchor. A pointer back to work, never an approval. */
+  lastStep?: string | null;
+  lastAnchorLabel?: string | null;
+  lastAnchorSurface?: string | null;
+  /** The scope the anchor belongs to. Context never crosses scopes. */
+  lastScopeKey?: string | null;
 };
+
 
 export const EMPTY_STORED: StoredContext = {};
 
@@ -69,8 +76,13 @@ export function readStoredContext(prefs: Record<string, unknown> | null | undefi
     pendingActionId: str("pendingActionId"),
     lastDeviceClass: (str("lastDeviceClass") as DeviceClass | null) ?? null,
     lastSeenAt: str("lastSeenAt"),
+    lastStep: str("lastStep"),
+    lastAnchorLabel: str("lastAnchorLabel"),
+    lastAnchorSurface: str("lastAnchorSurface"),
+    lastScopeKey: str("lastScopeKey"),
   };
 }
+
 
 /** A manual posture only counts while it hasn't expired. */
 export function activePosture(stored: StoredContext, now = Date.now()): Posture | null {
@@ -119,11 +131,18 @@ export function contextFromStored(stored: StoredContext, now = Date.now()): Vant
     pendingActionId: stored.pendingActionId ?? null,
     lastDeviceClass: stored.lastDeviceClass ?? undefined,
     lastSeenAt: stored.lastSeenAt ?? null,
+    lastStep: stored.lastStep ?? null,
+    lastAnchorLabel: stored.lastAnchorLabel ?? null,
+    lastAnchorSurface: stored.lastAnchorSurface ?? null,
   };
 }
 
 /** The inverse: what we persist after a local change. */
-export function storedFromContext(ctx: VantaContext, postureUntil?: string | null): StoredContext {
+export function storedFromContext(
+  ctx: VantaContext,
+  postureUntil?: string | null,
+  scopeKey?: string | null,
+): StoredContext {
   return {
     posture: ctx.posture ?? null,
     postureSource: ctx.postureSource ?? null,
@@ -135,5 +154,10 @@ export function storedFromContext(ctx: VantaContext, postureUntil?: string | nul
     pendingActionId: ctx.pendingActionId ?? null,
     lastDeviceClass: ctx.deviceClass ?? ctx.lastDeviceClass ?? null,
     lastSeenAt: new Date().toISOString(),
+    lastStep: ctx.lastStep ?? null,
+    lastAnchorLabel: ctx.lastAnchorLabel ?? null,
+    lastAnchorSurface: ctx.lastAnchorSurface ?? null,
+    lastScopeKey: scopeKey ?? null,
   };
+
 }
