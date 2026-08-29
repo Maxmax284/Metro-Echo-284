@@ -106,7 +106,7 @@ const LINK_KIND: Record<string, string> = {
 
 async function resolveRef(
   ref: Ref,
-  applyScope: <T>(q: T) => T,
+  applyScope: <Q extends { eq: any; is: any }>(q: Q) => Q,
 ): Promise<EvidenceItem | null> {
   const category = categoryOf(ref.type);
   if (!category) return null;
