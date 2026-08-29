@@ -22,7 +22,16 @@ export type DeskRole = {
   useWhen: string;
   /** What an empty desk means — never just "nothing here". */
   emptyWhy: string;
+  /** The things you can actually do here, verb-first, no execution implied. */
+  options: string[];
+  /** What happens the moment you open the desk. Truthful, never a promise. */
+  onStart: string;
+  /** Verb-first taps shown on the tile. All of them only open the desk. */
+  actions: string[];
+  /** The single tap that would fill an empty desk. */
+  emptyAction: string;
 };
+
 
 export type DeskKey = Extract<
   SurfaceId,
