@@ -67,13 +67,15 @@ export function SherlockSurface() {
   const { applyScope, orgId, key: scopeKey } = useScope();
   const { openSherlock } = useSherlock();
 
-  const { items: pending, refresh: refreshPending } = useSherlockPending({ limit: 25 });
+  const { items: pending, loading: pendingLoading, refresh: refreshPending } = useSherlockPending({ limit: 25 });
 
   const [scope, setScope] = useState<ScopeId>("all");
   const [question, setQuestion] = useState("");
   const [running, setRunning] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [lastScanAt, setLastScanAt] = useState<string | null>(null);
 
-  const [investigations, setInvestigations] = useState<Investigation[]>([]);
+  const [investigations, setInvestigations] = useState<Investigation[] | null>(null);
   const [findingsByInv, setFindingsByInv] = useState<Record<string, Finding[]>>({});
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -81,14 +83,48 @@ export function SherlockSurface() {
   const cancelRef = useRef(false);
   const [justFinishedId, setJustFinishedId] = useState<string | null>(null);
 
+  // The room opens with where things stand, not with the console.
+  const briefing = useMemo(
+    () => buildSherlockBriefing({ pending, lastScanAt }),
+    [pending, lastScanAt],
+  );
+
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase
+    // Scope isolation: an investigation belongs to the room it was run in.
+    const { data } = await applyScope(supabase
       .from("investigations")
-      .select("id, question, status, summary, created_at")
+      .select("id, question, status, summary, created_at"))
       .order("created_at", { ascending: false })
       .limit(30);
     setInvestigations((data ?? []) as Investigation[]);
+  };
+
+  const loadLastScan = async () => {
+    if (!user) return;
+    const { data } = await applyScope(supabase
+      .from("audit_log")
+      .select("created_at")
+      .eq("event", "sherlock_patterns_scanned"))
+      .order("created_at", { ascending: false })
+      .limit(1);
+    setLastScanAt((data ?? [])[0]?.created_at ?? null);
+  };
+
+  const runScan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sherlock-patterns", {});
+      if (error) throw error;
+      toast.success(vantaSay.sherlock.scanComplete(data?.written ?? 0));
+      refreshPending();
+      void loadLastScan();
+    } catch (e) {
+      toast.fromError(e, vantaSay.sherlockFailed());
+    } finally {
+      setScanning(false);
+    }
   };
 
   const loadTargets = async () => {
