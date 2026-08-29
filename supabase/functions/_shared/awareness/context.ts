@@ -76,7 +76,7 @@ export type VantaContext = {
   /** Records the current thread is grounded in. */
   sourceRefs?: { kind: string; id: string; label?: string }[];
   /** An approval waiting on the human. Never auto-resolved by a device switch. */
-  /** An approval waiting on the human. Never auto-resolved by a device switch. */
+
   pendingActionId?: string | null;
 
   /**
