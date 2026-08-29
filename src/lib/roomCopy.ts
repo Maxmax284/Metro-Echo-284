@@ -60,6 +60,10 @@ export const SECTION_NOTE = {
   "today.live": "Live activity Vanta already recorded.",
   "today.security": "Anything unusual about access or trust.",
   "work.projects": "The jobs Vanta is tracking for you.",
+  "work.state": "The short version of where work stands right now.",
+  "work.lands": "Everything that arrives, gets promised, or gets written down.",
+  "work.looks": "Where Vanta reads, searches, and watches for you.",
+
   "work.daily": "The three lanes you touch every day.",
   "work.knowledge": "What Vanta has read, written, and remembered.",
   "work.deeper": "Denser views for when you want the whole picture.",
