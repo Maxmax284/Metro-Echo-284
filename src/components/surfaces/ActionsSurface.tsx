@@ -21,6 +21,10 @@ import { useFlipEntry } from "@/hooks/useFlipEntry";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 import { aftermathLine } from "@/lib/vantaNouns";
+import { ObjectLife } from "@/components/ui/object-life";
+import { ReadNote } from "@/components/ui/inferred";
+import type { LifeEvent } from "@/lib/objectLife";
+
 
 type Action = {
   id: string;
@@ -72,18 +76,38 @@ export function ActionsSurface() {
   const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
   const [receiptAwaitWrite, setReceiptAwaitWrite] = useState(false);
 
+  /** Recorded life per action, so a card can explain itself without Receipts. */
+  const [lives, setLives] = useState<Record<string, LifeEvent[]>>({});
+
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
       applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
-    setActions((a.data ?? []) as Action[]);
+    const rows = (a.data ?? []) as Action[];
+    setActions(rows);
     setExecutors((e.data ?? []) as Executor[]);
+    /* Real recorded transitions only. No events means no history line. */
+    if (rows.length > 0) {
+      const { data: evs } = await supabase
+        .from("action_events")
+        .select("action_id, to_status, created_at")
+        .in("action_id", rows.map((r) => r.id))
+        .order("created_at", { ascending: true });
+      const map: Record<string, LifeEvent[]> = {};
+      for (const ev of (evs ?? []) as { action_id: string; to_status: string; created_at: string }[]) {
+        (map[ev.action_id] ??= []).push({ event: `action.${ev.to_status}`, at: ev.created_at });
+      }
+      setLives(map);
+    } else {
+      setLives({});
+    }
     setLoading(false);
   };
 
   useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
+
 
   const transition = async (a: Action, to: Action["status"], reason?: string) => {
     setBusy(a.id);
