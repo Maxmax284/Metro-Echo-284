@@ -10,6 +10,8 @@ import { NoticedRow } from "@/components/today/NoticedRow";
 import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
+import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
+
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
@@ -336,7 +338,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
       />
 
+      {/* One companion across bodies. Quiet unless the hand-off is useful. */}
+      <CrossDeviceResume onNavigate={onNavigate} />
+
       <AskVantaBar />
+
 
       <QuickModes />
 
