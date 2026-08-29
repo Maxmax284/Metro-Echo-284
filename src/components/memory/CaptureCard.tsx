@@ -47,7 +47,18 @@ const confTone: Record<NonNullable<CaptureItem["confidence"]>, DotTone> = {
   low: "destructive",
 };
 
-export function CaptureCard({ item, actions, footer }: { item: CaptureItem; actions?: CaptureAction[]; footer?: ReactNode }) {
+export function CaptureCard({
+  item,
+  actions,
+  footer,
+  /** Pass a specific destination line, or `false` where the parent already says it. */
+  aftermath,
+}: {
+  item: CaptureItem;
+  actions?: CaptureAction[];
+  footer?: ReactNode;
+  aftermath?: string | false;
+}) {
   const meta = sourceMeta[item.source] ?? sourceMeta.unknown;
   const Icon = meta.Icon;
   return (
