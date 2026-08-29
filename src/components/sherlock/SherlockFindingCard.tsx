@@ -236,6 +236,12 @@ export function SherlockFindingCard({
           } finally { setBusy(false); }
         }}
       />
+
+      <SherlockEvidenceDrawer
+        finding={finding}
+        open={evidenceOpen}
+        onOpenChange={setEvidenceOpen}
+      />
     </>
   );
 }
