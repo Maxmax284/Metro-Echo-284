@@ -131,11 +131,18 @@ export function contextFromStored(stored: StoredContext, now = Date.now()): Vant
     pendingActionId: stored.pendingActionId ?? null,
     lastDeviceClass: stored.lastDeviceClass ?? undefined,
     lastSeenAt: stored.lastSeenAt ?? null,
+    lastStep: stored.lastStep ?? null,
+    lastAnchorLabel: stored.lastAnchorLabel ?? null,
+    lastAnchorSurface: stored.lastAnchorSurface ?? null,
   };
 }
 
 /** The inverse: what we persist after a local change. */
-export function storedFromContext(ctx: VantaContext, postureUntil?: string | null): StoredContext {
+export function storedFromContext(
+  ctx: VantaContext,
+  postureUntil?: string | null,
+  scopeKey?: string | null,
+): StoredContext {
   return {
     posture: ctx.posture ?? null,
     postureSource: ctx.postureSource ?? null,
@@ -147,5 +154,10 @@ export function storedFromContext(ctx: VantaContext, postureUntil?: string | nul
     pendingActionId: ctx.pendingActionId ?? null,
     lastDeviceClass: ctx.deviceClass ?? ctx.lastDeviceClass ?? null,
     lastSeenAt: new Date().toISOString(),
+    lastStep: ctx.lastStep ?? null,
+    lastAnchorLabel: ctx.lastAnchorLabel ?? null,
+    lastAnchorSurface: ctx.lastAnchorSurface ?? null,
+    lastScopeKey: scopeKey ?? null,
   };
+
 }
