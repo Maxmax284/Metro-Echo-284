@@ -1,8 +1,13 @@
 // FirstRunWalkthrough — full-screen mobile-first overlay. 384px target.
-// Skip / Back / Next / dots. No auto-advance. Replayable from Settings.
+// Skip / Back / Next / progress. No auto-advance. Replayable from Settings.
 // The last slide is a check, not a congratulation: nothing is marked complete
 // until the user says they are oriented.
-import { useState } from "react";
+//
+// Keyboard contract: ArrowRight / Enter advance, ArrowLeft goes back, Escape
+// skips, and on the final slide Space toggles the check while Enter confirms.
+// Position (slide + check) is persisted by TutorialProvider, so a refresh or a
+// new login resumes exactly here.
+import { useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +18,37 @@ import { WALKTHROUGH_SLIDES, ORIENTED_CHECK } from "./tutorialCopy";
 import { cn } from "@/lib/utils";
 
 export function FirstRunWalkthrough() {
-  const { open, step, setStep, closeTutorial } = useTutorial();
-  const [oriented, setOriented] = useState(false);
+  const { open, step, setStep, closeTutorial, resumed, oriented, setOriented } = useTutorial();
   const total = WALKTHROUGH_SLIDES.length;
-  const slide = WALKTHROUGH_SLIDES[Math.min(step, total - 1)];
-  const isLast = step >= total - 1;
+  const current = Math.min(step, total - 1);
+  const slide = WALKTHROUGH_SLIDES[current];
+  const isLast = current >= total - 1;
+  const percent = Math.round(((current + 1) / total) * 100);
 
+  const goNext = () => setStep(Math.min(total - 1, current + 1));
+  const goBack = () => setStep(Math.max(0, current - 1));
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (!isLast) goNext();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goBack();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (!isLast) goNext();
+        else if (oriented) closeTutorial(true);
+      } else if (e.key === " " && isLast) {
+        e.preventDefault();
+        setOriented(!oriented);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) closeTutorial(false); }}>
@@ -35,7 +65,31 @@ export function FirstRunWalkthrough() {
             <X className="h-4 w-4" />
           </button>
 
-          <div className="space-y-3 px-5 pb-3 pt-6 sm:px-6">
+          {/* Progress: a real bar plus a spoken count, so "how far in am I" is
+              answered without counting dots. */}
+          <div className="px-5 pt-4 sm:px-6">
+            <div className="flex items-center justify-between text-[10.5px] uppercase tracking-[0.14em] text-muted-foreground">
+              <span>Step {current + 1} of {total}</span>
+              <span>{percent}%</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={total}
+              aria-valuenow={current + 1}
+              aria-label={`Orientation progress: slide ${current + 1} of ${total}`}
+              className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted-foreground/20"
+            >
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${percent}%` }} />
+            </div>
+            {resumed && current > 0 && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Picked up where you left off.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-3 px-5 pb-3 pt-4 sm:px-6">
             <Badge variant="secondary" className="text-[10.5px] uppercase tracking-wider">
               {slide.pill}
             </Badge>
@@ -64,10 +118,11 @@ export function FirstRunWalkthrough() {
               <button
                 key={i}
                 onClick={() => setStep(i)}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={`Go to slide ${i + 1} of ${total}`}
+                aria-current={i === current ? "step" : undefined}
                 className={cn(
                   "h-1.5 rounded-full transition-all",
-                  i === step ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
+                  i === current ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60",
                 )}
               />
             ))}
@@ -78,12 +133,12 @@ export function FirstRunWalkthrough() {
             <Button
               size="sm" variant="ghost"
               className="h-8 gap-1 text-[12px]"
-              onClick={() => setStep(Math.max(0, step - 1))}
-              disabled={step === 0}
+              onClick={goBack}
+              disabled={current === 0}
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Back
             </Button>
-            {step > 0 && !isLast && (
+            {current > 0 && !isLast && (
               <Button
                 size="sm" variant="ghost"
                 className="h-8 gap-1 text-[12px] text-muted-foreground"
@@ -97,7 +152,7 @@ export function FirstRunWalkthrough() {
               <Button
                 size="sm"
                 className="h-8 gap-1 text-[12px]"
-                onClick={() => setStep(Math.min(total - 1, step + 1))}
+                onClick={goNext}
               >
                 Next <ChevronRight className="h-3.5 w-3.5" />
               </Button>
@@ -112,6 +167,11 @@ export function FirstRunWalkthrough() {
               </Button>
             )}
           </div>
+
+          <p className="px-4 pb-3 text-[10.5px] leading-snug text-muted-foreground/70">
+            Keyboard: &larr; &rarr; to move, Enter to continue, Esc to skip
+            {isLast ? ", Space to tick the check" : ""}. Your place is saved.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
