@@ -210,6 +210,21 @@ export function ActionsSurface() {
                             </span>
                           </div>
                           {a.description && <p className="mt-1 text-[13px] text-muted-foreground">{a.description}</p>}
+                          {/* Where it came from, then how it got here. Both read
+                              off records — nothing inferred, nothing invented. */}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                            <ReadNote kind="read" source={a.source ?? "vanta"} />
+                            {!a.rollback_available && (a.status === "approved" || a.status === "staged") && (
+                              <span className="text-[10.5px] text-warn">Not reversible once it runs</span>
+                            )}
+                          </div>
+                          <ObjectLife
+                            className="mt-1"
+                            events={lives[a.id] ?? []}
+                            tail={a.status === "rolled_back" ? "undone" : null}
+                            onOpenReceipts={() => { setReceiptAwaitWrite(false); setReceiptActionId(a.id); }}
+                          />
+
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <SherlockChipTrigger
                               operation="relate"
