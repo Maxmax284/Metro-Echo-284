@@ -8,6 +8,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { detectDeviceClass } from "@/lib/deviceClass";
+import { carryable } from "@/lib/handoffResume";
+
 import {
   EMPTY_CONTEXT,
   contextFromStored,
