@@ -14,7 +14,7 @@ import { vantaSay, vantaToast } from "@/lib/vantaVoice";
 import { SherlockReviewModal } from "./SherlockReviewModal";
 import { AftermathFooter } from "@/components/aftermath/AftermathFooter";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
-import { sherlockWhyFallback } from "@/lib/plainEnglish";
+import { sherlockWhyFallback, sherlockKindLabel } from "@/lib/plainEnglish";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
 
 // Doctrine: lead with operator-friendly labels, not "Sherlock noticed X".
