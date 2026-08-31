@@ -453,25 +453,13 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   </Section>
                 )}
 
-                {obligations.length > 0 && (
-                  <Section icon={<AlertTriangle className="h-4 w-4" />} title="Obligations">
-                    <ul className="space-y-2 text-sm">
-                      {obligations.map((o) => (
-                        <li key={o.id} className="rounded-md border border-border/60 bg-surface-elevated p-2.5">
-                          <div className="font-medium">{o.party ?? "Party"}</div>
-                          <div className="text-foreground/85">{o.what ?? ""}</div>
-                          {(o.when_text || o.conditions) && (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {o.when_text && <span>When: {o.when_text}</span>}
-                              {o.when_text && o.conditions && <span> · </span>}
-                              {o.conditions && <span>If: {o.conditions}</span>}
-                            </div>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
+                <Section icon={<AlertTriangle className="h-4 w-4" />} title="Obligations">
+                  <ObligationList
+                    obligations={obligations}
+                    documentId={doc.id}
+                    documentTitle={doc.title}
+                  />
+                </Section>
 
                 {review.missing_or_unclear?.length > 0 && (
                   <Section icon={<MessageSquareWarning className="h-4 w-4" />} title="Missing or unclear">
