@@ -117,7 +117,7 @@ export function FirstLapCard({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           label="Open Receipts"
           onClick={() => {
             markSeen("receipt");
-            onNavigate("audit");
+            onNavigate("receipts");
           }}
         />
       ),
