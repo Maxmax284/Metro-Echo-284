@@ -142,6 +142,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   /* Storyboard only. It writes nothing, so it can be replayed at any time. */
   const [demoOpen, setDemoOpen] = useState(false);
   const hasIntake = projects.length > 0 || counts.inbox > 0 || counts.commitments > 0;
+  /* Read-only: a live finding forces the reading shelf open, so nothing real
+     is ever hidden behind a fold. */
+  const { items: findings } = useSherlockPending({ limit: 1 });
+  const hasFindings = findings.length > 0;
 
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
