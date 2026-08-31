@@ -82,8 +82,12 @@ export function CaptureCard({
               destination={item.routedTo ?? "Inbox"}
               className="min-w-0"
             />
-            <ProvenanceChip source={item.source} className="hidden sm:inline-flex" />
+            <ProvenanceChip source={item.bridgeSource ?? item.source} className="hidden sm:inline-flex" />
           </div>
+          {/* A bridge brings drafts, not authority. Say so on the card. */}
+          {bridgeLine && (
+            <p className="mt-1 text-[10.5px] leading-snug text-warn">{bridgeLine}</p>
+          )}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
             {item.detectedType && (
               <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">
