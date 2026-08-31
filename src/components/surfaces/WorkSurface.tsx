@@ -281,13 +281,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             the shelf opens itself unless you closed it yourself. The fold is a
             visible control with a count, never a mystery. */}
         <CollapsibleSection
-          key={hasIntake ? "looks-live" : "looks-quiet"}
-          title="Reading rooms"
+          key={`${hasIntake ? "live" : "quiet"}-${hasFindings ? "findings" : "none"}`}
+          title="Where Vanta looks"
           storageKey="work.looks"
           icon={<Search className="h-3.5 w-3.5" />}
           reading="4"
-          defaultOpen={hasIntake}
-          summary="Show reading rooms — 4 places Vanta reads on your behalf."
+          /* A real finding is never hidden. Otherwise the shelf stays folded
+             until there is something for these rooms to read. */
+          defaultOpen={hasFindings || hasIntake}
+          summary={
+            hasFindings
+              ? "Where Vanta looks · Sherlock has something for you"
+              : hasIntake
+                ? "Where Vanta looks · 4 places Vanta reads on your behalf"
+                : "Where Vanta looks · nothing needs your attention yet"
+          }
           className="border-dashed"
         >
           <p className="text-[11px] leading-snug text-muted-foreground">
