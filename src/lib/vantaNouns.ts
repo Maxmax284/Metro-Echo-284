@@ -176,7 +176,10 @@ export type ProvenanceSource =
   | "website"
   | "sherlock"
   | "ask"
-  | "vanta";
+  | "vanta"
+  | "hub"
+  | "campcore"
+  | "fenrir";
 
 export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
   telegram: "From Telegram",
@@ -189,7 +192,28 @@ export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
   sherlock: "Spotted by Sherlock",
   ask: "Drafted in Ask",
   vanta: "Recorded by Vanta",
+  hub: "From Ground Truth Hub",
+  campcore: "From CampCore",
+  fenrir: "From Fenrir Lock",
 };
+
+/**
+ * Sources that arrive over a bridge. They land as drafts and always need a
+ * human read, so the card says so instead of implying anything was decided.
+ */
+export const BRIDGE_SOURCES: ProvenanceSource[] = ["hub", "campcore", "fenrir"];
+
+export function isBridgeSource(raw: string | null | undefined): boolean {
+  const resolved = resolveProvenance(raw);
+  return !!resolved && BRIDGE_SOURCES.includes(resolved);
+}
+
+/** The full bridge line: where it came from, and that it is only a draft. */
+export function bridgeReviewLabel(raw: string | null | undefined): string | null {
+  const resolved = resolveProvenance(raw);
+  if (!resolved || !BRIDGE_SOURCES.includes(resolved)) return null;
+  return `${PROVENANCE_LABEL[resolved].replace(/^From /, "Drafted from ")} · needs review`;
+}
 
 /** Read a stored source token into one of the sources we can name. */
 export function resolveProvenance(raw: string | null | undefined): ProvenanceSource | null {
@@ -199,6 +223,11 @@ export function resolveProvenance(raw: string | null | undefined): ProvenanceSou
   if (s.includes("whatsapp")) return "whatsapp";
   if (s.includes("mail")) return "email";
   if (s.includes("calendar") || s.includes("ics")) return "calendar";
+  /* Bridges first: their tokens contain words like "hub" and "camp" that must
+     not fall through to a vaguer source. */
+  if (s.includes("ground_truth") || s.includes("ground-truth") || s.includes("gth") || s.includes("camp_state") || s.includes("camp-state") || s.includes("campstate")) return "hub";
+  if (s.includes("campcore") || s.includes("camp_core") || s.includes("camp-core")) return "campcore";
+  if (s.includes("fenrir")) return "fenrir";
   if (s === "you" || s === "user" || s === "manual" || s === "self") return "you";
   if (s.includes("upload") || s.includes("file")) return "upload";
   if (s.includes("form") || s.includes("website") || s.includes("web")) return "website";
