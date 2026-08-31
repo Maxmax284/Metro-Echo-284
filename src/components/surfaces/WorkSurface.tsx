@@ -152,10 +152,11 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
       <div className={cn("mx-auto max-w-3xl space-y-3", MOTION_BOOT)}>
-        <header className="flex items-center gap-2">
+        <header className="flex flex-wrap items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
-          <span className="ml-auto flex items-center gap-2">
+          <span className="ml-auto flex flex-wrap items-center gap-2">
+            <GotSomethingChooser onFiled={() => void refresh()} />
             <button
               type="button"
               onClick={() => setDemoOpen(true)}
