@@ -57,7 +57,8 @@ describe("three-choice intake chooser", () => {
     for (const d of INTAKE_DOORS) {
       const text = `${d.label} ${d.says} ${d.lands}`.toLowerCase();
       expect(text, d.key).not.toContain("automatically");
-      expect(text, d.key).not.toMatch(/\bruns\b|\bexecutes\b|\bsends it\b/);
+      /* Denials are fine ("nothing runs"); claims of execution are not. */
+      expect(text, d.key).not.toMatch(/\b(vanta|it) (runs|executes|sends)\b/);
     }
   });
 
