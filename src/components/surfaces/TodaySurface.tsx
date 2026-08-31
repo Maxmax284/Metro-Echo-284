@@ -318,6 +318,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
         </p>
+        {/* Where the clock came from. A browser guess is never presented as
+            settled truth. */}
+        <TimeSourceLine
+          className="mt-1"
+          timezone={tzState.timezone}
+          source={tzState.storedTimezone ? "profile" : "device"}
+          confidence={tzState.storedTimezone ? "high" : "low"}
+        />
 
         {/* Data as decoration: the trace is a real 14-day read of recorded
             activity in this scope. Flat when nothing happened. */}
