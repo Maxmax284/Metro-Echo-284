@@ -82,8 +82,10 @@ export function GotSomethingChooser({
     }
     setBusy(door);
     try {
+      /* A write is only real once the database says so. Every success line
+         below is spoken after the insert came back clean, never before. */
       if (door === "park") {
-        await supabase.from("notes").insert(
+        const { error } = await supabase.from("notes").insert(
           withScope({
             user_id: user.id,
             title: trimmed.slice(0, 60),
@@ -91,18 +93,20 @@ export function GotSomethingChooser({
             metadata: { source: "got_something", captured_at: new Date().toISOString() },
           }) as never,
         );
+        if (error) throw error;
         vantaToast.success(`Parked in Inbox · ${destination}. Route it whenever you like.`);
       } else if (door === "promise") {
-        await supabase.from("commitments").insert(
+        const { error } = await supabase.from("commitments").insert(
           withScope({
             user_id: user.id,
             summary: trimmed.slice(0, 200),
             due_at: null,
           }) as never,
         );
+        if (error) throw error;
         vantaToast.success(`Recorded as an open promise · ${destination}. Add a date in Commitments.`);
       } else {
-        await supabase.from("actions").insert(
+        const { error } = await supabase.from("actions").insert(
           withScope({
             user_id: user.id,
             title: trimmed.slice(0, 120),
@@ -112,6 +116,7 @@ export function GotSomethingChooser({
             source: "got_something",
           }) as never,
         );
+        if (error) throw error;
         vantaToast.success("Drafted in Actions. It will not run until you approve it.");
       }
       onFiled?.(door);
