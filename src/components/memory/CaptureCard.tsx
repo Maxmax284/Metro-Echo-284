@@ -67,6 +67,7 @@ export function CaptureCard({
 }) {
   const meta = sourceMeta[item.source] ?? sourceMeta.unknown;
   const Icon = meta.Icon;
+  const bridgeLine = bridgeReviewLabel(item.bridgeSource);
   return (
     <div className="space-y-2 rounded-lg border border-border/60 bg-surface-elevated/40 p-3 text-sm">
       <div className="flex items-start gap-2">
