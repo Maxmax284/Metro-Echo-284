@@ -38,6 +38,8 @@ import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useAskContext } from "@/hooks/useAskContext";
 import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
+import { ObligationList } from "./ObligationList";
+import { DocumentCompareSheet } from "./DocumentCompareSheet";
 import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
 import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 import { DictateButton } from "@/components/ui/dictate-button";
