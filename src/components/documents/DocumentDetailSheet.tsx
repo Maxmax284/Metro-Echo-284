@@ -13,6 +13,7 @@ import {
   AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
   FileDown, FileSignature, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
   Receipt, RefreshCcw, Send, Sparkles, ShieldAlert, Users,
+  GitCompare,
 } from "lucide-react";
 
 import { vantaToast as toast } from "@/lib/vantaVoice";
