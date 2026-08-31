@@ -344,37 +344,79 @@ Deno.serve(async (req) => {
       }
       // Verify the commitment belongs to this user.
       const { data: comm } = await admin.from("commitments")
-        .select("id, summary, metadata").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        .select("id, summary, metadata, status, due_at, remind_at, organization_id")
+        .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
       if (!comm) {
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
       const meta = (comm.metadata ?? {}) as Record<string, unknown>;
-      if (action === "done") {
-        await admin.from("commitments").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", commitmentId);
-        await admin.from("audit_log").insert({
-          user_id: cbLink.user_id, entity_type: "commitment", entity_id: commitmentId,
-          event: "commitment.completed", payload: { source: "telegram_callback" },
+      const clearButtons = () => tg("editMessageReplyMarkup", {
+        chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] },
+      });
+      const audit = (event: string, payload: Record<string, unknown>) => admin.from("audit_log").insert({
+        user_id: cbLink.user_id,
+        organization_id: comm.organization_id ?? null,
+        entity_type: "commitment",
+        entity_id: commitmentId,
+        event,
+        payload: { source: "telegram_callback", at: new Date().toISOString(), ...payload },
+      });
+
+      // Already resolved — say so instead of writing a second lifecycle change.
+      if (comm.status !== "open" && (action === "done" || action === "snooze1h")) {
+        await tg("answerCallbackQuery", {
+          callback_query_id: cbId,
+          text: comm.status === "done" ? "Already closed." : "This one was dropped.",
         });
+        await clearButtons();
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+
+      if (action === "done") {
+        const nowIso = new Date().toISOString();
+        const { error: doneErr } = await admin.from("commitments").update({
+          status: "done",
+          metadata: { ...meta, completed_at: nowIso, completed_via: "telegram" },
+        }).eq("id", commitmentId).eq("user_id", cbLink.user_id);
+        if (doneErr) {
+          console.error("[vanta] telegram done failed:", doneErr.message);
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
+          return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        }
+        await audit("commitment.completed", { from: "open", to: "done", completed_at: nowIso });
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Marked done." });
-        await tg("editMessageReplyMarkup", { chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+        await clearButtons();
         await tg("sendMessage", { chat_id: cbChatId, text: `Done — "${comm.summary}" closed.`, disable_web_page_preview: true });
       } else if (action === "snooze1h") {
         const nextRemind = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-        await admin.from("commitments").update({
+        // Parity with the in-app snooze: an already-overdue due date moves too,
+        // otherwise the promise stays overdue while the reminder walks away.
+        const shiftDue = !!(comm.due_at && new Date(comm.due_at).getTime() < Date.now());
+        const { error: snoozeErr } = await admin.from("commitments").update({
           remind_at: nextRemind,
+          ...(shiftDue ? { due_at: nextRemind } : {}),
           last_reminded_at: null,
           metadata: { ...meta, telegram_sent_at: null },
-        }).eq("id", commitmentId);
-        await admin.from("audit_log").insert({
-          user_id: cbLink.user_id, entity_type: "commitment", entity_id: commitmentId,
-          event: "reminder.snoozed", payload: { source: "telegram_callback", minutes: 60 },
+        }).eq("id", commitmentId).eq("user_id", cbLink.user_id);
+        if (snoozeErr) {
+          console.error("[vanta] telegram snooze failed:", snoozeErr.message);
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
+          return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        }
+        await audit("reminder.snoozed", {
+          minutes: 60,
+          from: comm.remind_at ?? comm.due_at,
+          to: nextRemind,
+          due_shifted: shiftDue,
+          preset: "+1 hour",
         });
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Snoozed 1h." });
-        await tg("editMessageReplyMarkup", { chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] } });
+        await clearButtons();
       } else {
         await tg("answerCallbackQuery", { callback_query_id: cbId });
       }
+
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
