@@ -43,7 +43,7 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
+import { DESK_ROLES, DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { DeskStartHere } from "@/components/work/DeskStartHere";
 import { DeskQuickActions } from "@/components/work/DeskQuickActions";
