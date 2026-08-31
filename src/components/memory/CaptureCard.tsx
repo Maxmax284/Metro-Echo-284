@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { CardMeta } from "@/components/ui/card-meta";
 import { ProvenanceChip } from "@/components/ui/provenance";
+import { bridgeReviewLabel } from "@/lib/vantaNouns";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
