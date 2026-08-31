@@ -34,8 +34,9 @@ export function ObligationList({
     const summary = [o.party, o.what].filter(Boolean).join(": ") || "Obligation from a document";
     setBusy(`${o.id}:${into}`);
     try {
+      /* Nothing is announced until the database confirms it. */
       if (into === "promise") {
-        await supabase.from("commitments").insert(
+        const { error } = await supabase.from("commitments").insert(
           withScope({
             user_id: user.id,
             summary: summary.slice(0, 200),
@@ -49,9 +50,10 @@ export function ObligationList({
               .join(" · "),
           }) as never,
         );
+        if (error) throw error;
         vantaToast.success("Recorded as an open promise. Add a real date in Commitments.");
       } else {
-        await supabase.from("actions").insert(
+        const { error } = await supabase.from("actions").insert(
           withScope({
             user_id: user.id,
             title: summary.slice(0, 120),
@@ -68,15 +70,21 @@ export function ObligationList({
             source: "document_obligation",
           }) as never,
         );
+        if (error) throw error;
         vantaToast.success("Drafted in Actions. It will not run until you approve it.");
       }
-      await supabase.from("audit_log").insert({
+      /* The receipt is the record of the conversion. If it cannot be written,
+         say so — a conversion without a receipt is not finished work. */
+      const { error: auditError } = await supabase.from("audit_log").insert({
         user_id: user.id,
         entity_type: "document",
         entity_id: documentId,
         event: into === "promise" ? "document.obligation_to_commitment" : "document.obligation_to_action",
         payload: { obligation_id: o.id, clause: o.source_clause_ref ?? null },
       });
+      if (auditError) {
+        vantaToast.message("It was created, but the receipt did not write. Receipts will be short one line.");
+      }
       setConverted((prev) => ({ ...prev, [o.id]: into }));
     } catch (e) {
       vantaToast.error(
