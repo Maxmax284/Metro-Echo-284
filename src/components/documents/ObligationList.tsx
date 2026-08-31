@@ -40,13 +40,13 @@ export function ObligationList({
             user_id: user.id,
             summary: summary.slice(0, 200),
             due_at: null,
-            notes: [
+            source_note: [
               o.when_text ? `When: ${o.when_text}` : null,
               o.conditions ? `If: ${o.conditions}` : null,
               `From document: ${documentTitle}${o.source_clause_ref ? ` (${o.source_clause_ref})` : ""}`,
             ]
               .filter(Boolean)
-              .join("\n"),
+              .join(" · "),
           }) as never,
         );
         vantaToast.success("Recorded as an open promise. Add a real date in Commitments.");
