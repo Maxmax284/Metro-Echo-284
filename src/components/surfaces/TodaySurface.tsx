@@ -12,6 +12,8 @@ import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { FirstLapCard } from "@/components/today/FirstLapCard";
+import { TimeSourceLine } from "@/components/context/ContextSourceLine";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 
