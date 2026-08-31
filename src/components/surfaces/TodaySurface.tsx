@@ -158,6 +158,8 @@ function Row({
  */
 export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { destination } = useScope();
+  /* The clock's provenance, read once and shown plainly under the day line. */
+  const tzState = useUserTimezone();
   const digest = useTodayDigest();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
