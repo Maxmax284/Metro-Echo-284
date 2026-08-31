@@ -17,7 +17,7 @@
 import { useId, useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DESK_ROLES, type DeskKey } from "@/lib/deskRoles";
+import { DESK_ROLES, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 
