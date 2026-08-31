@@ -54,6 +54,8 @@ import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { PlayCircle } from "lucide-react";
+import { useSherlockPending } from "@/hooks/useSherlockPending";
+import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 
 
 
