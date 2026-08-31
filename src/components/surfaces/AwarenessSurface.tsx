@@ -237,6 +237,21 @@ export function AwarenessSurface() {
                     : locState.message}
                 </div>
 
+                {/* Where the place came from, and how precise it honestly is.
+                    A saved place is a fact; an area is an area. */}
+                <PlaceSourceLine
+                  label={place.label}
+                  source={
+                    tier.tier === "saved"
+                      ? "saved"
+                      : tier.tier === "unknown"
+                        ? "unknown"
+                        : "coarse"
+                  }
+                  confidence={(overall.confidence as "high" | "medium" | "low" | null) ?? null}
+                />
+
+
                 {/* Source badges — always tell the user what we're using */}
                 <div className="flex flex-wrap gap-1">
                   {visibleBadges.map((b) => (
