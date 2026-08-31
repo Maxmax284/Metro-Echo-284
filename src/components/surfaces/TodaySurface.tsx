@@ -334,11 +334,23 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
+      {/* The one obvious way in. Three plain destinations, nothing executes. */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <GotSomethingChooser />
+        <span className="text-[10.5px] leading-snug text-muted-foreground">
+          Park it, promise it, or have a step prepared — Vanta files it, never runs it.
+        </span>
+      </div>
+
+      {/* One lap on your own content, until you have done it once. */}
+      <FirstLapCard onNavigate={onNavigate} />
+
       {/* Jump to a desk — navigation only, counts from reads Today already did. */}
       <JumpStrip
         onNavigate={onNavigate}
         counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
       />
+
 
       {/* One companion across bodies. Quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
