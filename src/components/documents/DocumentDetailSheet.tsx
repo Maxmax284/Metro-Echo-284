@@ -65,6 +65,8 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
   const [version, setVersion] = useState<DocumentVersion | null>(null);
+  /* Read-only compare view. It never writes, so it can open at any status. */
+  const [compareOpen, setCompareOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<
     null | "extract" | "review" | "draft" | "revise" | "approve"
