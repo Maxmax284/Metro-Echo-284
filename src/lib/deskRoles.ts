@@ -194,6 +194,24 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
 };
 
 
+/**
+ * The verb line. Every desk leads with what you do there, before any noun.
+ * Existing vocabulary only — these invent no new object names.
+ */
+export const DESK_VERB: Record<DeskKey, string> = {
+  projects: "Keep a job together.",
+  inbox: "File what came in.",
+  commitments: "Keep a promise.",
+  actions: "Approve a step.",
+  briefs: "Build something shareable.",
+  documents: "Review and revise files.",
+  schedule: "See what time is doing.",
+  memory: "Find what Vanta already knows.",
+  sherlock: "Investigate what feels off.",
+  awareness: "See what Vanta is noticing.",
+  command: "Read the dense operational view.",
+};
+
 /** The short hint used on desk tiles: what lands here, in a few words. */
 export const DESK_TILE_HINT: Record<DeskKey, string> = {
   projects: "The main jobs",
