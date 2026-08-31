@@ -14,6 +14,12 @@ export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "
 export type CaptureItem = {
   id: string;
   source: CaptureSource;
+  /**
+   * The platform token when this arrived over a bridge (Ground Truth Hub,
+   * CampCore, Fenrir). Bridges bring drafts, never authority, so the card says
+   * where it came from and that it still needs a human read.
+   */
+  bridgeSource?: string | null;
   text: string;
   detectedType?: string | null;
   confidence?: "high" | "medium" | "low" | null;
