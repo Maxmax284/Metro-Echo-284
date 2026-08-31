@@ -349,7 +349,20 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   <Check className="h-3 w-3" /> Approved
                 </Badge>
               )}
+              {/* Reading only — comparing two versions changes neither. */}
+              <Button size="sm" variant="outline" onClick={() => setCompareOpen(true)} className="gap-1.5">
+                <GitCompare className="h-4 w-4" />
+                Compare versions
+              </Button>
             </div>
+
+            <DocumentCompareSheet
+              documentId={doc.id}
+              title={doc.title}
+              open={compareOpen}
+              onOpenChange={setCompareOpen}
+            />
+
 
             {!isDraft && (
               <div className="mb-6">
