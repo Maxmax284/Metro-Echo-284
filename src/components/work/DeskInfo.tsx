@@ -17,7 +17,7 @@
 import { useId, useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DESK_ROLES, type DeskKey } from "@/lib/deskRoles";
+import { DESK_ROLES, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 
@@ -101,6 +101,9 @@ export function DeskInfo({
         <p id={titleId} className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           {role.label}
         </p>
+        {/* Verb first, so the panel opens with what you do here. */}
+        <p className="text-[12.5px] font-medium leading-snug text-foreground">{DESK_VERB[deskKey]}</p>
+
 
         {/* Promoted: what can I do here. The four "what is this" lines stay
             underneath, because options are the question people actually have. */}

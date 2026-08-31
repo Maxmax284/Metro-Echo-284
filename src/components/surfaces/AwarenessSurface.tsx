@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { LayerChips } from "@/components/awareness/LayerChips";
+import { PlaceSourceLine } from "@/components/context/ContextSourceLine";
 import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
@@ -236,6 +237,21 @@ export function AwarenessSurface() {
                     ? <span className="text-warn">{locState.message}</span>
                     : locState.message}
                 </div>
+
+                {/* Where the place came from, and how precise it honestly is.
+                    A saved place is a fact; an area is an area. */}
+                <PlaceSourceLine
+                  label={place.label}
+                  source={
+                    tier.tier === "saved"
+                      ? "saved"
+                      : tier.tier === "unknown"
+                        ? "unknown"
+                        : "coarse"
+                  }
+                  confidence={(overall.confidence as "high" | "medium" | "low" | null) ?? null}
+                />
+
 
                 {/* Source badges — always tell the user what we're using */}
                 <div className="flex flex-wrap gap-1">

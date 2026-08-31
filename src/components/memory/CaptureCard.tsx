@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { StatusDot, type DotTone } from "@/components/ui/status-dot";
 import { CardMeta } from "@/components/ui/card-meta";
 import { ProvenanceChip } from "@/components/ui/provenance";
+import { bridgeReviewLabel } from "@/lib/vantaNouns";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
@@ -14,6 +15,12 @@ export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "
 export type CaptureItem = {
   id: string;
   source: CaptureSource;
+  /**
+   * The platform token when this arrived over a bridge (Ground Truth Hub,
+   * CampCore, Fenrir). Bridges bring drafts, never authority, so the card says
+   * where it came from and that it still needs a human read.
+   */
+  bridgeSource?: string | null;
   text: string;
   detectedType?: string | null;
   confidence?: "high" | "medium" | "low" | null;
@@ -61,6 +68,7 @@ export function CaptureCard({
 }) {
   const meta = sourceMeta[item.source] ?? sourceMeta.unknown;
   const Icon = meta.Icon;
+  const bridgeLine = bridgeReviewLabel(item.bridgeSource);
   return (
     <div className="space-y-2 rounded-lg border border-border/60 bg-surface-elevated/40 p-3 text-sm">
       <div className="flex items-start gap-2">
@@ -76,8 +84,12 @@ export function CaptureCard({
               destination={item.routedTo ?? "Inbox"}
               className="min-w-0"
             />
-            <ProvenanceChip source={item.source} className="hidden sm:inline-flex" />
+            <ProvenanceChip source={item.bridgeSource ?? item.source} className="hidden sm:inline-flex" />
           </div>
+          {/* A bridge brings drafts, not authority. Say so on the card. */}
+          {bridgeLine && (
+            <p className="mt-1 text-[10.5px] leading-snug text-warn">{bridgeLine}</p>
+          )}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
             {item.detectedType && (
               <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">

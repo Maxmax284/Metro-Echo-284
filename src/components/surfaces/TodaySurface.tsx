@@ -10,6 +10,10 @@ import { NoticedRow } from "@/components/today/NoticedRow";
 import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
+import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
+import { FirstLapCard } from "@/components/today/FirstLapCard";
+import { TimeSourceLine } from "@/components/context/ContextSourceLine";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 
@@ -156,6 +160,8 @@ function Row({
  */
 export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => void }) {
   const { destination } = useScope();
+  /* The clock's provenance, read once and shown plainly under the day line. */
+  const tzState = useUserTimezone();
   const digest = useTodayDigest();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -316,6 +322,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
         </p>
+        {/* Where the clock came from. A browser guess is never presented as
+            settled truth. */}
+        <TimeSourceLine
+          className="mt-1"
+          timezone={tzState.timezone}
+          source={tzState.storedTimezone ? "profile" : "device"}
+          confidence={tzState.storedTimezone ? "high" : "low"}
+        />
 
         {/* Data as decoration: the trace is a real 14-day read of recorded
             activity in this scope. Flat when nothing happened. */}
@@ -334,11 +348,23 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
+      {/* The one obvious way in. Three plain destinations, nothing executes. */}
+      <div className="flex flex-wrap items-center gap-2 px-1">
+        <GotSomethingChooser />
+        <span className="text-[10.5px] leading-snug text-muted-foreground">
+          Park it, promise it, or have a step prepared — Vanta files it, never runs it.
+        </span>
+      </div>
+
+      {/* One lap on your own content, until you have done it once. */}
+      <FirstLapCard onNavigate={onNavigate} />
+
       {/* Jump to a desk — navigation only, counts from reads Today already did. */}
       <JumpStrip
         onNavigate={onNavigate}
         counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
       />
+
 
       {/* One companion across bodies. Quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />

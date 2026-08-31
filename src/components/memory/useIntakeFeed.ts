@@ -89,6 +89,9 @@ export function useIntakeFeed(limit = 60) {
       out.push({
         id: `msg:${m.id}`,
         source,
+        /* Bridge arrivals keep their platform, so the card can name it and
+           mark it as a draft that still needs a read. */
+        bridgeSource: (meta.source_platform as string | undefined) ?? null,
         text: m.content,
         detectedType: meta.detected_type ?? null,
         confidence: meta.confidence ?? null,

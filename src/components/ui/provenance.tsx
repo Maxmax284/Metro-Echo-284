@@ -5,10 +5,13 @@
 // names, no connector ids, no raw payload keys.
 import {
   AtSign,
+  Building2,
   CalendarClock,
+  Dumbbell,
   Globe,
   Search,
   Send,
+  ShieldCheck,
   Sparkles,
   Upload,
   User,
@@ -30,6 +33,9 @@ const ICON: Record<ProvenanceSource, LucideIcon> = {
   sherlock: Search,
   ask: MessagesSquare,
   vanta: Sparkles,
+  hub: Building2,
+  campcore: Dumbbell,
+  fenrir: ShieldCheck,
 };
 
 /** The plain-language source label, or null when nothing was recorded. */

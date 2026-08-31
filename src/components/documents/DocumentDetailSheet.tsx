@@ -13,6 +13,7 @@ import {
   AlertTriangle, BookOpen, Calendar, Check, CheckCircle2, Coins, FileSearch,
   FileDown, FileSignature, FileText, HelpCircle, Loader2, MessageSquareWarning, Pencil,
   Receipt, RefreshCcw, Send, Sparkles, ShieldAlert, Users,
+  GitCompare,
 } from "lucide-react";
 
 import { vantaToast as toast } from "@/lib/vantaVoice";
@@ -38,6 +39,8 @@ import { getTemplate } from "@/lib/documentTemplates";
 import { BriefPdfDocument } from "@/components/briefs/BriefPdfDocument";
 import { useAskContext } from "@/hooks/useAskContext";
 import { DocumentToolPlan, type ToolPlanStepKey } from "./DocumentToolPlan";
+import { ObligationList } from "./ObligationList";
+import { DocumentCompareSheet } from "./DocumentCompareSheet";
 import { DocumentReceiptsTimeline } from "./DocumentReceiptsTimeline";
 import { ResearchSuggestionChip } from "@/components/research/ResearchSuggestionChip";
 import { DictateButton } from "@/components/ui/dictate-button";
@@ -63,6 +66,8 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   const [risks, setRisks] = useState<DocumentRisk[]>([]);
   const [obligations, setObligations] = useState<DocumentObligation[]>([]);
   const [version, setVersion] = useState<DocumentVersion | null>(null);
+  /* Read-only compare view. It never writes, so it can open at any status. */
+  const [compareOpen, setCompareOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState<
     null | "extract" | "review" | "draft" | "revise" | "approve"
@@ -347,7 +352,20 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   <Check className="h-3 w-3" /> Approved
                 </Badge>
               )}
+              {/* Reading only — comparing two versions changes neither. */}
+              <Button size="sm" variant="outline" onClick={() => setCompareOpen(true)} className="gap-1.5">
+                <GitCompare className="h-4 w-4" />
+                Compare versions
+              </Button>
             </div>
+
+            <DocumentCompareSheet
+              documentId={doc.id}
+              title={doc.title}
+              open={compareOpen}
+              onOpenChange={setCompareOpen}
+            />
+
 
             {!isDraft && (
               <div className="mb-6">
@@ -453,25 +471,13 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   </Section>
                 )}
 
-                {obligations.length > 0 && (
-                  <Section icon={<AlertTriangle className="h-4 w-4" />} title="Obligations">
-                    <ul className="space-y-2 text-sm">
-                      {obligations.map((o) => (
-                        <li key={o.id} className="rounded-md border border-border/60 bg-surface-elevated p-2.5">
-                          <div className="font-medium">{o.party ?? "Party"}</div>
-                          <div className="text-foreground/85">{o.what ?? ""}</div>
-                          {(o.when_text || o.conditions) && (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {o.when_text && <span>When: {o.when_text}</span>}
-                              {o.when_text && o.conditions && <span> · </span>}
-                              {o.conditions && <span>If: {o.conditions}</span>}
-                            </div>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </Section>
-                )}
+                <Section icon={<AlertTriangle className="h-4 w-4" />} title="Obligations">
+                  <ObligationList
+                    obligations={obligations}
+                    documentId={doc.id}
+                    documentTitle={doc.title}
+                  />
+                </Section>
 
                 {review.missing_or_unclear?.length > 0 && (
                   <Section icon={<MessageSquareWarning className="h-4 w-4" />} title="Missing or unclear">

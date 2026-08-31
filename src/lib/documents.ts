@@ -335,3 +335,14 @@ export async function getLatestVersion(documentId: string): Promise<DocumentVers
 export function isDraftDocument(doc: Pick<DocumentRow, "source_file_id" | "template_key">): boolean {
   return !doc.source_file_id && !!doc.template_key;
 }
+
+/** Every version of a document, newest first. Read-only. */
+export async function listVersions(documentId: string): Promise<DocumentVersion[]> {
+  const { data, error } = await supabase
+    .from("document_versions")
+    .select("*")
+    .eq("document_id", documentId)
+    .order("version_no", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as DocumentVersion[];
+}

@@ -43,7 +43,7 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { DESK_ROLES, DESK_TILE_HINT, type DeskKey } from "@/lib/deskRoles";
+import { DESK_ROLES, DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { DeskStartHere } from "@/components/work/DeskStartHere";
 import { DeskQuickActions } from "@/components/work/DeskQuickActions";
@@ -54,6 +54,8 @@ import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { PlayCircle } from "lucide-react";
+import { useSherlockPending } from "@/hooks/useSherlockPending";
+import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 
 
 
@@ -142,14 +144,19 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   /* Storyboard only. It writes nothing, so it can be replayed at any time. */
   const [demoOpen, setDemoOpen] = useState(false);
   const hasIntake = projects.length > 0 || counts.inbox > 0 || counts.commitments > 0;
+  /* Read-only: a live finding forces the reading shelf open, so nothing real
+     is ever hidden behind a fold. */
+  const { items: findings } = useSherlockPending({ limit: 1 });
+  const hasFindings = findings.length > 0;
 
   return (
     <div className="flex-1 overflow-y-auto px-3 pb-24 pt-3 md:px-4 md:pb-6">
       <div className={cn("mx-auto max-w-3xl space-y-3", MOTION_BOOT)}>
-        <header className="flex items-center gap-2">
+        <header className="flex flex-wrap items-center gap-2">
           <Briefcase className="h-4 w-4 text-primary" />
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
-          <span className="ml-auto flex items-center gap-2">
+          <span className="ml-auto flex flex-wrap items-center gap-2">
+            <GotSomethingChooser onFiled={() => void refresh()} />
             <button
               type="button"
               onClick={() => setDemoOpen(true)}
@@ -281,13 +288,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             the shelf opens itself unless you closed it yourself. The fold is a
             visible control with a count, never a mystery. */}
         <CollapsibleSection
-          key={hasIntake ? "looks-live" : "looks-quiet"}
-          title="Reading rooms"
+          key={`${hasIntake ? "live" : "quiet"}-${hasFindings ? "findings" : "none"}`}
+          title="Where Vanta looks"
           storageKey="work.looks"
           icon={<Search className="h-3.5 w-3.5" />}
           reading="4"
-          defaultOpen={hasIntake}
-          summary="Show reading rooms — 4 places Vanta reads on your behalf."
+          /* A real finding is never hidden. Otherwise the shelf stays folded
+             until there is something for these rooms to read. */
+          defaultOpen={hasFindings || hasIntake}
+          summary={
+            hasFindings
+              ? "Where Vanta looks · Sherlock has something for you"
+              : hasIntake
+                ? "Where Vanta looks · 4 places Vanta reads on your behalf"
+                : "Where Vanta looks · nothing needs your attention yet"
+          }
           className="border-dashed"
         >
           <p className="text-[11px] leading-snug text-muted-foreground">
@@ -368,6 +383,10 @@ function Desk({
       <Icon className="mt-[2px] h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
+        {/* Verb first: what you do here, before what it holds. */}
+        <span className="block text-[11.5px] font-medium leading-snug text-foreground/90">
+          {DESK_VERB[deskKey]}
+        </span>
         <span className="block text-[11px] leading-snug text-muted-foreground">
           {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
         </span>
