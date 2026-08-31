@@ -9,6 +9,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { LayerChips } from "@/components/awareness/LayerChips";
+import { PlaceSourceLine } from "@/components/context/ContextSourceLine";
 import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
