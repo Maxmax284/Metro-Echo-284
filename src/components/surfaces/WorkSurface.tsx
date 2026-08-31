@@ -368,6 +368,10 @@ function Desk({
       <Icon className="mt-[2px] h-4 w-4 shrink-0 text-primary" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-foreground">{label}</span>
+        {/* Verb first: what you do here, before what it holds. */}
+        <span className="block text-[11.5px] font-medium leading-snug text-foreground/90">
+          {DESK_VERB[deskKey]}
+        </span>
         <span className="block text-[11px] leading-snug text-muted-foreground">
           {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
         </span>
