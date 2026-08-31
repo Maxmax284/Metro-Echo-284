@@ -102,7 +102,8 @@ describe("honest time and place", () => {
   it("never presents a browser clock as confirmed", () => {
     const line = timeSourceLine({ timezone: "Asia/Bangkok", source: "device", confidence: "low" });
     expect(line).toContain("device source");
-    expect(line).not.toContain("confirmed");
+    expect(line).toContain("not confirmed");
+    expect(line).not.toMatch(/\bzone confirmed\b|timezone confirmed/);
     expect(isInferred("device", "low")).toBe(true);
     expect(inferenceNote("device", "low")).toBeTruthy();
   });
