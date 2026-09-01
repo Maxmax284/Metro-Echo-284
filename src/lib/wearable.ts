@@ -193,13 +193,15 @@ export function walkProgress(steps: WalkStep[]): { done: number; total: number }
 }
 
 /** The single folded line for the Today panel. */
-export function bodySummary(f: WearableFacts): string {
+export function bodySummary(f: WearableFacts, now = new Date()): string {
   if (!f.anySensorOn) return "Your body · nothing switched on yet";
   const hr = latest(f.readings, "heart_rate");
-  const steps = stepsForDay(f.readings);
+  const steps = stepsForDay(f.readings, now);
+  const workoutToday = workoutList(f.readings, 1, now)[0] ?? null;
   const bits: string[] = [];
   if (hr) bits.push(`${Math.round(hr.value)} bpm`);
   if (steps !== null) bits.push(`${steps} steps`);
+  if (workoutToday) bits.push(`trained ${workoutToday.minutes} min`);
   if (f.posture) bits.push("posture set");
   return bits.length ? `Your body · ${bits.join(" · ")}` : "Your body · nothing measured yet";
 }
