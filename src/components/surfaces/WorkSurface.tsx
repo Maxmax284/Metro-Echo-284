@@ -56,6 +56,8 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { PlayCircle } from "lucide-react";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
+import { PhysicalLoopPanel } from "@/components/work/PhysicalLoopPanel";
+
 
 
 
@@ -316,6 +318,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
           </div>
         </CollapsibleSection>
+
+        {/* Paper and phone: the physical loop, proved from real records. */}
+        <PhysicalLoopPanel />
+
 
 
         <SurfaceAftermath surface="work" />

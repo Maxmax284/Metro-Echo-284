@@ -193,10 +193,8 @@ export function PhysicalLoopPanel() {
                 </li>
               ))}
             </ol>
-            <AftermathHint>
-              Every line above comes from a recorded event. Nothing here can approve or run
-              anything — the chat buttons only acknowledge a promise.
-            </AftermathHint>
+            <AftermathHint text="Every line above comes from a recorded event. Nothing here can approve or run anything — the chat buttons only acknowledge a promise." />
+
           </div>
         </div>
       )}
