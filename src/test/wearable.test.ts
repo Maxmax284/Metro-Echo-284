@@ -100,3 +100,87 @@ describe("wearable walk", () => {
     ).toBe("Your body · 72 bpm · posture set");
   });
 });
+
+describe("watch trends", () => {
+  const day = (n: number) => new Date(Date.UTC(2026, 8, 1) - n * 86_400_000).toISOString();
+  const r = (kind: any, value: number, at: string, source: any = "ingest") => ({
+    kind, value, unit: "", measured_at: at, source,
+  });
+  const now = new Date(Date.UTC(2026, 8, 1, 12, 0, 0));
+
+  it("shows a missing day as a gap, never a zero", () => {
+    const buckets = stepsByDay([r("steps", 8000, day(0)), r("steps", 6000, day(2))], 4, now);
+    expect(buckets).toHaveLength(4);
+    expect(buckets[buckets.length - 1].steps).toBe(8000);
+    expect(buckets.find((b) => b.steps === 0)).toBeUndefined();
+    expect(buckets.filter((b) => b.steps === null)).toHaveLength(2);
+  });
+
+  it("takes the highest step total per day", () => {
+    const buckets = stepsByDay([r("steps", 300, day(0)), r("steps", 9100, day(0))], 1, now);
+    expect(buckets[0].steps).toBe(9100);
+  });
+
+  it("medians recorded days only and excludes today", () => {
+    const buckets = stepsByDay(
+      [r("steps", 100000, day(0)), r("steps", 4000, day(1)), r("steps", 6000, day(2))],
+      3,
+      now,
+    );
+    expect(stepsMedian(buckets, now)).toBe(5000);
+  });
+
+  it("keeps quiet about comparisons with no history", () => {
+    expect(stepsCompare(stepsByDay([], 3, now), now)).toMatch(/nothing to compare/i);
+  });
+
+  it("orders heart readings oldest first inside the window", () => {
+    const pts = heartSeries(
+      [r("heart_rate", 60, new Date(now.getTime() - 3600_000).toISOString()),
+       r("heart_rate", 130, new Date(now.getTime() - 7200_000).toISOString()),
+       r("heart_rate", 55, new Date(now.getTime() - 80 * 3600_000).toISOString())],
+      48,
+      now,
+    );
+    expect(pts.map((p) => p.value)).toEqual([130, 60]);
+  });
+
+  it("says nothing about the body when every sense is off", () => {
+    const ctx = workBodyContext(
+      { anySensorOn: false, readings: [r("workout", 45, now.toISOString())], posture: null, sweep: null, postureActedAt: null },
+      now,
+    );
+    expect(ctx.line).toBeNull();
+    expect(ctx.keepShort).toBe(false);
+  });
+
+  it("leads short after a recent workout and says why", () => {
+    const ctx = workBodyContext(
+      {
+        anySensorOn: true,
+        readings: [r("workout", 45, new Date(now.getTime() - 20 * 60_000).toISOString())],
+        posture: null,
+        sweep: null,
+        postureActedAt: null,
+      },
+      now,
+    );
+    expect(ctx.keepShort).toBe(true);
+    expect(ctx.because).toMatch(/trained/i);
+    expect(ctx.line).toMatch(/45 min/);
+  });
+
+  it("does not lead short on a stale workout", () => {
+    const ctx = workBodyContext(
+      {
+        anySensorOn: true,
+        readings: [r("workout", 45, new Date(now.getTime() - 6 * 3600_000).toISOString())],
+        posture: null,
+        sweep: null,
+        postureActedAt: null,
+      },
+      now,
+    );
+    expect(ctx.keepShort).toBe(false);
+  });
+});
