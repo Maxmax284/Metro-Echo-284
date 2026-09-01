@@ -106,7 +106,7 @@ export default function WatchPage() {
         <section className="vanta-card p-4">
           <EmptyState
             title="No sense is switched on"
-            line="Heart rate and daily activity are both off, so there is nothing measured to draw. Turn one on in the watch loop and the first reading will appear here."
+            hint="Heart rate and daily activity are both off, so there is nothing measured to draw. Turn one on in the watch loop and the first reading will appear here."
             actionLabel="Open the watch loop"
             onAction={() => { window.location.href = "/wearable-loop"; }}
           />
@@ -115,7 +115,7 @@ export default function WatchPage() {
         <section className="vanta-card p-4">
           <EmptyState
             title="Nothing has arrived yet"
-            line={
+            hint={
               activityOn
                 ? "A sense is on, but no reading has been sent. Set up the phone hand-off in the watch loop, or connect a strap for heart rate."
                 : "Heart rate is on but daily activity is off, so steps, sleep and workouts are not stored."
