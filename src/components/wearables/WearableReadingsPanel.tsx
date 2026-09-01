@@ -33,7 +33,7 @@ const btnClass = cn(
 
 export function WearableReadingsPanel() {
   const { user } = useAuth();
-  const { orgId, withScope } = useScope();
+  const { withScope } = useScope();
   const { loop, loading, error, refresh } = useWearableLoop();
   const [live, setLive] = useState<number | null>(null);
   const [connecting, setConnecting] = useState(false);
