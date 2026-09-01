@@ -20,13 +20,29 @@ promise acknowledgement, not an execution — but it is the only lifecycle chang
 reachable from a message. Flagged here for a decision rather than changed
 silently.
 
+## Now live in the platform (Work → "Paper and phone")
+- Telegram photos and image files are captured: downloaded, stored, filed as
+  `ingested_files`, read with OCR, and turned into a note that stays in the
+  Inbox needing review. Idempotent on Telegram's `update_id`.
+- `physical-sweep` runs daily (04:35 UTC) and re-reads any page that is still
+  unread. It is leased single-flight, bounded to 25 pages a run, and writes one
+  `physical.sweep` receipt per person carrying the diff (read / unreadable /
+  scanned). A 402 or 403 from the gateway parks the job and lets one probe page
+  through per later run.
+- The Work panel shows three honest lines — the phone, the pages read, and one
+  real promise walked across five steps (sent → landed → reminder delivered →
+  marked done from chat → shows as done in Work). Every step is backed by a
+  recorded event or says it is still waiting.
+- "Read now" and "Send the reminder now" advance the walk without waiting for
+  cron. Neither approves nor executes anything.
+
 ## What still needs the owner's phone
-The end-to-end loop can only be proven by sending real messages. Checklist:
+The loop can only be *proven* by sending real messages. Checklist:
 
 1. Quick note -> lands in Inbox, source reads "From Telegram".
 2. Commitment with a date -> appears in Commitments with the right timezone.
 3. Prepared step -> appears in Actions as a draft, not executed.
-4. Attachment -> lands as a file capture, readable.
+4. Photo of a page -> read, lands in Inbox as a draft, panel count moves.
 5. Duplicate message -> one record, not two.
 6. Malformed / empty input -> Vanta asks instead of guessing.
 7. Missing or stale context -> Vanta says it cannot tell.
@@ -36,5 +52,6 @@ The end-to-end loop can only be proven by sending real messages. Checklist:
 10. Interrupted approval / network failure -> no half-executed state.
 11. Receipt appears after execution; undo shows only where rollback is real.
 12. Quiet hours respected.
+
 
 Validate the Inbox, Actions and Receipts rooms at 384px while doing it.
