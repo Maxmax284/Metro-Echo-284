@@ -106,6 +106,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
           blurb="Plain talk on posture, which senses are on, and what a watch is allowed to say."
         />
         <LinkOut
+          to="/wearable-loop"
+          title="The watch loop"
+          blurb="Live readings off a watch, the phone hand-off link, and the loop walked step by step."
+        />
+        <LinkOut
           to="/physical-loop"
           title="Paper and phone"
           blurb="Your Telegram loop, the page read, and one promise walked from message to receipt."

@@ -6,6 +6,7 @@ import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { AgendaStrip } from "@/components/today/AgendaStrip";
+import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { NoticedRow } from "@/components/today/NoticedRow";
 import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
@@ -392,6 +393,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           <ResumeWorkSection onNavigate={onNavigate} />
 
           <AgendaStrip onOpenWeek={() => onNavigate("work")} />
+
+          <TodayBodyPanel />
 
 
           {!quiet && (

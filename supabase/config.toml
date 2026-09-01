@@ -33,3 +33,12 @@ verify_jwt = false
 [functions.physical-sweep]
 verify_jwt = false
 
+[functions.wearable-ingest]
+verify_jwt = false
+
+[functions.wearable-sweep]
+verify_jwt = false
+
+[functions.wearable-link]
+verify_jwt = false
+
