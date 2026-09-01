@@ -8,6 +8,13 @@
       "when": 1787971986769,
       "tag": "0000_sherlock_detection_thresholds_and_digest",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788238839312,
+      "tag": "0001_create_wearable_readings",
+      "breakpoints": true
     }
   ]
 }
