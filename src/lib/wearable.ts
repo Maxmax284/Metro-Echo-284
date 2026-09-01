@@ -202,6 +202,8 @@ export function bodySummary(f: WearableFacts, now = new Date()): string {
   if (hr) bits.push(`${Math.round(hr.value)} bpm`);
   if (steps !== null) bits.push(`${steps} steps`);
   if (workoutToday) bits.push(`trained ${workoutToday.minutes} min`);
+  const sleptLast = sleepLastNight(sleepByDay(f.readings, 2, now), now);
+  if (sleptLast !== null) bits.push(`slept ${formatMinutes(sleptLast)}`);
   if (f.posture) bits.push("posture set");
   return bits.length ? `Your body · ${bits.join(" · ")}` : "Your body · nothing measured yet";
 }
@@ -341,21 +343,26 @@ export function workBodyContext(
   if (hr && now.getTime() - new Date(hr.measured_at).getTime() < 30 * 60_000) {
     bits.push(`${Math.round(hr.value)} bpm`);
   }
+  const rest = restBalance(f.readings, now);
+  const sleptLast = sleepLastNight(sleepByDay(f.readings, 2, now), now);
+  if (sleptLast !== null) bits.push(`slept ${formatMinutes(sleptLast)}`);
   if (f.posture) bits.push(`you set ${f.posture}`);
 
   const training = f.posture === "training";
   const working = !!hr && hr.value >= 120 &&
     now.getTime() - new Date(hr.measured_at).getTime() < 30 * 60_000;
-  const keepShort = training || working || (!!recentWorkout &&
+  const keepShort = training || working || rest.strained || (!!recentWorkout &&
     now.getTime() - new Date(recentWorkout.at).getTime() < 60 * 60_000);
 
   const because = !keepShort
     ? null
     : training
       ? "You set Training, so Work leads short."
-      : working
-        ? `Your heart rate is ${Math.round(hr!.value)}, so Work leads short.`
-        : "You trained in the last hour, so Work leads short.";
+      : rest.strained
+        ? `${rest.line} Work leads short.`
+        : working
+          ? `Your heart rate is ${Math.round(hr!.value)}, so Work leads short.`
+          : "You trained in the last hour, so Work leads short.";
 
   return { line: bits.length ? bits.join(" · ") : null, keepShort, because };
 }
