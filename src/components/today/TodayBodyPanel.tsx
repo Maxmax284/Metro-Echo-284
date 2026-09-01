@@ -4,7 +4,7 @@
 // measured, says plainly when a sense is off, and never claims a posture Vanta
 // wasn't told. Nothing here approves or runs anything.
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Footprints, HeartPulse, Moon, Activity } from "lucide-react";
+import { ArrowUpRight, Footprints, HeartPulse, Moon, Activity, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -13,7 +13,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
 import { POSTURE_LABEL } from "@/lib/awareness";
-import { readingLine } from "@/lib/wearable";
+import { readingLine, workoutList } from "@/lib/wearable";
 
 export function TodayBodyPanel() {
   const { loop, loading, error, refresh } = useWearableLoop();
@@ -87,6 +87,22 @@ export function TodayBodyPanel() {
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
               {readingLine("sleep", loop.sleep, activityOn)}
+            </p>
+          </div>
+
+          <div className="vanta-inset px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Timer className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <MachineLabel className="text-foreground/70">Workouts today</MachineLabel>
+            </div>
+            <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
+              {!activityOn
+                ? "Switched off. Nothing is read and nothing is stored."
+                : workoutList(loop.readings, 1).length
+                  ? workoutList(loop.readings, 1)
+                      .map((w) => `${w.minutes} min`)
+                      .join(", ") + " recorded today."
+                  : "Nothing has arrived yet. Send one from the watch loop to see how it reads."}
             </p>
           </div>
 
