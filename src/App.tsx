@@ -36,6 +36,7 @@ import ProjectBriefPage from "./pages/ProjectBrief.tsx";
 import DocumentsPage from "./pages/Documents.tsx";
 import RoomMapPage from "./pages/RoomMap.tsx";
 import WearablesPage from "./pages/Wearables.tsx";
+import WearableLoopPage from "./pages/WearableLoop.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -70,6 +71,7 @@ const App = () => (
                               <Route path="/how" element={<RoomMapPage />} />
                               <Route path="/wearables" element={<WearablesPage />} />
                               <Route path="/physical-loop" element={<PhysicalLoopPage />} />
+                              <Route path="/wearable-loop" element={<WearableLoopPage />} />
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />

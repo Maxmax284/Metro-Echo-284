@@ -12,7 +12,15 @@ import { POSTURES, postureHoldsNoise } from "./context.ts";
 import type { Urgency } from "./urgency.ts";
 
 /** Each sense is consented to separately. Absent = off, never assumed on. */
-export const SENSORS = ["calendar", "location", "microphone", "posture_inference", "device_class"] as const;
+export const SENSORS = [
+  "calendar",
+  "location",
+  "microphone",
+  "posture_inference",
+  "device_class",
+  "heart_rate",
+  "activity",
+] as const;
 export type SensorKey = (typeof SENSORS)[number];
 
 export const SENSOR_LABEL: Record<SensorKey, string> = {
@@ -21,6 +29,8 @@ export const SENSOR_LABEL: Record<SensorKey, string> = {
   microphone: "Microphone",
   posture_inference: "Posture suggestions",
   device_class: "Which device you're on",
+  heart_rate: "Heart rate",
+  activity: "Steps, sleep and workouts",
 };
 
 export const SENSOR_DETAIL: Record<SensorKey, string> = {
@@ -29,6 +39,8 @@ export const SENSOR_DETAIL: Record<SensorKey, string> = {
   microphone: "Only while you hold record for a voice note. Nothing listens in the background.",
   posture_inference: "Vanta may suggest a posture. It never switches one on by itself.",
   device_class: "Lets Vanta say less on a phone or watch than it does at a desk.",
+  heart_rate: "Only while you hold a Bluetooth connection open on the Wearables page. Nothing runs in the background.",
+  activity: "Daily numbers your phone sends over — steps, sleep, workouts. Vanta never pulls them on its own.",
 };
 
 /** The persisted slice, stored under `profiles.preferences.context`. */

@@ -3235,6 +3235,53 @@ export type Database = {
         }
         Relationships: []
       }
+      wearable_readings: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          measured_at: string
+          organization_id: string | null
+          raw: Json
+          source: string
+          unit: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          measured_at?: string
+          organization_id?: string | null
+          raw?: Json
+          source?: string
+          unit?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          measured_at?: string
+          organization_id?: string | null
+          raw?: Json
+          source?: string
+          unit?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wearable_readings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
