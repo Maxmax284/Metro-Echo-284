@@ -13,15 +13,17 @@ import { workBodyContext } from "@/lib/wearable";
 
 export function WorkBodyLine() {
   const { loop, loading } = useWearableLoop();
+  const { context } = useVantaContext();
   if (loading || !loop.anySensorOn) return null;
 
   const body = workBodyContext({
     anySensorOn: loop.anySensorOn,
     readings: loop.readings,
-    posture: loop.suggestion ? null : null,
+    posture: context.posture ?? null,
     sweep: loop.sweep,
     postureActedAt: null,
   });
+
 
   if (!body.line) return null;
 
