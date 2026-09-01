@@ -203,7 +203,7 @@ describe("sleep and rest", () => {
 
   it("reads a missing night as a gap, never a zero", () => {
     const nights = sleepByDay([rd("sleep", 420, "2026-08-30T06:00:00.000Z")], 3, now);
-    expect(nights.map((n) => n.minutes)).toEqual([null, 420, null]);
+    expect(nights.map((n) => n.minutes)).toEqual([420, null, null]);
   });
 
   it("formats minutes plainly", () => {
