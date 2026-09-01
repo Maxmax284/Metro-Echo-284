@@ -146,10 +146,8 @@ export function PhysicalLoopPanel() {
               </button>
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">{loop.sweepLine}</p>
-            <AftermathHint>
-              Photograph a page and send it to your Telegram chat, or drop it in here. Vanta reads it
-              and files it in the Inbox as a draft — it never routes it for you.
-            </AftermathHint>
+            <AftermathHint text="Photograph a page and send it to your Telegram chat, or drop it in here. Vanta reads it and files it in the Inbox as a draft — it never routes it for you." />
+
           </div>
 
           {/* One real promise, walked */}
