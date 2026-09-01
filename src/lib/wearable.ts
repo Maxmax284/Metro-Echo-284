@@ -193,13 +193,169 @@ export function walkProgress(steps: WalkStep[]): { done: number; total: number }
 }
 
 /** The single folded line for the Today panel. */
-export function bodySummary(f: WearableFacts): string {
+export function bodySummary(f: WearableFacts, now = new Date()): string {
   if (!f.anySensorOn) return "Your body · nothing switched on yet";
   const hr = latest(f.readings, "heart_rate");
-  const steps = stepsForDay(f.readings);
+  const steps = stepsForDay(f.readings, now);
+  const workoutToday = workoutList(f.readings, 1, now)[0] ?? null;
   const bits: string[] = [];
   if (hr) bits.push(`${Math.round(hr.value)} bpm`);
   if (steps !== null) bits.push(`${steps} steps`);
+  if (workoutToday) bits.push(`trained ${workoutToday.minutes} min`);
   if (f.posture) bits.push("posture set");
   return bits.length ? `Your body · ${bits.join(" · ")}` : "Your body · nothing measured yet";
+}
+
+/* ------------------------------------------------------------------ *
+ * Trends. Pure arithmetic over recorded readings. A day with no
+ * record is a gap, never a zero — Vanta does not invent a quiet day.
+ * ------------------------------------------------------------------ */
+
+export interface DayBucket {
+  /** ISO date, YYYY-MM-DD. */
+  day: string;
+  /** Steps recorded that day, or null when nothing arrived. */
+  steps: number | null;
+}
+
+function dayKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** One bucket per day, oldest first. Missing days are present with null. */
+export function stepsByDay(readings: Reading[], days = 14, now = new Date()): DayBucket[] {
+  const top = new Map<string, number>();
+  for (const r of readings) {
+    if (r.kind !== "steps") continue;
+    const k = r.measured_at.slice(0, 10);
+    top.set(k, Math.max(top.get(k) ?? 0, r.value));
+  }
+  const out: DayBucket[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86_400_000);
+    const k = dayKey(d);
+    out.push({ day: k, steps: top.has(k) ? Math.round(top.get(k)!) : null });
+  }
+  return out;
+}
+
+/** Median of the numbers given, or null when there are none. */
+export function median(nums: number[]): number | null {
+  const xs = nums.filter((n) => Number.isFinite(n)).slice().sort((a, b) => a - b);
+  if (!xs.length) return null;
+  const mid = Math.floor(xs.length / 2);
+  return xs.length % 2 ? xs[mid] : Math.round((xs[mid - 1] + xs[mid]) / 2);
+}
+
+/** Median of recorded days only, excluding today. Null until there is history. */
+export function stepsMedian(buckets: DayBucket[], now = new Date()): number | null {
+  const today = dayKey(now);
+  return median(
+    buckets.filter((b) => b.day !== today && b.steps !== null).map((b) => b.steps as number),
+  );
+}
+
+export interface Point {
+  at: string;
+  value: number;
+}
+
+/** Heart-rate readings inside the window, oldest first. */
+export function heartSeries(readings: Reading[], hours = 48, now = new Date()): Point[] {
+  const from = now.getTime() - hours * 3_600_000;
+  return readings
+    .filter((r) => r.kind === "heart_rate" && new Date(r.measured_at).getTime() >= from)
+    .map((r) => ({ at: r.measured_at, value: Math.round(r.value) }))
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+}
+
+export interface WorkoutEntry {
+  at: string;
+  minutes: number;
+  source: ReadingSource;
+}
+
+/** Workouts inside the window, newest first. */
+export function workoutList(readings: Reading[], days = 14, now = new Date()): WorkoutEntry[] {
+  const from = now.getTime() - days * 86_400_000;
+  return readings
+    .filter((r) => r.kind === "workout" && new Date(r.measured_at).getTime() >= from)
+    .map((r) => ({ at: r.measured_at, minutes: Math.round(r.value), source: r.source }))
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+}
+
+/** Plain comparison of today against your own history. Never a scolding. */
+export function stepsCompare(buckets: DayBucket[], now = new Date()): string {
+  const today = buckets.find((b) => b.day === dayKey(now));
+  const med = stepsMedian(buckets, now);
+  if (!today || today.steps === null) {
+    return med === null
+      ? "No step record yet, so there is nothing to compare."
+      : `Nothing sent today yet. Your usual day is around ${med} steps.`;
+  }
+  if (med === null) return `${today.steps} steps today. Not enough history to compare yet.`;
+  const diff = today.steps - med;
+  if (Math.abs(diff) < Math.max(300, med * 0.1)) {
+    return `${today.steps} steps today — about your usual ${med}.`;
+  }
+  return diff > 0
+    ? `${today.steps} steps today, ${diff} above your usual ${med}.`
+    : `${today.steps} steps today, ${Math.abs(diff)} below your usual ${med}.`;
+}
+
+/* ------------------------------------------------------------------ *
+ * Work context. Body facts change how Work speaks and what it leads
+ * with. They never create, route, approve or run work.
+ * ------------------------------------------------------------------ */
+
+export interface WorkBodyContext {
+  /** One line for the desk, or null when there is nothing honest to say. */
+  line: string | null;
+  /** True when Vanta should keep the desk short right now. */
+  keepShort: boolean;
+  /** Why it's keeping things short, from a record. */
+  because: string | null;
+}
+
+export function workBodyContext(
+  f: WearableFacts,
+  now = new Date(),
+): WorkBodyContext {
+  if (!f.anySensorOn) return { line: null, keepShort: false, because: null };
+  const hr = latest(f.readings, "heart_rate");
+  const steps = stepsForDay(f.readings, now);
+  const recentWorkout = workoutList(f.readings, 1, now).find(
+    (w) => now.getTime() - new Date(w.at).getTime() < 4 * 3_600_000,
+  );
+
+  const bits: string[] = [];
+  if (recentWorkout) {
+    const mins = Math.round((now.getTime() - new Date(recentWorkout.at).getTime()) / 60_000);
+    bits.push(
+      mins < 90
+        ? `Trained ${recentWorkout.minutes} min, ${mins} min ago`
+        : `Trained ${recentWorkout.minutes} min earlier today`,
+    );
+  }
+  if (steps !== null) bits.push(`${steps} steps`);
+  if (hr && now.getTime() - new Date(hr.measured_at).getTime() < 30 * 60_000) {
+    bits.push(`${Math.round(hr.value)} bpm`);
+  }
+  if (f.posture) bits.push(`you set ${f.posture}`);
+
+  const training = f.posture === "training";
+  const working = !!hr && hr.value >= 120 &&
+    now.getTime() - new Date(hr.measured_at).getTime() < 30 * 60_000;
+  const keepShort = training || working || (!!recentWorkout &&
+    now.getTime() - new Date(recentWorkout.at).getTime() < 60 * 60_000);
+
+  const because = !keepShort
+    ? null
+    : training
+      ? "You set Training, so Work leads short."
+      : working
+        ? `Your heart rate is ${Math.round(hr!.value)}, so Work leads short.`
+        : "You trained in the last hour, so Work leads short.";
+
+  return { line: bits.length ? bits.join(" · ") : null, keepShort, because };
 }

@@ -2,8 +2,11 @@
 //
 // Same shape as the paper-and-phone page: the plain rules, the live readings,
 // and one walk that only ticks a step when a record proves it.
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, Circle } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Circle, Loader2, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { vantaToast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { MOTION_ROW } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -24,6 +27,49 @@ const STEPS = [
 
 export default function WearableLoopPage() {
   const { loop, loading, error, refresh } = useWearableLoop();
+  const [sending, setSending] = useState(false);
+  const activityOn = loop.consent.activity === true;
+
+  /* Sends one real workout reading through your private hand-off link, exactly
+     as your phone would. It stores a record; it approves and runs nothing. */
+  const sendTestWorkout = async () => {
+    setSending(true);
+    try {
+      const { data: link, error: linkErr } = await supabase.functions.invoke("wearable-link", {
+        body: {},
+      });
+      if (linkErr) throw linkErr;
+      const url = String((link as any)?.url ?? "");
+      const token = String((link as any)?.token ?? "");
+      if (!url || !token) throw new Error("The hand-off link could not be read.");
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          readings: [
+            { kind: "workout", value: 45, unit: "min", measured_at: new Date().toISOString() },
+          ],
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(String((body as any)?.error ?? "The hand-off refused it."));
+
+      vantaToast.success({
+        title: "A 45 minute workout landed",
+        description: "It shows in Your body on Today and on the Work desk line.",
+      });
+      refresh();
+    } catch (e) {
+      vantaToast.error({
+        title: "Nothing was sent",
+        description: e instanceof Error ? e.message : "Try again in a moment.",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
@@ -56,6 +102,39 @@ export default function WearableLoopPage() {
         <p className="mt-3 text-[11.5px] leading-snug text-muted-foreground">
           A watch feeds Vanta. It never controls it. Approval doesn't travel to your wrist, and
           nothing here goes out through Telegram.
+        </p>
+      </section>
+
+      <section className="vanta-card mb-4 flex flex-wrap items-center gap-2 p-3">
+        <MachineLabel className="text-foreground/70">Where it shows up</MachineLabel>
+        <Link
+          to="/watch"
+          className="vanta-focus ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40"
+        >
+          See the trends
+          <ArrowUpRight className="h-3 w-3" />
+        </Link>
+        <Link
+          to="/"
+          className="vanta-focus inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40"
+        >
+          Your body on Today
+          <ArrowUpRight className="h-3 w-3" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => void sendTestWorkout()}
+          disabled={sending || !activityOn}
+          title={activityOn ? undefined : "Daily activity is switched off, so nothing can be stored."}
+          className="vanta-focus inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40 disabled:opacity-60"
+        >
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+          Send a test workout
+        </button>
+        <p className="w-full text-[11px] leading-snug text-muted-foreground">
+          The test workout is a real reading through your own hand-off link — the same path your
+          phone uses. It stores 45 minutes and nothing else. Pairing a strap still has to happen on
+          the device in your hand.
         </p>
       </section>
 

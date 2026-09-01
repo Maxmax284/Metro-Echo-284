@@ -22,6 +22,20 @@
       "when": 1788239241712,
       "tag": "0002_schedule_wearable_sweep",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788240536810,
+      "tag": "0003_grant_integration_webhook_secrets",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788240626792,
+      "tag": "0004_allow_wearable_handoff_secret",
+      "breakpoints": true
     }
   ]
 }
