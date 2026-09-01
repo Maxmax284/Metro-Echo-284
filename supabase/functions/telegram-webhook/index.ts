@@ -473,10 +473,28 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    if (!text) {
+    /* A photo — or an image sent as a file — is a page. Vanta reads it and
+       files it for review. It is capture, so it never routes or executes. */
+    const photoSizes = Array.isArray(msg.photo) ? msg.photo : [];
+    const biggest = photoSizes.length > 0 ? photoSizes[photoSizes.length - 1] : null;
+    const imageDoc = msg.document && String(msg.document.mime_type ?? "").startsWith("image/")
+      ? msg.document
+      : null;
+    const page: { fileId: string; mime: string; name: string } | null = biggest
+      ? { fileId: biggest.file_id, mime: "image/jpeg", name: `page-${update.update_id}.jpg` }
+      : imageDoc
+        ? {
+            fileId: imageDoc.file_id,
+            mime: String(imageDoc.mime_type ?? "image/jpeg"),
+            name: String(imageDoc.file_name ?? `page-${update.update_id}.jpg`),
+          }
+        : null;
+
+    if (!text && !page) {
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.textOnly() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
+
 
     // /help — voice-aligned help text
     if (text === "/help" || text.startsWith("/help ")) {
