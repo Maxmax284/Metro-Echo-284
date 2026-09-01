@@ -33,7 +33,7 @@ const btnClass = cn(
 
 export function WearableReadingsPanel() {
   const { user } = useAuth();
-  const { organizationId } = useScope();
+  const { orgId, withScope } = useScope();
   const { loop, loading, error, refresh } = useWearableLoop();
   const [live, setLive] = useState<number | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -74,15 +74,16 @@ export function WearableReadingsPanel() {
         if (!user) return;
         void supabase
           .from("wearable_readings")
-          .insert({
-            user_id: user.id,
-            organization_id: organizationId ?? null,
-            kind: "heart_rate",
-            value: bpm,
-            unit: "bpm",
-            measured_at: new Date().toISOString(),
-            source: "bluetooth",
-          })
+          .insert(
+            withScope({
+              user_id: user.id,
+              kind: "heart_rate",
+              value: bpm,
+              unit: "bpm",
+              measured_at: new Date().toISOString(),
+              source: "bluetooth",
+            }) as never,
+          )
           .then(() => refresh());
       });
       session.current = s;
