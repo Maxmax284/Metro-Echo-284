@@ -359,3 +359,161 @@ export function workBodyContext(
 
   return { line: bits.length ? bits.join(" · ") : null, keepShort, because };
 }
+
+/* ------------------------------------------------------------------ *
+ * Sleep and rest. Sleep arrives as minutes for a night. A night with
+ * no record is a gap, never a zero — Vanta never reads silence as
+ * insomnia.
+ * ------------------------------------------------------------------ */
+
+export interface NightBucket {
+  /** ISO date of the morning the sleep was recorded. */
+  day: string;
+  /** Minutes slept, or null when nothing arrived. */
+  minutes: number | null;
+}
+
+/** Minutes as "7h 20m". Plain, never decimal hours. */
+export function formatMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** One bucket per night, oldest first. Highest record wins for a day. */
+export function sleepByDay(readings: Reading[], days = 14, now = new Date()): NightBucket[] {
+  const top = new Map<string, number>();
+  for (const r of readings) {
+    if (r.kind !== "sleep") continue;
+    const k = r.measured_at.slice(0, 10);
+    top.set(k, Math.max(top.get(k) ?? 0, r.value));
+  }
+  const out: NightBucket[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 86_400_000);
+    const k = dayKey(d);
+    out.push({ day: k, minutes: top.has(k) ? Math.round(top.get(k)!) : null });
+  }
+  return out;
+}
+
+/** Median of recorded nights, excluding today. Null until there is history. */
+export function sleepMedian(buckets: NightBucket[], now = new Date()): number | null {
+  const today = dayKey(now);
+  return median(
+    buckets.filter((b) => b.day !== today && b.minutes !== null).map((b) => b.minutes as number),
+  );
+}
+
+/** Last night's minutes, when a record exists for today's date. */
+export function sleepLastNight(buckets: NightBucket[], now = new Date()): number | null {
+  return buckets.find((b) => b.day === dayKey(now))?.minutes ?? null;
+}
+
+/** Plain comparison of last night against your own nights. */
+export function sleepCompare(buckets: NightBucket[], now = new Date()): string {
+  const last = sleepLastNight(buckets, now);
+  const med = sleepMedian(buckets, now);
+  if (last === null) {
+    return med === null
+      ? "No sleep record yet, so there is nothing to compare."
+      : `Nothing sent for last night. Your usual night is around ${formatMinutes(med)}.`;
+  }
+  if (med === null) return `${formatMinutes(last)} last night. Not enough nights to compare yet.`;
+  const diff = last - med;
+  if (Math.abs(diff) < 30) return `${formatMinutes(last)} last night — about your usual ${formatMinutes(med)}.`;
+  return diff > 0
+    ? `${formatMinutes(last)} last night, ${formatMinutes(diff)} more than your usual ${formatMinutes(med)}.`
+    : `${formatMinutes(last)} last night, ${formatMinutes(Math.abs(diff))} less than your usual ${formatMinutes(med)}.`;
+}
+
+export interface RestBalance {
+  /** One honest sentence about rest against training, or null. */
+  line: string | null;
+  /** True when short sleep and hard training met on the same day. */
+  strained: boolean;
+}
+
+/**
+ * Rest against training. Both facts have to exist — a missing night is
+ * never read as a short one, and training alone is not strain.
+ */
+export function restBalance(readings: Reading[], now = new Date()): RestBalance {
+  const nights = sleepByDay(readings, 3, now);
+  const last = sleepLastNight(nights, now);
+  const trainedToday = workoutList(readings, 1, now);
+  const minutes = trainedToday.reduce((sum, w) => sum + w.minutes, 0);
+  if (last === null && !minutes) return { line: null, strained: false };
+  if (last === null) {
+    return { line: `Trained ${minutes} min today. No sleep record, so rest is unknown.`, strained: false };
+  }
+  if (!minutes) return { line: `${formatMinutes(last)} of sleep, no training recorded today.`, strained: false };
+  const strained = last < 360 && minutes >= 30;
+  return {
+    line: `${formatMinutes(last)} of sleep against ${minutes} min of training today.`,
+    strained,
+  };
+}
+
+export interface BodyCompareRow {
+  key: "steps" | "sleep" | "heart_rate" | "workout";
+  label: string;
+  /** Today's reading, in plain words, or "nothing recorded". */
+  today: string;
+  /** Your own usual, or "not enough history". */
+  usual: string;
+  /** What the difference means, in one sentence. Never advice. */
+  note: string;
+}
+
+/** Today against your own record. Comparison only — it advises nothing. */
+export function bodyCompare(readings: Reading[], days = 14, now = new Date()): BodyCompareRow[] {
+  const stepDays = stepsByDay(readings, days, now);
+  const nights = sleepByDay(readings, days, now);
+  const stepToday = stepsForDay(readings, now);
+  const stepUsual = stepsMedian(stepDays, now);
+  const sleptLast = sleepLastNight(nights, now);
+  const sleepUsual = sleepMedian(nights, now);
+  const hr = latest(readings, "heart_rate");
+  const hrUsual = median(
+    readings.filter((r) => r.kind === "heart_rate").map((r) => r.value),
+  );
+  const workouts = workoutList(readings, days, now);
+  const todayMin = workoutList(readings, 1, now).reduce((s, w) => s + w.minutes, 0);
+  const weekMin = workouts
+    .filter((w) => now.getTime() - new Date(w.at).getTime() < 7 * 86_400_000)
+    .reduce((s, w) => s + w.minutes, 0);
+
+  return [
+    {
+      key: "steps",
+      label: "Steps",
+      today: stepToday === null ? "nothing recorded" : `${stepToday}`,
+      usual: stepUsual === null ? "not enough history" : `${stepUsual}`,
+      note: stepsCompare(stepDays, now),
+    },
+    {
+      key: "sleep",
+      label: "Sleep",
+      today: sleptLast === null ? "nothing recorded" : formatMinutes(sleptLast),
+      usual: sleepUsual === null ? "not enough nights" : formatMinutes(sleepUsual),
+      note: sleepCompare(nights, now),
+    },
+    {
+      key: "heart_rate",
+      label: "Heart rate",
+      today: hr ? `${Math.round(hr.value)} bpm` : "nothing recorded",
+      usual: hrUsual === null ? "not enough readings" : `${Math.round(hrUsual)} bpm`,
+      note: hr
+        ? `Last reading ${SOURCE_LABEL[hr.source]}.`
+        : "No heart-rate reading has arrived, so there is nothing to compare.",
+    },
+    {
+      key: "workout",
+      label: "Training",
+      today: todayMin ? `${todayMin} min` : "nothing recorded",
+      usual: weekMin ? `${weekMin} min this week` : "nothing this week",
+      note: restBalance(readings, now).line ?? "No training or sleep record to weigh against each other.",
+    },
+  ];
+}
