@@ -13,10 +13,11 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
 import { POSTURE_LABEL } from "@/lib/awareness";
-import { readingLine, workoutList } from "@/lib/wearable";
+import { readingLine, restBalance, workoutList } from "@/lib/wearable";
 
 export function TodayBodyPanel() {
   const { loop, loading, error, refresh } = useWearableLoop();
+  const rest = restBalance(loop.readings);
   const hrOn = loop.consent.heart_rate === true;
   const activityOn = loop.consent.activity === true;
 
@@ -88,6 +89,12 @@ export function TodayBodyPanel() {
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
               {readingLine("sleep", loop.sleep, activityOn)}
             </p>
+            {activityOn && rest.line ? (
+              <p className={cn("mt-1 text-[11px] leading-snug", rest.strained ? "text-amber-400/90" : "text-muted-foreground")}>
+                {rest.line}
+                {rest.strained ? " Work leads short while that holds." : ""}
+              </p>
+            ) : null}
           </div>
 
           <div className="vanta-inset px-3 py-2">
