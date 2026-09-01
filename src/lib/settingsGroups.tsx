@@ -100,6 +100,16 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     icon: Radar,
     render: () => (
       <>
+        <LinkOut
+          to="/wearables"
+          title="Wearables"
+          blurb="Plain talk on posture, which senses are on, and what a watch is allowed to say."
+        />
+        <LinkOut
+          to="/physical-loop"
+          title="Paper and phone"
+          blurb="Your Telegram loop, the page read, and one promise walked from message to receipt."
+        />
         <PostureSection />
         <SensorConsentSection />
         <DeviceSignalsSection />
