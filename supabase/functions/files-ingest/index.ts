@@ -10,6 +10,8 @@ import { corsHeaders } from "../_shared/http.ts";
 // forced to a cautious posture and never auto-routed.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { detectSensitive } from "../_shared/sensitive.ts";
+import { ocrImage } from "../_shared/pageRead.ts";
+
 import {
   DETECTED_DOC_TYPES,
   FILE_SUGGESTED_ACTION_KINDS,
@@ -37,36 +39,9 @@ async function extractDocxText(blob: Blob): Promise<string> {
   return String(result?.value ?? "");
 }
 
-async function ocrImageWithGateway(blob: Blob, mime: string): Promise<string> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
-  const buf = new Uint8Array(await blob.arrayBuffer());
-  // base64 encode
-  let bin = "";
-  for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-  const b64 = btoa(bin);
-  const dataUrl = `data:${mime || "image/png"};base64,${b64}`;
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: "Extract all readable text from this image. Return plain text only, preserve line breaks. If no text is present, describe the image in one short sentence." },
-          { type: "image_url", image_url: { url: dataUrl } },
-        ],
-      }],
-    }),
-  });
-  if (!r.ok) {
-    const t = await r.text().catch(() => "");
-    throw new Error(`vision ${r.status}: ${t.slice(0, 200)}`);
-  }
-  const j = await r.json();
-  return String(j.choices?.[0]?.message?.content ?? "").trim();
-}
+/* One OCR path for the whole platform — see _shared/pageRead.ts. */
+const ocrImageWithGateway = ocrImage;
+
 
 async function extractText(blob: Blob, mime: string, filename: string): Promise<{ text: string; method: string }> {
   const lower = (mime || "").toLowerCase();
