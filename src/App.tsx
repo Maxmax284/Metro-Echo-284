@@ -35,6 +35,8 @@ import ProjectsPage from "./pages/Projects.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
 import DocumentsPage from "./pages/Documents.tsx";
 import RoomMapPage from "./pages/RoomMap.tsx";
+import WearablesPage from "./pages/Wearables.tsx";
+import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 
