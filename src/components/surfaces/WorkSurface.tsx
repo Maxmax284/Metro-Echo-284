@@ -57,6 +57,7 @@ import { PlayCircle } from "lucide-react";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { PhysicalLoopPanel } from "@/components/work/PhysicalLoopPanel";
+import { WorkBodyLine } from "@/components/work/WorkBodyLine";
 
 
 
@@ -187,6 +188,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           title="Where things stand"
           line="Today's state of play — the briefing, what you left open, and the week ahead."
         />
+
+        <WorkBodyLine />
 
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
 
