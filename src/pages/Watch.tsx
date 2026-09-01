@@ -4,7 +4,8 @@
 // heart rate, the workouts that arrived and the posture you set. A day with no
 // record is a gap, never a zero. Reading this page changes nothing.
 import { Link } from "react-router-dom";
-import { ArrowLeft, Activity, Footprints, HeartPulse, Timer } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Activity, Footprints, HeartPulse, Moon, Scale, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -12,7 +13,8 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/ui/state-view
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
 import { POSTURE_LABEL } from "@/lib/awareness";
-import { SOURCE_LABEL } from "@/lib/wearable";
+import { SOURCE_LABEL, formatMinutes } from "@/lib/wearable";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 function StepBars({ days, usual }: { days: { day: string; steps: number | null }[]; usual: number | null }) {
   const top = Math.max(1, ...days.map((d) => d.steps ?? 0));
@@ -73,7 +75,36 @@ function HeartLine({ points }: { points: { at: string; value: number }[] }) {
   );
 }
 
+function NightBars({ nights, usual }: { nights: { day: string; minutes: number | null }[]; usual: number | null }) {
+  const top = Math.max(1, ...nights.map((n) => n.minutes ?? 0));
+  return (
+    <div className="mt-2 flex items-end gap-[3px]" role="img" aria-label="Sleep by night">
+      {nights.map((n) => {
+        const h = n.minutes === null ? 3 : Math.max(4, Math.round((n.minutes / top) * 56));
+        return (
+          <div key={n.day} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div
+              title={n.minutes === null ? `${n.day} · nothing recorded` : `${n.day} · ${formatMinutes(n.minutes)}`}
+              style={{ height: h }}
+              className={cn(
+                "w-full rounded-[1px]",
+                n.minutes === null
+                  ? "bg-border/50"
+                  : usual !== null && n.minutes >= usual
+                    ? "bg-primary/70"
+                    : "bg-amber-400/60",
+              )}
+            />
+            <span className="font-mono text-[8.5px] text-muted-foreground">{n.day.slice(8)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function WatchPage() {
+  const [compareOpen, setCompareOpen] = useState(false);
   const { trends, loading, error, refresh } = useWearableTrends(14);
   const hrOn = trends.consent.heart_rate === true;
   const activityOn = trends.consent.activity === true;
