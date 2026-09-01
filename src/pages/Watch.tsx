@@ -127,6 +127,17 @@ export default function WatchPage() {
               : "Nothing has been recorded yet."}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCompareOpen(true)}
+          className={cn(
+            "ml-auto inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40",
+            "vanta-focus",
+          )}
+        >
+          <Scale className="h-3.5 w-3.5 text-primary" />
+          Compare
+        </button>
       </header>
 
       {error ? (
@@ -190,6 +201,31 @@ export default function WatchPage() {
             {hrOn ? <HeartLine points={trends.heart} /> : null}
           </section>
 
+          {/* Sleep */}
+          <section className="vanta-card p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Moon className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <MachineLabel className="text-foreground/70">Sleep · 14 nights</MachineLabel>
+              <MachineText className="ml-auto text-[10px] text-muted-foreground">
+                {activityOn
+                  ? trends.sleepUsual !== null
+                    ? `usual ${formatMinutes(trends.sleepUsual)}`
+                    : "no history yet"
+                  : "off"}
+              </MachineText>
+            </div>
+            <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
+              {activityOn
+                ? trends.sleepLine
+                : "Daily activity is off, so sleep is not read and not stored."}
+            </p>
+            {activityOn ? <NightBars nights={trends.nights} usual={trends.sleepUsual} /> : null}
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              An amber night is shorter than your usual one. A flat grey night means nothing was
+              sent — Vanta does not read a missing night as a bad one.
+            </p>
+          </section>
+
           {/* Workouts */}
           <section className="vanta-card p-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -236,6 +272,33 @@ export default function WatchPage() {
           <AftermathHint text="Reading these trends changes nothing. Numbers only change how Vanta talks — they never route, approve or run anything." />
         </div>
       )}
+
+      <Sheet open={compareOpen} onOpenChange={setCompareOpen}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-base">Today against your usual</SheetTitle>
+            <SheetDescription className="text-[11.5px]">
+              Your own record, side by side. Nothing here is a target and nothing here is advice —
+              it only explains why the desk may be leading short.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-3 space-y-2">
+            {trends.compare.map((row) => (
+              <div key={row.key} className="vanta-inset px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <MachineLabel className="text-foreground/70">{row.label}</MachineLabel>
+                  <MachineText className="ml-auto text-[10px] text-muted-foreground">
+                    today {row.today} · usual {row.usual}
+                  </MachineText>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">{row.note}</p>
+              </div>
+            ))}
+            <AftermathHint text="Comparing changes nothing. Posture stays whatever you set, and no reading can approve or run anything." />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
