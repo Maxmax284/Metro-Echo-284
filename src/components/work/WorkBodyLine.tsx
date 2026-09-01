@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
+import { useVantaContext } from "@/providers/VantaContextProvider";
 import { workBodyContext } from "@/lib/wearable";
 
 export function WorkBodyLine() {
