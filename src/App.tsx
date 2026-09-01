@@ -68,6 +68,8 @@ const App = () => (
                               <Route path="/projects/:id" element={<ProjectBriefPage />} />
                               <Route path="/documents" element={<DocumentsPage />} />
                               <Route path="/how" element={<RoomMapPage />} />
+                              <Route path="/wearables" element={<WearablesPage />} />
+                              <Route path="/physical-loop" element={<PhysicalLoopPage />} />
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />
