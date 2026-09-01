@@ -29,20 +29,27 @@ export function PhysicalLoopPanel() {
       const unreadable = Number((data as any)?.unreadable ?? 0);
       const paused = (data as any)?.paused as string | null;
       if (paused) {
-        vantaToast.info("Reading is paused", paused);
+        vantaToast.info({ title: "Reading is paused", description: paused });
       } else if (read === 0 && unreadable === 0) {
-        vantaToast.info("Nothing new to read", "No pages were waiting. Nothing changed.");
+        vantaToast.info({
+          title: "Nothing new to read",
+          description: "No pages were waiting. Nothing changed.",
+        });
       } else {
-        vantaToast.success(
-          `${read} ${read === 1 ? "page" : "pages"} read`,
-          unreadable > 0
-            ? `${unreadable} couldn't be read. Everything landed in your Inbox as a draft.`
-            : "They're in your Inbox as drafts, waiting on you.",
-        );
+        vantaToast.success({
+          title: `${read} ${read === 1 ? "page" : "pages"} read`,
+          description:
+            unreadable > 0
+              ? `${unreadable} couldn't be read. Everything landed in your Inbox as a draft.`
+              : "They're in your Inbox as drafts, waiting on you.",
+        });
       }
       refresh();
     } catch (e) {
-      vantaToast.error("The read didn't run", e instanceof Error ? e.message : "Try again in a moment.");
+      vantaToast.error({
+        title: "The read didn't run",
+        description: e instanceof Error ? e.message : "Try again in a moment.",
+      });
     } finally {
       setReading(false);
     }
@@ -57,14 +64,21 @@ export function PhysicalLoopPanel() {
       });
       if (err) throw err;
       if ((data as any)?.error) throw new Error(String((data as any).error));
-      vantaToast.success("Reminder sent to your phone", "Its buttons acknowledge the promise. They don't execute anything.");
+      vantaToast.success({
+        title: "Reminder sent to your phone",
+        description: "Its buttons acknowledge the promise. They don't execute anything.",
+      });
       refresh();
     } catch (e) {
-      vantaToast.error("The reminder didn't send", e instanceof Error ? e.message : "Check your linked chat.");
+      vantaToast.error({
+        title: "The reminder didn't send",
+        description: e instanceof Error ? e.message : "Check your linked chat.",
+      });
     } finally {
       setSending(false);
     }
   };
+
 
   return (
     <CollapsibleSection
