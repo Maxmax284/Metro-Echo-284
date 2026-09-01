@@ -11,10 +11,10 @@ export function VerdictDownloadCard() {
       <div className="flex items-start gap-3">
         <FileText className="mt-0.5 h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold">Vanta — The Verdict</h2>
+          <h2 className="text-sm font-semibold">Vanta — State of the platform</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            Plain-English summary of what this thing is, what it can do, and what's
-            still rough. Cover page included.
+            Plain-English read on what's built, how the watch connects, what's still
+            thin, and what to do next. Dated 1 Sep 2026.
           </p>
         </div>
         <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 text-[11.5px]">
