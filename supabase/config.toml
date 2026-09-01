@@ -29,3 +29,7 @@ verify_jwt = false
 
 [functions.bridge-dispatch]
 verify_jwt = false
+
+[functions.physical-sweep]
+verify_jwt = false
+

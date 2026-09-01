@@ -80,18 +80,20 @@ Deno.serve(async (req: Request) => {
 
   try {
     /* A signed-in caller ("Read now") only ever sweeps their own pages. The
-       cron caller has no session and sweeps everybody's pending pages. */
+       cron caller carries no user session, so it sweeps everybody's pending
+       pages. A service-role header resolves to no user, which is the same. */
     let onlyUserId: string | null = null;
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (authHeader && !authHeader.includes(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "\u0000")) {
+    if (authHeader) {
       const asUser = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,
         { global: { headers: { Authorization: authHeader } } },
       );
-      const user = await resolveUser(req, asUser as any);
+      const user = await resolveUser(req, asUser as any).catch(() => null);
       if (user) onlyUserId = user.id;
     }
+
 
     const paused = await readPause(admin);
     const runId = crypto.randomUUID();
