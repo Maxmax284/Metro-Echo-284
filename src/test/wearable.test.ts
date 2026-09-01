@@ -14,6 +14,7 @@ import {
   walkProgress,
   type Reading,
 } from "@/lib/wearable";
+import { sleepByDay, sleepCompare, formatMinutes, restBalance, bodyCompare } from "@/lib/wearable";
 
 const now = new Date().toISOString();
 const hr = (v: number, at = now): Reading => ({
@@ -187,5 +188,53 @@ describe("watch trends", () => {
       now,
     );
     expect(ctx.keepShort).toBe(false);
+  });
+});
+
+describe("sleep and rest", () => {
+  const now = new Date("2026-09-01T12:00:00.000Z");
+  const rd = (kind: any, value: number, at: string) => ({
+    kind,
+    value,
+    unit: kind === "sleep" ? "min" : "",
+    measured_at: at,
+    source: "ingest" as const,
+  });
+
+  it("reads a missing night as a gap, never a zero", () => {
+    const nights = sleepByDay([rd("sleep", 420, "2026-08-30T06:00:00.000Z")], 3, now);
+    expect(nights.map((n) => n.minutes)).toEqual([420, null, null]);
+  });
+
+  it("formats minutes plainly", () => {
+    expect(formatMinutes(440)).toBe("7h 20m");
+    expect(formatMinutes(45)).toBe("45m");
+  });
+
+  it("compares last night against your own nights", () => {
+    const readings = [
+      rd("sleep", 300, "2026-09-01T06:00:00.000Z"),
+      rd("sleep", 460, "2026-08-31T06:00:00.000Z"),
+      rd("sleep", 450, "2026-08-30T06:00:00.000Z"),
+    ];
+    const line = sleepCompare(sleepByDay(readings, 5, now), now);
+    expect(line).toMatch(/less than your usual/);
+  });
+
+  it("calls short sleep plus training strained, and unknown sleep unknown", () => {
+    const strained = restBalance(
+      [rd("sleep", 300, "2026-09-01T06:00:00.000Z"), rd("workout", 60, "2026-09-01T07:00:00.000Z")],
+      now,
+    );
+    expect(strained.strained).toBe(true);
+    const unknown = restBalance([rd("workout", 60, "2026-09-01T07:00:00.000Z")], now);
+    expect(unknown.strained).toBe(false);
+    expect(unknown.line).toMatch(/rest is unknown/);
+  });
+
+  it("builds four compare rows that never invent a number", () => {
+    const rows = bodyCompare([], 14, now);
+    expect(rows.map((r) => r.key)).toEqual(["steps", "sleep", "heart_rate", "workout"]);
+    expect(rows.every((r) => r.today === "nothing recorded")).toBe(true);
   });
 });

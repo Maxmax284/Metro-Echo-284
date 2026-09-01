@@ -4,7 +4,8 @@
 // heart rate, the workouts that arrived and the posture you set. A day with no
 // record is a gap, never a zero. Reading this page changes nothing.
 import { Link } from "react-router-dom";
-import { ArrowLeft, Activity, Footprints, HeartPulse, Timer } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Activity, Footprints, HeartPulse, Moon, Scale, Timer } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -12,7 +13,8 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/ui/state-view
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
 import { POSTURE_LABEL } from "@/lib/awareness";
-import { SOURCE_LABEL } from "@/lib/wearable";
+import { SOURCE_LABEL, formatMinutes } from "@/lib/wearable";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 function StepBars({ days, usual }: { days: { day: string; steps: number | null }[]; usual: number | null }) {
   const top = Math.max(1, ...days.map((d) => d.steps ?? 0));
@@ -73,7 +75,36 @@ function HeartLine({ points }: { points: { at: string; value: number }[] }) {
   );
 }
 
+function NightBars({ nights, usual }: { nights: { day: string; minutes: number | null }[]; usual: number | null }) {
+  const top = Math.max(1, ...nights.map((n) => n.minutes ?? 0));
+  return (
+    <div className="mt-2 flex items-end gap-[3px]" role="img" aria-label="Sleep by night">
+      {nights.map((n) => {
+        const h = n.minutes === null ? 3 : Math.max(4, Math.round((n.minutes / top) * 56));
+        return (
+          <div key={n.day} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+            <div
+              title={n.minutes === null ? `${n.day} · nothing recorded` : `${n.day} · ${formatMinutes(n.minutes)}`}
+              style={{ height: h }}
+              className={cn(
+                "w-full rounded-[1px]",
+                n.minutes === null
+                  ? "bg-border/50"
+                  : usual !== null && n.minutes >= usual
+                    ? "bg-primary/70"
+                    : "bg-amber-400/60",
+              )}
+            />
+            <span className="font-mono text-[8.5px] text-muted-foreground">{n.day.slice(8)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function WatchPage() {
+  const [compareOpen, setCompareOpen] = useState(false);
   const { trends, loading, error, refresh } = useWearableTrends(14);
   const hrOn = trends.consent.heart_rate === true;
   const activityOn = trends.consent.activity === true;
@@ -96,6 +127,17 @@ export default function WatchPage() {
               : "Nothing has been recorded yet."}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCompareOpen(true)}
+          className={cn(
+            "ml-auto inline-flex min-h-[32px] shrink-0 items-center gap-1.5 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40",
+            "vanta-focus",
+          )}
+        >
+          <Scale className="h-3.5 w-3.5 text-primary" />
+          Compare
+        </button>
       </header>
 
       {error ? (
@@ -159,6 +201,31 @@ export default function WatchPage() {
             {hrOn ? <HeartLine points={trends.heart} /> : null}
           </section>
 
+          {/* Sleep */}
+          <section className="vanta-card p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Moon className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <MachineLabel className="text-foreground/70">Sleep · 14 nights</MachineLabel>
+              <MachineText className="ml-auto text-[10px] text-muted-foreground">
+                {activityOn
+                  ? trends.sleepUsual !== null
+                    ? `usual ${formatMinutes(trends.sleepUsual)}`
+                    : "no history yet"
+                  : "off"}
+              </MachineText>
+            </div>
+            <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
+              {activityOn
+                ? trends.sleepLine
+                : "Daily activity is off, so sleep is not read and not stored."}
+            </p>
+            {activityOn ? <NightBars nights={trends.nights} usual={trends.sleepUsual} /> : null}
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              An amber night is shorter than your usual one. A flat grey night means nothing was
+              sent — Vanta does not read a missing night as a bad one.
+            </p>
+          </section>
+
           {/* Workouts */}
           <section className="vanta-card p-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -205,6 +272,33 @@ export default function WatchPage() {
           <AftermathHint text="Reading these trends changes nothing. Numbers only change how Vanta talks — they never route, approve or run anything." />
         </div>
       )}
+
+      <Sheet open={compareOpen} onOpenChange={setCompareOpen}>
+        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-base">Today against your usual</SheetTitle>
+            <SheetDescription className="text-[11.5px]">
+              Your own record, side by side. Nothing here is a target and nothing here is advice —
+              it only explains why the desk may be leading short.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-3 space-y-2">
+            {trends.compare.map((row) => (
+              <div key={row.key} className="vanta-inset px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <MachineLabel className="text-foreground/70">{row.label}</MachineLabel>
+                  <MachineText className="ml-auto text-[10px] text-muted-foreground">
+                    today {row.today} · usual {row.usual}
+                  </MachineText>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">{row.note}</p>
+              </div>
+            ))}
+            <AftermathHint text="Comparing changes nothing. Posture stays whatever you set, and no reading can approve or run anything." />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

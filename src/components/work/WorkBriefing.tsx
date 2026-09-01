@@ -10,6 +10,7 @@ import { MachineLabel } from "@/components/ui/instrument";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
+import { WorkBodyNote } from "@/components/work/WorkBodyNote";
 
 const LANE_ICON: Record<BriefingLane, typeof Inbox> = {
   "needs-you": AlertCircle,
@@ -43,6 +44,7 @@ export function WorkBriefingPanel({
   return (
     <section className="vanta-card p-3" aria-label="The state of work">
       <MachineLabel className="text-foreground/70">Where things stand</MachineLabel>
+      <WorkBodyNote />
 
       {briefing.start ? (
         <button

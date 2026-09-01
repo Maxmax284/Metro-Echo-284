@@ -10,14 +10,21 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useVantaContext } from "@/providers/VantaContextProvider";
 import type { SensorKey, Posture } from "@/lib/awareness";
 import {
+  bodyCompare,
   heartSeries,
   latest,
+  sleepByDay,
+  sleepCompare,
+  sleepLastNight,
+  sleepMedian,
   stepsByDay,
   stepsCompare,
   stepsForDay,
   stepsMedian,
   workoutList,
+  type BodyCompareRow,
   type DayBucket,
+  type NightBucket,
   type Point,
   type Reading,
   type WorkoutEntry,
@@ -31,6 +38,11 @@ export interface WearableTrends {
   stepsLine: string;
   heart: Point[];
   heartLast: Reading | null;
+  nights: NightBucket[];
+  sleepLast: number | null;
+  sleepUsual: number | null;
+  sleepLine: string;
+  compare: BodyCompareRow[];
   workouts: WorkoutEntry[];
   posture: Posture | null;
   consent: Partial<Record<SensorKey, boolean>>;
@@ -46,6 +58,11 @@ const EMPTY: WearableTrends = {
   stepsLine: "",
   heart: [],
   heartLast: null,
+  nights: [],
+  sleepLast: null,
+  sleepUsual: null,
+  sleepLine: "",
+  compare: [],
   workouts: [],
   posture: null,
   consent: {},
@@ -85,6 +102,7 @@ export function useWearableTrends(days = 14): {
 
       const readings = ((data ?? []) as Reading[]).map((r) => ({ ...r, value: Number(r.value) }));
       const buckets = stepsByDay(readings, days);
+      const nights = sleepByDay(readings, days);
       const consent = (prefs.sensor_consent ?? {}) as Partial<Record<SensorKey, boolean>>;
 
       setTrends({
@@ -95,6 +113,11 @@ export function useWearableTrends(days = 14): {
         stepsLine: stepsCompare(buckets),
         heart: heartSeries(readings, 48),
         heartLast: latest(readings, "heart_rate"),
+        nights,
+        sleepLast: sleepLastNight(nights),
+        sleepUsual: sleepMedian(nights),
+        sleepLine: sleepCompare(nights),
+        compare: bodyCompare(readings, days),
         workouts: workoutList(readings, days),
         posture: context.posture ?? null,
         consent,
