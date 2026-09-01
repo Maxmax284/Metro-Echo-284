@@ -7,6 +7,8 @@ import { corsHeaders } from "../_shared/http.ts";
 // executes — this only notifies.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessage.ts";
+
 
 
 const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
@@ -42,74 +44,11 @@ function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
 type TgInlineButton = { text: string; callback_data?: string; url?: string };
 type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
 
-function composeTelegram(
-  summary: string,
-  overdue: boolean,
-  dueAt: string | null,
-  tz: string,
-  opts: { noteTitle?: string | null; noteSnippet?: string | null; commitmentId?: string } = {},
-): { text: string; reply_markup?: TgReplyMarkup } {
-  const when = dueAt ? new Intl.DateTimeFormat("en-US", {
-    timeZone: tz, weekday: "short", month: "short", day: "numeric",
-    hour: "numeric", minute: "2-digit",
-  }).format(new Date(dueAt)) : "";
-  const header = overdue ? `Overdue — ${summary}` : `Reminder — ${summary}`;
-  const lines: string[] = [header];
-  if (when) lines.push(overdue ? `Was due ${when} (${tz})` : `Due ${when} (${tz})`);
-  const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 160);
-  if (opts.noteTitle || snippet) {
-    const noteLine = [opts.noteTitle, snippet].filter(Boolean).join(" — ");
-    if (noteLine) lines.push(`Note: ${noteLine}`);
-  }
+/* Composer and sender live in _shared so the "send it now" control and this
+   sweep can never drift apart. */
+const composeTelegram = composeReminder;
+const sendTelegram = sendTelegramReminder;
 
-  const inline_keyboard: TgInlineButton[][] = [];
-  if (opts.commitmentId) {
-    inline_keyboard.push([
-      { text: "Mark done", callback_data: `done:${opts.commitmentId}` },
-      { text: "Snooze 1h", callback_data: `snooze1h:${opts.commitmentId}` },
-    ]);
-    const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
-    if (publicUrl) {
-      inline_keyboard.push([{
-        text: "Open in Vanta",
-        url: `${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`,
-      }]);
-    }
-  }
-
-  return {
-    text: lines.join("\n"),
-    reply_markup: inline_keyboard.length ? { inline_keyboard } : undefined,
-  };
-}
-
-async function sendTelegram(
-  chatId: number,
-  text: string,
-  reply_markup?: TgReplyMarkup,
-): Promise<{ ok: boolean; err?: string }> {
-  try {
-    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        disable_web_page_preview: true,
-        ...(reply_markup ? { reply_markup } : {}),
-      }),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) return { ok: false, err: JSON.stringify(j).slice(0, 200) };
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, err: e instanceof Error ? e.message : "send failed" };
-  }
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

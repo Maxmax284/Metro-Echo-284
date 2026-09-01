@@ -39,6 +39,8 @@ import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
+import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
+
 
 const ROUTE_LABEL: Record<string, string> = {
   memory: "a note for Memory",
@@ -473,10 +475,28 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    if (!text) {
+    /* A photo — or an image sent as a file — is a page. Vanta reads it and
+       files it for review. It is capture, so it never routes or executes. */
+    const photoSizes = Array.isArray(msg.photo) ? msg.photo : [];
+    const biggest = photoSizes.length > 0 ? photoSizes[photoSizes.length - 1] : null;
+    const imageDoc = msg.document && String(msg.document.mime_type ?? "").startsWith("image/")
+      ? msg.document
+      : null;
+    const page: { fileId: string; mime: string; name: string } | null = biggest
+      ? { fileId: biggest.file_id, mime: "image/jpeg", name: `page-${update.update_id}.jpg` }
+      : imageDoc
+        ? {
+            fileId: imageDoc.file_id,
+            mime: String(imageDoc.mime_type ?? "image/jpeg"),
+            name: String(imageDoc.file_name ?? `page-${update.update_id}.jpg`),
+          }
+        : null;
+
+    if (!text && !page) {
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.textOnly() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
+
 
     // /help — voice-aligned help text
     if (text === "/help" || text.startsWith("/help ")) {
@@ -532,8 +552,115 @@ Deno.serve(async (req) => {
     await admin.from("audit_log").insert({
       user_id: link.user_id, entity_type: "telegram", event: "telegram.message_in",
       organization_id: routeOrgId,
-      payload: { chat_id: chatId, text, route },
+      payload: { chat_id: chatId, text, route, has_page: !!page },
     });
+
+    /* ---- Page capture: a photo of paper becomes readable text -------------
+       Telegram retries a delivery it thinks failed, so the update id is the
+       idempotency key: one message, one page, never two. The read is
+       attempted straight away; if it does not land, the daily sweep picks the
+       page up later and the file says so in the meantime. */
+    if (page) {
+      const { data: seen } = await admin.from("ingested_files")
+        .select("id, note_id")
+        .eq("user_id", link.user_id)
+        .eq("metadata->>telegram_update_id", String(update.update_id))
+        .maybeSingle();
+      if (seen) {
+        await tg("sendMessage", { chat_id: chatId, text: "Already got that page — it's in your Inbox." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+
+      const fileRes = await tg("getFile", { file_id: page.fileId });
+      const fileJson = await fileRes.json().catch(() => ({} as any));
+      const filePath = fileJson?.result?.file_path;
+      if (!filePath) {
+        await admin.from("audit_log").insert({
+          user_id: link.user_id, organization_id: routeOrgId,
+          entity_type: "capture", event: "capture.failed",
+          payload: { source: "telegram", reason: "telegram_getfile_failed" },
+        });
+        await tg("sendMessage", { chat_id: chatId, text: "Telegram wouldn't hand me that file. Try sending it again." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+
+      const dl = await fetch(`${GATEWAY}/file/${filePath}`, {
+        headers: {
+          Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
+        },
+      });
+      if (!dl.ok) {
+        await admin.from("audit_log").insert({
+          user_id: link.user_id, organization_id: routeOrgId,
+          entity_type: "capture", event: "capture.failed",
+          payload: { source: "telegram", reason: `download_${dl.status}` },
+        });
+        await tg("sendMessage", { chat_id: chatId, text: "The download failed on my side. Send it again in a moment." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+      const bytes = new Uint8Array(await dl.arrayBuffer());
+      const storagePath = `${link.user_id}/telegram/${Date.now()}-${page.name.replace(/[^\w.-]+/g, "_")}`;
+      const { error: upErr } = await admin.storage.from("memory-uploads")
+        .upload(storagePath, bytes, { contentType: page.mime, upsert: false });
+      if (upErr) {
+        await admin.from("audit_log").insert({
+          user_id: link.user_id, organization_id: routeOrgId,
+          entity_type: "capture", event: "capture.failed",
+          payload: { source: "telegram", reason: `storage_${upErr.message}`.slice(0, 200) },
+        });
+        await tg("sendMessage", { chat_id: chatId, text: "I couldn't store that page. Try again." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+
+      const caption = String(msg.caption ?? "").trim();
+      const { data: fileRec, error: fileErr } = await admin.from("ingested_files").insert({
+        user_id: link.user_id,
+        organization_id: routeOrgId,
+        filename: page.name,
+        mime_type: page.mime,
+        size_bytes: bytes.byteLength,
+        storage_path: storagePath,
+        source: "telegram",
+        status: "pending",
+        review_status: "new",
+        metadata: {
+          page_photo: true,
+          telegram_update_id: String(update.update_id),
+          chat_id: chatId,
+          caption: caption || null,
+        },
+      }).select("id, user_id, organization_id, filename, mime_type, storage_path, source, metadata").single();
+      if (fileErr || !fileRec) {
+        console.error("[vanta] telegram page insert failed:", fileErr?.message);
+        await tg("sendMessage", { chat_id: chatId, text: "The page landed but I couldn't file it. Open Vanta and check the Inbox." });
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+
+      await admin.from("audit_log").insert({
+        user_id: link.user_id, organization_id: routeOrgId,
+        entity_type: "capture", event: "capture.routed",
+        payload: { source: "telegram", destination: "files", ingested_file_id: fileRec.id, kind: "page" },
+      });
+
+      let read: PageReadResult;
+      try {
+        read = await readPageFile(admin, fileRec as any);
+      } catch {
+        read = { ok: false, reason: "reading is paused" };
+      }
+
+      const reply = read.ok
+        ? read.chars > 0
+          ? `Read that page — ${read.chars.toLocaleString()} characters. It's in your Inbox as a draft, waiting on you.`
+          : "Filed that page. Nothing readable came off it, so I didn't guess."
+        : "Stored that page. I couldn't read it just now — the daily sweep will try again, and it's already in your Inbox.";
+      await tg("sendMessage", { chat_id: chatId, text: reply });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+    /* --------------------------------------------------------------------- */
+
+
 
     let reply = VANTA_PHRASES.gotIt();
     try {
