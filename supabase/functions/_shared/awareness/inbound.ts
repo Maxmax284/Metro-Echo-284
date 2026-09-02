@@ -58,7 +58,7 @@ function nightsBetween(from: string, to: string): number | null {
 }
 
 function money(payload: Payload): string | null {
-  const amount = pick(payload, ["amount", "total", "total_amount", "price", "amount_due"]);
+  const amount = pick(payload, ["amount", "amount_paid", "total", "total_amount", "total_price", "price", "amount_due"]);
   if (!amount) return null;
   const currency = pick(payload, ["currency", "currency_code"]);
   return currency ? `${amount} ${currency.toUpperCase()}` : amount;
@@ -85,12 +85,12 @@ export function buildSignalDetail(
   };
 
   const guest = pick(payload, ["guest_name", "guest", "customer_name", "name", "member_name"]);
-  const room = pick(payload, ["room", "room_name", "unit", "unit_name", "property", "cabin"]);
-  const reference = pick(payload, ["booking_reference", "reference", "booking_id", "confirmation_code", "code"]);
+  const room = pick(payload, ["room", "room_name", "unit", "unit_name", "unit_label", "room_type", "property", "cabin", "unit_id"]);
+  const reference = pick(payload, ["booking_reference", "reference", "booking_id", "reservation_id", "confirmation_code", "code"]);
   const channel = pick(payload, ["channel", "source", "booking_channel", "platform"]);
   const message = pick(payload, ["message", "text", "summary", "note", "body", "description", "request"]);
-  const status = pick(payload, ["status", "state", "new_status", "booking_status"]);
-  const previous = pick(payload, ["previous_status", "old_status", "from_status", "was"]);
+  const status = pick(payload, ["status", "state", "new_status", "new_state", "to_status", "to_state", "booking_status"]);
+  const previous = pick(payload, ["previous_status", "previous_state", "old_status", "old_state", "from_status", "from_state", "was"]);
   const checkIn = pick(payload, ["check_in", "checkin", "start_date", "arrival", "from"]);
   const checkOut = pick(payload, ["check_out", "checkout", "end_date", "departure", "to"]);
   const guests = pick(payload, ["guests", "party_size", "pax", "people", "headcount"]);
@@ -176,7 +176,7 @@ export function buildSignalDetail(
  * else is worth noticing, not interrupting.
  */
 export function inboundUrgency(eventType: string, payload: Payload = {}): Urgency {
-  const status = (pick(payload, ["status", "state", "new_status", "booking_status"]) ?? "").toLowerCase();
+  const status = (pick(payload, ["status", "state", "new_status", "new_state", "booking_status"]) ?? "").toLowerCase();
   const severity = (pick(payload, ["severity", "urgency", "priority"]) ?? "").toLowerCase();
 
   if (eventType === "booking.state_changed" || eventType === "booking.updated") {
