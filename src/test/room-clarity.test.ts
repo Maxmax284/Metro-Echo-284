@@ -35,6 +35,37 @@ describe("room copy", () => {
   });
 });
 
+describe("room help", () => {
+  it("answers the same six questions for every room", () => {
+    for (const key of Object.keys(ROOM_HELP) as (keyof typeof ROOM_HELP)[]) {
+      for (const { key: field } of ROOM_HELP_ORDER) {
+        const line = ROOM_HELP[key][field];
+        expect(line.length).toBeGreaterThan(20);
+        expect(line.endsWith(".")).toBe(true);
+        expect(JARGON.test(line)).toBe(false);
+      }
+    }
+  });
+
+  it("keeps the question order fixed and complete", () => {
+    expect(ROOM_HELP_ORDER.map((q) => q.key)).toEqual([
+      "forWhat",
+      "lands",
+      "canDo",
+      "never",
+      "next",
+      "empty",
+    ]);
+  });
+
+  it("states a real limit in every room's never line", () => {
+    for (const help of Object.values(ROOM_HELP)) {
+      expect(/\bnever\b|\bnothing\b|\bcannot\b/i.test(help.never)).toBe(true);
+    }
+  });
+});
+
+
 describe("helper familiarity", () => {
   beforeEach(() => window.localStorage.clear());
 
