@@ -57,6 +57,10 @@ export default function WearablesPage() {
       </div>
 
       <div className="mb-4">
+        <AutoSendPanel />
+      </div>
+
+      <div className="mb-4">
         <WearableReadingsPanel />
       </div>
 
