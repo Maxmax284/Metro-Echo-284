@@ -87,11 +87,14 @@ export function useWearableLoop(): {
     setError(null);
     try {
       const [rows, sweepRow, acted] = await Promise.all([
-        applyScope(
-          supabase
-            .from("wearable_readings")
-            .select("kind, value, unit, measured_at, source"),
-        )
+        /* Readings are yours, not a workspace's: the watch has no idea which
+           room you are standing in, so ingest never stamps a scope. Filtering
+           them by scope here showed an empty body panel inside a workspace,
+           which read as lost data. Own rows only, every scope. */
+        supabase
+          .from("wearable_readings")
+          .select("kind, value, unit, measured_at, source")
+          .eq("user_id", user.id)
           .gte("measured_at", new Date(Date.now() - 7 * 86_400_000).toISOString())
           .order("measured_at", { ascending: false })
           .limit(300),

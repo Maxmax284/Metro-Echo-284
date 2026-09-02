@@ -92,9 +92,11 @@ export function useWearableTrends(days = 14): {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: err } = await applyScope(
-        supabase.from("wearable_readings").select("kind, value, unit, measured_at, source"),
-      )
+      /* Body readings are personal in every scope — see useWearableLoop. */
+      const { data, error: err } = await supabase
+        .from("wearable_readings")
+        .select("kind, value, unit, measured_at, source")
+        .eq("user_id", user.id)
         .gte("measured_at", new Date(Date.now() - days * 86_400_000).toISOString())
         .order("measured_at", { ascending: false })
         .limit(2000);
