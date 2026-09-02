@@ -140,6 +140,18 @@ export default function WatchPage() {
         </button>
       </header>
 
+      <WatchPriorityLine
+        lastReading={
+          trends.readings.length
+            ? trends.readings.reduce((a, b) =>
+                new Date(b.measured_at) > new Date(a.measured_at) ? b : a,
+              )
+            : null
+        }
+      />
+
+
+
       {error ? (
         <ErrorState error={error} doing="reading your watch trends" onRetry={refresh} />
       ) : loading ? (
