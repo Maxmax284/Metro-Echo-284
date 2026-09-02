@@ -3,6 +3,9 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildSignalDetail, signalQuality, type SignalDetail } from "./awareness/inbound.ts";
 import { reachInboundSignal } from "./awareness/inboundReach.ts";
 
+/** Threads holding inbound bridge captures — hidden from every Ask surface. */
+export const CAPTURE_SPOOL_KIND = "capture_bridge";
+
 type PlatformConfig = {
   sourcePlatform: string;
   displayName: string;
@@ -394,19 +397,30 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     return rejectWithDiagnostic(admin, { ...baseDiagnostic, signatureStatus: "valid" }, `event receipt write failed: ${eventInsertErr.message}`, 500);
   }
 
+  // Bridge events land in their own capture spool, never in whatever thread the
+  // user happens to have open. They are inbox material for the Capture Log, so
+  // they must never appear as chat turns in Ask or the quick-Ask widget.
   let convId: string | null = null;
   const { data: conv } = await admin
     .from("conversations")
     .select("id")
     .eq("user_id", ownerId)
-    .order("updated_at", { ascending: false })
+    .eq("context_kind", CAPTURE_SPOOL_KIND)
+    .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
   convId = conv?.id ?? null;
   if (!convId) {
     const { data: newConv } = await admin
       .from("conversations")
-      .insert({ user_id: ownerId, title: "Captures" })
+      .insert({
+        user_id: ownerId,
+        title: "Captures",
+        auto_titled: false,
+        context_kind: CAPTURE_SPOOL_KIND,
+        // Archived on creation so it never shows up as a chat thread.
+        archived_at: new Date().toISOString(),
+      })
       .select("id")
       .maybeSingle();
     convId = newConv?.id ?? null;

@@ -178,7 +178,14 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
       if (!cancelled) {
         setAskMessages(
           convId,
-          (m ?? []).filter((x) => x.role !== "system" && x.role !== "tool") as never,
+          // Bridge captures are inbox material, not chat turns. They belong in
+          // the Capture Log with their operational card, never as a bubble here.
+          (m ?? []).filter(
+            (x) =>
+              x.role !== "system" &&
+              x.role !== "tool" &&
+              !(x.metadata as { signal_only?: boolean } | null)?.signal_only,
+          ) as never,
           { hydrated: true },
         );
       }

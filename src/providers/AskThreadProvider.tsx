@@ -57,6 +57,8 @@ export function AskThreadProvider({ children }: { children: ReactNode }) {
       .from("conversations")
       .select(COLS)
       .is("deleted_at", null)
+      // The capture spool holds inbound bridge events, not conversation.
+      .or("context_kind.is.null,context_kind.neq.capture_bridge")
       .order("updated_at", { ascending: false })
       .limit(200);
     if (error) toast.fromError(error);
