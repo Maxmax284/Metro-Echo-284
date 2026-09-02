@@ -66,12 +66,12 @@ export function CompanionWidget() {
   const modes: AppMode[] = ["locked", "observer", "advisor", "operator"];
 
   const Body = (
-    <div className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-2 border-b border-border/60 px-3 py-2">
+    <div className="flex h-full flex-col bg-background">
+      <div className="flex items-start justify-between gap-2 border-b border-border/60 bg-surface-elevated/60 px-3 py-2.5">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {/* Row 1 — identity */}
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-foreground">Companion</span>
+            <span className="text-[13px] font-medium text-foreground">Quick Ask</span>
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -110,7 +110,7 @@ export function CompanionWidget() {
             </span>
           </div>
           {/* Row 2 — situation */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+          <div className="hidden flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground sm:flex">
             <span className="rounded-full bg-surface-elevated/60 px-1.5 py-0.5 ring-1 ring-border/40">
               on <span className="text-foreground/80">{context.surface}</span>
             </span>
@@ -141,7 +141,7 @@ export function CompanionWidget() {
               onClick={() => { promoteToAskRoom(); close(); }}
               title={producedSummary ? `This thread made ${producedSummary}` : "Same thread, more room"}
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] uppercase tracking-wider ring-1 transition-colors",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] uppercase tracking-wider ring-1 transition-colors",
                 suggestPromotion
                   ? "bg-primary/15 text-primary ring-primary/40"
                   : "bg-surface-elevated text-muted-foreground ring-border/60 hover:text-foreground",
@@ -154,13 +154,13 @@ export function CompanionWidget() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-9 w-9"
             onClick={panelMode === "full" ? collapse : expand}
             aria-label={panelMode === "full" ? "Collapse" : "Expand"}
           >
             {panelMode === "full" ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={close} aria-label="Close">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={close} aria-label="Close">
             <X className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -205,7 +205,14 @@ export function CompanionWidget() {
       {/* Mobile drawer / desktop sheet */}
       {isMobile ? (
         <Drawer open={panelMode !== "closed"} onOpenChange={(o) => (!o ? close() : open())}>
-          <DrawerContent className={cn("p-0", panelMode === "full" ? "h-[95dvh]" : "h-[68dvh]")}>
+          {/* Bottom sheet: tall enough to read a thread, opaque so the painted
+              wall never fights the text, and it clears the bottom nav. */}
+          <DrawerContent
+            className={cn(
+              "safe-bottom overflow-hidden border-border/70 bg-background p-0",
+              panelMode === "full" ? "h-[95dvh]" : "h-[82dvh]",
+            )}
+          >
             {Body}
           </DrawerContent>
         </Drawer>
@@ -214,8 +221,8 @@ export function CompanionWidget() {
           <SheetContent
             side="right"
             className={cn(
-              "flex flex-col p-0",
-              panelMode === "full" ? "w-screen max-w-none sm:max-w-none" : "w-[440px] max-w-full sm:max-w-[440px]"
+              "flex flex-col bg-background p-0",
+              panelMode === "full" ? "w-screen max-w-none sm:max-w-none" : "w-[460px] max-w-full sm:max-w-[460px]"
             )}
           >
             {Body}
