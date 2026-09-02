@@ -12,7 +12,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAskThreads } from "@/providers/AskThreadProvider";
-import { outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
+import { matchesQuery, outputSummary, relTime, threadLabel, type AskThread } from "@/lib/askThreads";
 import { useScope } from "@/hooks/useScope";
 import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
@@ -153,11 +153,32 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
       <SectionNote className="mt-0 px-2 pb-2" sectionKey="ask.threads">
         {sectionNote("ask.threads")}
       </SectionNote>
+      {threads.length + archived.length > 4 ? (
+        <div className="px-2 pb-2">
+          <label htmlFor="ask-thread-search" className="sr-only">
+            Search threads by name or the record they are about
+          </label>
+          <input
+            id="ask-thread-search"
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search threads"
+            className="vanta-focus h-9 w-full rounded-md bg-muted/25 px-2.5 text-[12.5px] ring-1 ring-border/50 placeholder:text-muted-foreground/70"
+          />
+        </div>
+      ) : null}
       <div className="scrollbar-thin min-h-0 flex-1 space-y-1 overflow-y-auto pb-4">
         {threads.length === 0 && (
           <p className="px-2 py-6 text-[12px] leading-relaxed text-muted-foreground">
             No threads in this room yet. Ask something, or open Ask from a project — the thread
             keeps that context so you never re-explain it.
+          </p>
+        )}
+        {threads.length > 0 && searching && live.length === 0 && archivedHits.length === 0 && (
+          <p className="px-2 py-6 text-[12px] leading-relaxed text-muted-foreground">
+            Nothing here matches “{q.trim()}”. Search reads thread names and the record a thread is
+            about, not the words inside it.
           </p>
         )}
         {/* Pinned first, under its own label, so the spine reads as an ordered
@@ -170,20 +191,25 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
         )}
         {recent.length > 0 && (
           <>
-            {pinned.length > 0 && <GroupLabel>Recent</GroupLabel>}
+            <GroupLabel>Recent</GroupLabel>
             {recent.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
           </>
         )}
-        {archived.length > 0 && (
+        {archivedHits.length > 0 && (
           <div className="pt-2">
             <button
               type="button"
               onClick={() => setShowArchived((v) => !v)}
               className="vanta-focus w-full rounded-md px-2 py-2 text-left text-[11px] text-muted-foreground hover:text-foreground"
             >
-              {showArchived ? "Hide" : "Show"} archived ({archived.length})
+              {showArchived || searching ? "Hide" : "Show"} archived ({archivedHits.length})
             </button>
-            {showArchived && archived.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+            {(showArchived || searching) && (
+              <>
+                <GroupLabel>Archived</GroupLabel>
+                {archivedHits.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+              </>
+            )}
           </div>
         )}
       </div>
