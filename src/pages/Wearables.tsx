@@ -5,6 +5,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { WearableContextPanel } from "@/components/wearables/WearableContextPanel";
+import { AutoSendPanel } from "@/components/wearables/AutoSendPanel";
 import { WearableReadingsPanel } from "@/components/wearables/WearableReadingsPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
@@ -53,6 +54,10 @@ export default function WearablesPage() {
 
       <div className="mb-4">
         <WearableContextPanel />
+      </div>
+
+      <div className="mb-4">
+        <AutoSendPanel />
       </div>
 
       <div className="mb-4">
