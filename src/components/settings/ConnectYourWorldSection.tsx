@@ -165,12 +165,12 @@ export function ConnectYourWorldSection() {
         botConfigured: secrets.TELEGRAM_API_KEY?.present !== false,
       }),
       icon: MessageSquare,
-      action: { label: "Telegram setup and test", to: "/settings/channels" },
+      action: { label: "Telegram setup and test", to: "/settings/g/time" },
     },
     {
       card: emailCard({ addressActive: r.emailActive, lastReceivedAt: r.emailLastReceived }),
       icon: Mail,
-      action: { label: "Inbound addresses", to: "/connected-accounts" },
+      action: { label: "Inbound addresses", to: "/settings/connected-accounts" },
     },
     {
       card: calendarCard({
@@ -178,7 +178,7 @@ export function ConnectYourWorldSection() {
         lastSyncedAt: r.calendarLastSync, brokenFeeds: r.brokenFeeds,
       }),
       icon: CalendarClock,
-      action: { label: "Calendars", to: "/settings/time" },
+      action: { label: "Calendars", to: "/settings/g/time" },
     },
     {
       card: wearableCard({
@@ -199,7 +199,7 @@ export function ConnectYourWorldSection() {
         lastAt: r.hubLastAt,
       }),
       icon: Building2,
-      action: { label: "External platforms", to: "/integrations" },
+      action: { label: "External platforms", to: "/settings/integrations" },
     },
   ];
 
