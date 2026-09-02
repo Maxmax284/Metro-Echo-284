@@ -14,6 +14,9 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { SOURCE_LABEL, formatMinutes } from "@/lib/wearable";
+import { useGlance } from "@/hooks/useGlance";
+import { SILENCE_LINE } from "@/lib/glance";
+import { wristHeadline } from "@/lib/deviceCompression";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 function StepBars({ days, usual }: { days: { day: string; steps: number | null }[]; usual: number | null }) {
@@ -103,9 +106,46 @@ function NightBars({ nights, usual }: { nights: { day: string; minutes: number |
   );
 }
 
+/**
+ * One line of current priority plus connection proof. Same wrist wording as
+ * /glance — this is a read, never an approval.
+ */
+function WatchPriorityLine({
+  lastReading,
+}: {
+  lastReading: { measured_at: string; source: keyof typeof SOURCE_LABEL } | null;
+}) {
+  const { decision, posture, loading } = useGlance();
+  const line = decision.card ? wristHeadline(decision.card.title) : SILENCE_LINE;
+  return (
+    <section className="vanta-card mb-3 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <MachineLabel className="text-foreground/70">Right now</MachineLabel>
+        <Link
+          to="/glance"
+          className="vanta-focus ml-auto inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] hover:border-primary/40"
+        >
+          Open Glance
+        </Link>
+      </div>
+      <p className="mt-1 text-[12.5px] leading-snug text-foreground/90">
+        {loading ? "Reading…" : line}
+      </p>
+      <MachineText className="mt-1.5 block text-[10px] text-muted-foreground">
+        {posture ? `posture ${POSTURE_LABEL[posture]}` : "posture not set"} ·{" "}
+        {lastReading
+          ? `last reading ${format(new Date(lastReading.measured_at), "d MMM HH:mm")} · ${SOURCE_LABEL[lastReading.source]}`
+          : "no reading has arrived yet"}
+      </MachineText>
+    </section>
+  );
+}
+
+
 export default function WatchPage() {
   const [compareOpen, setCompareOpen] = useState(false);
   const { trends, loading, error, refresh } = useWearableTrends(14);
+
   const hrOn = trends.consent.heart_rate === true;
   const activityOn = trends.consent.activity === true;
 
@@ -139,6 +179,18 @@ export default function WatchPage() {
           Compare
         </button>
       </header>
+
+      <WatchPriorityLine
+        lastReading={
+          trends.readings.length
+            ? trends.readings.reduce((a, b) =>
+                new Date(b.measured_at) > new Date(a.measured_at) ? b : a,
+              )
+            : null
+        }
+      />
+
+
 
       {error ? (
         <ErrorState error={error} doing="reading your watch trends" onRetry={refresh} />
