@@ -14,6 +14,9 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { SOURCE_LABEL, formatMinutes } from "@/lib/wearable";
+import { useGlance } from "@/hooks/useGlance";
+import { SILENCE_LINE } from "@/lib/glance";
+import { wristHeadline } from "@/lib/deviceCompression";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 function StepBars({ days, usual }: { days: { day: string; steps: number | null }[]; usual: number | null }) {
@@ -113,7 +116,7 @@ function WatchPriorityLine({
   lastReading: { measured_at: string; source: keyof typeof SOURCE_LABEL } | null;
 }) {
   const { decision, posture, loading } = useGlance();
-  const line = decision.card ? wristLine(decision.card.title) : SILENCE_LINE;
+  const line = decision.card ? wristHeadline(decision.card.title) : SILENCE_LINE;
   return (
     <section className="vanta-card mb-3 p-3">
       <div className="flex flex-wrap items-center gap-2">
