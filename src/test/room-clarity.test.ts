@@ -3,7 +3,16 @@
 // These guard the two failure modes we actually hit: a section shipping without
 // a description, and helper copy that never gets out of the way.
 import { describe, it, expect, beforeEach } from "vitest";
-import { ROOM_EXPLAIN, ROOM_INTRO, SECTION_NOTE, sectionNote } from "@/lib/roomCopy";
+import {
+  ROOM_EXPLAIN,
+  ROOM_HELP,
+  ROOM_HELP_ORDER,
+  ROOM_INTRO,
+  SECTION_NOTE,
+  sectionNote,
+  type RoomHelpCopy,
+} from "@/lib/roomCopy";
+
 import { FAMILIAR_AFTER, isFamiliar } from "@/hooks/useHelperFamiliarity";
 import { receiptFacts } from "@/components/audit/ReceiptUnfold";
 import { continuityName } from "@/lib/continuity";
