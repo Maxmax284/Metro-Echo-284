@@ -8,7 +8,9 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useCompanion } from "@/components/companion/CompanionContext";
-import { ROOM_EXPLAIN, type RoomKey } from "@/lib/roomCopy";
+import { type RoomKey } from "@/lib/roomCopy";
+import { RoomHelp } from "@/components/ui/room-help";
+
 import { MOTION_FOCUS, MOTION_MICRO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +24,7 @@ const ROOM_LABEL: Record<RoomKey, string> = {
 
 export function ExplainThisButton({ room, className }: { room: RoomKey; className?: string }) {
   const { openWithPrefill } = useCompanion();
-  const lines = ROOM_EXPLAIN[room];
+  
 
   return (
     <Popover>
@@ -41,13 +43,14 @@ export function ExplainThisButton({ room, className }: { room: RoomKey; classNam
           <HelpCircle className="h-4 w-4" aria-hidden />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[19rem] p-3 text-[12px] leading-relaxed">
-        <p className="vanta-machine-label mb-1.5 text-foreground/70">What is {ROOM_LABEL[room]}?</p>
-        <div className="space-y-1.5 text-muted-foreground">
-          {lines.map((l) => (
-            <p key={l}>{l}</p>
-          ))}
-        </div>
+      <PopoverContent
+        align="end"
+        className="max-h-[70vh] w-[19rem] overflow-y-auto p-3 text-[12px] leading-relaxed"
+      >
+        <p className="vanta-machine-label mb-2 text-foreground/70">What is {ROOM_LABEL[room]}?</p>
+        {/* The same six questions in every room — the shape itself becomes familiar. */}
+        <RoomHelp room={room} />
+
         <Button
           size="sm"
           variant="ghost"

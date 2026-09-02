@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SensorKey } from "@/lib/awareness";
 import {
-  CONN_LABEL, CONN_TONE, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
+  CONN_LABEL, CONN_LAMP, CONN_TONE, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
   telegramCard, wearableCard, type ConnectionCard,
 } from "@/lib/connections";
 import { LoadingState } from "@/components/ui/state-views";
@@ -72,7 +72,15 @@ function ConnectionRow({
   action?: { label: string; to: string };
 }) {
   return (
-    <li className="rounded-lg bg-muted/20 p-3 ring-1 ring-border/40">
+    <li className="vanta-cut relative rounded-lg bg-muted/20 p-3 pl-4 ring-1 ring-border/40">
+      {/* One status lamp: the panel reading you can take without reading. */}
+      <span
+        className={cn(
+          "absolute left-1.5 top-3.5 h-1.5 w-1.5 rounded-full",
+          CONN_LAMP[card.state],
+        )}
+        aria-hidden="true"
+      />
       <div className="flex items-start gap-2">
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="min-w-0 flex-1">

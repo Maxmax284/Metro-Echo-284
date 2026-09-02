@@ -202,6 +202,27 @@ Deno.serve(async (req: Request) => {
       }).eq("id", note!.id);
     }
 
+    /* The address can name a default project. Recording it on the audit line
+       but never filing the note there meant the setting silently did nothing,
+       so the link is written here — a note attached to a project, nothing more. */
+    if (addr.default_project_id) {
+      const { error: linkErr } = await supabase.from("project_items").insert({
+        added_by: addr.user_id,
+        project_id: addr.default_project_id,
+        item_type: "note",
+        item_id: note!.id,
+      });
+      if (linkErr) {
+        console.error("email-inbound project link", linkErr.message);
+      } else {
+        await supabase.from("audit_log").insert({
+          user_id: addr.user_id, entity_type: "note", entity_id: note!.id,
+          event: "note.attached_to_project",
+          payload: { project_id: addr.default_project_id, via: "email_inbound_default", slug },
+        });
+      }
+    }
+
     if (file) await supabase.from("ingested_files").update({ status: "done", note_id: note!.id }).eq("id", file.id);
     await supabase.from("email_inbound_addresses").update({ last_received_at: new Date().toISOString() }).eq("slug", slug);
 

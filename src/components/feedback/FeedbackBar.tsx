@@ -131,7 +131,7 @@ export function FeedbackBar({
     return (
       <div
         className={cn(
-          "flex items-center gap-1.5 text-[10px] text-muted-foreground/80 animate-in fade-in duration-300",
+          "flex items-center gap-1.5 text-[10px] text-muted-foreground/80 animate-in fade-in duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:animate-none",
           className,
         )}
       >

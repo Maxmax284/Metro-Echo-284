@@ -34,6 +34,21 @@ export const CONN_TONE: Record<ConnState, string> = {
   no_data: "bg-muted/40 text-muted-foreground ring-border/60",
 };
 
+/**
+ * One status lamp per connection row — the panel-light reading you can take in
+ * without reading. Tone only: the word from CONN_LABEL is always shown next to
+ * it, so nobody has to decode a colour.
+ */
+export const CONN_LAMP: Record<ConnState, string> = {
+  connected: "bg-emerald-400 shadow-[0_0_6px_hsl(var(--primary)/0)]",
+  partial: "bg-primary",
+  needs_setup: "bg-amber-400",
+  off: "bg-muted-foreground/40",
+  attention: "bg-destructive",
+  no_data: "bg-muted-foreground/40",
+};
+
+
 const MIN = 60_000;
 
 /** "2m ago" / "yesterday" — the age of a real recorded moment. */

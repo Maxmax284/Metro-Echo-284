@@ -411,7 +411,7 @@ function Desk({
     </>
   );
   const className = cn(
-    "flex min-h-[44px] w-full items-start gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
+    "flex min-h-[44px] w-full items-start gap-2 vanta-inset vanta-cut px-3 py-2 text-left hover:bg-surface-elevated/70",
     /* A hold must not also select the label text on touch. */
     "select-none touch-manipulation",
     MOTION_ROW,
