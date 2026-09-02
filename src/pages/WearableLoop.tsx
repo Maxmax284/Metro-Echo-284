@@ -89,6 +89,20 @@ export default function WearableLoopPage() {
         </div>
       </header>
 
+      <Link
+        to="/glance"
+        className="vanta-card vanta-focus mb-4 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-surface-elevated"
+      >
+        <span className="min-w-0">
+          <span className="block text-[14px] font-semibold tracking-tight">Open Glance</span>
+          <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">
+            The wrist screen: one thing worth your attention, or nothing at all. It can note, defer
+            and capture — it can never approve.
+          </span>
+        </span>
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+
       <section className="vanta-card mb-4 p-4">
         <h2 className="text-[14px] font-semibold tracking-tight">The loop</h2>
         <ol className="mt-2 space-y-1.5">
