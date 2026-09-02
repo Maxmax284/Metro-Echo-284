@@ -77,7 +77,7 @@ export function useWearableTrends(days = 14): {
   refresh: () => void;
 } {
   const { user } = useAuth();
-  const { applyScope, key } = useScope();
+  const { key } = useScope();
   const { prefs } = useUserPreferences();
   const { context } = useVantaContext();
   const [trends, setTrends] = useState<WearableTrends>(EMPTY);
