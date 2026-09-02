@@ -141,7 +141,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     icon: Plug,
     render: () => (
       <>
+        <ConnectYourWorldSection />
         <LinkOut
+
           to="/settings/integrations"
           title="Platform Integrations"
           blurb="Camp State, CampCore, Telegram, Email, Calendar, Fenrir, WhatsApp. Status, doctrine and kill switches."
