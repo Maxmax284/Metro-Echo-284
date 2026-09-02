@@ -31,6 +31,7 @@ import {
 } from "@/lib/glance";
 import { useGlance } from "@/hooks/useGlance";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { autoSendHealth, autoSendProof, bodyStrip } from "@/lib/wearableAutoSend";
 
 function Proof({ children }: { children: React.ReactNode }) {
   return (
