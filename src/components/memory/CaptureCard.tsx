@@ -9,6 +9,9 @@ import { bridgeReviewLabel } from "@/lib/vantaNouns";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import {
+  dispositionChipClass, dispositionLabel, type OperationalEvent,
+} from "@/lib/campEvents";
 
 export type CaptureSource = "telegram" | "companion" | "file" | "field_note" | "note" | "unknown";
 
@@ -31,6 +34,11 @@ export type CaptureItem = {
   ts: string;
   linked?: string[];
   why?: string | null;
+  /**
+   * Hydrated bridge event. When present the card leads with the operational
+   * summary (who, which booking, what moved) instead of the raw title string.
+   */
+  event?: OperationalEvent | null;
 };
 
 export type CaptureAction = {
@@ -67,6 +75,7 @@ export function CaptureCard({
   aftermath?: string | false;
 }) {
   const meta = sourceMeta[item.source] ?? sourceMeta.unknown;
+  const ev = item.event ?? null;
   const Icon = meta.Icon;
   const bridgeLine = bridgeReviewLabel(item.bridgeSource);
   return (
@@ -74,10 +83,42 @@ export function CaptureCard({
       <div className="flex items-start gap-2">
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <p className="text-foreground/95 line-clamp-2">{item.text || <span className="italic text-muted-foreground">No text</span>}</p>
+          {ev ? (
+            <>
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 font-medium leading-snug text-foreground line-clamp-2">{ev.headline}</p>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] ring-1",
+                    dispositionChipClass(ev.disposition),
+                  )}
+                >
+                  {dispositionLabel(ev.disposition)}
+                </span>
+              </div>
+              <p className="mt-1 text-[12px] leading-snug text-foreground/80">{ev.summary}</p>
+              {ev.facts.length > 0 && (
+                <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10.5px] leading-snug">
+                  {ev.facts.slice(0, 6).map((f) => (
+                    <div key={f.label} className="min-w-0 truncate">
+                      <dt className="inline text-muted-foreground">{f.label}: </dt>
+                      <dd className="inline text-foreground/90">{f.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {ev.missing.length > 0 && (
+                <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground">
+                  {ev.platformLabel} did not send: {ev.missing.join(", ")}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-foreground/95 line-clamp-2">{item.text || <span className="italic text-muted-foreground">No text</span>}</p>
+          )}
           {/* One meta line: what it is, what state it is in, where it opens.
               The source is the single provenance marker beside it. */}
-          <div className="mt-1 flex min-w-0 items-center gap-1.5">
+          <div className={cn("mt-1 flex min-w-0 items-center gap-1.5", ev && "hidden")}>
             <CardMeta
               object="capture"
               state={item.routedTo ? `filed in ${item.routedTo}` : item.needsReview ? "needs review" : "not sorted yet"}
@@ -91,18 +132,18 @@ export function CaptureCard({
             <p className="mt-1 text-[10.5px] leading-snug text-warn">{bridgeLine}</p>
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-            {item.detectedType && (
+            {item.detectedType && !ev && (
               <span className="rounded-full bg-muted/30 px-2 py-0.5 ring-1 ring-border/50">
                 {item.detectedType}
               </span>
             )}
-            {item.confidence && (
+            {item.confidence && !ev && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
                 <StatusDot tone={confTone[item.confidence]} pulse={item.confidence === "low"} />
                 {item.confidence} confidence
               </span>
             )}
-            {item.needsReview && (
+            {item.needsReview && !ev && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warn/10 px-2 py-0.5 text-warn ring-1 ring-warn/30">
                 <AlertCircle className="h-3 w-3" /> Needs review
               </span>

@@ -1265,3 +1265,23 @@ html[data-ambient="off"] .vanta-bd-grain,
   .vanta-pulse { display: none !important; }
   .vanta-backdrop { transform: none !important; }
 }
+
+
+/* ---- Readability scrim -------------------------------------------------
+   The painted walls are identity; operational text is the job. One flat
+   scrim sits above the artwork and below the app so event cards, advisor
+   summaries and the composer keep their contrast. Ask carries the most
+   dense text, and phones show the least wall, so both get more of it. */
+.vanta-bd-scrim {
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--background) / var(--bd-scrim, 0.42));
+  pointer-events: none;
+}
+html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.62; }
+html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.52; }
+@media (max-width: 640px) {
+  .vanta-bd-scrim { --bd-scrim: 0.56; }
+  html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.72; }
+}
+html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }

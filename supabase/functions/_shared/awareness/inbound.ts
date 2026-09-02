@@ -58,10 +58,39 @@ function nightsBetween(from: string, to: string): number | null {
 }
 
 function money(payload: Payload): string | null {
-  const amount = pick(payload, ["amount", "total", "total_amount", "price", "amount_due"]);
+  const amount = pick(payload, ["amount", "amount_paid", "total", "total_amount", "total_price", "price", "amount_due"]);
   if (!amount) return null;
   const currency = pick(payload, ["currency", "currency_code"]);
   return currency ? `${amount} ${currency.toUpperCase()}` : amount;
+}
+
+/** Who moved it: staff name, guest, system, or import. Never invented. */
+export function actorOf(payload: Payload): string | null {
+  return pick(payload, [
+    "actor", "actor_name", "changed_by", "changed_by_name", "updated_by",
+    "created_by", "staff_name", "staff", "user_name", "initiated_by", "source_actor",
+  ]);
+}
+
+export function reasonOf(payload: Payload): string | null {
+  const r = pick(payload, ["reason", "note", "comment", "cancellation_reason", "change_reason"]);
+  return r ? excerpt(r, 160) : null;
+}
+
+/** Stripe / manual / offline, inferred only from fields the payload actually carried. */
+export function paymentMethodOf(payload: Payload): string | null {
+  const direct = pick(payload, ["method", "payment_method", "provider", "card_brand", "gateway"]);
+  if (direct) return direct;
+  const session = pick(payload, ["session_id", "stripe_session_id", "payment_intent", "charge_id"]);
+  if (session && /^(cs_|pi_|ch_)/i.test(session)) return "Stripe";
+  return null;
+}
+
+/** Last segment of a uuid-ish reference — short enough to scan, still unique. */
+export function shortRef(value: string): string {
+  const clean = value.trim();
+  if (/^[0-9a-f-]{20,}$/i.test(clean)) return clean.slice(0, 8);
+  return clean;
 }
 
 function eventWords(eventType: string): string {
@@ -85,12 +114,12 @@ export function buildSignalDetail(
   };
 
   const guest = pick(payload, ["guest_name", "guest", "customer_name", "name", "member_name"]);
-  const room = pick(payload, ["room", "room_name", "unit", "unit_name", "property", "cabin"]);
-  const reference = pick(payload, ["booking_reference", "reference", "booking_id", "confirmation_code", "code"]);
+  const room = pick(payload, ["room", "room_name", "unit", "unit_name", "unit_label", "room_type", "property", "cabin", "unit_id"]);
+  const reference = pick(payload, ["booking_reference", "reference", "booking_id", "reservation_id", "confirmation_code", "code"]);
   const channel = pick(payload, ["channel", "source", "booking_channel", "platform"]);
   const message = pick(payload, ["message", "text", "summary", "note", "body", "description", "request"]);
-  const status = pick(payload, ["status", "state", "new_status", "booking_status"]);
-  const previous = pick(payload, ["previous_status", "old_status", "from_status", "was"]);
+  const status = pick(payload, ["status", "state", "new_status", "new_state", "to_status", "to_state", "booking_status"]);
+  const previous = pick(payload, ["previous_status", "previous_state", "old_status", "old_state", "from_status", "from_state", "was"]);
   const checkIn = pick(payload, ["check_in", "checkin", "start_date", "arrival", "from"]);
   const checkOut = pick(payload, ["check_out", "checkout", "end_date", "departure", "to"]);
   const guests = pick(payload, ["guests", "party_size", "pax", "people", "headcount"]);
@@ -114,8 +143,15 @@ export function buildSignalDetail(
     push("Amount", money(payload));
     push("Reference", reference);
     push("Channel", channel);
+    push("Changed by", actorOf(payload));
+    push("Reason", reasonOf(payload));
     if (message) push("Note", excerpt(message));
-    const head = [guest, room ? `room ${room}` : null].filter(Boolean).join(" · ");
+    const head = [
+      guest,
+      room ? `room ${shortRef(room)}` : null,
+      !guest && !room && reference ? `#${shortRef(reference)}` : null,
+      previous && status ? `${previous} → ${status}` : status,
+    ].filter(Boolean).join(" · ");
     return {
       title: `${displayName} ${eventWords(eventType)}${head ? `: ${head}` : ""}`,
       lines,
@@ -125,15 +161,22 @@ export function buildSignalDetail(
   if (family === "payment") {
     const amount = money(payload);
     push("Amount", amount);
-    push("Method", pick(payload, ["method", "payment_method", "card_brand"]));
+    push("Method", paymentMethodOf(payload));
+    push("Kind", pick(payload, ["payment_kind", "kind", "deposit_or_balance", "label"]));
     push("Status", status);
     push("Guest", guest);
     push("Reference", reference);
+    const balBefore = pick(payload, ["previous_balance", "old_balance", "balance_before"]);
+    const balAfter = pick(payload, ["balance", "new_balance", "balance_after", "balance_due"]);
+    if (balBefore && balAfter) push("Balance", `${balBefore} → ${balAfter}`);
+    else push("Balance", balAfter);
     const reason = pick(payload, ["failure_reason", "reason", "error", "decline_reason"]);
     push("Reason", reason ? excerpt(reason) : null);
     if (message && !reason) push("Note", excerpt(message));
     return {
-      title: `${displayName} ${eventWords(eventType)}${amount ? `: ${amount}` : ""}`,
+      title: `${displayName} ${eventWords(eventType)}${amount ? `: ${amount}` : ""}${
+        reference ? ` · #${shortRef(reference)}` : ""
+      }`,
       lines,
     };
   }
@@ -176,7 +219,7 @@ export function buildSignalDetail(
  * else is worth noticing, not interrupting.
  */
 export function inboundUrgency(eventType: string, payload: Payload = {}): Urgency {
-  const status = (pick(payload, ["status", "state", "new_status", "booking_status"]) ?? "").toLowerCase();
+  const status = (pick(payload, ["status", "state", "new_status", "new_state", "booking_status"]) ?? "").toLowerCase();
   const severity = (pick(payload, ["severity", "urgency", "priority"]) ?? "").toLowerCase();
 
   if (eventType === "booking.state_changed" || eventType === "booking.updated") {
@@ -233,3 +276,76 @@ export function inboundNoticeText(
   );
 }
 
+
+
+/**
+ * How much of the operational picture the payload actually carried.
+ *
+ * This is the single decision for "does a human need to look at this?" —
+ * `needs_review` used to be hardcoded true for every inbound signal, which
+ * made review meaningless. Missing fields are named, never guessed.
+ */
+export type SignalQuality = {
+  confidence: "high" | "medium" | "low";
+  needsReview: boolean;
+  /** Backend field names that were absent, in payload terms. */
+  missing: string[];
+  /** Machine label the UI turns into a status chip. */
+  disposition: "no_action" | "needs_review" | "action_suggested" | "missing_data" | "error" | "synced";
+};
+
+export function signalQuality(eventType: string, payload: Payload = {}): SignalQuality {
+  const family = eventType.split(".")[0];
+  const ref = pick(payload, ["booking_reference", "reference", "booking_id", "reservation_id", "confirmation_code", "code"]);
+  const guest = pick(payload, ["guest_name", "guest", "customer_name", "name", "member_name"]);
+  const status = pick(payload, ["status", "state", "new_status", "new_state", "booking_status"]);
+  const previous = pick(payload, ["previous_status", "previous_state", "old_status", "old_state", "from_status", "from_state"]);
+  const actor = actorOf(payload);
+  const amount = pick(payload, ["amount", "amount_paid", "total", "total_price", "total_amount"]);
+  const missing: string[] = [];
+
+  if (eventType === "integration.test") {
+    return { confidence: "high", needsReview: false, missing: [], disposition: "synced" };
+  }
+
+  if (family === "booking") {
+    if (!ref) missing.push("booking_id");
+    if (!guest) missing.push("guest_name");
+    if (!pick(payload, ["room", "room_name", "unit", "unit_name", "room_type", "unit_id"])) missing.push("room");
+    if (eventType !== "booking.created") {
+      if (!previous) missing.push("previous_state");
+      if (!status) missing.push("state");
+    }
+    if (!actor) missing.push("actor");
+  } else if (family === "payment") {
+    if (!amount) missing.push("amount");
+    if (!ref) missing.push("booking_id");
+    if (!paymentMethodOf(payload)) missing.push("payment_method");
+    if (!guest) missing.push("guest_name");
+  } else {
+    if (!pick(payload, ["message", "text", "summary", "note", "body", "description", "request"])) missing.push("message");
+  }
+
+  const hard = missing.filter((m) => m === "booking_id" || m === "amount" || m === "state" || m === "message");
+  const cancelling = /cancel|no.?show|refund|dispute|chargeback/i.test(status ?? "");
+  const failed = /fail|declin|error/i.test(eventType) || /fail|declin/i.test(status ?? "");
+
+  const confidence: SignalQuality["confidence"] =
+    hard.length ? "low"
+    : missing.length ? "medium"
+    : "high";
+
+  const disposition: SignalQuality["disposition"] =
+    failed ? "error"
+    : hard.length ? "missing_data"
+    : cancelling ? "action_suggested"
+    : family === "guest_message" || family === "guest_request" || family === "member_request" ? "needs_review"
+    : "no_action";
+
+  return {
+    confidence,
+    needsReview: disposition === "error" || disposition === "missing_data" || disposition === "action_suggested" || disposition === "needs_review",
+    missing,
+    disposition,
+  };
+}

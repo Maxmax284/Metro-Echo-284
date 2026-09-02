@@ -32,6 +32,8 @@ import type { CrossKind } from "@/lib/crossLinks";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { FirstRunCapture } from "./FirstRunCapture";
+import { operationalBrief } from "@/lib/campEvents";
+import { CaptureEventGroup, groupCaptures } from "./CaptureEventGroup";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -184,10 +186,13 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   };
 
   const sendToSherlock = async (item: IntakeRow) => {
+    // Bridge events go over as structured facts. Handing Sherlock only the
+    // title string is what produced "booking ID missing" on payloads that
+    // carried the booking id all along.
     openSherlock({
       entity_type: "freeform",
-      title: item.text.slice(0, 80),
-      text: item.text,
+      title: item.event ? item.event.headline.slice(0, 80) : item.text.slice(0, 80),
+      text: item.event ? operationalBrief(item.event) : item.text,
     });
     if (user) {
       await stampMessageRoute(item, "sherlock");
@@ -352,6 +357,196 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           : vantaSay.inbox.emptyNow()
       : "Nothing captured yet.";
 
+  // Repeated bridge events collapse into one summary row per booking, so the
+  // inbox reads as "3 booking state changes" instead of three identical bubbles.
+  const units = useMemo(() => groupCaptures(filtered), [filtered]);
+
+  const renderItem = (item: IntakeRow) => {
+          // Doctrine: linking is consistent across surfaces. Mount LinkChips on
+          // message-row captures (the row we can persist `metadata.links` against).
+          const isMessage = item._raw.kind === "message";
+          const meta = isMessage ? (item._raw.row.metadata ?? {}) : {};
+          const rawKind = item._raw.kind;
+          const sourceKind = rawKind === "message" ? "message" as const
+            : rawKind === "field_note" ? "field_note" as const
+            : rawKind === "file" ? "ingested_file" as const
+            : null;
+          const acceptSuggestion = async (lane: RouteLane) => {
+            // Sherlock drafts. The user accepts. Real routing still flows
+            // through the same handlers as the manual lane buttons.
+            if (lane === "memory") return routeToNote(item);
+            if (lane === "commitment") return routeToCommitment(item);
+            if (lane === "reminder") return routeToReminder(item);
+            if (lane === "sherlock") return sendToSherlock(item);
+            if (lane === "ignore") return ignore(item);
+            if (lane === "action") {
+              if (!user) return;
+              await supabase.from("actions").insert({
+                user_id: user.id,
+                title: item.text.slice(0, 80),
+                description: item.text,
+                risk: "standard",
+                status: "staged",
+                source: "sherlock_suggest",
+              });
+              await stampMessageRoute(item, "actions");
+              await logRoute(user.id, item, "actions", { via: "sherlock_suggest" });
+              toast.success({ title: "Staged as action — review before run", description: aftermathLine({ verb: "Drafted", filedTo: "Actions", appearsIn: "Receipts" }) });
+              refresh();
+            }
+          };
+          const showRecognize =
+            isMessage && !item.routedTo && item.text && item.text.length > 4;
+          const nextMove: NextMove | null = (() => {
+            if (item._raw.kind === "file" && item.needsReview) {
+              return {
+                label: "Open file aftermath",
+                onClick: () => setAftermathFileId(item._raw.row.id),
+                hint: "Pick what this file becomes — nothing is filed yet.",
+              };
+            }
+            if (item.needsReview) {
+              return {
+                label: "Pick a lane",
+                onClick: () => {
+                  // Scrolls the inline RecognizePanel into view; no execution.
+                  document.getElementById(`capture-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                },
+                hint: item.why ?? "Tell Vanta what this is so it stops asking.",
+              };
+            }
+            if (item.routedTo) {
+              return {
+                label: `Open in ${item.routedTo}`,
+                onClick: () => {
+                  // No-op nav: stays on Memory. Audit keeps the receipt.
+                  toast.info?.({ title: `Routed to ${item.routedTo}`, description: item.why ?? "Filed away." });
+                },
+                hint: `Already ${item.routedTo.toLowerCase()}.`,
+              };
+            }
+            return null;
+          })();
+          const footer = (
+            <div id={`capture-${item.id}`} className="space-y-1.5">
+              {isMessage && !item.routedTo && (
+                <SherlockChipTrigger
+                  operation="suggest"
+                  entityType="message"
+                  entityId={item._raw.row.id}
+                  text={item.event ? operationalBrief(item.event) : item.text}
+                  title={item.event ? item.event.headline.slice(0, 80) : item.text.slice(0, 80)}
+                  showWhenEmpty={false}
+                />
+              )}
+              {isMessage && (
+                <EmbeddedSherlockFindings sourceType="message" sourceId={item._raw.row.id} />
+              )}
+              {showRecognize && (
+                <RecognizePanel
+                  text={item.event ? operationalBrief(item.event) : item.text}
+                  entityType="message"
+                  entityId={item._raw.row.id}
+                  onAccept={acceptSuggestion}
+                />
+              )}
+              {sourceKind && <EntityChips sourceKind={sourceKind} sourceId={item._raw.row.id} />}
+              {isMessage && (
+                <LinkChips
+                  entityKind="message"
+                  entityId={item._raw.row.id}
+                  links={readLinks(meta)}
+                  onChange={refresh}
+                  compact
+                />
+              )}
+              {(() => {
+                const crossKind: CrossKind | null =
+                  item._raw.kind === "message" ? "capture"
+                  : item._raw.kind === "file" ? "file"
+                  : null;
+                const projectKind: ProjectItemType | null =
+                  item._raw.kind === "message" ? "capture"
+                  : item._raw.kind === "file" ? "file"
+                  : null;
+                if (!crossKind && !projectKind) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Linked chips — display, no action. */}
+                    {crossKind && (
+                      <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
+                    )}
+                    {/* Primary action: attach to a project. */}
+                    {projectKind && (
+                      <AttachToProjectMenu
+                        itemType={projectKind}
+                        itemId={item._raw.row.id}
+                        itemLabel={item.text.slice(0, 80)}
+                      />
+                    )}
+                    {/* Secondary moves live behind More. */}
+                    {crossKind && (
+                      <CardMoreMenu>
+                        <div className="px-2 py-1.5">
+                          <ConnectButton
+                            source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }}
+                          />
+                        </div>
+                      </CardMoreMenu>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {nextMove && (
+                <AftermathFooter
+                  next={nextMove}
+                  whatHappensIfTap="Opens — nothing runs."
+                />
+              )}
+            </div>
+          );
+          // Which captures support bulk-linking (must map to a CrossKind).
+          const bulkKind: CrossKind | null =
+            item._raw.kind === "message" ? "capture"
+            : item._raw.kind === "file" ? "file"
+            : null;
+          const isSelected = selectedIds.has(item.id);
+          const toggleSelected = () => {
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(item.id)) next.delete(item.id);
+              else next.add(item.id);
+              return next;
+            });
+          };
+          const card = (
+            <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={footer} />
+          );
+          if (!selectMode || !bulkKind) {
+            return <div key={item.id}>{card}</div>;
+          }
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "flex items-start gap-2 rounded-md p-1 transition-colors",
+                isSelected && "bg-primary/5 ring-1 ring-primary/30",
+              )}
+            >
+              <button
+                type="button"
+                onClick={toggleSelected}
+                className="mt-2 shrink-0"
+                aria-label={isSelected ? "Unselect" : "Select"}
+              >
+                <Checkbox checked={isSelected} onCheckedChange={toggleSelected} />
+              </button>
+              <div className="min-w-0 flex-1">{card}</div>
+            </div>
+          );
+  };
+
   return (
     <div className="space-y-3">
       {ambiguousOnly && (
@@ -359,6 +554,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           {LANES.map((l) => {
             const Icon = l.Icon;
             const active = lane === l.id;
+
             return (
               <button
                 key={l.id}
@@ -468,191 +664,13 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
       )}
 
       <div className="space-y-2">
-        {filtered.map((item) => {
-          // Doctrine: linking is consistent across surfaces. Mount LinkChips on
-          // message-row captures (the row we can persist `metadata.links` against).
-          const isMessage = item._raw.kind === "message";
-          const meta = isMessage ? (item._raw.row.metadata ?? {}) : {};
-          const rawKind = item._raw.kind;
-          const sourceKind = rawKind === "message" ? "message" as const
-            : rawKind === "field_note" ? "field_note" as const
-            : rawKind === "file" ? "ingested_file" as const
-            : null;
-          const acceptSuggestion = async (lane: RouteLane) => {
-            // Sherlock drafts. The user accepts. Real routing still flows
-            // through the same handlers as the manual lane buttons.
-            if (lane === "memory") return routeToNote(item);
-            if (lane === "commitment") return routeToCommitment(item);
-            if (lane === "reminder") return routeToReminder(item);
-            if (lane === "sherlock") return sendToSherlock(item);
-            if (lane === "ignore") return ignore(item);
-            if (lane === "action") {
-              if (!user) return;
-              await supabase.from("actions").insert({
-                user_id: user.id,
-                title: item.text.slice(0, 80),
-                description: item.text,
-                risk: "standard",
-                status: "staged",
-                source: "sherlock_suggest",
-              });
-              await stampMessageRoute(item, "actions");
-              await logRoute(user.id, item, "actions", { via: "sherlock_suggest" });
-              toast.success({ title: "Staged as action — review before run", description: aftermathLine({ verb: "Drafted", filedTo: "Actions", appearsIn: "Receipts" }) });
-              refresh();
-            }
-          };
-          const showRecognize =
-            isMessage && !item.routedTo && item.text && item.text.length > 4;
-          const nextMove: NextMove | null = (() => {
-            if (item._raw.kind === "file" && item.needsReview) {
-              return {
-                label: "Open file aftermath",
-                onClick: () => setAftermathFileId(item._raw.row.id),
-                hint: "Pick what this file becomes — nothing is filed yet.",
-              };
-            }
-            if (item.needsReview) {
-              return {
-                label: "Pick a lane",
-                onClick: () => {
-                  // Scrolls the inline RecognizePanel into view; no execution.
-                  document.getElementById(`capture-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                },
-                hint: item.why ?? "Tell Vanta what this is so it stops asking.",
-              };
-            }
-            if (item.routedTo) {
-              return {
-                label: `Open in ${item.routedTo}`,
-                onClick: () => {
-                  // No-op nav: stays on Memory. Audit keeps the receipt.
-                  toast.info?.({ title: `Routed to ${item.routedTo}`, description: item.why ?? "Filed away." });
-                },
-                hint: `Already ${item.routedTo.toLowerCase()}.`,
-              };
-            }
-            return null;
-          })();
-          const footer = (
-            <div id={`capture-${item.id}`} className="space-y-1.5">
-              {isMessage && !item.routedTo && (
-                <SherlockChipTrigger
-                  operation="suggest"
-                  entityType="message"
-                  entityId={item._raw.row.id}
-                  text={item.text}
-                  title={item.text.slice(0, 80)}
-                  showWhenEmpty={false}
-                />
-              )}
-              {isMessage && (
-                <EmbeddedSherlockFindings sourceType="message" sourceId={item._raw.row.id} />
-              )}
-              {showRecognize && (
-                <RecognizePanel
-                  text={item.text}
-                  entityType="message"
-                  entityId={item._raw.row.id}
-                  onAccept={acceptSuggestion}
-                />
-              )}
-              {sourceKind && <EntityChips sourceKind={sourceKind} sourceId={item._raw.row.id} />}
-              {isMessage && (
-                <LinkChips
-                  entityKind="message"
-                  entityId={item._raw.row.id}
-                  links={readLinks(meta)}
-                  onChange={refresh}
-                  compact
-                />
-              )}
-              {(() => {
-                const crossKind: CrossKind | null =
-                  item._raw.kind === "message" ? "capture"
-                  : item._raw.kind === "file" ? "file"
-                  : null;
-                const projectKind: ProjectItemType | null =
-                  item._raw.kind === "message" ? "capture"
-                  : item._raw.kind === "file" ? "file"
-                  : null;
-                if (!crossKind && !projectKind) return null;
-                return (
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {/* Linked chips — display, no action. */}
-                    {crossKind && (
-                      <LinkedChipsBar source={{ kind: crossKind, id: item._raw.row.id }} />
-                    )}
-                    {/* Primary action: attach to a project. */}
-                    {projectKind && (
-                      <AttachToProjectMenu
-                        itemType={projectKind}
-                        itemId={item._raw.row.id}
-                        itemLabel={item.text.slice(0, 80)}
-                      />
-                    )}
-                    {/* Secondary moves live behind More. */}
-                    {crossKind && (
-                      <CardMoreMenu>
-                        <div className="px-2 py-1.5">
-                          <ConnectButton
-                            source={{ kind: crossKind, id: item._raw.row.id, label: item.text.slice(0, 60) }}
-                          />
-                        </div>
-                      </CardMoreMenu>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {nextMove && (
-                <AftermathFooter
-                  next={nextMove}
-                  whatHappensIfTap="Opens — nothing runs."
-                />
-              )}
-            </div>
-          );
-          // Which captures support bulk-linking (must map to a CrossKind).
-          const bulkKind: CrossKind | null =
-            item._raw.kind === "message" ? "capture"
-            : item._raw.kind === "file" ? "file"
-            : null;
-          const isSelected = selectedIds.has(item.id);
-          const toggleSelected = () => {
-            setSelectedIds((prev) => {
-              const next = new Set(prev);
-              if (next.has(item.id)) next.delete(item.id);
-              else next.add(item.id);
-              return next;
-            });
-          };
-          const card = (
-            <CaptureCard key={item.id} item={item} actions={actionsFor(item)} footer={footer} />
-          );
-          if (!selectMode || !bulkKind) {
-            return <div key={item.id}>{card}</div>;
-          }
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                "flex items-start gap-2 rounded-md p-1 transition-colors",
-                isSelected && "bg-primary/5 ring-1 ring-primary/30",
-              )}
-            >
-              <button
-                type="button"
-                onClick={toggleSelected}
-                className="mt-2 shrink-0"
-                aria-label={isSelected ? "Unselect" : "Select"}
-              >
-                <Checkbox checked={isSelected} onCheckedChange={toggleSelected} />
-              </button>
-              <div className="min-w-0 flex-1">{card}</div>
-            </div>
-          );
-        })}
+        {units.map((u) =>
+          u.kind === "single" ? (
+            renderItem(u.item)
+          ) : (
+            <CaptureEventGroup key={u.key} label={u.label} items={u.items} renderItem={renderItem} />
+          ),
+        )}
       </div>
 
       {/* Sticky bulk-action bar */}

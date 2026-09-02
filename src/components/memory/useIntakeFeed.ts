@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 import type { CaptureItem, CaptureSource } from "./CaptureCard";
+import { hydrateOperationalEvent } from "@/lib/campEvents";
 
 type MsgRow = { id: string; content: string; created_at: string; role: string; metadata: any };
 type FileRow = {
@@ -81,11 +82,17 @@ export function useIntakeFeed(limit = 60) {
       const snoozedUntil = (meta.snoozed_until as string | undefined) ?? null;
       const isSnoozed = !!snoozedUntil && new Date(snoozedUntil).getTime() > nowMs;
       const isDone = !!routed;
+      // Bridge arrivals are operational events, not vague text. Hydrate from the
+      // stored payload so the card can name the booking, the state move and the
+      // actor — and so "needs review" is earned rather than assumed.
+      const event = hydrateOperationalEvent(meta, m.created_at);
       const baseStatus = routed
         ? (ROUTE_LABEL[routed] ?? `Routed → ${routed}`)
-        : meta.needs_review
-          ? "Needs review"
-          : "Captured";
+        : event
+          ? event.summary
+          : meta.needs_review
+            ? "Needs review"
+            : "Captured";
       out.push({
         id: `msg:${m.id}`,
         source,
@@ -93,14 +100,19 @@ export function useIntakeFeed(limit = 60) {
            mark it as a draft that still needs a read. */
         bridgeSource: (meta.source_platform as string | undefined) ?? null,
         text: m.content,
+        event,
         detectedType: meta.detected_type ?? null,
-        confidence: meta.confidence ?? null,
+        confidence: (event?.confidence as CaptureItem["confidence"]) ?? meta.confidence ?? null,
         status: isSnoozed ? `Snoozed until ${new Date(snoozedUntil!).toLocaleString()}` : baseStatus,
         routedTo: routed ?? null,
-        needsReview: !!meta.needs_review || (!meta.detected_type && !routed),
+        needsReview: routed ? false : event ? event.needsReview : (!!meta.needs_review || !meta.detected_type),
         sensitive: meta.sensitive === true || isSensitive(m.content),
         ts: m.created_at,
-        why: isSnoozed ? "Snoozed — I'll bring it back when it's due." : whyForMessage(source, meta, routed),
+        why: isSnoozed
+          ? "Snoozed — I'll bring it back when it's due."
+          : event
+            ? event.summary
+            : whyForMessage(source, meta, routed),
         snoozedUntil,
         isSnoozed,
         isDone,

@@ -251,10 +251,12 @@ export function ConversationDock({
   };
 
   return (
-    <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
+    // The composer sits over the room wall, so it carries its own scrim: text
+    // stays readable and the bottom nav keeps its clearance on phones.
+    <div className="safe-bottom sticky bottom-[68px] z-30 bg-gradient-to-t from-background via-background/90 to-transparent px-3 pb-3 pt-3 md:bottom-0 md:relative md:bg-none md:px-0 md:pb-0">
       {/* Slash palette */}
       {slashActive && paletteTools.length > 0 && (
-        <div className="mx-auto mb-1.5 w-full max-w-3xl overflow-hidden rounded-2xl glass shadow-lg backdrop-blur-md">
+        <div className="mx-auto mb-1.5 w-full max-w-3xl overflow-hidden rounded-2xl glass bg-background/85 shadow-lg backdrop-blur-xl">
           <div className="border-b border-border/40 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
             Tools · ↑↓ Enter
           </div>
@@ -290,7 +292,7 @@ export function ConversationDock({
         <div className="mx-auto mb-1.5 w-full max-w-3xl">{aboveComposer}</div>
       )}
 
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass px-3 py-2 shadow-lg backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass bg-background/85 px-3 py-2 shadow-lg backdrop-blur-xl">
         {onAttach && (
           <>
             <input

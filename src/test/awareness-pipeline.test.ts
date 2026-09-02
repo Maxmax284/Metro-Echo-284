@@ -403,7 +403,7 @@ describe("inbound signal detail", () => {
       booking_reference: "LMT-4471",
       channel: "direct",
     });
-    expect(d.title).toBe("LMT Camp State booking state changed: Nikki · room Bungalow 3");
+    expect(d.title).toBe("LMT Camp State booking state changed: Nikki · room Bungalow 3 · confirmed → cancelled");
     expect(d.lines).toContain("Stay: 2026-08-24 → 2026-08-28 (4 nights)");
     expect(d.lines).toContain("Status: confirmed → cancelled");
     expect(d.lines).toContain("Amount: 18400 THB");
@@ -431,7 +431,7 @@ describe("inbound signal detail", () => {
       failure_reason: "card declined",
       booking_reference: "LMT-9001",
     });
-    expect(d.title).toBe("LMT Camp State payment failed: 4200 THB");
+    expect(d.title).toBe("LMT Camp State payment failed: 4200 THB · #LMT-9001");
     expect(d.lines).toContain("Reason: card declined");
   });
 
