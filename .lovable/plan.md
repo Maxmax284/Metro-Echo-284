@@ -1,72 +1,45 @@
-# Wearable Companion: one Vanta, many bodies
+# Finish the Unified Polish pass
 
-The wearable layer becomes another body for the same Vanta — not a second product. The wrist whispers, the phone reviews, the desk thinks. Approval never travels.
+## Where we are now
 
-## What already exists (confirmed by reading the code)
+Already landed:
+- Ask thread spine with search and always-labelled Pinned / Recent / Archived groups.
+- "Connect your world" in Settings → Connections: one honest state per connection plus a proof line drawn from recorded events.
+- Composer already has attach / camera / voice, and answers already render structured.
+- Aftermath lines exist for all 17 surfaces (`SurfaceAftermath`), the glossary panel exists, and the motion vocabulary is already centralised in `src/lib/motion.ts` with the feel knob reaching JS via `feelMs()`.
 
-- `VantaContext` with device classes (`desk / phone / wearable / earbuds / vehicle / ambient`) and nine postures, manual with expiry, source recorded.
-- A compression module already renders one notice at five verbosities (`rich / brief / signal / spoken / cue`) and maps channels to them.
-- Per-sensor consent (`heart_rate`, `activity`, posture inference, device class, calendar, location) with off meaning not read and not stored.
-- Real readings: Bluetooth heart rate, phone ingest link, manual entry, daily sweep, sleep/steps/workouts maths, rest-vs-training balance, `/watch` with 14-day bars, nights, 48h heart line, Compare sheet, Today body panel, Work desk body note.
-- Nudges with status lifecycle, quiet hours, attention budget, delivery channels.
+Still open (this plan closes it):
+- The two audit documents were never written.
+- Room help is uneven: Work has "What can I do here?" (`DeskInfo`) and a verb-first quick-action strip; Today, Ask and Receipts have no equivalent, and no room states its help in one consistent shape.
+- The motion / street accent polish pass (Wave 5) was never done as a pass.
 
-What does not exist: a glance surface, wrist-safe acknowledge/defer, a haptic vocabulary, a training-mode delivery shift, wrist capture, "Open on phone" continuity, and the written doctrine.
+## What gets built
 
-## Wave 1 — Doctrine and audit (documents only)
+### 1. Room help, one shape everywhere
+A single `RoomHelp` panel used by all four rooms, opened from a small "What is this room?" control in the room header. Every room answers the same six lines, written not generated:
 
-Write the nine required documents, each grounded in what the code actually does today, with an honest "not built" column:
+1. What this room is for.
+2. What lands here, and how it got here.
+3. What you can do here.
+4. What this room will never do (the law it holds).
+5. Where things go next.
+6. Why it looks empty, when it is empty.
 
-`vanta-wearable-companion-audit.md`, `vanta-device-compression.md`, `vanta-haptic-language.md`, `vanta-posture-model.md`, `vanta-wrist-experience.md`, `vanta-earbud-experience.md`, `vanta-wearable-connections.md`, `vanta-ambient-intelligence-rules.md`, `vanta-future-glasses-seam.md`.
+Work keeps its existing desk-level help; this sits above it at room level. Nothing here reads state or executes.
 
-Glasses, car and home stay documentation only.
+### 2. Audit documents
+- `.lovable/vanta-unified-polish-audit.md` — a walk of every room and desk at 384px: what each surface says on arrival, whether it teaches, whether tap targets clear 44px, where copy still reads technical, and what is still confusing. One row per surface, honest verdicts only.
+- `.lovable/vanta-synchronization-audit.md` — every hand-off between rooms (Ask → Work, Today → desk, Sherlock → project, Telegram → capture, wearable → Today/Work): does the same object arrive with the same identity, does scope hold, does a receipt get written. Findings recorded, and any true breakage fixed in the same pass.
 
-## Wave 2 — Glance layer and wrist-safe controls
-
-A glance surface at `/glance` — a real Vanta surface sized like a wrist, not a fifth room and not on the nav. It shows zero or one thing:
-
-```text
-  ┌──────────────────────────┐
-  │ TRAINING · heart 148     │
-  │                          │
-  │ Nikki: schedule promised │
-  │ today                    │
-  │                          │
-  │ [ Noted ] [ Later ]      │
-  │ [ Open on phone ]        │
-  └──────────────────────────┘
-```
-
-- One selector picks the single strongest item from records that already exist (due commitment, meeting collision, Sherlock finding, returning deferral). Nothing new is invented.
-- Silence is a real state: "Nothing needs you." No filler, no manufactured insight.
-- Wrist-safe controls only: Noted (acknowledge), Later (defer with a return time), Open on phone. Approve and Execute are absent — not disabled, absent — and the surface says so in one line.
-- Every tap writes a receipt with the device it came from.
-
-## Wave 3 — Body context changes delivery, never decisions
-
-- A single `deliveryPosture()` decision: training or spent shortens copy, holds ordinary items, prefers a cue over a paragraph; critical follows the existing hard rules untouched.
-- After training: "While you were training: 4 things changed. One needs you."
-- Automatic posture is always a suggestion with Yes / Not now / Always ask. Nothing switches itself on.
-- Haptic vocabulary, three patterns only, with a visual equivalent for every one and silence in quiet hours.
-
-## Wave 4 — Continuity and capture
-
-- "Open on phone" restores the same object, scope and thread — no duplicate record, no new Ask thread unless one is needed.
-- A deferral made on the glance surface reads back on the phone as "You deferred this from your wrist 18 minutes ago."
-- Deliberate wrist capture: press, speak or type, it lands as a draft with time and device source. If it smells like a promise, Vanta says "This sounds like a commitment. Review on phone?" and never converts it silently.
-
-## Wave 5 — Connections and `/watch`
-
-- The wearable card in Connect your world expands into a wearable area: heart rate, daily activity, sleep, workouts, connection method, last reading, consent state, source, history readiness. Brand-neutral, organised by data path (direct sensor / phone health / connected service / manual). Unsupported services are labelled "not connected yet", never implied.
-- `/watch` gains a current-priority line, current posture, connection proof and history readiness, and stays a companion surface rather than an analytics dashboard.
+### 3. Motion and street accents
+A restrained pass, no new libraries:
+- Arrival, locking and settling all pulled through the existing motion constants — no more one-off durations in components.
+- Street accents kept to structure, not decoration: corner cuts on desk tiles, a single status light per connection row, hairline rules where a section changes meaning.
+- Respect `prefers-reduced-motion` and the feel knob everywhere; no looping ambient motion on Today (that flicker fix stays intact).
 
 ## Technical notes
 
-- No new rooms, no second brain, no duplicate memory or action store. The glance surface reads the same tables and the same scope filter as Today.
-- Compression reuses `_shared/awareness/compress.ts`; a client mirror keeps wording identical across bodies, verified by tests that compare levels of the same notice.
-- Wrist controls map onto existing lifecycles (`nudges.status`, commitment lifecycle) — no new state machine.
-- Tests: consent off, missing data as a gap, source labelling per path, compression consistency, no approval or execution from the glance surface, defer and acknowledge, Open-on-phone continuity and scope preservation, posture suggestion never silent, training compression, quiet hours and attention budget suppression, critical gating, insufficient-history wording, reduced motion.
-- Validation at 384px, focused tests per slice, then full suite and typecheck.
-
-## Deliberately not built
-
-Native watch or App Store app, continuous listening, glasses, car surfaces, recovery scores, streaks, gamification, any medical claim, any wearable-driven approval.
+- New: `src/components/ui/room-help.tsx` plus copy in `src/lib/roomCopy.ts` (extend the existing file, do not duplicate it).
+- Audits are documents under `.lovable/`; only real breakage found by the sync audit gets code changes, and each fix is listed in the doc.
+- Motion changes are class and token swaps against `src/lib/motion.ts`; no new animation utilities.
+- Verification: typecheck, existing test suite, and a 384px browser walk of Today / Work / Ask / Receipts with screenshots.
