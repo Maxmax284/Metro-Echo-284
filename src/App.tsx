@@ -39,6 +39,7 @@ import WearablesPage from "./pages/Wearables.tsx";
 import WearableLoopPage from "./pages/WearableLoop.tsx";
 import WatchPage from "./pages/Watch.tsx";
 import MotionPage from "./pages/Motion.tsx";
+import MotionPage from "./pages/Motion.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
