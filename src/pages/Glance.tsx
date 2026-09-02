@@ -126,7 +126,7 @@ export default function GlancePage() {
       if (action === "done" && card.entity?.type === "commitment" && card.entity.id) {
         await supabase
           .from("commitments")
-          .update({ status: "done", completed_at: new Date().toISOString() })
+          .update({ status: "done" })
           .eq("id", card.entity.id);
       }
 
@@ -227,7 +227,7 @@ export default function GlancePage() {
       {loading ? (
         <LoadingState label="Reading what matters" />
       ) : error ? (
-        <ErrorState message={error} onRetry={refresh} />
+        <ErrorState error={error} doing="reading what matters" onRetry={refresh} />
       ) : card && forms ? (
         <section className="vanta-card p-4">
           <div className="flex items-center justify-between gap-2">
@@ -339,13 +339,7 @@ export default function GlancePage() {
       </section>
 
       <div className="mt-3">
-        <AftermathHint
-          lines={[
-            "Noted and Remind later write a receipt, so your phone can say where you left it.",
-            "Open on phone lands on the same object in the same scope.",
-            "Nothing on this screen can approve or execute anything.",
-          ]}
-        />
+        <AftermathHint text="Noted and Remind later write a receipt · Open on phone lands on the same object · nothing here approves or executes" />
       </div>
 
       <p className={cn("mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground")}>
