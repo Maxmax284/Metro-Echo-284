@@ -220,7 +220,7 @@ export function NewDocumentDialog({
                   </p>
                   <div className="h-1 w-full overflow-hidden rounded-full bg-border/60">
                     <div
-                      className="h-full rounded-full bg-primary transition-[width] duration-300"
+                      className="h-full rounded-full bg-primary transition-[width] duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none"
                       style={{ width: `${((step + 1) / Math.max(steps.length, 1)) * 100}%` }}
                     />
                   </div>

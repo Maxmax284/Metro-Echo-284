@@ -74,7 +74,7 @@ export function CollapsibleSection({
       className={cn(
         "vanta-focus-card vanta-card border border-transparent",
         open ? "p-4" : "px-4 py-2.5",
-        "transition-[padding] duration-200",
+        "transition-[padding] duration-[var(--motion-fast)] ease-[var(--ease-out)] motion-reduce:transition-none",
         className,
       )}
       data-open={open ? "true" : "false"}
@@ -91,7 +91,7 @@ export function CollapsibleSection({
         >
           <ChevronDown
             className={cn(
-              "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+              "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-[var(--motion-fast)] ease-[var(--ease-out)] motion-reduce:transition-none",
               !open && "-rotate-90",
             )}
           />
