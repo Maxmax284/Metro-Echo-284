@@ -68,7 +68,7 @@ describe("room help", () => {
   });
 
   it("states a real limit in every room's never line", () => {
-    for (const help of Object.values(ROOM_HELP)) {
+    for (const help of Object.values(ROOM_HELP) as RoomHelpCopy[]) {
       expect(/\bnever\b|\bnothing\b|\bcannot\b/i.test(help.never)).toBe(true);
     }
   });
