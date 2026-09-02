@@ -24,6 +24,8 @@ import { UsageModeSection } from "@/components/settings/UsageModeSection";
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { ApiRecordsSection } from "@/components/settings/ApiRecordsSection";
 import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
+import { ConnectYourWorldSection } from "@/components/settings/ConnectYourWorldSection";
+
 
 export type SettingsGroup = {
   id: string;
@@ -141,7 +143,9 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     icon: Plug,
     render: () => (
       <>
+        <ConnectYourWorldSection />
         <LinkOut
+
           to="/settings/integrations"
           title="Platform Integrations"
           blurb="Camp State, CampCore, Telegram, Email, Calendar, Fenrir, WhatsApp. Status, doctrine and kill switches."
