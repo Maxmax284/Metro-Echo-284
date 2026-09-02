@@ -357,13 +357,6 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           : vantaSay.inbox.emptyNow()
       : "Nothing captured yet.";
 
-  return (
-    <div className="space-y-3">
-      {ambiguousOnly && (
-        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
-          {LANES.map((l) => {
-            const Icon = l.Icon;
-            const active = lane === l.id;
   // Repeated bridge events collapse into one summary row per booking, so the
   // inbox reads as "3 booking state changes" instead of three identical bubbles.
   const units = useMemo(() => groupCaptures(filtered), [filtered]);
@@ -554,6 +547,14 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           );
   };
 
+  return (
+    <div className="space-y-3">
+      {ambiguousOnly && (
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+          {LANES.map((l) => {
+            const Icon = l.Icon;
+            const active = lane === l.id;
+
             return (
               <button
                 key={l.id}
@@ -662,7 +663,6 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         )
       )}
 
-      <div className="space-y-2">
       <div className="space-y-2">
         {units.map((u) =>
           u.kind === "single" ? (
