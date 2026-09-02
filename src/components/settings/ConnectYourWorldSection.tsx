@@ -77,7 +77,7 @@ function ConnectionRow({
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[12.5px] font-medium">{card.label}</span>
+            <span className="min-w-0 flex-1 text-[12.5px] font-medium">{card.label}</span>
             <StateChip card={card} />
           </div>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">{card.blurb}</p>
@@ -246,7 +246,7 @@ export function ConnectYourWorldSection() {
           {DEVICE_FAMILIES.map((f) => (
             <li key={f.key} className="rounded-lg bg-muted/15 p-2.5 ring-1 ring-border/30">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-[12px] font-medium">{f.label}</span>
+                <span className="min-w-0 flex-1 text-[12px] font-medium">{f.label}</span>
                 <span
                   className={cn(
                     "shrink-0 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1",
