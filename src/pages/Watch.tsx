@@ -106,6 +106,7 @@ function NightBars({ nights, usual }: { nights: { day: string; minutes: number |
 export default function WatchPage() {
   const [compareOpen, setCompareOpen] = useState(false);
   const { trends, loading, error, refresh } = useWearableTrends(14);
+
   const hrOn = trends.consent.heart_rate === true;
   const activityOn = trends.consent.activity === true;
 
