@@ -91,7 +91,20 @@ export function sortThreads(list: AskThread[]): AskThread[] {
   });
 }
 
+/**
+ * Search across what a thread actually carries: its title and the record it is
+ * bound to. No message-body search — that would promise a depth the client
+ * cannot honestly deliver from the thread list.
+ */
+export function matchesQuery(t: AskThread, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const hay = `${t.title ?? ""} ${t.context_label ?? ""} ${t.context_kind ?? ""}`.toLowerCase();
+  return q.split(/\s+/).every((word) => hay.includes(word));
+}
+
 export function isLive(t: AskThread): boolean {
+
   return !t.deleted_at && !t.archived_at;
 }
 
