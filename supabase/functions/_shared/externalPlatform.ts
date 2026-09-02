@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { buildSignalDetail, type SignalDetail } from "./awareness/inbound.ts";
+import { buildSignalDetail, signalQuality, type SignalDetail } from "./awareness/inbound.ts";
 import { reachInboundSignal } from "./awareness/inboundReach.ts";
 
 type PlatformConfig = {
@@ -415,6 +415,10 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
 
   const detail = detailFor(config, eventType, payload as Record<string, unknown>);
   const content = detail.title;
+  // Review is earned, not assumed. Quality is computed from the payload that
+  // actually arrived, and the missing field names travel with the capture so
+  // the advisor can name them instead of guessing.
+  const quality = signalQuality(eventType, payload as Record<string, unknown>);
   const { data: ins, error: insErr } = await admin
     .from("messages")
     .insert({
@@ -430,8 +434,10 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
         external_payload: payload,
         detail_lines: detail.lines,
         signal_only: true,
-        needs_review: true,
-        confidence: "low",
+        needs_review: quality.needsReview,
+        confidence: quality.confidence,
+        disposition: quality.disposition,
+        missing_fields: quality.missing,
       },
     })
     .select("id")
