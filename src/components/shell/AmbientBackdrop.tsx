@@ -40,6 +40,8 @@ export function AmbientBackdrop() {
       <div className="vanta-bd-traces" />
       <div className="vanta-bd-sheen" />
       <div className="vanta-bd-grain" />
+      {/* Contrast floor for operational text — artwork stays, readability wins. */}
+      <div className="vanta-bd-scrim" />
     </div>
   );
 }
