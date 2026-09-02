@@ -48,6 +48,13 @@ export default function GlancePage() {
   const { record } = useCaptureRoute();
   const { decision, quietHours, posture, postureSource, body, loading, error, refresh } = useGlance();
 
+  /* The wrist reads the same records as the desk, only shorter. */
+  const feed = useMemo(
+    () => autoSendHealth(body.readings, body.consent.activity === true),
+    [body.readings, body.consent.activity],
+  );
+  const strip = useMemo(() => bodyStrip(body.readings, body.consent), [body.readings, body.consent]);
+
   const [busy, setBusy] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [text, setText] = useState("");
