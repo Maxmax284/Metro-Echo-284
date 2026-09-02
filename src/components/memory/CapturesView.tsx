@@ -32,6 +32,7 @@ import type { CrossKind } from "@/lib/crossLinks";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { FirstRunCapture } from "./FirstRunCapture";
+import { operationalBrief } from "@/lib/campEvents";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -184,10 +185,13 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
   };
 
   const sendToSherlock = async (item: IntakeRow) => {
+    // Bridge events go over as structured facts. Handing Sherlock only the
+    // title string is what produced "booking ID missing" on payloads that
+    // carried the booking id all along.
     openSherlock({
       entity_type: "freeform",
-      title: item.text.slice(0, 80),
-      text: item.text,
+      title: item.event ? item.event.headline.slice(0, 80) : item.text.slice(0, 80),
+      text: item.event ? operationalBrief(item.event) : item.text,
     });
     if (user) {
       await stampMessageRoute(item, "sherlock");
@@ -541,8 +545,8 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   operation="suggest"
                   entityType="message"
                   entityId={item._raw.row.id}
-                  text={item.text}
-                  title={item.text.slice(0, 80)}
+                  text={item.event ? operationalBrief(item.event) : item.text}
+                  title={item.event ? item.event.headline.slice(0, 80) : item.text.slice(0, 80)}
                   showWhenEmpty={false}
                 />
               )}
@@ -551,7 +555,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
               )}
               {showRecognize && (
                 <RecognizePanel
-                  text={item.text}
+                  text={item.event ? operationalBrief(item.event) : item.text}
                   entityType="message"
                   entityId={item._raw.row.id}
                   onAccept={acceptSuggestion}
