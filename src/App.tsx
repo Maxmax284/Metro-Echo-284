@@ -39,6 +39,7 @@ import WearablesPage from "./pages/Wearables.tsx";
 import WearableLoopPage from "./pages/WearableLoop.tsx";
 import WatchPage from "./pages/Watch.tsx";
 import MotionPage from "./pages/Motion.tsx";
+import GlancePage from "./pages/Glance.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -76,6 +77,7 @@ const App = () => (
                               <Route path="/wearable-loop" element={<WearableLoopPage />} />
                               <Route path="/watch" element={<WatchPage />} />
                               <Route path="/motion" element={<MotionPage />} />
+                              <Route path="/glance" element={<GlancePage />} />
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />
