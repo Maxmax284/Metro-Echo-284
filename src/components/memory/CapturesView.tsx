@@ -33,6 +33,7 @@ import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { FirstRunCapture } from "./FirstRunCapture";
 import { operationalBrief } from "@/lib/campEvents";
+import { CaptureEventGroup, groupCaptures } from "./CaptureEventGroup";
 
 type InboxLane = "now" | "snoozed" | "done";
 
@@ -363,116 +364,11 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
           {LANES.map((l) => {
             const Icon = l.Icon;
             const active = lane === l.id;
-            return (
-              <button
-                key={l.id}
-                onClick={() => setLane(l.id)}
-                className={cn(
-                  "inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
-                  active
-                    ? "border-primary/40 bg-primary/15 text-primary"
-                    : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-                )}
-                aria-pressed={active}
-              >
-                <Icon className="h-3 w-3" />
-                {l.label}
-                <span className="opacity-70">· {l.count}</span>
-              </button>
-            );
-          })}
-          <button
-            onClick={refresh}
-            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
+  // Repeated bridge events collapse into one summary row per booking, so the
+  // inbox reads as "3 booking state changes" instead of three identical bubbles.
+  const units = useMemo(() => groupCaptures(filtered), [filtered]);
 
-      {!ambiguousOnly && (
-        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                "shrink-0 snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors",
-                filter === f.id
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-          <button
-            onClick={refresh}
-            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Bulk-select toolbar — available in both lanes. Lets the user
-          connect many captures to one place in a single tap. */}
-      <div className="flex items-center justify-between gap-2 text-[11px]">
-        <button
-          type="button"
-          onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
-            selectMode
-              ? "border-primary/40 bg-primary/15 text-primary"
-              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <CheckSquare className="h-3 w-3" />
-          {selectMode ? "Done selecting" : "Select multiple"}
-        </button>
-        {selectMode && selectedIds.size > 0 && (
-          <span className="text-muted-foreground">{selectedIds.size} picked</span>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDismissed((s) => !s)}
-          className={cn(
-            "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
-            showDismissed
-              ? "border-primary/40 bg-primary/15 text-primary"
-              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-          )}
-          title="Toggle dismissed items"
-        >
-          {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
-        </button>
-      </div>
-
-      {loading && (
-        <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
-          Looking at the front desk…
-        </div>
-      )}
-
-      {!loading && filtered.length === 0 && (
-        // First run teaches the doors; a filtered-empty lane just reports the lane.
-        items.length === 0 && lane === "now" ? (
-          <FirstRunCapture />
-        ) : (
-          <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
-            <Inbox className="h-5 w-5 opacity-50" />
-            {emptyCopy}
-          </div>
-        )
-      )}
-
-      <div className="space-y-2">
-        {filtered.map((item) => {
+  const renderItem = (item: IntakeRow) => {
           // Doctrine: linking is consistent across surfaces. Mount LinkChips on
           // message-row captures (the row we can persist `metadata.links` against).
           const isMessage = item._raw.kind === "message";
@@ -656,7 +552,125 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
               <div className="min-w-0 flex-1">{card}</div>
             </div>
           );
-        })}
+  };
+
+            return (
+              <button
+                key={l.id}
+                onClick={() => setLane(l.id)}
+                className={cn(
+                  "inline-flex shrink-0 snap-start items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                  active
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                )}
+                aria-pressed={active}
+              >
+                <Icon className="h-3 w-3" />
+                {l.label}
+                <span className="opacity-70">· {l.count}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={refresh}
+            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {!ambiguousOnly && (
+        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={cn(
+                "shrink-0 snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors",
+                filter === f.id
+                  ? "border-primary/40 bg-primary/15 text-primary"
+                  : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+          <button
+            onClick={refresh}
+            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Bulk-select toolbar — available in both lanes. Lets the user
+          connect many captures to one place in a single tap. */}
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <button
+          type="button"
+          onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            selectMode
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <CheckSquare className="h-3 w-3" />
+          {selectMode ? "Done selecting" : "Select multiple"}
+        </button>
+        {selectMode && selectedIds.size > 0 && (
+          <span className="text-muted-foreground">{selectedIds.size} picked</span>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowDismissed((s) => !s)}
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+            showDismissed
+              ? "border-primary/40 bg-primary/15 text-primary"
+              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+          )}
+          title="Toggle dismissed items"
+        >
+          {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
+          Looking at the front desk…
+        </div>
+      )}
+
+      {!loading && filtered.length === 0 && (
+        // First run teaches the doors; a filtered-empty lane just reports the lane.
+        items.length === 0 && lane === "now" ? (
+          <FirstRunCapture />
+        ) : (
+          <div className="flex flex-col items-center gap-2 rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
+            <Inbox className="h-5 w-5 opacity-50" />
+            {emptyCopy}
+          </div>
+        )
+      )}
+
+      <div className="space-y-2">
+      <div className="space-y-2">
+        {units.map((u) =>
+          u.kind === "single" ? (
+            renderItem(u.item)
+          ) : (
+            <CaptureEventGroup key={u.key} label={u.label} items={u.items} renderItem={renderItem} />
+          ),
+        )}
       </div>
 
       {/* Sticky bulk-action bar */}
