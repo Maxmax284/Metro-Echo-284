@@ -127,8 +127,15 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
   const { threads, archived, newThread } = useAskThreads();
   const { destination } = useScope();
   const [showArchived, setShowArchived] = useState(false);
-  const pinned = threads.filter((t) => t.pinned);
-  const recent = threads.filter((t) => !t.pinned);
+  // Search reads what a thread carries — its title and the record it is bound
+  // to. Nothing here pretends to search inside the conversation.
+  const [q, setQ] = useState("");
+  const live = threads.filter((t) => matchesQuery(t, q));
+  const pinned = live.filter((t) => t.pinned);
+  const recent = live.filter((t) => !t.pinned);
+  const archivedHits = archived.filter((t) => matchesQuery(t, q));
+  const searching = q.trim().length > 0;
+
 
   return (
     <div className="flex h-full min-h-0 flex-col">
