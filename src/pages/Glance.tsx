@@ -281,10 +281,28 @@ export default function GlancePage() {
         </section>
       )}
 
-      {/* Body line — honest, and a gap is a gap. */}
+      {/* Body strip — three lines, each a real reading or a stated gap. */}
       <section className="vanta-card mt-3 p-4">
-        <MachineLabel>Body</MachineLabel>
-        <p className="mt-1.5 text-[12px] leading-relaxed text-foreground/90">
+        <div className="flex items-center justify-between gap-2">
+          <MachineLabel>Body</MachineLabel>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            {autoSendProof(feed)}
+          </span>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {strip.map((row) => (
+            <div key={row.key} className="vanta-inset px-2 py-1.5">
+              <MachineLabel className="text-[9px] text-foreground/70">{row.label}</MachineLabel>
+              <p className="mt-0.5 text-[13px] font-medium leading-none text-foreground">
+                {row.value ?? "—"}
+              </p>
+              <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+                {row.note}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11.5px] leading-relaxed text-foreground/90">
           {body.summary || "Nothing recorded from your watch yet."}
         </p>
       </section>
