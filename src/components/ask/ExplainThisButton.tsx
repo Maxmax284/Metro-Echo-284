@@ -24,7 +24,7 @@ const ROOM_LABEL: Record<RoomKey, string> = {
 
 export function ExplainThisButton({ room, className }: { room: RoomKey; className?: string }) {
   const { openWithPrefill } = useCompanion();
-  const lines = ROOM_EXPLAIN[room];
+  
 
   return (
     <Popover>
