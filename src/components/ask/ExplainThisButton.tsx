@@ -8,7 +8,9 @@ import { Link } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { useCompanion } from "@/components/companion/CompanionContext";
-import { ROOM_EXPLAIN, type RoomKey } from "@/lib/roomCopy";
+import { type RoomKey } from "@/lib/roomCopy";
+import { RoomHelp } from "@/components/ui/room-help";
+
 import { MOTION_FOCUS, MOTION_MICRO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
