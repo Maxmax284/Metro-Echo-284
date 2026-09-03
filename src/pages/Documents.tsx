@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { DeskIntro } from "@/components/work/DeskIntro";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
 import { useActivity } from "@/components/workstatus/ActivityStore";
@@ -201,7 +202,12 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      <UnderConstructionBanner />
+      <DeskIntro
+        deskKey="documents"
+        populated={(docs?.length ?? 0) > 0}
+        onDo={(label) => { if (label === "Draft from a template") setComposerOpen(true); }}
+        className="mb-3"
+      />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
 
@@ -293,6 +299,9 @@ export default function DocumentsPage() {
 
       <AftermathHint text="Opening a document shows the draft and its review. Exports appear in Receipts." />
 
+      {/* The roadmap sits under the working parts, not above them. */}
+      <UnderConstructionBanner />
+
       <DocumentDetailSheet
         documentId={selectedId}
         open={!!selectedId}
@@ -367,24 +376,24 @@ export default function DocumentsPage() {
 function UnderConstructionBanner() {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-3">
+    <div className="mt-3 rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-start gap-2 text-left"
         aria-expanded={open}
       >
-        <HardHat className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <HardHat className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[12px] font-medium">
-            Documents — still under construction
+            Drafting and review work now
             {open
               ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
               : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
           </div>
           <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
-            Drafting + uploaded review work today. Deeper analysis, multi-doc
-            reports, and obligation tracking are next. Tap to see the roadmap.
+            Cross-document analysis, multi-doc reports and obligation tracking
+            are next. Tap for the full list.
           </p>
         </div>
       </button>
