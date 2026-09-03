@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Plus } from "lucide-react";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
+import { DeskIntro } from "@/components/work/DeskIntro";
 
 /**
  * BriefsSurface — first-class home for briefs & exports.
@@ -11,6 +12,8 @@ import { BriefExportsList } from "@/components/briefs/BriefExportsList";
  */
 export function BriefsSurface() {
   const [composerOpen, setComposerOpen] = useState(false);
+  /* Teaching stands down once a real brief exists. */
+  const [briefCount, setBriefCount] = useState(0);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8">
@@ -29,7 +32,14 @@ export function BriefsSurface() {
         </Button>
       </header>
 
-      <BriefExportsList />
+      <DeskIntro
+        deskKey="briefs"
+        populated={briefCount > 0}
+        onDo={(label) => { if (label === "Compose a brief") setComposerOpen(true); }}
+        className="mb-3"
+      />
+
+      <BriefExportsList onLoaded={setBriefCount} />
 
       <BriefComposerSheet
         open={composerOpen}

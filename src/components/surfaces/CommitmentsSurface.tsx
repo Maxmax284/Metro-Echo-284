@@ -23,6 +23,7 @@ import { classifyCommitment } from "@/lib/commitmentLifecycle";
 import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { aftermathLine } from "@/lib/vantaNouns";
+import { DeskIntro } from "@/components/work/DeskIntro";
 
 type Commitment = {
   id: string;
@@ -236,6 +237,14 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
       )}
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+        {!loading && (
+          <DeskIntro
+            deskKey="commitments"
+            populated={items.length > 0}
+            onDo={(label) => { if (label === "Record a promise") setComposing(true); }}
+            className="mb-3"
+          />
+        )}
         {loading ? (
           <LoadingState rows={3} label="Loading commitments" />
         ) : items.length === 0 ? (

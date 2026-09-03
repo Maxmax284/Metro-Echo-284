@@ -15,6 +15,7 @@ import { LoadingState, EmptyState } from "@/components/ui/state-views";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
+import { DeskIntro } from "@/components/work/DeskIntro";
 
 /**
  * ProjectsSurface — in-shell list of projects (Living Briefs).
@@ -149,6 +150,13 @@ export function ProjectsSurface() {
           </DialogContent>
         </Dialog>
       </header>
+
+      <DeskIntro
+        deskKey="projects"
+        populated={(projects?.length ?? 0) > 0}
+        onDo={(label) => { if (label === "Start a project") setOpen(true); }}
+        className="mb-3"
+      />
 
       {projects === null ? (
         <LoadingState rows={3} label="Loading projects" />
