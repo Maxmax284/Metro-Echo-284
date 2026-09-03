@@ -43,7 +43,7 @@ export function InboxSurface() {
       const [captures, notes, files] = await Promise.all([
         applyScope(supabase.from("notes").select("id", { count: "exact", head: true })).not("source", "is", null),
         applyScope(supabase.from("notes").select("id", { count: "exact", head: true })).is("source", null),
-        applyScope(supabase.from("memory_files").select("id", { count: "exact", head: true })),
+        applyScope(supabase.from("ingested_files").select("id", { count: "exact", head: true })),
       ]);
       setCounts({
         captures: (captures as { count?: number | null })?.count ?? 0,
