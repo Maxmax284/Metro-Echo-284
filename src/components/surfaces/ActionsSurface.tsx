@@ -25,6 +25,8 @@ import { aftermathLine } from "@/lib/vantaNouns";
 import { ObjectLife } from "@/components/ui/object-life";
 import { ReadNote } from "@/components/ui/inferred";
 import type { LifeEvent } from "@/lib/objectLife";
+import { DeskIntro } from "@/components/work/DeskIntro";
+import { DraftOrigin } from "@/components/work/DraftOrigin";
 
 
 type Action = {
@@ -165,6 +167,12 @@ export function ActionsSurface() {
       setBusy(null);
     }
   };
+
+  /* The waiting queue, so the desk can say its own depth. */
+  const waiting = actions.filter((a) => a.status === "proposed" || a.status === "staged");
+  const oldestWaiting = waiting.length
+    ? waiting.reduce((o, a) => (new Date(a.created_at) < new Date(o.created_at) ? a : o))
+    : null;
 
   const groups = {
     "Ready to run": actions.filter((a) => a.status === "approved"),
