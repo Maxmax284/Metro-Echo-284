@@ -5,6 +5,7 @@ import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { InboxNotesList } from "@/components/inbox/InboxNotesList";
 import { cn } from "@/lib/utils";
+import { DeskIntro } from "@/components/work/DeskIntro";
 
 type Tab = "captures" | "notes" | "files";
 
@@ -34,6 +35,8 @@ export function InboxSurface() {
           Stuff lands here first. Pick what belongs together and push it into a project.
         </p>
       </header>
+
+      <DeskIntro deskKey="inbox" populated={false} className="mb-3" />
 
       <div
         role="tablist"

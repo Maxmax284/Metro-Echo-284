@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, Plus } from "lucide-react";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
+import { DeskIntro } from "@/components/work/DeskIntro";
 
 /**
  * BriefsSurface — first-class home for briefs & exports.
@@ -28,6 +29,8 @@ export function BriefsSurface() {
           <Plus className="h-4 w-4" /> Create brief
         </Button>
       </header>
+
+      <DeskIntro deskKey="briefs" populated={false} className="mb-3" />
 
       <BriefExportsList />
 
