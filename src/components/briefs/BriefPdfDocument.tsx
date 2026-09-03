@@ -38,6 +38,21 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     decisionLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: c.ink, marginBottom: 4 },
     decisionWhy: { fontSize: 10, color: c.muted },
     receipt: { fontSize: 9, fontFamily: "Courier", color: c.muted, marginBottom: 2 },
+    tableRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: c.rule, paddingVertical: 3 },
+    tableHead: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: c.accent, paddingVertical: 3 },
+    tableCell: { flex: 1, fontSize: 8.5, color: c.body, paddingRight: 4 },
+    tableCellHead: { flex: 1, fontSize: 8, fontFamily: "Helvetica-Bold", color: c.ink, textTransform: "uppercase", letterSpacing: 0.6, paddingRight: 4 },
+    rosterCard: { borderWidth: 1, borderColor: c.rule, borderRadius: 4, padding: 8, marginBottom: 8 },
+    rosterTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: c.ink },
+    rosterSubtitle: { fontSize: 9, color: c.muted, marginBottom: 4 },
+    rosterLine: { flexDirection: "row", marginBottom: 1.5 },
+    rosterLabel: { width: 96, fontSize: 9, color: c.muted },
+    rosterValue: { flex: 1, fontSize: 9.5, color: c.body },
+    rosterNote: { fontSize: 8, color: c.muted },
+    conflictRow: { borderLeftWidth: 2, borderLeftColor: c.accent, paddingLeft: 8, marginBottom: 6 },
+    conflictWhat: { fontSize: 10, fontFamily: "Helvetica-Bold", color: c.ink },
+    conflictReading: { fontSize: 9, color: c.body },
+    conflictResolution: { fontSize: 8.5, color: c.muted, marginTop: 1 },
     pullQuote: { fontFamily: "Times-Italic", fontSize: 13, color: c.ink, borderLeftWidth: 2, borderLeftColor: c.accent, paddingLeft: 10, marginVertical: 8 },
     appendixTitle: { fontFamily: c.titleFont, fontSize: 16, color: c.ink, marginBottom: 10 },
     appendixIntro: { fontSize: 10, color: c.muted, marginBottom: 12 },
@@ -191,6 +206,64 @@ function renderSection(section: BriefSection, claimMap: Map<string, ClaimRef>, s
             <Text key={i} style={styles.receipt}>
               {typeof it === "string" ? it : (it?.text ?? JSON.stringify(it))}
             </Text>
+          ))}
+        </View>
+      );
+    }
+    case "field_table": {
+      const body = section.body ?? {};
+      const columns: string[] = Array.isArray(body.columns) ? body.columns : [];
+      const rows: string[][] = Array.isArray(body.rows) ? body.rows : [];
+      return (
+        <View key={section.id}>
+          {heading}
+          <View style={styles.tableHead}>
+            {columns.map((col, i) => <Text key={i} style={styles.tableCellHead}>{col}</Text>)}
+          </View>
+          {rows.map((row, i) => (
+            <View key={i} style={styles.tableRow} wrap={false}>
+              {row.map((cell, j) => <Text key={j} style={styles.tableCell}>{sanitize(cell ?? "", strip)}</Text>)}
+            </View>
+          ))}
+        </View>
+      );
+    }
+    case "roster_card": {
+      const items: any[] = Array.isArray(section.body) ? section.body : [];
+      return (
+        <View key={section.id}>
+          {heading}
+          {items.map((it, i) => (
+            <View key={i} style={styles.rosterCard} wrap={false}>
+              <Text style={styles.rosterTitle}>{sanitize(it?.title ?? "", strip)}</Text>
+              {it?.subtitle ? <Text style={styles.rosterSubtitle}>{sanitize(it.subtitle, strip)}</Text> : null}
+              {(it?.lines ?? []).map((ln: any, j: number) => (
+                <View key={j} style={styles.rosterLine}>
+                  <Text style={styles.rosterLabel}>{ln?.label ?? ""}</Text>
+                  <Text style={styles.rosterValue}>
+                    {sanitize(ln?.value ?? "", strip)}
+                    {ln?.note ? <Text style={styles.rosterNote}>{`  (${ln.note})`}</Text> : null}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+      );
+    }
+    case "conflict_log": {
+      const items: any[] = Array.isArray(section.body) ? section.body : [];
+      return (
+        <View key={section.id}>
+          {heading}
+          {items.map((it, i) => (
+            <View key={i} style={styles.conflictRow} wrap={false}>
+              <Text style={styles.conflictWhat}>{sanitize(it?.what ?? "", strip)}</Text>
+              {(it?.readings ?? []).map((r: string, j: number) => (
+                <Text key={j} style={styles.conflictReading}>• {sanitize(r, strip)}</Text>
+              ))}
+              {it?.resolution ? <Text style={styles.conflictResolution}>{sanitize(it.resolution, strip)}</Text> : null}
+            </View>
           ))}
         </View>
       );

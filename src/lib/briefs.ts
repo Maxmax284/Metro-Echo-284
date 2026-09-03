@@ -19,7 +19,14 @@ export type BriefSectionKind =
   | "timeline"
   | "decision"
   | "receipts"
-  | "pull_quote";
+  | "pull_quote"
+  // Cross-reference layouts. Body shapes:
+  // - field_table:  { columns: string[]; rows: string[][] }
+  // - roster_card:  Array<{ title, subtitle?, lines: {label,value,note?}[] }>
+  // - conflict_log: Array<{ what, readings: string[], resolution }>
+  | "field_table"
+  | "roster_card"
+  | "conflict_log";
 
 export type BriefClaim = {
   text: string;
