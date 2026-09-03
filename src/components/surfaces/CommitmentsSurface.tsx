@@ -61,7 +61,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
-  const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
+  const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal", direction: "you_owe", counterparty: "" });
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showStale, setShowStale] = useState(false);
@@ -72,7 +72,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     setLoading(true);
     let q = applyScope(supabase
       .from("commitments")
-      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at"))
+      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at, direction, counterparty"))
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (filter === "open") q = q.eq("status", "open");
@@ -119,13 +119,15 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
         due_at: draft.due_at ? new Date(draft.due_at).toISOString() : null,
         remind_at: remindAt,
         priority: draft.priority,
+        direction: draft.direction,
+        counterparty: draft.counterparty.trim() || null,
       }))
       .select("id")
       .single();
     if (data) {
       generateEmbedding("commitment", data.id);
       toast.success(vantaSay.commitmentAdded());
-      setDraft({ summary: "", due_at: "", priority: "normal" });
+      setDraft({ summary: "", due_at: "", priority: "normal", direction: "you_owe", counterparty: "" });
       setComposing(false);
       refresh();
     }
@@ -218,10 +220,32 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
       {composing && (
         <div className="mx-4 mb-3 space-y-2 rounded-xl glass p-3 animate-slide-up">
+          <div className="flex gap-1">
+            {DIRECTIONS.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDraft({ ...draft, direction: d.id })}
+                className={cn(
+                  "min-h-[32px] flex-1 rounded-md px-2 text-[11px] ring-1 transition-colors",
+                  draft.direction === d.id
+                    ? "bg-primary/15 text-primary ring-primary/40"
+                    : "text-muted-foreground ring-border/60 hover:text-foreground",
+                )}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
           <Input
-            placeholder="What did you commit to?"
+            placeholder={draft.direction === "owed_to_you" ? "What were you promised?" : "What did you commit to?"}
             value={draft.summary}
             onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+          />
+          <Input
+            placeholder={draft.direction === "owed_to_you" ? "Who promised it? (optional)" : "Who is it for? (optional)"}
+            value={draft.counterparty}
+            onChange={(e) => setDraft({ ...draft, counterparty: e.target.value })}
           />
           <div className="flex flex-wrap gap-2">
             <Input
