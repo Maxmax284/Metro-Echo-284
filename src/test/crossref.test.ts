@@ -44,8 +44,8 @@ describe("matrix honesty", () => {
     { id: "b", filename: "reg.jpg", role: "supporting" as const, authority_rank: 40, authority_fields: [] },
   ];
   const records = resolveRecords([
-    { source_id: "a", label: "Joe Riley", claims: [] },
-    { source_id: "b", label: "joe riley", claims: [] },
+    { source_id: "a", label: "Joe Riley" },
+    { source_id: "b", label: "joe riley" },
   ]);
 
   it("treats near-identical labels as the same record without claiming certainty", () => {
@@ -71,10 +71,13 @@ describe("matrix honesty", () => {
   });
 
   it("calculates differences in code, not in prose", () => {
-    const diffs = differencesFor([
-      { record_key: "x", field: "weight", value_number: 70, unit: "kg" },
-      { record_key: "y", field: "weight", value_number: 72, unit: "kg" },
-    ], "weight");
-    expect(diffs.some((d) => Math.abs(d.difference - 2) < 1e-9)).toBe(true);
+    const diffs = differencesFor("weight", [
+      { record_key: "x", value: "70 kg" },
+      { record_key: "y", value: "72 kg" },
+    ]);
+    expect(diffs.length).toBe(2);
+    expect(diffs.every((d) => d.value_number === 2)).toBe(true);
+    expect(diffs[0].value_text).toBe("2 kg");
+    expect(diffs[0].field).toBe("weight_difference");
   });
 });
