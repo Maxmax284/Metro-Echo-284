@@ -15,6 +15,7 @@ import { DESK_TEACHING } from "@/lib/deskTeaching";
 import { DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { DeskExample } from "@/components/work/DeskExample";
 import { useAskContext } from "@/hooks/useAskContext";
+import type { ThreadContextKind } from "@/lib/askThreads";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 
