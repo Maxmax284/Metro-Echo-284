@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { ErrorView, LoadingView } from "@/components/ui/state-views";
-import { AftermathHint } from "@/components/companion/AftermathHint";
+import { ErrorState, LoadingState } from "@/components/ui/state-views";
+import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { vantaToast } from "@/lib/vantaVoice";
 import { useScope } from "@/hooks/useScope";
 import { cn } from "@/lib/utils";
@@ -33,10 +33,10 @@ function ConflictRow({ bundle, conflict, onDone }: { bundle: CaseBundle; conflic
     setBusy(true);
     try {
       await resolveConflict({ conflict, choice });
-      vantaToast.success("Settled", { description: "Your answer is what gets printed." });
+      vantaToast.success({ title: "Settled", description: "Your answer is what gets printed." });
       onDone();
     } catch {
-      vantaToast.error("Could not save that", { description: "Try once more." });
+      vantaToast.error({ title: "Could not save that", description: "Try once more." });
     } finally {
       setBusy(false);
     }
@@ -160,13 +160,13 @@ export function CrossRefReviewSheet({
         bundle,
         shape,
         includeSensitive: allowSensitive,
-        organization_id: scope.kind === "organization" ? scope.organizationId : null,
+        organization_id: scope.isOrganization ? scope.orgId : null,
       });
-      vantaToast.success("Document built", { description: "It's filed in Receipts with the sources attached." });
+      vantaToast.success({ title: "Document built", description: "It's filed in Receipts with the sources attached." });
       onComposed?.(row.id);
       onOpenChange(false);
     } catch {
-      vantaToast.error("Could not build the document", { description: "Nothing was filed. Try again." });
+      vantaToast.error({ title: "Could not build the document", description: "Nothing was filed. Try again." });
     } finally {
       setComposing(false);
     }
@@ -180,8 +180,8 @@ export function CrossRefReviewSheet({
         </SheetHeader>
 
         <div className="space-y-3 p-3">
-          {loading && !bundle && <LoadingView label="Reading your sources" />}
-          {error && <ErrorView message={error} onRetry={() => void refresh()} />}
+          {loading && !bundle && <LoadingState label="Reading your sources" />}
+          {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
 
           {bundle && (
             <>
@@ -198,7 +198,7 @@ export function CrossRefReviewSheet({
                 </div>
               </div>
 
-              <CollapsibleSection id={`crossref-sources-${bundle.case.id}`} title="Which source wins" defaultOpen={false}>
+              <CollapsibleSection storageKey={`crossref-sources-${bundle.case.id}`} title="Which source wins" defaultOpen={false}>
                 <div className="space-y-2">
                   {bundle.sources.map((s) => (
                     <div key={s.id} className="rounded-lg border border-border/60 p-2.5">
@@ -229,7 +229,7 @@ export function CrossRefReviewSheet({
               </CollapsibleSection>
 
               <CollapsibleSection
-                id={`crossref-conflicts-${bundle.case.id}`}
+                storageKey={`crossref-conflicts-${bundle.case.id}`}
                 title={`What needs your call (${plan?.unresolved ?? 0})`}
                 defaultOpen={(plan?.unresolved ?? 0) > 0}
               >
@@ -248,7 +248,7 @@ export function CrossRefReviewSheet({
                 )}
               </CollapsibleSection>
 
-              <CollapsibleSection id={`crossref-records-${bundle.case.id}`} title="What will print" defaultOpen={false}>
+              <CollapsibleSection storageKey={`crossref-records-${bundle.case.id}`} title="What will print" defaultOpen={false}>
                 <div className="space-y-2">
                   {bundle.records.map((rec) => (
                     <div key={rec.id} className="rounded-lg border border-border/60 p-2.5">
@@ -327,9 +327,10 @@ export function CrossRefReviewSheet({
                 <Button className="min-h-11 w-full" disabled={composing || !shape} onClick={() => void compose()}>
                   {composing ? "Building the document" : "Build the document"}
                 </Button>
-                <AftermathHint>
-                  The PDF lands in Receipts with the sources and your corrections recorded. Nothing is sent anywhere.
-                </AftermathHint>
+                <AftermathHint
+                  bare
+                  text="Filed to Receipts · sources and your corrections travel with it · nothing is sent"
+                />
               </div>
             </>
           )}
