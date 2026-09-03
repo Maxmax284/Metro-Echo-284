@@ -33,8 +33,10 @@ describe("output shape", () => {
 
 describe("source authority", () => {
   it("guesses a master sheet from the filename but stays editable", () => {
-    expect(inferSourceRole({ filename: "master-fight-card.pdf", mime_type: "application/pdf" })).toBe("master");
-    expect(inferSourceRole({ filename: "IMG_2201.jpg", mime_type: "image/jpeg" })).toBe("supporting");
+    const master = inferSourceRole({ filename: "master-fight-card.pdf", mime_type: "application/pdf" });
+    expect(master.role).toBe("master");
+    expect(master.why).toBeTruthy();
+    expect(inferSourceRole({ filename: "IMG_2201.jpg", mime_type: "image/jpeg" }).role).toBe("supporting");
   });
 });
 
