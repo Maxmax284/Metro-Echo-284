@@ -19,6 +19,22 @@ import type { ThreadContextKind } from "@/lib/askThreads";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 
+/** Nearest existing Ask context for each desk. No new kinds invented. */
+const ASK_KIND: Record<DeskKey, ThreadContextKind> = {
+  projects: "project",
+  inbox: "note",
+  commitments: "commitment",
+  actions: "action",
+  briefs: "today",
+  documents: "document",
+  memory: "note",
+  schedule: "calendar",
+  sherlock: "sherlock",
+  awareness: "today",
+  command: "today",
+};
+
+
 export function DeskIntro({
   deskKey,
   /** True once the desk holds at least one real record. */
