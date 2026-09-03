@@ -1,7 +1,7 @@
 // crossref.ts — client side of the cross-reference capability.
 // Pure engine logic is shared with the edge functions; nothing is duplicated.
 import { supabase } from "@/integrations/supabase/client";
-import type { ActiveScope } from "@/lib/scope";
+import { applyScope, type ScopeContract } from "@/lib/scope";
 
 export * from "../../supabase/functions/_shared/crossref";
 import {
@@ -127,10 +127,11 @@ export async function loadCase(caseId: string): Promise<CaseBundle | null> {
   return { case: c.data as unknown as CaseRow, sources, records, claims, conflicts, matrix };
 }
 
-export async function listCases(scope: ActiveScope, limit = 10): Promise<CaseRow[]> {
-  let q = supabase.from("cross_ref_cases").select("*").order("created_at", { ascending: false }).limit(limit);
-  q = scope.kind === "organization" ? q.eq("organization_id", scope.organizationId) : q.is("organization_id", null);
-  const { data } = await q;
+export async function listCases(scope: ScopeContract, limit = 10): Promise<CaseRow[]> {
+  const { data } = await applyScope(
+    supabase.from("cross_ref_cases").select("*").order("created_at", { ascending: false }).limit(limit),
+    scope,
+  );
   return (data ?? []) as unknown as CaseRow[];
 }
 
@@ -168,7 +169,9 @@ export async function setSourceAuthority(args: {
   role?: SourceRole;
   authority_fields?: string[];
 }): Promise<void> {
-  const patch: Record<string, unknown> = { role_set_by: "user" };
+  const patch: {
+    role_set_by: string; role?: SourceRole; authority_rank?: number; authority_fields?: string[];
+  } = { role_set_by: "user" };
   if (args.role) {
     patch.role = args.role;
     patch.authority_rank = args.role === "master" ? 90 : args.role === "supporting" ? 40 : 50;
