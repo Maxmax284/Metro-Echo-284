@@ -212,12 +212,88 @@ function PullQuoteBlock({ section, claims, openReceipts, strip }: { section: Bri
   );
 }
 
+function FieldTableBlock({ section }: { section: BriefSection }) {
+  const body: any = section.body ?? {};
+  const columns: string[] = Array.isArray(body.columns) ? body.columns : [];
+  const rows: string[][] = Array.isArray(body.rows) ? body.rows : [];
+  return (
+    <div className="space-y-1.5">
+      {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
+      <div className="-mx-1 overflow-x-auto">
+        <table className="w-full min-w-[280px] border-collapse text-[11.5px]">
+          <thead>
+            <tr>
+              {columns.map((c, i) => (
+                <th key={i} className="border-b border-primary/40 px-1 py-1 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-b border-border/40">
+                {row.map((cell, j) => <td key={j} className="px-1 py-1 align-top text-foreground/85">{cell}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RosterCardBlock({ section }: { section: BriefSection }) {
+  const items: any[] = Array.isArray(section.body) ? section.body : [];
+  return (
+    <div className="space-y-2">
+      {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
+      {items.map((it, i) => (
+        <div key={i} className="rounded-md border border-border/50 p-2.5">
+          <div className="text-[13px] font-medium text-foreground">{it?.title ?? ""}</div>
+          {it?.subtitle && <div className="text-[11px] text-muted-foreground">{it.subtitle}</div>}
+          <div className="mt-1.5 space-y-0.5">
+            {(it?.lines ?? []).map((ln: any, j: number) => (
+              <div key={j} className="flex gap-2 text-[12px]">
+                <span className="w-24 shrink-0 text-muted-foreground">{ln?.label}</span>
+                <span className="text-foreground/85">
+                  {ln?.value}
+                  {ln?.note ? <span className="ml-1 text-[10px] text-muted-foreground">({ln.note})</span> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ConflictLogBlock({ section }: { section: BriefSection }) {
+  const items: any[] = Array.isArray(section.body) ? section.body : [];
+  return (
+    <div className="space-y-2">
+      {section.heading && <SectionHeading>{section.heading}</SectionHeading>}
+      {items.map((it, i) => (
+        <div key={i} className="border-l-2 border-primary/50 pl-3">
+          <div className="text-[12.5px] font-medium text-foreground">{it?.what ?? ""}</div>
+          {(it?.readings ?? []).map((r: string, j: number) => (
+            <div key={j} className="text-[12px] text-foreground/80">• {r}</div>
+          ))}
+          {it?.resolution && <div className="text-[11px] text-muted-foreground">{it.resolution}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function renderSection(section: BriefSection, claims: ClaimByKey, openReceipts: OpenReceiptsFn, strip?: boolean) {
   switch (section.kind) {
     case "list":      return <ListBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
     case "timeline":  return <TimelineBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
     case "decision":  return <DecisionBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
     case "receipts":  return <ReceiptsBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
+    case "field_table": return <FieldTableBlock section={section} />;
+    case "roster_card": return <RosterCardBlock section={section} />;
+    case "conflict_log":return <ConflictLogBlock section={section} />;
     case "pull_quote":return <PullQuoteBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
     case "prose":
     default:          return <ProseBlock section={section} claims={claims} openReceipts={openReceipts} strip={strip} />;
