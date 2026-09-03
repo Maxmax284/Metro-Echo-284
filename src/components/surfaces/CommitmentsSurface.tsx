@@ -24,6 +24,8 @@ import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { DeskIntro } from "@/components/work/DeskIntro";
+import { useAskContext } from "@/hooks/useAskContext";
+import { MessageSquare } from "lucide-react";
 
 type Commitment = {
   id: string;
@@ -58,6 +60,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
   const { timezone } = useUserTimezone();
   const { intake } = useIntakePrefs();
   const { applyScope, withScope, key: scopeKey } = useScope();
+  const { openAskWithContext } = useAskContext();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
@@ -325,6 +328,11 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                       {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
                       {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                     </div>
+                    <p className="mt-1 text-[10.5px] text-muted-foreground">
+                      {c.direction === "owed_to_you"
+                        ? `Promised by ${c.counterparty?.trim() || "someone not named"}`
+                        : `Promised to ${c.counterparty?.trim() || "no one named"}`}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <EntityChips sourceKind="commitment" sourceId={c.id} />
                       <SherlockChipTrigger
@@ -336,6 +344,26 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                         showWhenEmpty={false}
                       />
                       <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
+                      {c.status === "open" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void openAskWithContext({
+                              kind: "commitment",
+                              id: c.id,
+                              label: c.summary,
+                              question:
+                                c.direction === "owed_to_you"
+                                  ? `Draft a short follow-up asking ${c.counterparty?.trim() || "them"} about “${c.summary}”. Warm, no pressure. Do not send it.`
+                                  : `Draft a short update for ${c.counterparty?.trim() || "them"} about “${c.summary}”. Warm, honest about timing. Do not send it.`,
+                            })
+                          }
+                          className="inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground"
+                        >
+                          <MessageSquare className="h-3 w-3 text-primary" aria-hidden="true" />
+                          Draft follow-up
+                        </button>
+                      )}
                     </div>
                     <div className="mt-1.5">
                       <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
@@ -391,7 +419,20 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
           return (
             <>
-              <ul className="space-y-2">{activeItems.map((c) => renderRow(c))}</ul>
+              {DIRECTIONS.map((d) => {
+                const group = activeItems.filter((c) =>
+                  d.id === "owed_to_you" ? c.direction === "owed_to_you" : c.direction !== "owed_to_you",
+                );
+                if (group.length === 0) return null;
+                return (
+                  <section key={d.id} className="mb-4">
+                    <h3 className="mb-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                      {d.label} · {group.length}
+                    </h3>
+                    <ul className="space-y-2">{group.map((c) => renderRow(c))}</ul>
+                  </section>
+                );
+              })}
 
               {staleItems.length > 0 && (
                 <div className="mt-5 rounded-xl border border-border/60 bg-background/40 p-3">
