@@ -21,6 +21,7 @@ import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
+import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
 
 import { AskContextStrip } from "@/components/ask/AskContextStrip";
 import { AskDestinationsNote } from "@/components/ask/AskDestinationsNote";
@@ -577,6 +578,19 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
                           Ingest staged
                         </button>
                       </div>
+                    )}
+
+                    {readableForCrossRef(
+                      stagedUpload.staged.map((f) => ({ name: f.file.name, type: f.file.type })),
+                    ) >= 2 && (
+                      <CrossRefChip
+                        sources={stagedUpload.staged.map((f) => ({
+                          name: f.file.name,
+                          ingestedFileId: f.ingestedFileId,
+                        }))}
+                        threadId={convId}
+                        requestText={askSession.draft}
+                      />
                     )}
                   </div>
                 )}
