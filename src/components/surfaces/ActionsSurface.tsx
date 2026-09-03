@@ -182,15 +182,27 @@ export function ActionsSurface() {
 
       <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
         {loading && <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>}
-        {!loading && actions.length === 0 && (
-          <div className="py-10 text-center text-sm leading-relaxed text-muted-foreground">
-            Nothing waiting on you.
-            <span className="mt-1 block text-xs">
-              When something you capture implies a step, Vanta drafts it here and waits. Nothing runs
-              until you approve it.
-            </span>
-          </div>
+
+        {!loading && (
+          <DeskIntro deskKey="actions" populated={actions.length > 0} className="mb-3" />
         )}
+
+        {/* An empty Actions desk shows the mechanism instead of dead air. */}
+        {!loading && actions.length === 0 && <DraftOrigin className="mb-3" />}
+
+        {/* Populated: say the queue depth and how old the oldest one is, so you
+            never have to scroll to find out. */}
+        {!loading && waiting.length > 0 && (
+          <p className="mb-3 rounded-[2px] border border-primary/40 bg-primary/[0.07] px-2.5 py-2 text-[11.5px] leading-snug text-foreground">
+            {waiting.length === 1 ? "1 draft waiting" : `${waiting.length} drafts waiting`} on you
+            {oldestWaiting
+              ? ` · oldest has been sitting ${formatDistanceToNow(new Date(oldestWaiting.created_at))}`
+              : ""}
+            .{" "}
+            <span className="text-muted-foreground">Nothing runs until you approve it.</span>
+          </p>
+        )}
+
 
         {!loading && Object.entries(groups).map(([label, list]) =>
           list.length === 0 ? null : (
