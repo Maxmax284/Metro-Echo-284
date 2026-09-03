@@ -396,11 +396,10 @@ function Desk({
         <span className="block text-[11.5px] font-medium leading-snug text-foreground/90">
           {DESK_VERB[deskKey]}
         </span>
+        {/* One hint, not four. "Use when" and the full job description live in
+            the "?" panel and on the desk itself, so a tile stays a tile. */}
         <span className="block text-[11px] leading-snug text-muted-foreground">
           {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
-        </span>
-        <span className="mt-0.5 block text-[10.5px] leading-snug text-muted-foreground/70">
-          {role.useWhen}
         </span>
       </span>
       {typeof count === "number" && count > 0 && (
