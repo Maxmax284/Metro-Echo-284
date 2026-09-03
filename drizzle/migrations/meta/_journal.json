@@ -36,6 +36,13 @@
       "when": 1788240626792,
       "tag": "0004_allow_wearable_handoff_secret",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788407784669,
+      "tag": "0005_commitments_direction_counterparty",
+      "breakpoints": true
     }
   ]
 }

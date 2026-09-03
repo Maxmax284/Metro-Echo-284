@@ -809,7 +809,9 @@ export type Database = {
       }
       commitments: {
         Row: {
+          counterparty: string | null
           created_at: string
+          direction: string
           due_at: string | null
           embedding: string | null
           id: string
@@ -825,7 +827,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          counterparty?: string | null
           created_at?: string
+          direction?: string
           due_at?: string | null
           embedding?: string | null
           id?: string
@@ -841,7 +845,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          counterparty?: string | null
           created_at?: string
+          direction?: string
           due_at?: string | null
           embedding?: string | null
           id?: string
