@@ -271,12 +271,12 @@ Deno.serve(async (req) => {
 
     await admin.from("cross_ref_cases").update({ status: "matrix_ready", summary }).eq("id", caseId);
     await writeAuditEvent(admin, {
-      userId: ctx.userId,
+      actor: ctx.userId,
       organizationId: ctx.scope.organizationId,
       entityType: "cross_ref_case",
       entityId: caseId!,
       event: "crossref.matrix_built",
-      payload: { sources: sources.length, ...matrix.counts },
+      metadata: { sources: sources.length, ...matrix.counts },
     });
 
     return jsonResponse({ ok: true, case_id: caseId, summary, counts: matrix.counts, matrix, records, sources });
