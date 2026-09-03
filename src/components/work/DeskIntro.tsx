@@ -139,7 +139,7 @@ export function DeskIntro({
                       type="button"
                       onClick={() =>
                         void openAskWithContext({
-                          kind: "general",
+                          kind: ASK_KIND[deskKey],
                           id: null,
                           label: DESK_TEACHING[deskKey].does,
                           question: a.label,
