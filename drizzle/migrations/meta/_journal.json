@@ -43,6 +43,13 @@
       "when": 1788407784669,
       "tag": "0005_commitments_direction_counterparty",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788408608956,
+      "tag": "0006_crossref_cases",
+      "breakpoints": true
     }
   ]
 }

@@ -807,6 +807,240 @@ export type Database = {
         }
         Relationships: []
       }
+      case_claims: {
+        Row: {
+          case_id: string
+          certainty: string
+          created_at: string
+          derived: boolean
+          excerpt: string | null
+          field: string
+          id: string
+          page: number | null
+          record_key: string
+          sensitive: boolean
+          source_id: string | null
+          unit: string | null
+          user_id: string
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          case_id: string
+          certainty?: string
+          created_at?: string
+          derived?: boolean
+          excerpt?: string | null
+          field: string
+          id?: string
+          page?: number | null
+          record_key: string
+          sensitive?: boolean
+          source_id?: string | null
+          unit?: string | null
+          user_id: string
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          case_id?: string
+          certainty?: string
+          created_at?: string
+          derived?: boolean
+          excerpt?: string | null
+          field?: string
+          id?: string
+          page?: number | null
+          record_key?: string
+          sensitive?: boolean
+          source_id?: string | null
+          unit?: string | null
+          user_id?: string
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_claims_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cross_ref_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_claims_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "case_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_conflicts: {
+        Row: {
+          case_id: string
+          claim_ids: string[]
+          created_at: string
+          field: string
+          id: string
+          kind: string
+          record_key: string
+          resolution: string
+          resolved_at: string | null
+          resolved_claim_id: string | null
+          resolved_value: string | null
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          claim_ids?: string[]
+          created_at?: string
+          field: string
+          id?: string
+          kind?: string
+          record_key: string
+          resolution?: string
+          resolved_at?: string | null
+          resolved_claim_id?: string | null
+          resolved_value?: string | null
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          claim_ids?: string[]
+          created_at?: string
+          field?: string
+          id?: string
+          kind?: string
+          record_key?: string
+          resolution?: string
+          resolved_at?: string | null
+          resolved_claim_id?: string | null
+          resolved_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_conflicts_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cross_ref_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_records: {
+        Row: {
+          case_id: string
+          confirmed_by_user: boolean
+          created_at: string
+          display_label: string
+          id: string
+          match_confidence: string
+          position: number
+          record_key: string
+          source_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          confirmed_by_user?: boolean
+          created_at?: string
+          display_label: string
+          id?: string
+          match_confidence?: string
+          position?: number
+          record_key: string
+          source_ids?: string[]
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          confirmed_by_user?: boolean
+          created_at?: string
+          display_label?: string
+          id?: string
+          match_confidence?: string
+          position?: number
+          record_key?: string
+          source_ids?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_records_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cross_ref_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_sources: {
+        Row: {
+          authority_fields: string[]
+          authority_rank: number
+          case_id: string
+          content_hash: string | null
+          created_at: string
+          error: string | null
+          extracted_text: string | null
+          extraction_status: string
+          filename: string
+          id: string
+          ingested_file_id: string | null
+          mime_type: string | null
+          page_count: number
+          role: string
+          role_set_by: string
+          user_id: string
+        }
+        Insert: {
+          authority_fields?: string[]
+          authority_rank?: number
+          case_id: string
+          content_hash?: string | null
+          created_at?: string
+          error?: string | null
+          extracted_text?: string | null
+          extraction_status?: string
+          filename: string
+          id?: string
+          ingested_file_id?: string | null
+          mime_type?: string | null
+          page_count?: number
+          role?: string
+          role_set_by?: string
+          user_id: string
+        }
+        Update: {
+          authority_fields?: string[]
+          authority_rank?: number
+          case_id?: string
+          content_hash?: string | null
+          created_at?: string
+          error?: string | null
+          extracted_text?: string | null
+          extraction_status?: string
+          filename?: string
+          id?: string
+          ingested_file_id?: string | null
+          mime_type?: string | null
+          page_count?: number
+          role?: string
+          role_set_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_sources_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cross_ref_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commitments: {
         Row: {
           counterparty: string | null
@@ -1046,6 +1280,57 @@ export type Database = {
           source_kind?: string
           target_id?: string
           target_kind?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cross_ref_cases: {
+        Row: {
+          brief_export_id: string | null
+          created_at: string
+          id: string
+          organization_id: string | null
+          output_shape: string | null
+          purpose: string | null
+          recipe_id: string | null
+          status: string
+          style: string | null
+          summary: string | null
+          thread_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brief_export_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          output_shape?: string | null
+          purpose?: string | null
+          recipe_id?: string | null
+          status?: string
+          style?: string | null
+          summary?: string | null
+          thread_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brief_export_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          output_shape?: string | null
+          purpose?: string | null
+          recipe_id?: string | null
+          status?: string
+          style?: string | null
+          summary?: string | null
+          thread_id?: string | null
+          title?: string
           updated_at?: string
           user_id?: string
         }
