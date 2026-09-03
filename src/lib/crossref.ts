@@ -128,10 +128,8 @@ export async function loadCase(caseId: string): Promise<CaseBundle | null> {
 }
 
 export async function listCases(scope: ScopeContract, limit = 10): Promise<CaseRow[]> {
-  const { data } = await applyScope(
-    supabase.from("cross_ref_cases").select("*").order("created_at", { ascending: false }).limit(limit),
-    scope,
-  );
+  const base = supabase.from("cross_ref_cases").select("*").order("created_at", { ascending: false }).limit(limit) as any;
+  const { data } = await applyScope(base, scope);
   return (data ?? []) as unknown as CaseRow[];
 }
 
