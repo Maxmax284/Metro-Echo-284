@@ -24,6 +24,8 @@ import { ChevronDown, ChevronRight, Archive } from "lucide-react";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { DeskIntro } from "@/components/work/DeskIntro";
+import { useAskContext } from "@/hooks/useAskContext";
+import { MessageSquare } from "lucide-react";
 
 type Commitment = {
   id: string;
@@ -35,9 +37,18 @@ type Commitment = {
   status: "open" | "done" | "cancelled";
   created_at: string;
   updated_at?: string | null;
+  direction?: string | null;
+  counterparty?: string | null;
 };
 
 const PRIORITIES = ["low", "normal", "high"] as const;
+
+/** Who the promise belongs to. Recorded, never inferred. */
+const DIRECTIONS = [
+  { id: "you_owe", label: "You owe", who: "Promised to" },
+  { id: "owed_to_you", label: "Owed to you", who: "Promised by" },
+] as const;
+
 
 type CommitmentsSurfaceProps = {
   focusId?: string | null;
@@ -49,10 +60,11 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
   const { timezone } = useUserTimezone();
   const { intake } = useIntakePrefs();
   const { applyScope, withScope, key: scopeKey } = useScope();
+  const { openAskWithContext } = useAskContext();
   const [items, setItems] = useState<Commitment[]>([]);
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
-  const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal" });
+  const [draft, setDraft] = useState({ summary: "", due_at: "", priority: "normal", direction: "you_owe", counterparty: "" });
   const [filter, setFilter] = useState<"open" | "all">("open");
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showStale, setShowStale] = useState(false);
@@ -63,7 +75,7 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
     setLoading(true);
     let q = applyScope(supabase
       .from("commitments")
-      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at"))
+      .select("id, summary, due_at, remind_at, last_reminded_at, priority, status, created_at, updated_at, direction, counterparty"))
       .order("due_at", { ascending: true, nullsFirst: false })
       .limit(200);
     if (filter === "open") q = q.eq("status", "open");
@@ -110,13 +122,15 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
         due_at: draft.due_at ? new Date(draft.due_at).toISOString() : null,
         remind_at: remindAt,
         priority: draft.priority,
+        direction: draft.direction,
+        counterparty: draft.counterparty.trim() || null,
       }))
       .select("id")
       .single();
     if (data) {
       generateEmbedding("commitment", data.id);
       toast.success(vantaSay.commitmentAdded());
-      setDraft({ summary: "", due_at: "", priority: "normal" });
+      setDraft({ summary: "", due_at: "", priority: "normal", direction: "you_owe", counterparty: "" });
       setComposing(false);
       refresh();
     }
@@ -209,10 +223,32 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
       {composing && (
         <div className="mx-4 mb-3 space-y-2 rounded-xl glass p-3 animate-slide-up">
+          <div className="flex gap-1">
+            {DIRECTIONS.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setDraft({ ...draft, direction: d.id })}
+                className={cn(
+                  "min-h-[32px] flex-1 rounded-md px-2 text-[11px] ring-1 transition-colors",
+                  draft.direction === d.id
+                    ? "bg-primary/15 text-primary ring-primary/40"
+                    : "text-muted-foreground ring-border/60 hover:text-foreground",
+                )}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
           <Input
-            placeholder="What did you commit to?"
+            placeholder={draft.direction === "owed_to_you" ? "What were you promised?" : "What did you commit to?"}
             value={draft.summary}
             onChange={(e) => setDraft({ ...draft, summary: e.target.value })}
+          />
+          <Input
+            placeholder={draft.direction === "owed_to_you" ? "Who promised it? (optional)" : "Who is it for? (optional)"}
+            value={draft.counterparty}
+            onChange={(e) => setDraft({ ...draft, counterparty: e.target.value })}
           />
           <div className="flex flex-wrap gap-2">
             <Input
@@ -292,6 +328,11 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                       {c.status === "done" && <span className="uppercase tracking-wider text-signal">done</span>}
                       {c.status === "cancelled" && <span className="uppercase tracking-wider">dismissed</span>}
                     </div>
+                    <p className="mt-1 text-[10.5px] text-muted-foreground">
+                      {c.direction === "owed_to_you"
+                        ? `Promised by ${c.counterparty?.trim() || "someone not named"}`
+                        : `Promised to ${c.counterparty?.trim() || "no one named"}`}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                       <EntityChips sourceKind="commitment" sourceId={c.id} />
                       <SherlockChipTrigger
@@ -303,6 +344,26 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
                         showWhenEmpty={false}
                       />
                       <ConnectButton source={{ kind: "commitment", id: c.id, label: c.summary }} />
+                      {c.status === "open" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void openAskWithContext({
+                              kind: "commitment",
+                              id: c.id,
+                              label: c.summary,
+                              question:
+                                c.direction === "owed_to_you"
+                                  ? `Draft a short follow-up asking ${c.counterparty?.trim() || "them"} about “${c.summary}”. Warm, no pressure. Do not send it.`
+                                  : `Draft a short update for ${c.counterparty?.trim() || "them"} about “${c.summary}”. Warm, honest about timing. Do not send it.`,
+                            })
+                          }
+                          className="inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground"
+                        >
+                          <MessageSquare className="h-3 w-3 text-primary" aria-hidden="true" />
+                          Draft follow-up
+                        </button>
+                      )}
                     </div>
                     <div className="mt-1.5">
                       <LinkedChipsBar source={{ kind: "commitment", id: c.id }} />
@@ -358,7 +419,20 @@ export function CommitmentsSurface({ focusId, onFocusHandled }: CommitmentsSurfa
 
           return (
             <>
-              <ul className="space-y-2">{activeItems.map((c) => renderRow(c))}</ul>
+              {DIRECTIONS.map((d) => {
+                const group = activeItems.filter((c) =>
+                  d.id === "owed_to_you" ? c.direction === "owed_to_you" : c.direction !== "owed_to_you",
+                );
+                if (group.length === 0) return null;
+                return (
+                  <section key={d.id} className="mb-4">
+                    <h3 className="mb-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                      {d.label} · {group.length}
+                    </h3>
+                    <ul className="space-y-2">{group.map((c) => renderRow(c))}</ul>
+                  </section>
+                );
+              })}
 
               {staleItems.length > 0 && (
                 <div className="mt-5 rounded-xl border border-border/60 bg-background/40 p-3">
