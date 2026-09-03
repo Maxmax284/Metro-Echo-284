@@ -35,9 +35,18 @@ type Commitment = {
   status: "open" | "done" | "cancelled";
   created_at: string;
   updated_at?: string | null;
+  direction?: string | null;
+  counterparty?: string | null;
 };
 
 const PRIORITIES = ["low", "normal", "high"] as const;
+
+/** Who the promise belongs to. Recorded, never inferred. */
+const DIRECTIONS = [
+  { id: "you_owe", label: "You owe", who: "Promised to" },
+  { id: "owed_to_you", label: "Owed to you", who: "Promised by" },
+] as const;
+
 
 type CommitmentsSurfaceProps = {
   focusId?: string | null;
