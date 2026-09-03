@@ -16,7 +16,16 @@ import { useToast } from "@/hooks/use-toast";
 type ResearchSource = { position?: number; title?: string; url?: string; snippet?: string; provider?: string };
 type ResearchSection = { id?: string; heading?: string; body?: string };
 
-export function BriefExportsList({ entityId, projectId }: { entityId?: string | null; projectId?: string | null }) {
+export function BriefExportsList({
+  entityId,
+  projectId,
+  onLoaded,
+}: {
+  entityId?: string | null;
+  projectId?: string | null;
+  /** Reports how many briefs exist, so a desk can stop teaching once one does. */
+  onLoaded?: (count: number) => void;
+}) {
   const [rows, setRows] = useState<BriefExportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -27,7 +36,7 @@ export function BriefExportsList({ entityId, projectId }: { entityId?: string | 
     let cancelled = false;
     setLoading(true);
     listBriefExports({ entity_id: entityId ?? undefined, project_id: projectId ?? undefined })
-      .then((r) => { if (!cancelled) setRows(r); })
+      .then((r) => { if (!cancelled) { setRows(r); onLoaded?.(r.length); } })
       .catch(() => { /* noop */ })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

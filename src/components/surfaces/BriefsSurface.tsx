@@ -12,6 +12,8 @@ import { DeskIntro } from "@/components/work/DeskIntro";
  */
 export function BriefsSurface() {
   const [composerOpen, setComposerOpen] = useState(false);
+  /* Teaching stands down once a real brief exists. */
+  const [briefCount, setBriefCount] = useState(0);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8">
@@ -30,9 +32,14 @@ export function BriefsSurface() {
         </Button>
       </header>
 
-      <DeskIntro deskKey="briefs" populated={false} className="mb-3" />
+      <DeskIntro
+        deskKey="briefs"
+        populated={briefCount > 0}
+        onDo={(label) => { if (label === "Compose a brief") setComposerOpen(true); }}
+        className="mb-3"
+      />
 
-      <BriefExportsList />
+      <BriefExportsList onLoaded={setBriefCount} />
 
       <BriefComposerSheet
         open={composerOpen}
