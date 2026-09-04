@@ -783,7 +783,21 @@ Deno.serve(async (req) => {
           ? `Read that page — ${read.chars.toLocaleString()} characters. It's in your Inbox as a draft, waiting on you.`
           : "Filed that page. Nothing readable came off it, so I didn't guess."
         : "Stored that page. I couldn't read it just now — the daily sweep will try again, and it's already in your Inbox.";
-      await tg("sendMessage", { chat_id: chatId, text: reply });
+      // One deep link back to the Inbox, plus a filing shortcut when there is
+      // an obvious project to put it under. Neither button executes anything.
+      const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: reply,
+        disable_web_page_preview: true,
+        ...(() => {
+          const m = keyboard(
+            [suggest ? fileUnderButton(suggest.id, suggest.title, "file", fileRec.id) : null],
+            [openButton("inbox")],
+          );
+          return m ? { reply_markup: m } : {};
+        })(),
+      });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
     /* --------------------------------------------------------------------- */
@@ -791,13 +805,21 @@ Deno.serve(async (req) => {
 
 
     let reply = VANTA_PHRASES.gotIt();
+    let markup: TgReplyMarkup | undefined;
     try {
-      reply = await aiRespond(admin, link.user_id, text, routeOrgId);
+      const out = await aiRespond(admin, link.user_id, text, routeOrgId);
+      reply = out.reply;
+      markup = out.markup;
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
     }
-    await tg("sendMessage", { chat_id: chatId, text: reply });
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: reply,
+      disable_web_page_preview: true,
+      ...(markup ? { reply_markup: markup } : {}),
+    });
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     console.error("telegram-webhook error", e);
