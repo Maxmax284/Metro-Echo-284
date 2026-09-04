@@ -3,22 +3,22 @@ import { describe, expect, it } from "vitest";
 // Mirrors supabase/functions/_shared/telegramReplies.ts + workReads.ts formatting
 // rules. Kept as a plain contract test: the button vocabulary is fixed and the
 // read-only answers must stay short and truthful.
-import { formatChanged, formatDue, formatWaiting } from "../../supabase/functions/_shared/workReadsFormat";
-import { SNOOZE_PRESETS, buildVantaLink } from "../../supabase/functions/_shared/telegramLinks";
+import { formatChanged, formatDue, formatWaiting } from "../../supabase/functions/_shared/workReads";
+import { SNOOZE_PRESETS, vantaLink } from "../../supabase/functions/_shared/telegramReplies";
 
 describe("telegram deep links", () => {
   it("points a commitment at its own focus param", () => {
-    expect(buildVantaLink("commitments", { base: "https://x.app", commitmentId: "c1" })).toBe(
+    expect(vantaLink("commitments", { base: "https://x.app", commitmentId: "c1" })).toBe(
       "https://x.app/?commitment=c1",
     );
   });
 
   it("falls back to a surface link", () => {
-    expect(buildVantaLink("inbox", { base: "https://x.app" })).toBe("https://x.app/?surface=inbox");
+    expect(vantaLink("inbox", { base: "https://x.app" })).toBe("https://x.app/?surface=inbox");
   });
 
   it("returns null without a public base", () => {
-    expect(buildVantaLink("today", { base: "" })).toBeNull();
+    expect(vantaLink("today", { base: "" })).toBeNull();
   });
 
   it("offers exactly three snooze presets", () => {
