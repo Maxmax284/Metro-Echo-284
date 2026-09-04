@@ -311,14 +311,20 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   const intents: string[] = [];
   let detectedType: string | null = null;
   let routedTo: string | null = null;
+  let readOnly = false;
+  let linkKind: VantaLinkKind | null = null;
+  let commitmentId: string | null = null;
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
       const res = await applyIntent(sb, userId, tc.function.name, args, defaults, orgId);
       if (res) {
         intents.push(res.reply);
-        detectedType = res.detectedType;
-        routedTo = res.routedTo;
+        detectedType = res.detectedType ?? detectedType;
+        routedTo = res.routedTo ?? routedTo;
+        if ((res as any).readOnly) readOnly = true;
+        linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
+        commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
       }
     } catch { /* ignore */ }
   }
@@ -328,7 +334,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // Stage 7 — audit expansion: when nothing routed, this is an ambiguous capture
   // waiting for review in the Captures lane. Emit a distinct event so the Audit
   // surface can show "front desk" activity, not just executed lifecycle.
-  if (!routedTo) {
+  if (!routedTo && !readOnly) {
     await sb.from("audit_log").insert({
       user_id: userId,
       organization_id: orgId,
