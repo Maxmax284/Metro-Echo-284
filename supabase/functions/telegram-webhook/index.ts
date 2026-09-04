@@ -40,6 +40,26 @@ import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
+import {
+  fileUnderButton,
+  keyboard,
+  markDoneButton,
+  openButton,
+  snoozeMinutesFor,
+  SNOOZE_PRESETS,
+  type TgReplyMarkup,
+  type VantaLinkKind,
+} from "../_shared/telegramReplies.ts";
+import {
+  attachToProject,
+  findProject,
+  listProjects,
+  projectStatus,
+  whatsChanged,
+  whatsDue,
+  whatsWaiting,
+} from "../_shared/workReads.ts";
+
 
 
 const ROUTE_LABEL: Record<string, string> = {
@@ -58,9 +78,12 @@ const ROUTE_LABEL: Record<string, string> = {
 const TELEGRAM_CHANNEL = `Telegram channel rules: replies must be brief (1–3 sentences),
 plain prose, no markdown. Messaging feeds the system — it does not control it.
 Never claim to have executed anything risky; notes, actions, and commitments
-surface as drafts inside the app for review. Sherlock, awareness briefings, and
-schedule lookups are not available from Telegram — if the user asks for those,
-acknowledge the request and tell them to open Vanta to see it.`;
+surface as drafts inside the app for review.
+You CAN answer read-only questions about the user's desks by calling the read
+tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
+of guessing from chat history — never invent counts or names. You can also file an
+existing capture under a project. You cannot approve, execute, export, send, book,
+or pay anything; for those, say it's waiting inside Vanta.`;
 
 const SYSTEM = `${COMPANION_VOICE}
 
@@ -81,6 +104,12 @@ const tools = [
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
+  // Read-only Work questions. These never write anything.
+  { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
+  { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
+  { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
+  { type: "function", function: { name: "whats_changed", description: "Read-only: what moved recently across captures, promises, drafts and flagged items.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
+  { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
 ];
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
@@ -134,7 +163,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "note", source_id: data.id, text: `${args.title ?? ""}\n${args.body ?? ""}` }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "memory", note_id: data?.id } });
-    return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory" };
+    return { reply: VANTA_PHRASES.noteSaved(args.title), detectedType: "note", routedTo: "memory", linkKind: "inbox" as VantaLinkKind, itemType: "note", itemId: data?.id ?? null };
   }
   if (name === "set_reminder") {
     const tz = args.timezone || defaults.timezone;
@@ -161,12 +190,12 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
-    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments" };
+    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert({ user_id: userId, organization_id: orgId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
-    return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions" };
+    return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions", linkKind: "actions" as VantaLinkKind };
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
@@ -174,8 +203,50 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
-    return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments" };
+    return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
+
+  /* ---- Read-only Work questions. Same helpers the app uses, scoped the same
+     way. Nothing here writes anything, so nothing is audited as a capture. -- */
+  const scope = { userId, orgId };
+  if (name === "whats_waiting") {
+    const { text } = await whatsWaiting(sb, scope);
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
+  }
+  if (name === "whats_due") {
+    const { text } = await whatsDue(sb, scope, { days: Number(args?.days) || 7, tz: defaults.timezone });
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "commitments" as VantaLinkKind };
+  }
+  if (name === "whats_changed") {
+    const { text } = await whatsChanged(sb, scope, { days: Number(args?.days) || 7 });
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "today" as VantaLinkKind };
+  }
+  if (name === "project_status") {
+    const { text } = await projectStatus(sb, scope, String(args?.project ?? ""));
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind };
+  }
+
+  /* ---- Filing: a reversible link between a capture and a project. --------- */
+  if (name === "file_under_project") {
+    const project = await findProject(sb, scope, String(args?.project ?? ""));
+    if (!project) {
+      const options = await listProjects(sb, scope, 5);
+      const list = options.length ? ` I can see: ${options.map((o) => o.title).join(", ")}.` : "";
+      return { reply: `No project matching that.${list}`, detectedType: null, routedTo: null, readOnly: true };
+    }
+    const { data: recent } = await (orgId
+      ? sb.from("ingested_files").select("id").eq("user_id", userId).eq("organization_id", orgId)
+      : sb.from("ingested_files").select("id").eq("user_id", userId).is("organization_id", null))
+      .eq("source", "telegram").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!recent?.id) {
+      return { reply: "Nothing recent from this chat to file. Send it first, then tell me where it goes.", detectedType: null, routedTo: null, readOnly: true };
+    }
+    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: recent.id, via: "Telegram" });
+    return res.ok
+      ? { reply: `Filed under ${res.title}. Nothing else happened to it.`, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind }
+      : { reply: "Couldn't file that. Open Vanta and attach it there.", detectedType: null, routedTo: null, readOnly: true };
+  }
+
   return null;
 }
 
@@ -240,14 +311,20 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   const intents: string[] = [];
   let detectedType: string | null = null;
   let routedTo: string | null = null;
+  let readOnly = false;
+  let linkKind: VantaLinkKind | null = null;
+  let commitmentId: string | null = null;
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
       const res = await applyIntent(sb, userId, tc.function.name, args, defaults, orgId);
       if (res) {
         intents.push(res.reply);
-        detectedType = res.detectedType;
-        routedTo = res.routedTo;
+        detectedType = res.detectedType ?? detectedType;
+        routedTo = res.routedTo ?? routedTo;
+        if ((res as any).readOnly) readOnly = true;
+        linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
+        commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
       }
     } catch { /* ignore */ }
   }
@@ -257,7 +334,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // Stage 7 — audit expansion: when nothing routed, this is an ambiguous capture
   // waiting for review in the Captures lane. Emit a distinct event so the Audit
   // surface can show "front desk" activity, not just executed lifecycle.
-  if (!routedTo) {
+  if (!routedTo && !readOnly) {
     await sb.from("audit_log").insert({
       user_id: userId,
       organization_id: orgId,
@@ -292,7 +369,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // suggestion and cache it against the captured message so the in-app
   // Capture Inbox surfaces the suggestion chip immediately. Doctrine:
   // messaging never executes; Sherlock only drafts a recommendation.
-  if (!routedTo && userMsgId) {
+  if (!routedTo && !readOnly && userMsgId) {
     try {
       const finding = await runSherlockSuggest({
         admin: sb,
@@ -310,7 +387,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     } catch { /* best-effort */ }
   }
 
-  return reply;
+  // One deep link, at most one action button. Fixed vocabulary only.
+  const markup = commitmentId
+    ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
+    : keyboard([openButton(linkKind ?? "today")]);
+  return { reply, markup };
 }
 
 Deno.serve(async (req) => {
@@ -334,15 +415,59 @@ Deno.serve(async (req) => {
       const cbId = cb.id;
       const cbChatId = cb.message?.chat?.id;
       const data: string = cb.data ?? "";
-      const [action, commitmentId] = data.split(":");
+      const parts = data.split(":");
+      const action = parts[0];
+      const commitmentId = parts[1];
+      const ok = () => new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       if (!cbChatId || !commitmentId) {
         await tg("answerCallbackQuery", { callback_query_id: cbId });
-        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        return ok();
       }
       const { data: cbLink } = await admin.from("telegram_chat_links").select("user_id").eq("chat_id", cbChatId).maybeSingle();
       if (!cbLink) {
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not linked." });
-        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        return ok();
+      }
+      const dropButtons = () => tg("editMessageReplyMarkup", {
+        chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] },
+      });
+
+      // "Noted" — acknowledges a nudge. Marks it seen; changes nothing else.
+      if (action === "noted") {
+        const { data: nudge } = await admin.from("nudges")
+          .select("id, status, organization_id").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (nudge && nudge.status === "pending") {
+          await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
+            entity_type: "nudge", entity_id: nudge.id, event: "nudge.seen",
+            payload: { source: "telegram_callback", at: new Date().toISOString() },
+          });
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: nudge ? "Noted." : "Not found." });
+        await dropButtons();
+        return ok();
+      }
+
+      // "File under <project>" — a reversible filing link, nothing more.
+      if (action === "file") {
+        const [, projectId, itemType, itemId] = parts;
+        if (!projectId || !itemType || !itemId) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId });
+          return ok();
+        }
+        const { data: prof } = await admin.from("projects").select("organization_id").eq("id", projectId).maybeSingle();
+        const res = await attachToProject(
+          admin,
+          { userId: cbLink.user_id, orgId: (prof as any)?.organization_id ?? null },
+          { projectId, itemType, itemId, via: "Telegram" },
+        );
+        await tg("answerCallbackQuery", {
+          callback_query_id: cbId,
+          text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Vanta.",
+        });
+        if (res.ok) await dropButtons();
+        return ok();
       }
       // Verify the commitment belongs to this user.
       const { data: comm } = await admin.from("commitments")
@@ -366,7 +491,8 @@ Deno.serve(async (req) => {
       });
 
       // Already resolved — say so instead of writing a second lifecycle change.
-      if (comm.status !== "open" && (action === "done" || action === "snooze1h")) {
+      const snoozeMinutes = snoozeMinutesFor(action);
+      if (comm.status !== "open" && (action === "done" || snoozeMinutes !== null)) {
         await tg("answerCallbackQuery", {
           callback_query_id: cbId,
           text: comm.status === "done" ? "Already closed." : "This one was dropped.",
@@ -390,8 +516,8 @@ Deno.serve(async (req) => {
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Marked done." });
         await clearButtons();
         await tg("sendMessage", { chat_id: cbChatId, text: `Done — "${comm.summary}" closed.`, disable_web_page_preview: true });
-      } else if (action === "snooze1h") {
-        const nextRemind = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      } else if (snoozeMinutes !== null) {
+        const nextRemind = new Date(Date.now() + snoozeMinutes * 60 * 1000).toISOString();
         // Parity with the in-app snooze: an already-overdue due date moves too,
         // otherwise the promise stays overdue while the reminder walks away.
         const shiftDue = !!(comm.due_at && new Date(comm.due_at).getTime() < Date.now());
@@ -406,14 +532,15 @@ Deno.serve(async (req) => {
           await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
           return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
         }
+        const presetLabel = SNOOZE_PRESETS.find((p) => p.key === action)?.label ?? `+${snoozeMinutes}m`;
         await audit("reminder.snoozed", {
-          minutes: 60,
+          minutes: snoozeMinutes,
           from: comm.remind_at ?? comm.due_at,
           to: nextRemind,
           due_shifted: shiftDue,
-          preset: "+1 hour",
+          preset: presetLabel,
         });
-        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Snoozed 1h." });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: `${presetLabel}.` });
         await clearButtons();
       } else {
         await tg("answerCallbackQuery", { callback_query_id: cbId });
@@ -655,7 +782,21 @@ Deno.serve(async (req) => {
           ? `Read that page — ${read.chars.toLocaleString()} characters. It's in your Inbox as a draft, waiting on you.`
           : "Filed that page. Nothing readable came off it, so I didn't guess."
         : "Stored that page. I couldn't read it just now — the daily sweep will try again, and it's already in your Inbox.";
-      await tg("sendMessage", { chat_id: chatId, text: reply });
+      // One deep link back to the Inbox, plus a filing shortcut when there is
+      // an obvious project to put it under. Neither button executes anything.
+      const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: reply,
+        disable_web_page_preview: true,
+        ...(() => {
+          const m = keyboard(
+            [suggest ? fileUnderButton(suggest.id, suggest.title, "file", fileRec.id) : null],
+            [openButton("inbox")],
+          );
+          return m ? { reply_markup: m } : {};
+        })(),
+      });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
     /* --------------------------------------------------------------------- */
@@ -663,13 +804,21 @@ Deno.serve(async (req) => {
 
 
     let reply = VANTA_PHRASES.gotIt();
+    let markup: TgReplyMarkup | undefined;
     try {
-      reply = await aiRespond(admin, link.user_id, text, routeOrgId);
+      const out = await aiRespond(admin, link.user_id, text, routeOrgId);
+      reply = out.reply;
+      markup = out.markup;
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
     }
-    await tg("sendMessage", { chat_id: chatId, text: reply });
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: reply,
+      disable_web_page_preview: true,
+      ...(markup ? { reply_markup: markup } : {}),
+    });
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     console.error("telegram-webhook error", e);
