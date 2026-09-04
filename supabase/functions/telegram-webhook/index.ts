@@ -205,6 +205,48 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "commitments", commitment_id: data?.id } });
     return { reply: VANTA_PHRASES.commitmentRecorded(args.summary), detectedType: "commitment", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
+
+  /* ---- Read-only Work questions. Same helpers the app uses, scoped the same
+     way. Nothing here writes anything, so nothing is audited as a capture. -- */
+  const scope = { userId, orgId };
+  if (name === "whats_waiting") {
+    const { text } = await whatsWaiting(sb, scope);
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
+  }
+  if (name === "whats_due") {
+    const { text } = await whatsDue(sb, scope, { days: Number(args?.days) || 7, tz: defaults.timezone });
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "commitments" as VantaLinkKind };
+  }
+  if (name === "whats_changed") {
+    const { text } = await whatsChanged(sb, scope, { days: Number(args?.days) || 7 });
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "today" as VantaLinkKind };
+  }
+  if (name === "project_status") {
+    const { text } = await projectStatus(sb, scope, String(args?.project ?? ""));
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind };
+  }
+
+  /* ---- Filing: a reversible link between a capture and a project. --------- */
+  if (name === "file_under_project") {
+    const project = await findProject(sb, scope, String(args?.project ?? ""));
+    if (!project) {
+      const options = await listProjects(sb, scope, 5);
+      const list = options.length ? ` I can see: ${options.map((o) => o.title).join(", ")}.` : "";
+      return { reply: `No project matching that.${list}`, detectedType: null, routedTo: null, readOnly: true };
+    }
+    const { data: recent } = await (orgId
+      ? sb.from("ingested_files").select("id").eq("user_id", userId).eq("organization_id", orgId)
+      : sb.from("ingested_files").select("id").eq("user_id", userId).is("organization_id", null))
+      .eq("source", "telegram").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!recent?.id) {
+      return { reply: "Nothing recent from this chat to file. Send it first, then tell me where it goes.", detectedType: null, routedTo: null, readOnly: true };
+    }
+    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: recent.id, via: "Telegram" });
+    return res.ok
+      ? { reply: `Filed under ${res.title}. Nothing else happened to it.`, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind }
+      : { reply: "Couldn't file that. Open Vanta and attach it there.", detectedType: null, routedTo: null, readOnly: true };
+  }
+
   return null;
 }
 
