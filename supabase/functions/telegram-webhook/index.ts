@@ -78,9 +78,12 @@ const ROUTE_LABEL: Record<string, string> = {
 const TELEGRAM_CHANNEL = `Telegram channel rules: replies must be brief (1–3 sentences),
 plain prose, no markdown. Messaging feeds the system — it does not control it.
 Never claim to have executed anything risky; notes, actions, and commitments
-surface as drafts inside the app for review. Sherlock, awareness briefings, and
-schedule lookups are not available from Telegram — if the user asks for those,
-acknowledge the request and tell them to open Vanta to see it.`;
+surface as drafts inside the app for review.
+You CAN answer read-only questions about the user's desks by calling the read
+tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
+of guessing from chat history — never invent counts or names. You can also file an
+existing capture under a project. You cannot approve, execute, export, send, book,
+or pay anything; for those, say it's waiting inside Vanta.`;
 
 const SYSTEM = `${COMPANION_VOICE}
 
@@ -101,6 +104,12 @@ const tools = [
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
+  // Read-only Work questions. These never write anything.
+  { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
+  { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
+  { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
+  { type: "function", function: { name: "whats_changed", description: "Read-only: what moved recently across captures, promises, drafts and flagged items.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
+  { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
 ];
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
