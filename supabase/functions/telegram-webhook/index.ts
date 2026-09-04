@@ -40,6 +40,26 @@ import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
+import {
+  fileUnderButton,
+  keyboard,
+  markDoneButton,
+  openButton,
+  snoozeButtons,
+  snoozeMinutesFor,
+  type TgReplyMarkup,
+  type VantaLinkKind,
+} from "../_shared/telegramReplies.ts";
+import {
+  attachToProject,
+  findProject,
+  listProjects,
+  projectStatus,
+  whatsChanged,
+  whatsDue,
+  whatsWaiting,
+} from "../_shared/workReads.ts";
+
 
 
 const ROUTE_LABEL: Record<string, string> = {
