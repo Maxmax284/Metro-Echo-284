@@ -5,7 +5,9 @@
 //
 // Doctrine: reads only. Nothing here approves, executes, or mutates anything.
 // The one exception is `attachToProject`, which is a reversible filing link.
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Structural client type: keeps this module importable from both Deno (edge)
+// and the Vite/vitest typecheck, which can't resolve https: specifiers.
+type SupabaseClient = { from: (table: string) => any };
 
 export type ScopeArgs = { userId: string; orgId: string | null };
 
