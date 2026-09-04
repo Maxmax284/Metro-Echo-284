@@ -24,8 +24,11 @@ export type VantaLinkKind =
   | "sherlock"
   | "awareness";
 
+declare const Deno: { env: { get(key: string): string | undefined } } | undefined;
+
 export function publicBase(): string {
-  return (Deno.env.get("VANTA_PUBLIC_URL") ?? "").replace(/\/$/, "");
+  const env = typeof Deno !== "undefined" ? Deno?.env.get("VANTA_PUBLIC_URL") : undefined;
+  return (env ?? "").replace(/\/$/, "");
 }
 
 /**
