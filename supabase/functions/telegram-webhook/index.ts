@@ -369,7 +369,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // suggestion and cache it against the captured message so the in-app
   // Capture Inbox surfaces the suggestion chip immediately. Doctrine:
   // messaging never executes; Sherlock only drafts a recommendation.
-  if (!routedTo && userMsgId) {
+  if (!routedTo && !readOnly && userMsgId) {
     try {
       const finding = await runSherlockSuggest({
         admin: sb,
@@ -387,7 +387,12 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     } catch { /* best-effort */ }
   }
 
-  return reply;
+  // One deep link, at most one action button. Fixed vocabulary only.
+  const rows: any[][] = [];
+  if (commitmentId) rows.push([markDoneButton(commitmentId)]);
+  const open = openButton(linkKind ?? "today", commitmentId ? { commitment: commitmentId } : undefined);
+  if (open) rows.push([open]);
+  return { reply, markup: keyboard(rows) };
 }
 
 Deno.serve(async (req) => {
