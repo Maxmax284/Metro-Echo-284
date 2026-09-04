@@ -388,11 +388,10 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   }
 
   // One deep link, at most one action button. Fixed vocabulary only.
-  const rows: any[][] = [];
-  if (commitmentId) rows.push([markDoneButton(commitmentId)]);
-  const open = openButton(linkKind ?? "today", commitmentId ? { commitment: commitmentId } : undefined);
-  if (open) rows.push([open]);
-  return { reply, markup: keyboard(rows) };
+  const markup = commitmentId
+    ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
+    : keyboard([openButton(linkKind ?? "today")]);
+  return { reply, markup };
 }
 
 Deno.serve(async (req) => {
@@ -416,15 +415,59 @@ Deno.serve(async (req) => {
       const cbId = cb.id;
       const cbChatId = cb.message?.chat?.id;
       const data: string = cb.data ?? "";
-      const [action, commitmentId] = data.split(":");
+      const parts = data.split(":");
+      const action = parts[0];
+      const commitmentId = parts[1];
+      const ok = () => new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       if (!cbChatId || !commitmentId) {
         await tg("answerCallbackQuery", { callback_query_id: cbId });
-        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        return ok();
       }
       const { data: cbLink } = await admin.from("telegram_chat_links").select("user_id").eq("chat_id", cbChatId).maybeSingle();
       if (!cbLink) {
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not linked." });
-        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+        return ok();
+      }
+      const dropButtons = () => tg("editMessageReplyMarkup", {
+        chat_id: cbChatId, message_id: cb.message.message_id, reply_markup: { inline_keyboard: [] },
+      });
+
+      // "Noted" — acknowledges a nudge. Marks it seen; changes nothing else.
+      if (action === "noted") {
+        const { data: nudge } = await admin.from("nudges")
+          .select("id, status, organization_id").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (nudge && nudge.status === "pending") {
+          await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
+            entity_type: "nudge", entity_id: nudge.id, event: "nudge.seen",
+            payload: { source: "telegram_callback", at: new Date().toISOString() },
+          });
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: nudge ? "Noted." : "Not found." });
+        await dropButtons();
+        return ok();
+      }
+
+      // "File under <project>" — a reversible filing link, nothing more.
+      if (action === "file") {
+        const [, projectId, itemType, itemId] = parts;
+        if (!projectId || !itemType || !itemId) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId });
+          return ok();
+        }
+        const { data: prof } = await admin.from("projects").select("organization_id").eq("id", projectId).maybeSingle();
+        const res = await attachToProject(
+          admin,
+          { userId: cbLink.user_id, orgId: (prof as any)?.organization_id ?? null },
+          { projectId, itemType, itemId, via: "Telegram" },
+        );
+        await tg("answerCallbackQuery", {
+          callback_query_id: cbId,
+          text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Vanta.",
+        });
+        if (res.ok) await dropButtons();
+        return ok();
       }
       // Verify the commitment belongs to this user.
       const { data: comm } = await admin.from("commitments")
@@ -448,7 +491,8 @@ Deno.serve(async (req) => {
       });
 
       // Already resolved — say so instead of writing a second lifecycle change.
-      if (comm.status !== "open" && (action === "done" || action === "snooze1h")) {
+      const snoozeMinutes = snoozeMinutesFor(action);
+      if (comm.status !== "open" && (action === "done" || snoozeMinutes !== null)) {
         await tg("answerCallbackQuery", {
           callback_query_id: cbId,
           text: comm.status === "done" ? "Already closed." : "This one was dropped.",
@@ -472,8 +516,8 @@ Deno.serve(async (req) => {
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Marked done." });
         await clearButtons();
         await tg("sendMessage", { chat_id: cbChatId, text: `Done — "${comm.summary}" closed.`, disable_web_page_preview: true });
-      } else if (action === "snooze1h") {
-        const nextRemind = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      } else if (snoozeMinutes !== null) {
+        const nextRemind = new Date(Date.now() + snoozeMinutes * 60 * 1000).toISOString();
         // Parity with the in-app snooze: an already-overdue due date moves too,
         // otherwise the promise stays overdue while the reminder walks away.
         const shiftDue = !!(comm.due_at && new Date(comm.due_at).getTime() < Date.now());
@@ -488,14 +532,15 @@ Deno.serve(async (req) => {
           await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
           return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
         }
+        const presetLabel = SNOOZE_PRESETS.find((p) => p.key === action)?.label ?? `+${snoozeMinutes}m`;
         await audit("reminder.snoozed", {
-          minutes: 60,
+          minutes: snoozeMinutes,
           from: comm.remind_at ?? comm.due_at,
           to: nextRemind,
           due_shifted: shiftDue,
-          preset: "+1 hour",
+          preset: presetLabel,
         });
-        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Snoozed 1h." });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: `${presetLabel}.` });
         await clearButtons();
       } else {
         await tg("answerCallbackQuery", { callback_query_id: cbId });
