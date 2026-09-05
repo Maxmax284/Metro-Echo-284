@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/state-views";
 import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
 import { TripPanel } from "@/components/awareness/TripPanel";
+import { useSituation } from "@/hooks/useSituation";
 import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
@@ -346,6 +347,7 @@ export function AwarenessSurface() {
             locationWarning: (snapshot?.compact as any)?.location_warning ?? null,
             briefings: latestBySection as any,
             layers: AWARENESS_SECTIONS,
+            elsewhereMeetings: situation?.elsewhereMeetings ?? [],
           });
           const never = neverReadLine(shelvesRead.neverRead);
           return (
