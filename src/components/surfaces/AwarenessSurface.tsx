@@ -26,6 +26,9 @@ import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/state-views";
+import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
+import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
+import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -57,6 +60,7 @@ export function AwarenessSurface() {
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [showAllBadges, setShowAllBadges] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
@@ -187,7 +191,7 @@ export function AwarenessSurface() {
       <div className="px-4 pt-3 pb-2 min-w-0">
         <h2 className="text-lg font-semibold tracking-tight">Awareness</h2>
         <p className="text-xs text-muted-foreground break-words">
-          Operational context for where you are. Confidence labels included; not safety, legal, or medical advice.
+          What Vanta can tell about where you are. It reads only when you ask it to, and it says how sure it is.
         </p>
       </div>
 
