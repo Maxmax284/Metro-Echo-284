@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { cadenceFromRow, type Cadence } from "@/lib/baseline";
 import { readSituation, type SituationRead, type SituationSource } from "@/lib/situation";
+import { recipeById } from "@/lib/crossref";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
@@ -79,6 +80,46 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }));
     }
 
+    /* Cross-reference readings Sherlock left waiting for review. */
+    let matters: Array<{
+      id: string;
+      title: string;
+      sources: string[];
+      templateLabel: string | null;
+      conflicts?: number;
+      at: string;
+    }> = [];
+    const caseRes = await applyScope(
+      supabase.from("cross_ref_cases").select("id, title, recipe_id, updated_at, created_at"),
+    )
+      .in("status", ["ready", "review"])
+      .order("updated_at", { ascending: false })
+      .limit(3);
+    if (!caseRes.error && (caseRes.data ?? []).length > 0) {
+      const ids = (caseRes.data ?? []).map((c) => c.id);
+      const [srcRes, conflictRes] = await Promise.all([
+        supabase.from("case_sources").select("case_id, label").in("case_id", ids),
+        supabase.from("case_conflicts").select("case_id").in("case_id", ids),
+      ]);
+      const labels = new Map<string, string[]>();
+      for (const row of srcRes.data ?? []) {
+        const list = labels.get(row.case_id) ?? [];
+        if (row.label) list.push(row.label);
+        labels.set(row.case_id, list);
+      }
+      const conflicts = new Map<string, number>();
+      for (const row of conflictRes.data ?? []) {
+        conflicts.set(row.case_id, (conflicts.get(row.case_id) ?? 0) + 1);
+      }
+      matters = (caseRes.data ?? []).map((c) => ({
+        id: c.id,
+        title: c.title || "A reading",
+        sources: labels.get(c.id) ?? [],
+        templateLabel: c.recipe_id ? (recipeById(c.recipe_id)?.label ?? null) : null,
+        conflicts: conflicts.get(c.id) ?? 0,
+        at: c.updated_at ?? c.created_at,
+      }));
+    }
 
     setRead(
       readSituation({
@@ -96,6 +137,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           : [],
         meetings,
         projects,
+        matters,
         unknownSources,
       }),
     );
