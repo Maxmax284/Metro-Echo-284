@@ -145,7 +145,7 @@ export function fieldRead(
   } over ${dur}.`;
 
   const summary = last
-    ? `Last point ${ageWords(last.at ?? last.recorded_at, now)} · ${pointReads[pointReads.length - 1].line}. ${nextLine}`
+    ? `Last point ${ageWords(last.recorded_at, now)} · ${pointReads[pointReads.length - 1].line}. ${nextLine}`
     : `Nothing recorded yet. ${nextLine}`;
 
   const nextStep = nextPlace && nextPlace.distanceM <= 400
