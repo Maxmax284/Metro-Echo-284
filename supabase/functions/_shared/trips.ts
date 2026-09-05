@@ -105,14 +105,30 @@ export function runningLine(trip: Trip, liveDistanceM: number | null, now = Date
  * did and what it could not know — it never pretends to know where you stopped.
  */
 export const STALE_TRIP_MS = 12 * 60 * 60 * 1000;
-export function staleTripDiff(trip: Trip, lastPointAt: string | null, now = Date.now()): string | null {
+
+/**
+ * "Keep this trip open" is respected, once. A session the person deliberately
+ * held gets its clock measured from the hold instead of from the start, so a
+ * long walk is not reaped while it is still happening — but the hold expires,
+ * because an indefinite hold is background tracking with extra steps.
+ */
+export function staleTripDiff(
+  trip: Trip,
+  lastPointAt: string | null,
+  now = Date.now(),
+  heldAt: string | null = null,
+): string | null {
   if (trip.ended_at) return null;
   const start = new Date(trip.started_at).getTime();
-  if (!Number.isFinite(start) || now - start < STALE_TRIP_MS) return null;
+  if (!Number.isFinite(start)) return null;
+  const held = heldAt ? new Date(heldAt).getTime() : NaN;
+  const clockFrom = Number.isFinite(held) && held > start ? held : start;
+  if (now - clockFrom < STALE_TRIP_MS) return null;
   const tail = lastPointAt ? new Date(lastPointAt).getTime() : start;
   const gap = formatDuration(now - tail);
   return `This trip ran for over 12 hours with nothing recorded for ${gap}. Echo closed it at the last point it had. Distance after that point is unknown — you can delete it or correct the end.`;
 }
+
 
 /** Kilometres per calendar week, newest first. Weeks with no trips are absent. */
 export function weeklyMileage(trips: Trip[]): Array<{ weekStart: string; meters: number; trips: number }> {
