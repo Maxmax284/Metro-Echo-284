@@ -33,6 +33,7 @@ import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
+import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
 
@@ -376,6 +377,8 @@ export function AwarenessSurface() {
         })()}
 
         {/* The map sits under the words, never over them. */}
+        <ArrivalsLane />
+
         <AwarenessMapPanel places={places as any} onMoved={loadList} />
 
         {/* Trips — deliberate start and end, and what you've covered. */}

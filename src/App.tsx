@@ -42,6 +42,7 @@ import MotionPage from "./pages/Motion.tsx";
 import GlancePage from "./pages/Glance.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import TelegramSetupPage from "./pages/TelegramSetup.tsx";
+import LocationSetupPage from "./pages/LocationSetup.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 
@@ -79,6 +80,7 @@ const App = () => (
                               <Route path="/watch" element={<WatchPage />} />
                               <Route path="/motion" element={<MotionPage />} />
                               <Route path="/glance" element={<GlancePage />} />
+                              <Route path="/awareness/location" element={<LocationSetupPage />} />
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/settings" element={<Settings />} />
