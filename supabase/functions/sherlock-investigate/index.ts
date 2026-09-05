@@ -145,7 +145,7 @@ const SUGGEST_SCHEMA = {
     title: { type: "string" },
     rationale: { type: "string" },
     due_hint: { type: "string" },
-    risk: { type: "string", enum: ["low", "standard", "high"] },
+    risk: { type: "string", enum: ["low_reversible", "standard", "high"] },
     confidence: { type: "string", enum: ["low", "medium", "high"] },
   },
   required: ["suggested_route", "rationale", "confidence"],
