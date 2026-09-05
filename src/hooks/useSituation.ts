@@ -98,13 +98,13 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     if (!caseRes.error && (caseRes.data ?? []).length > 0) {
       const ids = (caseRes.data ?? []).map((c) => c.id);
       const [srcRes, conflictRes] = await Promise.all([
-        supabase.from("case_sources").select("case_id, label").in("case_id", ids),
+        supabase.from("case_sources").select("case_id, filename").in("case_id", ids),
         supabase.from("case_conflicts").select("case_id").in("case_id", ids),
       ]);
       const labels = new Map<string, string[]>();
       for (const row of srcRes.data ?? []) {
         const list = labels.get(row.case_id) ?? [];
-        if (row.label) list.push(row.label);
+        if (row.filename) list.push(row.filename);
         labels.set(row.case_id, list);
       }
       const conflicts = new Map<string, number>();

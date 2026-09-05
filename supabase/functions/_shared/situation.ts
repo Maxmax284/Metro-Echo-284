@@ -9,7 +9,7 @@
 //
 // Pure module: callers fetch rows, this ranks and words them.
 
-import { unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
+import { gapPhrase, unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
 import { whyFor, type WhySurfaced } from "./whySurfaced.ts";
 
 export type SituationSource =
@@ -158,7 +158,10 @@ export function readSituation(input: SituationInput): SituationRead {
           source: SOURCE_LABEL[l.source],
           whatChanged: l.text,
           reason: l.reason,
-          comparedWith: l.baseline?.usualLine ?? null,
+          /* Only ever compares against a cadence Vanta actually learned. */
+          comparedWith: l.baseline?.cadence
+            ? `What's usual for it — a move every ${gapPhrase(l.baseline.cadence.medianGapDays)}`
+            : null,
           at: l.at,
           whyItMatters: stakes.matters,
           ifIgnored: stakes.ignored,
