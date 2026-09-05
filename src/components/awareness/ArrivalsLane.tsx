@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
-import { ErrorView, ListSkeleton } from "@/components/ui/state-views";
+import { ErrorState, LoadingState } from "@/components/ui/state-views";
 import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
 import { cn } from "@/lib/utils";
@@ -39,11 +39,11 @@ export function ArrivalsLane({ className }: { className?: string }) {
       </div>
 
       {loading && surfaced.length === 0 ? (
-        <ListSkeleton rows={2} />
+        <LoadingState rows={2} label="Reading what arrived" />
       ) : error ? (
-        <ErrorView
+        <ErrorState
           title="Couldn't read what arrived"
-          description="Nothing was lost — try again in a moment."
+          detail="Nothing was lost — try again in a moment."
           onRetry={() => void refresh()}
         />
       ) : surfaced.length === 0 ? (
