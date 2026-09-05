@@ -95,6 +95,7 @@ export function TodaySectionSheet({
   dueToday,
   upcoming,
   events,
+  onChanged,
 }: {
   section: TodaySectionKey | null;
   onClose: () => void;
@@ -103,6 +104,7 @@ export function TodaySectionSheet({
   dueToday: DigestCommitment[];
   upcoming: DigestCommitment[];
   events: DigestEvent[];
+  onChanged?: () => void;
 }) {
   const meta = section ? TITLES[section] : null;
 
