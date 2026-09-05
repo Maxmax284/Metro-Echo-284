@@ -21,7 +21,7 @@ export function composeReminder(
         hour: "numeric", minute: "2-digit",
       }).format(new Date(dueAt))
     : "";
-  const header = overdue ? `Overdue — ${summary}` : `Reminder — ${summary}`;
+  const header = overdue ? `${pickOverdue()} ${summary}` : `${pickDue()} ${summary}`;
   const lines: string[] = [header];
   if (when) lines.push(overdue ? `Was due ${when} (${tz})` : `Due ${when} (${tz})`);
   const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 160);
