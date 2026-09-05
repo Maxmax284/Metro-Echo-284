@@ -158,6 +158,12 @@ export type SituationInput = {
   } | null;
   /** Sources the caller could not read (offline, off, not set up). */
   unknownSources?: SituationSource[];
+  /**
+   * Where the read was made from, if the Aware layer resolved it. Words only —
+   * it softens the wording and breaks ties between equally weighted lines. It
+   * cannot add a line, remove one, or change a due time.
+   */
+  place?: SituationPlace | null;
 };
 
 const HOUR = 60 * 60 * 1000;
