@@ -390,6 +390,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             noticed: "awareness",
             went_unusually_quiet: "projects",
             matter_open: "sherlock",
+            matter_proposed: "sherlock",
             arrived: "inbox",
           };
           onNavigate(target[line.kind] ?? "work");

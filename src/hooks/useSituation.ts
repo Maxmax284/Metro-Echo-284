@@ -10,6 +10,7 @@ import { useScope } from "@/hooks/useScope";
 import { cadenceFromRow, type Cadence } from "@/lib/baseline";
 import { readSituation, type SituationRead, type SituationSource } from "@/lib/situation";
 import { recipeById } from "@/lib/crossref";
+import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
@@ -116,7 +117,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const caseRes = await applyScope(
       supabase.from("cross_ref_cases").select("id, title, recipe_id, updated_at, created_at"),
     )
-      .in("status", ["ready", "review"])
+      .in("status", ["matrix_ready", "reviewed"])
       .order("updated_at", { ascending: false })
       .limit(3);
     if (!caseRes.error && (caseRes.data ?? []).length > 0) {
@@ -145,6 +146,28 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }));
     }
 
+    /* Sources already in hand that look like they belong together. Noticed by
+       filename and arrival only — no model runs to make this suggestion. */
+    let proposal: PairProposal | null = null;
+    const readables = await applyScope(
+      supabase
+        .from("ingested_files")
+        .select("id, filename, mime_type, source, created_at, extracted_text"),
+    )
+      .order("created_at", { ascending: false })
+      .limit(24);
+    if (!readables.error) {
+      const pool: ReadableSource[] = (readables.data ?? []).map((f) => ({
+        id: f.id,
+        filename: f.filename ?? "",
+        mime_type: f.mime_type,
+        source: f.source,
+        created_at: f.created_at,
+        readable: Boolean(f.extracted_text && String(f.extracted_text).trim().length > 20),
+      }));
+      proposal = proposeReading(pool);
+    }
+
     setRead(
       readSituation({
         overdue: digest.overdue.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at })),
@@ -162,6 +185,9 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         meetings,
         projects,
         matters,
+        proposal: proposal
+          ? { filenames: proposal.filenames, reason: proposal.reason, signal: proposal.signal, at: proposal.at }
+          : null,
         unknownSources,
       }),
     );

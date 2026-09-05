@@ -41,7 +41,8 @@ export type SituationKind =
   | "noticed"
   | "meeting_soon"
   | "went_unusually_quiet"
-  | "matter_open";
+  | "matter_open"
+  | "matter_proposed";
 
 /** Ranked by consequence, not by recency. Lower number wins. */
 const KIND_WEIGHT: Record<SituationKind, number> = {
@@ -51,8 +52,9 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   due_soon: 4,
   noticed: 5,
   matter_open: 6,
-  went_unusually_quiet: 7,
-  arrived: 8,
+  matter_proposed: 7,
+  went_unusually_quiet: 8,
+  arrived: 9,
 };
 
 export type SituationLine = {
@@ -111,6 +113,17 @@ export type SituationInput = {
     conflicts?: number;
     at: string;
   }>;
+  /**
+   * One deterministic suggestion that sources already in hand could be read
+   * against each other. Noticed by filename and arrival only — no model has
+   * run, and none will until the person taps.
+   */
+  proposal?: {
+    filenames: string[];
+    reason: string;
+    signal: string;
+    at: string;
+  } | null;
   /** Sources the caller could not read (offline, off, not set up). */
   unknownSources?: SituationSource[];
 };
@@ -139,6 +152,7 @@ const KIND_STAKES: Record<SituationKind, { matters: string; ignored: string | nu
   due_soon: { matters: "The due time is close and it is still open.", ignored: "It becomes overdue." },
   noticed: { matters: "Vanta spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
   matter_open: { matters: "Sources were read together and the result is unreviewed.", ignored: "The reading waits. Nothing is exported or sent." },
+  matter_proposed: { matters: "Two or more sources look related and nothing has read them together yet.", ignored: "Nothing happens. No reading starts on its own." },
   went_unusually_quiet: { matters: "This normally moves more often than it has.", ignored: "Nothing breaks. The gap just keeps growing." },
   arrived: { matters: "Something came in and has no home yet.", ignored: "It waits in Inbox. It was not acted on." },
 };
@@ -284,6 +298,31 @@ export function readSituation(input: SituationInput): SituationRead {
             ? `Still missing: ${m.gaps.slice(0, 3).join(", ")}.`
             : KIND_STAKES.matter_open.matters,
         ifIgnored: KIND_STAKES.matter_open.ignored,
+      }),
+    });
+  }
+
+  const proposal = input.proposal ?? null;
+  if (proposal && matters.length === 0) {
+    const n = proposal.filenames.length;
+    push({
+      kind: "matter_proposed",
+      source: "sherlock",
+      text:
+        proposal.signal === "same_name"
+          ? `${n} sources look like the same thing and have never been read side by side.`
+          : `${n} sources could be read against each other.`,
+      reason: proposal.reason,
+      at: proposal.at,
+      entity: { type: "case_proposal", id: proposal.filenames.slice(0, 3).join(" · ") },
+      why: whyFor({
+        source: proposal.filenames.join(", "),
+        whatChanged: "Nothing changed. These are sources already in hand.",
+        reason: proposal.reason,
+        comparedWith: null,
+        at: proposal.at,
+        whyItMatters: KIND_STAKES.matter_proposed.matters,
+        ifIgnored: KIND_STAKES.matter_proposed.ignored,
       }),
     });
   }
