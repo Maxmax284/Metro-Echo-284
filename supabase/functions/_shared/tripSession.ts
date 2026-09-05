@@ -70,7 +70,10 @@ export async function activeSession(admin: any, scope: TripScope, now = Date.now
   const points = await sessionPoints(admin, trip.id);
   const distanceM = points.length > 1 ? pathDistanceMeters(points) : null;
 
-  const diff = staleTripDiff(trip, points.length ? points[points.length - 1].recorded_at : null, now);
+  /* A held session measures its staleness clock from the hold, not the start. */
+  const heldAt = trip.closed_by === "held" ? (trip.updated_at ?? null) : null;
+  const diff = staleTripDiff(trip, points.length ? points[points.length - 1].recorded_at : null, now, heldAt);
+
   if (diff) {
     const endedAt = points.length ? points[points.length - 1].recorded_at : trip.started_at;
     await admin.from("trips").update({
@@ -189,14 +192,38 @@ export async function endSession(
 export async function holdSession(admin: any, scope: TripScope, via: string): Promise<Trip | null> {
   const open = await activeSession(admin, scope);
   if (!open.trip) return null;
-  await appendPoint(admin, scope, open.trip.id, { lat: NaN, lon: NaN });
+  /* The hold is a mark on the session, not a fake location fix. `updated_at`
+     moves with the write, which is what the stale clock reads. */
+  await admin.from("trips").update({ closed_by: "held" }).eq("id", open.trip.id);
   await admin.from("audit_log").insert({
     user_id: scope.userId,
     organization_id: scope.orgId ?? null,
     entity_type: "trip",
     entity_id: open.trip.id,
     event: "trip.held_open",
-    payload: { via },
+    payload: { via, holds_for_hours: 12 },
   });
   return open.trip;
 }
+
+/**
+ * One line describing the open session, in the same words on every surface.
+ * Says what is known and refuses to guess an arrival time: Echo has no route,
+ * no destination and no traffic, so "how much longer" is answered honestly.
+ */
+export function sessionLine(read: SessionRead, now = Date.now()): string {
+  if (!read.trip) return "No trip or walk running right now.";
+  const kind = read.isWalk ? "Walk" : "Trip";
+  const dur = formatDuration(tripDurationMs(read.trip, now));
+  const dist = read.distanceM == null ? "distance not measured yet" : formatDistance(read.distanceM);
+  const held = read.trip.closed_by === "held" ? " Held open at your ask." : "";
+  const from = read.trip.start_label ? ` Started at ${read.trip.start_label}.` : "";
+  return `${kind} running ${dur} · ${dist}.${from}${held}`;
+}
+
+/** "How much longer?" — the honest version. */
+export function noEtaLine(read: SessionRead, now = Date.now()): string {
+  if (!read.trip) return "Nothing running, so there's nothing to time.";
+  return `${sessionLine(read, now)} I can't tell you how much longer — you never gave me a destination, and I won't invent one.`;
+}
+
