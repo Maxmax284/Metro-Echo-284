@@ -69,6 +69,7 @@ import {
   type TgReplyMarkup,
   type VantaLinkKind,
 } from "../_shared/telegramReplies.ts";
+import { objectIntentFor, nextStepsLine, readSummaryLine } from "../_shared/objectIntent.ts";
 import {
   attachToProject,
   findProject,
@@ -916,7 +917,7 @@ Deno.serve(async (req) => {
       }
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
-      const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
+      const suggestions = await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 2);
       await logTgMessage(admin, {
         user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
         direction: "out", text: reply, kind: "page_reply", sent_by: "vanta",
@@ -928,7 +929,7 @@ Deno.serve(async (req) => {
         disable_web_page_preview: true,
         ...(() => {
           const m = keyboard(
-            [suggest ? fileUnderButton(suggest.id, suggest.title, "file", fileRec.id) : null],
+            ...suggestions.map((p) => [fileUnderButton(p.id, p.title, "file", fileRec.id)]),
             [openButton("inbox")],
           );
           return m ? { reply_markup: m } : {};
