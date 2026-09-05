@@ -61,6 +61,12 @@ describe("placeTruth", () => {
     expect(old.stale).toBe(true);
     expect(old.line).toMatch(/last place Vanta knew/);
     expect(placeSourceBadge(old)).toBe("Last known place");
+
+    const nothingRecorded = placeTruth(
+      { geo: { city: "Lamai", acc: 30 }, updated_at: new Date(NOW - 60_000).toISOString() },
+      NOW,
+    );
+    expect(placeSourceBadge(nothingRecorded)).toBe("How this was set wasn't recorded");
   });
 
   it("reads accuracy from either shape", () => {
