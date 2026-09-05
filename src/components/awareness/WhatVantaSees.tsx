@@ -10,7 +10,10 @@ import type { SourceHealth } from "@/lib/sourceHealth";
 
 type Row = {
   label: string;
+  /** true on, false off, null decided in the moment by you. */
   on: boolean | null;
+  /** A feed with nothing set up yet: neither on nor a matter of consent. */
+  unset?: boolean;
   helps: string;
   /** Evidence for the row, when something was actually recorded. */
   proof?: string | null;
@@ -22,6 +25,10 @@ function feedState(sources: SourceHealth[], key: string): boolean | null {
   return s.state !== "off" && s.state !== "no_data";
 }
 
+function feedMissing(sources: SourceHealth[], key: string): boolean {
+  return !sources.some((x) => x.key === key);
+}
+
 function feedProof(sources: SourceHealth[], key: string): string | null {
   const s = sources.find((x) => x.key === key);
   if (!s) return null;
@@ -30,8 +37,8 @@ function feedProof(sources: SourceHealth[], key: string): string | null {
 
 /** One sentence about the whole picture. Counted from the rows, never guessed. */
 function statusLine(rows: Row[]): string {
-  const on = rows.filter((r) => r.on === true).map((r) => r.label);
-  const off = rows.filter((r) => r.on === false).map((r) => r.label);
+  const on = rows.filter((r) => r.on === true && !r.unset).map((r) => r.label);
+  const off = rows.filter((r) => r.on === false || r.unset).map((r) => r.label);
   if (on.length === 0) {
     return "Nothing is feeding Vanta yet, so this room can only work from what you tell it.";
   }
@@ -54,18 +61,21 @@ export function WhatVantaSees({ className }: { className?: string }) {
     {
       label: "Calendar",
       on: feedState(sources, "calendar"),
+      unset: feedMissing(sources, "calendar"),
       helps: "The shape of your day, read-only. Nothing gets moved or answered.",
       proof: feedProof(sources, "calendar"),
     },
     {
       label: "Telegram",
       on: feedState(sources, "telegram"),
+      unset: feedMissing(sources, "telegram"),
       helps: "Messages, photos and voice notes arrive as captures. Nothing sends without you.",
       proof: feedProof(sources, "telegram"),
     },
     {
       label: "Wearable",
       on: feedState(sources, "wearable"),
+      unset: feedMissing(sources, "wearable"),
       helps: "Readings your watch shares, so Vanta can notice a hard week.",
       proof: feedProof(sources, "wearable"),
     },
@@ -96,7 +106,7 @@ export function WhatVantaSees({ className }: { className?: string }) {
               )}
               <div className="min-w-0">
                 <span className="text-[11.5px] font-medium">
-                  {r.label} — {r.on === null ? "by request" : r.on ? "on" : "off"}
+                  {r.label} — {r.unset ? "not set up yet" : r.on === null ? "by request" : r.on ? "on" : "off"}
                 </span>
                 <p className="text-[11px] leading-snug text-muted-foreground">{r.helps}</p>
                 {r.proof ? (
