@@ -127,10 +127,44 @@ function hoursUntil(iso: string, now: number): number {
  * Build the one read. Every branch either produces a line with a source and a
  * reason, or produces nothing at all.
  */
+/**
+ * Why a kind is worth attention, and what happens if it is left alone. Fixed
+ * copy, so the reveal says the same thing on every surface and never invents a
+ * consequence per item.
+ */
+const KIND_STAKES: Record<SituationKind, { matters: string; ignored: string | null }> = {
+  overdue: { matters: "You told someone this would be done.", ignored: "It stays open and keeps ageing. Nobody is told." },
+  waiting_on_you: { matters: "Work is prepared but stopped at your approval.", ignored: "The draft sits there. Nothing runs on its own." },
+  meeting_soon: { matters: "It starts soon and you may need something ready.", ignored: "The meeting still happens. Vanta won't act for you." },
+  due_soon: { matters: "The due time is close and it is still open.", ignored: "It becomes overdue." },
+  noticed: { matters: "Vanta spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
+  matter_open: { matters: "Sources were read together and the result is unreviewed.", ignored: "The reading waits. Nothing is exported or sent." },
+  went_unusually_quiet: { matters: "This normally moves more often than it has.", ignored: "Nothing breaks. The gap just keeps growing." },
+  arrived: { matters: "Something came in and has no home yet.", ignored: "It waits in Inbox. It was not acted on." },
+};
+
 export function readSituation(input: SituationInput): SituationRead {
   const now = input.now ?? Date.now();
   const lines: SituationLine[] = [];
-  const push = (l: Omit<SituationLine, "weight">) => lines.push({ ...l, weight: KIND_WEIGHT[l.kind] });
+  const push = (l: Omit<SituationLine, "weight">) => {
+    const stakes = KIND_STAKES[l.kind];
+    lines.push({
+      ...l,
+      weight: KIND_WEIGHT[l.kind],
+      /* One reveal, built from the same facts the line was worded from. */
+      why:
+        l.why ??
+        whyFor({
+          source: SOURCE_LABEL[l.source],
+          whatChanged: l.text,
+          reason: l.reason,
+          comparedWith: l.baseline?.usualLine ?? null,
+          at: l.at,
+          whyItMatters: stakes.matters,
+          ifIgnored: stakes.ignored,
+        }),
+    });
+  };
 
   if (input.overdue.length > 0) {
     const first = input.overdue[0];
@@ -216,6 +250,41 @@ export function readSituation(input: SituationInput): SituationRead {
     });
   }
 
+  const matters = input.matters ?? [];
+  if (matters.length > 0) {
+    const m = matters[0];
+    const rest = matters.length - 1;
+    const named = m.templateLabel ? `read as a ${m.templateLabel.toLowerCase()}` : "read together";
+    push({
+      kind: "matter_open",
+      source: "sherlock",
+      text:
+        rest > 0
+          ? `${m.title} is ${named} and waiting for your review, along with ${rest} ${plural(rest, "other", "others")}.`
+          : `${m.title} is ${named} and waiting for your review.`,
+      reason:
+        m.conflicts && m.conflicts > 0
+          ? `${m.conflicts} ${plural(m.conflicts, "disagreement", "disagreements")} between the sources need a decision.`
+          : "Vanta lined the sources up. Nothing is final until you review it.",
+      at: m.at,
+      entity: { type: "case", id: m.id },
+      why: whyFor({
+        source: m.sources.length > 0 ? m.sources.join(", ") : SOURCE_LABEL.sherlock,
+        whatChanged: `${m.sources.length || "Several"} sources were read together into one reading.`,
+        reason: m.templateLabel
+          ? `The sources matched what a ${m.templateLabel.toLowerCase()} usually contains.`
+          : "No known template matched, so the sources were laid out plainly.",
+        comparedWith: m.templateLabel ? `What a ${m.templateLabel.toLowerCase()} normally contains` : null,
+        at: m.at,
+        whyItMatters:
+          m.gaps && m.gaps.length > 0
+            ? `Still missing: ${m.gaps.slice(0, 3).join(", ")}.`
+            : KIND_STAKES.matter_open.matters,
+        ifIgnored: KIND_STAKES.matter_open.ignored,
+      }),
+    });
+  }
+
   if (input.arrived.length > 0) {
     const n = input.arrived.length;
     const first = input.arrived[0];
@@ -240,7 +309,7 @@ export function readSituation(input: SituationInput): SituationRead {
     ["commitments", input.overdue.length + input.dueSoon.length > 0],
     ["actions", input.waitingOnYou.length > 0],
     ["inbox", input.arrived.length > 0],
-    ["sherlock", input.noticed.length > 0],
+    ["sherlock", input.noticed.length > 0 || matters.length > 0],
     ["calendar", input.meetings.length > 0],
   ];
   for (const [src, hasAny] of candidates) {
