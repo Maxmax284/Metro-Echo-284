@@ -1,6 +1,7 @@
 import {
   ArrowUp,
   Camera,
+  Eye,
   FileText,
   Image as ImageIcon,
   Loader2,
@@ -81,6 +82,8 @@ type Props = {
   onSend: (text: string) => void | Promise<void>;
   /** Optional: attach button is shown when this is provided. */
   onAttach?: (files: FileList) => void | Promise<void>;
+  /** Optional: open the deliberate camera seam — Vanta looks at one picture. */
+  onLook?: () => void;
   /** Optional: slash palette picks a registry tool by id. */
   onSlashPick?: (toolId: string) => void;
   /** Required for slash palette filtering. */
@@ -106,6 +109,7 @@ export function ConversationDock({
   busy,
   onSend,
   onAttach,
+  onLook,
   onSlashPick,
   surface = "conversation",
   mode = "advisor",
@@ -341,7 +345,13 @@ export function ConversationDock({
                   <Paperclip className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" side="top" className="w-52 p-1">
+              <PopoverContent align="start" side="top" className="w-56 p-1">
+                {onLook && (
+                  <>
+                    <AttachOption icon={Eye} label="Show Vanta something" onClick={onLook} />
+                    <div className="my-1 h-px bg-border/50" />
+                  </>
+                )}
                 {hasCamera && (
                   <AttachOption icon={Camera} label="Take a photo" onClick={() => cameraRef.current?.click()} />
                 )}

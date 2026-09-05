@@ -20,6 +20,7 @@ import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
 
@@ -353,6 +354,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     stagedUpload.stage(files);
   };
 
+  // The deliberate camera seam. Closed until the user opens it.
+  const [looking, setLooking] = useState(false);
+
   // Slash: dispatch a registry tool by id
   const handleSlashPick = (toolId: string) => {
     const tool = COMPANION_TOOLS.find((t) => t.id === toolId);
@@ -554,6 +558,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           busy={busy}
           onSend={send}
           onAttach={handleAttach}
+          onLook={() => setLooking(true)}
           onSlashPick={handleSlashPick}
           onStop={handleStop}
           draft={askSession.draft}
@@ -612,6 +617,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         />
       )}
 
+      <LookAtSheetBridge open={looking} onOpenChange={setLooking} />
+
       <Sheet open={researchOpen} onOpenChange={setResearchOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-[520px]">
           <SheetHeader className="border-b border-border/60 px-4 py-3">
@@ -636,4 +643,11 @@ function ConversationDockBridge(props: React.ComponentProps<typeof ConversationD
       onInitialTextConsumed={() => setPrefill(null)}
     />
   );
+}
+
+// The camera seam lives here so its answer can prefill the composer without
+// ever sending anything on the user's behalf.
+function LookAtSheetBridge({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { setPrefill } = useCompanion();
+  return <LookAtSheet open={open} onOpenChange={onOpenChange} onAskAbout={(q) => setPrefill(q)} />;
 }
