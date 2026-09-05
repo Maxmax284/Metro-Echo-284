@@ -23,6 +23,7 @@ import { buildSherlockBriefing } from "@/lib/sherlockBriefing";
 import { SherlockBriefingPanel } from "@/components/sherlock/SherlockBriefing";
 import { SherlockDigestCard } from "@/components/sherlock/SherlockDigestCard";
 import { SherlockDetectionPanel } from "@/components/sherlock/SherlockDetectionPanel";
+import { CrossRefCasesPanel } from "@/components/crossref/CrossRefCasesPanel";
 
 const STARTER_QUESTIONS: Record<ScopeId, string[]> = {
   all:         ["What did I commit to this week?", "Anything stale I should refresh?", "Open threads I'm forgetting?"],
@@ -338,6 +339,7 @@ export function SherlockSurface() {
           )}
         </div>
 
+        <CrossRefCasesPanel />
         <SherlockDetectionPanel />
         <SherlockSettingsPanel />
 
