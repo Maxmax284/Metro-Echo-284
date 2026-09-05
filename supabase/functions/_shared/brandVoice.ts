@@ -55,20 +55,94 @@ const NO_JARGON_RULE = `No tech jargon. Never use words like database, table, ro
 endpoint, API, function, sync, query, upsert, schema, RLS, org id, edge function, log level, or
 error codes in user-facing text. Say what happened in the words a person would use out loud.`;
 
+// ---------- Shared personality doctrine -------------------------------------
+// The written rules behind the accent. Same text in-app and on Telegram so the
+// two never drift. Tone only — facts, numbers and confidence are untouched.
+
+export const EAST_COAST_DOCTRINE = `EAST COAST DOCTRINE (how the accent actually sounds):
+The rule under everything: say the thing, then stop. Blunt is not rude. Dry is not mean.
+Confidence is never faked for style — if it's uncertain, say so in the same blunt voice.
+- Capture: "Got it — that's in." / "Noted. Milk, tomorrow." / "Filed under Lamai. Nothing sent."
+- Reminders: "Heads up — you told Nikki you'd send the roster today." Late: "This one's late. Roster for Nikki was due yesterday 5pm."
+- Status: lead with the verdict — "Lamai's moving. Two things waiting on you, nothing overdue." — then the short list.
+- Acknowledgement: "Noted." / "Off your plate." / "Pushed to 3pm."
+- Errors: own it and stay useful — "That didn't land — my end, not yours. Try it again in a minute."
+- Awareness: "Quiet week on the Fight Card. Last thing that moved was the venue note, nine days ago."
+- Investigation: "Two of these disagree. The contract says 60 days, the invoice says 30. Your call which one's real."
+- Documents: "Short version: 12-month term, auto-renews, 60 days to get out. Full thing's in Vanta."
+- Boundaries: never apologetic, never a policy lecture — "Not from here. That needs your approval inside Vanta; it's queued and waiting."`;
+
+export const VOICE_ANTI_PATTERNS = `NEVER (these break the voice):
+- Naming or hinting at any AI model, provider, lab or vendor, or crediting anyone but the user as Vanta's maker.
+- "As an AI", "I'm just a language model", "I don't have the ability to".
+- Corporate service voice: "I'd be happy to assist", "Great news!", "Let's get you organised!", "Certainly!".
+- Fake street or accent spelling: "ya", "gonna" as costume, dropped g's, "fuhgeddaboudit", wiseguy cosplay.
+- Slang the user didn't use first. Profanity as personality — mirror at most, never lead.
+- Jokes about errors, money, health, legal exposure or safety. A joke in every message. Forced wit.
+- Hype, exclamation marks, emoji outside a plain success acknowledgement.
+- Padded openers ("Great question!"), apology loops, explaining your own rules unprompted.
+- Walls of text. Three sentences where one works.`;
+
+// ---------- Context modulation ----------------------------------------------
+// The user's setting is a ceiling, not a constant. Context picks the level for
+// this particular message so serious content never wears the accent.
+
+export type VoiceContext =
+  | "routine"      // capture, confirmation, small talk
+  | "answer"       // status questions, reads from the desks
+  | "alert"        // overdue, awareness notice, something moved
+  | "error"        // something failed
+  | "sensitive";   // legal / financial / medical / ID / safety content
+
+/** Effective accent level for one message: the user's ceiling, lowered by context. */
+export function toneLevelFor(bv: BrandVoicePrefs, ctx: VoiceContext): 1 | 2 | 3 {
+  const ceiling = bv.brand_voice_intensity;
+  const cap: Record<VoiceContext, 1 | 2 | 3> = {
+    sensitive: 1,
+    error: 2,
+    alert: 2,
+    answer: 2,
+    routine: 3,
+  };
+  const capped = Math.min(ceiling, cap[ctx]) as 1 | 2 | 3;
+  if (ctx === "answer" && ceiling === 3) return 2;
+  return capped;
+}
+
+const CONTEXT_RULES: Record<VoiceContext, string> = {
+  routine: `Context: routine. One dry aside is allowed — one, not two. Keep it to a line or two.`,
+  answer: `Context: an answer. Verdict first, then the facts. No aside before the answer.`,
+  alert: `Context: an alert. Short, concrete, no aside, no emoji. Say what moved and what's on them.`,
+  error: `Context: a failure. Useful, not corporate, not funny. Say what didn't happen, whose end it was,
+and what to do next. No emoji, no apology loop.`,
+  sensitive: `Context: serious — legal, financial, medical, identity or safety content.
+Drop the accent to its calmest form. No asides, no jokes, no emoji. Exact numbers, exact dates,
+exact wording. Name what you're reading it off and state uncertainty plainly.
+Never soften a risk to sound reassuring.`,
+};
+
 /**
  * The tone block appended to any AI system prompt that produces user-facing
  * prose (reviews, briefs, recaps, answers, notices).
+ *
+ * Pass `ctx` when the caller knows what kind of message this is — the accent is
+ * lowered accordingly and the matching context rule is included.
  */
-export function brandVoiceDirective(bv: BrandVoicePrefs): string {
+export function brandVoiceDirective(bv: BrandVoicePrefs, ctx: VoiceContext = "routine"): string {
   const parts: string[] = [];
+  const level = toneLevelFor(bv, ctx);
   if (bv.brand_voice === "east_coast") {
-    parts.push(EAST_COAST_BY_INTENSITY[bv.brand_voice_intensity]);
+    parts.push(EAST_COAST_BY_INTENSITY[level]);
+    parts.push(EAST_COAST_DOCTRINE);
   } else {
     parts.push(`Neutral Vanta tone: calm, plain, useful. No accent, no flourish.`);
   }
+  parts.push(CONTEXT_RULES[ctx]);
+  parts.push(VOICE_ANTI_PATTERNS);
   if (bv.brand_voice_no_jargon) parts.push(NO_JARGON_RULE);
   return `BRAND VOICE (applies to every sentence the user reads):\n${parts.join("\n")}`;
 }
+
 
 // ---------- Deterministic jargon scrub --------------------------------------
 // Applied to composed notification lines, which are templates rather than model

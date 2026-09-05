@@ -8,6 +8,10 @@ const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 export type TgInlineButton = { text: string; callback_data?: string; url?: string };
 export type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
 
+// Openers vary so a daily reminder never reads like the same machine twice.
+// Facts (summary, due time, timezone) are never rewritten — only the opener.
+import { dueOpener as pickDue, overdueOpener as pickOverdue } from "./vantaIdentity.ts";
+
 export function composeReminder(
   summary: string,
   overdue: boolean,
@@ -21,7 +25,7 @@ export function composeReminder(
         hour: "numeric", minute: "2-digit",
       }).format(new Date(dueAt))
     : "";
-  const header = overdue ? `Overdue — ${summary}` : `Reminder — ${summary}`;
+  const header = overdue ? `${pickOverdue()} ${summary}` : `${pickDue()} ${summary}`;
   const lines: string[] = [header];
   if (when) lines.push(overdue ? `Was due ${when} (${tz})` : `Due ${when} (${tz})`);
   const snippet = (opts.noteSnippet || "").trim().replace(/\s+/g, " ").slice(0, 160);

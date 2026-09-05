@@ -2,6 +2,20 @@
 // Used by awareness-brief, awareness-snapshot, and (later) other AI surfaces.
 import { z } from "https://esm.sh/zod@3.23.8";
 
+// Identity lives in a dependency-free module so the app, tests and edge
+// functions read the same text. Re-exported here for existing importers.
+import {
+  VANTA_IDENTITY,
+  IDENTITY_ANSWERS,
+  matchIdentityQuestion,
+  mentionsVendor,
+  type IdentityQuestion,
+} from "./vantaIdentity.ts";
+export { VANTA_IDENTITY, IDENTITY_ANSWERS, matchIdentityQuestion, mentionsVendor };
+export type { IdentityQuestion };
+
+
+
 // ---------- Voice fragments --------------------------------------------------
 
 export const VANTA_CORE_VOICE = `You are Vanta — a calm, street-smart operational companion.
@@ -10,7 +24,11 @@ Never robotic, never corporate, never academic, never alarmist, never fake-cheer
 Sound like a sharp operator who understands real life — not a bank chatbot, not a legal
 disclaimer machine, not a government memo, not a startup bro with a thesaurus.
 Be honest about uncertainty. If you don't know, say so. Never present speculation as fact.
-Keep top-level summaries short. Put long detail behind "long_detail".`;
+Keep top-level summaries short. Put long detail behind "long_detail".
+
+${VANTA_IDENTITY}`;
+
+
 
 // Shared phrase library — mirrors src/lib/vantaVoice.ts `vantaSay`.
 // Keep these in sync so Telegram, Companion, and UI sound identical.
@@ -60,20 +78,34 @@ export const VANTA_PHRASES = {
   generic: () => "That didn't go through. Try again in a moment.",
   gotIt: () => pick("Got it.", "Done.", "On it."),
   telegram: {
-    welcome: () => "Hi — I'm Vanta. Generate a pairing code in the app and send: /start YOURCODE",
-    badCode: () => "That code's invalid or expired. Generate a fresh one in the app.",
-    linked: () => "Linked. Send me anything — notes, commitments, reminders, or actions to stage.",
-    notLinked: () => "This chat isn't linked yet. Generate a pairing code in the app, then send: /start YOURCODE",
-    textOnly: () => "I can read text and photos of pages. Voice notes and documents aren't readable from chat yet — send them in Vanta and they'll be picked up there.",
-    snag: () => "Hit a snag processing that. Try again in a moment.",
+    welcome: () => "Vanta here. Grab a pairing code in the app and send it: /start YOURCODE",
+    badCode: () => pick(
+      "That code's dead — expired or never real. Pull a fresh one in the app.",
+      "Code didn't check out. Generate a new one in the app and send it again.",
+    ),
+    linked: () => pick(
+      "You're paired. Send me whatever — notes, promises, reminders, photos of paper. Nothing here goes live without you.",
+      "Paired. Talk to me like a person: notes, promises, reminders, photos of paper. Nothing gets approved from this chat.",
+    ),
+    notLinked: () => "This chat isn't paired to anyone yet. Grab a code in the app, then send: /start YOURCODE",
+    textOnly: () => "Nothing readable in that one. Text or a photo of the page works.",
+    snag: () => pick(
+      "That didn't land — my end, not yours. Try it again in a minute.",
+      "Something jammed on my side. Send it once more.",
+    ),
     help: () => [
-      "Talk to me in plain language — no commands needed.",
-      "I can save notes, set reminders, track promises, and stage actions as drafts. I can also tell you what's waiting, what's due, what changed, and how a project is going.",
-      "I can't approve, send, export, or pay anything — that stays inside Vanta. Commands: /help, /unlink.",
+      "Plain language is the whole interface. No commands to memorise.",
+      "I'll save notes, set reminders, track promises, stage drafts, and read photos of paper. Ask me what's waiting, what's due, what changed, or how a project's going.",
+      "What I won't do from here: approve, send, export, book or pay. That's yours, inside Vanta. Commands: /help, /unlink.",
     ].join("\n\n"),
-    unlinked: () => "Unlinked. This chat won't reach your account until you pair again.",
-    rateLimited: () => "Easy — you're moving faster than I can keep up. Give it a few seconds.",
+    unlinked: () => "Unlinked. Nothing from this chat reaches you until you pair again.",
+    rateLimited: () => pick(
+      "Easy — you're going faster than I can keep up. Few seconds.",
+      "Slow down a beat, I'm still on the last one.",
+    ),
+    identity: (q: IdentityQuestion) => IDENTITY_ANSWERS[q],
   },
+
 } as const;
 
 // ---------- i18n hook ------------------------------------------------------

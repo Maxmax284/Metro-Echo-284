@@ -40,7 +40,16 @@ async function logTgMessage(admin: any, row: Record<string, unknown>) {
   try { await admin.from("telegram_messages").insert(row); } catch (e) { console.error("telegram_messages insert", e); }
 }
 
-import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
+import {
+  COMPANION_VOICE,
+  MEMORY_VOICE,
+  AWARENESS_VOICE,
+  VANTA_PHRASES,
+  matchIdentityQuestion,
+  IDENTITY_ANSWERS,
+} from "../_shared/vantaVoice.ts";
+import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shared/brandVoice.ts";
+import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
@@ -82,15 +91,17 @@ const ROUTE_LABEL: Record<string, string> = {
 // wording stays identical across Companion (chat), Memory (capture), and
 // Awareness (place answers). Telegram-specific layer: SMS-length brevity +
 // reminder that messaging never executes — drafts land in-app for approval.
-const TELEGRAM_CHANNEL = `Telegram channel rules: replies must be brief (1–3 sentences),
-plain prose, no markdown. Messaging feeds the system — it does not control it.
-Never claim to have executed anything risky; notes, actions, and commitments
-surface as drafts inside the app for review.
+const TELEGRAM_CHANNEL = `Telegram channel rules: this is a phone chat, so keep it short (1–3 sentences),
+plain prose, no markdown, no headings, no bullet lists unless you're listing two or three items.
+Short does NOT mean flat. You still sound like a person with a point of view — the brevity is the
+accent, not the absence of one. Never write a tidy assistant paragraph.
+Messaging feeds the system — it does not control it. Never claim to have executed anything risky;
+notes, actions, and commitments surface as drafts inside the app for review.
 You CAN answer read-only questions about the user's desks by calling the read
 tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
 of guessing from chat history — never invent counts or names. You can also file an
 existing capture under a project. You cannot approve, execute, export, send, book,
-or pay anything; for those, say it's waiting inside Vanta.`;
+or pay anything; for those, say it's waiting inside Vanta — flatly, not apologetically.`;
 
 const SYSTEM = `${COMPANION_VOICE}
 
@@ -258,7 +269,22 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
 }
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null) {
+  // Identity questions never reach a model. Fixed copy, one line, done — so no
+  // provider or model name can ever be presented as Vanta's identity or author.
+  const idq = matchIdentityQuestion(text);
+  if (idq) {
+    return {
+      reply: IDENTITY_ANSWERS[idq],
+      detectedType: null as string | null,
+      routedTo: null as string | null,
+      readOnly: true,
+      linkKind: null as VantaLinkKind | null,
+      commitmentId: null as string | null,
+    };
+  }
+
   // pull a little context from the user's most recent conversation
+
   const { data: conv } = await sb.from("conversations").select("id").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   let history: any[] = [];
   if (conv?.id) {
@@ -302,7 +328,21 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   const timeBlock = `User time context:
 - timezone: ${defaults.timezone}
 - morning: ${defaults.morning}, afternoon: ${defaults.afternoon}, evening/tonight: ${defaults.evening}`;
-  const sys = [SYSTEM, timeBlock, correctionsBlock, fieldNotesBlock].filter(Boolean).join("\n\n");
+
+  // Telegram now wears the same brand-voice layer as in-app chat, and the accent
+  // steps down automatically when the message is serious: legal, financial,
+  // medical, identity or safety content forces the calmest, most precise level.
+  const bv = readBrandVoice(prefs as Record<string, unknown>);
+  const sensitive = detectSensitive(text).sensitive;
+  const ctx: VoiceContext = sensitive
+    ? "sensitive"
+    : /\b(what'?s|whats|how'?s|hows|any|status|due|waiting|changed|going)\b/i.test(text)
+      ? "answer"
+      : "routine";
+  const brandBlock = brandVoiceDirective(bv, ctx);
+
+  const sys = [SYSTEM, brandBlock, timeBlock, correctionsBlock, fieldNotesBlock]
+    .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
 
