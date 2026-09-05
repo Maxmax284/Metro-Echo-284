@@ -213,6 +213,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           ? { filenames: proposal.filenames, reason: proposal.reason, signal: proposal.signal, at: proposal.at }
           : null,
         unknownSources,
+        place,
       }),
     );
     setLoading(false);
