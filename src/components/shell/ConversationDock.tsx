@@ -344,7 +344,13 @@ export function ConversationDock({
                   <Paperclip className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" side="top" className="w-52 p-1">
+              <PopoverContent align="start" side="top" className="w-56 p-1">
+                {onLook && (
+                  <>
+                    <AttachOption icon={Eye} label="Show Vanta something" onClick={onLook} />
+                    <div className="my-1 h-px bg-border/50" />
+                  </>
+                )}
                 {hasCamera && (
                   <AttachOption icon={Camera} label="Take a photo" onClick={() => cameraRef.current?.click()} />
                 )}
