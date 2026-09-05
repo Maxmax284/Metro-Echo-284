@@ -36,7 +36,7 @@ const KIND_WORD: Record<ObjectKind, string> = {
 };
 
 const RECEIPT_RE = /(receipt|expense|taxi|grab|7-?eleven|invoice|payment)/i;
-const SCREENSHOT_RE = /(screenshot|screen shot|img_\d|whatsapp image)/i;
+const SCREENSHOT_RE = /(screenshot|screen shot|whatsapp image)/i;
 const CONTRACT_RE = /(contract|agreement|nda|terms)/i;
 
 /** What a file probably is, from its detected type first, its name second. */
