@@ -108,6 +108,7 @@ export function ConversationDock({
   busy,
   onSend,
   onAttach,
+  onLook,
   onSlashPick,
   surface = "conversation",
   mode = "advisor",
