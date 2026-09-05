@@ -226,7 +226,7 @@ export function TodaySectionSheet({
         <div className={cn("mt-3", MOTION_SHEET)}>{body()}</div>
         <AftermathHint
           className="pb-6"
-          text="This is a read-only list · opening a row takes you to its desk, where changes are made"
+          text="Closing or moving a promise here shows you what changes first · nothing is written until you confirm"
         />
 
       </SheetContent>
