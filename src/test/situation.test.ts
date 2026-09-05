@@ -19,7 +19,7 @@ describe("situation: one read, not five reports", () => {
   it("says nothing needs you rather than counting zeros", () => {
     const read = readSituation(empty);
     expect(read.lines).toHaveLength(0);
-    expect(read.headline).toBe("Nothing needs you right now.");
+    expect(read.headline).toBe("You're clear.");
     expect(quietLine(read.quietSources)).toMatch(/Nothing waiting in/);
   });
 
