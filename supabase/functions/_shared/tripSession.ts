@@ -186,9 +186,11 @@ export async function endSession(
 }
 
 /**
- * Hold an open session so the stale reaper leaves it alone for now. Recorded as
- * a point, because that is what "still going" actually means.
+ * "Keep this trip open." The stale clock restarts; it does not stop. Twelve more
+ * hours of silence and the session still closes with its diff, because a hold
+ * that never expires is background tracking wearing a hat.
  */
+
 export async function holdSession(admin: any, scope: TripScope, via: string): Promise<Trip | null> {
   const open = await activeSession(admin, scope);
   if (!open.trip) return null;
