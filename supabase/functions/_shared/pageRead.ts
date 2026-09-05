@@ -73,8 +73,22 @@ export type PageReadResult =
 export function isPageFile(rec: { mime_type: string | null; filename: string }): boolean {
   const mime = (rec.mime_type ?? "").toLowerCase();
   if (mime.startsWith("image/")) return true;
+  if (isDocumentFile(rec)) return true;
   const ext = rec.filename.split(".").pop()?.toLowerCase() ?? "";
   return ["png", "jpg", "jpeg", "webp", "heic", "heif"].includes(ext);
+}
+
+/** Documents go through files-ingest (unpdf / mammoth), never through OCR. */
+export function isDocumentFile(rec: { mime_type: string | null; filename: string }): boolean {
+  const mime = (rec.mime_type ?? "").toLowerCase();
+  const ext = rec.filename.split(".").pop()?.toLowerCase() ?? "";
+  if (mime === "application/pdf" || ext === "pdf") return true;
+  if (
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    ext === "docx"
+  ) return true;
+  if (mime.startsWith("text/") || ["txt", "md"].includes(ext)) return true;
+  return false;
 }
 
 /**
