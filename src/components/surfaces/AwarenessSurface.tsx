@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/ui/state-views";
 import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
 import { TripPanel } from "@/components/awareness/TripPanel";
 import { useSituation } from "@/hooks/useSituation";
+import { useTodayDigest } from "@/hooks/useTodayDigest";
 import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
@@ -51,7 +52,8 @@ export function AwarenessSurface() {
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   /* Same read Today uses, so a meeting can't be quiet here and loud there. */
-  const { read: situation } = useSituation();
+  const digest = useTodayDigest();
+  const { read: situation } = useSituation(digest);
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   const [showPlaces, setShowPlaces] = useState(false);
