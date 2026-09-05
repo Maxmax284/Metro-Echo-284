@@ -376,58 +376,54 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
-      {/* The one obvious way in. Three plain destinations, nothing executes. */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <GotSomethingChooser />
-        <span className="text-[10.5px] leading-snug text-muted-foreground">
-          Park it, promise it, or have a step prepared — Vanta files it, never runs it.
-        </span>
-      </div>
-
-      {/* One lap on your own content, until you have done it once. */}
-      <FirstLapCard onNavigate={onNavigate} />
-
-      {/* Jump to a desk — navigation only, counts from reads Today already did. */}
-      <JumpStrip
-        onNavigate={onNavigate}
-        counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
-      />
-
-
-      {/* One companion across bodies. Quiet unless the hand-off is useful. */}
+      {/* A lap you can resume, quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
-      {/* The one read: what matters right now, before any per-source panel. */}
-      <SituationRead
-        read={situation.read}
-        loading={situation.loading}
-        onOpen={(line) => {
-          const target: Record<string, SurfaceKey> = {
-            overdue: "commitments",
-            due_soon: "commitments",
-            waiting_on_you: "actions",
-            meeting_soon: "schedule",
-            noticed: "awareness",
-            went_unusually_quiet: "projects",
-            matter_open: "sherlock",
-            matter_proposed: "sherlock",
-            arrived: "inbox",
-          };
-          onNavigate(target[line.kind] ?? "work");
-        }}
+
+      {/* Work already open elsewhere comes back before anything new. */}
+      <ResumeWorkSection onNavigate={onNavigate} />
+
+      {/* One proactive voice at a time, folded under the read instead of
+          competing with it. */}
+      <NoticedRow
+        signal={noticed}
+        onNavigate={onNavigate}
+        onDismiss={dismissNoticed}
+        onFollow={followNoticed}
       />
 
-      {/* Proof of life. It persists until reality changes. */}
-      <SourceHealthStrip sources={health.sources} loading={health.loading} />
+      {/* Supporting moves come after the answer: parking something, finding a
+          desk, the one-time first lap. Nothing here outranks the read. */}
+      {!secondaryQuiet ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <GotSomethingChooser />
+            <span className="text-[10.5px] leading-snug text-muted-foreground">
+              Park it, promise it, or have a step prepared — Vanta files it, never runs it.
+            </span>
+          </div>
 
-      <TodayDigestLine onNavigate={onNavigate as never} />
+          <FirstLapCard onNavigate={onNavigate} />
 
-      <AskVantaBar />
-
-
-      <QuickModes />
-
-
-      <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
+          {/* One navigation pattern: desks, the week's read, and the switches
+              worth flipping — one strip, not three separate rails. */}
+          <Section
+            title="Find it fast"
+            sectionKey="today.find"
+            icon={Sun}
+            defaultOpen={false}
+            summary="Desks, your week, and the switches."
+          >
+            <div className="space-y-3">
+              <JumpStrip
+                onNavigate={onNavigate}
+                counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
+              />
+              <TodayDigestLine onNavigate={onNavigate as never} />
+              <QuickModes />
+            </div>
+          </Section>
+        </>
+      ) : null}
 
       {loadingCritical ? (
         <LoadingState rows={2} label="Pulling together your day" />
