@@ -10,11 +10,7 @@ export type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
 
 // Openers vary so a daily reminder never reads like the same machine twice.
 // Facts (summary, due time, timezone) are never rewritten — only the opener.
-function pick(arr: string[]): string { return arr[Math.floor(Math.random() * arr.length)]; }
-const DUE_OPENERS = ["Heads up —", "Reminder —", "On you today —", "Don't forget —"];
-const OVERDUE_OPENERS = ["This one's late —", "Overdue —", "Still open, past due —", "Sitting late —"];
-function pickDue(): string { return pick(DUE_OPENERS); }
-function pickOverdue(): string { return pick(OVERDUE_OPENERS); }
+import { dueOpener as pickDue, overdueOpener as pickOverdue } from "./vantaIdentity.ts";
 
 export function composeReminder(
   summary: string,
