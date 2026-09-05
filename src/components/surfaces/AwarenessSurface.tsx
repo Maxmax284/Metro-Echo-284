@@ -401,8 +401,17 @@ export function AwarenessSurface() {
             elsewhereMeetings: situation?.elsewhereMeetings ?? [],
           });
           const never = neverReadLine(shelvesRead.neverRead);
+          const truth = placeTruth(place as PlaceLike | null);
+          const acc = accuracyMetres(place as PlaceLike | null);
           return (
             <div className="space-y-3">
+              {/* One honest sentence about where this read is being made from —
+                  never more precise than the fix earns. */}
+              <p className="text-[13.5px] leading-relaxed text-foreground/90">{truth.line}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {placeSourceBadge(truth)}
+                {acc ? ` · accurate to about ${acc < 1000 ? `${Math.round(acc)}m` : `${Math.round(acc / 1000)}km`}` : ""}
+              </p>
               <p className="text-[13.5px] leading-relaxed text-foreground/90">{shelvesRead.paragraph}</p>
               {tier.tier !== "unknown" && (
                 <p className="text-[11px] text-muted-foreground">
@@ -414,6 +423,9 @@ export function AwarenessSurface() {
             </div>
           );
         })()}
+
+        {/* The map sits under the words, never over them. */}
+        <AwarenessMap places={places as any} onMoved={loadList} />
 
         {/* Trips — deliberate start and end, and what you've covered. */}
         <TripPanel placeLabel={place?.label ?? null} />
