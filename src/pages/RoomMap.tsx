@@ -32,6 +32,11 @@ export default function RoomMapPage() {
         </div>
       </header>
 
+      {/* The two-layer name, said once. Never repeated elsewhere. */}
+      <p className="mb-3 text-[12px] text-muted-foreground">{BRAND_EXPLAINER}</p>
+
+
+
       <ul className="space-y-2.5">
         {ROOM_MAP.map((room) => {
           const Icon = ICON[room.key] ?? Sun;
