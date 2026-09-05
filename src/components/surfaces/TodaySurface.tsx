@@ -740,6 +740,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         dueToday={dueToday}
         upcoming={upcoming}
         events={allEvents}
+        onChanged={() => digest.refresh()}
       />
     </div>
   );
