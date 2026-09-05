@@ -713,7 +713,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </Button>
                 }
               >
-                {events.length === 0 ? (
+                {changedRows.length === 0 ? (
                   <EmptyState
                     title="Nothing recorded yet"
                     hint="Every save, approval and run leaves a receipt here."
@@ -721,7 +721,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   />
                 ) : (
                   <ul className="space-y-1.5">
-                    {events.map((e) => {
+                    {changedRows.map((e) => {
                       /* A count is not an answer: each line names the change and
                          the place it landed, and taps through to that place. */
                       const where = eventWhere(e.entity_type);
