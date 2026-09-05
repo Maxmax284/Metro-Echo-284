@@ -1,11 +1,20 @@
 // What Vanta can see — one honest list of the senses and feeds, built from the
-// consent switches and the recorded source health. No new toggles here: each
-// row says on or off, what it helps with, and — where there is a recorded
-// moment — when it last had something to say. The switches themselves live in
-// Settings and stay there.
-import { Eye, EyeOff } from "lucide-react";
+// consent switches and the recorded source health. Each row says on or off,
+// what it helps with, and — where there is a recorded moment — when it last
+// had something to say.
+//
+// Location is the row that used to lie: the room could read a place off a pin
+// while this list said "off". Now the row says both halves out loud — whether
+// live location is allowed, and what the room is actually working from — and
+// it offers the switch here instead of sending you hunting for it.
+import { Eye, EyeOff, SlidersHorizontal } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useSourceHealth } from "@/hooks/useSourceHealth";
+import { useAwareness } from "@/providers/AwarenessProvider";
+import { placeTruth, type PlaceLike } from "@/lib/placeTruth";
+import { Button } from "@/components/ui/button";
+import { vantaToast as toast } from "@/lib/vantaVoice";
 import type { SourceHealth } from "@/lib/sourceHealth";
 
 type Row = {
@@ -17,6 +26,8 @@ type Row = {
   helps: string;
   /** Evidence for the row, when something was actually recorded. */
   proof?: string | null;
+  /** Short state word replacing on/off when the plain words aren't enough. */
+  stateWord?: string;
 };
 
 function feedState(sources: SourceHealth[], key: string): boolean | null {
@@ -48,15 +59,42 @@ function statusLine(rows: Row[]): string {
 }
 
 export function WhatVantaSees({ className }: { className?: string }) {
-  const { prefs } = useUserPreferences();
+  const { prefs, update } = useUserPreferences();
   const { sources } = useSourceHealth();
+  const { place } = useAwareness();
+  const navigate = useNavigate();
   const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;
+
+  const locationAllowed = consent.location === true;
+  const truth = placeTruth((place ?? null) as PlaceLike | null);
+  const workingFrom = place
+    ? truth.setByYou
+      ? `Right now the room is working from a pin you placed${truth.name ? ` in ${truth.name}` : ""}.`
+      : `Right now the room is working from ${truth.name ?? place.label}${truth.age ? `, fixed ${truth.age}` : ""}.`
+    : "No place set, so the room has nothing to read from.";
+
+  /* Turning it on here does two things: records that you allow it, and asks the
+     phone for one fix so the switch means something immediately. */
+  const turnLocationOn = async () => {
+    await update({ sensor_consent: { ...consent, location: true } });
+    if (!navigator.geolocation) {
+      toast("Location is allowed now. This device won't share a fix, so set your place by hand.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      () => toast.success("Location is on. Tap Recenter and Vanta will use this spot."),
+      () => toast("Location is allowed in Vanta, but your phone still refused. Allow it for this site in your browser settings."),
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  };
 
   const rows: Row[] = [
     {
       label: "Location",
-      on: consent.location === true,
+      on: locationAllowed,
+      stateWord: locationAllowed ? "on" : place ? "off — using the place you set" : "off",
       helps: "Timing and travel context — city-level, never a live trail.",
+      proof: workingFrom,
     },
     {
       label: "Calendar",
@@ -106,19 +144,30 @@ export function WhatVantaSees({ className }: { className?: string }) {
               )}
               <div className="min-w-0">
                 <span className="text-[11.5px] font-medium">
-                  {r.label} — {r.unset ? "not set up yet" : r.on === null ? "by request" : r.on ? "on" : "off"}
+                  {r.label} — {r.stateWord ?? (r.unset ? "not set up yet" : r.on === null ? "by request" : r.on ? "on" : "off")}
                 </span>
                 <p className="text-[11px] leading-snug text-muted-foreground">{r.helps}</p>
                 {r.proof ? (
                   <p className="text-[10.5px] leading-snug text-muted-foreground/70">{r.proof}</p>
                 ) : null}
+                {r.label === "Location" && !locationAllowed ? (
+                  <Button size="sm" className="mt-1.5 h-9 text-[12px]" onClick={turnLocationOn}>
+                    Turn location on
+                  </Button>
+                ) : null}
               </div>
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-[10.5px] text-muted-foreground/70">
-          The switches live in Settings. This list only reports.
-        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 h-9 w-full gap-1.5 text-[12px]"
+          onClick={() => navigate("/settings/g/awareness")}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Change what Vanta may sense
+        </Button>
       </div>
     </section>
   );
