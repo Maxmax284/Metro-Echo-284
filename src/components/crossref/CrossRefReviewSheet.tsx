@@ -14,7 +14,7 @@ import { useScope } from "@/hooks/useScope";
 import { cn } from "@/lib/utils";
 import {
   loadCase, resolveConflict, setSourceAuthority, planArtifact, verifiedValue,
-  SHAPE_OPTIONS, STATE_LABEL,
+  SHAPE_OPTIONS, STATE_LABEL, recipeForCase, recipeGaps,
   type CaseBundle, type CaseConflictRow, type OutputShape,
 } from "@/lib/crossref";
 import { composeCaseArtifact } from "@/lib/crossrefArtifact";
@@ -190,6 +190,19 @@ export function CrossRefReviewSheet({
                 <div className="mt-1 text-[12px] text-muted-foreground">
                   {bundle.records.length} record{bundle.records.length === 1 ? "" : "s"} across {bundle.sources.length} sources.
                 </div>
+                <div className="mt-2 rounded-md border border-border/50 bg-muted/20 p-2">
+                  <div className="text-[11.5px] font-medium">
+                    Template: {recipeForCase(bundle).label}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {recipeForCase(bundle).blurb}
+                  </div>
+                  {recipeGaps(bundle).length > 0 && (
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      Not on the sources: {recipeGaps(bundle).map(fieldLabel).join(", ")}. Vanta leaves those blank.
+                    </div>
+                  )}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-[10.5px]">
                   <Badge variant="secondary">{bundle.matrix.counts.agrees} agree</Badge>
                   <Badge variant="outline">{bundle.matrix.counts.conflicts} disagree</Badge>
@@ -290,7 +303,12 @@ export function CrossRefReviewSheet({
                         shape === o.value ? "border-primary bg-primary/10" : "border-border/50 hover:bg-accent/40",
                       )}
                     >
-                      <div className="text-[12.5px] font-medium">{o.label}</div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-[12.5px] font-medium">{o.label}</div>
+                        {bundle.case.output_shape === o.value && (
+                          <Badge variant="secondary" className="text-[9.5px]">Suits this template</Badge>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground">{o.blurb}</div>
                     </button>
                   ))}
