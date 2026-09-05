@@ -34,7 +34,7 @@ import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { AwarenessMap } from "@/components/awareness/AwarenessMap";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
-import { distanceMeters } from "@/lib/trips";
+import { metersBetween } from "@/lib/trips";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -143,7 +143,7 @@ export function AwarenessSurface() {
           const g = (p.geo ?? {}) as any;
           if (!Number.isFinite(Number(g?.lat)) || !Number.isFinite(Number(g?.lon))) return false;
           return (
-            distanceMeters(
+            metersBetween(
               { lat: pos.coords.latitude, lon: pos.coords.longitude },
               { lat: Number(g.lat), lon: Number(g.lon) },
             ) <= 75
