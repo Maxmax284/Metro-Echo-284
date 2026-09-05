@@ -245,7 +245,7 @@ export const COMPANION_TOOLS: Tool[] = [
     id: "research-this",
     label: "Research this",
     icon: Search,
-    description: "Create a research object via SerpApi (rate-limited).",
+    description: "Look something up outside Vanta (rate-limited).",
     surfaces: ["*"],
     modes: ["advisor", "operator"],
     provider: "serpapi",
@@ -323,7 +323,7 @@ export function getToolAvailability(
         return { available: false, reason: "External APIs disabled in Control Room" };
       }
       if (tool.provider === "serpapi" && !c.serpapi_enabled) {
-        return { available: false, reason: "SerpApi paused in Control Room" };
+        return { available: false, reason: "Outside lookups are paused in Settings" };
       }
       if (tool.provider === "lovable-ai" && !c.gemini_enabled) {
         return { available: false, reason: "AI synthesis paused in Control Room" };

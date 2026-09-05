@@ -34,7 +34,7 @@ function savePinned(placeId: string, keys: string[]) {
 /**
  * AwarenessHUD — Stage 3.
  * Radar canvas (SVG sweep), source pings, top signals, and an
- * expanded drawer. Read-only on the canvas; refresh + owner SerpApi
+ * expanded drawer. Read-only on the canvas; refresh + owner outside-lookup
  * toggle preserved from MiniRadarStrip.
  */
 
@@ -194,7 +194,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
     return map;
   }, [sources]);
   const tierOrder: SourceTier[] = ["official", "local", "community", "web", "ai"];
-  // Street/community tier currently rides the SerpApi switch — when it's off, we surface that.
+  // Street/community tier rides the outside-lookup switch — when it's off, we surface that.
   const streetDisabled = !!controls && !controls.serpapi_enabled;
 
   // Build pings: snapshot sources + non-empty briefings + pinned (deduped by key)
@@ -663,7 +663,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   type="button"
                   disabled={off}
                   onClick={() => pickTier(t)}
-                  title={off ? `${meta.label} tier paused (SerpApi off)` : `${meta.hint} · tap to filter`}
+                  title={off ? `${meta.label} paused — outside lookups are off` : `${meta.hint} · tap to filter`}
                   className={cn(
                     "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 transition-opacity",
                     off ? "bg-muted/30 text-muted-foreground ring-border/60 line-through opacity-70 cursor-not-allowed" : meta.tone,
@@ -867,7 +867,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                           </div>
                         ) : (
                           <span className="text-[11.5px] italic text-muted-foreground">
-                            {off ? "Paused — SerpApi off" : "—"}
+                            {off ? "Paused — outside lookups off" : "—"}
                           </span>
                         )}
                         <div className="mt-0.5 text-[10.5px] text-muted-foreground">{meta.hint}</div>

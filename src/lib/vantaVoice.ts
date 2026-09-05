@@ -118,8 +118,8 @@ export const vantaSay = {
   // Source / scan state
   sourcePaused: (name: string) => `${name} paused.`,
   sourceResumed: (name: string) => `${name} back on.`,
-  serpapiPaused: () => "SerpApi paused.",
-  serpapiResumed: () => "SerpApi back on.",
+  serpapiPaused: () => "Outside lookups paused.",
+  serpapiResumed: () => "Outside lookups back on.",
   lockdown: () => "Lockdown engaged. All external APIs disabled.",
 
   // Research / Sherlock
