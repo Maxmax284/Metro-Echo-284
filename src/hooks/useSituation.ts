@@ -28,17 +28,13 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
 
     /* Meetings — only the next few hours matter for a situational read. */
     let meetings: Array<{ id: string; title: string; starts_at: string }> = [];
-    const cal = await applyScope(
-      supabase
-        .from("calendar_events")
-        .select("id, title, starts_at")
-        .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
-        .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(5) as never,
-    );
+    const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at"))
+      .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
+      .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(5);
     if (cal.error) unknownSources.push("calendar");
-    else meetings = ((cal.data ?? []) as Array<{ id: string; title: string | null; starts_at: string }>).map((e) => ({
+    else meetings = (cal.data ?? []).map((e) => ({
       id: e.id,
       title: e.title ?? "Untitled event",
       starts_at: e.starts_at,
@@ -46,18 +42,14 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
 
     /* Unfiled captures — what landed and is still waiting in Inbox. */
     let arrived: Array<{ id: string; label: string; at: string; via?: string | null }> = [];
-    const inbox = await applyScope(
-      supabase
-        .from("ingested_files")
-        .select("id, original_name, created_at, source")
-        .is("project_id", null)
-        .order("created_at", { ascending: false })
-        .limit(5) as never,
-    );
+    const inbox = await applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
+      .eq("review_status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(5);
     if (inbox.error) unknownSources.push("inbox");
-    else arrived = ((inbox.data ?? []) as ArrivedRow[]).map((f) => ({
+    else arrived = (inbox.data ?? []).map((f) => ({
       id: f.id,
-      label: f.original_name ?? "A capture",
+      label: f.filename || "A capture",
       at: f.created_at,
       via: f.source,
     }));
@@ -65,27 +57,28 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     /* Projects plus the cadence Vanta already learned for them. */
     let projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }> = [];
     const [projRes, cadRes] = await Promise.all([
-      applyScope(supabase.from("projects").select("id, title, updated_at").limit(40) as never),
+      applyScope(supabase.from("projects").select("id, title, updated_at")).limit(40),
       applyScope(
         supabase
           .from("object_cadence")
-          .select("object_type, object_id, window_days, samples, median_gap_days, last_event_at")
-          .eq("object_type", "project")
-          .limit(200) as never,
-      ),
+          .select("object_type, object_id, window_days, samples, median_gap_days, last_event_at"),
+      )
+        .eq("object_type", "project")
+        .limit(200),
     ]);
     if (!projRes.error) {
       const byId = new Map<string, Cadence | null>();
-      for (const row of (cadRes.data ?? []) as Array<Parameters<typeof cadenceFromRow>[0]>) {
-        if (row) byId.set(row.object_id, cadenceFromRow(row));
+      for (const row of cadRes.data ?? []) {
+        byId.set(row.object_id, cadenceFromRow(row));
       }
-      projects = ((projRes.data ?? []) as Array<{ id: string; title: string; updated_at: string }>).map((p) => ({
+      projects = (projRes.data ?? []).map((p) => ({
         id: p.id,
         title: p.title,
         lastEventAt: byId.get(p.id)?.lastAt ?? p.updated_at,
         cadence: byId.get(p.id) ?? null,
       }));
     }
+
 
     setRead(
       readSituation({
