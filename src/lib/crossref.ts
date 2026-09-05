@@ -4,6 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { applyScope, type ScopeContract } from "@/lib/scope";
 
 export * from "../../supabase/functions/_shared/crossref";
+export {
+  RECIPES, RECIPE_IDS, detectRecipe, recipeById, recipeExtractionHint,
+  missingRequired, pairRecords,
+  type Recipe, type RecipeId, type Pairing,
+} from "../../supabase/functions/_shared/crossrefRecipes";
+import { recipeById, missingRequired, type Recipe } from "../../supabase/functions/_shared/crossrefRecipes";
 import {
   buildMatrix, fieldsForShape, normalizeField, SHAPE_SPEC,
   type Certainty, type Matrix, type OutputShape, type SourceRole,
@@ -230,3 +236,13 @@ export const STATE_LABEL: Record<string, string> = {
   calculated: "Calculated",
   corrected: "You set this",
 };
+
+/** The template a case was read with. Stored on the case, never re-guessed. */
+export function recipeForCase(bundle: CaseBundle): Recipe {
+  return recipeById(bundle.case.style);
+}
+
+/** Required fields this template expects but the sources never showed. */
+export function recipeGaps(bundle: CaseBundle): string[] {
+  return missingRequired(recipeForCase(bundle), bundle.matrix.fields);
+}
