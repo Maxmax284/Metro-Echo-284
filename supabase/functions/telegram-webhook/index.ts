@@ -6,7 +6,7 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildActionRow } from "../_shared/actionStaging.ts";
-import { tgCall } from "../_shared/telegramApi.ts";
+import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
 import { buildWorkingContext } from "../_shared/workingContext.ts";
@@ -889,12 +889,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
 
-      const dl = await fetch(`${GATEWAY}/file/${filePath}`, {
-        headers: {
-          Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        },
-      });
+      const dl = await tgFetchFile(filePath);
       if (!dl.ok) {
         await admin.from("audit_log").insert({
           user_id: link.user_id, organization_id: routeOrgId,
