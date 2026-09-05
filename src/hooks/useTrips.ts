@@ -5,8 +5,8 @@
 // you in the background and it does not start a trip because you moved.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/providers/AuthProvider";
-import { useActiveScope } from "@/hooks/useActiveScope";
+import { useAuth } from "@/lib/auth";
+import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import {
   pathDistanceMeters,
   staleTripDiff,
@@ -34,7 +34,7 @@ function fixNow(): Promise<{ lat: number; lon: number; accuracy_m: number | null
 
 export function useTrips() {
   const { session } = useAuth();
-  const { organizationId } = useActiveScope();
+  const organizationId = useActiveOrgId();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [running, setRunning] = useState<Trip | null>(null);
   const [points, setPoints] = useState<TripPoint[]>([]);
