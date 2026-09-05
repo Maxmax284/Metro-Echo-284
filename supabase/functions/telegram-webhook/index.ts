@@ -5,6 +5,7 @@
 //   same tools as vanta-converse (capture_note / stage_action / add_commitment),
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { firstPassIntake } from "../_shared/fileIntake.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
@@ -980,7 +981,10 @@ Deno.serve(async (req) => {
         storage_path: storagePath,
         source: "telegram",
         status: "pending",
-        review_status: "new",
+        /* Same introduction an in-app upload gets: a detected type, a low
+           confidence (shape only, nothing read), and an Inbox review status.
+           This is what makes "Treat as document" reachable from a chat file. */
+        ...firstPassIntake({ filename: page.name, mime: page.mime, isVoice: page.isVoice === true, caption }),
         metadata: {
           page_photo: !page.isDoc,
           voice_note: page.isVoice === true,
