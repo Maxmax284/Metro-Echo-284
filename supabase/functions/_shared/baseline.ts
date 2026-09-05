@@ -105,7 +105,7 @@ export function unusual(
       verdict: "no_baseline_yet",
       observedGapDays: round1(observed),
       cadence: null,
-      line: `Last moved ${gapPhrase(observed)} ago. Not enough history yet to say what's normal here.`;
+      line: `Last moved ${gapPhrase(observed)} ago. Not enough history yet to say what's normal here.`,
     };
   }
 
