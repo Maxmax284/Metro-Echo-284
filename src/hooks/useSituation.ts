@@ -15,6 +15,7 @@ import type { AwarenessPlace } from "@/providers/AwarenessProvider";
 import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
+import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLane";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
@@ -55,34 +56,53 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
         .eq("review_status", "pending")
         .order("created_at", { ascending: false })
-        .limit(5),
+        .limit(12),
       applyScope(supabase.from("messages").select("id, content, created_at, metadata"))
         .eq("role", "user")
         .eq("metadata->>needs_review", "true")
         .order("created_at", { ascending: false })
-        .limit(5),
+        .limit(25),
     ]);
     if (inbox.error) unknownSources.push("inbox");
-    else arrived = (inbox.data ?? []).map((f) => ({
-      id: f.id,
-      label: f.filename || "A capture",
-      at: f.created_at,
-      via: f.source,
-    }));
-    if (!unrouted.error) {
-      for (const m of unrouted.data ?? []) {
-        const meta = (m.metadata ?? {}) as Record<string, unknown>;
-        const text = (m.content ?? "").replace(/\s+/g, " ").trim();
-        arrived.push({
-          id: m.id,
-          label: text.length > 70 ? `${text.slice(0, 69)}…` : text || "A message",
-          at: m.created_at,
-          via: typeof meta.source === "string" ? meta.source : null,
-        });
-      }
-      arrived.sort((a, b) => b.at.localeCompare(a.at));
-      arrived = arrived.slice(0, 5);
+
+    /* Everything that landed goes through one set of rules: the same copy twice
+       is one arrival, something a week old is not news, and only a few things
+       may ask for attention at once. What is held back keeps its reason. */
+    const candidates: Arrival[] = [];
+    for (const f of inbox.data ?? []) {
+      candidates.push({
+        id: f.id,
+        text: f.filename || "A capture",
+        at: f.created_at,
+        channel: f.source === "telegram" ? "telegram" : "upload",
+        where: f.source === "telegram" ? "Telegram" : null,
+        unfiled: true,
+        attachment: f.filename ?? null,
+      });
     }
+    for (const m of unrouted.data ?? []) {
+      const meta = (m.metadata ?? {}) as Record<string, unknown>;
+      const text = (m.content ?? "").replace(/\s+/g, " ").trim();
+      const src = typeof meta.source === "string" ? meta.source : null;
+      candidates.push({
+        id: m.id,
+        text: text || "A message",
+        at: m.created_at,
+        channel: src === "telegram" ? "telegram" : src === "email" ? "email" : "other",
+        where: src === "telegram" ? "Telegram" : src,
+        unfiled: true,
+      });
+    }
+    const lane = readMessageLane(candidates);
+    arrived = surfacedArrivals(lane).map((item) => {
+      const text = item.arrival.text;
+      return {
+        id: item.arrival.id,
+        label: text.length > 70 ? `${text.slice(0, 69)}…` : text,
+        at: item.arrival.at,
+        via: item.arrival.channel === "upload" ? "upload" : item.arrival.where ?? null,
+      };
+    });
 
     /* Projects plus the cadence Vanta already learned for them. */
     let projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }> = [];
