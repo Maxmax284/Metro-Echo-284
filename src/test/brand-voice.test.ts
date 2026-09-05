@@ -50,7 +50,7 @@ describe("notice styling", () => {
   });
 
   it("only seasons the first line", () => {
-    const out = styleNotice("A booking changed.\nOpen Echo to act on it.", ec(3));
+    const out = styleNotice("A booking changed.\nOpen Metro Echo to act on it.", ec(3));
     expect(out.split("\n")[1]).toBe("Open Metro Echo to act on it.");
     expect(out.split("\n")[0].startsWith("Look —")).toBe(true);
   });
