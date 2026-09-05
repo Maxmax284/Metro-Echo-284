@@ -69,6 +69,7 @@ import {
   type TgReplyMarkup,
   type VantaLinkKind,
 } from "../_shared/telegramReplies.ts";
+import { objectIntentFor, nextStepsLine, readSummaryLine } from "../_shared/objectIntent.ts";
 import {
   attachToProject,
   findProject,
@@ -872,11 +873,25 @@ Deno.serve(async (req) => {
           const { data: note } = await admin.from("notes").select("body").eq("id", read.noteId).maybeSingle();
           words = String(note?.body ?? "").trim();
         }
+        /* Same introduction a document gets in the app: what it looks like,
+           what came off it, then what can happen next. Words only — the
+           buttons below are offers, and none of them execute anything. */
+        const intent = objectIntentFor({
+          filename: page.name,
+          mime: page.mime,
+          detectedDocType: (fileRec as any)?.detected_doc_type ?? null,
+          confidence: (fileRec as any)?.confidence ?? null,
+        });
         reply = read.ok
-          ? words
-            ? `${words.slice(0, 900)}${words.length > 900 ? "…" : ""}\n\nThat's what's on it. Saved in your Inbox.`
-            : "Nothing readable came off it, so I didn't guess. It's saved in your Inbox."
-          : "Couldn't read it just now — it's saved, and the daily sweep will try again.";
+          ? [
+              intent.line,
+              "",
+              readSummaryLine(words, 900),
+              "",
+              "Saved in your Inbox. Nothing filed under a project yet.",
+              nextStepsLine(intent.kind),
+            ].join("\n")
+          : `${intent.line}\n\nCouldn't read it just now — it's saved, and the daily sweep will try again.`;
       } else {
         try {
           const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);
@@ -902,7 +917,7 @@ Deno.serve(async (req) => {
       }
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
-      const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
+      const suggestions = await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 2);
       await logTgMessage(admin, {
         user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
         direction: "out", text: reply, kind: "page_reply", sent_by: "vanta",
@@ -914,7 +929,7 @@ Deno.serve(async (req) => {
         disable_web_page_preview: true,
         ...(() => {
           const m = keyboard(
-            [suggest ? fileUnderButton(suggest.id, suggest.title, "file", fileRec.id) : null],
+            ...suggestions.map((p) => [fileUnderButton(p.id, p.title, "file", fileRec.id)]),
             [openButton("inbox")],
           );
           return m ? { reply_markup: m } : {};

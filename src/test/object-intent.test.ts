@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultOffersFor, kindForObject, objectIntentFor } from "@/lib/objectIntent";
+import { defaultOffersFor, kindForObject, nextStepsLine, objectIntentFor, readSummaryLine } from "@/lib/objectIntent";
 
 describe("object intent", () => {
   it("trusts the detected type first", () => {
@@ -32,5 +32,22 @@ describe("object intent", () => {
     expect(offers).toContain("total");
     expect(offers).not.toContain("send");
     expect(defaultOffersFor("contract")).toContain("Summarize it");
+  });
+});
+
+describe("object intent — next steps and read summary", () => {
+  it("says what can happen next in one plain sentence, with no promises", () => {
+    const line = nextStepsLine("receipt");
+    expect(line.startsWith("What can I do next?")).toBe(true);
+    expect(line).toContain("read the total");
+    expect(line).toContain("nothing runs on its own");
+    expect(line.toLowerCase()).not.toContain("send");
+  });
+
+  it("quotes a short read, trims a long one, and admits an empty one", () => {
+    expect(readSummaryLine("  Total  49.50 THB ")).toBe("Total 49.50 THB");
+    expect(readSummaryLine(null)).toBe("Nothing readable came off it, so I didn't guess.");
+    expect(readSummaryLine("x".repeat(50), 10).endsWith("…")).toBe(true);
+    expect(readSummaryLine("x".repeat(50), 10).length).toBe(10);
   });
 });

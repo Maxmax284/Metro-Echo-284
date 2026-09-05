@@ -32,8 +32,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const unknownSources: SituationSource[] = [];
 
     /* Meetings — only the next few hours matter for a situational read. */
-    let meetings: Array<{ id: string; title: string; starts_at: string }> = [];
-    const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at"))
+    let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null }> = [];
+    const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at, location"))
       .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
       .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
       .order("starts_at", { ascending: true })
@@ -43,6 +43,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       id: e.id,
       title: e.title ?? "Untitled event",
       starts_at: e.starts_at,
+      location: (e as any).location ?? null,
     }));
 
     /* Unfiled captures — what landed and is still waiting in Inbox. Two shapes

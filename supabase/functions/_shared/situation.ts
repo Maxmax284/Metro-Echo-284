@@ -90,6 +90,12 @@ export type SituationRead = {
    * you were standing when the read was made.
    */
   placeNote: string | null;
+  /**
+   * Meetings that are happening somewhere other than where you are. They never
+   * make the main read — Vanta doesn't nudge you about a room you're not near.
+   * The Aware room shows them on the "Around you" shelf instead.
+   */
+  elsewhereMeetings: Array<{ id: string; title: string; starts_at: string; location: string }>;
 };
 
 /**
@@ -130,7 +136,7 @@ export type SituationInput = {
   waitingOnYou: Array<{ id: string; title: string; updated_at: string }>;
   arrived: Array<{ id: string; label: string; at: string; via?: string | null }>;
   noticed: Array<{ id: string; title: string; reason: string; at: string }> ;
-  meetings: Array<{ id: string; title: string; starts_at: string }>;
+  meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null }>;
   /** Projects with their stored cadence, for the "different from usual" read. */
   projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }>;
   /**
@@ -252,10 +258,20 @@ export function readSituation(input: SituationInput): SituationRead {
     });
   }
 
-  const soonMeeting = input.meetings.find((m) => {
+  /* A meeting only earns the main read when it's where you are — or when Vanta
+     has no idea where you are. A meeting with a named location that clearly
+     isn't your resolved place is set aside for the "Around you" shelf. Place
+     never invents or hides a fact; it only decides which shelf carries it. */
+  const placeForMeetings = placeSpeaks(input.place, 1, now) ? input.place! : null;
+  const soonWindow = input.meetings.filter((m) => {
     const h = hoursUntil(m.starts_at, now);
     return h >= -0.25 && h <= 3;
   });
+  const elsewhereMeetings = soonWindow
+    .filter((m) => meetingIsElsewhere(m.location, placeForMeetings))
+    .map((m) => ({ id: m.id, title: m.title, starts_at: m.starts_at, location: String(m.location ?? "").trim() }));
+  const elsewhereIds = new Set(elsewhereMeetings.map((m) => m.id));
+  const soonMeeting = soonWindow.find((m) => !elsewhereIds.has(m.id));
   if (soonMeeting) {
     const h = hoursUntil(soonMeeting.starts_at, now);
     push({
@@ -421,7 +437,28 @@ export function readSituation(input: SituationInput): SituationRead {
     quietSources,
     unknownSources: unknown,
     placeNote: speaks ? placeNoteFor(input.place!) : null,
+    elsewhereMeetings,
   };
+}
+
+/**
+ * True when a meeting's own location clearly isn't the place you're standing in.
+ * Unknown location, or unknown place, both read as "can't tell" — and Vanta
+ * keeps the meeting in the main read rather than quietly demoting it.
+ */
+export function meetingIsElsewhere(
+  location: string | null | undefined,
+  place: SituationPlace | null,
+): boolean {
+  const loc = (location ?? "").trim().toLowerCase();
+  if (!loc || !place) return false;
+  // A link or a dial-in is nowhere in particular — it travels with you.
+  if (/^(https?:|zoom|meet\.|teams|google meet|phone|call)/.test(loc)) return false;
+  const names = [place.savedPlace, place.where]
+    .map((n) => (n ?? "").trim().toLowerCase())
+    .filter(Boolean);
+  if (names.length === 0) return false;
+  return !names.some((n) => loc.includes(n) || n.includes(loc));
 }
 
 /** "Read from Bangkok." — where you stood, never a claim about distance. */
