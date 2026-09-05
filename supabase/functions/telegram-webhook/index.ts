@@ -72,6 +72,11 @@ import {
 import { objectIntentFor, nextStepsLine, readSummaryLine } from "../_shared/objectIntent.ts";
 import { looksLikeCapture } from "../_shared/messageLane.ts";
 import {
+  capabilityAnswer,
+  matchCapabilityQuestion,
+  type SenseRow,
+} from "../_shared/capabilityStatus.ts";
+import {
   attachToProject,
   findProject,
   listProjects,
@@ -351,21 +356,43 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
 
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
-  });
-  if (!r.ok) throw new Error(`ai gateway ${r.status}`);
-  const j = await r.json();
-  const choice = j.choices?.[0]?.message;
-  let reply = choice?.content?.trim() ?? "";
+  /* "What can you see?" is answered from what is actually switched on and
+     actually connected — never from the model's guess. It is a read: nothing
+     is captured, routed or executed. */
   const intents: string[] = [];
   let detectedType: string | null = null;
   let routedTo: string | null = null;
   let readOnly = false;
   let linkKind: VantaLinkKind | null = null;
   let commitmentId: string | null = null;
+  let reply = "";
+
+  if (matchCapabilityQuestion(text)) {
+    const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;
+    const [{ count: feedCount }, { count: linkCount }] = await Promise.all([
+      sb.from("calendar_feeds").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      sb.from("telegram_chat_links").select("user_id", { count: "exact", head: true }).eq("user_id", userId),
+    ]);
+    const rows: SenseRow[] = [
+      { key: "location", label: "Where you are", on: consent.location === true, helps: "so your day reads for the place you're in" },
+      { key: "calendar", label: "Your calendar", on: (feedCount ?? 0) > 0, helps: "so meetings show up in your day" },
+      { key: "telegram", label: "Messages here", on: (linkCount ?? 0) > 0, helps: "so anything you send lands in Vanta" },
+      { key: "motion", label: "Movement and trips", on: consent.motion === true, helps: "so travel time gets measured, not guessed" },
+      { key: "wearable", label: "Wearable readings", on: consent.wearable === true, helps: "so a rough night can soften the day" },
+    ];
+    reply = capabilityAnswer(rows);
+    readOnly = true;
+  }
+
+  const r = readOnly ? null : await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
+  });
+  if (r && !r.ok) throw new Error(`ai gateway ${r.status}`);
+  const j = r ? await r.json() : null;
+  const choice = j?.choices?.[0]?.message;
+  if (!reply) reply = choice?.content?.trim() ?? "";
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
