@@ -10,6 +10,8 @@
 // drop uncertainty to sound tidier.
 //
 // Pure module — no IO, no Deno APIs, safe to mirror into the client.
+import type { Verbosity } from "./awareness/compress.ts";
+import type { CommunicationChannel } from "./awareness/deliver.ts";
 
 export type VantaBody = "desk" | "phone" | "telegram" | "wrist" | "spoken";
 
@@ -163,4 +165,41 @@ export function depthAgrees(full: string, shorter: string): boolean {
     s.toLowerCase().replace(/…/g, " ").split(/[^a-z0-9']+/).filter((w) => w.length > 3);
   const known = new Set(words(full));
   return words(shorter).every((w) => known.has(w));
+}
+
+/**
+ * The one bridge between the semantic depth model (bodies) and the renderer
+ * that actually drops sentences (awareness/compress.ts verbosity). Anything
+ * that needs to know "how much do I say here" asks for a body and comes here;
+ * nobody picks a verbosity by hand.
+ */
+export const VERBOSITY_FOR_BODY: Record<VantaBody, Verbosity> = {
+  desk: "rich",
+  phone: "brief",
+  telegram: "brief",
+  wrist: "signal",
+  spoken: "spoken",
+};
+
+export function verbosityForBody(body: VantaBody): Verbosity {
+  return VERBOSITY_FOR_BODY[body];
+}
+
+/** Which body a delivery channel speaks through. */
+export function bodyForChannel(channel: CommunicationChannel | string): VantaBody {
+  switch (channel) {
+    case "today":
+    case "silent":
+      return "desk";
+    case "messaging":
+      return "telegram";
+    case "phone":
+      return "phone";
+    case "wearable":
+      return "wrist";
+    case "voice":
+      return "spoken";
+    default:
+      return "desk";
+  }
 }
