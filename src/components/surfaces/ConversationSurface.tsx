@@ -353,6 +353,9 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     stagedUpload.stage(files);
   };
 
+  // The deliberate camera seam. Closed until the user opens it.
+  const [looking, setLooking] = useState(false);
+
   // Slash: dispatch a registry tool by id
   const handleSlashPick = (toolId: string) => {
     const tool = COMPANION_TOOLS.find((t) => t.id === toolId);
