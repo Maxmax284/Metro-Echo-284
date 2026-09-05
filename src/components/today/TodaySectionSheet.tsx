@@ -53,25 +53,36 @@ function DrillRow({
   meta,
   tone,
   onClick,
+  trailing,
 }: {
   label: string;
   meta?: string;
   tone?: "warn";
   onClick?: () => void;
+  /* Rows that can be resolved here carry their own controls; those controls
+     always stop for a consequence preview before anything is written. */
+  trailing?: React.ReactNode;
 }) {
-  const Tag = onClick ? "button" : "div";
+  const clickable = onClick && !trailing;
+  const Tag = clickable ? "button" : "div";
   return (
     <Tag
-      onClick={onClick}
+      onClick={clickable ? onClick : undefined}
       className={cn(
         "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left",
-        onClick && "transition-colors hover:border-primary/40",
+        clickable && "transition-colors hover:border-primary/40",
         tone === "warn" && "border-warn/40",
       )}
     >
-      <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
+      {trailing && onClick ? (
+        <button onClick={onClick} className="min-w-0 flex-1 text-left text-xs leading-snug text-foreground/90">
+          {label}
+        </button>
+      ) : (
+        <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
+      )}
       {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
-      {onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+      {trailing ?? (onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null)}
     </Tag>
   );
 }
