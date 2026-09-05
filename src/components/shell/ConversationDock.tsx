@@ -1,6 +1,7 @@
 import {
   ArrowUp,
   Camera,
+  Eye,
   FileText,
   Image as ImageIcon,
   Loader2,
