@@ -9,7 +9,6 @@ import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { NoticedRow } from "@/components/today/NoticedRow";
-import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
@@ -157,6 +156,59 @@ function Row({
   );
 }
 
+
+/** Gap line between two calendar entries, in plain words. */
+function gapLine(mins: number): string {
+  if (mins < 60) return `${mins} min clear`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m clear` : `${h}h clear`;
+}
+
+/** The next couple of calendar entries, folded into What's next. Reads only. */
+function AgendaInNext({ onOpenWeek }: { onOpenWeek?: () => void }) {
+  const { events, loading } = useAgenda({ days: 2 });
+  if (loading || events.length === 0) return null;
+  const shown = events.slice(0, 3);
+  const more = events.length - shown.length;
+  return (
+    <div className="mt-2 border-t border-border/40 pt-2.5">
+      <div className="mb-1.5 flex items-center gap-2">
+        <MachineLabel className="text-foreground/60">On your day</MachineLabel>
+        {onOpenWeek ? (
+          <button
+            type="button"
+            onClick={onOpenWeek}
+            className={cn("ml-auto min-h-[36px] text-[11px] text-primary hover:underline", MOTION_FOCUS)}
+          >
+            The week
+          </button>
+        ) : null}
+      </div>
+      <div className="space-y-1.5">
+        {shown.map((e, i) => {
+          const next = shown[i + 1];
+          const gap = next ? gapMinutes(e, next) : null;
+          return (
+            <div key={e.id} className="space-y-1.5">
+              <AgendaRow event={e} showFiling={false} />
+              {gap ? (
+                <div className="flex items-center gap-2 pl-3">
+                  <span className="h-3 w-px bg-border/60" />
+                  <MachineText className="text-[10px] text-muted-foreground">{gapLine(gap)}</MachineText>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+        <p className="pt-1 text-[11px] text-muted-foreground">
+          {more > 0 ? <><MachineText>{more}</MachineText> more on the calendar. </> : null}
+          Reading only — nothing here becomes a task on its own.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * TodaySurface — the front door. It answers what matters now, what's next, what
