@@ -49,6 +49,7 @@ import {
   IDENTITY_ANSWERS,
 } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shared/brandVoice.ts";
+import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
@@ -341,7 +342,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       : "routine";
   const brandBlock = brandVoiceDirective(bv, ctx);
 
-  const sys = [SYSTEM, brandBlock, timeBlock, correctionsBlock, fieldNotesBlock]
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), timeBlock, correctionsBlock, fieldNotesBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
