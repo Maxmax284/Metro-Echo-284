@@ -5,10 +5,11 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
-import { AgendaStrip } from "@/components/today/AgendaStrip";
+import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
+import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { NoticedRow } from "@/components/today/NoticedRow";
-import { LiveBulletin } from "@/components/today/LiveBulletin";
+import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
