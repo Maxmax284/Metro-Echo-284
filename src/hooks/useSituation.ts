@@ -63,7 +63,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     }> = [];
     const [inbox, unrouted] = await Promise.all([
       applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
-        .eq("review_status", "pending")
+        .in("review_status", ["new", "needs_review", "suggested"])
         .order("created_at", { ascending: false })
         .limit(12),
       applyScope(supabase.from("messages").select("id, content, created_at, metadata"))
