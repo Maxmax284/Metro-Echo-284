@@ -223,6 +223,18 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     });
   }
 
+  /* Meetings happening somewhere you aren't. Today deliberately stays quiet
+     about these, so this is the one place they're said — as a where-it-is note,
+     never as a nudge, and never with a claim about how far away it is. */
+  for (const m of input.elsewhereMeetings ?? []) {
+    around.push({
+      key: `meeting:${m.id}`,
+      text: `${m.title} is at ${m.location} — not where you are.`,
+      detail: "Read from a calendar you connected. Today leaves it alone because you're somewhere else.",
+      at: m.starts_at,
+    });
+  }
+
   const byNewest = (a: ShelfLine, b: ShelfLine) =>
     new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
   around.sort(byNewest);
@@ -244,7 +256,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "around",
       label: SHELF_LABEL.around,
       lines: around.slice(0, 3),
-      quiet: "Nothing read about this place yet. Scan, and getting around, paying and local habits land here.",
+      quiet: "Nothing read about this place yet. Scan, and getting around, paying, local habits and meetings held elsewhere land here.",
     },
     {
       key: "changed",
