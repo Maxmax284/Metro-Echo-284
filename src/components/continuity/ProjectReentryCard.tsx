@@ -4,6 +4,8 @@
 // open — all from recorded activity. It never runs anything.
 import { useState } from "react";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { WhySurfaced } from "@/components/ui/why-surfaced";
+import { whyFor } from "@/lib/whySurfaced";
 import { Button } from "@/components/ui/button";
 import { MOTION_HOVER_LIFT, MOTION_PRESS } from "@/lib/motion";
 import { MoreHorizontal, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
@@ -46,6 +48,17 @@ export function ProjectReentryCard({
   const where = continuityName(c);
   const [briefOpen, setBriefOpen] = useState(false);
   const brief = catchUpSummary(c, changes);
+  /* Resurfacing explains itself: why it came back, from what, how fresh. */
+  const why = whyFor({
+    source: "Your own activity on this project",
+    whatChanged: changes.length > 0 ? `Since you were last here — ${changes.join("; ")}.` : "Nothing new since you were last here.",
+    reason: c.reason
+      ? `${REASON_LABEL[c.reason]}${c.anchorConfidence === "inferred" ? ", read from records rather than a visit" : ""}.`
+      : "You left this open and it is still the nearest thing to hand.",
+    at: c.lastActivityAt,
+    whyItMatters: "Picking it up here saves you finding your place again.",
+    ifIgnored: "Nothing changes. It stays where you left it.",
+  });
 
 
   return (
@@ -65,6 +78,8 @@ export function ProjectReentryCard({
             </span>
           </div>
           <p className="mt-1.5 text-[11.5px] leading-snug text-foreground/80">{c.summary}</p>
+
+          <WhySurfaced why={why} className="mt-1" label="Why this came back?" />
 
           {changes.length > 0 ? (
             <p className="mt-1 text-[11px] text-muted-foreground">Since your last snapshot — {changes.join("; ")}.</p>
