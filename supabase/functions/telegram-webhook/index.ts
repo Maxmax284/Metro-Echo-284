@@ -5,6 +5,7 @@
 //   same tools as vanta-converse (capture_note / stage_action / add_commitment),
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildActionRow } from "../_shared/actionStaging.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
