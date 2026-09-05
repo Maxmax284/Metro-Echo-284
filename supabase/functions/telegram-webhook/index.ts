@@ -823,18 +823,49 @@ Deno.serve(async (req) => {
         payload: { source: "telegram", destination: "files", ingested_file_id: fileRec.id, kind: "page" },
       });
 
-      let read: PageReadResult;
-      try {
-        read = await readPageFile(admin, fileRec as any);
-      } catch {
-        read = { ok: false, reason: "reading is paused" };
-      }
+      /* The answer belongs in the thread the question was asked in. A caption
+         is a question, so Vanta looks at the picture and says what it sees
+         here; the Inbox line is a footnote, not the reply. Only a "read this"
+         caption goes down the text lane, and even then the words come back. */
+      const wantIntent = intentFromCaption(caption);
+      let reply: string;
 
-      const reply = read.ok
-        ? read.chars > 0
-          ? `Read that page — ${read.chars.toLocaleString()} characters. It's in your Inbox as a draft, waiting on you.`
-          : "Filed that page. Nothing readable came off it, so I didn't guess."
-        : "Stored that page. I couldn't read it just now — the daily sweep will try again, and it's already in your Inbox.";
+      if (wantIntent === "text") {
+        let read: PageReadResult;
+        try {
+          read = await readPageFile(admin, fileRec as any);
+        } catch {
+          read = { ok: false, reason: "reading is paused" };
+        }
+        const words = read.ok ? (read.text ?? "").trim() : "";
+        reply = read.ok
+          ? words
+            ? `${words.slice(0, 900)}${words.length > 900 ? "…" : ""}\n\nThat's what's on it. Saved in your Inbox.`
+            : "Nothing readable came off it, so I didn't guess. It's saved in your Inbox."
+          : "Couldn't read it just now — it's saved, and the daily sweep will try again.";
+      } else {
+        try {
+          const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);
+          const said = fitToBody(look.answer, "telegram");
+          reply = said
+            ? `${said}\n\nSaved in your Inbox. Nothing filed under a project yet.`
+            : "I looked, and I couldn't make anything of it. It's saved in your Inbox.";
+          await admin.from("audit_log").insert({
+            user_id: link.user_id, organization_id: routeOrgId,
+            entity_type: "ingested_file", entity_id: fileRec.id, event: "image.looked",
+            payload: { source: "telegram", intent: wantIntent, uncertain: look.uncertain },
+          });
+          await admin.from("ingested_files").update({
+            metadata: {
+              ...(fileRec.metadata as Record<string, unknown> ?? {}),
+              looks: [{ intent: wantIntent, answer: look.answer.slice(0, 2000), at: new Date().toISOString() }],
+            },
+          }).eq("id", fileRec.id);
+        } catch (e) {
+          console.error("[vanta] telegram look failed:", e);
+          reply = "Didn't run. I couldn't look at that picture just now. Nothing else changed — it's saved in your Inbox.";
+        }
+      }
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
       const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
