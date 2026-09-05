@@ -41,12 +41,22 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       starts_at: e.starts_at,
     }));
 
-    /* Unfiled captures — what landed and is still waiting in Inbox. */
+    /* Unfiled captures — what landed and is still waiting in Inbox. Two shapes
+       land there: files and pages, and messages that arrived from a channel
+       (Telegram, email) that Vanta could not route on its own. Both are things
+       waiting on a person, so both count here. */
     let arrived: Array<{ id: string; label: string; at: string; via?: string | null }> = [];
-    const inbox = await applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
-      .eq("review_status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(5);
+    const [inbox, unrouted] = await Promise.all([
+      applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
+        .eq("review_status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(5),
+      applyScope(supabase.from("messages").select("id, content, created_at, metadata"))
+        .eq("role", "user")
+        .eq("metadata->>needs_review", "true")
+        .order("created_at", { ascending: false })
+        .limit(5),
+    ]);
     if (inbox.error) unknownSources.push("inbox");
     else arrived = (inbox.data ?? []).map((f) => ({
       id: f.id,
@@ -54,6 +64,20 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       at: f.created_at,
       via: f.source,
     }));
+    if (!unrouted.error) {
+      for (const m of unrouted.data ?? []) {
+        const meta = (m.metadata ?? {}) as Record<string, unknown>;
+        const text = (m.content ?? "").replace(/\s+/g, " ").trim();
+        arrived.push({
+          id: m.id,
+          label: text.length > 70 ? `${text.slice(0, 69)}…` : text || "A message",
+          at: m.created_at,
+          via: typeof meta.source === "string" ? meta.source : null,
+        });
+      }
+      arrived.sort((a, b) => b.at.localeCompare(a.at));
+      arrived = arrived.slice(0, 5);
+    }
 
     /* Projects plus the cadence Vanta already learned for them. */
     let projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }> = [];
