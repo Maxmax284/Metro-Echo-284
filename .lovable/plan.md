@@ -1,139 +1,148 @@
-# Vanta: The Street Audit (no code touched)
+# Metro Echo / Echo — field companion audit (no code touched)
 
-Everything below came from reading the actual repo. Where a file is named, the plain-English meaning follows it.
+Everything below was read out of the current codebase. Where I couldn't confirm something, I say so.
 
-## 1. Where we really are
+## 1. Naming: how much is actually left
 
-**Genuinely strong:**
-- The shared brain pattern works. `src/lib/situation.ts`, `whySurfaced.ts`, `messageLane.ts`, `baseline.ts`, `arrivalRead.ts` are all one-line re-exports of the server versions — meaning Today, the Aware room, and Telegram literally run the same sentence-making code. That's the rare thing most products never get right.
-- The awareness pipeline (`_shared/awareness/evaluate.ts`) is a clean pure function: signal → relevance → urgency → suppression → bundling → at most one nudge. Real architecture, testable, no I/O smuggled in.
-- Approval discipline holds where it counts. Only `actions-transition` and `actions-execute` move a thing from staged → approved → executed. One door, one bouncer.
-- 66 test files. That's not decoration, that's insurance.
+The rename already happened. There are **zero** user-facing "Vanta" / "Vanta X" strings left in shipped copy — the sweep is done and `brand.ts` (one small file that owns the two names) is the single owner. What's still sitting there is internal plumbing plus a short list of real leftovers.
 
-**Half-built but looks finished:**
-- Four rooms is the law, but the app has **eight extra full-page routes** outside it: `/watch`, `/motion`, `/glance`, `/wearables`, `/wearable-loop`, `/physical-loop`, `/how`, `/awareness/location`. Each one is a room wearing a fake mustache. Settings links out to four of them.
-- Ten "advanced desks" (`inbox`, `memory`, `commitments`, `actions`, `schedule`, `briefs`, `projects`, `sherlock`, `awareness`, `command`) still mount full surfaces. `CommandCenterSurface` is 807 lines of a room that isn't in the doctrine anymore.
-- Telegram never creates a conversation row. `telegram-webhook/index.ts:298` grabs your most recent existing thread; if you have none, `:443` silently drops the message from history. A Telegram-first user has amnesia and nobody told them.
+Safe to clean now (user can see or would notice these):
+- `WhatVantaSees.tsx`, `InstallVantaSection.tsx`, `HowVantaWorksSection.tsx` — filenames only, copy already reads Echo. Rename is cosmetic and low risk.
+- Fake email address `…@inbound.vanta` shown in the Inbox card and first-run card. That's shown to a human as an address to forward mail to — either make it real or stop printing it.
+- Geocoder outbound `User-Agent: VantaMindfulAI/1.0` and the `vantav2.lovable.app` URL baked into it — outside services see this.
+- Push notification tag `"vanta"` in `public/sw.js`.
+- Model-facing prompt strings `ask_vanta` used as a route name in the awareness brief prompt and snapshot routes. Not visible, but it teaches the model the old name.
 
-**Duplicated:**
-- **Three** competing "how much do I say" systems, each with a comment claiming to be the only one: `_shared/responseDepth.ts` (desk/phone/telegram/wrist/spoken), `_shared/awareness/compress.ts` (rich/brief/signal/spoken/cue), `src/lib/deviceCompression.ts` (fyi/meaningful/needs_you/critical). Three vocabularies for one idea.
-- **Nine** places that create an action row by hand. No shared helper.
-- **Two** Overpass/geocode implementations (`awareness-nearby-places`, `awareness-geocode`) with different cache grids — 5km in one, 110m in the other.
-- `workingContext.ts` exists twice, hand-copied, magic numbers and all (the 12% tie margin lives in two files).
+Leave alone on purpose (renaming buys nothing and can break live traffic):
+- `vanta_*` database columns, `X-Vanta-*` signed webhook headers (outside platforms sign against these), the `vanta-converse` function name, `vanta-*` CSS classes, `vantaVoice` / `vantaIdentity` / `vantaSay` module names, and `localStorage` keys like `vanta.skin` (renaming those silently wipes user settings).
 
-**Fragile:**
-- `src/lib/useSignalRoute.ts:132` writes `risk: "medium"` / `"low"`. The database only accepts `low_reversible | standard | high`. That insert is wrong today.
-- Six of nine action-insert sites don't attach `organization_id` (`Index.tsx:172`, `MemorySurface.tsx:191`, `SherlockOverlay.tsx:102,144`, `useSignalRoute.ts:126`, `CapturesView.tsx:384`). In a workspace, those actions quietly land as personal. That's the scope-isolation bug wearing new clothes.
-- 15+ edge functions hardcode the model string instead of using `_shared/aiGateway.ts`. Swapping providers means 15 edits.
-- Provider leaks into the UI: `useSystemControls.ts:48` says "Gemini / Lovable AI" and `awarenessPlainTalk.ts:119` prints "Gemini summary". Meanwhile `vantaIdentity.ts` swears Vanta isn't Gemini. Vanta's lying with one hand and confessing with the other.
-- `SherlockOverlay.tsx:65` toasts "Sherlock failed" — the codebase's own rule two files over says never lead with that word.
+**Rule to write down:** blind search/replace is the enemy here. Public copy = Metro Echo / Echo. Storage keys, headers, columns, function names, CSS = frozen legacy.
 
-## 2. Foundation work, ranked (before anything extravagant)
+## 2. Telegram: how far from "Echo in your pocket"
 
-1. **One depth system.** Pick `awareness/compress.ts`'s vocabulary, make the other two adapters over it. Until then, wrist/Telegram/SOS all invent their own brevity.
-2. **One action factory.** `stageAction(...)` on server + client. Fixes the enum bug, the scope bug, and the nine-copies problem in one move.
-3. **Scope enforcement, not scope convention.** Every insert goes through the factory or a `withScope` wrapper; add a test that fails when a scoped table gets a raw insert.
-4. **Telegram gets a real thread.** Create the conversation row; bind it to the channel link. No thread = no continuity = no companion.
-5. **One place module.** Server-side `_shared/place.ts` owning Overpass, geocode, cache grid, and the precision rules currently living only in `placeTruth.ts` on the client. Right now the server can write a place that claims precision the client would refuse to say out loud.
-6. **Route consolidation.** The eight orphan pages become drawers/desks inside Today/Work, or they die. This is the difference between "four rooms" and "four rooms plus a storage unit in Jersey."
-7. **One model config.** All edge functions read `MODELS` from `aiGateway.ts`. Scrub provider names from every user-facing string.
-8. **Capability router for Telegram.** Today only `vanta-converse` uses `_shared/orchestration/capabilityRouter.ts`; Telegram hand-rolls its own routing and has a *different tool list* (9 tools, only 4 shared by name). Two brains.
+Honest answer: it's a good bot with a real memory. It is **not** the same brain as the app yet. `telegram-webhook/index.ts` is a 1,066-line monolith that runs its own show.
 
-## 3. UI/UX: busy, hidden, technical, dead
+What is genuinely shared today:
+- Thread continuity: Telegram creates and reuses one row in the same `conversations` table Ask uses, per linked chat. Real win from the last pass.
+- Voice and depth: brand voice, response-depth directive, `fitToBody` compression, sensitive-content detection.
+- Action staging: it stages through `buildActionRow`, so nothing executes from chat. That law holds.
+- Reading files: OCR/text extraction goes through the shared `pageRead`/`lookAt`.
+- Capability status ("what can you see") reuses the shared reader.
 
-- **Today** — 819 lines. The read leads now (good), but below it sit Find it fast, Needs attention, What's next, Security, What changed, Fresh in, plus body panel, source health strip, jump strip, quick modes, resume, bulletin, digest line. That's a newspaper, not a read. Ship one collapsed "Everything else" and let the read breathe.
-- **Aware** — 640 lines, and it's a desk under Work reached through a tiny compass tile in `WorkSurface.tsx:319`. The most ambitious system in the product is behind the least confident door.
-- **Ask** — solid. Widget and Ask are literally the same component (`ConversationSurface`), which is exactly right.
-- **Widget** — same component, but no compression difference. A floating dock should speak shorter than a full room; today it doesn't.
-- **Work** — desk grid is a launcher, not a room. Twelve tiles is a Start menu.
-- **Receipts** — 388 lines, honest, probably the least broken room. Leave it.
-- **Telegram** — correctly refuses in-chat approval ("Open Vanta to approve — nothing's been done yet"). That's the law working. But it can't say why it surfaced something the way the app can.
-- **Settings** — eight groups, four of which link out to standalone pages. Users don't know if they're in Settings or a new app.
-- **Dead scaffolding** — `CommandCenterSurface` (807 lines), `SherlockSurface` (479) vs the always-on overlay, `MemorySurface` vs `InboxSurface` fetching the same rows.
+What is still a second brain:
+- **No capability router.** Telegram has its own intent dispatcher (`applyIntentCore`) and its own model tool-loop, parallel to the one `vanta-converse` uses. Two places to teach every new command.
+- **No working context.** The app assembles a working-context block; Telegram's system prompt is static text. So Telegram doesn't know what project you're in.
+- **No "Why this?"** Provenance never gets attached to a Telegram reply.
+- **Message history is siloed.** The thread row is shared but the transcript lives in `telegram_messages`, not the shared `messages` history the in-app thread reads. So "start on Telegram, continue in the app" shows you a different conversation.
+- **File ingestion bypasses the schema module.** Telegram writes `ingested_files` with raw literals — no detected type, no confidence, no review status. App uploads go through `fileIntake.ts`. Same table, two grades of row.
+- **Three separate Telegram senders**: the webhook's own `tg()`, the `telegram-send` function, and a third POST inside `awareness-drift-sweep`.
+- Deep links exist but are shallow: an "Open" button per room, plus `?commitment=<id>`. No thread or session carried across.
 
-## 4. Presence and character
+Verdict: about 45% of the way. Thread + voice + staging are shared; brain, context, provenance, transcript and files are not.
 
-Already there: `motion.ts`, `motionPrefs.ts`, `skins.ts`, `haptics.ts`, `flip.ts`, room crossfade, `vantaIdentity.ts` with real refusal answers.
+## 3. Walk With Me — what already exists (building nothing)
 
-Push harder without going Vegas:
-- **Timing as character.** Vanta pausing half a beat before a hard line reads as thought. Free personality, zero pixels.
-- **Room temperature.** Each room already has a graffiti tag; give each one a distinct *quiet* state instead of a distinct decoration.
-- **Silence with posture.** "You're clear." should look composed, not empty. One line, generous space, no icon graveyard.
-- **Receipts as physical objects.** `ReceiptUnfold` is the best character device in the app. Reuse that grammar for consequence previews.
-- Don't: mascots, typing dots pretending to think, emoji moods, celebratory confetti, streaks.
+The trip spine is better than expected and is the right foundation.
 
-## 5. Ask + Widget + Telegram
+- `trips` + `trip_points` tables, RLS per user, FKs to `awareness_places` (saved places).
+- Deliberate start/end only. Nothing auto-starts. `closed_by` records `you | auto_stale | auto_gap`, and a trip left open >12h closes "at the last point it had" and says so.
+- Sampling only while a trip runs and the tab is visible, every 60s. That's foreground-only, by design.
+- `placeTruth.ts` is a real single precision policy: street/neighbourhood/city/area buckets from accuracy metres, 12h staleness, manual vs device vs saved source. This is the thing that stopped Today and Aware from arguing.
+- Snap-to-saved-place within 300m.
 
-Ask and the widget are one Vanta — same component, same thread store, same `vanta-converse`, same voice, same approval UI. Telegram is the cousin who shows up at Thanksgiving:
+What's missing before one shared session model:
+- **No session id.** Nothing in the code represents "an active thing you're in." The closest is a scope key + last-seen resume pointer. A trip is the only stateful span that exists — so a trip *is* the session, and that's fine, but the app needs to treat "open trip" as first-class state that Today, Aware, Telegram and the watch all read.
+- **Trips are client-only.** No edge function reads or writes them. Telegram cannot see or open a trip at all today.
+- **Approval never travels** (deliberately). So a Walk With Me started on Telegram can be observed everywhere, but any approval has to happen where you are.
 
-| | Ask/Widget | Telegram |
-|---|---|---|
-| Thread row | creates | never creates (`:298`, `:443`) |
-| Context | `_shared/workingContext.ts` | hand-built inline `:305-355` |
-| Routing | `capabilityRouter` | ad hoc |
-| Tools | 10 | 9, only 4 overlap |
-| Files | `files-ingest` | inline insert `:872` |
-| Identity guard | prompt only | deterministic `:284-294` |
-| Approval | in-chat | correctly refused |
+Conclusion: the trip spine **can** become the shared session, once it's readable server-side and Telegram can start/end/append to it.
 
-Same tables, same tone, different nervous system.
+## 4. Natural-language activation ("Echo, walk with me")
 
-## 6. Awareness: what it can honestly support
+Today, no. Those phrases would land in the webhook's ad-hoc dispatcher and get glued in as regex, which means Ask wouldn't understand them. `capabilityRouter.ts` is the right owner — it's pure decision logic, already understands "may prepare an action, never execute," and both surfaces could call it. Prerequisite: item 2's router unification. Do that first, add the phrases once, both surfaces learn them together.
 
-**Can:** honest place naming with precision and source, saved places, deliberate trips, arrivals lane with read/summary/next step, source health, deliberate image/page perception, one-nudge-at-a-time delivery.
+## 5. SOS / safety handoff — the only safe shape today
 
-**Cannot yet:** continuous position, geofenced triggers, nearby-truth at street precision, anything time-critical (nudges are polled, not pushed), server-side precision honesty.
+What the stack can honestly support later: **prepare, hand off, never execute.**
 
-**Dangerous to bolt on now:** SOS or Walk With Me on a stack with no server-side location truth and no realtime channel. A panic button that's polling is a lawsuit with a nice animation.
+Already there: staging that cannot be born approved; a consequence preview that always ends "Nothing has changed yet."; an explicit state machine (`proposed→staged→approved→executed→audited`) where high-risk requires typing a confirmation; rollback that only marks undone if the undo really worked; a receipt in `audit_log` for everything.
 
-## 7. Engine room: the spaghetti risks
+Not there, and don't pretend otherwise:
+- No `location_shares` table — no recipient, no expiry, no revoke.
+- No trusted-contact concept at all.
+- **Delivery only reaches you, never a third party.** The whole awareness pipeline is self-notification.
+- `LocationSetup` currently promises the user in plain words that Echo "never shares where you are." Any share feature has to renegotiate that promise honestly, in the UI, before a line of code.
 
-Ranked by how badly they'd split Vanta into multiple brains: depth vocabularies (3), action creation (9 sites), Telegram's parallel routing + tool list, place logic in two functions plus client-only rules, model strings in 15 functions, workingContext copied by hand, provider names in UI, "Sherlock" in an error toast, six unscoped action inserts, one invalid enum write.
+Safe first role for SOS, whenever we get there: recognise the language, show options, prepare a share action, deep-link into Metro Echo with it loaded and unapproved, and offer the device's own emergency dialer. Nothing autonomous.
 
-Notably clean and worth protecting: OCR and transcription have exactly one path each (`_shared/pageRead.ts`); the awareness pipeline has exactly one scorer.
+## 6. Field-mode sources: trust grades
 
-## 8. Where future capabilities plug in (map only)
+| Source | Exists? | Where it plugs in | Trust today |
+|---|---|---|---|
+| Device location | Yes, foreground one-shot + 60s sampling | `placeTruth` → Situation/Aware | Good, with precision honesty |
+| Saved places | Yes (`awareness_places`) | 300m snap | Good |
+| Trip history | Yes (`trips`/`trip_points`) | client only | Good but invisible to server/Telegram |
+| Calendar | Yes (read-only .ics + sync) | signals into Awareness | Decent; destination context is thin |
+| Telegram messages/files | Yes | arrivals lane | Works, low-grade metadata |
+| Source health | Yes (client `sourceHealth.ts`) | Aware / What Echo can see | Fine in app, absent on Telegram |
+| Battery/device state | Only device *class* sniffing, local-only | — | Not a real signal yet |
+| Wearable | Tables + sweep exist | glance layers | Thin data, don't lean on it |
+| Nearby lookups | Yes (`awareness-nearby-places`, plus a second geocoder) | Aware | Two implementations — that's roadmap item 4 |
 
-- Local reality / official context → a `SignalAdapter` on `_shared/awareness/signal.ts`, same as calendar.
-- Public-safety / incidents → same adapter seam, urgency `critical`, straight into `suppress`/`deliver`.
-- SOS / Walk With Me → an **action** with its own risk tier through `actions-transition`, plus trips as the session container. Not a new subsystem.
-- Help-finding / resource narrowing → `crossref.ts` (evidence + provenance + review gate). It already does exactly this shape.
-- Travel state → `VantaContextProvider` posture, alongside device class.
-- Contextual reminders by place → `awareness_places` + existing reminder path; the trigger is a signal, not a new engine.
-- Trusted circle → `organizations`/`organization_members` + `privacy_settings`. Never a new sharing model.
-- Physical-object comparison → `objectLife.ts` + `document_versions` versioning grammar.
-- Resilience mode → posture value + a delivery profile in `deliver.ts`.
-- Business layer over CampCore/CampStay → `external-platform-inbound` + `outbound_bridge_deliveries`. Capture in, drafts only, approval inside Vanta.
+## 7. Postures — one place already, plus one stray
 
-## 9. Do not touch yet
+`Posture` already exists with nine values (`at_desk, deep_work, meeting, training, driving, travel, moving, quiet, sleep`), a source (`manual/suggested/inferred/unknown`), persistence on the profile, an expiry, a noise-hold list, and rules about what a posture allows. This is the right home. "Walk With Me" and "high-stakes" are **postures, not new systems**.
 
-Realtime alerts, SOS, background location, public-safety feeds, trusted-circle sharing, transport disruption, voice-in-the-ear, a fifth room, any new dashboard. All of them need the same missing pieces: one depth system, server-side place truth, a push channel, and scope you can trust.
+The stray: `src/lib/operationalState.ts` is a second little state machine inferring `capturing/planning/executing/moving/ambient` from the current page. It's a duplicate concept with a hardcoded `movedRecently: false`. Retire it, don't extend it.
 
-## 10. Build order
+## 8. Cross-surface continuity — what's actually missing
 
-**Stage A — Stop the bleeding.** Action factory; enum fix; six unscoped inserts fixed; provider names out of UI; "Sherlock failed" toast reworded.
-*Accept:* one insert path, a test that fails on raw inserts into scoped tables, zero provider names in user-visible strings.
+Exists: shared `conversations` table; a resume notice keyed to scope + last-seen; carryable-vs-device-local context split; approval explicitly refusing to travel; receipts in one audit log; project continuity snapshots.
 
-**Stage B — One voice depth.** `awareness/compress.ts` becomes the base; `responseDepth` and `deviceCompression` become thin adapters.
-*Accept:* one enum for depth; wrist, Telegram, widget and desk all derive from it; snapshot tests per form.
+Missing for the "start on Telegram → finish anywhere" claim:
+1. One shared transcript (kill the `telegram_messages` silo as the source of truth).
+2. A first-class active-session/active-trip read that every surface consults.
+3. Deep links that carry a thread or session id, not just a room name.
+4. Server-side access to trips.
 
-**Stage C — Telegram becomes a twin.** Real conversation row, shared `workingContext`, shared capability router, one tool list, `files-ingest` for uploads.
-*Accept:* a Telegram-only user has full history; the same question gets the same answer in Ask and Telegram, different length only.
+Until 1–4 exist, "continue anywhere" is marketing.
 
-**Stage D — One place spine.** `_shared/place.ts`; precision rules enforced server-side; both geocoders merged with one cache grid.
-*Accept:* no place row can claim precision its fix doesn't support; one Overpass path.
+## 9. Proactive Telegram delivery
 
-**Stage E — Room consolidation.** Orphan routes folded into Today/Work; `CommandCenterSurface`, `SherlockSurface`, `MemorySurface` overlap retired; Today's blocks collapsed behind the read.
-*Accept:* four rooms and Settings, nothing else top-level; Today shows read + at most three blocks by default.
+Better shape than expected. `suppress.ts` already does resolution recheck, groundedness, confidence floor, dedupe key, 3-day cooldown, snooze, "not important," acknowledged, quiet hours, 21-day staleness, and a real attention budget that raises the bar as volume climbs — with one escalation exception when a thing gets worse. `deliver.ts` already models `messaging` as a channel gated by two hard consents (you asked for it AND a chat is linked), and the drift sweep already maps that to Telegram.
 
-Only after E do we talk about real-world awareness.
+So Telegram is *already* an eligible channel, not a second notification brain. The remaining mess: the actual Telegram POST is duplicated a third time inside `awareness-drift-sweep` instead of going through one sender. One sender, one place. That's the whole fix.
 
-## 11. Street verdict
+## 10. Do not build in the next pass
 
-Vanta is already a real thing — not a chatbot with a database strapped to it. The read, the one-nudge rule, the staged-approve-execute door, the receipts: that's a companion with a spine, and honestly most products never get there.
+Background/always-on location. Geofencing. Autonomous SOS or emergency calling. Silent location sharing. Trusted-contact execution. Realtime public-safety or crime-risk scoring. Always-on listening or voice-in-ear. A fifth room or any new dashboard. A second posture/state machine. Live location trails.
 
-But right now Vanta's got one heart and three mouths. Three depth systems, nine ways to make an action, Telegram running its own separate brain, and a location layer where the client tells the truth while the server shrugs. Plus eight pages living outside the four-room law like squatters in a building you swore was fully leased.
+## 11. Build order (short, consolidation first)
 
-If we throw Metro Echo on top of this today, here's what happens: SOS gets built on polling, place-based alerts get built on a geocoder that caches at 110m in one function and 5km in another, the safety copy gets its own fourth brevity vocabulary because nobody could pick from the three we have, and half the new actions land in the wrong workspace silently. Then some poor bastard hits the panic button and Vanta responds four minutes later with an eleven-line paragraph about a meeting.
+**A. Finish the name.** Kill the leftovers in §1 (fake email address, geocoder user-agent, `sw.js` tag, `ask_vanta` prompt token, three filenames). Freeze the legacy list in writing. Small.
 
-Stages A through E. It's boring, it's mostly deleting and merging, and it's the only version of this where the ambitious stuff doesn't collapse under itself.
+**B. One brain for Telegram.** Route the webhook through `capabilityRouter` + `workingContext`, retire `applyIntentCore`'s parallel dispatch, attach provenance, write the transcript into the shared `messages` history, and send Telegram files through `fileIntake`. Collapse the three senders into one. This is the big one and it unlocks everything else.
+
+**C. One place spine.** Merge the two geocode/nearby implementations behind `placeTruth`'s single precision policy (existing roadmap item 4).
+
+**D. Trips become the shared session.** Make trips readable/writable server-side, expose "open trip" as state every surface reads, let Telegram start/append/end. No new tables, no new vocabulary — this is the Walk With Me foundation without calling it that.
+
+**E. Posture, not moods.** Add `walk_with_me` and a high-stakes posture to the existing `Posture` type; retire `operationalState.ts`. Compression, interruption rules and tone read from the one place that already exists.
+
+**F. Safety groundwork only.** Recognise high-stakes language in the router, present options, prepare an unapproved action, deep-link in with context. `location_shares` + trusted contacts + the honest re-negotiation of the "never shares where you are" promise are prerequisites, not deliverables.
+
+**G. Then** the wider local-reality / travel / help-finding expansion, on top of one spine.
+
+## 12. Street verdict
+
+**What we've got:** a real spine, and a better one than most things claiming this. One action path that physically can't be born approved. A consequence preview that says "nothing has changed yet" and means it. A suppression pipeline with an actual attention budget, not vibes. A trip system that refuses to start itself and admits when it closed a trip late. A precision policy that says "neighbourhood" instead of lying about the street. That's grown-up work.
+
+**What's close:** Telegram. It remembers you, it stages instead of executing, it talks in the right voice. It's got the manners. It just doesn't have the brain — it's the cousin who shows up to the family thing knowing everybody's name and none of the story.
+
+**What'd be bullshit to claim today:** "Echo in your pocket." Not with two intent dispatchers, no working context on the phone, the transcript living in a separate table, three different ways to send a Telegram message, and a bot that literally cannot see your trips. And "continue anywhere" — you'd continue into a different conversation. Don't put that on a landing page yet.
+
+**Before Walk With Me is real:** the router unification, trips readable server-side, one shared transcript, and a session id in the deep link. Four things. That's it. Not thirty.
+
+**Safest SOS role for now:** the guy who hands you the loaded, unsigned paperwork and points at the door. Recognise the words, show the options, prepare the action, hand you into the app with everything loaded and nothing sent. Echo does not dial. Echo does not broadcast. And until there's a `location_shares` table with an expiry and a revoke button, Echo doesn't get to make promises about sharing at all — especially since the app currently tells the user out loud that it never will.
+
+**Naming:** the outside world says Metro Echo and Echo. The wiring keeps its old tattoos. Nobody renames a database column, a signed webhook header, or a localStorage key for aesthetics — that's how you wipe a user's settings and break traffic with somebody else's platform to win an argument nobody was having. Public copy, prompts, and anything an outside service reads: fix it. Everything under the floor: leave it.
