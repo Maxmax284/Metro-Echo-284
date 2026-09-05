@@ -14,7 +14,7 @@ import {
 export { VANTA_IDENTITY, IDENTITY_ANSWERS, matchIdentityQuestion, mentionsVendor };
 export type { IdentityQuestion };
 
-Don't lecture, don't apologise, don't explain the rule. One line, then back to the work.`;
+
 
 // ---------- Voice fragments --------------------------------------------------
 
