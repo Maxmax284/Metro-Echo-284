@@ -10,6 +10,7 @@ import { corsHeaders } from "../_shared/http.ts";
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { placeLookupHeaders } from "../_shared/placeSpine.ts";
 
 // ---------- Overpass cache (server-only) -----------------------------------
 const OVERPASS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -101,10 +102,20 @@ async function fetchOverpassSanity(lat: number, lon: number, admin: any): Promis
 
 
 
+/* Two ways in, one reverse-lookup behind them: a saved place (which gets its
+   row updated) or a bare pin the person is dragging (answered, never stored).
+   The map picker used to call Nominatim straight from the browser with its own
+   headers, which is how the app and the server ended up disagreeing about the
+   same coordinates. */
 const Body = z.object({
-  place_id: z.string().uuid(),
+  place_id: z.string().uuid().optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lon: z.number().min(-180).max(180).optional(),
   force: z.boolean().optional().default(false),
-});
+}).refine(
+  (b) => Boolean(b.place_id) || (typeof b.lat === "number" && typeof b.lon === "number"),
+  { message: "give either place_id or lat and lon" },
+);
 
 type Geo = { lat?: number; lon?: number; acc?: number; [k: string]: unknown };
 
@@ -157,27 +168,30 @@ Deno.serve(async (req: Request) => {
       });
     }
     const { place_id, force } = parsed.data;
+    const pinMode = !place_id;
 
-    const { data: place, error: pErr } = await supabase
+    const { data: place, error: pErr } = pinMode
+      ? { data: null, error: null }
+      : await supabase
       .from("awareness_places")
       .select("id, user_id, geo, country, region")
       .eq("id", place_id)
       .maybeSingle();
     if (pErr) throw pErr;
-    if (!place) {
+    if (!place && !pinMode) {
       return new Response(JSON.stringify({ error: "place not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (place.user_id !== user.id) {
+    if (place && place.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const geo = (place.geo ?? {}) as Geo;
-    const lat = Number(geo.lat);
-    const lon = Number(geo.lon);
+    const geo = (place?.geo ?? {}) as Geo;
+    const lat = pinMode ? Number(parsed.data.lat) : Number(geo.lat);
+    const lon = pinMode ? Number(parsed.data.lon) : Number(geo.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return new Response(JSON.stringify({ error: "no_coords", reason: "Place has no usable lat/lon" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -185,11 +199,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // Short-circuit: already geocoded recently, no force
-    if (!force && place.country && place.region && (geo as any).city) {
+    if (!pinMode && !force && place!.country && place!.region && (geo as any).city) {
       return new Response(JSON.stringify({
         skipped: true,
-        country: place.country,
-        region: place.region,
+        country: place!.country,
+        region: place!.region,
         city: (geo as any).city,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -202,10 +216,7 @@ Deno.serve(async (req: Request) => {
     let lookupSource = "nominatim";
     try {
       const r = await fetch(url, {
-        headers: {
-          "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)",
-          "Accept-Language": "en",
-        },
+        headers: placeLookupHeaders(),
       });
       if (!r.ok) {
         fetchError = `nominatim_${r.status}`;
@@ -224,7 +235,7 @@ Deno.serve(async (req: Request) => {
       try {
         const r2 = await fetch(
           `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&lang=en`,
-          { headers: { "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)" } },
+          { headers: placeLookupHeaders() },
         );
         if (r2.ok) {
           const j2 = await r2.json();
@@ -293,21 +304,25 @@ Deno.serve(async (req: Request) => {
       sanity_meta: sanity ?? (geo as any).sanity_meta ?? null,
     };
 
-    const { error: uErr } = await supabase
-      .from("awareness_places")
-      .update({
-        country: country ?? place.country,
-        region: region ?? place.region,
-        geo: nextGeo,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", place_id);
-    if (uErr) throw uErr;
+    /* A dragged pin is a question, not a saved place. Answer it and store
+       nothing. */
+    if (!pinMode) {
+      const { error: uErr } = await supabase
+        .from("awareness_places")
+        .update({
+          country: country ?? place!.country,
+          region: region ?? place!.region,
+          geo: nextGeo,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", place_id!);
+      if (uErr) throw uErr;
+    }
 
     return new Response(JSON.stringify({
       ok: true,
-      country: country ?? place.country,
-      region: region ?? place.region,
+      country: country ?? place?.country ?? null,
+      region: region ?? place?.region ?? null,
       city,
       country_code,
       display_name: nomi.display_name,

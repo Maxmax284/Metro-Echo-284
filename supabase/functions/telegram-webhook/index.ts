@@ -6,8 +6,11 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildActionRow } from "../_shared/actionStaging.ts";
+import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
+import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
+import { runFieldIntent } from "../_shared/fieldReply.ts";
+import { buildWorkingContext } from "../_shared/workingContext.ts";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 async function deriveSecret(key: string) {
   const data = new TextEncoder().encode(`telegram-webhook:${key}`);
@@ -22,16 +25,13 @@ function safeEqual(a: string | null, b: string) {
   return d === 0;
 }
 
+/* Every outbound Telegram call in the codebase goes through _shared/telegramApi
+   now. There used to be three separate raw POST implementations, which meant
+   three chances to get the auth headers, the error handling or the retry
+   behaviour subtly different. */
 async function tg(method: string, body: unknown) {
-  return await fetch(`${GATEWAY}/${method}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const res = await tgCall(method, body);
+  return { ok: res.ok, status: res.status, json: async () => res.body } as any;
 }
 
 
@@ -344,13 +344,48 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     };
   }
 
+  /* One router for every surface. Telegram no longer decides on its own what a
+     sentence means: the same plan Ask would get is computed here, and the field
+     phrases ("walk with me", "I'm here", "SOS") are recognized by the shared
+     recognizer rather than a Telegram-only regex. */
+  const plan = routeRequest({ text, scope: orgId ? "organization" : "personal", organization_id: orgId, verbosity: "brief" });
+
   // Telegram's own thread — same memory, same scope, just the pocket form of it.
   const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
+
+  if (plan.field) {
+    const handled = await runFieldIntent(sb, { userId, orgId }, plan.field, { via: "telegram" });
+    if (handled) {
+      const reply = `${handled.text}\n\nWhy this? ${handled.why}`;
+      /* A walk started in a chat still belongs to the one shared transcript, so
+         opening Ask afterwards shows the same conversation. */
+      if (conv?.id) {
+        await sb.from("messages").insert([
+          {
+            user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "user", content: text,
+            metadata: { source: "telegram", detected_type: plan.field.intent, field_matched: plan.field.matched },
+          },
+          {
+            user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "assistant", content: reply,
+            metadata: { source: "telegram", why: handled.why, trip_id: handled.tripId, high_stakes: plan.high_stakes },
+          },
+        ]);
+      }
+      /* The button carries the session id, so tapping it lands on the same
+         walk in the app rather than a generic room. */
+      const btn = handled.link
+        ? openButton(handled.link.kind as VantaLinkKind, handled.tripId ? { tripId: handled.tripId } : {})
+        : null;
+      return { reply, markup: btn ? keyboard([btn]) : undefined };
+    }
+  }
+
   let history: any[] = [];
   if (conv?.id) {
     const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id).order("created_at", { ascending: true }).limit(20);
     history = (m ?? []).filter((x: any) => x.role === "user" || x.role === "assistant");
   }
+
 
   // Stage 3 — match Companion: pull active corrections + recent field notes so
   // Telegram replies respect the same lived context. Also pull tz + default
@@ -401,7 +436,29 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       : "routine";
   const brandBlock = brandVoiceDirective(bv, ctx);
 
-  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), timeBlock, correctionsBlock, fieldNotesBlock]
+  /* Same working-context assembly Ask uses, so a pocket message knows which
+     project is live and what is unresolved instead of guessing from chat. */
+  let workBlock = "";
+  try {
+    const scopedQ = (q: any) => (orgId ? q.eq("user_id", userId).eq("organization_id", orgId) : q.eq("user_id", userId).is("organization_id", null));
+    const cands = await buildWorkingContext(sb, scopedQ, { limit: 3 });
+    if (cands.length) {
+      workBlock = "Where the user left off (real records — use these names, invent nothing):\n" +
+        cands.slice(0, 3).map((c) =>
+          `- ${c.projectTitle ?? "Unfiled"}: last activity ${c.lastActivityAt}` +
+          (c.unresolved.length ? `; open: ${c.unresolved.slice(0, 2).join("; ")}` : "") +
+          (c.lastDecision ? `; last decision: ${c.lastDecision}` : "")
+        ).join("\n");
+    }
+  } catch (e) { console.error("telegram working context", e); }
+
+  const planBlock = `Routing plan for this message (from the shared router, obey it):
+- capabilities: ${plan.capabilities.join(", ")}
+- internal lookups: ${plan.retrieval.length ? plan.retrieval.join(", ") : "none"}
+- may prepare an action: ${plan.may_prepare_action ? "yes, as a draft only" : "no"}
+- confidence needed before stating something plainly: ${plan.min_confidence}`;
+
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, workBlock, correctionsBlock, fieldNotesBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
@@ -889,12 +946,7 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
 
-      const dl = await fetch(`${GATEWAY}/file/${filePath}`, {
-        headers: {
-          Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        },
-      });
+      const dl = await tgFetchFile(filePath);
       if (!dl.ok) {
         await admin.from("audit_log").insert({
           user_id: link.user_id, organization_id: routeOrgId,

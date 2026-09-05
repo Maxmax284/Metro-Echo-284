@@ -62,9 +62,11 @@ export function EmailInboxCard() {
     toast.success("Address rotated.");
   };
 
-  // Webhook URL (what users would point a forwarding service at)
+  /* The only real address is the forwarding endpoint. Metro Echo does not run a
+     mail domain, so no friendly-looking address is invented here — printing one
+     would be a promise the platform can't keep. */
   const webhookUrl = `https://${PROJECT_ID}.supabase.co/functions/v1/email-inbound?slug=${slug ?? ""}`;
-  const friendlyAddress = slug ? `${slug}@inbound.vanta` : null;
+
 
   const copy = (s: string) => { navigator.clipboard.writeText(s); toast.success(vantaSay.copied()); };
 
@@ -79,14 +81,19 @@ export function EmailInboxCard() {
         ) : (
           <>
             <div>
-              <div className="text-muted-foreground">Forwarding address</div>
+              <div className="text-muted-foreground">Your inbound key</div>
               <div className="flex items-center gap-1">
-                <code className="flex-1 truncate rounded bg-muted px-2 py-1">{friendlyAddress}</code>
-                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copy inbound email address" onClick={() => copy(friendlyAddress!)}>
+                <code className="flex-1 truncate rounded bg-muted px-2 py-1">{slug}</code>
+                <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copy inbound key" onClick={() => copy(slug!)}>
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </div>
+              <p className="mt-1 text-[10px] leading-snug text-muted-foreground">
+                Metro Echo doesn't run its own mail domain. Point a forwarding service at the address
+                below and mail arrives here as a draft.
+              </p>
             </div>
+
             <div>
               <div className="text-muted-foreground">Webhook URL (for SendGrid/Mailgun/Postmark inbound)</div>
               <div className="flex items-center gap-1">

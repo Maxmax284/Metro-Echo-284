@@ -6,9 +6,11 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { PLACE_CACHE_TTL_MS, PLACE_LOOKUP_TIMEOUT_MS, placeLookupHeaders } from "../_shared/placeSpine.ts";
 
-const OVERPASS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const OVERPASS_TIMEOUT_MS = 9000;
+/* One cache and timeout policy for every place lookup — see _shared/placeSpine. */
+const OVERPASS_TTL_MS = PLACE_CACHE_TTL_MS;
+const OVERPASS_TIMEOUT_MS = PLACE_LOOKUP_TIMEOUT_MS;
 
 // Search radii (m). Expand until we get land hits, so offshore pins still recover.
 const RADII = [15_000, 50_000, 150_000];
@@ -67,7 +69,7 @@ async function runOverpass(lat: number, lon: number, radius: number): Promise<an
     const r = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       body: "data=" + encodeURIComponent(ql),
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { ...placeLookupHeaders(), "Content-Type": "application/x-www-form-urlencoded" },
       signal: ctrl.signal,
     });
     if (!r.ok) return [];

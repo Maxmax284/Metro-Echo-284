@@ -28,7 +28,18 @@ export type Posture =
   | "travel"
   | "moving"
   | "quiet"
-  | "sleep";
+  | "sleep"
+  /**
+   * A walk session is running. Not a mood: it changes compression, raises the
+   * session's own priority, and keeps replies short. It implies no background
+   * tracking — the session only knows what a surface hands it.
+   */
+  | "walk_with_me"
+  /**
+   * Someone used high-stakes language. Echo gets plainer and quieter here, and
+   * never more autonomous. Nothing about this posture grants an action.
+   */
+  | "high_stakes";
 
 export const POSTURES: Posture[] = [
   "at_desk",
@@ -40,6 +51,8 @@ export const POSTURES: Posture[] = [
   "moving",
   "quiet",
   "sleep",
+  "walk_with_me",
+  "high_stakes",
 ];
 
 export const POSTURE_LABEL: Record<Posture, string> = {
@@ -52,6 +65,8 @@ export const POSTURE_LABEL: Record<Posture, string> = {
   moving: "Out and moving",
   quiet: "Quiet",
   sleep: "Sleep",
+  walk_with_me: "Walking with you",
+  high_stakes: "Serious moment",
 };
 
 /**
@@ -143,6 +158,8 @@ export function postureHoldsNoise(posture?: Posture): boolean {
 /** Sleep is near-total silence; driving is voice-first and never approval-heavy. */
 export function postureAllowsInteraction(posture: Posture | undefined, kind: "approval" | "read" | "voice"): boolean {
   if (posture === "sleep") return false;
+  /* A serious moment is the wrong time to ask someone to approve paperwork. */
+  if (posture === "high_stakes") return kind !== "approval";
   if (posture === "driving") return kind === "voice";
   if (posture === "training" && kind === "approval") return false;
   return true;

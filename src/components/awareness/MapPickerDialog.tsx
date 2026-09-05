@@ -81,7 +81,9 @@ export function MapPickerDialog({ open, onOpenChange, initial }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Debounced reverse-geocode when pin moves
+  // Debounced reverse-lookup when the pin moves. This goes through the backend
+  // rather than straight to the map service, so a dragged pin and a saved place
+  // are named by the same code with the same rules.
   useEffect(() => {
     if (!open) return;
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
@@ -89,18 +91,16 @@ export function MapPickerDialog({ open, onOpenChange, initial }: Props) {
     setResolved(null);
     debounceRef.current = window.setTimeout(async () => {
       try {
-        const r = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${pin[0]}&lon=${pin[1]}&zoom=12&addressdetails=1`,
-          { headers: { "Accept-Language": "en" } },
-        );
-        if (!r.ok) throw new Error("reverse_failed");
-        const j = await r.json();
-        const a = j.address ?? {};
+        const { data, error } = await supabase.functions.invoke("awareness-geocode", {
+          body: { lat: pin[0], lon: pin[1] },
+        });
+        if (error) throw error;
+        if (!data || data.error) throw new Error(data?.reason ?? "reverse_failed");
         setResolved({
-          display_name: j.display_name ?? "Unknown location",
-          country: a.country ?? null,
-          region: a.state ?? a.region ?? a.province ?? a.county ?? null,
-          city: a.city ?? a.town ?? a.village ?? a.municipality ?? a.suburb ?? a.hamlet ?? null,
+          display_name: data.display_name ?? "Unknown location",
+          country: data.country ?? null,
+          region: data.region ?? null,
+          city: data.city ?? null,
         });
       } catch {
         setResolved({ display_name: "Couldn't resolve that point", country: null, region: null, city: null });
@@ -108,6 +108,7 @@ export function MapPickerDialog({ open, onOpenChange, initial }: Props) {
         setResolving(false);
       }
     }, 350);
+
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [pin, open]);
 

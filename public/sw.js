@@ -24,7 +24,7 @@ self.addEventListener("push", (event) => {
     body: payload.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: payload.tag || "vanta",
+    tag: payload.tag || "metro-echo",
     data: { url: payload.url || "/", ...(payload.data || {}) },
     requireInteraction: false,
     silent: false,

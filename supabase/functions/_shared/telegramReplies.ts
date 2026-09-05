@@ -37,11 +37,14 @@ export function publicBase(): string {
  */
 export function vantaLink(
   kind: VantaLinkKind,
-  opts: { commitmentId?: string; base?: string } = {},
+  opts: { commitmentId?: string; tripId?: string; base?: string } = {},
 ): string | null {
   const base = opts.base !== undefined ? opts.base.replace(/\/$/, "") : publicBase();
   if (!base) return null;
   if (opts.commitmentId) return `${base}/?commitment=${opts.commitmentId}`;
+  /* A walk opened from a chat has to open the SAME session in the app, so the
+     session id rides along in the link instead of the person hunting for it. */
+  if (opts.tripId) return `${base}/?surface=${kind}&trip=${opts.tripId}`;
   return `${base}/?surface=${kind}`;
 }
 
@@ -56,10 +59,13 @@ const OPEN_LABEL: Partial<Record<VantaLinkKind, string>> = {
   sherlock: "Open what Echo noticed",
   schedule: "Open Schedule",
   today: "Open Metro Echo",
+  awareness: "Open the Aware room",
+  work: "Open Work",
+  ask: "Open Ask",
 };
 
 /** "Open in Metro Echo" style button, or null when no public URL is configured. */
-export function openButton(kind: VantaLinkKind, opts: { commitmentId?: string; label?: string; base?: string } = {}): TgInlineButton | null {
+export function openButton(kind: VantaLinkKind, opts: { commitmentId?: string; tripId?: string; label?: string; base?: string } = {}): TgInlineButton | null {
   const url = vantaLink(kind, opts);
   if (!url) return null;
   return { text: opts.label ?? OPEN_LABEL[kind] ?? "Open in Metro Echo", url };
