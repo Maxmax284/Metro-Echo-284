@@ -32,7 +32,7 @@ import { useTodayDigest } from "@/hooks/useTodayDigest";
 import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
-import { AwarenessMap } from "@/components/awareness/AwarenessMap";
+import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
 
@@ -425,7 +425,7 @@ export function AwarenessSurface() {
         })()}
 
         {/* The map sits under the words, never over them. */}
-        <AwarenessMap places={places as any} onMoved={loadList} />
+        <AwarenessMapPanel places={places as any} onMoved={loadList} />
 
         {/* Trips — deliberate start and end, and what you've covered. */}
         <TripPanel placeLabel={place?.label ?? null} />
