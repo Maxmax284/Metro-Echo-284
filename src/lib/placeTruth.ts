@@ -150,5 +150,7 @@ export function placeSourceBadge(truth: PlaceTruth): string {
   if (truth.setByYou) return "Location set by you";
   if (truth.stale) return "Last known place";
   if (truth.source === "device") return "From your device";
-  return "Saved place";
+  if (truth.source === "saved") return "Saved place";
+  /* Nothing recorded how this place was set, and Vanta will not invent it. */
+  return "How this was set wasn't recorded";
 }
