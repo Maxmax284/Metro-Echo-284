@@ -839,7 +839,11 @@ Deno.serve(async (req) => {
         } catch {
           read = { ok: false, reason: "reading is paused" };
         }
-        const words = read.ok ? (read.text ?? "").trim() : "";
+        let words = "";
+        if (read.ok) {
+          const { data: note } = await admin.from("notes").select("body").eq("id", read.noteId).maybeSingle();
+          words = String(note?.body ?? "").trim();
+        }
         reply = read.ok
           ? words
             ? `${words.slice(0, 900)}${words.length > 900 ? "…" : ""}\n\nThat's what's on it. Saved in your Inbox.`
