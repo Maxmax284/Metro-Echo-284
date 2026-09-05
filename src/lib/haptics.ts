@@ -49,7 +49,7 @@ export function hapticFor(urgency: Urgency): HapticPattern {
     case "critical":
       return "critical";
     case "time_sensitive":
-      return "time_sensitive";
+      return "needs_you";
     case "attention":
       return "change";
     default:
