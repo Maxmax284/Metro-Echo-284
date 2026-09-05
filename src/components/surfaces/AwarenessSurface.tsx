@@ -50,6 +50,8 @@ export function AwarenessSurface() {
   const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
+  /* Same read Today uses, so a meeting can't be quiet here and loud there. */
+  const { read: situation } = useSituation();
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   const [showPlaces, setShowPlaces] = useState(false);
