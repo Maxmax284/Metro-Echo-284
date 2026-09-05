@@ -340,18 +340,37 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           confidence={tzState.storedTimezone ? "high" : "low"}
         />
 
-        {/* Data as decoration: the trace is a real 14-day read of recorded
-            activity in this scope. Flat when nothing happened. */}
-        {loadingCritical ? null : (
-          <div className="mt-3 flex items-center gap-2.5">
-            <ActivityTrace timestamps={allEvents.map((e) => e.created_at)} />
-            <span className="h-px flex-1 bg-border/50" />
-            <MachineText className="text-[10px] text-muted-foreground">
-              <RollingNumber value={allEvents.length} /> changes recorded
-            </MachineText>
-          </div>
-        )}
+        {/* The answer belongs to the hero: the situational read is the first
+            thing a person reads, not the seventh block down the page. */}
+        <div className="mt-3 border-t border-border/40 pt-3">
+          <SituationRead
+            read={situation.read}
+            loading={situation.loading}
+            onOpen={(line) => {
+              const target: Record<string, SurfaceKey> = {
+                overdue: "commitments",
+                due_soon: "commitments",
+                waiting_on_you: "actions",
+                meeting_soon: "schedule",
+                noticed: "awareness",
+                went_unusually_quiet: "projects",
+                matter_open: "sherlock",
+                matter_proposed: "sherlock",
+                arrived: "inbox",
+              };
+              onNavigate(target[line.kind] ?? "work");
+            }}
+          />
+        </div>
       </header>
+
+      {/* Proof of life sits with the answer: sources with nothing to say are
+          named once, right where the read ends. */}
+      <SourceHealthStrip sources={health.sources} loading={health.loading} />
+
+      {/* The door in is small and sits after the answer. The day's question
+          comes first; asking comes second. */}
+      <AskVantaBar />
 
       {/* Registration marks — structural punctuation between hero and feed.
           They shift one notch when the change count genuinely moves. */}
