@@ -73,7 +73,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           });
           await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
-          onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
+          onAck?.({ kind: "stage_action", id: actionId, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {
           const remindAt = args.due_at
             ? new Date(new Date(args.due_at).getTime() - 24 * 60 * 60 * 1000).toISOString()
@@ -395,6 +395,6 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         toast.fromError(e);
       }
     },
-    [user, openSherlock, mode, onAck, withScope, scope]
+    [user, openSherlock, mode, onAck, withScope, scope, stageAction]
   );
 }
