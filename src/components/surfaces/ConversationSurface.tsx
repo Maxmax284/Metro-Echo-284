@@ -20,6 +20,7 @@ import { useCompanion } from "@/components/companion/CompanionContext";
 import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
+import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
 
@@ -642,4 +643,11 @@ function ConversationDockBridge(props: React.ComponentProps<typeof ConversationD
       onInitialTextConsumed={() => setPrefill(null)}
     />
   );
+}
+
+// The camera seam lives here so its answer can prefill the composer without
+// ever sending anything on the user's behalf.
+function LookAtSheetBridge({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { setPrefill } = useCompanion();
+  return <LookAtSheet open={open} onOpenChange={onOpenChange} onAskAbout={(q) => setPrefill(q)} />;
 }
