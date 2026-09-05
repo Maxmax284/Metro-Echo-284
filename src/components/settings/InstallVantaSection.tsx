@@ -18,7 +18,7 @@ export function InstallVantaSection() {
     setBusy(false);
     if (r === "accepted") toast.success("Metro Echo is installing. Check your home screen or app drawer.");
     else if (r === "dismissed") toast("No problem — you can install it later from Settings.");
-    else toast("Install isn't available from this browser right now. Try opening Echo in Chrome.");
+    else toast("Install isn't available from this browser right now. Try opening Metro Echo in Chrome.");
   };
 
   if (standalone && !installed) {
@@ -34,7 +34,7 @@ export function InstallVantaSection() {
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">Install Metro Echo</h2>
-          <p className="text-[12px] text-muted-foreground">Use Echo like an app on this device.</p>
+          <p className="text-[12px] text-muted-foreground">Use Metro Echo like an app on this device.</p>
         </div>
       </div>
 
@@ -72,7 +72,7 @@ function InstalledCard() {
     <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 p-3 ring-1 ring-emerald-500/30">
       <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
       <div className="text-xs">
-        <div className="font-medium text-emerald-300">You're using Echo in app mode.</div>
+        <div className="font-medium text-emerald-300">You're using Metro Echo in app mode.</div>
         <div className="text-muted-foreground">Open from your home screen next time for the full app feel.</div>
       </div>
     </div>
@@ -88,7 +88,7 @@ function AndroidChromiumCard({ canPrompt, busy, onInstall }: { canPrompt: boolea
       </Button>
       {!canPrompt && (
         <p className="text-[11px] text-muted-foreground">
-          Your browser hasn't offered the install prompt yet. Use Echo for a moment, then check back here.
+          Your browser hasn't offered the install prompt yet. Use Metro Echo for a moment, then check back here.
         </p>
       )}
     </div>
@@ -145,7 +145,7 @@ function CapabilitiesCard() {
     <div className="mt-4 rounded-lg bg-background/30 p-3 ring-1 ring-border/40">
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">What installing does</div>
       <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">
-        <li>· Adds Echo to your home screen or app drawer.</li>
+        <li>· Adds Metro Echo to your home screen or app drawer.</li>
         <li>· Opens in a clean standalone window — no browser chrome.</li>
         <li>· Faster launch into the core shell.</li>
         <li>· Camera, files, and location work where your browser allows them.</li>
