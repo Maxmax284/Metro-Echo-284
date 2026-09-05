@@ -6,8 +6,11 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildActionRow } from "../_shared/actionStaging.ts";
+import { tgCall } from "../_shared/telegramApi.ts";
+import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
+import { runFieldIntent } from "../_shared/fieldReply.ts";
+import { buildWorkingContext } from "../_shared/workingContext.ts";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 async function deriveSecret(key: string) {
   const data = new TextEncoder().encode(`telegram-webhook:${key}`);
@@ -22,16 +25,13 @@ function safeEqual(a: string | null, b: string) {
   return d === 0;
 }
 
+/* Every outbound Telegram call in the codebase goes through _shared/telegramApi
+   now. There used to be three separate raw POST implementations, which meant
+   three chances to get the auth headers, the error handling or the retry
+   behaviour subtly different. */
 async function tg(method: string, body: unknown) {
-  return await fetch(`${GATEWAY}/${method}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const res = await tgCall(method, body);
+  return { ok: res.ok, status: res.status, json: async () => res.body } as any;
 }
 
 
