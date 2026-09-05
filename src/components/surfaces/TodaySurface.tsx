@@ -198,6 +198,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   } = digest;
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
+  /* One "what changed" list: live arrivals on top of the recorded changes,
+     deduped, so nothing is reported twice. */
+  const liveIds = new Set(live.map((e) => e.id));
+  const changedRows = [...live, ...events.filter((e) => !liveIds.has(e.id))];
   const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
   /* One section opens by default — the one that actually deserves the first
      look. The rest collapse to a line that says whether opening is worth it. */
@@ -561,6 +565,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 ))}
               </div>
             )}
+            {/* The calendar lives here too: what's next is promises and
+                meetings, one shelf. */}
+            <AgendaInNext onOpenWeek={() => onNavigate("schedule")} />
           </Section>
           )}
 
