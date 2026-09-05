@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PROVENANCE_LABEL, resolveProvenance, type ProvenanceSource } from "@/lib/vantaNouns";
+import { ago } from "@/lib/connections";
 import { cn } from "@/lib/utils";
 
 const ICON: Record<ProvenanceSource, LucideIcon> = {
@@ -68,6 +69,37 @@ export function ProvenanceChip({
     >
       <Icon className="h-3 w-3" aria-hidden />
       {showLabel ? <span className="truncate">{label}</span> : <span className="sr-only">{label}</span>}
+    </span>
+  );
+}
+
+/**
+ * ProvenanceStrip — "From Telegram · 2m". One line, source then freshness.
+ *
+ * The shared strip for anything Vanta surfaced on its own: a person should be
+ * able to answer "where did this come from and how fresh is it" without
+ * tapping. Falls back to the plain label when no time was recorded, and to the
+ * time alone when no source was.
+ */
+export function ProvenanceStrip({
+  source,
+  at,
+  className,
+}: {
+  source: string | null | undefined;
+  /** ISO timestamp of the newest fact behind the item. */
+  at: string | null | undefined;
+  className?: string;
+}) {
+  const label = provenanceText(source);
+  const when = ago(at);
+  if (!label && !when) return null;
+
+  return (
+    <span className={cn("vanta-machine inline-flex items-center gap-1 text-[10px] tracking-[0.08em] text-muted-foreground/80", className)}>
+      {label ? <span className="truncate">From {label}</span> : null}
+      {label && when ? <span aria-hidden>·</span> : null}
+      {when ? <span>{when}</span> : null}
     </span>
   );
 }
