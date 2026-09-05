@@ -1,27 +1,31 @@
-// deviceCompression — one set of facts, five bodies.
+// deviceCompression — the thin adapter between one set of facts and the body
+// reading them.
 //
-// The awareness layer already decides IF something is said and how much a channel
-// carries. This module is the single place a wrist line, a spoken line or a haptic
-// decision is produced from those facts, so wordings stop being retyped per surface.
+// It owns nothing on its own any more. Depth (how much gets said) belongs to
+// responseDepth.ts; urgency (how much this matters) belongs to the awareness
+// ladder. This file only renders.
 //
-// The law: compression removes detail, never meaning. Nothing appears at a smaller
-// size that is absent at a larger one. Pure module — no IO, no React.
+// The law: compression removes detail, never meaning. Nothing appears at a
+// smaller size that is absent at a larger one. Pure module — no IO, no React.
 import { compressNotice, type NoticeFacts } from "@/lib/awareness";
+import { URGENCY_ORDER, urgencyRank, type Urgency } from "@/lib/awareness";
+import { verbosityForBody, type VantaBody } from "@/lib/responseDepth";
 
-/** How much a notice is asking of the person. */
-export type Urgency = "fyi" | "meaningful" | "needs_you" | "critical";
+export type { Urgency, VantaBody };
+export { URGENCY_ORDER };
 
-export const URGENCY_RANK: Record<Urgency, number> = {
-  fyi: 0,
-  meaningful: 1,
-  needs_you: 2,
-  critical: 3,
-};
+/** Rank lookup kept for the surfaces that compare thresholds inline. */
+export const URGENCY_RANK: Record<Urgency, number> = URGENCY_ORDER.reduce(
+  (acc, u) => ({ ...acc, [u]: urgencyRank(u) }),
+  {} as Record<Urgency, number>,
+);
 
+/** What a person would call each rung. No internal words on screen. */
 export const URGENCY_LABEL: Record<Urgency, string> = {
-  fyi: "For info",
-  meaningful: "Changed",
-  needs_you: "Needs you",
+  background: "Recorded",
+  useful: "For info",
+  attention: "Changed",
+  time_sensitive: "Needs you",
   critical: "Critical",
 };
 
@@ -30,6 +34,8 @@ export interface DeviceForms {
   desk: string;
   /** Headline, facts, next step. */
   phone: string;
+  /** The pocket form — same facts, fewer of them. */
+  telegram: string;
   /** Headline plus at most one fact. */
   wrist: string;
   /** One sentence, offering the rest instead of dumping it. */
@@ -56,14 +62,21 @@ export function wristLine(facts: NoticeFacts): string {
   return `${head}\n${fact}`;
 }
 
+/** Render one body from one set of facts. Wrist has its own line budget. */
+export function renderBody(facts: NoticeFacts, body: VantaBody): string {
+  if (body === "wrist") return wristLine(facts);
+  return compressNotice(facts, verbosityForBody(body));
+}
+
 /** Render every body from one set of facts. */
-export function renderForms(facts: NoticeFacts, urgency: Urgency = "meaningful"): DeviceForms {
+export function renderForms(facts: NoticeFacts, urgency: Urgency = "attention"): DeviceForms {
   return {
-    desk: compressNotice(facts, "rich"),
-    phone: compressNotice(facts, "brief"),
-    wrist: wristLine(facts),
-    spoken: compressNotice(facts, "spoken"),
-    hapticOnly: URGENCY_RANK[urgency] <= URGENCY_RANK.meaningful,
+    desk: renderBody(facts, "desk"),
+    phone: renderBody(facts, "phone"),
+    telegram: renderBody(facts, "telegram"),
+    wrist: renderBody(facts, "wrist"),
+    spoken: renderBody(facts, "spoken"),
+    hapticOnly: urgencyRank(urgency) <= urgencyRank("attention"),
   };
 }
 
@@ -85,10 +98,13 @@ export function formsAgree(forms: DeviceForms): boolean {
   // "want the rest" is the spoken layer's own offer, not a claim about the facts.
   const spokenExtras = new Set(["want", "rest", "detail"]);
 
-  const wristOk = words(forms.wrist).every((w) => known.has(w) || desk.includes(w));
-  const phoneOk = words(forms.phone).every((w) => known.has(w) || desk.includes(w));
-  const spokenOk = words(forms.spoken).every(
-    (w) => known.has(w) || desk.includes(w) || spokenExtras.has(w),
+  const traceable = (s: string, extras?: Set<string>) =>
+    words(s).every((w) => known.has(w) || desk.includes(w) || (extras?.has(w) ?? false));
+
+  return (
+    traceable(forms.wrist) &&
+    traceable(forms.phone) &&
+    traceable(forms.telegram) &&
+    traceable(forms.spoken, spokenExtras)
   );
-  return wristOk && phoneOk && spokenOk;
 }
