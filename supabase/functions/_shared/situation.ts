@@ -379,7 +379,20 @@ export function readSituation(input: SituationInput): SituationRead {
     });
   }
 
-  lines.sort((a, b) => a.weight - b.weight);
+  /* Consequence first. Place only decides which of two equally weighted lines
+     is read first — a place-bound kind wins that coin toss, and nothing else
+     about the read changes. */
+  const speaks = placeSpeaks(input.place, lines.length, now);
+  const PLACE_BOUND = new Set<SituationKind>(["meeting_soon", "noticed"]);
+  lines.sort((a, b) => {
+    if (a.weight !== b.weight) return a.weight - b.weight;
+    if (speaks) {
+      const pa = PLACE_BOUND.has(a.kind) ? 0 : 1;
+      const pb = PLACE_BOUND.has(b.kind) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+    }
+    return new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
+  });
   const top = lines.slice(0, 3);
 
   const quietSources: SituationSource[] = [];
