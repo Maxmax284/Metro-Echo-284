@@ -365,6 +365,19 @@ export type OutputShape = (typeof OUTPUT_SHAPES)[number];
 
 /** What each shape prints, and what it deliberately leaves out. */
 export const SHAPE_SPEC: Record<OutputShape, { label: string; blurb: string; prefer: string[]; drop_sensitive: boolean }> = {
+  fight_card: {
+    label: "Fight card",
+    blurb: "Bout by bout, both corners side by side, with the weight gap printed.",
+    prefer: ["bout", "corner", "name", "nickname", "gym", "nationality", "age", "weight", "weight_difference", "height", "reach", "record", "rounds", "rule_set"],
+    drop_sensitive: true,
+  },
+  contract_terms: {
+    label: "Contract terms sheet",
+    blurb: "Parties, dates, money and obligations, each term kept with its page.",
+    prefer: ["party", "role", "effective_date", "end_date", "term", "renewal", "notice_period", "fee", "payment_terms", "currency", "deliverable", "obligation", "liability", "termination", "governing_law", "signature", "signed_date"],
+    drop_sensitive: true,
+  },
+
   roster_sheet: {
     label: "Announcer / roster sheet",
     blurb: "One card per person or item, in running order. Read-aloud friendly.",
