@@ -78,10 +78,14 @@ describe("no second action path", () => {
   });
 
   it("no surface hand-writes a risk word that the database rejects", () => {
+    // The integrations registry rates connectors, not actions — its own scale.
+    const unrelated = ["src/lib/integrations/registry.ts"];
     const offenders: string[] = [];
     for (const file of [...sourceFiles("src"), ...sourceFiles("supabase/functions")]) {
+      const rel = file.replace(/\\/g, "/");
+      if (unrelated.some((u) => rel.endsWith(u))) continue;
       const text = readFileSync(file, "utf8");
-      if (/risk:\s*["'](low|medium)["']/.test(text)) offenders.push(file.replace(/\\/g, "/"));
+      if (/risk:\s*["'](low|medium)["']/.test(text)) offenders.push(rel);
     }
     expect(offenders).toEqual([]);
   });
