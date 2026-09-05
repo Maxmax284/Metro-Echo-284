@@ -338,6 +338,7 @@ export function SherlockSurface() {
           )}
         </div>
 
+        <CrossRefCasesPanel />
         <SherlockDetectionPanel />
         <SherlockSettingsPanel />
 
