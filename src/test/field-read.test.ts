@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fieldRead } from "@/lib/fieldRead";
-import { detectDocTypeFromFile, firstPassIntake } from "../../supabase/functions/_shared/fileIntake";
+import { detectDocTypeFromFile, firstPassIntake } from "@/lib/fileIntake";
 import type { Trip, TripPoint } from "@/lib/trips";
 
 const START = "2026-01-01T10:00:00.000Z";
