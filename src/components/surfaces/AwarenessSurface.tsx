@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/state-views";
 import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
 import { TripPanel } from "@/components/awareness/TripPanel";
+import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 
