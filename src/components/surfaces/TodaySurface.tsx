@@ -17,6 +17,8 @@ import { TimeSourceLine } from "@/components/context/ContextSourceLine";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
+import { SituationRead } from "@/components/today/SituationRead";
+import { useSituation } from "@/hooks/useSituation";
 
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
@@ -164,6 +166,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* The clock's provenance, read once and shown plainly under the day line. */
   const tzState = useUserTimezone();
   const digest = useTodayDigest();
+  /* One situational read, built from the same authoritative state Today already
+     fetched plus the cadence Vanta learned. Read-only. */
+  const situation = useSituation(digest);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
@@ -369,6 +374,24 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       {/* One companion across bodies. Quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
+      {/* The one read: what matters right now, before any per-source panel. */}
+      <SituationRead
+        read={situation.read}
+        loading={situation.loading}
+        onOpen={(line) => {
+          const target: Record<string, SurfaceKey> = {
+            overdue: "commitments",
+            due_soon: "commitments",
+            waiting_on_you: "actions",
+            meeting_soon: "schedule",
+            noticed: "awareness",
+            went_unusually_quiet: "projects",
+            arrived: "inbox",
+          };
+          onNavigate(target[line.kind] ?? "work");
+        }}
+      />
+
       <TodayDigestLine onNavigate={onNavigate as never} />
 
       <AskVantaBar />
