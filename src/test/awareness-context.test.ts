@@ -147,7 +147,12 @@ describe("cross-device context", () => {
   });
 
   it("knows which postures hold noise", () => {
-    expect(POSTURES).toHaveLength(9);
+    /* Two field postures joined the canonical list: a live walk session and a
+       high-stakes moment. Both change compression and interruption rules; both
+       live here rather than in a second state machine. */
+    expect(POSTURES).toHaveLength(11);
+    expect(POSTURES).toContain("walk_with_me");
+    expect(POSTURES).toContain("high_stakes");
     expect(postureHoldsNoise("deep_work")).toBe(true);
     expect(postureHoldsNoise("training")).toBe(true);
     expect(postureHoldsNoise("at_desk")).toBe(false);
