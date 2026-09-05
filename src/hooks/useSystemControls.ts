@@ -43,16 +43,16 @@ export const MODE_DESC: Record<UsageMode, string> = {
 };
 
 const KILL_SWITCHES: Array<{ key: keyof SystemControls; label: string; hint: string }> = [
-  { key: "external_apis_enabled", label: "All external APIs", hint: "Master kill switch." },
-  { key: "serpapi_enabled", label: "SerpApi (search / local)", hint: "Web search, news, places." },
-  { key: "gemini_enabled", label: "Gemini / Lovable AI", hint: "AI synthesis and analysis." },
-  { key: "weather_enabled", label: "Open-Meteo (weather)", hint: "Weather refresh." },
+  { key: "external_apis_enabled", label: "Everything outside Vanta", hint: "One switch that stops all outside lookups." },
+  { key: "serpapi_enabled", label: "Web and local lookups", hint: "Search, news and nearby places." },
+  { key: "gemini_enabled", label: "Vanta's reading and summarising", hint: "Turning documents, notes and surroundings into plain language." },
+  { key: "weather_enabled", label: "Weather", hint: "Weather refresh." },
   { key: "calendar_sync_enabled", label: "Google Calendar", hint: "Calendar refresh." },
   { key: "background_awareness_enabled", label: "Background awareness refresh", hint: "Off by default." },
   { key: "proactive_synthesis_enabled", label: "Proactive synthesis", hint: "Once-daily theme detection." },
   { key: "file_analysis_enabled", label: "File analysis", hint: "Ingested file insights." },
   { key: "deep_research_enabled", label: "Deep research", hint: "Multi-call research, requires confirm." },
-  { key: "local_search_enabled", label: "Local search / nearby places", hint: "SerpApi local results." },
+  { key: "local_search_enabled", label: "Nearby places", hint: "What's around a spot you picked." },
   { key: "auto_refresh_enabled", label: "Awareness auto-refresh", hint: "Off by default." },
 ];
 

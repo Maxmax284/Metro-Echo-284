@@ -1,13 +1,27 @@
-# Roadmap — companion pass
+# Consolidation pass — status
 
-Approved plan: .lovable/plan/companion-pass-unified-plan-today-awareness-intake-2026-09-05.md
+## Done
+- [x] 1. One action path. `_shared/actionStaging.ts` + `useStageAction` own every action row.
+      Risk words normalised to `low_reversible|standard|high`; scope (organization_id) always stamped;
+      guard tests fail the build on a raw insert or a rejected risk word.
+- [x] 2. One depth model + one urgency ladder. `responseDepth.ts` owns body -> verbosity
+      (`VERBOSITY_FOR_BODY`, `bodyForChannel`); `deviceCompression.ts` is a renderer only and
+      re-exports the awareness urgency ladder. Retired `fyi/meaningful/needs_you`.
+      Telegram form added to formsAgree.
+- [x] 3a. Telegram keeps its own conversation thread (`telegramConversation`), bound to the linked
+      chat, created on first message. No more borrowing the newest desk thread / dropping new users.
+- [x] 8. Provider names out of user-facing copy (Gemini / Lovable AI / SerpApi / Open-Meteo).
+      "Sherlock failed" replaced with the doctrine failure shape.
 
-- [x] Phase 1: Today hierarchy — read leads; one What changed; one Coming up; "You're clear." quiet state
-- [x] Phase 2: Awareness situational rebuild — paragraph + Now/Around you/Changed/Coming up shelves; chips behind "Show the workings"
-- [x] Phase 3: place in shared situation composer — words only, tie-break/soften only, silence when unresolved
-- [x] Phase 8 (early): trips — Start/End/Mark a stop, running line, weekly mileage, stale auto-close with diff
-- [x] Phase 7: plain-English sweep — FileUploadCard ("Ingest"/"processing"), FileAftermathTray (raw ingested_file_id), Glance ("sync"), ReconciliationView ("signals"), askCapabilities false audio claim
-- [x] Phase 4: What Vanta can see block
-- [x] Phase 5: object-intent card ("Looks like a receipt." + offers)
-- [x] Phase 6: Telegram file lane through files-ingest (PDF/DOCX), answer-in-thread
-- [ ] Phase 9: voice notes (later, own plan)
+## Open
+- [ ] 3b. Telegram reuses the Ask capability router + working-context assembly (retire the parallel
+      tool list in the webhook).
+- [ ] 3c. Telegram uploads through the shared ingestion pipeline (PDF/DOCX/voice groundwork).
+- [ ] 4. One place spine (merge the two geocode/nearby implementations, one precision policy).
+- [ ] 5. Today hierarchy pass (one "What changed" owner, one agenda owner, less launcher clutter).
+- [ ] 6. Aware room prove-it pass at 384px against real records.
+- [ ] 7. What Vanta can see: six rows + one summary sentence, reusing existing readers.
+- [ ] 9. Motion consolidation (retire legacy animations conflicting with the motion grammar).
+- [ ] 10. Ask <-> widget continuity (no reset on expand).
+- [ ] 11. Route consolidation: /watch /motion /glance /wearables /wearable-loop /physical-loop /how
+      /awareness/location folded into the four rooms or retired.

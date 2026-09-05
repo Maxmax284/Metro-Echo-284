@@ -31,10 +31,10 @@ type NudgeRow = {
  * ambient rules doc). The wrist ceiling from an ordinary nudge is "needs you".
  */
 export function urgencyForNudge(row: { kind: string; priority: number }): Urgency {
-  if (row.kind === "commitment_overdue") return "needs_you";
-  if (row.priority >= 4) return "needs_you";
-  if (row.priority >= 2) return "meaningful";
-  return "fyi";
+  if (row.kind === "commitment_overdue") return "time_sensitive";
+  if (row.priority >= 4) return "time_sensitive";
+  if (row.priority >= 2) return "attention";
+  return "useful";
 }
 
 const ENTITY_ROUTE: Record<string, string> = {

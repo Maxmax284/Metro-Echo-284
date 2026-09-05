@@ -60,18 +60,18 @@ function passes(item: GlanceItem, input: GlanceInput, now: Date): { ok: boolean;
   }
 
   // Informational items never reach a wrist. They live in Today.
-  if (rank < URGENCY_RANK.meaningful) return { ok: false, why: "for info only" };
+  if (rank < URGENCY_RANK.attention) return { ok: false, why: "for info only" };
 
   if (item.urgency === "critical") return { ok: true, why: "critical" };
 
   if (input.quietHours) return { ok: false, why: "quiet hours" };
   if (input.budgetLeft === false) return { ok: false, why: "you've had enough interruptions" };
 
-  if (postureHoldsNoise(input.posture ?? undefined) && rank < URGENCY_RANK.needs_you) {
+  if (postureHoldsNoise(input.posture ?? undefined) && rank < URGENCY_RANK.time_sensitive) {
     return { ok: false, why: "your posture holds ordinary notices" };
   }
 
-  return { ok: true, why: item.urgency === "needs_you" ? "waiting on you" : "something changed" };
+  return { ok: true, why: item.urgency === "time_sensitive" ? "waiting on you" : "something changed" };
 }
 
 /** Zero or one card. Silence is a successful answer. */

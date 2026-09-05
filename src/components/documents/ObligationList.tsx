@@ -9,6 +9,7 @@ import { AlertTriangle, CheckSquare, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
+import { useStageAction } from "@/hooks/useStageAction";
 import { vantaToast } from "@/lib/vantaVoice";
 import type { DocumentObligation } from "@/lib/documents";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
@@ -26,6 +27,7 @@ export function ObligationList({
 }) {
   const { user } = useAuth();
   const { withScope } = useScope();
+  const stageAction = useStageAction();
   const [busy, setBusy] = useState<string | null>(null);
   const [converted, setConverted] = useState<Record<string, "promise" | "step">>({});
 
@@ -53,24 +55,20 @@ export function ObligationList({
         if (error) throw error;
         vantaToast.success("Recorded as an open promise. Add a real date in Commitments.");
       } else {
-        const { error } = await supabase.from("actions").insert(
-          withScope({
-            user_id: user.id,
-            title: summary.slice(0, 120),
-            description: [
+        await stageAction({
+          title: summary.slice(0, 120),
+          description: [
               o.what,
               o.when_text ? `When: ${o.when_text}` : null,
               o.conditions ? `If: ${o.conditions}` : null,
-              `From document: ${documentTitle}${o.source_clause_ref ? ` (${o.source_clause_ref})` : ""}`,
-            ]
-              .filter(Boolean)
-              .join("\n"),
-            risk: "standard",
-            status: "proposed",
-            source: "document_obligation",
-          }) as never,
-        );
-        if (error) throw error;
+            `From document: ${documentTitle}${o.source_clause_ref ? ` (${o.source_clause_ref})` : ""}`,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          risk: "standard",
+          status: "proposed",
+          source: "document_obligation",
+        });
         vantaToast.success("Drafted in Actions. It will not run until you approve it.");
       }
       /* The receipt is the record of the conversion. If it cannot be written,

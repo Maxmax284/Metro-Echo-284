@@ -194,7 +194,7 @@ export function ResearchPanel() {
           <DialogHeader>
             <DialogTitle>Confirm deep research</DialogTitle>
             <DialogDescription>
-              Deep mode will run up to 3 SerpApi searches plus AI synthesis. Type{" "}
+              Deep mode runs up to 3 outside searches and writes up what it finds. Type{" "}
               <span className="font-mono text-foreground">{CONFIRM_PHRASE}</span> to proceed.
             </DialogDescription>
           </DialogHeader>

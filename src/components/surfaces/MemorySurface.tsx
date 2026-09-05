@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
+import { useStageAction } from "@/hooks/useStageAction";
 import { useAuth } from "@/lib/auth";
 import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ type RelatedHit = { id: string; title: string | null; snippet: string; similarit
 export function MemorySurface() {
   const { session } = useAuth();
   const { openSherlock } = useSherlock();
+  const stageAction = useStageAction();
   const [notes, setNotes] = useState<Note[]>([]);
   const [active, setActive] = useState<Note | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,14 +190,13 @@ export function MemorySurface() {
 
   const noteToActionDraft = async (n: Note) => {
     if (!session) return;
-    const { data } = await supabase.from("actions").insert({
-      user_id: session.user.id,
+    const actionId = await stageAction({
       title: (n.title || n.body).slice(0, 120),
       description: n.body.slice(0, 1000),
       source: `note:${n.id}`,
       status: "proposed",
-    }).select("id").single();
-    await auditNote(n.id, "note.converted_to_action_draft", { action_id: data?.id });
+    });
+    await auditNote(n.id, "note.converted_to_action_draft", { action_id: actionId });
     toast.success({ title: vantaSay.actionDrafted() });
   };
 

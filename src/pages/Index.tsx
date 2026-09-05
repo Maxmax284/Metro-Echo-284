@@ -47,6 +47,7 @@ import { GlobalDropZone } from "@/components/files/GlobalDropZone";
 import { ClipboardImageIntake } from "@/components/files/ClipboardImageIntake";
 import { MissingSecretsBanner } from "@/components/integrations/MissingSecretsBanner";
 
+import { useStageAction } from "@/hooks/useStageAction";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
@@ -104,6 +105,7 @@ function IndexInner() {
 
   const { state } = useOperationalState(surface);
   const { openSherlock } = useSherlock();
+  const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
   const { overall: awareness, place } = useAwareness();
 
@@ -169,11 +171,10 @@ function IndexInner() {
         if (data) generateEmbedding("note", data.id);
         toast.success(vantaSay.capturedToMemory());
       } else if (kind === "stage_action") {
-        await supabase.from("actions").insert({
-          user_id: user.id,
+        await stageAction({
           title: args.title,
           description: args.description ?? null,
-          risk: args.risk ?? "standard",
+          risk: args.risk,
           status: "staged",
           source: "conversation",
         });

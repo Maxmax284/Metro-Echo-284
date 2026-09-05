@@ -6,6 +6,7 @@ import { Loader2, AlertTriangle, HelpCircle, Link2, Sparkles, ShieldAlert, GitBr
 import { useSherlock, SherlockFindings } from "./SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
+import { useStageAction } from "@/hooks/useStageAction";
 import { useAuth } from "@/lib/auth";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { generateEmbedding } from "@/lib/embeddings";
@@ -34,6 +35,7 @@ export function SherlockOverlay() {
   const { open, scope, findings, loading, closeSherlock, setFindings, setLoading } = useSherlock();
   const { user } = useAuth();
   const { orgId } = useScope();
+  const stageAction = useStageAction();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.key, !!s.defaultOpen]))
   );
@@ -62,7 +64,10 @@ export function SherlockOverlay() {
         if (error) throw error;
         if (!cancelled) setFindings(data?.findings ?? {});
       } catch (e) {
-        if (!cancelled) toast.error(e instanceof Error ? e.message : "Sherlock failed");
+        const why = e instanceof Error ? e.message : "the check couldn't finish";
+        if (!cancelled) {
+          toast.error(`Didn't run — ${why}. Nothing changed. Try again in a moment.`);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -99,9 +104,9 @@ export function SherlockOverlay() {
         }).select("id").single();
         if (data) generateEmbedding("commitment", data.id);
       } else if (route === "action") {
-        await supabase.from("actions").insert({
-          user_id: user.id, title: text.slice(0, 80), description: text,
-          risk: (findings.risk as any) || "standard", status: "staged", source: "sherlock",
+        await stageAction({
+          title: text.slice(0, 80), description: text,
+          risk: findings.risk, status: "staged", source: "sherlock",
         });
       } else if (route === "reminder") {
         const remind_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -141,8 +146,7 @@ export function SherlockOverlay() {
 
   const turnIntoAction = async (text: string) => {
     if (!user) return;
-    await supabase.from("actions").insert({
-      user_id: user.id,
+    await stageAction({
       title: text.slice(0, 80),
       description: text,
       risk: "standard",

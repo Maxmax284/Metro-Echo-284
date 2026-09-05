@@ -22,19 +22,19 @@ export const HAPTIC_PATTERNS: Record<HapticPattern, HapticSpec> = {
     label: "Note",
     meaning: "For your information. Nothing is waiting on you.",
     ms: [40],
-    ceiling: "fyi",
+    ceiling: "useful",
   },
   change: {
     label: "Change",
     meaning: "Something meaningful changed.",
     ms: [35, 90, 35],
-    ceiling: "meaningful",
+    ceiling: "attention",
   },
   needs_you: {
     label: "Needs you",
     meaning: "Something is waiting on you.",
     ms: [140],
-    ceiling: "needs_you",
+    ceiling: "time_sensitive",
   },
   critical: {
     label: "Critical",
@@ -48,9 +48,9 @@ export function hapticFor(urgency: Urgency): HapticPattern {
   switch (urgency) {
     case "critical":
       return "critical";
-    case "needs_you":
+    case "time_sensitive":
       return "needs_you";
-    case "meaningful":
+    case "attention":
       return "change";
     default:
       return "note";
@@ -74,7 +74,7 @@ export function allowHaptic(pattern: HapticPattern, gate: HapticGate = {}): bool
   if (pattern === "critical") return true;
   if (gate.quietHours) return false;
   if (gate.budgetLeft === false) return false;
-  if (gate.postureHoldsNoise && rank < URGENCY_RANK.needs_you) return false;
+  if (gate.postureHoldsNoise && rank < URGENCY_RANK.time_sensitive) return false;
   return true;
 }
 

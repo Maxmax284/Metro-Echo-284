@@ -5,6 +5,7 @@
 //   same tools as vanta-converse (capture_note / stage_action / add_commitment),
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { buildActionRow } from "../_shared/actionStaging.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
@@ -221,7 +222,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
-    const { data } = await sb.from("actions").insert({ user_id: userId, organization_id: orgId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
+    const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions", linkKind: "actions" as VantaLinkKind };
   }
@@ -278,7 +279,57 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   return null;
 }
 
-async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null) {
+/**
+ * Telegram's own thread. One conversation per linked chat, created the first
+ * time that chat speaks, reused forever after. It used to borrow whichever
+ * thread was touched most recently, which meant a pocket message could land in
+ * the middle of unrelated desk work — and a brand new user had no thread at
+ * all, so their words were dropped on the floor.
+ */
+async function telegramConversation(
+  sb: SupabaseClient,
+  userId: string,
+  orgId: string | null,
+  chatId: string | number,
+): Promise<{ id: string } | null> {
+  const key = String(chatId);
+  const { data: found } = await sb
+    .from("conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("state->>channel", "telegram")
+    .eq("state->>chat_id", key)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (found?.id) {
+    await sb.from("conversations")
+      .update({ organization_id: orgId, last_message_at: new Date().toISOString() })
+      .eq("id", found.id);
+    return { id: found.id };
+  }
+  const { data: made, error } = await sb
+    .from("conversations")
+    .insert({
+      user_id: userId,
+      organization_id: orgId,
+      scope: orgId ? "workspace" : "personal",
+      title: "Telegram",
+      auto_titled: true,
+      state: { channel: "telegram", chat_id: key },
+      last_message_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error) {
+    console.error("telegram conversation create failed", error.message);
+    return null;
+  }
+  return made ? { id: made.id } : null;
+}
+
+async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null, chatId: string | number | null = null) {
   // Identity questions never reach a model. Fixed copy, one line, done — so no
   // provider or model name can ever be presented as Vanta's identity or author.
   const idq = matchIdentityQuestion(text);
@@ -293,9 +344,8 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     };
   }
 
-  // pull a little context from the user's most recent conversation
-
-  const { data: conv } = await sb.from("conversations").select("id").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  // Telegram's own thread — same memory, same scope, just the pocket form of it.
+  const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
   let history: any[] = [];
   if (conv?.id) {
     const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id).order("created_at", { ascending: true }).limit(20);
@@ -991,7 +1041,7 @@ Deno.serve(async (req) => {
     let reply = VANTA_PHRASES.gotIt();
     let markup: TgReplyMarkup | undefined;
     try {
-      const out = await aiRespond(admin, link.user_id, text, routeOrgId);
+      const out = await aiRespond(admin, link.user_id, text, routeOrgId, chatId);
       reply = out.reply;
       markup = out.markup;
     } catch (e) {

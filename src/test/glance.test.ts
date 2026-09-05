@@ -8,21 +8,21 @@ const item = (over: Partial<GlanceItem> = {}): GlanceItem => ({
   id: over.id ?? "1",
   kind: over.kind ?? "commitment_overdue",
   title: over.title ?? "Send Nikki the schedule",
-  urgency: over.urgency ?? "needs_you",
+  urgency: over.urgency ?? "time_sensitive",
   createdAt: over.createdAt ?? new Date().toISOString(),
   ...over,
 });
 
 describe("wrist threshold", () => {
   it("stays silent when nothing clears the bar", () => {
-    const d = pickGlance({ items: [item({ urgency: "fyi" })] });
+    const d = pickGlance({ items: [item({ urgency: "useful" })] });
     expect(d.card).toBeNull();
     expect(d.held).toBe(1);
     expect(SILENCE_LINE).toBe("Nothing needs you.");
   });
 
   it("holds a merely meaningful change during quiet hours", () => {
-    const d = pickGlance({ items: [item({ urgency: "meaningful" })], quietHours: true });
+    const d = pickGlance({ items: [item({ urgency: "attention" })], quietHours: true });
     expect(d.card).toBeNull();
   });
 
@@ -33,7 +33,7 @@ describe("wrist threshold", () => {
 
   it("shows one card only, and counts the rest as held", () => {
     const d = pickGlance({
-      items: [item({ id: "a" }), item({ id: "b" }), item({ id: "c", urgency: "fyi" })],
+      items: [item({ id: "a" }), item({ id: "b" }), item({ id: "c", urgency: "useful" })],
     });
     expect(d.card).not.toBeNull();
     expect(d.held).toBe(2);
@@ -60,7 +60,7 @@ describe("wrist actions", () => {
 
 describe("compression", () => {
   it("keeps the wrist form shortest and never contradicts the desk", () => {
-    const f = renderForms({ title: "Nikki's schedule is still unsent", lines: ["Due 6pm"] }, "needs_you");
+    const f = renderForms({ title: "Nikki's schedule is still unsent", lines: ["Due 6pm"] }, "time_sensitive");
     expect(f.wrist.length).toBeLessThanOrEqual(f.desk.length);
     expect(f.wrist.length).toBeGreaterThan(0);
   });
@@ -68,15 +68,15 @@ describe("compression", () => {
 
 describe("haptics", () => {
   it("holds ordinary buzzes in quiet hours but lets critical through", () => {
-    expect(allowHaptic(hapticFor("meaningful"), { quietHours: true })).toBe(false);
+    expect(allowHaptic(hapticFor("attention"), { quietHours: true })).toBe(false);
     expect(allowHaptic(hapticFor("critical"), { quietHours: true })).toBe(true);
   });
 });
 
 describe("nudge urgency", () => {
   it("never lets a score alone claim critical", () => {
-    expect(urgencyForNudge({ kind: "whatever", priority: 99 })).toBe("needs_you");
-    expect(urgencyForNudge({ kind: "whatever", priority: 0 })).toBe("fyi");
+    expect(urgencyForNudge({ kind: "whatever", priority: 99 })).toBe("time_sensitive");
+    expect(urgencyForNudge({ kind: "whatever", priority: 0 })).toBe("useful");
   });
 });
 
