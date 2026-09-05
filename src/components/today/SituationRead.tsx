@@ -24,6 +24,7 @@ const OPEN_LABEL: Record<SituationLine["kind"], string> = {
   noticed: "See what Vanta noticed",
   went_unusually_quiet: "Open project",
   matter_open: "Review the reading",
+  matter_proposed: "Read them together",
   arrived: "Open inbox",
 };
 
