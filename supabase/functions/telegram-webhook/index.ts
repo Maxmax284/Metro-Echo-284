@@ -858,7 +858,9 @@ Deno.serve(async (req) => {
       const wantIntent = intentFromCaption(caption);
       let reply: string;
 
-      if (wantIntent === "text") {
+      /* Documents are always read, never looked at — the picture-perception
+         lane is for photos only. */
+      if (page.isDoc || wantIntent === "text") {
         let read: PageReadResult;
         try {
           read = await readPageFile(admin, fileRec as any);
