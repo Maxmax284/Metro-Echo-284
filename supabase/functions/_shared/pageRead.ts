@@ -122,6 +122,23 @@ export async function readPageFile(
 
   if (!rec.storage_path) return await fail("The file never finished uploading.");
 
+  /* Documents take the files-ingest lane (unpdf for PDF, mammoth for DOCX) —
+     one extraction pipeline, many doors. OCR below stays images-only. */
+  if (isDocumentFile(rec)) {
+    const { error: ingErr } = await admin.functions.invoke("files-ingest", {
+      body: { ingested_file_id: rec.id },
+    });
+    if (ingErr) return await fail(ingErr.message ?? "The document could not be read.");
+    const { data: after } = await admin.from("ingested_files")
+      .select("status, note_id, error")
+      .eq("id", rec.id)
+      .maybeSingle();
+    if (!after || after.status !== "done" || !after.note_id) {
+      return await fail(after?.error ?? "The document came back unreadable.");
+    }
+    return { ok: true, noteId: after.note_id, chars: 0 };
+  }
+
   await admin.from("ingested_files").update({ status: "processing" }).eq("id", rec.id);
 
   const { data: blob, error: dlErr } = await admin.storage
