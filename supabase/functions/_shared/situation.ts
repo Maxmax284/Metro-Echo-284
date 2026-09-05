@@ -364,7 +364,7 @@ export function readSituation(input: SituationInput): SituationRead {
 
 /** One opening sentence, chosen by the strongest line. Never a count of nothing. */
 export function headlineFor(lines: SituationLine[]): string {
-  if (lines.length === 0) return "Nothing needs you right now.";
+  if (lines.length === 0) return "You're clear.";
   switch (lines[0].kind) {
     case "overdue":
       return "Something you promised is late.";
@@ -380,6 +380,10 @@ export function headlineFor(lines: SituationLine[]): string {
       return "One thread has gone quieter than usual.";
     case "arrived":
       return "New things landed and are still unfiled.";
+    case "matter_open":
+      return "A reading is waiting for your review.";
+    case "matter_proposed":
+      return "Some sources look like they belong together.";
   }
 }
 

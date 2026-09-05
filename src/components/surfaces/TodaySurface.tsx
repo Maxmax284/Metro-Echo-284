@@ -429,17 +429,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <LoadingState rows={2} label="Pulling together your day" />
       ) : (
         <>
-          <NoticedRow
-            signal={noticed}
-            onNavigate={onNavigate}
-            onDismiss={dismissNoticed}
-            onFollow={followNoticed}
-          />
-
-          <ResumeWorkSection onNavigate={onNavigate} />
-
-          <AgendaStrip onOpenWeek={() => onNavigate("work")} />
-
           <TodayBodyPanel />
 
 
