@@ -2472,6 +2472,53 @@ export type Database = {
           },
         ]
       }
+      object_cadence: {
+        Row: {
+          computed_at: string
+          id: string
+          last_event_at: string | null
+          median_gap_days: number
+          object_id: string
+          object_type: string
+          organization_id: string | null
+          samples: number
+          user_id: string
+          window_days: number
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          last_event_at?: string | null
+          median_gap_days?: number
+          object_id: string
+          object_type: string
+          organization_id?: string | null
+          samples?: number
+          user_id: string
+          window_days?: number
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          last_event_at?: string | null
+          median_gap_days?: number
+          object_id?: string
+          object_type?: string
+          organization_id?: string | null
+          samples?: number
+          user_id?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_cadence_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_state_events: {
         Row: {
           created_at: string
