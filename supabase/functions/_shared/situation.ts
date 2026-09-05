@@ -410,7 +410,30 @@ export function readSituation(input: SituationInput): SituationRead {
     if (!hasAny && !had.has(src)) quietSources.push(src);
   }
 
-  return { lines: top, headline: headlineFor(top), quietSources, unknownSources: unknown };
+  return {
+    lines: top,
+    headline: headlineFor(top),
+    quietSources,
+    unknownSources: unknown,
+    placeNote: speaks ? placeNoteFor(input.place!) : null,
+  };
+}
+
+/** "Read from Bangkok." — where you stood, never a claim about distance. */
+export function placeNoteFor(place: SituationPlace): string {
+  const where = place.where.trim();
+  switch (place.scope) {
+    case "exact":
+      return `Read from where you are, ${where}.`;
+    case "area":
+      return `Read from around ${where}.`;
+    case "city":
+      return `Read from ${where}.`;
+    case "country":
+      return `Read from ${where} — that's as close as Vanta can place you.`;
+    default:
+      return `Read from ${where}.`;
+  }
 }
 
 /** One opening sentence, chosen by the strongest line. Never a count of nothing. */
