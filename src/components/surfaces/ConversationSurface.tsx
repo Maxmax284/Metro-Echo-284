@@ -616,6 +616,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
         />
       )}
 
+      <LookAtSheetBridge open={looking} onOpenChange={setLooking} />
+
       <Sheet open={researchOpen} onOpenChange={setResearchOpen}>
         <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-[520px]">
           <SheetHeader className="border-b border-border/60 px-4 py-3">
