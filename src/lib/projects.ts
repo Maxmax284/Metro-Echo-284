@@ -120,7 +120,7 @@ export async function updateProject(
 ): Promise<Project> {
   const { data, error } = await supabase
     .from("projects")
-    .update(patch)
+    .update(patch as any)
     .eq("id", id)
     .select("*")
     .single();
