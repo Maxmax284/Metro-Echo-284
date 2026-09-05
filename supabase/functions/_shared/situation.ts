@@ -103,6 +103,11 @@ export type SituationPlace = {
   scope: "exact" | "area" | "city" | "country" | "unknown";
   /** When the place was last confirmed. Stale place, no words. */
   at: string | null;
+  /**
+   * A saved place the fix actually sits inside — "Lamai", not a city. Set only
+   * when the distance check passed, so the words can name it without guessing.
+   */
+  savedPlace?: string | null;
 };
 
 /** Place speaks only when all three hold. Otherwise it stays quiet. */
@@ -422,6 +427,12 @@ export function readSituation(input: SituationInput): SituationRead {
 /** "Read from Bangkok." — where you stood, never a claim about distance. */
 export function placeNoteFor(place: SituationPlace): string {
   const where = place.where.trim();
+  /* Standing inside a place you named. This is the only case where Vanta says
+     where you are rather than where it read from. */
+  const saved = place.savedPlace?.trim();
+  if (saved && (place.scope === "exact" || place.scope === "area")) {
+    return `You're at ${saved}.`;
+  }
   switch (place.scope) {
     case "exact":
       return `Read from where you are, ${where}.`;
