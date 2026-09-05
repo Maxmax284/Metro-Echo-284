@@ -32,6 +32,9 @@ import { useTodayDigest } from "@/hooks/useTodayDigest";
 import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
+import { AwarenessMap } from "@/components/awareness/AwarenessMap";
+import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
+import { distanceMeters } from "@/lib/trips";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -95,6 +98,23 @@ export function AwarenessSurface() {
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
 
+  /* Self-heal: a place with a fix but no name can't be spoken about, so Vanta
+     looks it up once. One attempt per place — never a loop, never silent
+     repetition. */
+  const healedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!session || !place) return;
+    const geo = (place.geo ?? {}) as Record<string, unknown>;
+    const named = Boolean(geo.city || place.region || place.country);
+    const hasFix = Number.isFinite(Number(geo.lat)) && Number.isFinite(Number(geo.lon));
+    if (named || !hasFix || healedRef.current === place.id) return;
+    healedRef.current = place.id;
+    supabase.functions
+      .invoke("awareness-geocode", { body: { place_id: place.id, force: true } })
+      .then(() => refresh())
+      .catch(() => {});
+  }, [session, place?.id, place?.country, place?.region, refresh]);
+
   const badness = classifyPlaceBadness(place);
   const alternatives = places.filter((p) => p.id !== place?.id && !!p.country);
   // Open the panel automatically once when bad is first detected (per place).
@@ -117,12 +137,39 @@ export function AwarenessSurface() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const label = newLabel.trim() || `Spot ${new Date().toLocaleString()}`;
+        /* Standing where a place already is? Move that one instead of leaving a
+           second pin on the same doorstep. */
+        const near = places.find((p) => {
+          const g = (p.geo ?? {}) as any;
+          if (!Number.isFinite(Number(g?.lat)) || !Number.isFinite(Number(g?.lon))) return false;
+          return (
+            distanceMeters(
+              { lat: pos.coords.latitude, lon: pos.coords.longitude },
+              { lat: Number(g.lat), lon: Number(g.lon) },
+            ) <= 75
+          );
+        });
+        if (near) {
+          await supabase
+            .from("awareness_places")
+            .update({
+              geo: { ...((near.geo ?? {}) as any), lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, source: "device" },
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", near.id);
+          setNewLabel("");
+          toast.success(`You're already at ${near.label} — Vanta moved that pin instead of adding another.`);
+          await setActivePlace(near.id);
+          await refresh();
+          await loadList();
+          return;
+        }
         const { data } = await supabase
           .from("awareness_places")
           .insert({
             user_id: session.user.id,
             label,
-            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy },
+            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, source: "device" },
           })
           .select("id,label,geo,country,region,updated_at")
           .single();
@@ -155,7 +202,7 @@ export function AwarenessSurface() {
         const { error } = await supabase
           .from("awareness_places")
           .update({
-            geo: { lat: pos.coords.latitude, lon: pos.coords.longitude, acc },
+            geo: { ...((place.geo ?? {}) as any), lat: pos.coords.latitude, lon: pos.coords.longitude, acc, source: "device" },
             updated_at: new Date().toISOString(),
           })
           .eq("id", place.id);
