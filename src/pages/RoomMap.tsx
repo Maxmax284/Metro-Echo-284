@@ -3,6 +3,7 @@
 // One static screen. Four rooms, one sentence each, and what each room owns.
 // Not onboarding, not a tour, no steps. Reachable from Explain This in every
 // room so a confused user is never sent into Settings to hunt for it.
+import { BRAND_EXPLAINER } from "@/lib/brand";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
 import { ROOM_MAP } from "@/lib/roomCopy";
