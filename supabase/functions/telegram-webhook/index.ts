@@ -371,15 +371,12 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
           },
         ]);
       }
-      return {
-        reply,
-        detectedType: plan.field.intent as string | null,
-        routedTo: null as string | null,
-        readOnly: !handled.tripId,
-        linkKind: (handled.link?.kind ?? null) as VantaLinkKind | null,
-        commitmentId: null as string | null,
-        tripId: handled.tripId,
-      };
+      /* The button carries the session id, so tapping it lands on the same
+         walk in the app rather than a generic room. */
+      const btn = handled.link
+        ? openButton(handled.link.kind as VantaLinkKind, handled.tripId ? { tripId: handled.tripId } : {})
+        : null;
+      return { reply, markup: btn ? keyboard([btn]) : undefined };
     }
   }
 
