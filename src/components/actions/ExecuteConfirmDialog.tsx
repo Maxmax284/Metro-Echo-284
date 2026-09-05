@@ -2,7 +2,7 @@
 //
 // Approving is a decision; executing is the moment the world changes. This is
 // the one dialog both execute paths use (Actions surface and the inline
-// approval card inside a Echo answer) so the confirmation story is identical
+// approval card inside an Echo answer) so the confirmation story is identical
 // wherever you tap Execute.
 //
 // Low-risk reversible actions confirm with one tap. Standard and high risk

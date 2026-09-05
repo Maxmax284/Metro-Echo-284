@@ -1,6 +1,6 @@
 // telegram-webhook: receive Telegram updates, route to Echo intent pipeline.
 // - Verifies X-Telegram-Bot-Api-Secret-Token (derived from TELEGRAM_API_KEY).
-// - Pairing: /start <CODE> links a chat to a Echo user account.
+// - Pairing: /start <CODE> links a chat to an Echo user account.
 // - Conversation: text messages from a linked chat are routed to AI with the
 //   same tools as vanta-converse (capture_note / stage_action / add_commitment),
 //   then the assistant reply is sent back to Telegram.

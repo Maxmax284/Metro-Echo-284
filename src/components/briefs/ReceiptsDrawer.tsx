@@ -128,7 +128,7 @@ export function ReceiptsDrawer({
 
 
           <p className="mt-4 text-center text-[10.5px] text-muted-foreground">
-            Every claim in a Echo brief points back to real items and audit receipts.
+            Every claim in an Echo brief points back to real items and audit receipts.
           </p>
         </div>
       </SheetContent>

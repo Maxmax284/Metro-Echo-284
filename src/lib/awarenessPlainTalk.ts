@@ -1,5 +1,5 @@
 // Plain-talk normalizer for Awareness briefings.
-// Forces every compact layer card to render as a Echo-voice VantaSignal,
+// Forces every compact layer card to render as an Echo-voice VantaSignal,
 // regardless of whether the DB row has a structured `signal` JSON or only
 // legacy model prose. Raw prose is ALWAYS pushed into `long_detail` —
 // never into `short_summary`.
