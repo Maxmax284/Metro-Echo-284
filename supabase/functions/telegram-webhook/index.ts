@@ -269,7 +269,22 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
 }
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null) {
+  // Identity questions never reach a model. Fixed copy, one line, done — so no
+  // provider or model name can ever be presented as Vanta's identity or author.
+  const idq = matchIdentityQuestion(text);
+  if (idq) {
+    return {
+      reply: IDENTITY_ANSWERS[idq],
+      detectedType: null as string | null,
+      routedTo: null as string | null,
+      readOnly: true,
+      linkKind: null as VantaLinkKind | null,
+      commitmentId: null as string | null,
+    };
+  }
+
   // pull a little context from the user's most recent conversation
+
   const { data: conv } = await sb.from("conversations").select("id").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
   let history: any[] = [];
   if (conv?.id) {
