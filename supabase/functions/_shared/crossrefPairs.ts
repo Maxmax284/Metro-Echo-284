@@ -36,11 +36,14 @@ const MAX_SOURCES = 6;
 
 /** Filename without extension, counters or timestamps — "invoice-2 (1).pdf" → "invoice". */
 export function nameStem(filename: string): string {
-  return filename
-    .toLowerCase()
-    .replace(/\.[a-z0-9]{1,5}$/i, "")
-    .replace(/[\s_-]*\(?\d{2,}\)?$/g, "")
-    .replace(/[\s_-]*\(\d+\)$/g, "")
+  let stem = filename.toLowerCase().replace(/\.[a-z0-9]{1,5}$/i, "");
+  /* Strip copy counters and timestamps off the end, however many are stacked. */
+  for (let i = 0; i < 4; i++) {
+    const next = stem.replace(/[\s_-]*\(\d+\)\s*$/, "").replace(/[\s_-]+\d+\s*$/, "");
+    if (next === stem) break;
+    stem = next;
+  }
+  return stem
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\b\d{3,}\b/g, "")
     .trim();
