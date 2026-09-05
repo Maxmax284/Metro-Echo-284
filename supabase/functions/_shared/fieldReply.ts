@@ -132,7 +132,7 @@ export async function runFieldIntent(
         };
       }
       const text = res.reused
-        ? [`Already walking with you.`, sessionLine({ ...await activeSession(admin, scope) }), NO_TRACKING].join("\n")
+        ? [`Already walking with you.`, sessionLine(await activeSession(admin, scope)), NO_TRACKING].join("\n")
         : [
             "Walking with you.",
             `Say "I'm here" to mark a spot, "end the walk" when you're in.`,
@@ -204,7 +204,16 @@ export async function runFieldIntent(
         };
       }
       /* Echo cannot invent a coordinate. A check-in from a chat marks the
-         moment; the position only exists if a surface sends one. */
+         moment as a recorded event; the position only exists if a surface sends
+         one, so no place is claimed. */
+      await admin.from("audit_log").insert({
+        user_id: scope.userId,
+        organization_id: scope.orgId ?? null,
+        entity_type: "trip",
+        entity_id: open.trip.id,
+        event: "trip.checked_in",
+        payload: { via: opts.via, has_fix: false, said: match.matched },
+      });
       return {
         text: [
           "Marked the moment.",
