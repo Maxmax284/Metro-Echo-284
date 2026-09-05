@@ -40,7 +40,16 @@ async function logTgMessage(admin: any, row: Record<string, unknown>) {
   try { await admin.from("telegram_messages").insert(row); } catch (e) { console.error("telegram_messages insert", e); }
 }
 
-import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
+import {
+  COMPANION_VOICE,
+  MEMORY_VOICE,
+  AWARENESS_VOICE,
+  VANTA_PHRASES,
+  matchIdentityQuestion,
+  IDENTITY_ANSWERS,
+} from "../_shared/vantaVoice.ts";
+import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shared/brandVoice.ts";
+import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
