@@ -16,6 +16,7 @@ import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
 import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLane";
+import { readArrival } from "@/lib/arrivalRead";
 import { displayPlatform } from "@/lib/plainEnglish";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
@@ -52,7 +53,14 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
        land there: files and pages, and messages that arrived from a channel
        (Telegram, email) that Vanta could not route on its own. Both are things
        waiting on a person, so both count here. */
-    let arrived: Array<{ id: string; label: string; at: string; via?: string | null }> = [];
+    let arrived: Array<{
+      id: string;
+      label: string;
+      at: string;
+      via?: string | null;
+      read?: string | null;
+      why?: ReturnType<typeof readMessageLane>[number]["why"];
+    }> = [];
     const [inbox, unrouted] = await Promise.all([
       applyScope(supabase.from("ingested_files").select("id, filename, created_at, source"))
         .eq("review_status", "pending")
@@ -97,10 +105,14 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const lane = readMessageLane(candidates);
     arrived = surfacedArrivals(lane).map((item) => {
       const text = item.arrival.text;
+      const r = readArrival(item.arrival);
       return {
         id: item.arrival.id,
         label: text.length > 70 ? `${text.slice(0, 69)}…` : text,
         at: item.arrival.at,
+        /* Same sentence the Aware room and Telegram use for this arrival. */
+        read: `${r.read} ${r.summary}`.trim(),
+        why: item.why,
         /* Say the source the way a person would, never its internal key. */
         via:
           item.arrival.channel === "upload"
