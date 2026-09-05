@@ -57,6 +57,8 @@ import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
+import { intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
+import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   fileUnderButton,
   keyboard,
