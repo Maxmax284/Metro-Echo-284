@@ -84,7 +84,39 @@ export type SituationRead = {
   quietSources: SituationSource[];
   /** Sources that could not be read at all — missing, never zero. */
   unknownSources: SituationSource[];
+  /**
+   * One clause about where this was read from, or nothing at all. Place never
+   * adds a line of its own and never changes what is true — it only says where
+   * you were standing when the read was made.
+   */
+  placeNote: string | null;
 };
+
+/**
+ * Where the person is, as far as the Aware layer resolved it. Words only: this
+ * never creates a line, never removes one, and never claims proximity.
+ */
+export type SituationPlace = {
+  /** What to call it in prose — a city or region, not a saved label like "Spot 4:47". */
+  where: string;
+  /** How precisely it is known. "unknown" means say nothing. */
+  scope: "exact" | "area" | "city" | "country" | "unknown";
+  /** When the place was last confirmed. Stale place, no words. */
+  at: string | null;
+};
+
+/** Place speaks only when all three hold. Otherwise it stays quiet. */
+const PLACE_FRESH_MS = 12 * 60 * 60 * 1000;
+export function placeSpeaks(place: SituationPlace | null | undefined, lineCount: number, now: number): boolean {
+  if (!place) return false;
+  // 1. the place is actually resolved
+  if (place.scope === "unknown" || !place.where.trim()) return false;
+  // 2. it was confirmed recently enough to still be where you are
+  const at = place.at ? new Date(place.at).getTime() : NaN;
+  if (!Number.isFinite(at) || now - at > PLACE_FRESH_MS) return false;
+  // 3. there is something for it to sit beside. Place alone is not news.
+  return lineCount > 0;
+}
 
 export type SituationInput = {
   now?: number;
@@ -126,6 +158,12 @@ export type SituationInput = {
   } | null;
   /** Sources the caller could not read (offline, off, not set up). */
   unknownSources?: SituationSource[];
+  /**
+   * Where the read was made from, if the Aware layer resolved it. Words only —
+   * it softens the wording and breaks ties between equally weighted lines. It
+   * cannot add a line, remove one, or change a due time.
+   */
+  place?: SituationPlace | null;
 };
 
 const HOUR = 60 * 60 * 1000;
@@ -341,7 +379,20 @@ export function readSituation(input: SituationInput): SituationRead {
     });
   }
 
-  lines.sort((a, b) => a.weight - b.weight);
+  /* Consequence first. Place only decides which of two equally weighted lines
+     is read first — a place-bound kind wins that coin toss, and nothing else
+     about the read changes. */
+  const speaks = placeSpeaks(input.place, lines.length, now);
+  const PLACE_BOUND = new Set<SituationKind>(["meeting_soon", "noticed"]);
+  lines.sort((a, b) => {
+    if (a.weight !== b.weight) return a.weight - b.weight;
+    if (speaks) {
+      const pa = PLACE_BOUND.has(a.kind) ? 0 : 1;
+      const pb = PLACE_BOUND.has(b.kind) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+    }
+    return new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
+  });
   const top = lines.slice(0, 3);
 
   const quietSources: SituationSource[] = [];
@@ -359,7 +410,30 @@ export function readSituation(input: SituationInput): SituationRead {
     if (!hasAny && !had.has(src)) quietSources.push(src);
   }
 
-  return { lines: top, headline: headlineFor(top), quietSources, unknownSources: unknown };
+  return {
+    lines: top,
+    headline: headlineFor(top),
+    quietSources,
+    unknownSources: unknown,
+    placeNote: speaks ? placeNoteFor(input.place!) : null,
+  };
+}
+
+/** "Read from Bangkok." — where you stood, never a claim about distance. */
+export function placeNoteFor(place: SituationPlace): string {
+  const where = place.where.trim();
+  switch (place.scope) {
+    case "exact":
+      return `Read from where you are, ${where}.`;
+    case "area":
+      return `Read from around ${where}.`;
+    case "city":
+      return `Read from ${where}.`;
+    case "country":
+      return `Read from ${where} — that's as close as Vanta can place you.`;
+    default:
+      return `Read from ${where}.`;
+  }
 }
 
 /** One opening sentence, chosen by the strongest line. Never a count of nothing. */

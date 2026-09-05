@@ -8,7 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { cadenceFromRow, type Cadence } from "@/lib/baseline";
-import { readSituation, type SituationRead, type SituationSource } from "@/lib/situation";
+import { readSituation, type SituationPlace, type SituationRead, type SituationSource } from "@/lib/situation";
+import { classifyTier } from "@/lib/awarenessPlainTalk";
+import type { AwarenessPlace } from "@/providers/AwarenessProvider";
 import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
@@ -168,6 +170,28 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       proposal = proposeReading(pool);
     }
 
+    /* Where the read is being made from. The active place is simply the most
+       recently touched one — the same rule the Aware room uses, so both rooms
+       are standing in the same spot. Place only changes wording. */
+    let place: SituationPlace | null = null;
+    const placeRes = await supabase
+      .from("awareness_places")
+      .select("id, label, geo, country, region, updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!placeRes.error && placeRes.data) {
+      const row = placeRes.data as AwarenessPlace & { updated_at: string };
+      const tier = classifyTier(row);
+      const scope: SituationPlace["scope"] =
+        tier.tier === "saved" ? "area" : (tier.tier as SituationPlace["scope"]);
+      place = {
+        where: tier.city || tier.region || tier.country || row.label,
+        scope,
+        at: row.updated_at ?? null,
+      };
+    }
+
     setRead(
       readSituation({
         overdue: digest.overdue.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at })),
@@ -189,6 +213,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           ? { filenames: proposal.filenames, reason: proposal.reason, signal: proposal.signal, at: proposal.at }
           : null,
         unknownSources,
+        place,
       }),
     );
     setLoading(false);
