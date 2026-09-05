@@ -75,7 +75,7 @@ export function deriveProjectHealth(rollup: EntityRollup | null): ProjectHealth 
 /** "Why am I seeing this?" — plain-English bullets derived from the rollup. */
 export function whyAmISeeingThis(rollup: EntityRollup | null): string[] {
   const c = rollup?.counts;
-  if (!c) return ["Pinned project · Vanta keeps it visible even when quiet."];
+  if (!c) return ["Pinned project · Echo keeps it visible even when quiet."];
   const out: string[] = [];
   if ((c.audit_7d ?? 0) > 0) out.push(`${c.audit_7d} receipt${c.audit_7d === 1 ? "" : "s"} in the last 7 days.`);
   if ((c.commitments_open ?? 0) > 0) out.push(`${c.commitments_open} commitment${c.commitments_open === 1 ? "" : "s"} still open.`);

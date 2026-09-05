@@ -47,7 +47,7 @@ export function WorkspaceSwitcher() {
             "relative h-7 max-w-[200px] gap-1 px-2 text-[11px] font-normal",
             MOTION_MICRO,
             MOTION_PRESS,
-            /* Vanta changed rooms: one purple sweep across the scope label
+            /* Echo changed rooms: one purple sweep across the scope label
                while scoped data refetches, then quiet again. */
             switching && `text-accent ${MOTION_SIGNAL}`,
           )}

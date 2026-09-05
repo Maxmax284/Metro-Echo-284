@@ -3,12 +3,12 @@
 // Doctrine:
 //   - the model reads paper. It never matches records, never does arithmetic,
 //     never decides which source wins. That all happens here, in code.
-//   - nothing is softened: a reading Vanta could not make out stays
+//   - nothing is softened: a reading Echo could not make out stays
 //     `uncertain` and shows up as an unreadable conflict.
 //   - a case never executes anything. It produces a matrix and, once the user
 //     has reviewed it, an artifact.
 
-/** How sure Vanta is about one piece of evidence. */
+/** How sure Echo is about one piece of evidence. */
 export type Certainty = "verified" | "inferred" | "uncertain";
 
 export type SourceRole = "master" | "supporting" | "unknown";
@@ -84,7 +84,7 @@ export function inferSourceRole(
   if (SUPPORTING_HINT.test(name) || isImage) {
     return { role: "supporting", rank: 40, why: isImage ? "It is a photo of paper." : "Its name reads like a filled-in form." };
   }
-  return { role: "unknown", rank: 50, why: "Vanta could not tell what this is from the name alone." };
+  return { role: "unknown", rank: 50, why: "Echo could not tell what this is from the name alone." };
 }
 
 /**
@@ -135,7 +135,7 @@ export interface ResolvedRecord {
 
 /**
  * Group raw per-source labels into records. A weak match is kept as its own
- * record and reported as uncertain — Vanta asks instead of merging quietly.
+ * record and reported as uncertain — Echo asks instead of merging quietly.
  */
 export function resolveRecords(
   raw: Array<{ label: string; source_id: string | null }>,
@@ -183,7 +183,7 @@ export function resolveRecords(
 export interface MatrixCell {
   record_key: string;
   field: string;
-  /** Value Vanta would print today. */
+  /** Value Echo would print today. */
   value: string | null;
   state: "agrees" | "conflicts" | "missing" | "unreadable" | "calculated";
   certainty: Certainty;
@@ -282,7 +282,7 @@ export function parseNumber(value: string | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Unit written next to a number, when it is one Vanta recognises. */
+/** Unit written next to a number, when it is one Echo recognises. */
 export function parseUnit(value: string | null | undefined): string | null {
   if (!value) return null;
   const m = /\b(kg|kgs|lb|lbs|cm|m|mm|in|ft|usd|eur|thb|gbp|%)\b/i.exec(value);
@@ -404,7 +404,7 @@ export const SHAPE_SPEC: Record<OutputShape, { label: string; blurb: string; pre
   },
   audit_report: {
     label: "Audit report",
-    blurb: "Every claim with where it came from and how sure Vanta is.",
+    blurb: "Every claim with where it came from and how sure Echo is.",
     prefer: [],
     drop_sensitive: true,
   },

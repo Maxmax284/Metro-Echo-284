@@ -1,9 +1,9 @@
-// ConnectYourWorldSection — every way the outside world reaches Vanta, in one
+// ConnectYourWorldSection — every way the outside world reaches Metro Echo, in one
 // place, each with one honest state and a proof line under it.
 //
 // Doctrine:
 //  - Not a room. This is the maintenance bay in Settings.
-//  - One word per connection, backed by something Vanta actually recorded.
+//  - One word per connection, backed by something Echo actually recorded.
 //    "Connected" without a last-received time is a claim, so we do not say it.
 //  - Off means off. A missing reading is a gap, never a zero.
 //  - Nothing here executes anything: capture paths feed the system only.
@@ -219,7 +219,7 @@ export function ConnectYourWorldSection() {
           <div className="min-w-0">
             <h2 className="text-sm font-semibold">Connect your world</h2>
             <p className="mt-0.5 text-[12px] leading-snug text-muted-foreground">
-              Every way the outside world reaches Vanta, with proof that it actually did. All of
+              Every way the outside world reaches Metro Echo, with proof that it actually did. All of
               these feed the system. None of them can run anything.
             </p>
           </div>
@@ -248,7 +248,7 @@ export function ConnectYourWorldSection() {
 
       <div className="mt-4 border-t border-border/40 pt-3">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80">
-          Ways a device can reach Vanta
+          Ways a device can reach Echo
         </p>
         <ul className="mt-2 space-y-2">
           {DEVICE_FAMILIES.map((f) => (

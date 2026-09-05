@@ -1,4 +1,4 @@
-// Renders a Vanta answer as structured blocks: a lead summary, status rows,
+// Renders a Echo answer as structured blocks: a lead summary, status rows,
 // checklists, section cards, approval notices and next steps.
 import { useEffect, useRef } from "react";
 import { AlertTriangle, CheckCircle2, CircleDot, ShieldCheck } from "lucide-react";

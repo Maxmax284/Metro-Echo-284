@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const consent = ((profile?.preferences ?? {}) as any).sensor_consent ?? {};
     if (consent.activity !== true) {
-      return json({ error: "Steps, sleep and workouts are switched off in Vanta." }, 403);
+      return json({ error: "Steps, sleep and workouts are switched off in Metro Echo." }, 403);
     }
 
     const rows = incoming

@@ -1,7 +1,7 @@
 // SystemHealthLine — one line, plain words, no diagnostics dashboard.
 //
 // Doctrine: show enough of the backend to build trust, not enough to make the
-// user operate it. Green when everything Vanta relies on is live, amber when
+// user operate it. Green when everything Echo relies on is live, amber when
 // something needs the user, neutral when nothing is connected yet. Colour never
 // carries the meaning alone — the words say it.
 import { useEffect, useState } from "react";

@@ -3,7 +3,7 @@
 // No new tables: the signal comes from records that already exist (receipts,
 // project_items, open actions, open commitments, fresh notes). The compact
 // summary is cached back into projects.metadata.working_context so a later
-// session (or Ask Vanta) can diff against it.
+// session (or Ask Echo) can diff against it.
 //
 // Scope isolation: every read goes through applyScope, and the cache key
 // carries the scope key, so Personal never mixes with a workspace.

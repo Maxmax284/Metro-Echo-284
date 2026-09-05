@@ -1,7 +1,7 @@
 // TodayBodyPanel — your body, on the day's page.
 //
 // Folded by default and quiet by design. It reads back only what was actually
-// measured, says plainly when a sense is off, and never claims a posture Vanta
+// measured, says plainly when a sense is off, and never claims a posture Echo
 // wasn't told. Nothing here approves or runs anything.
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Footprints, HeartPulse, Moon, Activity, Timer } from "lucide-react";
@@ -49,7 +49,7 @@ export function TodayBodyPanel() {
       ) : !loop.anySensorOn ? (
         <div className="space-y-2">
           <p className="text-[11.5px] leading-snug text-foreground/90">
-            No sense is switched on, so Vanta knows nothing about your body. Turn on heart rate or
+            No sense is switched on, so Echo knows nothing about your body. Turn on heart rate or
             daily activity and it'll read back here — as context only.
           </p>
           <AftermathHint text="Switching a sense on stores readings you send. It never lets a watch approve or run anything." />
@@ -118,11 +118,11 @@ export function TodayBodyPanel() {
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
               {loop.suggestion
                 ? `${loop.suggestion.because} You might be in “${POSTURE_LABEL[loop.suggestion.posture]}”. Set it yourself if that's right.`
-                : "Whatever you set by hand. Vanta suggests; it never switches."}
+                : "Whatever you set by hand. Echo suggests; it never switches."}
             </p>
           </div>
 
-          <AftermathHint text="These numbers only change how Vanta talks — shorter when you're moving, quieter when you're training. They never change what needs your approval." />
+          <AftermathHint text="These numbers only change how Echo talks — shorter when you're moving, quieter when you're training. They never change what needs your approval." />
         </div>
       )}
     </CollapsibleSection>

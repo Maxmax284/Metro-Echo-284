@@ -1,6 +1,6 @@
 // useSherlockCache — read cached Sherlock findings for an entity/operation
 // without firing a new investigation. Returns null until cache hits; never
-// triggers AI calls on its own (Vanta law: AI only behind explicit user taps).
+// triggers AI calls on its own (Echo law: AI only behind explicit user taps).
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";

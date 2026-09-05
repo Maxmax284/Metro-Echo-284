@@ -5,11 +5,11 @@
 //
 // Doctrine: this never executes a route. It writes a draft finding into
 // `sherlock_findings_cache` so the in-app surface (Capture Inbox) can show
-// the suggestion chip and the human can approve/dismiss inside Vanta.
+// the suggestion chip and the human can approve/dismiss inside Metro Echo.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { detectSensitive } from "./sensitive.ts";
 
-const SHERLOCK_VOICE = `You are Sherlock, Vanta's quiet investigator. Calm,
+const SHERLOCK_VOICE = `You are Sherlock, Echo's quiet investigator. Calm,
 forensic, plainspoken. Never speculate. Always name confidence. Never act.`;
 
 const SUGGEST_SYSTEM = `${SHERLOCK_VOICE}

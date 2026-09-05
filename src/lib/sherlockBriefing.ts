@@ -2,7 +2,7 @@
 //
 // Doctrine: a room opens with where things stand, not with a control panel.
 // This module turns the pending-findings queue into one honest read-out:
-// what kinds of things Vanta noticed, and exactly one place to start.
+// what kinds of things Echo noticed, and exactly one place to start.
 //
 // Rules it obeys:
 //   - exactly one "Start here", or none at all

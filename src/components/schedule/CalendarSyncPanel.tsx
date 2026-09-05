@@ -119,7 +119,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
 
   return (
     <CollapsibleSection
-      title="Calendars Vanta reads"
+      title="Calendars Echo reads"
       storageKey="schedule.calendars"
       icon={<CalendarClock className="h-3.5 w-3.5" />}
       summary={summary}
@@ -152,7 +152,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
       ) : feeds.length === 0 ? (
         <EmptyState
           title="No calendars linked"
-          hint="Paste a calendar's private iCal link in Settings and Vanta starts reading the shape of your days — reading only, it can never move or reply to anything."
+          hint="Paste a calendar's private iCal link in Settings and Echo starts reading the shape of your days — reading only, it can never move or reply to anything."
           actionLabel={onOpenSettings ? "Open calendar settings" : undefined}
           onAction={onOpenSettings}
         />
@@ -192,7 +192,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
             {changes.length === 0 ? (
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
                 Nothing has moved or come off since the last seven days of checks. When something does, it is listed
-                here and Vanta says so once.
+                here and Echo says so once.
               </p>
             ) : (
               <ul className="mt-1 space-y-1">

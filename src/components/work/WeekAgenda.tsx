@@ -1,4 +1,4 @@
-// WeekAgenda — the week Vanta can see, and where entries get filed.
+// WeekAgenda — the week Echo can see, and where entries get filed.
 //
 // Work is the operational room, so this is where an entry becomes structural:
 // attach it to a project and the project's brief and re-entry cards can carry it.
@@ -51,7 +51,7 @@ export function WeekAgenda({ onOpenSettings }: { onOpenSettings?: () => void }) 
         </div>
       ) : events.length === 0 ? (
         <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
-          Nothing on the next seven days that Vanta can see. Link a calendar in Settings and entries land
+          Nothing on the next seven days that Echo can see. Link a calendar in Settings and entries land
           here — reading only, and you can file each one under the project it belongs to.
         </p>
       ) : (

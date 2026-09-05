@@ -2,7 +2,7 @@
 // is active, and where it happens.
 //
 // The place is always something you set: tap the map, or take one fix from this
-// device. Vanta never quietly attaches a location to a project.
+// device. Echo never quietly attaches a location to a project.
 import { useEffect, useState } from "react";
 import { Loader2, MapPin, Crosshair, Trash2 } from "lucide-react";
 import {
@@ -111,7 +111,7 @@ export function ProjectEditDialog({
             <div className="min-w-0">
               <div className="text-[12.5px] font-medium">Still active</div>
               <p className="text-[11px] text-muted-foreground">
-                Turn this off and Vanta stops raising it in your day. Nothing is deleted.
+                Turn this off and Echo stops raising it in your day. Nothing is deleted.
               </p>
             </div>
             <Switch checked={active} onCheckedChange={setActive} aria-label="Still active" />

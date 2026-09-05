@@ -26,7 +26,7 @@ export function SensitivityReviewStep({
               Looks like this brief includes sensitive content
             </div>
             <p className="text-[11.5px] text-muted-foreground">
-              Vanta flagged things that often shouldn't leave the system without a second look.
+              Echo flagged things that often shouldn't leave the system without a second look.
               Approve below to export as <span className="text-foreground/90">{formatLabel}</span>.
             </p>
           </div>

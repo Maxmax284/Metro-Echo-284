@@ -1,4 +1,4 @@
-// RoomMap — "How Vanta Is Organized".
+// RoomMap — "How Echo Is Organized".
 //
 // One static screen. Four rooms, one sentence each, and what each room owns.
 // Not onboarding, not a tour, no steps. Reachable from Explain This in every
@@ -21,13 +21,13 @@ export default function RoomMapPage() {
       <header className="mb-5 flex items-center gap-3">
         <Link
           to="/"
-          aria-label="Back to Vanta"
+          aria-label="Back to Echo"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">How Vanta Is Organized</h1>
+          <h1 className="text-lg font-semibold tracking-tight">How Echo Is Organized</h1>
           <p className="text-xs text-muted-foreground">Four rooms. Each one owns different things.</p>
         </div>
       </header>
@@ -67,13 +67,13 @@ export default function RoomMapPage() {
           What the words mean
         </h2>
         <p className="mt-0.5 text-[12px] text-muted-foreground">
-          Plain English for every noun Vanta uses, including the ones people mix up.
+          Plain English for every noun Echo uses, including the ones people mix up.
         </p>
         <GlossaryPanel className="mt-3" />
       </section>
 
       <p className="mt-5 text-[12px] leading-snug text-muted-foreground">
-        Nothing runs on its own. Vanta drafts, you approve, and every change leaves a receipt.
+        Nothing runs on its own. Echo drafts, you approve, and every change leaves a receipt.
       </p>
     </div>
   );

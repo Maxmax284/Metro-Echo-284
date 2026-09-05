@@ -1,9 +1,9 @@
 // telegramReplies — the one place that builds Telegram deep links and the
-// small, fixed button vocabulary Vanta is allowed to show in a chat.
+// small, fixed button vocabulary Echo is allowed to show in a chat.
 //
 // Doctrine: a button in Telegram either acknowledges something (Noted, Mark
 // done, Snooze), files something where it belongs (File under <project>), or
-// opens Vanta. No button approves or executes.
+// opens Echo. No button approves or executes.
 
 export type TgInlineButton = { text: string; callback_data?: string; url?: string };
 export type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
@@ -32,7 +32,7 @@ export function publicBase(): string {
 }
 
 /**
- * Build a link into the exact place in Vanta. `commitment` gets its own focus
+ * Build a link into the exact place in Metro Echo. `commitment` gets its own focus
  * param because the shell already knows how to open and highlight one.
  */
 export function vantaLink(
@@ -53,16 +53,16 @@ const OPEN_LABEL: Partial<Record<VantaLinkKind, string>> = {
   projects: "Open project",
   briefs: "Open draft",
   receipts: "Open Receipts",
-  sherlock: "Open what Vanta noticed",
+  sherlock: "Open what Echo noticed",
   schedule: "Open Schedule",
-  today: "Open Vanta",
+  today: "Open Metro Echo",
 };
 
-/** "Open in Vanta" style button, or null when no public URL is configured. */
+/** "Open in Metro Echo" style button, or null when no public URL is configured. */
 export function openButton(kind: VantaLinkKind, opts: { commitmentId?: string; label?: string; base?: string } = {}): TgInlineButton | null {
   const url = vantaLink(kind, opts);
   if (!url) return null;
-  return { text: opts.label ?? OPEN_LABEL[kind] ?? "Open in Vanta", url };
+  return { text: opts.label ?? OPEN_LABEL[kind] ?? "Open in Metro Echo", url };
 }
 
 /** Acknowledge a nudge or finding — marks it seen, nothing else. */

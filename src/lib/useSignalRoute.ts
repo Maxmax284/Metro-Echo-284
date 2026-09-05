@@ -151,7 +151,7 @@ export function useSignalRoute(): SignalRouteHandler {
       case "flag_source":
       case "do_not_show_again": {
         const map: Record<string, { type: string; impact: string; toast: string }> = {
-          mark_wrong:        { type: "wrong",      impact: "invalidate", toast: "Marked wrong. Vanta will lower confidence." },
+          mark_wrong:        { type: "wrong",      impact: "invalidate", toast: "Marked wrong. Echo will lower confidence." },
           mark_useful:       { type: "useful",     impact: "raise",      toast: "Marked useful." },
           mark_outdated:     { type: "outdated",   impact: "lower",      toast: "Marked outdated." },
           flag_source:       { type: "source_bad", impact: "lower",      toast: "Source flagged." },

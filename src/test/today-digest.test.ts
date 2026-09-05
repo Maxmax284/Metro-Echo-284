@@ -165,10 +165,10 @@ describe("stateOfDay", () => {
 
   it("appends the noticed clause without stacking sentences", () => {
     expect(stateOfDay({ overdue: 0, waitingOnYou: 0, dueToday: 0, noticed: true })).toBe(
-      "Nothing is pressing. Vanta noticed something worth a look.",
+      "Nothing is pressing. Echo noticed something worth a look.",
     );
     expect(stateOfDay({ overdue: 1, waitingOnYou: 0, dueToday: 0, noticed: true })).toBe(
-      "One promise is past its date. Vanta also noticed something worth a look.",
+      "One promise is past its date. Echo also noticed something worth a look.",
     );
   });
 });

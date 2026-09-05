@@ -1,4 +1,4 @@
-// useAgenda — the day and week Vanta can actually see.
+// useAgenda — the day and week Echo can actually see.
 //
 // Doctrine:
 //  - Read-only. These rows came from a subscribed calendar; nothing here writes
@@ -62,7 +62,7 @@ export function gapMinutes(a: AgendaEvent, b: AgendaEvent): number | null {
 }
 
 /**
- * The window Vanta can see.
+ * The window Echo can see.
  *
  *  - `days` — a rolling window starting an hour ago (the day and week reads).
  *  - `from`/`to` — an explicit span, for browsing a month that may be behind or

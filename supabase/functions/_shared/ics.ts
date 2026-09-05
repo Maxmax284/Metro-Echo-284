@@ -1,6 +1,6 @@
 // Minimal, dependency-free iCalendar reader.
 //
-// Vanta only needs to know WHEN something is and WHAT it is called. This parser
+// Echo only needs to know WHEN something is and WHAT it is called. This parser
 // deliberately does less than a full RFC 5545 implementation:
 //   - VEVENT only. No todos, journals, alarms, free/busy.
 //   - Single occurrences plus simple DAILY/WEEKLY recurrence inside the window.
@@ -63,7 +63,7 @@ function parseProp(line: string): Prop | null {
 
 /**
  * Parse a DTSTART/DTEND value. Floating local times are read as UTC — honest
- * within an hour or two, and Vanta never claims more precision than the feed
+ * within an hour or two, and Echo never claims more precision than the feed
  * gave it. Named-zone conversion is deliberately out of scope here.
  */
 export function parseIcsDate(value: string, params: Record<string, string> = {}): { ms: number; allDay: boolean } | null {

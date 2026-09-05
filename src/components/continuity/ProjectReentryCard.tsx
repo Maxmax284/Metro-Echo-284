@@ -38,7 +38,7 @@ export function ProjectReentryCard({
   candidate: ContinuityCandidate;
   changes?: string[];
   onResume: () => void;
-  /** Optional hand-off to Vanta for a deeper read. Never the primary path. */
+  /** Optional hand-off to Echo for a deeper read. Never the primary path. */
   onAsk?: () => void;
   onOpen?: () => void;
   onPin?: (next: boolean) => void;
@@ -170,7 +170,7 @@ export function ProjectReentryCard({
               className={`mt-1 min-h-[40px] px-0 text-[11px] ${MOTION_PRESS}`}
               onClick={onAsk}
             >
-              Ask Vanta to go deeper
+              Ask Echo to go deeper
             </Button>
           ) : null}
         </div>

@@ -1,4 +1,4 @@
-// lookAt — the deliberate camera seam. Vanta looks at what the user points at,
+// lookAt — the deliberate camera seam. Echo looks at what the user points at,
 // and only then.
 //
 // Doctrine:
@@ -17,7 +17,7 @@ export type LookIntent = {
   id: LookIntentId;
   /** Button copy. Plain English, verb first. */
   label: string;
-  /** What Vanta says while it is looking. */
+  /** What Echo says while it is looking. */
   looking: string;
   /** The question put to the model. Never shown to the user. */
   prompt: string;
@@ -28,35 +28,35 @@ export const LOOK_INTENTS: LookIntent[] = [
   {
     id: "identify",
     label: "What is this?",
-    looking: "Vanta is looking",
+    looking: "Echo is looking",
     prompt:
       "Say plainly what this is, in one or two sentences. Name the thing first. Then add only details that are actually visible. If you cannot tell what it is, say so and say what you can see.",
   },
   {
     id: "unusual",
     label: "Anything off?",
-    looking: "Vanta is looking for anything off",
+    looking: "Echo is looking for anything off",
     prompt:
       "Look for anything that seems wrong, damaged, unsafe, or out of place. Name what you see and where. If nothing stands out, say plainly that nothing stands out. Do not invent problems.",
   },
   {
     id: "text",
     label: "Read what it says",
-    looking: "Vanta is reading it",
+    looking: "Echo is reading it",
     prompt:
       "Read the text in this picture, including handwriting. Return the text plainly, keeping line breaks. If there is no text, say there is no text.",
   },
   {
     id: "promises",
     label: "Find promises and dates",
-    looking: "Vanta is looking for promises and dates",
+    looking: "Echo is looking for promises and dates",
     prompt:
       "Find anything in this picture that reads as a promise, a task, or a date. List each one on its own line, in the words used in the picture. If there are none, say there are none. Do not invent commitments.",
   },
   {
     id: "amount",
     label: "Read the total",
-    looking: "Vanta is looking for the total",
+    looking: "Echo is looking for the total",
     prompt:
       "If this is a receipt, bill, or invoice, report the merchant, the date, and the total with its currency exactly as printed. If a value is unreadable, say which one. If this is not a receipt, say what it looks like instead.",
   },
@@ -70,9 +70,9 @@ export function lookIntent(id: string | null | undefined): LookIntent {
 export const LOOK_STATES = {
   idle: "Camera is off until you open it.",
   captured: "Got the picture. Nothing has been read yet.",
-  looking: "Vanta is looking",
+  looking: "Echo is looking",
   done: "Looked at it.",
-  nothing: "Vanta could not make anything of it.",
+  nothing: "Echo could not make anything of it.",
 } as const;
 
 /** True when the answer is honest about not knowing. */
@@ -97,7 +97,7 @@ export function isLookable(rec: { mime_type: string | null; filename: string }):
 }
 
 const VOICE =
-  "You are Vanta looking at a picture a person deliberately showed you. Answer in plain English, short. Lead with the answer. Never describe your process, never mention models or providers, never guess past what the picture supports. If you are unsure, say so in the first sentence.";
+  "You are Echo looking at a picture a person deliberately showed you. Answer in plain English, short. Lead with the answer. Never describe your process, never mention models or providers, never guess past what the picture supports. If you are unsure, say so in the first sentence.";
 
 export class LookError extends Error {
   status: number;

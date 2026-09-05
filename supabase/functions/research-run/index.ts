@@ -287,7 +287,7 @@ function composeResearchBrief(args: {
   const sections: ResearchBriefSection[] = [
     {
       id: "what_vanta_looked_into",
-      heading: "What Vanta looked into",
+      heading: "What Echo looked into",
       body: question,
     },
     {

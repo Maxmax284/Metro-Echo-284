@@ -1,4 +1,4 @@
-// writeAuditEvent — one envelope for every receipt Vanta leaves behind.
+// writeAuditEvent — one envelope for every receipt Echo leaves behind.
 // Doctrine: every state change emits an event, scoped to the room it happened in.
 // Pure module apart from the client passed in, so the envelope builder is testable.
 

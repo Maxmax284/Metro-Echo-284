@@ -51,7 +51,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     label: "Mutual NDA",
     shortDescription: "Both sides protect each other's information.",
     longDescription:
-      "A short, plain-English mutual NDA. Vanta drafts it; you review it and decide what to do with it. It is not legal advice.",
+      "A short, plain-English mutual NDA. Echo drafts it; you review it and decide what to do with it. It is not legal advice.",
     promptTitle: "Mutual non-disclosure agreement",
     fields: [
       { key: "party_a", label: "Your side (party A)", kind: "text", required: true, placeholder: "Acme Holdings LLC" },

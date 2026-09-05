@@ -21,7 +21,7 @@ const STEPS = [
   "Switch on the senses you want. Off means nothing is read and nothing is stored.",
   "Connect a strap for heart rate, or point your phone's health export at your private link.",
   "The numbers land here as context — never as instructions.",
-  "You set the posture. Vanta may suggest one; it never flips it for you.",
+  "You set the posture. Echo may suggest one; it never flips it for you.",
   "Today reads it back in Your body, and the day's read reports what changed.",
 ];
 
@@ -76,7 +76,7 @@ export default function WearableLoopPage() {
       <header className="mb-5 flex items-center gap-3">
         <Link
           to="/"
-          aria-label="Back to Vanta"
+          aria-label="Back to Echo"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -114,7 +114,7 @@ export default function WearableLoopPage() {
           ))}
         </ol>
         <p className="mt-3 text-[11.5px] leading-snug text-muted-foreground">
-          A watch feeds Vanta. It never controls it. Approval doesn't travel to your wrist, and
+          A watch feeds Echo. It never controls it. Approval doesn't travel to your wrist, and
           nothing here goes out through Telegram.
         </p>
       </section>

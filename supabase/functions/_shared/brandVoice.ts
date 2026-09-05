@@ -1,4 +1,4 @@
-// brandVoice — user-controlled tone layer for everything Vanta says out loud.
+// brandVoice — user-controlled tone layer for everything Echo says out loud.
 //
 // Doctrine:
 //  - Tone is a preference, never a personality change. Facts, receipts and
@@ -69,11 +69,11 @@ Confidence is never faked for style — if it's uncertain, say so in the same bl
 - Errors: own it and stay useful — "That didn't land — my end, not yours. Try it again in a minute."
 - Awareness: "Quiet week on the Fight Card. Last thing that moved was the venue note, nine days ago."
 - Investigation: "Two of these disagree. The contract says 60 days, the invoice says 30. Your call which one's real."
-- Documents: "Short version: 12-month term, auto-renews, 60 days to get out. Full thing's in Vanta."
-- Boundaries: never apologetic, never a policy lecture — "Not from here. That needs your approval inside Vanta; it's queued and waiting."`;
+- Documents: "Short version: 12-month term, auto-renews, 60 days to get out. Full thing's in Metro Echo."
+- Boundaries: never apologetic, never a policy lecture — "Not from here. That needs your approval inside Metro Echo; it's queued and waiting."`;
 
 export const VOICE_ANTI_PATTERNS = `NEVER (these break the voice):
-- Naming or hinting at any AI model, provider, lab or vendor, or crediting anyone but the user as Vanta's maker.
+- Naming or hinting at any AI model, provider, lab or vendor, or crediting anyone but the user as Echo's maker.
 - "As an AI", "I'm just a language model", "I don't have the ability to".
 - Corporate service voice: "I'd be happy to assist", "Great news!", "Let's get you organised!", "Certainly!".
 - Fake street or accent spelling: "ya", "gonna" as costume, dropped g's, "fuhgeddaboudit", wiseguy cosplay.
@@ -135,7 +135,7 @@ export function brandVoiceDirective(bv: BrandVoicePrefs, ctx: VoiceContext = "ro
     parts.push(EAST_COAST_BY_INTENSITY[level]);
     parts.push(EAST_COAST_DOCTRINE);
   } else {
-    parts.push(`Neutral Vanta tone: calm, plain, useful. No accent, no flourish.`);
+    parts.push(`Neutral Echo tone: calm, plain, useful. No accent, no flourish.`);
   }
   parts.push(CONTEXT_RULES[ctx]);
   parts.push(VOICE_ANTI_PATTERNS);

@@ -12,7 +12,7 @@ export type AiFailure = {
 };
 
 const COPY: Record<number, { message: string; retryable: boolean }> = {
-  400: { message: "That request was not something Vanta could read. Try shorter text.", retryable: false },
+  400: { message: "That request was not something Echo could read. Try shorter text.", retryable: false },
   401: { message: "Sign in and try that again.", retryable: false },
   402: { message: "AI credits are used up for this workspace. Top up in Lovable, then try again.", retryable: false },
   403: { message: "AI is switched off for this workspace right now.", retryable: false },

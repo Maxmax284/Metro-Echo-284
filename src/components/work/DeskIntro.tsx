@@ -2,7 +2,7 @@
 //
 //   1  what happens here
 //   2  do this            (verb-first taps, the recommended one marked)
-//   3  Vanta can help     (each one only ever prepares something)
+//   3  Echo can help     (each one only ever prepares something)
 //   4  the desk itself    (the surface's own records, or DeskExample when empty)
 //   5  what happens next
 //
@@ -127,11 +127,11 @@ export function DeskIntro({
             </div>
           </div>
 
-          {/* 3 — Vanta can help. Each assist opens Ask with the question
+          {/* 3 — Echo can help. Each assist opens Ask with the question
               prefilled; Ask drafts, and nothing here commits. */}
           {t.assists.length > 0 && (
             <div className="mt-3">
-              <p className="vanta-machine-label text-foreground/70">Vanta can help</p>
+              <p className="vanta-machine-label text-foreground/70">Echo can help</p>
               <ul className="mt-1.5 space-y-1.5">
                 {t.assists.map((a) => (
                   <li key={a.label}>

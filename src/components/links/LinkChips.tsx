@@ -154,7 +154,7 @@ export function LinkChips({
           })
         ) : (
           <span className="text-[11px] italic text-muted-foreground">
-            Not connected yet. Attach this so Vanta knows where it belongs.
+            Not connected yet. Attach this so Echo knows where it belongs.
           </span>
         )}
 
@@ -250,7 +250,7 @@ export function LinkChips({
               )}
 
               <p className="text-[10.5px] text-muted-foreground">
-                Nothing runs — this just tells Vanta where it belongs.
+                Nothing runs — this just tells Echo where it belongs.
               </p>
             </div>
           </SheetContent>

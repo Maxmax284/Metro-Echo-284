@@ -407,7 +407,7 @@ async function sweepScope(
 
   if (signals.length === 0) return "none";
 
-  // Prior state for these exact situations, plus what Vanta already said
+  // Prior state for these exact situations, plus what Echo already said
   // recently in this scope. Suppression needs memory, not guesses.
   const keys = signals.map((s) => signalDedupeKey(s));
   const [{ data: priorRows }, { data: recentRows }] = await Promise.all([
@@ -539,7 +539,7 @@ async function sweepScope(
 
   // Forward the same awareness update to the hub. Durable queue + signed body,
   // retried by bridge-dispatch. Notification only: the hub never approves or
-  // executes anything, it just learns what Vanta noticed.
+  // executes anything, it just learns what Echo noticed.
   await enqueueBridgeUpdate(sb, {
     ownerId: userId,
     organizationId: (scopeCols as { organization_id?: string | null }).organization_id ?? null,
@@ -607,7 +607,7 @@ async function reachMessaging(
       {
         title: decision.title,
         why: decision.why,
-        nextStepLine: `${decision.nextStep} Open Vanta to act on it.`,
+        nextStepLine: `${decision.nextStep} Open Metro Echo to act on it.`,
       },
       "brief",
     ),

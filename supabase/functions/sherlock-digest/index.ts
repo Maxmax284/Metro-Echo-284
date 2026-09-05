@@ -230,7 +230,7 @@ function digestLine(d: DigestBody): string {
   const lines = [`Sherlock, week of ${d.week_start}`, d.headline];
   for (const k of d.new_by_kind.slice(0, 3)) lines.push(`· ${k.count} ${k.label}`);
   if (d.look_again.length) lines.push(`Worth a look: ${d.look_again[0].summary}`);
-  lines.push("Open Vanta to act on any of it. Nothing has been filed.");
+  lines.push("Open Metro Echo to act on any of it. Nothing has been filed.");
   return lines.join("\n");
 }
 

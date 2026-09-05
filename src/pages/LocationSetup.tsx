@@ -1,6 +1,6 @@
 // Location setup — the page that answers "how do I turn this on?"
 //
-// It says what state location is in, both halves: whether you allow Vanta to
+// It says what state location is in, both halves: whether you allow Echo to
 // use it, and whether the browser will actually hand a fix over. Then it gives
 // exactly two ways to be somewhere: take a real fix from this device, or set
 // the pin yourself on the map. Nothing here runs on its own.
@@ -29,7 +29,7 @@ import {
 } from "@/lib/locationSource";
 
 const PERMISSION_COPY: Record<PermissionRead, string> = {
-  granted: "Your browser will hand a fix over when Vanta asks.",
+  granted: "Your browser will hand a fix over when Echo asks.",
   denied: "Your browser is refusing location for this site. Change it in the site settings, then come back.",
   prompt: "Your browser hasn't been asked yet. It will ask the first time you take a fix.",
   unsupported: "This device won't share location at all, so set your place on the map instead.",
@@ -97,7 +97,7 @@ export default function LocationSetupPage() {
       await load();
       const named = rec.place?.label ?? rec.label;
       toast.success({
-        title: rec.moved ? `You're at ${named} — Vanta moved that pin` : `Set to ${named}`,
+        title: rec.moved ? `You're at ${named} — Echo moved that pin` : `Set to ${named}`,
         description: fixQualityLine(res.fix.acc),
       });
     } catch (err) {
@@ -111,7 +111,7 @@ export default function LocationSetupPage() {
   const toggleAllowed = async (next: boolean) => {
     await update({ sensor_consent: { ...consent, location: next } });
     if (!next) {
-      toast("Location is off. Vanta will only use the place you set by hand.");
+      toast("Location is off. Echo will only use the place you set by hand.");
     }
   };
 
@@ -124,7 +124,7 @@ export default function LocationSetupPage() {
         <div className="min-w-0">
           <h1 className="text-xl font-semibold">Where you are</h1>
           <p className="text-sm text-muted-foreground">
-            Vanta uses your place for timing and travel wording only. It never keeps a live trail, and it never
+            Echo uses your place for timing and travel wording only. It never keeps a live trail, and it never
             shares where you are.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function LocationSetupPage() {
       <section className="vanta-card rounded-xl p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold">Let Vanta use this device's location</div>
+            <div className="text-[13px] font-semibold">Let Echo use this device's location</div>
             <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
               {allowed ? "On." : "Off."} {PERMISSION_COPY[permission]}
             </p>
@@ -201,7 +201,7 @@ export default function LocationSetupPage() {
                       onClick={async () => {
                         await setActivePlace(p.id);
                         await refresh();
-                        toast.success(`Vanta is reading from ${p.label} now.`);
+                        toast.success(`Echo is reading from ${p.label} now.`);
                       }}
                     >
                       I'm here

@@ -67,7 +67,7 @@ export function WearableReadingsPanel() {
       const s = await startHeartRate((bpm) => {
         setLive(bpm);
         /* One stored reading a minute. A live number is for you; the record is
-           for Vanta, and it doesn't need every beat. */
+           for Echo, and it doesn't need every beat. */
         const now = Date.now();
         if (now - lastStored.current < 60_000) return;
         lastStored.current = now;
@@ -160,7 +160,7 @@ export function WearableReadingsPanel() {
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold tracking-tight">What your watch is saying</h2>
           <p className="text-[12px] text-muted-foreground">
-            {loop.lastSyncAgo ? `Last read ${loop.lastSyncAgo}.` : "Vanta hasn't read it yet."}
+            {loop.lastSyncAgo ? `Last read ${loop.lastSyncAgo}.` : "Echo hasn't read it yet."}
           </p>
         </div>
         <button type="button" onClick={() => void readNow()} disabled={reading} className={cn(btnClass, "ml-auto")}>
@@ -244,10 +244,10 @@ export function WearableReadingsPanel() {
         {/* Posture suggestion — never a switch */}
         {loop.suggestion ? (
           <div className="vanta-inset px-3 py-2">
-            <MachineLabel className="text-foreground/70">Vanta noticed</MachineLabel>
+            <MachineLabel className="text-foreground/70">Echo noticed</MachineLabel>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
               {loop.suggestion.because} You might be in “{POSTURE_LABEL[loop.suggestion.posture]}”. Set
-              it below if that's right — Vanta won't switch it for you.
+              it below if that's right — Echo won't switch it for you.
             </p>
           </div>
         ) : null}
@@ -262,7 +262,7 @@ export function WearableReadingsPanel() {
             </button>
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
-            Steps, sleep and workouts come from your phone, not from Vanta reaching out. Point a
+            Steps, sleep and workouts come from your phone, not from Echo reaching out. Point a
             Shortcut or a health export at this address and the numbers land here.
           </p>
           {handoff ? (
@@ -289,7 +289,7 @@ export function WearableReadingsPanel() {
         </div>
       </div>
 
-      <AftermathHint text="Readings are context only. They can nudge what Vanta says and when it holds a note — they can never approve or run anything, and they never leave through Telegram." />
+      <AftermathHint text="Readings are context only. They can nudge what Echo says and when it holds a note — they can never approve or run anything, and they never leave through Telegram." />
     </section>
   );
 }

@@ -413,7 +413,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                   // Scrolls the inline RecognizePanel into view; no execution.
                   document.getElementById(`capture-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                 },
-                hint: item.why ?? "Tell Vanta what this is so it stops asking.",
+                hint: item.why ?? "Tell Echo what this is so it stops asking.",
               };
             }
             if (item.routedTo) {

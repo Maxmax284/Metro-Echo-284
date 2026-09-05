@@ -13,7 +13,7 @@ const QUICK = [
 ];
 
 /**
- * AskVantaBar — the primary way into Vanta. Not a side widget: it sits at the
+ * AskVantaBar — the primary way into Metro Echo. Not a side widget: it sits at the
  * top of Today, carries the active scope in its wording, and hands the question
  * straight to the companion.
  */
@@ -30,10 +30,10 @@ export function AskVantaBar() {
   }
 
   return (
-    <section className="vanta-card p-3 sm:p-4" aria-label="Ask Vanta">
+    <section className="vanta-card p-3 sm:p-4" aria-label="Ask Echo">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold">Ask Vanta</h2>
+        <h2 className="text-sm font-semibold">Ask Echo</h2>
         <span className="ml-auto text-[11px] text-muted-foreground">{destination}</span>
       </div>
 
@@ -48,7 +48,7 @@ export function AskVantaBar() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Ask about anything in this space…"
-          aria-label="Ask Vanta a question"
+          aria-label="Ask Echo a question"
           className="h-11 text-sm"
         />
         <Button type="submit" size="icon" className="h-11 w-11 shrink-0" aria-label="Send question" disabled={!text.trim()}>
@@ -70,7 +70,7 @@ export function AskVantaBar() {
       </div>
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Vanta answers from this space only. Anything it wants to do comes back as a draft for you to approve.
+        Echo answers from this space only. Anything it wants to do comes back as a draft for you to approve.
       </p>
     </section>
   );

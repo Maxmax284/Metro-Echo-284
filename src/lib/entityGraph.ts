@@ -115,7 +115,7 @@ async function resolveOrInsert(userId: string, c: Candidate): Promise<string | n
 }
 
 // Token shapes used by the "known entity recall" pass — catches single-word
-// brands (Vanta, Fenrir, CampCore), ALL-CAPS acronyms (GTH, AWS, CC), and
+// brands (Echo, Fenrir, CampCore), ALL-CAPS acronyms (GTH, AWS, CC), and
 // any multi-word title-case phrase the existing regex might skip. Whether
 // each token actually links is decided by matching against the user's
 // existing entity index — we never invent new entities from this pass.

@@ -163,7 +163,7 @@ export type LinkEntitiesInput = {
 
 // Known-entity recall — single-token brands, ALL-CAPS acronyms, and any
 // title-case phrase that matches an entity the user already has. Catches
-// "Vanta", "Fenrir", "CampCore", "GTH" — the fragmentation root cause.
+// "Echo", "Fenrir", "CampCore", "GTH" — the fragmentation root cause.
 const SINGLE_TITLE = /\b([A-Z][a-zA-Z0-9'’-]{2,})\b/g;
 const ACRONYM = /\b([A-Z]{2,6})\b/g;
 

@@ -84,7 +84,7 @@ export default function IntegrationsSettings() {
         <div className="flex-1">
           <h1 className="text-lg font-semibold tracking-tight">Platform Integrations</h1>
           <p className="text-xs text-muted-foreground">
-            Manage how Vanta receives signals from other systems and what it is allowed to draft.
+            Manage how Echo receives signals from other systems and what it is allowed to draft.
           </p>
         </div>
         <Link
@@ -99,7 +99,7 @@ export default function IntegrationsSettings() {
         <div className="flex items-start gap-2">
           <Radio className="mt-0.5 h-4 w-4 text-primary" />
           <div className="text-[12.5px]">
-            <div className="font-medium">Signals land. Vanta drafts. Humans approve.</div>
+            <div className="font-medium">Signals land. Echo drafts. Humans approve.</div>
             <div className="mt-0.5 text-muted-foreground">
               Each source has its own kill switch and audit trail. Nothing executes on its own. Each platform stays sovereign.
             </div>

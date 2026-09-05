@@ -1,6 +1,6 @@
 // ProvenanceChip — one source marker, never two.
 //
-// Doctrine: "where did this come from" is a fact Vanta already stored. Say it
+// Doctrine: "where did this come from" is a fact Echo already stored. Say it
 // in plain words (From Telegram, Added by you) and stop there. No infrastructure
 // names, no connector ids, no raw payload keys.
 import {
@@ -76,7 +76,7 @@ export function ProvenanceChip({
 /**
  * ProvenanceStrip — "From Telegram · 2m". One line, source then freshness.
  *
- * The shared strip for anything Vanta surfaced on its own: a person should be
+ * The shared strip for anything Echo surfaced on its own: a person should be
  * able to answer "where did this come from and how fresh is it" without
  * tapping. Falls back to the plain label when no time was recorded, and to the
  * time alone when no source was.

@@ -1,7 +1,7 @@
 {
-  "name": "Vanta — Operational companion",
-  "short_name": "Vanta",
-  "description": "Vanta is a contextual digital companion: continuous workspace, ambient awareness, and execution-safe orchestration.",
+  "name": "Echo — Operational companion",
+  "short_name": "Echo",
+  "description": "Echo is a contextual digital companion: continuous workspace, ambient awareness, and execution-safe orchestration.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

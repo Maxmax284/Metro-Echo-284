@@ -20,7 +20,7 @@ import { SuggestedReadingCard } from "./SuggestedReadingCard";
 
 const STATUS_LINE: Record<string, string> = {
   draft: "Sources attached, not read yet",
-  reading: "Vanta is reading the sources",
+  reading: "Echo is reading the sources",
   matrix_ready: "Read — waiting on your review",
   reviewed: "Reviewed — no document built yet",
   composed: "Document built and filed in Receipts",
@@ -101,7 +101,7 @@ export function CrossRefCasesPanel() {
             Sources read together
           </div>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
-            Two or more documents about the same thing. Vanta lines them up field by
+            Two or more documents about the same thing. Echo lines them up field by
             field, says where they disagree, and waits for you before building anything.
           </p>
         </div>

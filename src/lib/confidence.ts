@@ -4,7 +4,7 @@
 //   - a direct read looks normal ("Read from calendar", "From Telegram")
 //   - an inference reads as an inference ("Likely related to Lamai rollout")
 //   - weak evidence says so out loud ("Uncertain — needs review")
-//   - Vanta never rounds a guess up into a fact
+//   - Echo never rounds a guess up into a fact
 //
 // Pure module. Confidence values come from records that already store them.
 
@@ -31,17 +31,17 @@ const SOURCE_PHRASE: Record<string, string> = {
   you: "Added by you",
   ask: "Created in Ask",
   sherlock: "Found by Sherlock",
-  vanta: "Prepared by Vanta",
+  vanta: "Prepared by Echo",
 };
 
-/** The plain line for something Vanta read directly. */
+/** The plain line for something Echo read directly. */
 export function readLine(source: string | null | undefined): string | null {
   if (!source) return null;
   return SOURCE_PHRASE[source.trim().toLowerCase()] ?? null;
 }
 
 /**
- * The plain line for something Vanta worked out. `about` is the thing it thinks
+ * The plain line for something Echo worked out. `about` is the thing it thinks
  * this relates to; omit it and the line stays honest but general.
  */
 export function inferredLine(
@@ -51,7 +51,7 @@ export function inferredLine(
   const band = confidenceBand(confidence);
   if (band === "uncertain") return "Uncertain — needs review";
   if (band === "likely") return about ? `Likely related to ${about}` : "Likely related";
-  return about ? `Vanta linked this to ${about}` : "Worked out by Vanta";
+  return about ? `Echo linked this to ${about}` : "Worked out by Echo";
 }
 
 export type ConfidenceNote = {

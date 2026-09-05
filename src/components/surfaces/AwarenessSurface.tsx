@@ -99,7 +99,7 @@ export function AwarenessSurface() {
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
 
-  /* Self-heal: a place with a fix but no name can't be spoken about, so Vanta
+  /* Self-heal: a place with a fix but no name can't be spoken about, so Echo
      looks it up once. One attempt per place — never a loop, never silent
      repetition. */
   const healedRef = useRef<string | null>(null);
@@ -159,7 +159,7 @@ export function AwarenessSurface() {
             })
             .eq("id", near.id);
           setNewLabel("");
-          toast.success(`You're already at ${near.label} — Vanta moved that pin instead of adding another.`);
+          toast.success(`You're already at ${near.label} — Echo moved that pin instead of adding another.`);
           await setActivePlace(near.id);
           await refresh();
           await loadList();
@@ -245,7 +245,7 @@ export function AwarenessSurface() {
       <div className="px-4 pt-3 pb-2 min-w-0">
         <h2 className="text-lg font-semibold tracking-tight">Awareness</h2>
         <p className="text-xs text-muted-foreground break-words">
-          What Vanta can tell about where you are. It reads only when you ask it to, and it says how sure it is.
+          What Echo can tell about where you are. It reads only when you ask it to, and it says how sure it is.
         </p>
       </div>
 

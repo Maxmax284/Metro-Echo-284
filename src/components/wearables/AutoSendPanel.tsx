@@ -94,7 +94,7 @@ export function AutoSendPanel() {
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold tracking-tight">Send it without asking me</h2>
           <p className="text-[12px] text-muted-foreground">
-            Your phone posts the numbers on a schedule. Vanta never reaches out to your watch.
+            Your phone posts the numbers on a schedule. Echo never reaches out to your watch.
           </p>
         </div>
       </div>
@@ -212,8 +212,8 @@ export function AutoSendPanel() {
       <ul className="mt-3 space-y-1.5">
         {[
           "If the activity sense is off below, the send is refused outright — nothing is stored.",
-          "Readings shift what Vanta says and when it holds a note. They never approve or run anything.",
-          "A gap stays a gap. Vanta won't put a zero where a number never arrived.",
+          "Readings shift what Echo says and when it holds a note. They never approve or run anything.",
+          "A gap stays a gap. Echo won't put a zero where a number never arrived.",
         ].map((t) => (
           <li key={t} className="flex gap-2 text-[11.5px] leading-snug text-foreground/90">
             <Check className="mt-[2px] h-3 w-3 shrink-0 text-primary" />

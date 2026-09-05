@@ -17,8 +17,8 @@ import {
 } from "@/lib/brandVoice";
 
 describe("identity block", () => {
-  it("states Vanta belongs to the user and bans provider identity", () => {
-    expect(VANTA_IDENTITY).toMatch(/You are Vanta/);
+  it("states Echo belongs to the user and bans provider identity", () => {
+    expect(VANTA_IDENTITY).toMatch(/You are Echo/);
     expect(VANTA_IDENTITY).toMatch(/None of them made you/);
     expect(VANTA_IDENTITY).toMatch(/Never say "as an AI"/);
   });

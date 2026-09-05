@@ -232,7 +232,7 @@ export default function WatchPage() {
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">{trends.stepsLine}</p>
             {activityOn ? <StepBars days={trends.days} usual={trends.stepsUsual} /> : null}
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-              A flat grey bar means nothing was sent that day. Vanta does not read a missing day as
+              A flat grey bar means nothing was sent that day. Echo does not read a missing day as
               a quiet one.
             </p>
           </section>
@@ -274,7 +274,7 @@ export default function WatchPage() {
             {activityOn ? <NightBars nights={trends.nights} usual={trends.sleepUsual} /> : null}
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
               An amber night is shorter than your usual one. A flat grey night means nothing was
-              sent — Vanta does not read a missing night as a bad one.
+              sent — Echo does not read a missing night as a bad one.
             </p>
           </section>
 
@@ -316,12 +316,12 @@ export default function WatchPage() {
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
               {trends.posture
-                ? `You set “${POSTURE_LABEL[trends.posture]}”. Vanta may suggest another; it never switches one for you.`
-                : "You haven't set a posture. Vanta reads none rather than guessing one."}
+                ? `You set “${POSTURE_LABEL[trends.posture]}”. Echo may suggest another; it never switches one for you.`
+                : "You haven't set a posture. Echo reads none rather than guessing one."}
             </p>
           </section>
 
-          <AftermathHint text="Reading these trends changes nothing. Numbers only change how Vanta talks — they never route, approve or run anything." />
+          <AftermathHint text="Reading these trends changes nothing. Numbers only change how Echo talks — they never route, approve or run anything." />
         </div>
       )}
 

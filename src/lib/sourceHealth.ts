@@ -2,9 +2,9 @@
 //
 // Doctrine: a source's state persists until reality changes. It is never a
 // toast that vanishes, never a colour on its own, and never a zero standing in
-// for a missing reading. "Late" means Vanta expected something by now and it
+// for a missing reading. "Late" means Echo expected something by now and it
 // has not come. "Quiet" means the path works and there was simply nothing to
-// report. Those are different sentences and Vanta must not mix them.
+// report. Those are different sentences and Echo must not mix them.
 //
 // Built on the connection states Settings already computes, so there is one
 // source of truth for "is this thing working".
@@ -89,10 +89,10 @@ export function healthFor(input: {
   const LINE: Record<HealthState, string> = {
     healthy: `${input.what} — working.`,
     quiet: `${input.what} — the path works, there has just been nothing to report.`,
-    late: `${input.what} — Vanta expected something by now and it hasn't arrived.`,
+    late: `${input.what} — Echo expected something by now and it hasn't arrived.`,
     missing_data: `${input.what} — set up, but nothing has ever come through.`,
     attention: `${input.what} — the last attempt failed. Open Settings to see why.`,
-    off: `${input.what} — switched off, so Vanta isn't reading it.`,
+    off: `${input.what} — switched off, so Echo isn't reading it.`,
     no_data: `${input.what} — not connected yet.`,
   };
 
@@ -114,7 +114,7 @@ export function healthSummary(list: SourceHealth[]): string {
       : `${bad.map((s) => s.label).join(" and ")} need a look.`;
   }
   const live = list.filter((s) => s.state === "healthy" || s.state === "quiet");
-  if (live.length === 0) return "Nothing is feeding Vanta yet.";
+  if (live.length === 0) return "Nothing is feeding Echo yet.";
   return live.length === list.length
     ? `All ${live.length} feeds are alive.`
     : `${live.length} of ${list.length} feeds are alive.`;

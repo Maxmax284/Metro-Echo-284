@@ -93,7 +93,7 @@ export function tripSummaryLine(trip: Trip, now = Date.now()): string {
   return parts.join(" · ");
 }
 
-/** What Vanta says while a trip is running. Running state is always visible. */
+/** What Echo says while a trip is running. Running state is always visible. */
 export function runningLine(trip: Trip, liveDistanceM: number | null, now = Date.now()): string {
   const dur = formatDuration(tripDurationMs(trip, now));
   const dist = liveDistanceM === null ? "distance not measured yet" : formatDistance(liveDistanceM);
@@ -111,7 +111,7 @@ export function staleTripDiff(trip: Trip, lastPointAt: string | null, now = Date
   if (!Number.isFinite(start) || now - start < STALE_TRIP_MS) return null;
   const tail = lastPointAt ? new Date(lastPointAt).getTime() : start;
   const gap = formatDuration(now - tail);
-  return `This trip ran for over 12 hours with nothing recorded for ${gap}. Vanta closed it at the last point it had. Distance after that point is unknown — you can delete it or correct the end.`;
+  return `This trip ran for over 12 hours with nothing recorded for ${gap}. Echo closed it at the last point it had. Distance after that point is unknown — you can delete it or correct the end.`;
 }
 
 /** Kilometres per calendar week, newest first. Weeks with no trips are absent. */

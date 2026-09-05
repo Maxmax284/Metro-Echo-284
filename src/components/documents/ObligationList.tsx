@@ -97,7 +97,7 @@ export function ObligationList({
     return (
       <p className="text-[12px] leading-snug text-muted-foreground">
         No obligations were extracted from this document. If you expected some, the text may be an
-        image-only scan — Vanta only reports what it could read.
+        image-only scan — Echo only reports what it could read.
       </p>
     );
   }

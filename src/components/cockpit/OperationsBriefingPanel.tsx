@@ -323,7 +323,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
             <div className="space-y-1 rounded-md border border-primary/20 bg-primary/5 p-2 motion-safe:animate-fade-in">
               <div className="flex items-center justify-between gap-2 text-[9.5px] uppercase tracking-wider text-muted-foreground">
                 <span>Heads-ups worth a look</span>
-                <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Spotted by Vanta</span>
+                <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Spotted by Echo</span>
               </div>
               <ul className="space-y-1">
                 {briefing.useful_connections.map((u) => (

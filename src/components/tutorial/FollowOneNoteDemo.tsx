@@ -1,4 +1,4 @@
-// FollowOneNoteDemo — a replayable storyboard showing the full Vanta loop.
+// FollowOneNoteDemo — a replayable storyboard showing the full Echo loop.
 // Capture → Inbox → Connect → Project card → Operational briefing → Brief → Export → Receipts.
 // Doctrine: does not actually execute anything. It explains what happens
 // when YOU tap. Closes back to wherever you were.
@@ -21,7 +21,7 @@ const STEPS: Step[] = [
   {
     pill: "Step 1 — Capture",
     title: "You capture a thought",
-    body: "Type, dictate, drop a file, or forward a message. Vanta accepts it as-is — no decisions yet. This is the only place where anything enters the system.",
+    body: "Type, dictate, drop a file, or forward a message. Echo accepts it as-is — no decisions yet. This is the only place where anything enters the system.",
     icon: Mic,
   },
   {
@@ -33,7 +33,7 @@ const STEPS: Step[] = [
   {
     pill: "Step 3 — Connect",
     title: "You connect it to something",
-    body: "Tap Connect to link the note to a project, a person, a place, or another note. This is how Vanta learns where things belong. You can connect to many things at once.",
+    body: "Tap Connect to link the note to a project, a person, a place, or another note. This is how Echo learns where things belong. You can connect to many things at once.",
     icon: LinkIcon,
   },
   {
@@ -44,26 +44,26 @@ const STEPS: Step[] = [
   },
   {
     pill: "Step 5 — Operational briefing",
-    title: "Vanta summarizes what's going on",
+    title: "Echo summarizes what's going on",
     body: "The Operations Briefing reads from your projects and tells you in plain English what's happening, what needs you, and why it appears now.",
     icon: CheckSquare,
   },
   {
     pill: "Step 6 — Create a brief",
     title: "You ask for a shareable summary",
-    body: "Tap Create brief. Pick a format (For me, For a client, Audit packet, Weekly review, Audio). Vanta drafts it. Nothing leaves yet.",
+    body: "Tap Create brief. Pick a format (For me, For a client, Audit packet, Weekly review, Audio). Echo drafts it. Nothing leaves yet.",
     icon: FileText,
   },
   {
     pill: "Step 7 — Approve & export",
     title: "You approve. PDF is generated.",
-    body: "If anything looks sensitive, Vanta flags it first. You tick the box, approve, and the PDF is saved to your Saved exports. You can re-download anytime.",
+    body: "If anything looks sensitive, Echo flags it first. You tick the box, approve, and the PDF is saved to your Saved exports. You can re-download anytime.",
     icon: Download,
   },
   {
     pill: "Step 8 — Receipts",
     title: "Every claim points back to your note",
-    body: "Open the brief and tap the receipts chip on any claim. You'll see the audit events, notes, and files Vanta used — including your original capture.",
+    body: "Open the brief and tap the receipts chip on any claim. You'll see the audit events, notes, and files Echo used — including your original capture.",
     icon: ScrollText,
   },
 ];

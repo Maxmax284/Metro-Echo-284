@@ -1,6 +1,6 @@
 // honestContext — every time and place claim says where it came from.
 //
-// Doctrine: Vanta may be approximate, but it may never be vague about how it
+// Doctrine: Echo may be approximate, but it may never be vague about how it
 // knows. A browser clock is a device guess, not the truth. A geohash is an
 // area, not an address. These helpers turn a source plus an optional confidence
 // into one plain line, and they refuse to dress up a guess as a fact.
@@ -63,7 +63,7 @@ export function placeSourceLine(opts: {
       return where ? `${where} · device source` : "Device source";
     case "unknown":
     default:
-      return "No place signal · Vanta is not guessing one";
+      return "No place signal · Echo is not guessing one";
   }
 }
 
@@ -73,7 +73,7 @@ export function isInferred(source: TimeSource | PlaceSource, confidence?: Confid
   return confidence === "low";
 }
 
-/** The suffix Vanta appends when it is reading, not knowing. */
+/** The suffix Echo appends when it is reading, not knowing. */
 export function inferenceNote(source: TimeSource | PlaceSource, confidence?: Confidence): string | null {
-  return isInferred(source, confidence) ? "Inferred — tell Vanta if it is wrong." : null;
+  return isInferred(source, confidence) ? "Inferred — tell Echo if it is wrong." : null;
 }

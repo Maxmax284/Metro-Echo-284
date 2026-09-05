@@ -3,7 +3,7 @@
 // Input method is not a surface. The user attaches a photo, a document or
 // speaks; Ask decides what that means. This module holds only the decisions
 // that must be identical in the room, the desktop drawer and the mobile sheet:
-// what kind of input a file is, whether Vanta can actually read it yet, and
+// what kind of input a file is, whether Echo can actually read it yet, and
 // which few things are worth suggesting in the current context.
 import type { ThreadContextKind } from "@/lib/askThreads";
 
@@ -40,14 +40,14 @@ export const ACCEPT = {
 } as const;
 
 export type Readability = {
-  /** True when Vanta can actually read this input today. */
+  /** True when Echo can actually read this input today. */
   readable: boolean;
   /** Honest plain-English state shown on the attachment chip. */
   note: string;
 };
 
 /**
- * Honesty rule: an attachment Vanta cannot read yet says so on the chip. It is
+ * Honesty rule: an attachment Echo cannot read yet says so on the chip. It is
  * still kept and can still be filed against a project — it just isn't read.
  */
 export function readabilityFor(kind: AskInputKind): Readability {
@@ -243,7 +243,7 @@ export function attachmentHints(
 }
 
 /**
- * What Vanta says while a turn is in flight. Real states only: what it is
+ * What Echo says while a turn is in flight. Real states only: what it is
  * reading right now, or that it is writing. No invented reasoning stages.
  */
 export function processingLabel(

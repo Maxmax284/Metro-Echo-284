@@ -225,7 +225,7 @@ Deno.serve(async (req: Request) => {
     lines.push(`- "risks.bullets" lists real unresolved questions, ambiguity, or things flagged for review. Include open findings here, but do NOT mention "Sherlock", "findings", "signals", or any internal tooling by name — just describe the question.`);
     lines.push(`- "next_move.text" is one concrete operational next step grounded in the material.`);
     lines.push(`- Cite sources on overall_summary, every theme, every bullet, and next_move using the ref keys below, e.g. citations: ["note:abc12345"]. Never invent ref keys.`);
-    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic. Preferred phrasings: "Vanta noticed…", "Several items point to…", "The main pattern is…".`);
+    lines.push(`- VOICE: plain English, calm, useful, operational. Not corporate. Not robotic. Preferred phrasings: "Echo noticed…", "Several items point to…", "The main pattern is…".`);
     lines.push(`- BANNED PHRASES: "filed", "notes have been captured", "items have been formally recorded", "record was created", "database", "logged in the system", "Sherlock", "the system detected", "based on the data", "we have N notes". Say what is happening instead.`);
     lines.push(`- ${tone === "operator" ? "Slightly terser, scannable phrasing." : "Warm, plain English. Mention people by name when they appear."}`);
 

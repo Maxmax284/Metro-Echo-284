@@ -35,9 +35,9 @@ export function NoticedRow({
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
   /* The same seven answers as everywhere else, from what the nudge recorded. */
   const why = whyFor({
-    source: "What Vanta noticed",
+    source: "What Echo noticed",
     whatChanged: signal.title,
-    reason: signal.body ?? "Vanta raised this from your own records.",
+    reason: signal.body ?? "Echo raised this from your own records.",
     whyItMatters: "It is a draft observation, not an instruction.",
     ifIgnored: "It disappears when you dismiss it. Nothing runs from it.",
   });
@@ -46,7 +46,7 @@ export function NoticedRow({
     <div className="vanta-inset motion-arrival flex items-start gap-2.5 px-3 py-2.5">
       <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
-        <MachineLabel className="text-accent/80">Vanta noticed</MachineLabel>
+        <MachineLabel className="text-accent/80">Echo noticed</MachineLabel>
         <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{signal.title}</p>
         {/* One shared reveal, rendering only what was recorded. */}
         <WhySurfaced why={why} className="mt-1" />

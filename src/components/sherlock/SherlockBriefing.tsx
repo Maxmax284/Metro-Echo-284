@@ -1,4 +1,4 @@
-// SherlockBriefing — "What Vanta noticed" at the top of the Sherlock room.
+// SherlockBriefing — "What Echo noticed" at the top of the Sherlock room.
 //
 // Doctrine: opens with where things stand, promotes exactly one thing, and
 // files nothing on its own. Every button here either scrolls you to the queue
@@ -24,11 +24,11 @@ export function SherlockBriefingPanel({
   onChanged?: () => void;
 }) {
   return (
-    <section className="vanta-card p-3" aria-label="What Vanta noticed">
+    <section className="vanta-card p-3" aria-label="What Echo noticed">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
-            <Radar className="h-3.5 w-3.5" /> What Vanta noticed
+            <Radar className="h-3.5 w-3.5" /> What Echo noticed
           </p>
           <p className="mt-1 text-[12.5px] leading-snug text-foreground">{briefing.headline}</p>
           <p className="mt-0.5 text-[10.5px] text-muted-foreground">

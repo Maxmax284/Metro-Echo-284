@@ -46,7 +46,7 @@ type Status = {
 
 const ROUTE_LABEL: Record<string, string> = {
   personal: "Everything lands in your personal lane.",
-  ask_each_time: "Vanta asks which lane each time.",
+  ask_each_time: "Echo asks which lane each time.",
 };
 
 function ago(iso: string | null | undefined) {
@@ -125,7 +125,7 @@ export default function TelegramSetup() {
       const { data, error: err } = await supabase.functions.invoke("telegram-register");
       if (err) throw err;
       const d = (data ?? {}) as { registered?: boolean; reason?: string; last_error_message?: string | null };
-      if (d.registered) toast.success("Telegram now delivers your messages to Vanta.");
+      if (d.registered) toast.success("Telegram now delivers your messages to Echo.");
       else toast(d.reason ?? d.last_error_message ?? "Telegram didn't accept the connection.");
       await load();
     } catch (e) {
@@ -170,7 +170,7 @@ export default function TelegramSetup() {
         <div className="flex-1">
           <h1 className="text-lg font-semibold tracking-tight">Telegram</h1>
           <p className="text-xs text-muted-foreground">
-            Message Vanta from your phone. What you send lands in the Inbox as a draft.
+            Message Echo from your phone. What you send lands in the Inbox as a draft.
           </p>
         </div>
         <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => void load()}>
@@ -183,7 +183,7 @@ export default function TelegramSetup() {
           <ShieldCheck className="h-3 w-3 text-primary" /> Capture layer only
         </div>
         <p className="text-[11.5px] leading-snug text-muted-foreground">
-          Messages become drafts inside Vanta — never live actions. Approving and executing always happens here.
+          Messages become drafts inside Metro Echo — never live actions. Approving and executing always happens here.
         </p>
       </div>
 
@@ -218,7 +218,7 @@ export default function TelegramSetup() {
 
           <Step
             n={2}
-            title="Messages can reach Vanta"
+            title="Messages can reach Echo"
             done={inboundOpen}
             detail={
               inboundOpen
@@ -291,7 +291,7 @@ export default function TelegramSetup() {
               </Link>
             </div>
             <p className="mb-2 text-[11.5px] text-muted-foreground">
-              Every message Vanta received, and where it filed it. Open the Inbox to act on any of them.
+              Every message Echo received, and where it filed it. Open the Inbox to act on any of them.
             </p>
 
             {status.recent_inbound.length === 0 ? (

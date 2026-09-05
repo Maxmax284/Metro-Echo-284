@@ -2,7 +2,7 @@
 //
 // The judgment layer decides IF something is said. This decides HOW MUCH is
 // said on a given channel. The rule from the doctrine: the smaller or more
-// interruptive the channel, the less Vanta says. Facts are never invented and
+// interruptive the channel, the less Echo says. Facts are never invented and
 // never rewritten — only dropped from the tail.
 //
 // Every caller that speaks to a channel goes through here, so wordings stop
@@ -25,7 +25,7 @@ export type NoticeFacts = {
   lines?: string[];
   /** The exact closing line. Verbatim — callers own this sentence. */
   nextStepLine?: string | null;
-  /** Appended as an "Open Vanta" line when present. */
+  /** Appended as an "Open Metro Echo" line when present. */
   publicUrl?: string | null;
 };
 
@@ -54,7 +54,7 @@ function body(facts: NoticeFacts): string[] {
 
 function openLine(publicUrl?: string | null): string | null {
   const url = (publicUrl ?? "").replace(/\/$/, "");
-  return url ? `Open Vanta: ${url}/` : null;
+  return url ? `Open Metro Echo: ${url}/` : null;
 }
 
 /**

@@ -66,7 +66,7 @@ export function useFindingEvidence(finding: SherlockFinding | null, open: boolea
       if (resolved) out.push(resolved);
     }
 
-    // Anything you or Vanta already linked to the source object.
+    // Anything you or Echo already linked to the source object.
     const linkKind = LINK_KIND[finding.source_object_type ?? ""] ?? null;
     if (linkKind && finding.source_object_id) {
       const { data } = await supabase.rpc("cross_links_for_item", {

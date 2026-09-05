@@ -19,7 +19,7 @@ const TABS: { id: Tab; label: string; hint: string }[] = [
 ];
 
 /**
- * InboxSurface — one home for everything that lands in Vanta before it's
+ * InboxSurface — one home for everything that lands in Metro Echo before it's
  * organized. Sub-tabs reuse existing views; per-tab multi-select + bulk
  * “Push to project” pushes items into a Living Brief.
  *

@@ -302,7 +302,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
   ).trim();
   const payload = body?.payload;
 
-  // Owner identifier must map to a Vanta workspace owner.
+  // Owner identifier must map to a Echo workspace owner.
   const { data: roleRow } = await admin
     .from("user_roles")
     .select("user_id")
@@ -310,7 +310,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     .eq("role", "owner")
     .maybeSingle();
   if (!roleRow) {
-    return json({ ok: false, error: "owner_identifier_unknown", detail: "owner identifier does not map to a Vanta workspace owner" }, 403);
+    return json({ ok: false, error: "owner_identifier_unknown", detail: "owner identifier does not map to a Echo workspace owner" }, 403);
   }
 
   const { data: controls } = await admin

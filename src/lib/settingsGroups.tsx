@@ -60,7 +60,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: "start",
     title: "Getting started",
-    blurb: "Install Vanta on this device, replay the walkthrough, read the map.",
+    blurb: "Install Metro Echo on this device, replay the walkthrough, read the map.",
     icon: Rocket,
     render: () => (
       <>
@@ -73,7 +73,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: "you",
     title: "You and your voice",
-    blurb: "Your name, how Vanta addresses you, and the tone it writes in.",
+    blurb: "Your name, how Echo addresses you, and the tone it writes in.",
     icon: User,
     render: () => (
       <>
@@ -98,7 +98,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: "awareness",
     title: "Awareness and senses",
-    blurb: "What Vanta is allowed to notice, your posture, and how it reaches you.",
+    blurb: "What Echo is allowed to notice, your posture, and how it reaches you.",
     icon: Radar,
     render: () => (
       <>

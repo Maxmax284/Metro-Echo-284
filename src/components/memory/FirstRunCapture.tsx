@@ -76,7 +76,7 @@ export function FirstRunCapture({ className }: { className?: string }) {
     {
       key: "upload",
       label: "Upload a file",
-      how: "Drop a PDF, image or document in Inbox. Vanta reads it, then waits for you.",
+      how: "Drop a PDF, image or document in Inbox. Echo reads it, then waits for you.",
       Icon: Upload,
       ready: true,
     },
@@ -115,7 +115,7 @@ export function FirstRunCapture({ className }: { className?: string }) {
       <ul
         className="mt-2.5 space-y-2"
         role="listbox"
-        aria-label="Ways to get something into Vanta"
+        aria-label="Ways to get something into Metro Echo"
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowRight") {
             e.preventDefault();

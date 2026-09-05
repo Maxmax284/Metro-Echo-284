@@ -2,7 +2,7 @@
 // List every workspace the user owns or belongs to, create new ones,
 // edit identity (name / type / slug / appearance), and manage members.
 // Branding stays small on purpose: short code + accent HSL + logo URL.
-// The shell stays Vanta-calm; the accent is a seam, not a re-skin.
+// The shell stays Echo-calm; the accent is a seam, not a re-skin.
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {

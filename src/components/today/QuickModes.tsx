@@ -1,7 +1,7 @@
 // QuickModes — the switches you actually flip, on the surface where you notice
 // you need them. No trip to the control room.
 //
-// Three things only: what kind of moment this is (posture), whether Vanta may
+// Three things only: what kind of moment this is (posture), whether Echo may
 // speak up at all, and whether it may reach your phone. Everything else stays
 // in Settings. Nothing here executes anything.
 import { useState } from "react";
@@ -68,7 +68,7 @@ export function QuickModes() {
       description:
         next && postureHoldsNoise(next)
           ? "Ordinary notes will hold. Anything critical still reaches you."
-          : "Vanta speaks as normal.",
+          : "Echo speaks as normal.",
     });
   };
 
@@ -76,7 +76,7 @@ export function QuickModes() {
     const next = !prefs.proactive_awareness_enabled;
     await update({ proactive_awareness_enabled: next });
     vantaToast.info({
-      title: next ? "Vanta may speak up." : "Vanta stays quiet.",
+      title: next ? "Echo may speak up." : "Echo stays quiet.",
       description: next
         ? "One grounded signal at a time, and only when it earns it."
         : "It keeps watching and recording. It just won't interrupt.",
@@ -90,7 +90,7 @@ export function QuickModes() {
       title: next ? "Telegram reach on." : "Telegram reach off.",
       description: next
         ? "Time-sensitive notices go to your linked chat. Nothing runs from chat."
-        : "Notices stay inside Vanta.",
+        : "Notices stay inside Metro Echo.",
     });
   };
 
@@ -130,7 +130,7 @@ export function QuickModes() {
           </div>
           <div className="flex flex-wrap gap-1.5">
             <Pill active={!!prefs.proactive_awareness_enabled} onClick={toggleSpeak}>
-              <Radio className="h-3 w-3" /> Vanta may speak up
+              <Radio className="h-3 w-3" /> Echo may speak up
             </Pill>
             <Pill active={!!prefs.telegram_awareness_enabled} onClick={toggleReach}>
               <MessageCircle className="h-3 w-3" /> Reach me on Telegram

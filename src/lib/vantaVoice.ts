@@ -170,7 +170,7 @@ export const vantaSay = {
     memory: () => "Memory's quiet. Capture a note and it'll start filling in.",
     actions: () => "No actions staged. Anything you draft lands here first — nothing executes without you.",
     commitments: () => "No commitments tracked yet.",
-    research: () => "No research runs yet. Ask Vanta to dig into something.",
+    research: () => "No research runs yet. Ask Echo to dig into something.",
     sherlock: () => "Sherlock hasn't been asked anything yet.",
     conversation: () => "Say something — I'm listening.",
     telegram: () => "Telegram isn't linked. Generate a pairing code below.",
@@ -393,7 +393,7 @@ export const vantaToast = Object.assign(say, {
 export { sonnerToast as toast };
 
 // ---------- Doctrine voice layer ───────────────────────────────────────────
-// Centralized phrase builders from the Vanta Voice + Plain-English doctrine.
+// Centralized phrase builders from the Echo Voice + Plain-English doctrine.
 // Use these instead of inlining strings so future tone modes / locales can
 // override one place. Meaning lives in PlainItem; wording lives here.
 //
@@ -513,7 +513,7 @@ export const voice = {
   needsApproval: () => "This action needs approval first.",
 
   // Access / role
-  notInWorkspace: () => "Vanta can't access that workspace.",
+  notInWorkspace: () => "Echo can't access that workspace.",
   notInLane: () => "Nothing important in your lane right now.",
   notInRole: () => "Your role does not include this setting.",
   adminOnly: () => "Admin controls are not available for your role.",

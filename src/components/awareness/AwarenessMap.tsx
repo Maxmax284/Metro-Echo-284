@@ -4,7 +4,7 @@
 //   - the words come first. This map is confirmation, not the answer.
 //   - it shows only what is recorded: places you saved, and the points from
 //     trips you started yourself. Nothing is drawn from a guess.
-//   - the current pin can be dragged. Dragging it is you telling Vanta where
+//   - the current pin can be dragged. Dragging it is you telling Echo where
 //     you are, so it is saved as "set by you" — never as a device fix.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
@@ -119,9 +119,9 @@ export function AwarenessMap({
       toast.error(vantaSay.couldntSave());
       return;
     }
-    toast.success("Place set by you. Vanta will read from here.");
+    toast.success("Place set by you. Echo will read from here.");
     setDrag(null);
-    /* The name of the new spot has to be looked up again before Vanta says it. */
+    /* The name of the new spot has to be looked up again before Echo says it. */
     supabase.functions.invoke("awareness-geocode", { body: { place_id: place.id, force: true } }).catch(() => {});
     await refresh();
     onMoved?.();
@@ -184,7 +184,7 @@ export function AwarenessMap({
             </>
           ) : (
             <p className="text-[10.5px] leading-snug text-muted-foreground/80">
-              Drag the pin if Vanta has you in the wrong spot. Nothing changes until you say to use it.
+              Drag the pin if Echo has you in the wrong spot. Nothing changes until you say to use it.
             </p>
           )}
         </div>

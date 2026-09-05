@@ -1,7 +1,7 @@
 // AttachmentStrip — one compact horizontal row of what's attached.
 //
 // Attachments never become a vertical wall. Each chip says what the thing is,
-// what state it's in, and whether Vanta can actually read it. Honesty over
+// what state it's in, and whether Echo can actually read it. Honesty over
 // affordance: a video says it will be kept, not read.
 import { FileText, Image as ImageIcon, Mic, Film, Paperclip, X, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";

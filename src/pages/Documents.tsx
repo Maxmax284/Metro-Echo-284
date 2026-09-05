@@ -247,7 +247,7 @@ export default function DocumentsPage() {
           <FileText className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
           <p className="text-sm leading-relaxed text-muted-foreground">
             {docs.length === 0
-              ? "Documents you save for deeper review appear here. Tap New document to draft one, or drop a file into a project and Vanta will read it."
+              ? "Documents you save for deeper review appear here. Tap New document to draft one, or drop a file into a project and Echo will read it."
               : "Nothing matches. Try a different filter."}
           </p>
 
@@ -407,10 +407,10 @@ function UnderConstructionBanner() {
             <ul className="mt-1 list-disc space-y-0.5 pl-4 text-foreground/85">
               <li>Draft from templates (NDA, SOW, service, payment, letter) with tone.</li>
               <li>Revise drafts in plain English — typed or dictated; nothing executes without approval.</li>
-              <li>Multi-turn intake — Vanta asks one question at a time, then reads it back before drafting.</li>
+              <li>Multi-turn intake — Echo asks one question at a time, then reads it back before drafting.</li>
               <li>Upload a contract → extract → plain-English review: parties, key dates, money terms, obligations, risks, missing/unclear, questions to ask, verdict.</li>
               <li>Export packets: PDF (operator / client) + Word (operator / client / signature with watermark + sig page).</li>
-              <li>"Ask Vanta" prompts pre-fill the Companion (tighten, soften, boardroom, explain risks, before signing, money).</li>
+              <li>"Ask Echo" prompts pre-fill the Companion (tighten, soften, boardroom, explain risks, before signing, money).</li>
             </ul>
           </section>
 
@@ -441,7 +441,7 @@ function UnderConstructionBanner() {
 
           <p className="rounded-md border border-border/50 bg-muted/40 p-2 text-[10.5px] text-muted-foreground">
             None of this is legal advice. Plan → Approve → Execute applies to
-            every change Vanta makes here.
+            every change Echo makes here.
           </p>
         </div>
       )}

@@ -1,6 +1,6 @@
 // PhysicalLoopPanel — paper and phone, in Work's reading tier.
 //
-// Three honest lines: the phone that feeds Vanta, the sweep that reads pages,
+// Three honest lines: the phone that feeds Echo, the sweep that reads pages,
 // and one real promise walked from message to receipt. Nothing here approves
 // or executes; the only writes it can trigger are a read and a reminder.
 import { useState } from "react";
@@ -101,7 +101,7 @@ export function PhysicalLoopPanel() {
       ) : (
         <div className="space-y-3">
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Your phone feeds Vanta. It never controls it — everything from a message arrives as a
+            Your phone feeds Echo. It never controls it — everything from a message arrives as a
             draft, and approval happens in here.
           </p>
 
@@ -146,7 +146,7 @@ export function PhysicalLoopPanel() {
               </button>
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">{loop.sweepLine}</p>
-            <AftermathHint text="Photograph a page and send it to your Telegram chat, or drop it in here. Vanta reads it and files it in the Inbox as a draft — it never routes it for you." />
+            <AftermathHint text="Photograph a page and send it to your Telegram chat, or drop it in here. Echo reads it and files it in the Inbox as a draft — it never routes it for you." />
 
           </div>
 

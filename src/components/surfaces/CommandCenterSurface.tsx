@@ -435,7 +435,7 @@ function SoftWelcomeChip() {
   return (
     <div className="flex items-start justify-between gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-[11.5px] text-foreground/85">
       <div className="min-w-0">
-        <span className="font-medium text-foreground">Welcome to Vanta.</span>{" "}
+        <span className="font-medium text-foreground">Welcome to Echo.</span>{" "}
         Here's what's changed recently. Tap any line to dig in.
       </div>
       <button

@@ -24,7 +24,7 @@ export function BriefsSurface() {
             <h1 className="text-lg font-semibold">Briefs</h1>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Turn what's in Vanta into a readable document — PDF, operator brief, audio script. Past exports stay here with receipts.
+            Turn what's in Metro Echo into a readable document — PDF, operator brief, audio script. Past exports stay here with receipts.
           </p>
         </div>
         <Button size="sm" className="gap-1.5" onClick={() => setComposerOpen(true)}>

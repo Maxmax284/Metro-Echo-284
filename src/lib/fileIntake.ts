@@ -45,7 +45,7 @@ export const FILE_REVIEW_STATUSES = [
 ] as const;
 export type FileReviewStatus = (typeof FILE_REVIEW_STATUSES)[number];
 
-// Document types Vanta should treat as sensitive by default — never
+// Document types Echo should treat as sensitive by default — never
 // auto-route, never preview unprompted, require explicit user approval.
 export const SENSITIVE_DOC_TYPES: ReadonlySet<DetectedDocType> = new Set([
   "id_doc",

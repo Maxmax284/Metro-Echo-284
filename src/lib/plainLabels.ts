@@ -2,7 +2,7 @@ import type { SurfaceId } from "@/lib/navigation";
 // Plain-English labels — single source of truth.
 // Use these everywhere instead of raw event/type tokens. Goal: a returning
 // user can answer "what changed / what needs me / where did this go" without
-// learning Vanta's internal vocabulary.
+// learning Echo's internal vocabulary.
 
 export const PLACE_LABELS = {
   INBOX: "Inbox",
@@ -229,11 +229,11 @@ export function trustNote(event: string): string {
   if (e.startsWith("brief.exported") || e.startsWith("pdf.") || e.startsWith("audit_packet") || e.startsWith("weekly_review"))
     return "Logged the moment you approved the export.";
   if (e.startsWith("brief."))
-    return "Logged when Vanta drafted or read the brief.";
+    return "Logged when Echo drafted or read the brief.";
   if (e.startsWith("audio_brief"))
     return "Logged when the audio briefing was generated.";
   if (e.startsWith("capture."))
-    return "Logged the second the capture hit Vanta.";
+    return "Logged the second the capture hit Echo.";
   if (e.startsWith("link.") || e.startsWith("cross_link.") || e.startsWith("entity.linked"))
     return "Logged when you connected the items.";
   if (e.startsWith("action."))

@@ -329,7 +329,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
                 {testing ? "Sending test…" : "Test webhook"}
               </Button>
               <span className="text-[10.5px] text-muted-foreground">
-                Sends a signed <code>integration.test</code> from Vanta to its own inbound endpoint and confirms the draft row landed.
+                Sends a signed <code>integration.test</code> from Echo to its own inbound endpoint and confirms the draft row landed.
               </span>
             </div>
           )}
@@ -443,7 +443,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
           <DialogHeader>
             <DialogTitle>{secretStatus[pasteFor ?? ""]?.present ? "Replace webhook secret" : "Add webhook secret"}</DialogTitle>
             <DialogDescription>
-              Paste the shared secret for this platform. Vanta stores it for webhook checks and never displays it again.
+              Paste the shared secret for this platform. Echo stores it for webhook checks and never displays it again.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-[12.5px]">

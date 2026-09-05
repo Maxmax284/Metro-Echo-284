@@ -1,5 +1,5 @@
 // Stage 4 — Corrections Center.
-// Review and prune what Vanta learned from you.
+// Review and prune what Echo learned from you.
 // Lives inside MemorySurface as a swappable view.
 
 import { useEffect, useState } from "react";
@@ -156,7 +156,7 @@ export function CorrectionsCenter() {
         </div>
       ) : tab === "corrections" ? (
         visibleCorrections.length === 0 ? (
-          <EmptyState icon={<AlertTriangle className="h-4 w-4 opacity-60" />} label="No corrections yet. Vanta will list things you've marked wrong, outdated, or useful here." />
+          <EmptyState icon={<AlertTriangle className="h-4 w-4 opacity-60" />} label="No corrections yet. Echo will list things you've marked wrong, outdated, or useful here." />
         ) : (
           <ul className="space-y-2">
             {visibleCorrections.map((c) => (

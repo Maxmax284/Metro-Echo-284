@@ -1,4 +1,4 @@
-// calendar-sync — pull subscribed calendar feeds into Vanta.
+// calendar-sync — pull subscribed calendar feeds into Metro Echo.
 //
 // Read-only sense. It fetches a public/secret .ics URL, keeps a short window of
 // events (yesterday → 30 days out), and stops. It never writes commitments,

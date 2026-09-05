@@ -346,7 +346,7 @@ Deno.serve(async (req: Request) => {
       .order("created_at", { ascending: true })
       .limit(30);
 
-    // Stage 3 — pull user's active corrections + recent field notes so Vanta
+    // Stage 3 — pull user's active corrections + recent field notes so Echo
     // never repeats mistakes the user already corrected.
     // Also pull timezone + default morning/afternoon/evening so the model can
     // resolve vague reminder times against the user's actual day shape.
@@ -480,7 +480,7 @@ Deno.serve(async (req: Request) => {
       readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
     );
 
-    // One Vanta, many bodies: same facts, same voice, less said on a small screen.
+    // One Echo, many bodies: same facts, same voice, less said on a small screen.
     const depthBlock = depthDirective(bodyForDevice(typeof device === "string" ? device : null));
 
     const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]

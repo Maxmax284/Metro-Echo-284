@@ -1,4 +1,4 @@
-// Canonical HTTP edge layer for every Vanta function.
+// Canonical HTTP edge layer for every Echo function.
 // One CORS policy, one JSON envelope, one preflight answer.
 // Pure module (no external imports) so it is unit-testable outside Deno.
 

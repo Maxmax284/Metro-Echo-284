@@ -1,11 +1,11 @@
-// MonthGrid — browse the dates Vanta has actually read, one month at a time.
+// MonthGrid — browse the dates Echo has actually read, one month at a time.
 //
 // Doctrine:
 //  - Read-only. This is a record of what the calendars said, never a planner.
 //    Nothing here creates, moves, or writes back to any calendar.
 //  - Density first: a month cell says how loaded a day is, not what is on it.
 //    Titles belong to the day you tapped, so 384px never turns into mush.
-//  - Honest about its own edges: the grid only knows the window Vanta keeps
+//  - Honest about its own edges: the grid only knows the window Echo keeps
 //    (yesterday to thirty days out), and it says so instead of showing an
 //    empty month as if the month were empty.
 //  - Mobile is the battlefield: 44px cells, tap targets not hover targets.
@@ -76,7 +76,7 @@ export function MonthGrid() {
   const monthName = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const selectedList = selected ? (byDay.get(dayKey(selected)) ?? []) : [];
 
-  // Vanta keeps a short window, so a month outside it is unread rather than empty.
+  // Echo keeps a short window, so a month outside it is unread rather than empty.
   const windowEnd = new Date(Date.now() + 30 * 86_400_000);
   const windowStart = new Date(Date.now() - 86_400_000);
   const outsideWindow = to < windowStart || from > windowEnd;
@@ -178,7 +178,7 @@ export function MonthGrid() {
             <LoadingState rows={1} label="Reading the month" />
           ) : outsideWindow ? (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              Vanta keeps roughly a month ahead and a day behind, so this month has not been read. Move back to this
+              Echo keeps roughly a month ahead and a day behind, so this month has not been read. Move back to this
               month to see real entries.
             </p>
           ) : events.length === 0 ? (
@@ -200,7 +200,7 @@ export function MonthGrid() {
               </p>
             ) : selectedList.length === 0 ? (
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                Nothing on that day that Vanta can see.
+                Nothing on that day that Echo can see.
               </p>
             ) : (
               <div className="mt-1.5 space-y-1.5">

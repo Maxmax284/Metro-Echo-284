@@ -1,4 +1,4 @@
-// responseDepth — one Vanta, many bodies.
+// responseDepth — one Echo, many bodies.
 //
 // The voice is the same everywhere (see brandVoice.ts and vantaIdentity.ts).
 // What changes per body is DEPTH: how much of the same answer gets said. This is

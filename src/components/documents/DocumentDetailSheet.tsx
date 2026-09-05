@@ -276,7 +276,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       "explain-risk":
         `For the document "${doc.title}", walk me through the highest-severity risks in plain English. What would each one mean for me in practice? No legal advice — just help me understand.`,
       "before-signing":
-        `Before I sign "${doc.title}", what should I ask the other side? Use the review Vanta already produced. Draft the questions as a short list I can send.`,
+        `Before I sign "${doc.title}", what should I ask the other side? Use the review Echo already produced. Draft the questions as a short list I can send.`,
       "money":
         `Summarize the money terms in "${doc.title}" — fees, deposits, late charges, refunds, who pays when. Plain English, no legal interpretation.`,
     };
@@ -501,8 +501,8 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   </Section>
                 )}
 
-                {/* Ask Vanta — drafts only, no execution */}
-                <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+                {/* Ask Echo — drafts only, no execution */}
+                <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Echo">
                   <div className="flex flex-wrap gap-1.5">
                     <Button size="sm" variant="outline" className="h-8 text-xs"
                       onClick={() => handleAsk("explain-risk")}>
@@ -519,7 +519,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   </div>
                   <div className="pt-1">
                     <ResearchSuggestionChip
-                      prompt={`For the document "${doc.title}", find a few outside examples and common practices around the risks and clauses Vanta flagged. Summarize in plain English with sources.`}
+                      prompt={`For the document "${doc.title}", find a few outside examples and common practices around the risks and clauses Echo flagged. Summarize in plain English with sources.`}
                       label="Look outside for examples"
                       relatedEntityType="document"
                       relatedEntityId={doc.id}
@@ -529,7 +529,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    These open a draft in Vanta — nothing sends until you say so.
+                    These open a draft in Metro Echo — nothing sends until you say so.
                   </p>
                 </Section>
 
@@ -578,7 +578,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-                {doc.status === "uploaded" && "Tap Read document to extract its text. Vanta won't run AI until you tap."}
+                {doc.status === "uploaded" && "Tap Read document to extract its text. Echo won't run AI until you tap."}
                 {doc.status === "extracting" && "Reading the document…"}
                 {doc.status === "extracted" && "Text is ready. Tap Review document for the plain-English breakdown."}
                 {doc.status === "reviewing" && "Reading and explaining…"}
@@ -709,13 +709,13 @@ function DraftBody({
             Apply revision
           </Button>
           <p className="text-[11px] text-muted-foreground">
-            Vanta rewrites the whole draft, preserving every section you didn't ask to change.
+            Echo rewrites the whole draft, preserving every section you didn't ask to change.
             {version ? ` This becomes version ${version.version_no + 1} — version ${version.version_no} stays readable in Receipts.` : ""}
           </p>
         </Section>
       )}
 
-      <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Vanta">
+      <Section icon={<Sparkles className="h-4 w-4" />} title="Ask Echo">
         <div className="flex flex-wrap gap-1.5">
           <Button size="sm" variant="outline" className="h-8 text-xs"
             onClick={() => onAsk("tighten")}>Tighten 30%</Button>
@@ -725,7 +725,7 @@ function DraftBody({
             onClick={() => onAsk("boardroom")}>Boardroom-formal</Button>
         </div>
         <p className="text-[11px] text-muted-foreground">
-          These open a draft suggestion in Vanta — nothing sends until you say so.
+          These open a draft suggestion in Metro Echo — nothing sends until you say so.
         </p>
       </Section>
 

@@ -35,7 +35,7 @@ export type Arrival = {
   timeSensitive?: boolean;
   /** Attached file name, when the arrival brought one. */
   attachment?: string | null;
-  /** How Vanta got the words: typed, read off a page, or heard. */
+  /** How Echo got the words: typed, read off a page, or heard. */
   heardOrRead?: "typed" | "read" | "heard";
 };
 
@@ -88,8 +88,8 @@ function channelName(c: ArrivalChannel): string {
 }
 
 function heardOrReadPhrase(a: Arrival): string | null {
-  if (a.heardOrRead === "heard") return "Vanta heard this one — it came in as a voice note.";
-  if (a.heardOrRead === "read") return "Vanta read this off the file that came with it.";
+  if (a.heardOrRead === "heard") return "Echo heard this one — it came in as a voice note.";
+  if (a.heardOrRead === "read") return "Echo read this off the file that came with it.";
   return null;
 }
 
@@ -196,7 +196,7 @@ const CHATTER =
   /^(hi|hey|hello|yo|sup|thanks|thank you|ta|cheers|ok|okay|k|cool|nice|great|lol|haha|got it|gotcha|morning|good morning|good night|night|bye|yes|no|yep|nope|sure|right)\b[\s!.,?]*$/i;
 
 /**
- * True when a message is something Vanta should hold for filing. Questions,
+ * True when a message is something Echo should hold for filing. Questions,
  * greetings and one-word replies are conversation, not capture.
  */
 export function looksLikeCapture(text: string | null | undefined): boolean {

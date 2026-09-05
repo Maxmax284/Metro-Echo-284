@@ -7,7 +7,7 @@
 export const WALKTHROUGH_SLIDES = [
   {
     title: "Five minutes, then you know your way around",
-    body: "Vanta has four rooms and nothing else. Today, Work, Ask, Receipts. Everything you ever do lives in one of them.",
+    body: "Echo has four rooms and nothing else. Today, Work, Ask, Receipts. Everything you ever do lives in one of them.",
     pill: "Start here",
   },
   {
@@ -22,12 +22,12 @@ export const WALKTHROUGH_SLIDES = [
   },
   {
     title: "Room 3 · Ask",
-    body: "Talk to Vanta with a file, photo or voice note if you need to. It reads and drafts. It never runs anything from here.",
+    body: "Talk to Echo with a file, photo or voice note if you need to. It reads and drafts. It never runs anything from here.",
     pill: "Ask",
   },
   {
     title: "Room 4 · Receipts",
-    body: "Every state change writes a line: what happened, who did it, when, and where it came from. If Vanta did something, it's in here.",
+    body: "Every state change writes a line: what happened, who did it, when, and where it came from. If Echo did something, it's in here.",
     pill: "Receipts",
   },
   {
@@ -41,18 +41,18 @@ export const WALKTHROUGH_SLIDES = [
     pill: "Work · 2",
   },
   {
-    title: "Inside Work · Tier 3: Where Vanta looks",
-    body: "Reading rooms: Memory, Sherlock, Awareness, Cockpit. Vanta reads these and drafts suggestions. Nothing in this tier acts on its own.",
+    title: "Inside Work · Tier 3: Where Echo looks",
+    body: "Reading rooms: Memory, Sherlock, Awareness, Cockpit. Echo reads these and drafts suggestions. Nothing in this tier acts on its own.",
     pill: "Work · 3",
   },
   {
     title: "One rule that never bends",
-    body: "Capture never executes. Vanta can prepare a step, but you approve it inside Vanta before anything runs. Every desk tile has a \u201C?\u201D that tells you what it is and when to use it.",
+    body: "Capture never executes. Echo can prepare a step, but you approve it inside Metro Echo before anything runs. Every desk tile has a \u201C?\u201D that tells you what it is and when to use it.",
     pill: "Safety",
   },
   {
     title: "Are you oriented?",
-    body: "Four rooms: Today, Work, Ask, Receipts. Three tiers in Work: where things stand, where work lands, where Vanta looks. Tick the box if that landed \u2014 you can replay this any time from Settings.",
+    body: "Four rooms: Today, Work, Ask, Receipts. Three tiers in Work: where things stand, where work lands, where Echo looks. Tick the box if that landed \u2014 you can replay this any time from Settings.",
     pill: "Check",
   },
 ] as const;
@@ -68,13 +68,13 @@ export const WHAT_IS_THIS: Record<string, string> = {
   operations_briefing:
     "A plain-English shift report. What's going on right now, what needs you, and why — refreshed when the underlying data changes.",
   connect_to:
-    "Connect any two things — notes, commitments, reminders, files, projects. Vanta uses these connections to surface related items everywhere else.",
+    "Connect any two things — notes, commitments, reminders, files, projects. Echo uses these connections to surface related items everywhere else.",
   brief_composer:
-    "Vanta drafts a brief from your linked items and receipts. You review the draft, then approve to export a PDF or audio briefing.",
+    "Echo drafts a brief from your linked items and receipts. You review the draft, then approve to export a PDF or audio briefing.",
   saved_exports:
     "Every PDF or audio briefing you've approved. Re-download any of them; each one has a receipt in the Audit log.",
   receipts:
-    "Every state change writes a receipt — what happened, when, who did it. Receipts are how you trust Vanta.",
+    "Every state change writes a receipt — what happened, when, who did it. Receipts are how you trust Echo.",
   sherlock:
     "Sherlock notices possible connections, risks, and contradictions in your captures. It never acts — it only suggests.",
   project_health:

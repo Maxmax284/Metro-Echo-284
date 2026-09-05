@@ -1,4 +1,4 @@
-// Glance — the wrist body of Vanta.
+// Glance — the wrist body of Echo.
 //
 // One question: what deserves my attention right now? Zero or one card. Silence is
 // a successful answer, not an empty state. Nothing consequential can be approved or
@@ -194,7 +194,7 @@ export default function GlancePage() {
 
       vantaToast.success({
         title: "Captured",
-        description: promise ? COMMITMENT_PROMPT : "It's in Vanta, waiting for review.",
+        description: promise ? COMMITMENT_PROMPT : "It's in Metro Echo, waiting for review.",
       });
       setText("");
       setCapturing(false);

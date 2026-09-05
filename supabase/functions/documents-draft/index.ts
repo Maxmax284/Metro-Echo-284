@@ -89,7 +89,7 @@ Template: ${template_title}.`;
       body: JSON.stringify({ model, messages }),
     });
     if (r.status === 429) {
-      await failDoc(supabase, document_id, user.id, "Vanta is over its rate limit just now. Try again in a minute.");
+      await failDoc(supabase, document_id, user.id, "Echo is over its rate limit just now. Try again in a minute.");
       return json({ ok: false, error: "rate_limited" }, 429);
     }
     if (r.status === 402) {
@@ -97,14 +97,14 @@ Template: ${template_title}.`;
       return json({ ok: false, error: "credits_exhausted" }, 402);
     }
     if (!r.ok) {
-      await failDoc(supabase, document_id, user.id, "Vanta couldn't finish this draft. Try again.");
+      await failDoc(supabase, document_id, user.id, "Echo couldn't finish this draft. Try again.");
       return json({ ok: false, error: `ai_gateway_${r.status}` }, 500);
     }
 
     const j = await r.json();
     const body: string = j.choices?.[0]?.message?.content ?? "";
     if (!body.trim()) {
-      await failDoc(supabase, document_id, user.id, "Vanta's draft came back empty. Try again.");
+      await failDoc(supabase, document_id, user.id, "Echo's draft came back empty. Try again.");
       return json({ ok: false, error: "empty_output" }, 500);
     }
 

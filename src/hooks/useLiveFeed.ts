@@ -1,6 +1,6 @@
 // useLiveFeed — the dashboard stops waiting.
 //
-// Vanta already records every state change in the audit log. This subscribes to
+// Echo already records every state change in the audit log. This subscribes to
 // that log (plus captures and promises) over realtime, scope-filtered, so the
 // board moves as things land instead of on the next reload. It never writes,
 // never executes, and never invents an item: every line here is a row that

@@ -11,7 +11,7 @@ export function VerdictDownloadCard() {
       <div className="flex items-start gap-3">
         <FileText className="mt-0.5 h-4 w-4 text-primary" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold">Vanta — State of the platform</h2>
+          <h2 className="text-sm font-semibold">Echo — State of the platform</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
             Plain-English read on what's built, how the watch connects, what's still
             thin, and what to do next. Dated 1 Sep 2026.

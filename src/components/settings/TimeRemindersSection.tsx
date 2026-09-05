@@ -145,7 +145,7 @@ export function TimeRemindersSection() {
         <div className="min-w-0">
           <h2 className="text-sm font-semibold">Time & Reminders</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            Tell Vanta when "tonight" means 7 PM, and which timezone is real.
+            Tell Echo when "tonight" means 7 PM, and which timezone is real.
           </p>
         </div>
       </div>
@@ -156,7 +156,7 @@ export function TimeRemindersSection() {
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" />
             <div>
               <div className="text-foreground">
-                Your device says <strong>{browserTimezone}</strong>, but Vanta is set to <strong>{storedTimezone}</strong>.
+                Your device says <strong>{browserTimezone}</strong>, but Echo is set to <strong>{storedTimezone}</strong>.
               </div>
               <div className="text-muted-foreground">Pick one so reminders fire correctly.</div>
             </div>
@@ -302,9 +302,9 @@ export function TimeRemindersSection() {
           </label>
           <div className="mt-1.5 flex items-start justify-between gap-3 py-2">
             <div className="min-w-0">
-              <div className="text-xs font-medium">Let Vanta mention drift</div>
+              <div className="text-xs font-medium">Let Echo mention drift</div>
               <div className="text-[11px] text-muted-foreground">
-                Off by default. When on, Vanta raises at most one quiet note in Today when a project goes silent, a
+                Off by default. When on, Echo raises at most one quiet note in Today when a project goes silent, a
                 promise keeps slipping, or a flagged risk sits unread. It stays a draft — nothing is staged, approved or
                 run for you, and nothing arrives during quiet hours.
               </div>
@@ -322,7 +322,7 @@ export function TimeRemindersSection() {
               <div className="min-w-0">
                 <div className="text-xs font-medium">Watch quietly first (shadow mode)</div>
                 <div className="text-[11px] text-muted-foreground">
-                  Vanta runs the full check and keeps the reasoning in Receipts, but says nothing in Today. Use it for a
+                  Echo runs the full check and keeps the reasoning in Receipts, but says nothing in Today. Use it for a
                   few days to see what it would have raised before letting it speak.
                 </div>
               </div>
@@ -340,8 +340,8 @@ export function TimeRemindersSection() {
               <div className="min-w-0">
                 <div className="text-xs font-medium">Reach me on Telegram when it's time-sensitive</div>
                 <div className="text-[11px] text-muted-foreground">
-                  Only for notes Vanta considers time-sensitive, and only if your chat is linked. The message tells you
-                  what changed and where to look — you still approve and run everything inside Vanta.
+                  Only for notes Echo considers time-sensitive, and only if your chat is linked. The message tells you
+                  what changed and where to look — you still approve and run everything inside Metro Echo.
                 </div>
               </div>
               <Switch

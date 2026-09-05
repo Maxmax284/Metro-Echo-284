@@ -1,4 +1,4 @@
-// Interactive approval controls rendered inside a structured Vanta answer.
+// Interactive approval controls rendered inside a structured Echo answer.
 // Finds the scoped pending action(s) the answer is talking about and lets the
 // user move them through the same review/approve/execute gate used in Actions.
 // High-risk approvals are never one-tap: they hand off to the Actions surface.
@@ -85,7 +85,7 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
     setBusy(a.id);
     try {
       const { error } = await supabase.functions.invoke("actions-transition", {
-        body: { action_id: a.id, to_status: to, reason: reason ?? "from Ask Vanta" },
+        body: { action_id: a.id, to_status: to, reason: reason ?? "from Ask Echo" },
       });
       if (error) throw error;
       /* The confirmation names the desk that now owns the record, so the

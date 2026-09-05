@@ -217,12 +217,12 @@ export function stateOfDay(input: {
       quiet.push(c === 1 ? "one thing moved in the last day" : `${c} things moved in the last day`);
     }
     let line = `${sentenceJoin(quiet)}.`;
-    if (input.noticed) line += " Vanta noticed something worth a look.";
+    if (input.noticed) line += " Echo noticed something worth a look.";
     return line;
   }
 
   let line = `${sentenceJoin(clauses)}.`;
-  if (input.noticed) line += " Vanta also noticed something worth a look.";
+  if (input.noticed) line += " Echo also noticed something worth a look.";
   return line;
 }
 

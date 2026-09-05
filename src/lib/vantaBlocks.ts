@@ -1,5 +1,5 @@
 // Structured response parser.
-// Vanta answers in short, labelled blocks instead of walls of text. This turns
+// Echo answers in short, labelled blocks instead of walls of text. This turns
 // the streamed assistant text into typed blocks the UI renders as cards,
 // status rows, checklists and approval notices. It is intentionally forgiving:
 // any text that doesn't match a known shape stays a plain paragraph, so a

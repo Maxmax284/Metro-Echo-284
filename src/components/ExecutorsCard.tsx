@@ -64,7 +64,7 @@ export function ExecutorsCard() {
 
   // email
   const [emailTo, setEmailTo] = useState("");
-  const [emailFrom, setEmailFrom] = useState("Vanta <onboarding@resend.dev>");
+  const [emailFrom, setEmailFrom] = useState("Echo <onboarding@resend.dev>");
   const [emailSubject, setEmailSubject] = useState("");
 
   const load = async () => {
@@ -243,7 +243,7 @@ export function ExecutorsCard() {
             </div>
             <div>
               <Label className="text-xs">From</Label>
-              <Input value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)} placeholder="Vanta <hi@yourdomain.com>" />
+              <Input value={emailFrom} onChange={(e) => setEmailFrom(e.target.value)} placeholder="Echo <hi@yourdomain.com>" />
             </div>
             <div>
               <Label className="text-xs">Subject (optional, defaults to action title)</Label>

@@ -26,7 +26,7 @@ export const SOURCE_LABEL: Record<SituationSource, string> = {
   commitments: "Commitments",
   actions: "Actions",
   inbox: "Inbox",
-  sherlock: "What Vanta noticed",
+  sherlock: "What Echo noticed",
   calendar: "Calendar",
   telegram: "Telegram",
   projects: "Projects",
@@ -92,7 +92,7 @@ export type SituationRead = {
   placeNote: string | null;
   /**
    * Meetings that are happening somewhere other than where you are. They never
-   * make the main read — Vanta doesn't nudge you about a room you're not near.
+   * make the main read — Echo doesn't nudge you about a room you're not near.
    * The Aware room shows them on the "Around you" shelf instead.
    */
   elsewhereMeetings: Array<{ id: string; title: string; starts_at: string; location: string }>;
@@ -209,9 +209,9 @@ function hoursUntil(iso: string, now: number): number {
 const KIND_STAKES: Record<SituationKind, { matters: string; ignored: string | null }> = {
   overdue: { matters: "You told someone this would be done.", ignored: "It stays open and keeps ageing. Nobody is told." },
   waiting_on_you: { matters: "Work is prepared but stopped at your approval.", ignored: "The draft sits there. Nothing runs on its own." },
-  meeting_soon: { matters: "It starts soon and you may need something ready.", ignored: "The meeting still happens. Vanta won't act for you." },
+  meeting_soon: { matters: "It starts soon and you may need something ready.", ignored: "The meeting still happens. Echo won't act for you." },
   due_soon: { matters: "The due time is close and it is still open.", ignored: "It becomes overdue." },
-  noticed: { matters: "Vanta spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
+  noticed: { matters: "Echo spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
   matter_open: { matters: "Sources were read together and the result is unreviewed.", ignored: "The reading waits. Nothing is exported or sent." },
   matter_proposed: { matters: "Two or more sources look related and nothing has read them together yet.", ignored: "Nothing happens. No reading starts on its own." },
   went_unusually_quiet: { matters: "This normally moves more often than it has.", ignored: "Nothing breaks. The gap just keeps growing." },
@@ -233,7 +233,7 @@ export function readSituation(input: SituationInput): SituationRead {
           source: SOURCE_LABEL[l.source],
           whatChanged: l.text,
           reason: l.reason,
-          /* Only ever compares against a cadence Vanta actually learned. */
+          /* Only ever compares against a cadence Echo actually learned. */
           comparedWith: l.baseline?.cadence
             ? `What's usual for it — a move every ${gapPhrase(l.baseline.cadence.medianGapDays)}`
             : null,
@@ -264,13 +264,13 @@ export function readSituation(input: SituationInput): SituationRead {
       kind: "waiting_on_you",
       source: "actions",
       text: n === 1 ? `${first.title} is drafted and waiting for you.` : `${n} drafts are waiting for you, starting with ${first.title}.`,
-      reason: "Vanta prepared these. Nothing runs until you approve.",
+      reason: "Echo prepared these. Nothing runs until you approve.",
       at: first.updated_at,
       entity: { type: "action", id: first.id },
     });
   }
 
-  /* A meeting only earns the main read when it's where you are — or when Vanta
+  /* A meeting only earns the main read when it's where you are — or when Echo
      has no idea where you are. A meeting with a named location that clearly
      isn't your resolved place is set aside for the "Around you" shelf. Place
      never invents or hides a fact; it only decides which shelf carries it. */
@@ -353,7 +353,7 @@ export function readSituation(input: SituationInput): SituationRead {
       reason:
         m.conflicts && m.conflicts > 0
           ? `${m.conflicts} ${plural(m.conflicts, "disagreement", "disagreements")} between the sources need a decision.`
-          : "Vanta lined the sources up. Nothing is final until you review it.",
+          : "Echo lined the sources up. Nothing is final until you review it.",
       at: m.at,
       entity: { type: "case", id: m.id },
       why: whyFor({
@@ -469,7 +469,7 @@ export function readSituation(input: SituationInput): SituationRead {
 
 /**
  * True when a meeting's own location clearly isn't the place you're standing in.
- * Unknown location, or unknown place, both read as "can't tell" — and Vanta
+ * Unknown location, or unknown place, both read as "can't tell" — and Echo
  * keeps the meeting in the main read rather than quietly demoting it.
  */
 export function meetingIsElsewhere(
@@ -490,7 +490,7 @@ export function meetingIsElsewhere(
 /** "Read from Bangkok." — where you stood, never a claim about distance. */
 export function placeNoteFor(place: SituationPlace): string {
   const where = place.where.trim();
-  /* Standing inside a place you named. This is the only case where Vanta says
+  /* Standing inside a place you named. This is the only case where Echo says
      where you are rather than where it read from. */
   const saved = place.savedPlace?.trim();
   if (saved && (place.scope === "exact" || place.scope === "area")) {
@@ -504,7 +504,7 @@ export function placeNoteFor(place: SituationPlace): string {
     case "city":
       return `Read from ${where}.`;
     case "country":
-      return `Read from ${where} — that's as close as Vanta can place you.`;
+      return `Read from ${where} — that's as close as Echo can place you.`;
     default:
       return `Read from ${where}.`;
   }
@@ -523,7 +523,7 @@ export function headlineFor(lines: SituationLine[]): string {
     case "due_soon":
       return "Here's what's next.";
     case "noticed":
-      return "Vanta noticed something worth a look.";
+      return "Echo noticed something worth a look.";
     case "went_unusually_quiet":
       return "One thread has gone quieter than usual.";
     case "arrived":
@@ -546,7 +546,7 @@ export function quietLine(sources: SituationSource[]): string | null {
   return `Nothing waiting in ${list}.`;
 }
 
-/** "Vanta can't see Calendar right now." — missing stays missing. */
+/** "Echo can't see Calendar right now." — missing stays missing. */
 export function unknownLine(sources: SituationSource[]): string | null {
   if (sources.length === 0) return null;
   const names = sources.map((s) => SOURCE_LABEL[s]);

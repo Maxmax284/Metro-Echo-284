@@ -36,7 +36,7 @@ export type DriftRisk = {
 export type DriftSignal = {
   kind: "project_went_silent" | "commitment_drifting" | "risk_unread";
   title: string;
-  /** Plain English: why Vanta is mentioning this at all. */
+  /** Plain English: why Echo is mentioning this at all. */
   reason: string;
   /** Plain English: the one thing worth doing next. */
   next_step: string;

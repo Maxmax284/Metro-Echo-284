@@ -4,7 +4,7 @@
 //  - A check reports a diff, never a status. Each group here is one check, with
 //    the time it ran and what it found; "nothing changed" is said out loud.
 //  - Every row shows before → after, so a moved meeting reads as a move.
-//  - Read-only. This sheet only reads recorded rows; Vanta never writes back to
+//  - Read-only. This sheet only reads recorded rows; Echo never writes back to
 //    any calendar, and nothing here executes.
 //  - Scope-filtered: a workspace calendar's changes stay in that room.
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -134,7 +134,7 @@ export function CalendarDiffSheet({
             What changed, and when
           </SheetTitle>
           <SheetDescription className="text-xs">
-            Every check Vanta ran in the last {WINDOW_DAYS} days that found something, newest first.
+            Every check Echo ran in the last {WINDOW_DAYS} days that found something, newest first.
             {lastChecked ? ` Calendars were last ${checkedLabel(lastChecked)}.` : ""}
           </SheetDescription>
         </SheetHeader>
@@ -179,7 +179,7 @@ export function CalendarDiffSheet({
               title={filter === "all" ? "No changes recorded yet" : "Nothing of that kind"}
               hint={
                 filter === "all"
-                  ? `Vanta checks your calendars on a schedule. When a meeting is added, moved, or comes off, the check that found it is written here with the before and after times. Nothing recorded means nothing moved in the last ${WINDOW_DAYS} days.`
+                  ? `Echo checks your calendars on a schedule. When a meeting is added, moved, or comes off, the check that found it is written here with the before and after times. Nothing recorded means nothing moved in the last ${WINDOW_DAYS} days.`
                   : "Try Everything to see the rest of the record."
               }
               actionLabel="Check now"
@@ -236,7 +236,7 @@ export function CalendarDiffSheet({
           <p className="text-[11px] leading-relaxed text-muted-foreground">{SYNC_CADENCE_NOTE}</p>
           <AftermathHint
             className="pb-6"
-            text="This is the record, not a control panel · changes to entries you filed reach Today as a nudge, and Vanta never writes back to a calendar"
+            text="This is the record, not a control panel · changes to entries you filed reach Today as a nudge, and Echo never writes back to a calendar"
           />
         </div>
       </SheetContent>

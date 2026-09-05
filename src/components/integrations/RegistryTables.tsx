@@ -7,7 +7,7 @@ export function EventRegistryTable() {
     <section className="rounded-xl surface-elevated p-4 ring-1 ring-border/60">
       <h2 className="text-sm font-semibold">Event registry</h2>
       <p className="mt-0.5 text-[12px] text-muted-foreground">
-        Every event a connected platform is allowed to send into Vanta.
+        Every event a connected platform is allowed to send into Metro Echo.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[640px] text-[11.5px]">
@@ -50,7 +50,7 @@ export function CallbackRegistryTable() {
     <section className="rounded-xl surface-elevated p-4 ring-1 ring-border/60">
       <h2 className="text-sm font-semibold">Callback registry</h2>
       <p className="mt-0.5 text-[12px] text-muted-foreground">
-        What Vanta is allowed to call back on other platforms. Everything is planned and requires approval per call.
+        What Echo is allowed to call back on other platforms. Everything is planned and requires approval per call.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[640px] text-[11.5px]">
@@ -111,7 +111,7 @@ export function AdapterTemplateCard() {
     <section className="rounded-xl surface-elevated p-4 ring-1 ring-border/60">
       <h2 className="text-sm font-semibold">Future adapter template</h2>
       <p className="mt-0.5 text-[12px] text-muted-foreground">
-        Any future platform needs these fields to plug into Vanta. Signed events come in. Vanta drafts. You approve. Then anything moves.
+        Any future platform needs these fields to plug into Metro Echo. Signed events come in. Echo drafts. You approve. Then anything moves.
       </p>
       <ul className="mt-3 grid grid-cols-1 gap-1 text-[11.5px] text-muted-foreground md:grid-cols-2">
         {fields.map((f) => (

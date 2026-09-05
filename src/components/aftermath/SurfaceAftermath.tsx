@@ -35,7 +35,7 @@ const LINE: Record<AftermathSurfaceKey, string> = {
   projects:
     "A project collects the notes, promises and actions you attach · its brief reads off them",
   schedule:
-    "Calendars are read-only here · changes show as a diff, and Vanta never writes back",
+    "Calendars are read-only here · changes show as a diff, and Echo never writes back",
   briefs:
     "A brief is built from your own records · exports appear in Receipts with what went into them",
   audit: "This is the evidence layer · nothing here can be edited, only read and annotated",

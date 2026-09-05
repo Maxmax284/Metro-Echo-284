@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const payload = {
-    title: "Vanta · Test",
+    title: "Echo · Test",
     body: "Push is working. Tap to open the platform.",
     tag: "vanta-test",
     url: "/",

@@ -84,7 +84,7 @@ export function ActionReceiptDrawer({
           <SheetDescription className="text-[11.5px]">
             {state === "missing"
               ? "Nothing has been logged against this one yet. Receipts appear once something actually runs."
-              : "Hold on a second — Vanta is logging what just ran."}
+              : "Hold on a second — Echo is logging what just ran."}
           </SheetDescription>
         </SheetHeader>
         <div className="flex items-center gap-2 py-4 text-[12px] text-muted-foreground">

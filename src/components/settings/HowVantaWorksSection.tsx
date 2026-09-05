@@ -14,7 +14,7 @@ export function HowVantaWorksSection() {
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold">How Vanta Works</h2>
+            <h2 className="text-sm font-semibold">How Echo Works</h2>
             <p className="mt-0.5 text-[12px] text-muted-foreground">
               The whole flow in plain English. Restart the onboarding walkthrough any time.
             </p>

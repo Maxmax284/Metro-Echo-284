@@ -191,7 +191,7 @@ export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
   website: "From your website",
   sherlock: "Spotted by Sherlock",
   ask: "Drafted in Ask",
-  vanta: "Recorded by Vanta",
+  vanta: "Recorded by Echo",
   hub: "From Ground Truth Hub",
   campcore: "From CampCore",
   fenrir: "From Fenrir Lock",
@@ -240,7 +240,7 @@ export function resolveProvenance(raw: string | null | undefined): ProvenanceSou
 // ---------- Freshness ------------------------------------------------------
 
 /**
- * Section-level freshness: says when Vanta last looked, so "nothing happening"
+ * Section-level freshness: says when Echo last looked, so "nothing happening"
  * never reads as "possibly broken". Never per row.
  */
 export function freshnessLabel(
@@ -338,11 +338,11 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Commitment",
     means: "A promise with a date on it, yours or someone else's.",
-    notThe: "It is not something Vanta does for you. You complete it or move it.",
+    notThe: "It is not something Echo does for you. You complete it or move it.",
   },
   {
     term: "Action",
-    means: "Something Vanta could do on your behalf, written up and waiting for your approval.",
+    means: "Something Echo could do on your behalf, written up and waiting for your approval.",
     notThe: "Nothing runs until you approve it. Drafting is not sending.",
   },
   {
@@ -355,7 +355,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: "Brief",
-    means: "A short read-out Vanta composes from your own records — a catch-up you can send or export.",
+    means: "A short read-out Echo composes from your own records — a catch-up you can send or export.",
     notThe: "It is not a legal document. It summarises; it does not commit you to anything.",
   },
   {
@@ -365,7 +365,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: "Artifact",
-    means: "The umbrella word for anything Vanta produced that you can open, export or send: briefs, documents, files.",
+    means: "The umbrella word for anything Echo produced that you can open, export or send: briefs, documents, files.",
   },
   {
     term: "Receipt",

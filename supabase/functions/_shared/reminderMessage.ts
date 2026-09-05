@@ -43,7 +43,7 @@ export function composeReminder(
     const publicUrl = Deno.env.get("VANTA_PUBLIC_URL");
     if (publicUrl) {
       inline_keyboard.push([{
-        text: "Open in Vanta",
+        text: "Open in Metro Echo",
         url: `${publicUrl.replace(/\/$/, "")}/?commitment=${opts.commitmentId}`,
       }]);
     }

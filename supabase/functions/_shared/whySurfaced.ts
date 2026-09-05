@@ -1,13 +1,13 @@
 // whySurfaced — the one trust reveal, shared by every surface.
 //
-// Doctrine: if Vanta put something in front of a person unasked, the person can
+// Doctrine: if Echo put something in front of a person unasked, the person can
 // always ask "why this?" and get the same seven answers, in the same order, on
 // every surface — screen, watch, Telegram:
 //
 //   1. Where it came from
 //   2. What changed
 //   3. Compared with what
-//   4. Why Vanta raised it
+//   4. Why Echo raised it
 //   5. How fresh the reading is
 //   6. Why it matters
 //   7. What happens if it is ignored
@@ -23,7 +23,7 @@ export type WhySurfaced = {
   whatChanged: string;
   /** The baseline or expectation it was measured against. Null when none exists. */
   comparedWith: string | null;
-  /** Why Vanta decided this was worth surfacing. */
+  /** Why Echo decided this was worth surfacing. */
   reason: string;
   /** ISO time of the newest fact behind it. Null when nothing was recorded. */
   at: string | null;
@@ -37,7 +37,7 @@ export const WHY_LABELS = {
   source: "Where it came from",
   whatChanged: "What changed",
   comparedWith: "Compared with",
-  reason: "Why Vanta raised it",
+  reason: "Why Echo raised it",
   at: "How fresh this is",
   whyItMatters: "Why it matters",
   ifIgnored: "If you ignore it",

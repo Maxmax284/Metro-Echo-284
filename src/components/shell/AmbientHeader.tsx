@@ -114,7 +114,7 @@ export function VantaMark({ className }: { className?: string }) {
       <span className="relative inline-flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow">
         <Compass className="h-3.5 w-3.5" />
       </span>
-      Vanta
+      Echo
     </span>
   );
 }

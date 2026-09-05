@@ -75,7 +75,7 @@ export function ActivityTray() {
             <div>
               <div className="text-sm font-semibold">Activity</div>
               <div className="text-[11px] text-muted-foreground">
-                What Vanta is working on right now.
+                What Echo is working on right now.
               </div>
             </div>
             <Button

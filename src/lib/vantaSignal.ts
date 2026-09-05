@@ -93,7 +93,7 @@ export const RISK_TONE: Record<RiskLevel, string> = {
 };
 
 export const ROUTE_LABEL: Record<SignalRoute, string> = {
-  ask_vanta:         "Ask Vanta",
+  ask_vanta:         "Ask Echo",
   save_to_memory:    "Save to Memory",
   send_to_sherlock:  "Send to Sherlock",
   create_commitment: "Create commitment",

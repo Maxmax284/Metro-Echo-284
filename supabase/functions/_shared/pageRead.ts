@@ -1,5 +1,5 @@
 // pageRead — the one place that turns a captured page (a photo of paper, a
-// scan, a screenshot) into readable text inside Vanta.
+// scan, a screenshot) into readable text inside Metro Echo.
 //
 // Doctrine:
 //   - reading is not acting. This creates a note and leaves the file in a
@@ -56,7 +56,7 @@ export async function ocrImage(blob: Blob, mime: string): Promise<string> {
 
 /**
  * Turn spoken words into written ones through the Lovable AI Gateway. A voice
- * note is the same kind of thing as a photo of a page: something Vanta has to
+ * note is the same kind of thing as a photo of a page: something Echo has to
  * read before anyone can decide what it is for.
  */
 export async function transcribeAudio(blob: Blob, mime: string): Promise<string> {
@@ -109,7 +109,7 @@ export type PageReadResult =
   | { ok: true; noteId: string; chars: number }
   | { ok: false; reason: string; status?: number };
 
-/** True when this file is a page Vanta should try to read. */
+/** True when this file is a page Echo should try to read. */
 export function isPageFile(rec: { mime_type: string | null; filename: string }): boolean {
   const mime = (rec.mime_type ?? "").toLowerCase();
   if (mime.startsWith("image/")) return true;

@@ -1,4 +1,4 @@
-// Vanta service worker — push delivery only.
+// Echo service worker — push delivery only.
 // No caching, no offline strategy in this pass. Capture-never-executes still applies:
 // the SW shows the notification; tapping it deep-links into the platform where the user
 // approves any action. The SW does not call APIs or mutate data on its own.
@@ -16,10 +16,10 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Vanta", body: event.data ? event.data.text() : "" };
+    payload = { title: "Echo", body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "Vanta";
+  const title = payload.title || "Echo";
   const options = {
     body: payload.body || "",
     icon: "/icon-192.png",

@@ -27,7 +27,7 @@ export type EventDef = {
   direction: "inbound" | "outbound";
   status: IntegrationStatus;
   description: string;
-  creates: string; // what it becomes in Vanta
+  creates: string; // what it becomes in Metro Echo
   requiresApproval: boolean;
   sensitive: boolean;
 };
@@ -72,7 +72,7 @@ export type IntegrationDef = {
 export const INTEGRATIONS: IntegrationDef[] = [
   {
     key: "vanta_core",
-    name: "Vanta Core",
+    name: "Echo Core",
     role: "The inbox, the drafts, the approval surface.",
     description: "This is where signals land, become drafts, and wait for you.",
     direction: "inbound_approved_outbound",
@@ -87,7 +87,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     key: "telegram",
     name: "Telegram",
     role: "Capture + approved delivery channel.",
-    description: "Telegram sends messages, files, and voice notes into Vanta. Vanta sends approved reminders back.",
+    description: "Telegram sends messages, files, and voice notes into Metro Echo. Echo sends approved reminders back.",
     direction: "inbound_approved_outbound",
     webhookFunction: "telegram-webhook",
     setupPath: "/settings/telegram",
@@ -303,7 +303,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     key: "whatsapp",
     name: "WhatsApp",
     role: "Future capture channel.",
-    description: "Where real life happens. Comes after Telegram is rock solid on Vanta, GTH, and CampCore.",
+    description: "Where real life happens. Comes after Telegram is rock solid on Echo, GTH, and CampCore.",
     direction: "deferred",
     bucket: "deferred",
     approvalRule: "Deferred. When built, WhatsApp captures only. No booking, payment, or schedule changes from chat.",

@@ -1,8 +1,8 @@
-// Outbound bridge — Vanta → external hub (LMT Camp State / Ground Truth Hub).
+// Outbound bridge — Echo → external hub (LMT Camp State / Ground Truth Hub).
 //
 // This is the mirror of externalPlatform.ts. Inbound signals become captures;
 // outbound *awareness updates* become signed notices on the hub side. It is
-// notification only: the hub is told what Vanta noticed, never what to do.
+// notification only: the hub is told what Echo noticed, never what to do.
 // Nothing here executes anything, and nothing here can approve anything.
 //
 // Reliability is the whole point of this module:
@@ -101,7 +101,7 @@ export function buildBridgeBody(update: BridgeUpdate, target: string) {
       urgency: update.urgency ?? "normal",
     },
     // Notification only — the hub must not treat this as an instruction.
-    execution: { allowed: false, reason: "Vanta forwards awareness, never commands." },
+    execution: { allowed: false, reason: "Echo forwards awareness, never commands." },
     payload: update.payload ?? {},
   };
 }

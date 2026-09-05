@@ -46,7 +46,7 @@ export function GlossaryPanel({
 
       {entries.length === 0 ? (
         <p className="text-[12px] text-muted-foreground">
-          No word matches that. Every noun Vanta uses is in this list — try a shorter search.
+          No word matches that. Every noun Echo uses is in this list — try a shorter search.
         </p>
       ) : (
         <dl className="space-y-2.5">

@@ -73,7 +73,7 @@ export const FEED_STATE_WORD: Record<FeedState, string> = {
 export function feedStateLine(f: FeedStatus, now = Date.now()): string {
   const state = feedState(f, now);
   if (state === "broken") return `${f.last_error} · ${checkedLabel(f.last_synced_at, now)}`;
-  if (state === "off") return "Paused, so nothing from it reaches Vanta.";
+  if (state === "off") return "Paused, so nothing from it reaches Metro Echo.";
   if (state === "empty") {
     return `No upcoming entries · ${checkedLabel(f.last_synced_at, now)}`;
   }
@@ -98,15 +98,15 @@ export function changePhrase(f: Pick<FeedStatus, "last_added" | "last_moved" | "
 export const EMPTY_FEED_ADVICE =
   "Either the calendar genuinely has nothing in the next 30 days, or the link is the share page rather than the private iCal address. In Google Calendar that is Settings for my calendars → Secret address in iCal format.";
 
-/** Vanta checks calendars on its own; a person should be told that once. */
-export const SYNC_CADENCE_NOTE = "Vanta checks every calendar on its own about every 20 minutes. You never have to press this.";
+/** Echo checks calendars on its own; a person should be told that once. */
+export const SYNC_CADENCE_NOTE = "Echo checks every calendar on its own about every 20 minutes. You never have to press this.";
 
 /** The toast after a manual check: a diff, or an honest nothing. */
 export function syncSummary(results: FeedSyncResult[]): { title: string; description: string } {
   if (results.length === 0) {
     return {
       title: "No calendars to check",
-      description: "Add a calendar link and Vanta starts reading the shape of your days.",
+      description: "Add a calendar link and Echo starts reading the shape of your days.",
     };
   }
 

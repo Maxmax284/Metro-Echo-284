@@ -80,7 +80,7 @@ export type DocumentReview = {
 };
 
 export const DOCUMENT_DISCLAIMER =
-  "Vanta can help you understand and prepare, but this does not replace a licensed attorney.";
+  "Echo can help you understand and prepare, but this does not replace a licensed attorney.";
 
 // ---------- Status state machine (mirrors intakeLifecycle.ts style) ----------
 const TRANSITIONS: Record<DocumentStatus, ReadonlyArray<DocumentStatus>> = {

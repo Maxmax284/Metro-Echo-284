@@ -1,4 +1,4 @@
-// The first adapters — existing Vanta data only.
+// The first adapters — existing Echo data only.
 //
 // The drift detectors already decide *what* is drifting. These turn their
 // output, plus the plain commitment/action/security rows we already read, into

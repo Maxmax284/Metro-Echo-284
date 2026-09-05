@@ -50,7 +50,7 @@ export function NewDocumentDialog({
   const template = useMemo(() => getTemplate(templateKey), [templateKey]);
 
   /* Multi-turn intake: title, each template field, voice, then a read-back.
-     Deterministic — Vanta asks for what it does not have, in order, and never
+     Deterministic — Echo asks for what it does not have, in order, and never
      calls a model to decide what to ask. */
   const steps = useMemo(() => {
     if (!template) return [] as IntakeStep[];
@@ -63,7 +63,7 @@ export function NewDocumentDialog({
         field: f,
       })),
       { key: "__tone", label: "What voice should it be written in?", kind: "tone" as const },
-      { key: "__review", label: "Read it back before Vanta drafts", kind: "review" as const },
+      { key: "__review", label: "Read it back before Echo drafts", kind: "review" as const },
     ];
   }, [template]);
 
@@ -161,7 +161,7 @@ export function NewDocumentDialog({
           <DialogDescription className="text-[12px]">
             {template
               ? template.longDescription
-              : "Pick a template. Vanta drafts it in plain English. You decide what to do with it."}
+              : "Pick a template. Echo drafts it in plain English. You decide what to do with it."}
           </DialogDescription>
         </DialogHeader>
 
@@ -257,7 +257,7 @@ export function NewDocumentDialog({
                     </ul>
                     {missingRequired(template).length > 0 ? (
                       <p className="text-[11px] text-destructive">
-                        Vanta still needs: {missingRequired(template).join(", ")}.
+                        Echo still needs: {missingRequired(template).join(", ")}.
                       </p>
                     ) : (
                       <p className="text-[11px] text-muted-foreground">
@@ -399,7 +399,7 @@ export function NewDocumentDialog({
             )}
 
             <div className="rounded-md border border-border/60 bg-muted/30 p-2.5 text-[11px] leading-relaxed text-muted-foreground">
-              Vanta drafts this. You review it. It is not legal advice. Nothing is sent anywhere —
+              Echo drafts this. You review it. It is not legal advice. Nothing is sent anywhere —
               the draft lands in Documents and the run appears in Receipts.
             </div>
           </div>

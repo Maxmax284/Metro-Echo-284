@@ -1,4 +1,4 @@
-// motion — one vocabulary for movement in Vanta.
+// motion — one vocabulary for movement in Metro Echo.
 //
 // Why this exists: durations were spelled three different ways (raw
 // `duration-200`, token `duration-[var(--motion-base)]`, legacy
@@ -55,7 +55,7 @@ export const MOTION_ROW = `${MOTION_MICRO} ${MOTION_PRESS}`;
 export const MOTION_HOVER_LIFT = "vanta-hover-lift";
 
 /**
- * The one "Vanta noticed something" motif: a 1px purple line that sweeps once
+ * The one "Echo noticed something" motif: a 1px purple line that sweeps once
  * and settles. Event-driven only — apply while a real change is acknowledged,
  * then remove. Never left on.
  */

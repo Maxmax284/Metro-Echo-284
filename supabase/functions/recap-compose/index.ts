@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
       },
       {
         id: "sherlock_patterns",
-        heading: "Patterns Vanta noticed",
+        heading: "Patterns Echo noticed",
         body: sherlockTop.length
           ? sherlockTop.map(([k, n]) => `• ${k.replace(/_/g, " ")} — ${n}`).join("\n")
           : "No new patterns surfaced.",

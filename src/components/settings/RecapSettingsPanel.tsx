@@ -142,7 +142,7 @@ export function RecapSettingsPanel() {
         </li>
         <li className="flex items-start justify-between gap-3 py-2.5">
           <div className="min-w-0">
-            <div className="text-xs font-medium">Include Vanta-noticed patterns</div>
+            <div className="text-xs font-medium">Include Echo-noticed patterns</div>
             <div className="text-[11px] text-muted-foreground">Repeated themes and possible duplicates.</div>
           </div>
           <Switch

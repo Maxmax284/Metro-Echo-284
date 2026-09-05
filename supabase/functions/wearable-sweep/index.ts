@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
     }
 
     /* A hand-run that found nothing still gets a stamp, so the panel can say
-       honestly when Vanta last looked. */
+       honestly when Echo last looked. */
     if (onlyUserId && !perUser.has(onlyUserId)) {
       perUser.set(onlyUserId, { org: null, heart_rate: 0, steps: 0, sleep: 0, workout: 0, stand: 0 });
     }

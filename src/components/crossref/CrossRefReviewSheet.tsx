@@ -1,5 +1,5 @@
-// CrossRefReviewSheet — the checkpoint between "Vanta read your sources" and
-// "Vanta made you a document". Nothing composes until the user taps.
+// CrossRefReviewSheet — the checkpoint between "Echo read your sources" and
+// "Echo made you a document". Nothing composes until the user taps.
 // 384px first: one column, 44px controls, no matrix scroll wall.
 import { useEffect, useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -73,7 +73,7 @@ function ConflictRow({ bundle, conflict, onDone }: { bundle: CaseBundle; conflic
               )}
             >
               <span className="min-w-0">
-                <span className="block truncate font-medium">{unreadable ? "Vanta could not read this" : (c.value_text ?? "—")}</span>
+                <span className="block truncate font-medium">{unreadable ? "Echo could not read this" : (c.value_text ?? "—")}</span>
                 <span className="block truncate text-[10.5px] text-muted-foreground">{src?.filename ?? "calculated"}</span>
               </span>
               {!unreadable && <span className="shrink-0 text-[10px] text-muted-foreground">Use this</span>}
@@ -199,7 +199,7 @@ export function CrossRefReviewSheet({
                   </div>
                   {recipeGaps(bundle).length > 0 && (
                     <div className="mt-1 text-[11px] text-muted-foreground">
-                      Not on the sources: {recipeGaps(bundle).map(fieldLabel).join(", ")}. Vanta leaves those blank.
+                      Not on the sources: {recipeGaps(bundle).map(fieldLabel).join(", ")}. Echo leaves those blank.
                     </div>
                   )}
                 </div>
@@ -218,7 +218,7 @@ export function CrossRefReviewSheet({
                       <div className="truncate text-[12.5px] font-medium">{s.filename}</div>
                       <div className="text-[11px] text-muted-foreground">
                         {s.role === "master" ? "Treated as the master sheet" : s.role === "supporting" ? "Treated as supporting" : "Role unclear"}
-                        {" — Vanta guessed this. Change it if that's wrong."}
+                        {" — Echo guessed this. Change it if that's wrong."}
                       </div>
                       <div className="mt-2 flex gap-2">
                         {(["master", "supporting"] as const).map((r) => (
@@ -338,7 +338,7 @@ export function CrossRefReviewSheet({
 
                 {plan && plan.unresolved > 0 && (
                   <div className="text-[11.5px] text-muted-foreground">
-                    {plan.unresolved} field{plan.unresolved === 1 ? "" : "s"} still unsettled. They'll print as unsettled — Vanta won't guess.
+                    {plan.unresolved} field{plan.unresolved === 1 ? "" : "s"} still unsettled. They'll print as unsettled — Echo won't guess.
                   </div>
                 )}
 

@@ -1,7 +1,7 @@
 // WearableContextPanel — what a watch is allowed to say, and what it can't.
 //
-// Reads only. It shows the body Vanta is speaking through, the posture you set
-// by hand, and which senses you switched on. A watch can feed Vanta context;
+// Reads only. It shows the body Echo is speaking through, the posture you set
+// by hand, and which senses you switched on. A watch can feed Echo context;
 // it can never approve or run anything, and it never touches messaging.
 import { Watch } from "lucide-react";
 import { useVantaContext } from "@/providers/VantaContextProvider";
@@ -45,7 +45,7 @@ export function WearableContextPanel() {
             </MachineText>
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
-            Vanta knows the kind of screen it is on, nothing more. A watch counts as its own body:
+            Echo knows the kind of screen it is on, nothing more. A watch counts as its own body:
             it gets the short version and the plain version.
           </p>
         </div>
@@ -59,8 +59,8 @@ export function WearableContextPanel() {
           </div>
           <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
             {posture
-              ? `You told Vanta you're in "${posture}"${postureUntil ? ", with an end time set" : ", until you clear it"}. Ordinary notes wait. Anything genuinely time-critical still comes through.`
-              : "You haven't told Vanta what kind of moment this is. Set one below and ordinary notes will hold while you're busy."}
+              ? `You told Echo you're in "${posture}"${postureUntil ? ", with an end time set" : ", until you clear it"}. Ordinary notes wait. Anything genuinely time-critical still comes through.`
+              : "You haven't told Echo what kind of moment this is. Set one below and ordinary notes will hold while you're busy."}
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export function WearableContextPanel() {
           <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
             {on.length
               ? `${on.map((s) => SENSOR_LABEL[s]).join(", ")}. Everything else stays off.`
-              : "Nothing is switched on. Vanta reads only what you hand it."}
+              : "Nothing is switched on. Echo reads only what you hand it."}
           </p>
         </div>
       </div>

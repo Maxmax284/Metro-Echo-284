@@ -31,7 +31,7 @@ const facts = {
   title: "LMT Camp State — booking cancelled",
   why: "The day's plan just changed.",
   lines: ["Guest: A. Chen", "Nights: 3", "Amount: 12,000 THB"],
-  nextStepLine: "In Vanta's inbox for review — nothing was actioned.",
+  nextStepLine: "In Metro Echo's inbox for review — nothing was actioned.",
 };
 
 describe("signal registry", () => {
@@ -94,14 +94,14 @@ describe("compression", () => {
         "Guest: A. Chen",
         "Nights: 3",
         "Amount: 12,000 THB",
-        "In Vanta's inbox for review — nothing was actioned.",
+        "In Metro Echo's inbox for review — nothing was actioned.",
       ].join("\n"),
     );
   });
 
   it("appends one trailing-slash-normalized link when a public url exists", () => {
     const out = compressNotice({ ...facts, publicUrl: "https://vantav2.lovable.app/" }, "brief");
-    expect(out.endsWith("Open Vanta: https://vantav2.lovable.app/")).toBe(true);
+    expect(out.endsWith("Open Metro Echo: https://vantav2.lovable.app/")).toBe(true);
   });
 
   it("gets quieter as the channel gets smaller", () => {

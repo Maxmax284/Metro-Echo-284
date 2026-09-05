@@ -164,7 +164,7 @@ Voice: warm but not chummy. No exclamation marks. No "as an AI". No jurisdiction
     });
 
     if (r.status === 429) {
-      await failDoc(supabase, document_id, user.id, "Vanta is over its rate limit just now. Try again in a minute.");
+      await failDoc(supabase, document_id, user.id, "Echo is over its rate limit just now. Try again in a minute.");
       return json({ ok: false, error: "rate_limited" }, 429);
     }
     if (r.status === 402) {
@@ -172,7 +172,7 @@ Voice: warm but not chummy. No exclamation marks. No "as an AI". No jurisdiction
       return json({ ok: false, error: "credits_exhausted" }, 402);
     }
     if (!r.ok) {
-      await failDoc(supabase, document_id, user.id, "Vanta couldn't finish reading this document. Try again, or attach a clearer copy.");
+      await failDoc(supabase, document_id, user.id, "Echo couldn't finish reading this document. Try again, or attach a clearer copy.");
       return json({ ok: false, error: `ai_gateway_${r.status}` }, 500);
     }
     const j = await r.json();
@@ -180,7 +180,7 @@ Voice: warm but not chummy. No exclamation marks. No "as an AI". No jurisdiction
     let parsedReview: any = null;
     try { parsedReview = JSON.parse(raw); } catch { /* fall through */ }
     if (!parsedReview) {
-      await failDoc(supabase, document_id, user.id, "Vanta's review came back unreadable. Try again.");
+      await failDoc(supabase, document_id, user.id, "Echo's review came back unreadable. Try again.");
       return json({ ok: false, error: "bad_model_output" }, 500);
     }
 
