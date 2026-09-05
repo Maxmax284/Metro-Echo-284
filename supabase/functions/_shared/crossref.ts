@@ -425,7 +425,10 @@ export const SHAPE_SPEC: Record<OutputShape, { label: string; blurb: string; pre
 /** Guess the shape from what the user actually said. */
 export function inferOutputShape(text: string): OutputShape {
   const t = (text ?? "").toLowerCase();
-  if (/\b(announce|announcer|roster|line ?up|fight card|running order|card)\b/.test(t)) return "roster_sheet";
+  if (/\b(fight ?card|bout|bouts|weigh[- ]?in|corner)\b/.test(t)) return "fight_card";
+  if (/\b(contract|agreement|nda|mou|lease|clause|terms? sheet)\b/.test(t)) return "contract_terms";
+  if (/\b(announce|announcer|roster|line ?up|running order|card)\b/.test(t)) return "roster_sheet";
+
   if (/\b(reconcile|reconciliation|variance|ledger|invoice|balance)\b/.test(t)) return "reconciliation";
   if (/\b(compare|side by side|dossier|versus|vs\.?)\b/.test(t)) return "comparison_dossier";
   if (/\b(audit|provenance|receipts|where.*came from)\b/.test(t)) return "audit_report";
