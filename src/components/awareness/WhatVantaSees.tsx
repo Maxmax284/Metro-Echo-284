@@ -44,7 +44,7 @@ function statusLine(rows: Row[]): string {
   }
   const onPart = on.length === rows.length ? "Everything is feeding Vanta" : `${on.join(", ")} ${on.length === 1 ? "is" : "are"} feeding Vanta`;
   if (off.length === 0) return `${onPart}. Nothing is switched off.`;
-  return `${onPart}. ${off.join(" and ")} ${off.length === 1 ? "is" : "are"} off, so nothing here comes from ${off.length === 1 ? "it" : "them"}.`;
+  return `${onPart}. ${off.join(", ")} ${off.length === 1 ? "isn't" : "aren't"}, so nothing here comes from ${off.length === 1 ? "it" : "them"}.`;
 }
 
 export function WhatVantaSees({ className }: { className?: string }) {
