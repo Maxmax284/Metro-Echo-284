@@ -128,8 +128,7 @@ export function CrossRefCasesPanel() {
         <LoadingState label="Looking for cases" />
       ) : cases.length === 0 ? (
         <EmptyState
-          label="No cases yet"
-          detail="A case appears when you attach two or more sources here or in Ask."
+          title="No cases yet — a case appears when you attach two or more sources here or in Ask."
           hint="A fight card and its registration sheets, a contract and its invoice, a manifest and its bookings."
         />
       ) : (
@@ -142,7 +141,7 @@ export function CrossRefCasesPanel() {
                 onClick={() => setOpenId(c.id)}
                 className="flex w-full items-start gap-2 rounded-lg surface-elevated p-2.5 text-left ring-1 ring-border/60 transition hover:ring-primary/40"
               >
-                <StatusDot tone={c.status === "composed" ? "primary" : c.status === "failed" ? "danger" : "muted"} className="mt-1.5" />
+                <StatusDot tone={c.status === "composed" ? "primary" : c.status === "failed" ? "destructive" : "muted"} className="mt-1.5" />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[12.5px] font-medium">{c.title || "Cross-reference"}</div>
                   <div className="mt-0.5 text-[11px] text-muted-foreground">
