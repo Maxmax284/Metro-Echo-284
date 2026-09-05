@@ -16,6 +16,7 @@ import { useScope } from "@/hooks/useScope";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { listCases, recipeById, runCrossReference, type CaseRow } from "@/lib/crossref";
 import { CrossRefReviewSheet } from "./CrossRefReviewSheet";
+import { SuggestedReadingCard } from "./SuggestedReadingCard";
 
 const STATUS_LINE: Record<string, string> = {
   draft: "Sources attached, not read yet",
@@ -123,6 +124,8 @@ export function CrossRefCasesPanel() {
         className="hidden"
         onChange={(e) => void onFiles(e.target.files)}
       />
+
+      <SuggestedReadingCard onStarted={() => void load()} />
 
       {cases === null ? (
         <LoadingState label="Looking for cases" />
