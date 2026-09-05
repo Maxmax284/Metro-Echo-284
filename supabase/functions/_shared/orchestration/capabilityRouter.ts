@@ -9,6 +9,7 @@ import type { ResearchDepth, ResearchIntent } from "./research.ts";
 import { depthForIntent } from "./research.ts";
 import { escalationFor, type Escalation } from "./sherlockEscalation.ts";
 import type { Verbosity } from "../awareness/compress.ts";
+import { fieldCapability, fieldIntentFor, isHighStakes, type FieldMatch } from "../fieldIntent.ts";
 
 /** Capability families. Never exposed to the user as a menu. */
 export type CapabilityFamily =
@@ -24,7 +25,11 @@ export type CapabilityFamily =
   | "source_verification"
   | "sherlock"
   | "summarization"
-  | "action_preparation";
+  | "action_preparation"
+  /** Trip/walk session words. Writes only the session the person asked for. */
+  | "field_session"
+  /** High-stakes language. Simplify and offer help; never act alone. */
+  | "safety_handoff";
 
 export type RetrievalTarget = "memory" | "projects" | "documents" | "commitments" | "receipts" | "calendar";
 
@@ -56,6 +61,13 @@ export interface RoutePlan {
   /** Every artifact this plan produces inherits these. */
   scope: Scope;
   organization_id: string | null;
+  /**
+   * Field phrases ("walk with me", "I'm here", "SOS"). Recognized here so Ask
+   * and Telegram understand the same sentence — no surface-local regexes.
+   */
+  field: FieldMatch | null;
+  /** Echo gets shorter, plainer and quieter. Never chattier, never automatic. */
+  high_stakes: boolean;
 }
 
 const RESEARCH_PHRASES: Array<{ re: RegExp; intent: ResearchIntent }> = [
@@ -104,6 +116,8 @@ function capabilitiesFor(plan: Omit<RoutePlan, "capabilities">, attachments: Per
   if (plan.sherlock) out.add("sherlock");
   if (plan.verbosity !== "rich") out.add("summarization");
   if (plan.may_prepare_action) out.add("action_preparation");
+  if (plan.field && fieldCapability(plan.field.intent).writes_session) out.add("field_session");
+  if (plan.high_stakes) out.add("safety_handoff");
   return [...out];
 }
 
@@ -116,6 +130,8 @@ export function routeRequest(req: RouteRequest): RoutePlan {
   const attachments = req.attachments ?? [];
   const hasAttachment = attachments.length > 0;
   const escalation = escalationFor(text, hasAttachment);
+  const field = fieldIntentFor(text);
+  const high_stakes = isHighStakes(field?.intent);
 
   const phrase = RESEARCH_PHRASES.find((p) => p.re.test(text));
   const intent = phrase?.intent ?? escalation.research;
@@ -134,10 +150,14 @@ export function routeRequest(req: RouteRequest): RoutePlan {
     sherlock: escalation.sherlock,
     escalation,
     min_confidence,
-    verbosity: req.verbosity ?? "rich",
+    /* High stakes forces the shortest form on every surface. Someone who says
+       they don't feel safe does not need three paragraphs of personality. */
+    verbosity: high_stakes ? "terse" : (req.verbosity ?? "rich"),
     may_prepare_action: PREPARE_PHRASES.test(text),
     scope: req.scope,
     organization_id: req.scope === "personal" ? null : (req.organization_id ?? null),
+    field,
+    high_stakes,
   };
 
   return { ...base, capabilities: capabilitiesFor(base, attachments) };
