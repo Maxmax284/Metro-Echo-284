@@ -744,6 +744,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                               {humanizeEvent(e.event)}
                               <span className="text-muted-foreground"> — filed in {where.label}</span>
                             </span>
+                            {liveIds.has(e.id) ? (
+                              <MachineText className="shrink-0 rounded-full bg-primary/15 px-1.5 text-[9px] text-primary">
+                                new
+                              </MachineText>
+                            ) : null}
                             <MachineText className="shrink-0 text-[10px] text-muted-foreground">
                               {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                             </MachineText>
