@@ -73,6 +73,11 @@ export type ShelvesInput = {
   briefings: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
   /** All layers Vanta knows how to read. */
   layers: readonly string[];
+  /**
+   * Meetings soon that are somewhere other than where you are. Today's read
+   * leaves them alone; they belong on the "Around you" shelf.
+   */
+  elsewhereMeetings?: Array<{ id: string; title: string; starts_at: string; location: string }>;
 };
 
 function ageMs(iso: string | null | undefined, now: number): number | null {
