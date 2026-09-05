@@ -5,10 +5,10 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
-import { AgendaStrip } from "@/components/today/AgendaStrip";
+import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
+import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { NoticedRow } from "@/components/today/NoticedRow";
-import { LiveBulletin } from "@/components/today/LiveBulletin";
 import { QuickModes } from "@/components/today/QuickModes";
 import { JumpStrip } from "@/components/today/JumpStrip";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
@@ -157,6 +157,59 @@ function Row({
 }
 
 
+/** Gap line between two calendar entries, in plain words. */
+function gapLine(mins: number): string {
+  if (mins < 60) return `${mins} min clear`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m clear` : `${h}h clear`;
+}
+
+/** The next couple of calendar entries, folded into What's next. Reads only. */
+function AgendaInNext({ onOpenWeek }: { onOpenWeek?: () => void }) {
+  const { events, loading } = useAgenda({ days: 2 });
+  if (loading || events.length === 0) return null;
+  const shown = events.slice(0, 3);
+  const more = events.length - shown.length;
+  return (
+    <div className="mt-2 border-t border-border/40 pt-2.5">
+      <div className="mb-1.5 flex items-center gap-2">
+        <MachineLabel className="text-foreground/60">On your day</MachineLabel>
+        {onOpenWeek ? (
+          <button
+            type="button"
+            onClick={onOpenWeek}
+            className={cn("ml-auto min-h-[36px] text-[11px] text-primary hover:underline", MOTION_FOCUS)}
+          >
+            The week
+          </button>
+        ) : null}
+      </div>
+      <div className="space-y-1.5">
+        {shown.map((e, i) => {
+          const next = shown[i + 1];
+          const gap = next ? gapMinutes(e, next) : null;
+          return (
+            <div key={e.id} className="space-y-1.5">
+              <AgendaRow event={e} showFiling={false} />
+              {gap ? (
+                <div className="flex items-center gap-2 pl-3">
+                  <span className="h-3 w-px bg-border/60" />
+                  <MachineText className="text-[10px] text-muted-foreground">{gapLine(gap)}</MachineText>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+        <p className="pt-1 text-[11px] text-muted-foreground">
+          {more > 0 ? <><MachineText>{more}</MachineText> more on the calendar. </> : null}
+          Reading only — nothing here becomes a task on its own.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * TodaySurface — the front door. It answers what matters now, what's next, what
  * changed, and stays quiet when there is nothing to say. Everything is read
@@ -198,6 +251,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   } = digest;
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
+  /* One "what changed" list: live arrivals on top of the recorded changes,
+     deduped, so nothing is reported twice. */
+  const liveIds = new Set(live.map((e) => e.id));
+  const changedRows = [...live, ...events.filter((e) => !liveIds.has(e.id))];
   const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
   /* One section opens by default — the one that actually deserves the first
      look. The rest collapse to a line that says whether opening is worth it. */
@@ -340,91 +397,95 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           confidence={tzState.storedTimezone ? "high" : "low"}
         />
 
-        {/* Data as decoration: the trace is a real 14-day read of recorded
-            activity in this scope. Flat when nothing happened. */}
-        {loadingCritical ? null : (
-          <div className="mt-3 flex items-center gap-2.5">
-            <ActivityTrace timestamps={allEvents.map((e) => e.created_at)} />
-            <span className="h-px flex-1 bg-border/50" />
-            <MachineText className="text-[10px] text-muted-foreground">
-              <RollingNumber value={allEvents.length} /> changes recorded
-            </MachineText>
-          </div>
-        )}
+        {/* The answer belongs to the hero: the situational read is the first
+            thing a person reads, not the seventh block down the page. */}
+        <div className="mt-3 border-t border-border/40 pt-3">
+          <SituationRead
+            read={situation.read}
+            loading={situation.loading}
+            onOpen={(line) => {
+              const target: Record<string, SurfaceKey> = {
+                overdue: "commitments",
+                due_soon: "commitments",
+                waiting_on_you: "actions",
+                meeting_soon: "schedule",
+                noticed: "awareness",
+                went_unusually_quiet: "projects",
+                matter_open: "sherlock",
+                matter_proposed: "sherlock",
+                arrived: "inbox",
+              };
+              onNavigate(target[line.kind] ?? "work");
+            }}
+          />
+        </div>
       </header>
+
+      {/* Proof of life sits with the answer: sources with nothing to say are
+          named once, right where the read ends. */}
+      <SourceHealthStrip sources={health.sources} loading={health.loading} />
+
+      {/* The door in is small and sits after the answer. The day's question
+          comes first; asking comes second. */}
+      <AskVantaBar />
 
       {/* Registration marks — structural punctuation between hero and feed.
           They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
 
-      {/* The one obvious way in. Three plain destinations, nothing executes. */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <GotSomethingChooser />
-        <span className="text-[10.5px] leading-snug text-muted-foreground">
-          Park it, promise it, or have a step prepared — Vanta files it, never runs it.
-        </span>
-      </div>
-
-      {/* One lap on your own content, until you have done it once. */}
-      <FirstLapCard onNavigate={onNavigate} />
-
-      {/* Jump to a desk — navigation only, counts from reads Today already did. */}
-      <JumpStrip
-        onNavigate={onNavigate}
-        counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
-      />
-
-
-      {/* One companion across bodies. Quiet unless the hand-off is useful. */}
+      {/* A lap you can resume, quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
-      {/* The one read: what matters right now, before any per-source panel. */}
-      <SituationRead
-        read={situation.read}
-        loading={situation.loading}
-        onOpen={(line) => {
-          const target: Record<string, SurfaceKey> = {
-            overdue: "commitments",
-            due_soon: "commitments",
-            waiting_on_you: "actions",
-            meeting_soon: "schedule",
-            noticed: "awareness",
-            went_unusually_quiet: "projects",
-            matter_open: "sherlock",
-            matter_proposed: "sherlock",
-            arrived: "inbox",
-          };
-          onNavigate(target[line.kind] ?? "work");
-        }}
+
+      {/* Work already open elsewhere comes back before anything new. */}
+      <ResumeWorkSection onNavigate={onNavigate} />
+
+      {/* One proactive voice at a time, folded under the read instead of
+          competing with it. */}
+      <NoticedRow
+        signal={noticed}
+        onNavigate={onNavigate}
+        onDismiss={dismissNoticed}
+        onFollow={followNoticed}
       />
 
-      {/* Proof of life. It persists until reality changes. */}
-      <SourceHealthStrip sources={health.sources} loading={health.loading} />
+      {/* Supporting moves come after the answer: parking something, finding a
+          desk, the one-time first lap. Nothing here outranks the read. */}
+      {!secondaryQuiet ? (
+        <>
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <GotSomethingChooser />
+            <span className="text-[10.5px] leading-snug text-muted-foreground">
+              Park it, promise it, or have a step prepared — Vanta files it, never runs it.
+            </span>
+          </div>
 
-      <TodayDigestLine onNavigate={onNavigate as never} />
+          <FirstLapCard onNavigate={onNavigate} />
 
-      <AskVantaBar />
-
-
-      <QuickModes />
-
-
-      <LiveBulletin live={live} seed={allEvents.slice(0, 6)} connected={connected} onNavigate={onNavigate} />
+          {/* One navigation pattern: desks, the week's read, and the switches
+              worth flipping — one strip, not three separate rails. */}
+          <Section
+            title="Find it fast"
+            sectionKey="today.find"
+            icon={Sun}
+            defaultOpen={false}
+            summary="Desks, your week, and the switches."
+          >
+            <div className="space-y-3">
+              <JumpStrip
+                onNavigate={onNavigate}
+                counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
+              />
+              <TodayDigestLine onNavigate={onNavigate as never} />
+              <QuickModes />
+            </div>
+          </Section>
+        </>
+      ) : null}
 
       {loadingCritical ? (
         <LoadingState rows={2} label="Pulling together your day" />
       ) : (
         <>
-          <NoticedRow
-            signal={noticed}
-            onNavigate={onNavigate}
-            onDismiss={dismissNoticed}
-            onFollow={followNoticed}
-          />
-
-          <ResumeWorkSection onNavigate={onNavigate} />
-
-          <AgendaStrip onOpenWeek={() => onNavigate("work")} />
-
           <TodayBodyPanel />
 
 
@@ -557,6 +618,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 ))}
               </div>
             )}
+            {/* The calendar lives here too: what's next is promises and
+                meetings, one shelf. */}
+            <AgendaInNext onOpenWeek={() => onNavigate("schedule")} />
           </Section>
           )}
 
@@ -649,7 +713,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </Button>
                 }
               >
-                {events.length === 0 ? (
+                {changedRows.length === 0 ? (
                   <EmptyState
                     title="Nothing recorded yet"
                     hint="Every save, approval and run leaves a receipt here."
@@ -657,7 +721,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   />
                 ) : (
                   <ul className="space-y-1.5">
-                    {events.map((e) => {
+                    {changedRows.map((e) => {
                       /* A count is not an answer: each line names the change and
                          the place it landed, and taps through to that place. */
                       const where = eventWhere(e.entity_type);
@@ -680,6 +744,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                               {humanizeEvent(e.event)}
                               <span className="text-muted-foreground"> — filed in {where.label}</span>
                             </span>
+                            {liveIds.has(e.id) ? (
+                              <MachineText className="shrink-0 rounded-full bg-primary/15 px-1.5 text-[9px] text-primary">
+                                new
+                              </MachineText>
+                            ) : null}
                             <MachineText className="shrink-0 text-[10px] text-muted-foreground">
                               {formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
                             </MachineText>
