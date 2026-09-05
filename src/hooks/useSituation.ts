@@ -10,6 +10,7 @@ import { useScope } from "@/hooks/useScope";
 import { cadenceFromRow, type Cadence } from "@/lib/baseline";
 import { readSituation, type SituationPlace, type SituationRead, type SituationSource } from "@/lib/situation";
 import { classifyTier } from "@/lib/awarenessPlainTalk";
+import { placeYouAreAt } from "@/lib/trips";
 import type { AwarenessPlace } from "@/providers/AwarenessProvider";
 import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
@@ -178,17 +179,33 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       .from("awareness_places")
       .select("id, label, geo, country, region, updated_at")
       .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!placeRes.error && placeRes.data) {
-      const row = placeRes.data as AwarenessPlace & { updated_at: string };
+      .limit(12);
+    const placeRows = (placeRes.data ?? []) as Array<AwarenessPlace & { updated_at: string }>;
+    if (!placeRes.error && placeRows.length > 0) {
+      const row = placeRows[0];
       const tier = classifyTier(row);
       const scope: SituationPlace["scope"] =
         tier.tier === "saved" ? "area" : (tier.tier as SituationPlace["scope"]);
+      /* Standing inside a place you saved? Distance check against the other
+         saved pins — never a guess, never a claim of proximity when it fails. */
+      const geo = (row.geo ?? {}) as any;
+      const fix =
+        Number.isFinite(Number(geo.lat)) && Number.isFinite(Number(geo.lon))
+          ? { lat: Number(geo.lat), lon: Number(geo.lon) }
+          : null;
+      const savedPlace = placeYouAreAt(
+        fix,
+        placeRows.slice(1).map((p) => ({
+          label: p.label,
+          lat: (p.geo as any)?.lat ?? null,
+          lon: (p.geo as any)?.lon ?? null,
+        })),
+      );
       place = {
         where: tier.city || tier.region || tier.country || row.label,
         scope,
         at: row.updated_at ?? null,
+        savedPlace,
       };
     }
 
