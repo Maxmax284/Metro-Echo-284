@@ -5,6 +5,7 @@
 // so instead of padding the list with plausible-sounding filler.
 //
 // Pure module. It reads only what is already on the finding row.
+import { whyFor, type WhySurfaced } from "@/lib/whySurfaced";
 import type { SherlockFinding } from "@/lib/sherlock/types";
 
 export type WhySignal = {
@@ -138,4 +139,22 @@ export function explainFinding(f: SherlockFinding): WhyExplanation {
       ? "Nothing else was recorded, so there is nothing more to show. Open the items behind it to judge for yourself."
       : "Vanta read nothing else to decide this.",
   };
+}
+
+/**
+ * The same finding, in the shape every surface uses for "Why this?". Built from
+ * recorded signals only — a thin finding produces a thin reveal.
+ */
+export function whyForFinding(f: SherlockFinding): WhySurfaced {
+  const why = explainFinding(f);
+  const read = why.signals.map((s) => `${s.text} (read from ${s.from})`).join(" ");
+  return whyFor({
+    source: "What Vanta noticed",
+    whatChanged: read || f.summary,
+    comparedWith: null,
+    reason: f.rationale || why.closing,
+    at: f.created_at,
+    whyItMatters: `Confidence: ${why.confidenceLine}`,
+    ifIgnored: "It stays on the Sherlock desk. Nothing runs from a finding.",
+  });
 }
