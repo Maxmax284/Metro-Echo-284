@@ -145,7 +145,7 @@ export async function runFieldIntent(
           : `You said "${match.matched}". Echo opened one walk session, the same one the app shows.`,
         simplified: false,
         tripId: res.trip.id,
-        link: { kind: "aware", params: { tripId: res.trip.id } },
+        link: { kind: "awareness", params: { tripId: res.trip.id } },
       };
     }
 
@@ -222,7 +222,7 @@ export async function runFieldIntent(
         why: "Echo recorded the check-in against your open session. No coordinates came with the message, so none were claimed.",
         simplified: false,
         tripId: open.trip.id,
-        link: { kind: "aware", params: { tripId: open.trip.id } },
+        link: { kind: "awareness", params: { tripId: open.trip.id } },
       };
     }
 
@@ -233,7 +233,7 @@ export async function runFieldIntent(
         why: "Read straight off your open session: start time and the points it has. Echo has no route or destination, so it won't guess an arrival.",
         simplified: false,
         tripId: open.trip?.id ?? null,
-        link: open.trip ? { kind: "aware", params: { tripId: open.trip.id } } : null,
+        link: open.trip ? { kind: "awareness", params: { tripId: open.trip.id } } : null,
       };
     }
 
@@ -246,7 +246,7 @@ export async function runFieldIntent(
           : "Echo looked for an open session and there isn't one.",
         simplified: false,
         tripId: open.trip?.id ?? null,
-        link: open.trip ? { kind: "aware", params: { tripId: open.trip.id } } : null,
+        link: open.trip ? { kind: "awareness", params: { tripId: open.trip.id } } : null,
       };
     }
 
