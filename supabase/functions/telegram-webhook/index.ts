@@ -344,6 +344,26 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     };
   }
 
+  /* One router for every surface. Telegram no longer decides on its own what a
+     sentence means: the same plan Ask would get is computed here, and the field
+     phrases ("walk with me", "I'm here", "SOS") are recognized by the shared
+     recognizer rather than a Telegram-only regex. */
+  const plan = routeRequest({ text, scope: orgId ? "organization" : "personal", organization_id: orgId, verbosity: "brief" });
+
+  if (plan.field) {
+    const handled = await runFieldIntent(sb, { userId, orgId }, plan.field, { via: "telegram" });
+    if (handled) {
+      return {
+        reply: `${handled.text}\n\nWhy this? ${handled.why}`,
+        detectedType: plan.field.intent as string | null,
+        routedTo: null as string | null,
+        readOnly: !plan.field || !handled.tripId,
+        linkKind: (handled.link?.kind ?? null) as VantaLinkKind | null,
+        commitmentId: null as string | null,
+      };
+    }
+  }
+
   // Telegram's own thread — same memory, same scope, just the pocket form of it.
   const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
   let history: any[] = [];
@@ -401,7 +421,29 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       : "routine";
   const brandBlock = brandVoiceDirective(bv, ctx);
 
-  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), timeBlock, correctionsBlock, fieldNotesBlock]
+  /* Same working-context assembly Ask uses, so a pocket message knows which
+     project is live and what is unresolved instead of guessing from chat. */
+  let workBlock = "";
+  try {
+    const scopedQ = (q: any) => (orgId ? q.eq("user_id", userId).eq("organization_id", orgId) : q.eq("user_id", userId).is("organization_id", null));
+    const cands = await buildWorkingContext(sb, scopedQ, { limit: 3 });
+    if (cands.length) {
+      workBlock = "Where the user left off (real records — use these names, invent nothing):\n" +
+        cands.slice(0, 3).map((c) =>
+          `- ${c.projectTitle ?? "Unfiled"}: last activity ${c.lastActivityAt}` +
+          (c.unresolved.length ? `; open: ${c.unresolved.slice(0, 2).join("; ")}` : "") +
+          (c.lastDecision ? `; last decision: ${c.lastDecision}` : "")
+        ).join("\n");
+    }
+  } catch (e) { console.error("telegram working context", e); }
+
+  const planBlock = `Routing plan for this message (from the shared router, obey it):
+- capabilities: ${plan.capabilities.join(", ")}
+- internal lookups: ${plan.retrieval.length ? plan.retrieval.join(", ") : "none"}
+- may prepare an action: ${plan.may_prepare_action ? "yes, as a draft only" : "no"}
+- confidence needed before stating something plainly: ${plan.min_confidence}`;
+
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, workBlock, correctionsBlock, fieldNotesBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
