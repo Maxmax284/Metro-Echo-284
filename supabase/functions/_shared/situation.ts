@@ -454,7 +454,7 @@ export function meetingIsElsewhere(
   if (!loc || !place) return false;
   // A link or a dial-in is nowhere in particular — it travels with you.
   if (/^(https?:|zoom|meet\.|teams|google meet|phone|call)/.test(loc)) return false;
-  const names = [place.savedPlace, place.where, place.city, place.region]
+  const names = [place.savedPlace, place.where]
     .map((n) => (n ?? "").trim().toLowerCase())
     .filter(Boolean);
   if (names.length === 0) return false;
