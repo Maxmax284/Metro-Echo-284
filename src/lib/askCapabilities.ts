@@ -57,7 +57,7 @@ export function readabilityFor(kind: AskInputKind): Readability {
     case "document":
       return { readable: true, note: "I can read this" };
     case "audio":
-      return { readable: true, note: "I can transcribe this" };
+      return { readable: false, note: "I can keep this, but I can't listen to audio yet" };
     case "video":
       return { readable: false, note: "I can keep this, but I can't watch video yet" };
     default:

@@ -363,8 +363,8 @@ export default function ReconciliationView() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Compares raw external-platform signals against what briefing-compose surfaced,
-            inside the active lane. Switch scope in the cockpit header to reconcile a different workspace.
+            Compares what actually arrived from outside platforms against what made it into
+            your briefing, inside the active lane. Switch scope in the cockpit header to check a different workspace.
           </p>
         </div>
 

@@ -228,7 +228,7 @@ export default function GlancePage() {
       {/* Proof line — posture, connection, quiet hours. Never a claim without a source. */}
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         <Proof>{posture ? POSTURE_LABEL[posture] : "no posture"}{postureSource ? ` · ${postureSource}` : ""}</Proof>
-        <Proof>{body.lastSyncAgo ? `watch ${body.lastSyncAgo}` : "no watch sync yet"}</Proof>
+        <Proof>{body.lastSyncAgo ? `watch heard ${body.lastSyncAgo}` : "watch hasn't checked in yet"}</Proof>
         {quietHours && <Proof>quiet hours</Proof>}
       </div>
 

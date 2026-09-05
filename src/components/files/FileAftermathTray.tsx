@@ -258,7 +258,7 @@ export function FileAftermathTray({
             def.kind === "extract_dates" ? "Extract dates from" :
             def.kind === "extract_people" ? "Extract people from" :
             "Extract amounts from";
-          setPrefill(`${verb} "${row.filename}" (ingested_file_id: ${row.id}).`);
+          setPrefill(`${verb} "${row.filename}".`);
           void logFileEvent(
             user.id,
             def.kind === "summarize" ? "file.summarize_requested" : "file.extract_requested",

@@ -137,7 +137,7 @@ export function FileUploadCard() {
             </span>
             {counts.pending > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-                <StatusDot tone="accent" pulse /> {counts.pending} processing
+                <StatusDot tone="accent" pulse /> {counts.pending} being read
               </span>
             )}
             {counts.failed > 0 && (
@@ -163,7 +163,7 @@ export function FileUploadCard() {
           <span className="text-muted-foreground">
             {busy ? "Working on it…" : "Drop files or click to attach"}
           </span>
-          <span className="text-[10px] text-muted-foreground/70">Stage first · review before ingest · max 20MB</span>
+          <span className="text-[10px] text-muted-foreground/70">Nothing is filed until you confirm · max 20MB</span>
           <input
             ref={inputRef}
             type="file"
@@ -198,7 +198,7 @@ export function FileUploadCard() {
                 onClick={() => setConfirmOpen(true)}
                 disabled={busy || !staged.staged.some((s) => s.status === "staged")}
               >
-                {busy ? "Working…" : "Ingest"}
+                {busy ? "Reading…" : "File these"}
               </Button>
             </div>
           </div>
