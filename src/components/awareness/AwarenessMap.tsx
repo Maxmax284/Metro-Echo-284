@@ -84,19 +84,12 @@ export function AwarenessMap({
     [places, place?.id],
   );
 
-  /* Trip lines, newest trip first. Only points a person's own trip recorded. */
+  /* The trip you are on right now, drawn from the points it recorded. */
   const lines = useMemo(() => {
-    const byTrip = new Map<string, Array<[number, number]>>();
-    for (const pt of points ?? []) {
-      const lat = Number((pt as any).lat);
-      const lon = Number((pt as any).lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-      const key = String((pt as any).trip_id ?? "loose");
-      const list = byTrip.get(key) ?? [];
-      list.push([lat, lon]);
-      byTrip.set(key, list);
-    }
-    return [...byTrip.values()].filter((l) => l.length > 1);
+    const line = (points ?? [])
+      .map((pt) => [Number(pt.lat), Number(pt.lon)] as [number, number])
+      .filter(([lat, lon]) => Number.isFinite(lat) && Number.isFinite(lon));
+    return line.length > 1 ? [line] : [];
   }, [points]);
 
   if (!active && saved.length === 0) {
