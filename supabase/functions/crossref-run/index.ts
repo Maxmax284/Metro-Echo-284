@@ -13,6 +13,7 @@ import {
   buildMatrix, differencesFor, inferOutputShape, inferSourceRole, isSensitiveField,
   normalizeField, resolveRecords, type Certainty, type ClaimLike,
 } from "../_shared/crossref.ts";
+import { detectRecipe, recipeExtractionHint } from "../_shared/crossrefRecipes.ts";
 
 const EXTRACT_SYSTEM = `You read one source document and report what is written on it. Nothing else.
 
@@ -133,6 +134,21 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Cross-reference needs at least two sources." }, 400);
     }
 
+    // Which template this job follows. Keyword read on what the user said plus
+    // the filenames — reported to the user, never hidden, always overridable.
+    const match = detectRecipe({
+      request,
+      filenames: (sources ?? []).map((s: any) => String(s.filename ?? "")),
+      sampleText: (sources ?? []).map((s: any) => String(s.extracted_text ?? "")).join("\n").slice(0, 4000),
+    });
+    const recipe = match.recipe;
+    await admin.from("cross_ref_cases").update({
+      style: recipe.id,
+      output_shape: recipe.id === "generic" ? inferOutputShape(request) : recipe.shape,
+    }).eq("id", caseId);
+
+    const extractSystem = EXTRACT_SYSTEM + recipeExtractionHint(recipe);
+
     // Read each source once, then claim-extract only the ones not read yet.
     const rawLabels: Array<{ label: string; source_id: string | null }> = [];
     const perSource: Array<{ source_id: string; records: Extracted["records"] }> = [];
@@ -157,7 +173,7 @@ Deno.serve(async (req) => {
 
       const res = await chatText(
         [
-          { role: "system", content: EXTRACT_SYSTEM },
+          { role: "system", content: extractSystem },
           { role: "user", content: `SOURCE FILE: ${src.filename}\n\nCONTENT:\n${String(text).slice(0, 20_000)}` },
         ],
         { model: MODELS.fast, temperature: 0 },
@@ -201,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     // Deterministic derived values on paired numeric fields (weight, amount…).
-    for (const field of ["weight", "amount", "total"]) {
+    for (const field of recipe.differenceFields) {
       const ordered = records
         .map((r) => ({
           record_key: r.record_key,
