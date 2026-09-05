@@ -81,6 +81,8 @@ type Props = {
   onSend: (text: string) => void | Promise<void>;
   /** Optional: attach button is shown when this is provided. */
   onAttach?: (files: FileList) => void | Promise<void>;
+  /** Optional: open the deliberate camera seam — Vanta looks at one picture. */
+  onLook?: () => void;
   /** Optional: slash palette picks a registry tool by id. */
   onSlashPick?: (toolId: string) => void;
   /** Required for slash palette filtering. */
