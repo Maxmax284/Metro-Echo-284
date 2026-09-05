@@ -54,18 +54,18 @@ Deno.serve(async (req: Request) => {
     let skipped = 0;
 
     for (const project of projects ?? []) {
-      /* Movement = anything actually recorded against the project. */
-      const [items, commitments, actions] = await Promise.all([
-        admin.from("project_items").select("created_at").eq("project_id", project.id).gte("created_at", since).limit(500),
-        admin.from("commitments").select("created_at").eq("project_id", project.id).gte("created_at", since).limit(500),
-        admin.from("actions").select("created_at").eq("project_id", project.id).gte("created_at", since).limit(500),
-      ]);
+      /* Movement = anything actually attached to the project. Commitments and
+         actions reach a project through project_items, so that one table is
+         the honest record of the project moving. */
+      const { data: items } = await admin
+        .from("project_items")
+        .select("created_at")
+        .eq("project_id", project.id)
+        .gte("created_at", since)
+        .limit(1000);
 
-      const stamps: Array<string | null> = [
-        ...(items.data ?? []).map((r: { created_at: string }) => r.created_at),
-        ...(commitments.data ?? []).map((r: { created_at: string }) => r.created_at),
-        ...(actions.data ?? []).map((r: { created_at: string }) => r.created_at),
-      ];
+      const stamps: Array<string | null> = (items ?? []).map((r: { created_at: string }) => r.created_at);
+
 
       const cadence = buildCadence(stamps);
       if (!cadence) {
