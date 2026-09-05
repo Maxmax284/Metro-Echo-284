@@ -12,7 +12,7 @@ import {
   type Brief, type BriefExportRow, type BriefSection,
 } from "@/lib/briefs";
 import {
-  planArtifact, verifiedValue, SHAPE_SPEC, STATE_LABEL,
+  planArtifact, verifiedValue, SHAPE_SPEC, STATE_LABEL, pairRecords, recipeForCase, recipeGaps,
   type CaseBundle, type OutputShape,
 } from "@/lib/crossref";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,142 @@ function printable(bundle: CaseBundle, record_key: string, field: string): { tex
   if (v.state === "calculated") return { text: v.value ?? "—", note: "calculated" };
   if (v.state === "conflicts") return { text: v.value ?? "—", note: "sources disagree" };
   return { text: v.value ?? "—" };
+}
+
+
+const DATE_MONEY = /(date|fee|payment|amount|currency|total|term|notice|renewal|signed)/i;
+
+/** One value as it would print, or null when there is nothing honest to print. */
+function shown(bundle: CaseBundle, record_key: string, field: string): string | null {
+  const p = printable(bundle, record_key, field);
+  return p.text === "—" ? null : p.text;
+}
+
+/** Short one-liner for a fighter: weight, gym, record — only what exists. */
+function fighterLine(bundle: CaseBundle, record_key: string, label: string): string {
+  const bits = ["weight", "gym", "record", "nationality", "age"]
+    .map((f) => shown(bundle, record_key, f))
+    .filter(Boolean) as string[];
+  return bits.length ? `${label} — ${bits.join(" · ")}` : label;
+}
+
+/** Bout-by-bout cards. Two corners per card, the gap printed as calculated. */
+function fightCardSections(bundle: CaseBundle, fields: string[]): BriefSection[] {
+  const pairings = pairRecords(
+    bundle.records.map((r) => ({ record_key: r.record_key, display_label: r.display_label })),
+    bundle.claims.map((c) => ({ record_key: c.record_key, field: c.field, value_text: c.value_text })),
+  );
+
+  const cards = pairings.map((bout) => {
+    const lines: Array<{ label: string; value: string; note?: string }> = [];
+    bout.members.forEach((m, i) => {
+      const corner = shown(bundle, m.record_key, "corner");
+      const label = corner ? `${corner} corner` : i === 0 ? "Red corner" : "Blue corner";
+      lines.push({ label, value: fighterLine(bundle, m.record_key, m.display_label) });
+    });
+    const gap = bout.members.map((m) => shown(bundle, m.record_key, "weight_difference")).find(Boolean);
+    if (gap) lines.push({ label: "Weight gap", value: gap, note: "calculated by Vanta" });
+    for (const f of ["rounds", "rule_set"]) {
+      const v = bout.members.map((m) => shown(bundle, m.record_key, f)).find(Boolean);
+      if (v) lines.push({ label: fieldLabel(f), value: v });
+    }
+    if (bout.members.length === 1) {
+      lines.push({ label: "Opponent", value: "—", note: "no matching fighter on the sources" });
+    }
+    return {
+      title: `${bout.label} — ${bout.members.map((m) => m.display_label).join(" vs ")}`,
+      subtitle: bout.members.some((m) => bundle.records.find((r) => r.record_key === m.record_key)?.match_confidence === "uncertain")
+        ? "One of these names was not confirmed across sources"
+        : undefined,
+      lines,
+    };
+  });
+
+  const detailFields = fields.filter((f) => f !== "bout");
+  return [
+    { id: "bouts", heading: "Bout order", kind: "roster_card", body: cards },
+    {
+      id: "fighters",
+      heading: "Fighter by fighter",
+      kind: "field_table",
+      body: {
+        columns: ["Fighter", ...detailFields.map(fieldLabel)],
+        rows: bundle.records.map((rec) => [
+          rec.display_label,
+          ...detailFields.map((f) => {
+            const p = printable(bundle, rec.record_key, f);
+            return p.note && p.note !== "you set this" ? `${p.text} (${p.note})` : p.text;
+          }),
+        ]),
+      },
+    },
+  ];
+}
+
+/** Contract terms sheet: parties, then terms, then dates and money. */
+function contractSections(bundle: CaseBundle, fields: string[]): BriefSection[] {
+  const isParty = (key: string) =>
+    Boolean(shown(bundle, key, "party") ?? shown(bundle, key, "role") ?? shown(bundle, key, "signature"));
+  const parties = bundle.records.filter((r) => isParty(r.record_key));
+  const terms = bundle.records.filter((r) => !isParty(r.record_key));
+  const out: BriefSection[] = [];
+
+  if (parties.length) {
+    out.push({
+      id: "parties",
+      heading: "Parties",
+      kind: "roster_card",
+      body: parties.map((rec) => ({
+        title: shown(bundle, rec.record_key, "party") ?? rec.display_label,
+        subtitle: shown(bundle, rec.record_key, "role") ?? undefined,
+        lines: ["signature", "signed_date", "governing_law"]
+          .map((f) => ({ label: fieldLabel(f), value: shown(bundle, rec.record_key, f) }))
+          .filter((l) => l.value)
+          .map((l) => ({ label: l.label, value: l.value as string })),
+      })),
+    });
+  }
+
+  const termFields = fields.filter((f) => !["party", "role", "signature", "signed_date"].includes(f));
+  const rows = (terms.length ? terms : bundle.records).map((rec) => [
+    rec.display_label,
+    ...termFields.map((f) => {
+      const p = printable(bundle, rec.record_key, f);
+      return p.note && p.note !== "you set this" ? `${p.text} (${p.note})` : p.text;
+    }),
+  ]);
+  out.push({
+    id: "terms",
+    heading: "Terms as written",
+    kind: "field_table",
+    body: { columns: ["Clause or term", ...termFields.map(fieldLabel)], rows },
+  });
+
+  const money = fields.filter((f) => DATE_MONEY.test(f));
+  if (money.length) {
+    out.push({
+      id: "dates_money",
+      heading: "Dates, money and notice",
+      kind: "field_table",
+      body: {
+        columns: ["Clause or term", ...money.map(fieldLabel)],
+        rows: bundle.records.map((rec) => [
+          rec.display_label,
+          ...money.map((f) => printable(bundle, rec.record_key, f).text),
+        ]),
+      },
+    });
+  }
+
+  out.push({
+    id: "not_advice",
+    heading: "What this is not",
+    kind: "prose",
+    body:
+      "This sheet repeats what the pages say and names the page each line came from. " +
+      "It is not legal advice, and it does not decide which version of a clause is current.",
+  });
+  return out;
 }
 
 /** Build the Brief for a case in the chosen shape. Deterministic. */
@@ -56,7 +192,23 @@ export function briefForCase(
       `${bundle.matrix.counts.missing} were missing and ${bundle.matrix.counts.unreadable} could not be read.`,
   });
 
-  if (shape === "roster_sheet" || shape === "clean_form") {
+  const gaps = recipeGaps(bundle);
+  if (gaps.length) {
+    sections.push({
+      id: "gaps",
+      heading: "What the sources never showed",
+      kind: "prose",
+      body:
+        `This ${recipeForCase(bundle).label.toLowerCase()} normally carries ${gaps.map(fieldLabel).join(", ")}. ` +
+        `None of the sources showed ${gaps.length === 1 ? "it" : "them"}, so nothing is printed for ${gaps.length === 1 ? "it" : "them"}.`,
+    });
+  }
+
+  if (shape === "fight_card") {
+    sections.push(...fightCardSections(bundle, fields));
+  } else if (shape === "contract_terms") {
+    sections.push(...contractSections(bundle, fields));
+  } else if (shape === "roster_sheet" || shape === "clean_form") {
     sections.push({
       id: "records",
       heading: shape === "roster_sheet" ? "Running order" : "Verified record",
@@ -188,7 +340,14 @@ export function briefForCase(
     signals_hash: `crossref:${bundle.case.id}:${bundle.claims.length}:${bundle.conflicts.filter((c) => c.resolution !== "pending").length}:${shape}`,
     format: shape === "audit_report" ? "audit_packet" : shape === "executive_summary" ? "client" : "operator",
     scope_kind: "system",
-    audience: shape === "audit_report" ? "audit" : shape === "roster_sheet" ? "presentation" : "internal_operator",
+    audience:
+      shape === "audit_report"
+        ? "audit"
+        : shape === "roster_sheet" || shape === "fight_card"
+          ? "presentation"
+          : shape === "contract_terms"
+            ? "client"
+            : "internal_operator",
     generated_at: new Date().toISOString(),
   };
 }

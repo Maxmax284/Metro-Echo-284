@@ -349,6 +349,8 @@ export function totalFor(values: Array<string | null>): { total: number; unit: s
  * ------------------------------------------------------------------ */
 
 export const OUTPUT_SHAPES = [
+  "fight_card",
+  "contract_terms",
   "roster_sheet",
   "reconciliation",
   "comparison_dossier",
@@ -358,10 +360,24 @@ export const OUTPUT_SHAPES = [
   "table_report",
 ] as const;
 
+
 export type OutputShape = (typeof OUTPUT_SHAPES)[number];
 
 /** What each shape prints, and what it deliberately leaves out. */
 export const SHAPE_SPEC: Record<OutputShape, { label: string; blurb: string; prefer: string[]; drop_sensitive: boolean }> = {
+  fight_card: {
+    label: "Fight card",
+    blurb: "Bout by bout, both corners side by side, with the weight gap printed.",
+    prefer: ["bout", "corner", "name", "nickname", "gym", "nationality", "age", "weight", "weight_difference", "height", "reach", "record", "rounds", "rule_set"],
+    drop_sensitive: true,
+  },
+  contract_terms: {
+    label: "Contract terms sheet",
+    blurb: "Parties, dates, money and obligations, each term kept with its page.",
+    prefer: ["party", "role", "effective_date", "end_date", "term", "renewal", "notice_period", "fee", "payment_terms", "currency", "deliverable", "obligation", "liability", "termination", "governing_law", "signature", "signed_date"],
+    drop_sensitive: true,
+  },
+
   roster_sheet: {
     label: "Announcer / roster sheet",
     blurb: "One card per person or item, in running order. Read-aloud friendly.",
@@ -409,7 +425,10 @@ export const SHAPE_SPEC: Record<OutputShape, { label: string; blurb: string; pre
 /** Guess the shape from what the user actually said. */
 export function inferOutputShape(text: string): OutputShape {
   const t = (text ?? "").toLowerCase();
-  if (/\b(announce|announcer|roster|line ?up|fight card|running order|card)\b/.test(t)) return "roster_sheet";
+  if (/\b(fight ?card|bout|bouts|weigh[- ]?in|corner)\b/.test(t)) return "fight_card";
+  if (/\b(contract|agreement|nda|mou|lease|clause|terms? sheet)\b/.test(t)) return "contract_terms";
+  if (/\b(announce|announcer|roster|line ?up|running order|card)\b/.test(t)) return "roster_sheet";
+
   if (/\b(reconcile|reconciliation|variance|ledger|invoice|balance)\b/.test(t)) return "reconciliation";
   if (/\b(compare|side by side|dossier|versus|vs\.?)\b/.test(t)) return "comparison_dossier";
   if (/\b(audit|provenance|receipts|where.*came from)\b/.test(t)) return "audit_report";

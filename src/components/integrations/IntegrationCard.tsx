@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Copy, ChevronDown, KeyRound, CheckCircle2, AlertTriangle, HelpCircle, Save, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
@@ -196,6 +197,15 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
       <div className="mt-3 rounded-lg bg-background/40 p-2.5 text-[11.5px] text-muted-foreground ring-1 ring-border/40">
         {def.approvalRule}
       </div>
+
+      {def.setupPath && (
+        <Link
+          to={def.setupPath}
+          className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[11.5px] font-medium text-primary-foreground"
+        >
+          Set up {def.name} step by step
+        </Link>
+      )}
 
       {webhookUrl && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">

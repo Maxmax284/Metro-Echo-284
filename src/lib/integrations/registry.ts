@@ -53,6 +53,8 @@ export type IntegrationDef = {
   killSwitchKey?: keyof SystemControls;
   // edge function name if any
   webhookFunction?: string;
+  /** Dedicated in-app setup page, when this platform has one. */
+  setupPath?: string;
   // audit_log event prefix for diagnostics
   auditPrefix?: string;
   // human-readable bucket for layout grouping
@@ -88,6 +90,7 @@ export const INTEGRATIONS: IntegrationDef[] = [
     description: "Telegram sends messages, files, and voice notes into Vanta. Vanta sends approved reminders back.",
     direction: "inbound_approved_outbound",
     webhookFunction: "telegram-webhook",
+    setupPath: "/settings/telegram",
     auditPrefix: "telegram.",
     bucket: "connected",
     approvalRule: "Captures land in the Inbox. Reminders only deliver if you approved them.",

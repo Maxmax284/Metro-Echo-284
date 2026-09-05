@@ -18,7 +18,9 @@ describe("cross-reference intent", () => {
 
 describe("output shape", () => {
   it("reads the ask, not the file names", () => {
-    expect(inferOutputShape("build me the announcer sheet for the fight card")).toBe("roster_sheet");
+    expect(inferOutputShape("build me the announcer sheet for the fight card")).toBe("fight_card");
+    expect(inferOutputShape("give me a roster sheet of the squad")).toBe("roster_sheet");
+    expect(inferOutputShape("summarise the terms of this agreement")).toBe("contract_terms");
     expect(inferOutputShape("reconcile these invoices")).toBe("reconciliation");
     expect(inferOutputShape("compare them side by side")).toBe("comparison_dossier");
   });
