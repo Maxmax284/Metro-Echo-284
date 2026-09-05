@@ -152,7 +152,7 @@ export function routeRequest(req: RouteRequest): RoutePlan {
     min_confidence,
     /* High stakes forces the shortest form on every surface. Someone who says
        they don't feel safe does not need three paragraphs of personality. */
-    verbosity: high_stakes ? "terse" : (req.verbosity ?? "rich"),
+    verbosity: high_stakes ? "signal" : (req.verbosity ?? "rich"),
     may_prepare_action: PREPARE_PHRASES.test(text),
     scope: req.scope,
     organization_id: req.scope === "personal" ? null : (req.organization_id ?? null),
