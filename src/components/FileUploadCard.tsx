@@ -271,14 +271,14 @@ export function FileUploadCard() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ingest {stagedCount} file{stagedCount === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogTitle>File {stagedCount} {stagedCount === 1 ? "thing" : "things"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will upload and extract the staged file{stagedCount === 1 ? "" : "s"} into memory. You can still review the result afterward.
+              Vanta will save and read the staged file{stagedCount === 1 ? "" : "s"} into memory. Nothing is final — you can review the result afterward.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCommit}>Ingest</AlertDialogAction>
+            <AlertDialogAction onClick={handleCommit}>File them</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
