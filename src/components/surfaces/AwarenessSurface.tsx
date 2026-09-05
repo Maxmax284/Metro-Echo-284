@@ -273,68 +273,19 @@ export function AwarenessSurface() {
           return (
             <div className="sticky top-0 z-10 -mx-4 px-4 py-2 bg-background/85 backdrop-blur-sm md:static md:bg-transparent md:backdrop-blur-none md:mx-0 md:p-0">
               <div className="rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2 space-y-1.5">
-                {/* Line 1 — identity */}
+                {/* Line 1 — which place this is. The honest read of where you
+                    are lives below, once, so the strip no longer argues with
+                    it in shorthand. */}
                 <div className="flex items-center gap-1.5 min-w-0">
                   <MapPin className="h-3.5 w-3.5 text-primary/80 shrink-0" />
                   <span className="font-medium text-[12px] text-foreground/90 truncate">{place.label}</span>
-                  <span
-                    title={`Tier: ${tier.tier} — ${tier.display}`}
-                    className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 shrink-0", TONE[tier.tier])}
-                  >
-                    {tier.tier}
-                  </span>
-                  <span className={cn("inline-flex items-center rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1 shrink-0", confTone)}>
-                    {overall.confidence ?? "no signal"}
-                  </span>
                 </div>
 
-                {/* Line 2 — calm, source-aware status */}
-                <div className="text-[11px] text-muted-foreground leading-snug">
-                  {locState.placeUnresolved
-                    ? <span className="text-warn">{locState.message}</span>
-                    : locState.message}
-                </div>
+                {/* Only speak up here when the pin can't be used at all. */}
+                {locState.placeUnresolved ? (
+                  <div className="text-[11px] leading-snug text-warn">{locState.message}</div>
+                ) : null}
 
-                {/* Where the place came from, and how precise it honestly is.
-                    A saved place is a fact; an area is an area. */}
-                <PlaceSourceLine
-                  label={place.label}
-                  source={
-                    tier.tier === "saved"
-                      ? "saved"
-                      : tier.tier === "unknown"
-                        ? "unknown"
-                        : "coarse"
-                  }
-                  confidence={(overall.confidence as "high" | "medium" | "low" | null) ?? null}
-                />
-
-
-                {/* Source badges — always tell the user what we're using */}
-                <div className="flex flex-wrap gap-1">
-                  {visibleBadges.map((b) => (
-                    <span
-                      key={b}
-                      className={cn(
-                        "inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
-                        SOURCE_BADGE_TONE[b],
-                      )}
-                      title={SOURCE_BADGE_LABEL[b]}
-                    >
-                      {SOURCE_BADGE_LABEL[b]}
-                    </span>
-                  ))}
-                  {hiddenBadgeCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllBadges(true)}
-                      className="inline-flex items-center rounded-full bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60 hover:text-foreground"
-                      title="Show all sources"
-                    >
-                      +{hiddenBadgeCount}
-                    </button>
-                  )}
-                </div>
 
                 {/* Line 3 — primary action */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
