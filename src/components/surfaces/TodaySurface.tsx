@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
+import { FieldSessionCard } from "@/components/field/FieldSessionCard";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
@@ -437,6 +438,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       {/* A lap you can resume, quiet unless the hand-off is useful. */}
       <CrossDeviceResume onNavigate={onNavigate} />
+
+      {/* A trip you started is still running: field context before desk work. */}
+      <FieldSessionCard variant="today" />
 
       {/* Work already open elsewhere comes back before anything new. */}
       <ResumeWorkSection onNavigate={onNavigate} />

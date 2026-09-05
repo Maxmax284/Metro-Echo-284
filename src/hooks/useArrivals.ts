@@ -32,7 +32,7 @@ export function useArrivals(): ArrivalsRead {
       applyScope(
         supabase.from("ingested_files").select("id, filename, created_at, source, mime_type"),
       )
-        .eq("review_status", "pending")
+        .in("review_status", ["new", "needs_review", "suggested"])
         .order("created_at", { ascending: false })
         .limit(20),
       applyScope(supabase.from("messages").select("id, content, created_at, metadata"))

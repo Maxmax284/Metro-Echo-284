@@ -163,3 +163,58 @@ export function assertTransitionReview(from: FileReviewStatus, to: FileReviewSta
     throw new Error(`Can't move file from "${from}" to "${to}".`);
   }
 }
+
+// ---------- Deterministic first-pass classification -------------------------
+// A file that arrives from a chat should introduce itself the same way an
+// in-app upload does: a detected type, an honest confidence, and a review
+// status that puts it in the Inbox. This is filename/mime shape only — no
+// model, no content reading — so confidence never claims more than "low".
+
+export function detectDocTypeFromFile(input: {
+  filename?: string | null;
+  mime?: string | null;
+  isVoice?: boolean;
+  caption?: string | null;
+}): DetectedDocType {
+  const name = (input.filename ?? "").toLowerCase();
+  const mime = (input.mime ?? "").toLowerCase();
+  const caption = (input.caption ?? "").toLowerCase();
+  const hay = `${name} ${caption}`;
+
+  if (input.isVoice || mime.startsWith("audio/")) return "voice_note";
+  if (/\b(invoice|bill|statement)\b/.test(hay)) return "invoice";
+  if (/\b(receipt|paid|payment)\b/.test(hay)) return "receipt";
+  if (/\b(contract|agreement|nda|sow|lease)\b/.test(hay)) return "contract";
+  if (/\b(waiver|consent)\b/.test(hay)) return "waiver";
+  if (/\b(booking|reservation|itinerary|ticket|boarding)\b/.test(hay)) return "booking";
+  if (/\b(schedule|roster|timetable)\b/.test(hay)) return "schedule";
+  if (/\b(visa|permit)\b/.test(hay)) return "visa";
+  if (/\b(passport|licence|license|\bid\b)\b/.test(hay)) return "id_doc";
+  if (/\b(medical|prescription|lab|clinic)\b/.test(hay)) return "medical";
+  if (/screenshot|screen_shot|screen shot/.test(hay)) return "screenshot";
+  if (/\.(pdf|docx?|rtf|txt|csv|xlsx?)$/.test(name)) return "other";
+  if (mime.startsWith("image/")) return "image";
+  return "unknown";
+}
+
+/** The whole first-pass patch for a freshly arrived file. */
+export function firstPassIntake(input: {
+  filename?: string | null;
+  mime?: string | null;
+  isVoice?: boolean;
+  caption?: string | null;
+}): {
+  detected_doc_type: DetectedDocType;
+  sensitive: boolean;
+  confidence: FileConfidence;
+  review_status: FileReviewStatus;
+} {
+  const detected_doc_type = detectDocTypeFromFile(input);
+  const sensitive = isSensitiveByType(detected_doc_type);
+  return {
+    detected_doc_type,
+    sensitive,
+    confidence: "low",
+    review_status: "needs_review",
+  };
+}

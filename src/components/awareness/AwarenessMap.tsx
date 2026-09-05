@@ -17,6 +17,7 @@ import { useAwareness } from "@/providers/AwarenessProvider";
 import { useTrips } from "@/hooks/useTrips";
 import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import { placeTruth, placeSourceBadge, type PlaceLike } from "@/lib/placeTruth";
+import { fieldRead } from "@/lib/fieldRead";
 
 const markerIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -34,6 +35,14 @@ const savedIcon = L.divIcon({
     '<span style="display:block;width:12px;height:12px;border-radius:9999px;background:hsl(var(--primary));box-shadow:0 0 0 3px hsl(var(--background))"></span>',
   iconSize: [12, 12],
   iconAnchor: [6, 6],
+});
+
+const tripPointIcon = L.divIcon({
+  className: "",
+  html:
+    '<span style="display:block;width:9px;height:9px;border-radius:9999px;background:hsl(var(--accent));box-shadow:0 0 0 2px hsl(var(--background))"></span>',
+  iconSize: [9, 9],
+  iconAnchor: [4.5, 4.5],
 });
 
 function Recenter({ center }: { center: [number, number] }) {
@@ -56,7 +65,7 @@ export function AwarenessMap({
   onMoved?: () => void;
 }) {
   const { place, refresh } = useAwareness();
-  const { points } = useTrips();
+  const { points, running } = useTrips();
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState<[number, number] | null>(null);
   const startRef = useRef<[number, number] | null>(null);
@@ -91,6 +100,13 @@ export function AwarenessMap({
       .filter(([lat, lon]) => Number.isFinite(lat) && Number.isFinite(lon));
     return line.length > 1 ? [line] : [];
   }, [points]);
+
+  /* Every recorded point of the open trip, so the line can be read and not
+     just seen. Labels come from the shared field read — same words as Today. */
+  const tripPoints = useMemo(() => {
+    const read = fieldRead(running, points, []);
+    return (read?.points ?? []).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+  }, [running, points]);
 
   if (!active && saved.length === 0) {
     return (
@@ -148,6 +164,11 @@ export function AwarenessMap({
             <Recenter center={center} />
             {lines.map((line, i) => (
               <Polyline key={i} positions={line} pathOptions={{ color: "hsl(var(--accent))", weight: 3, opacity: 0.7 }} />
+            ))}
+            {tripPoints.map((p) => (
+              <Marker key={`${p.at}-${p.kind}`} position={[p.lat, p.lon]} icon={tripPointIcon}>
+                <Tooltip>{p.line}</Tooltip>
+              </Marker>
             ))}
             {saved.map((s) => (
               <Marker key={s.id} position={s.at} icon={savedIcon}>
