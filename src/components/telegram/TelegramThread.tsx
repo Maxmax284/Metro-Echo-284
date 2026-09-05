@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { ConfirmConsequenceDialog } from "@/components/ui/consequence-preview";
+import { sendReplyConsequence } from "@/lib/consequence";
 
 export type TgMessage = {
   id: string;
@@ -49,6 +51,8 @@ export function TelegramThread({
   const [rows, setRows] = useState<TgMessage[] | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  /* A reply leaves Vanta and can't be recalled, so it gets a look first. */
+  const [confirming, setConfirming] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -88,6 +92,7 @@ export function TelegramThread({
       } else {
         setDraft("");
         toast.success("Sent to your Telegram chat.");
+        setConfirming(false);
         onSent?.();
       }
       await load();
@@ -111,6 +116,15 @@ export function TelegramThread({
 
   return (
     <section className="vanta-card p-3">
+      <ConfirmConsequenceDialog
+        open={confirming}
+        title="Send this to Telegram?"
+        consequence={draft.trim() ? sendReplyConsequence({ channel: "Telegram", to: "your paired chat", text: draft }) : null}
+        confirmLabel="Send it"
+        busy={sending}
+        onCancel={() => setConfirming(false)}
+        onConfirm={send}
+      />
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-[13px] font-medium">The conversation</h2>
