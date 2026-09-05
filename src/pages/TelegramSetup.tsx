@@ -296,7 +296,7 @@ export default function TelegramSetup() {
             {status.recent_inbound.length === 0 ? (
               <EmptyState
                 title="No messages yet"
-                description="Send your bot a line and it shows up here, then in the Inbox as a draft."
+                hint="Send your bot a line and it shows up here, then in the Inbox as a draft."
               />
             ) : (
               <ul className="space-y-1.5">
