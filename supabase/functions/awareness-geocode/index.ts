@@ -10,6 +10,7 @@ import { corsHeaders } from "../_shared/http.ts";
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { placeLookupHeaders } from "../_shared/placeSpine.ts";
 
 // ---------- Overpass cache (server-only) -----------------------------------
 const OVERPASS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -202,10 +203,7 @@ Deno.serve(async (req: Request) => {
     let lookupSource = "nominatim";
     try {
       const r = await fetch(url, {
-        headers: {
-          "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)",
-          "Accept-Language": "en",
-        },
+        headers: placeLookupHeaders(),
       });
       if (!r.ok) {
         fetchError = `nominatim_${r.status}`;
@@ -224,7 +222,7 @@ Deno.serve(async (req: Request) => {
       try {
         const r2 = await fetch(
           `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&lang=en`,
-          { headers: { "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)" } },
+          { headers: placeLookupHeaders() },
         );
         if (r2.ok) {
           const j2 = await r2.json();
