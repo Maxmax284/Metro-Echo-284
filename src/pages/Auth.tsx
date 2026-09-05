@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
-import { VantaMark } from "@/components/shell/AmbientHeader";
+import { ProductMark } from "@/components/shell/AmbientHeader";
 import { Loader2 } from "lucide-react";
 
 export default function Auth() {
@@ -67,7 +67,7 @@ export default function Auth() {
     <div className="flex min-h-dvh items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8 animate-fade-in">
         <div className="space-y-2 text-center">
-          <VantaMark className="text-2xl" />
+          <ProductMark className="text-2xl" />
           <p className="text-sm text-muted-foreground">Your operational companion.</p>
         </div>
 
