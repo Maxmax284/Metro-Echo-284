@@ -4,10 +4,16 @@ import { useAuth } from "@/lib/auth";
 import { useWorkspace, useActiveOrgId } from "@/providers/WorkspaceProvider";
 import {
   Project,
+  ProjectPlace,
   attachToProject,
   createProject,
   listProjects,
+  projectPlace,
+  setProjectPlace,
+  updateProject,
 } from "@/lib/projects";
+import { ProjectEditDialog } from "@/components/projects/ProjectEditDialog";
+import { ProjectsMap } from "@/components/projects/ProjectsMap";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +24,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronDown, ChevronRight, Loader2, Pin, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Loader2, MapPin, Pencil, Pin, Plus } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { aftermathLine } from "@/lib/vantaNouns";
@@ -40,6 +46,7 @@ export default function ProjectsPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [seedOrgId, setSeedOrgId] = useState<string | null>(orgId);
   const [seeds, setSeeds] = useState<Map<string, SuggestedItem>>(new Map());
+  const [editing, setEditing] = useState<Project | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -251,6 +258,21 @@ export default function ProjectsPage() {
         </Dialog>
       </header>
 
+      {projects && projects.some((p) => projectPlace(p)) ? (
+        <section className="mb-4">
+          <ProjectsMap
+            pins={projects.flatMap((p) => {
+              const place = projectPlace(p);
+              return place ? [{ id: p.id, lat: place.lat, lon: place.lon, label: p.title }] : [];
+            })}
+            onOpen={(id) => navigate(`/projects/${id}`)}
+          />
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Only projects you gave a place to are on the map. Tap a pin to open that project.
+          </p>
+        </section>
+      ) : null}
+
       {projects === null ? (
         <div className="flex h-40 items-center justify-center text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
@@ -277,16 +299,49 @@ export default function ProjectsPage() {
                     {p.summary && (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.summary}</p>
                     )}
+                    {(() => {
+                      const place = projectPlace(p);
+                      return place ? (
+                        <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          {place.label || "Somewhere you pinned"}
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(p.updated_at), { addSuffix: true })}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      aria-label={`Edit ${p.title}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setEditing(p);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </Link>
             </li>
           ))}
         </ul>
       )}
+
+      <ProjectEditDialog
+        project={editing}
+        onOpenChange={(open) => { if (!open) setEditing(null); }}
+        onSaved={(next) => {
+          setProjects((cur) => (cur ?? []).map((p) => (p.id === next.id ? next : p)));
+          setEditing(null);
+        }}
+      />
 
       <AftermathHint text="Opening a project shows everything attached to it. Nothing runs from this list." />
     </div>

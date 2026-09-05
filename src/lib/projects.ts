@@ -90,13 +90,37 @@ export async function createProject(input: {
   return data as Project;
 }
 
+/**
+ * Where a project happens, when it happens somewhere. Kept on the project
+ * itself so a document card can name a real place alongside a real project.
+ * A place set here is always something a person chose — never a device guess.
+ */
+export type ProjectPlace = { lat: number; lon: number; label: string };
+
+export function projectPlace(p: Project): ProjectPlace | null {
+  const raw = (p.metadata ?? {}) as Record<string, unknown>;
+  const place = raw.place as Record<string, unknown> | undefined;
+  if (!place) return null;
+  const lat = Number(place.lat);
+  const lon = Number(place.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { lat, lon, label: typeof place.label === "string" ? place.label : "" };
+}
+
+export async function setProjectPlace(p: Project, place: ProjectPlace | null): Promise<Project> {
+  const metadata = { ...((p.metadata ?? {}) as Record<string, unknown>) };
+  if (place) metadata.place = place;
+  else delete metadata.place;
+  return updateProject(p.id, { metadata } as any);
+}
+
 export async function updateProject(
   id: string,
-  patch: Partial<Pick<Project, "title" | "summary" | "status" | "pinned">>
+  patch: Partial<Pick<Project, "title" | "summary" | "status" | "pinned" | "metadata">>
 ): Promise<Project> {
   const { data, error } = await supabase
     .from("projects")
-    .update(patch)
+    .update(patch as any)
     .eq("id", id)
     .select("*")
     .single();

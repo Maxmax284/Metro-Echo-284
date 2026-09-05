@@ -16,19 +16,10 @@ import { placeTruth, type PlaceLike } from "@/lib/placeTruth";
 import { Button } from "@/components/ui/button";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import type { SourceHealth } from "@/lib/sourceHealth";
+import { capabilityStatusLine, type SenseRow } from "@/lib/capabilityStatus";
 
-type Row = {
-  label: string;
-  /** true on, false off, null decided in the moment by you. */
-  on: boolean | null;
-  /** A feed with nothing set up yet: neither on nor a matter of consent. */
-  unset?: boolean;
-  helps: string;
-  /** Evidence for the row, when something was actually recorded. */
-  proof?: string | null;
-  /** Short state word replacing on/off when the plain words aren't enough. */
-  stateWord?: string;
-};
+/** One row of the senses list. Shape shared with the Telegram answer. */
+type Row = SenseRow & { stateWord?: string };
 
 function feedState(sources: SourceHealth[], key: string): boolean | null {
   const s = sources.find((x) => x.key === key);
@@ -44,18 +35,6 @@ function feedProof(sources: SourceHealth[], key: string): string | null {
   const s = sources.find((x) => x.key === key);
   if (!s) return null;
   return s.proof || null;
-}
-
-/** One sentence about the whole picture. Counted from the rows, never guessed. */
-function statusLine(rows: Row[]): string {
-  const on = rows.filter((r) => r.on === true && !r.unset).map((r) => r.label);
-  const off = rows.filter((r) => r.on === false || r.unset).map((r) => r.label);
-  if (on.length === 0) {
-    return "Nothing is feeding Vanta yet, so this room can only work from what you tell it.";
-  }
-  const onPart = on.length === rows.length ? "Everything is feeding Vanta" : `${on.join(", ")} ${on.length === 1 ? "is" : "are"} feeding Vanta`;
-  if (off.length === 0) return `${onPart}. Nothing is switched off.`;
-  return `${onPart}. ${off.join(", ")} ${off.length === 1 ? "isn't" : "aren't"}, so nothing here comes from ${off.length === 1 ? "it" : "them"}.`;
 }
 
 export function WhatVantaSees({ className }: { className?: string }) {
@@ -94,28 +73,28 @@ export function WhatVantaSees({ className }: { className?: string }) {
       on: locationAllowed,
       stateWord: locationAllowed ? "on" : place ? "off — using the place you set" : "off",
       helps: "Timing and travel context — city-level, never a live trail.",
-      proof: workingFrom,
+      detail: workingFrom,
     },
     {
       label: "Calendar",
       on: feedState(sources, "calendar"),
       unset: feedMissing(sources, "calendar"),
       helps: "The shape of your day, read-only. Nothing gets moved or answered.",
-      proof: feedProof(sources, "calendar"),
+      detail: feedProof(sources, "calendar"),
     },
     {
       label: "Telegram",
       on: feedState(sources, "telegram"),
       unset: feedMissing(sources, "telegram"),
       helps: "Messages, photos and voice notes arrive as captures. Nothing sends without you.",
-      proof: feedProof(sources, "telegram"),
+      detail: feedProof(sources, "telegram"),
     },
     {
       label: "Wearable",
       on: feedState(sources, "wearable"),
       unset: feedMissing(sources, "wearable"),
       helps: "Readings your watch shares, so Vanta can notice a hard week.",
-      proof: feedProof(sources, "wearable"),
+      detail: feedProof(sources, "wearable"),
     },
     {
       label: "Camera",
@@ -133,7 +112,7 @@ export function WhatVantaSees({ className }: { className?: string }) {
     <section className={className} aria-label="What Vanta can see">
       <div className="vanta-card rounded-xl p-3">
         <div className="text-[12px] font-semibold">What Vanta can see</div>
-        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{statusLine(rows)}</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{capabilityStatusLine(rows)}</p>
         <ul className="mt-2 space-y-2">
           {rows.map((r) => (
             <li key={r.label} className="flex items-start gap-2">
@@ -147,13 +126,23 @@ export function WhatVantaSees({ className }: { className?: string }) {
                   {r.label} — {r.stateWord ?? (r.unset ? "not set up yet" : r.on === null ? "by request" : r.on ? "on" : "off")}
                 </span>
                 <p className="text-[11px] leading-snug text-muted-foreground">{r.helps}</p>
-                {r.proof ? (
-                  <p className="text-[10.5px] leading-snug text-muted-foreground/70">{r.proof}</p>
+                {r.detail ? (
+                  <p className="text-[10.5px] leading-snug text-muted-foreground/70">{r.detail}</p>
                 ) : null}
                 {r.label === "Location" && !locationAllowed ? (
-                  <Button size="sm" className="mt-1.5 h-9 text-[12px]" onClick={turnLocationOn}>
-                    Turn location on
-                  </Button>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <Button size="sm" className="h-9 text-[12px]" onClick={turnLocationOn}>
+                      Turn location on
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 text-[12px]"
+                      onClick={() => navigate("/awareness/location")}
+                    >
+                      Set where I am
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             </li>
