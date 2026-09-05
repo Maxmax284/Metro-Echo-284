@@ -199,7 +199,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Short-circuit: already geocoded recently, no force
-    if (!pinMode && !force && place!.country && place.region && (geo as any).city) {
+    if (!pinMode && !force && place!.country && place!.region && (geo as any).city) {
       return new Response(JSON.stringify({
         skipped: true,
         country: place!.country,
