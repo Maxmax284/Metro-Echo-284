@@ -3385,6 +3385,60 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          direction: string
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          filed_as: string | null
+          id: string
+          kind: string
+          meta: Json
+          organization_id: string | null
+          sent_by: string | null
+          text: string | null
+          update_id: number | null
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          direction: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          filed_as?: string | null
+          id?: string
+          kind?: string
+          meta?: Json
+          organization_id?: string | null
+          sent_by?: string | null
+          text?: string | null
+          update_id?: number | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          direction?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          error?: string | null
+          filed_as?: string | null
+          id?: string
+          kind?: string
+          meta?: Json
+          organization_id?: string | null
+          sent_by?: string | null
+          text?: string | null
+          update_id?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       usage_limits: {
         Row: {
           auto_run_allowed: boolean

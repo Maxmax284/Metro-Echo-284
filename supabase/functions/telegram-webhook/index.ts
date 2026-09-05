@@ -33,6 +33,13 @@ async function tg(method: string, body: unknown) {
   });
 }
 
+
+/** Thread record. Every message in or out is kept so the Telegram room inside
+ *  Vanta shows the real conversation, not a webhook log. Never blocks a reply. */
+async function logTgMessage(admin: any, row: Record<string, unknown>) {
+  try { await admin.from("telegram_messages").insert(row); } catch (e) { console.error("telegram_messages insert", e); }
+}
+
 import { COMPANION_VOICE, MEMORY_VOICE, AWARENESS_VOICE, VANTA_PHRASES } from "../_shared/vantaVoice.ts";
 import { parseReminderHint } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
@@ -681,6 +688,11 @@ Deno.serve(async (req) => {
       organization_id: routeOrgId,
       payload: { chat_id: chatId, text, route, has_page: !!page },
     });
+    await logTgMessage(admin, {
+      user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
+      direction: "in", text: text || null, update_id: update.update_id ?? null,
+      kind: page ? "page" : "text", meta: { route, username: msg.from?.username ?? null },
+    });
 
     /* ---- Page capture: a photo of paper becomes readable text -------------
        Telegram retries a delivery it thinks failed, so the update id is the
@@ -785,6 +797,11 @@ Deno.serve(async (req) => {
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
       const suggest = (await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 1))[0];
+      await logTgMessage(admin, {
+        user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
+        direction: "out", text: reply, kind: "page_reply", sent_by: "vanta",
+        entity_type: "ingested_file", entity_id: fileRec.id,
+      });
       await tg("sendMessage", {
         chat_id: chatId,
         text: reply,
@@ -813,6 +830,10 @@ Deno.serve(async (req) => {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
     }
+    await logTgMessage(admin, {
+      user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
+      direction: "out", text: reply, kind: "text", sent_by: "vanta",
+    });
     await tg("sendMessage", {
       chat_id: chatId,
       text: reply,

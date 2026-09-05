@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { StatusDot } from "@/components/ui/status-dot";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/state-views";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
+import { TelegramThread } from "@/components/telegram/TelegramThread";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 type Status = {
@@ -158,7 +159,7 @@ export default function TelegramSetup() {
   const proven = Boolean(status?.last_in);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pb-40 pt-6">
       <header className="mb-4 flex items-center gap-3">
         <Link
           to="/settings/g/connections"
@@ -342,6 +343,12 @@ export default function TelegramSetup() {
               </div>
             )}
           </section>
+
+          <TelegramThread
+            paired={linked}
+            chatId={status.links[0]?.chat_id ?? null}
+            onSent={() => void load()}
+          />
 
           <p className="text-center text-[11px] text-muted-foreground">
             Kill switches and the rest of the platforms live in{" "}
