@@ -156,6 +156,13 @@ export function TodaySectionSheet({
               label={c.summary}
               meta={whenLabel(c.due_at)}
               tone={c.due_at && new Date(c.due_at) < new Date() ? "warn" : undefined}
+              trailing={
+                <CommitmentActions
+                  size="sm"
+                  c={{ id: c.id, title: c.summary, due_at: c.due_at, remind_at: null }}
+                  onChanged={onChanged}
+                />
+              }
               onClick={() => go("commitments")}
             />
           ))}
