@@ -16,6 +16,7 @@ import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
 import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLane";
+import { displayPlatform } from "@/lib/plainEnglish";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
@@ -100,7 +101,13 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         id: item.arrival.id,
         label: text.length > 70 ? `${text.slice(0, 69)}…` : text,
         at: item.arrival.at,
-        via: item.arrival.channel === "upload" ? "upload" : item.arrival.where ?? null,
+        /* Say the source the way a person would, never its internal key. */
+        via:
+          item.arrival.channel === "upload"
+            ? "a file you added"
+            : item.arrival.where
+              ? displayPlatform(item.arrival.where)
+              : null,
       };
     });
 
