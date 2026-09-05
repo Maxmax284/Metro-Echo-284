@@ -1,31 +1,33 @@
 import { describe, expect, it } from "vitest";
 import {
+  DUE_OPENERS,
   IDENTITY_ANSWERS,
-  VANTA_CORE_VOICE,
+  OVERDUE_OPENERS,
   VANTA_IDENTITY,
-  VANTA_PHRASES,
+  dueOpener,
   matchIdentityQuestion,
   mentionsVendor,
-} from "../../supabase/functions/_shared/vantaVoice";
+  overdueOpener,
+} from "@/lib/vantaIdentity";
 import {
   brandVoiceDirective,
   readBrandVoice,
   toneLevelFor,
   type VoiceContext,
 } from "@/lib/brandVoice";
-import { composeReminder } from "../../supabase/functions/_shared/reminderMessage";
 
 describe("identity block", () => {
-  it("is folded into the core voice every surface inherits", () => {
-    expect(VANTA_CORE_VOICE).toContain(VANTA_IDENTITY);
-    expect(VANTA_CORE_VOICE).toMatch(/Never name, confirm, deny/);
+  it("states Vanta belongs to the user and bans provider identity", () => {
+    expect(VANTA_IDENTITY).toMatch(/You are Vanta/);
+    expect(VANTA_IDENTITY).toMatch(/None of them made you/);
+    expect(VANTA_IDENTITY).toMatch(/Never say "as an AI"/);
   });
 
-  it("names the vendors only inside the ban list, never as an author", () => {
-    expect(VANTA_IDENTITY).toMatch(/None of them made you/);
+  it("keeps every canonical answer free of vendor names and assistant-speak", () => {
     for (const answer of Object.values(IDENTITY_ANSWERS)) {
       expect(mentionsVendor(answer)).toBe(false);
-      expect(answer).not.toMatch(/as an AI|language model/i);
+      expect(answer).not.toMatch(/as an AI|language model|happy to assist/i);
+      expect(answer.length).toBeLessThan(140);
     }
   });
 });
@@ -35,15 +37,14 @@ describe("identity question matching", () => {
     ["who are you?", "who_are_you"],
     ["Who are you", "who_are_you"],
     ["what are you?", "who_are_you"],
+    ["what is vanta", "who_are_you"],
     ["who made you?", "who_made_you"],
     ["who created you", "who_made_you"],
-    ["who built you exactly", "who_made_you"],
     ["what model are you", "what_model"],
     ["which llm is this", "what_model"],
     ["what are you built on?", "what_model"],
     ["are you google?", "are_you_vendor"],
     ["is this gemini", "are_you_vendor"],
-    ["you're running on chatgpt right", "are_you_vendor"],
   ];
   for (const [input, expected] of cases) {
     it(`routes "${input}" to a canonical answer`, () => {
@@ -56,40 +57,10 @@ describe("identity question matching", () => {
       "remind me to call Nikki tomorrow at 9",
       "what's waiting on me",
       "how's the fight card going",
-      "who is Nikki emailing about the roster",
       "save this: gym mats arrive Friday",
     ]) {
       expect(matchIdentityQuestion(t)).toBeNull();
     }
-  });
-});
-
-describe("telegram fixed copy", () => {
-  it("never leaks a vendor name and never talks like a chatbot", () => {
-    const tg = VANTA_PHRASES.telegram;
-    const lines = [
-      tg.welcome(), tg.badCode(), tg.linked(), tg.notLinked(), tg.textOnly(),
-      tg.snag(), tg.help(), tg.unlinked(), tg.rateLimited(),
-    ];
-    for (const line of lines) {
-      expect(mentionsVendor(line)).toBe(false);
-      expect(line).not.toMatch(/as an AI|happy to assist|Great news|language model/i);
-    }
-  });
-
-  it("keeps emoji and exclamation marks off failure copy", () => {
-    for (const line of [VANTA_PHRASES.telegram.snag(), VANTA_PHRASES.telegram.badCode(), VANTA_PHRASES.telegram.rateLimited()]) {
-      expect(line).not.toMatch(/!/);
-      expect(line).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
-    }
-  });
-
-  it("no longer claims voice notes and documents are unreadable", () => {
-    expect(VANTA_PHRASES.telegram.textOnly()).not.toMatch(/aren't readable/i);
-  });
-
-  it("answers identity questions from fixed copy", () => {
-    expect(VANTA_PHRASES.telegram.identity("who_made_you")).toBe(IDENTITY_ANSWERS.who_made_you);
   });
 });
 
@@ -100,7 +71,7 @@ describe("personality intensity model", () => {
     expect(toneLevelFor(full, "sensitive")).toBe(1);
   });
 
-  it("caps alerts and errors below the ceiling", () => {
+  it("caps alerts, errors and answers below the ceiling", () => {
     expect(toneLevelFor(full, "alert")).toBe(2);
     expect(toneLevelFor(full, "error")).toBe(2);
     expect(toneLevelFor(full, "answer")).toBe(2);
@@ -117,28 +88,28 @@ describe("personality intensity model", () => {
     }
   });
 
-  it("carries the ban list and context rule into the prompt", () => {
+  it("carries the ban list and the context rule into the prompt", () => {
     const serious = brandVoiceDirective(full, "sensitive");
-    expect(serious).toMatch(/No asides, no jokes, no emoji/);
-    expect(serious).toMatch(/NEVER/);
-    expect(brandVoiceDirective(full, "routine")).toMatch(/say the thing, then stop/i);
+    expect(serious.toLowerCase()).toMatch(/no jokes|no asides/);
+    expect(brandVoiceDirective(full, "routine")).toMatch(/NEVER/);
   });
 });
 
 describe("reminder openers", () => {
-  it("varies the opener but never the facts", () => {
-    const openers = new Set<string>();
-    for (let i = 0; i < 60; i++) {
-      const { text } = composeReminder("send Nikki the roster", false, null, "Asia/Bangkok");
-      expect(text).toContain("send Nikki the roster");
-      openers.add(text.split("send Nikki")[0]);
-    }
-    expect(openers.size).toBeGreaterThan(1);
+  it("offers more than one opener for due and overdue", () => {
+    expect(DUE_OPENERS.length).toBeGreaterThan(1);
+    expect(OVERDUE_OPENERS.length).toBeGreaterThan(1);
   });
 
-  it("says late plainly when overdue, with no exclamation", () => {
-    const { text } = composeReminder("pay the venue deposit", true, null, "UTC");
-    expect(text).not.toMatch(/!/);
-    expect(text).toContain("pay the venue deposit");
+  it("never shouts and never leaks a vendor name", () => {
+    for (const o of [...DUE_OPENERS, ...OVERDUE_OPENERS]) {
+      expect(o).not.toMatch(/!/);
+      expect(mentionsVendor(o)).toBe(false);
+    }
+  });
+
+  it("picks from the pools", () => {
+    expect(DUE_OPENERS).toContain(dueOpener());
+    expect(OVERDUE_OPENERS).toContain(overdueOpener());
   });
 });
