@@ -159,7 +159,7 @@ export default function TelegramSetup() {
   const proven = Boolean(status?.last_in);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
+    <div className="mx-auto max-w-2xl px-4 pb-40 pt-6">
       <header className="mb-4 flex items-center gap-3">
         <Link
           to="/settings/g/connections"
