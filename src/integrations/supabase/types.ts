@@ -3486,6 +3486,132 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_points: {
+        Row: {
+          accuracy_m: number | null
+          id: string
+          kind: string
+          label: string | null
+          lat: number
+          lon: number
+          recorded_at: string
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          accuracy_m?: number | null
+          id?: string
+          kind?: string
+          label?: string | null
+          lat: number
+          lon: number
+          recorded_at?: string
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          accuracy_m?: number | null
+          id?: string
+          kind?: string
+          label?: string | null
+          lat?: number
+          lon?: number
+          recorded_at?: string
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_points_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          closed_by: string
+          created_at: string
+          distance_m: number | null
+          end_label: string | null
+          end_place_id: string | null
+          ended_at: string | null
+          id: string
+          label: string | null
+          notes: string | null
+          organization_id: string | null
+          point_count: number
+          purpose: string | null
+          start_label: string | null
+          start_place_id: string | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_by?: string
+          created_at?: string
+          distance_m?: number | null
+          end_label?: string | null
+          end_place_id?: string | null
+          ended_at?: string | null
+          id?: string
+          label?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          point_count?: number
+          purpose?: string | null
+          start_label?: string | null
+          start_place_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_by?: string
+          created_at?: string
+          distance_m?: number | null
+          end_label?: string | null
+          end_place_id?: string | null
+          ended_at?: string | null
+          id?: string
+          label?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          point_count?: number
+          purpose?: string | null
+          start_label?: string | null
+          start_place_id?: string | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_end_place_id_fkey"
+            columns: ["end_place_id"]
+            isOneToOne: false
+            referencedRelation: "awareness_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_start_place_id_fkey"
+            columns: ["start_place_id"]
+            isOneToOne: false
+            referencedRelation: "awareness_places"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_limits: {
         Row: {
           auto_run_allowed: boolean

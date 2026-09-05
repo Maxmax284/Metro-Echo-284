@@ -26,6 +26,7 @@ import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/state-views";
 import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
+import { TripPanel } from "@/components/awareness/TripPanel";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 
@@ -359,6 +360,9 @@ export function AwarenessSurface() {
             </div>
           );
         })()}
+
+        {/* Trips — deliberate start and end, and what you've covered. */}
+        <TripPanel placeLabel={place?.label ?? null} />
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {
