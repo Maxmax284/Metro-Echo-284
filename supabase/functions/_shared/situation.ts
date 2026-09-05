@@ -84,7 +84,42 @@ export type SituationRead = {
   quietSources: SituationSource[];
   /** Sources that could not be read at all — missing, never zero. */
   unknownSources: SituationSource[];
+  /**
+   * One clause about where this was read from, or nothing at all. Place never
+   * adds a line of its own and never changes what is true — it only says where
+   * you were standing when the read was made.
+   */
+  placeNote: string | null;
 };
+
+/**
+ * Where the person is, as far as the Aware layer resolved it. Words only: this
+ * never creates a line, never removes one, and never claims proximity.
+ */
+export type SituationPlace = {
+  /** What to call it in prose — a city or region, not a saved label like "Spot 4:47". */
+  where: string;
+  /** How precisely it is known. "unknown" means say nothing. */
+  scope: "exact" | "area" | "city" | "country" | "unknown";
+  /** When the place was last confirmed. Stale place, no words. */
+  at: string | null;
+};
+
+/** Place speaks only when all three hold. Otherwise it stays quiet. */
+const PLACE_FRESH_MS = 12 * HOUR_MS();
+function HOUR_MS() {
+  return 60 * 60 * 1000;
+}
+export function placeSpeaks(place: SituationPlace | null | undefined, lineCount: number, now: number): boolean {
+  if (!place) return false;
+  // 1. the place is actually resolved
+  if (place.scope === "unknown" || !place.where.trim()) return false;
+  // 2. it was confirmed recently enough to still be where you are
+  const at = place.at ? new Date(place.at).getTime() : NaN;
+  if (!Number.isFinite(at) || now - at > PLACE_FRESH_MS) return false;
+  // 3. there is something for it to sit beside. Place alone is not news.
+  return lineCount > 0;
+}
 
 export type SituationInput = {
   now?: number;
