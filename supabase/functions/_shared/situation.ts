@@ -106,10 +106,7 @@ export type SituationPlace = {
 };
 
 /** Place speaks only when all three hold. Otherwise it stays quiet. */
-const PLACE_FRESH_MS = 12 * HOUR_MS();
-function HOUR_MS() {
-  return 60 * 60 * 1000;
-}
+const PLACE_FRESH_MS = 12 * 60 * 60 * 1000;
 export function placeSpeaks(place: SituationPlace | null | undefined, lineCount: number, now: number): boolean {
   if (!place) return false;
   // 1. the place is actually resolved
