@@ -69,7 +69,8 @@ export function matchIdentityQuestion(raw: string | null | undefined): IdentityQ
   }
   if (/\b(who|what)\b.*\byour (creator|maker|developer|owner|company)\b/.test(t)) return "who_made_you";
   if (/^(so\s+)?(and\s+)?(who|what)\s+(are|r)\s+(you|u)\b/.test(t)) return "who_are_you";
-  if (/^(who|what)\s+(is|the hell is|exactly is)\s+(this|vanta)\b/.test(t)) return "who_are_you";
+  if (/\bmetro\s*echo\b/.test(t) && /^(what|whats|what's|who)\b/.test(t)) return "what_is_product";
+  if (/^(who|what)\s+(is|the hell is|exactly is)\s+(this|vanta|echo)\b/.test(t)) return "who_are_you";
   if (/^(introduce yourself|tell me about yourself)\b/.test(t)) return "who_are_you";
   return null;
 }
