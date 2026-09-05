@@ -20,8 +20,12 @@
 - [ ] 4. One place spine (merge the two geocode/nearby implementations, one precision policy).
 - [ ] 5. Today hierarchy pass (one "What changed" owner, one agenda owner, less launcher clutter).
 - [ ] 6. Aware room prove-it pass at 384px against real records.
-- [ ] 7. What Vanta can see: six rows + one summary sentence, reusing existing readers.
+- [ ] 7. What Metro Echo can see: six rows + one summary sentence, reusing existing readers.
 - [ ] 9. Motion consolidation (retire legacy animations conflicting with the motion grammar).
 - [ ] 10. Ask <-> widget continuity (no reset on expand).
 - [ ] 11. Route consolidation: /watch /motion /glance /wearables /wearable-loop /physical-loop /how
       /awareness/location folded into the four rooms or retired.
+
+## Brand
+- Product = Metro Echo. Intelligence = Echo. Owned by `src/lib/brand.ts` / `_shared/brand.ts`.
+- Internal legacy Vanta identifiers (vantaIdentity, vantaVoice, VANTA_*, vanta-converse, `vanta-*` CSS, X-Vanta-* headers, vanta_* columns) stay as-is on purpose.
