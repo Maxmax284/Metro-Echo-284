@@ -397,6 +397,8 @@ export function AwarenessSurface() {
           {showMore ? "Hide the workings" : "Show the workings — radar, layers and saved places"}
         </button>
 
+        <WhatVantaSees className="mt-4" />
+
         {showMore && (<div className="space-y-4">
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
