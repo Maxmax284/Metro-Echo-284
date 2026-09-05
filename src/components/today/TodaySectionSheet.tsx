@@ -17,6 +17,7 @@ import { useFlipEntry } from "@/hooks/useFlipEntry";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 export type TodaySectionKey = "now" | "today" | "changed" | "next";
 
