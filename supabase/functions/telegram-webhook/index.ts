@@ -221,7 +221,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
-    const { data } = await sb.from("actions").insert({ user_id: userId, organization_id: orgId, title: args.title, description: args.description ?? null, risk: args.risk ?? "standard", status: "staged", source: "telegram" }).select("id").single();
+    const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions", linkKind: "actions" as VantaLinkKind };
   }
