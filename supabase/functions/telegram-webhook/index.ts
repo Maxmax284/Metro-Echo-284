@@ -70,6 +70,7 @@ import {
   type VantaLinkKind,
 } from "../_shared/telegramReplies.ts";
 import { objectIntentFor, nextStepsLine, readSummaryLine } from "../_shared/objectIntent.ts";
+import { looksLikeCapture } from "../_shared/messageLane.ts";
 import {
   attachToProject,
   findProject,
@@ -385,7 +386,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // Stage 7 — audit expansion: when nothing routed, this is an ambiguous capture
   // waiting for review in the Captures lane. Emit a distinct event so the Audit
   // surface can show "front desk" activity, not just executed lifecycle.
-  if (!routedTo && !readOnly) {
+  if (!routedTo && !readOnly && looksLikeCapture(text)) {
     await sb.from("audit_log").insert({
       user_id: userId,
       organization_id: orgId,
@@ -403,9 +404,13 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (routedTo) {
     userMeta.routed_to = routedTo;
     userMeta.confidence = "high";
-  } else {
+  } else if (looksLikeCapture(text)) {
+    /* Only something worth filing waits for review. A question asked in chat is
+       conversation — flagging it would turn Today into a second inbox. */
     userMeta.needs_review = true;
     userMeta.confidence = "low";
+  } else {
+    userMeta.conversation_only = true;
   }
   let userMsgId: string | null = null;
   if (conv?.id) {
@@ -670,7 +675,21 @@ Deno.serve(async (req) => {
       ? msg.document
       : null;
     const paperDoc = msg.document && !imageDoc && isDocMime ? msg.document : null;
-    const page: { fileId: string; mime: string; name: string; isDoc?: boolean } | null = biggest
+    /* A voice note, a recorded audio file, or a video note: the same lane as a
+       page, read by listening instead of looking. */
+    const spoken = msg.voice ?? msg.audio ?? (docMime.startsWith("audio/") ? msg.document : null);
+    const page: { fileId: string; mime: string; name: string; isDoc?: boolean; isVoice?: boolean } | null = spoken
+      ? {
+          fileId: spoken.file_id,
+          mime: String(spoken.mime_type ?? "audio/ogg"),
+          name: String(
+            spoken.file_name ??
+              `voice-note-${update.update_id}.${String(spoken.mime_type ?? "audio/ogg").split("/").pop()?.split(";")[0] ?? "ogg"}`,
+          ),
+          isDoc: true,
+          isVoice: true,
+        }
+      : biggest
       ? { fileId: biggest.file_id, mime: "image/jpeg", name: `page-${update.update_id}.jpg` }
       : imageDoc
         ? {
@@ -691,7 +710,7 @@ Deno.serve(async (req) => {
     if (!text && !page && msg.document) {
       await tg("sendMessage", {
         chat_id: chatId,
-        text: "I can't read that type yet. Photos, PDFs and Word documents work — and a plain message always does.",
+        text: "I can't read that type yet. Photos, PDFs, Word documents and voice notes work — and a plain message always does.",
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
@@ -776,7 +795,7 @@ Deno.serve(async (req) => {
         .eq("metadata->>telegram_update_id", String(update.update_id))
         .maybeSingle();
       if (seen) {
-        await tg("sendMessage", { chat_id: chatId, text: "Already got that page — it's in your Inbox." });
+        await tg("sendMessage", { chat_id: chatId, text: page.isVoice ? "Already got that voice note — it's in your Inbox." : "Already got that page — it's in your Inbox." });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
 
@@ -835,6 +854,7 @@ Deno.serve(async (req) => {
         review_status: "new",
         metadata: {
           page_photo: !page.isDoc,
+          voice_note: page.isVoice === true,
           telegram_update_id: String(update.update_id),
           chat_id: chatId,
           caption: caption || null,
@@ -891,7 +911,7 @@ Deno.serve(async (req) => {
               "Saved in your Inbox. Nothing filed under a project yet.",
               nextStepsLine(intent.kind),
             ].join("\n")
-          : `${intent.line}\n\nCouldn't read it just now — it's saved, and the daily sweep will try again.`;
+          : `${intent.line}\n\n${page.isVoice ? "Couldn't make out the words just now" : "Couldn't read it just now"} — it's saved, and the daily sweep will try again.`;
       } else {
         try {
           const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);

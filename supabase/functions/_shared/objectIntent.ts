@@ -14,6 +14,7 @@ export type ObjectKind =
   | "screenshot"
   | "photo"
   | "note"
+  | "voice"
   | "file";
 
 export type ObjectIntent = {
@@ -32,6 +33,7 @@ const KIND_WORD: Record<ObjectKind, string> = {
   screenshot: "screenshot",
   photo: "photo",
   note: "note",
+  voice: "voice note",
   file: "file",
 };
 
@@ -52,6 +54,7 @@ export function kindForObject(input: {
     if (detected.includes("contract") || detected.includes("agreement")) return "contract";
     if (detected.includes("screenshot")) return "screenshot";
     if (detected.includes("photo") || detected.includes("image")) return "photo";
+    if (detected.includes("voice") || detected.includes("audio")) return "voice";
     if (detected.includes("note")) return "note";
     return "document";
   }
@@ -62,6 +65,8 @@ export function kindForObject(input: {
   if (SCREENSHOT_RE.test(name)) return "screenshot";
 
   const mime = (input.mime ?? "").toLowerCase();
+  if (mime.startsWith("audio/")) return "voice";
+  if (/\.(ogg|oga|opus|mp3|m4a|wav|aac|amr)$/i.test(name)) return "voice";
   if (mime.startsWith("image/")) return "photo";
   if (name) return "file";
   return "file";
@@ -92,6 +97,8 @@ export function defaultOffersFor(kind: ObjectKind): string[] {
     case "contract":
     case "document":
       return ["Summarize it", "File it", "Ask about it"];
+    case "voice":
+      return ["Turn it into a note", "File it", "Ask about it"];
     default:
       return ["File it", "Ask about it"];
   }
