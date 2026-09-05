@@ -64,6 +64,13 @@
       "when": 1788579626596,
       "tag": "0008_create_object_cadence",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788584512487,
+      "tag": "0009_create_trips",
+      "breakpoints": true
     }
   ]
 }
