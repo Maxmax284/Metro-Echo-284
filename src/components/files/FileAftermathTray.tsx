@@ -18,6 +18,7 @@ import {
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
+import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { objectIntentFor } from "@/lib/objectIntent";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
@@ -41,6 +42,7 @@ type FileRow = {
   sensitive: boolean | null;
   review_status: string | null;
   suggested_actions: unknown;
+  suggested_summary: string | null;
   extracted_entities: unknown;
   note_id: string | null;
   metadata: Record<string, unknown> | null;
@@ -170,7 +172,7 @@ export function FileAftermathTray({
     (async () => {
       const { data } = await supabase
         .from("ingested_files")
-        .select("id, filename, detected_doc_type, confidence, sensitive, review_status, suggested_actions, extracted_entities, note_id, metadata")
+        .select("id, filename, detected_doc_type, confidence, sensitive, review_status, suggested_actions, suggested_summary, extracted_entities, note_id, metadata")
         .eq("id", ingestedFileId)
         .maybeSingle();
       if (!alive) return;
@@ -454,6 +456,22 @@ export function FileAftermathTray({
           </button>
         )}
       </div>
+
+      {/* What came off it, then where it can go, then what can happen next —
+          the same introduction Telegram gives a document. Nothing runs here. */}
+      {!sensitive && (
+        <div className="mt-2 rounded-xl border border-border/50 bg-background/50 p-2 ring-1 ring-border/30">
+          <p className="text-[11.5px] leading-relaxed text-foreground/85">
+            {readSummaryLine(row.suggested_summary, 320)}
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <AttachToProjectMenu itemType="file" itemId={row.id} itemLabel={row.filename} variant="chip" />
+          </div>
+          <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+            {nextStepsLine(kindForObject({ filename: row.filename, detectedDocType: row.detected_doc_type }))}
+          </p>
+        </div>
+      )}
 
       {/* Inline commitment draft */}
       {draftCommitment !== null && (
