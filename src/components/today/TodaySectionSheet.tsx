@@ -17,6 +17,7 @@ import { useFlipEntry } from "@/hooks/useFlipEntry";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { AttentionItem, DigestCommitment, DigestEvent } from "@/lib/todayDigest";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 
 export type TodaySectionKey = "now" | "today" | "changed" | "next";
 
@@ -52,25 +53,36 @@ function DrillRow({
   meta,
   tone,
   onClick,
+  trailing,
 }: {
   label: string;
   meta?: string;
   tone?: "warn";
   onClick?: () => void;
+  /* Rows that can be resolved here carry their own controls; those controls
+     always stop for a consequence preview before anything is written. */
+  trailing?: React.ReactNode;
 }) {
-  const Tag = onClick ? "button" : "div";
+  const clickable = onClick && !trailing;
+  const Tag = clickable ? "button" : "div";
   return (
     <Tag
-      onClick={onClick}
+      onClick={clickable ? onClick : undefined}
       className={cn(
         "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left",
-        onClick && "transition-colors hover:border-primary/40",
+        clickable && "transition-colors hover:border-primary/40",
         tone === "warn" && "border-warn/40",
       )}
     >
-      <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
+      {trailing && onClick ? (
+        <button onClick={onClick} className="min-w-0 flex-1 text-left text-xs leading-snug text-foreground/90">
+          {label}
+        </button>
+      ) : (
+        <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
+      )}
       {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
-      {onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+      {trailing ?? (onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null)}
     </Tag>
   );
 }
@@ -83,6 +95,7 @@ export function TodaySectionSheet({
   dueToday,
   upcoming,
   events,
+  onChanged,
 }: {
   section: TodaySectionKey | null;
   onClose: () => void;
@@ -91,6 +104,7 @@ export function TodaySectionSheet({
   dueToday: DigestCommitment[];
   upcoming: DigestCommitment[];
   events: DigestEvent[];
+  onChanged?: () => void;
 }) {
   const meta = section ? TITLES[section] : null;
 
@@ -142,6 +156,13 @@ export function TodaySectionSheet({
               label={c.summary}
               meta={whenLabel(c.due_at)}
               tone={c.due_at && new Date(c.due_at) < new Date() ? "warn" : undefined}
+              trailing={
+                <CommitmentActions
+                  size="sm"
+                  c={{ id: c.id, title: c.summary, due_at: c.due_at, remind_at: null }}
+                  onChanged={onChanged}
+                />
+              }
               onClick={() => go("commitments")}
             />
           ))}
@@ -205,7 +226,7 @@ export function TodaySectionSheet({
         <div className={cn("mt-3", MOTION_SHEET)}>{body()}</div>
         <AftermathHint
           className="pb-6"
-          text="This is a read-only list · opening a row takes you to its desk, where changes are made"
+          text="Closing or moving a promise here shows you what changes first · nothing is written until you confirm"
         />
 
       </SheetContent>
