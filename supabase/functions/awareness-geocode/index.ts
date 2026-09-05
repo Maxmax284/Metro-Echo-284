@@ -201,7 +201,8 @@ Deno.serve(async (req: Request) => {
     try {
       const r = await fetch(url, {
         headers: {
-          "User-Agent": "Vanta Mindful AI (https://vanta.lovable.app) — awareness-geocode",
+          /* ASCII only: a non-ASCII header value makes the request fail before it leaves. */
+          "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)",
           "Accept-Language": "en",
         },
       });
@@ -215,6 +216,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!nomi || !nomi.address) {
+      console.error("[vanta] place lookup failed:", fetchError ?? "no address in response");
       return new Response(JSON.stringify({
         error: "geocode_failed",
         reason: fetchError ?? "nominatim returned no address",
