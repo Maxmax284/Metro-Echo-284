@@ -350,27 +350,44 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      recognizer rather than a Telegram-only regex. */
   const plan = routeRequest({ text, scope: orgId ? "organization" : "personal", organization_id: orgId, verbosity: "brief" });
 
+  // Telegram's own thread — same memory, same scope, just the pocket form of it.
+  const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
+
   if (plan.field) {
     const handled = await runFieldIntent(sb, { userId, orgId }, plan.field, { via: "telegram" });
     if (handled) {
+      const reply = `${handled.text}\n\nWhy this? ${handled.why}`;
+      /* A walk started in a chat still belongs to the one shared transcript, so
+         opening Ask afterwards shows the same conversation. */
+      if (conv?.id) {
+        await sb.from("messages").insert([
+          {
+            user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "user", content: text,
+            metadata: { source: "telegram", detected_type: plan.field.intent, field_matched: plan.field.matched },
+          },
+          {
+            user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "assistant", content: reply,
+            metadata: { source: "telegram", why: handled.why, trip_id: handled.tripId, high_stakes: plan.high_stakes },
+          },
+        ]);
+      }
       return {
-        reply: `${handled.text}\n\nWhy this? ${handled.why}`,
+        reply,
         detectedType: plan.field.intent as string | null,
         routedTo: null as string | null,
-        readOnly: !plan.field || !handled.tripId,
+        readOnly: !handled.tripId,
         linkKind: (handled.link?.kind ?? null) as VantaLinkKind | null,
         commitmentId: null as string | null,
       };
     }
   }
 
-  // Telegram's own thread — same memory, same scope, just the pocket form of it.
-  const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
   let history: any[] = [];
   if (conv?.id) {
     const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id).order("created_at", { ascending: true }).limit(20);
     history = (m ?? []).filter((x: any) => x.role === "user" || x.role === "assistant");
   }
+
 
   // Stage 3 — match Companion: pull active corrections + recent field notes so
   // Telegram replies respect the same lived context. Also pull tz + default
