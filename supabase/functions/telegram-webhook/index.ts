@@ -378,6 +378,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         readOnly: !handled.tripId,
         linkKind: (handled.link?.kind ?? null) as VantaLinkKind | null,
         commitmentId: null as string | null,
+        tripId: handled.tripId,
       };
     }
   }
