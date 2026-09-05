@@ -57,12 +57,13 @@ export function FirstRunCapture({ className }: { className?: string }) {
      or a forwarding address is actually live. Two half-connected doors read as
      failure; one path with a status reads as a choice. */
   const phoneHow = telegram && emailSlug
-    ? `Telegram is linked, and mail forwarded to ${emailSlug}@inbound.vanta lands here too.`
+    ? "Telegram is linked, and email you forward to your inbound key lands here too."
     : telegram
       ? "Telegram is linked. Anything you send it arrives here as a draft."
       : emailSlug
-        ? `Forward any email to ${emailSlug}@inbound.vanta and it arrives here as a draft.`
-        : "Not connected yet. Link Telegram or mint a forwarding address in Settings, then send from anywhere.";
+        ? "Your inbound key is live — forward email to it and it arrives here as a draft."
+        : "Not connected yet. Link Telegram or mint a forwarding key in Settings, then send from anywhere.";
+
 
   const paths: Path[] = [
     {
