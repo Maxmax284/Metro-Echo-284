@@ -557,6 +557,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           busy={busy}
           onSend={send}
           onAttach={handleAttach}
+          onLook={() => setLooking(true)}
           onSlashPick={handleSlashPick}
           onStop={handleStop}
           draft={askSession.draft}
