@@ -6,7 +6,8 @@
 import { Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
-import { WhyThis } from "@/components/ui/why-this";
+import { WhySurfaced } from "@/components/ui/why-surfaced";
+import { whyFor } from "@/lib/whySurfaced";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -32,6 +33,14 @@ export function NoticedRow({
 }) {
   if (!signal) return null;
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
+  /* The same seven answers as everywhere else, from what the nudge recorded. */
+  const why = whyFor({
+    source: "What Vanta noticed",
+    whatChanged: signal.title,
+    reason: signal.body ?? "Vanta raised this from your own records.",
+    whyItMatters: "It is a draft observation, not an instruction.",
+    ifIgnored: "It disappears when you dismiss it. Nothing runs from it.",
+  });
 
   return (
     <div className="vanta-inset motion-arrival flex items-start gap-2.5 px-3 py-2.5">
@@ -39,8 +48,8 @@ export function NoticedRow({
       <div className="min-w-0 flex-1">
         <MachineLabel className="text-accent/80">Vanta noticed</MachineLabel>
         <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{signal.title}</p>
-        {/* One shared reason affordance, rendering only what was recorded. */}
-        <WhyThis reason={signal.body} className="mt-1" />
+        {/* One shared reveal, rendering only what was recorded. */}
+        <WhySurfaced why={why} className="mt-1" />
         <Button
           variant="ghost"
           size="sm"

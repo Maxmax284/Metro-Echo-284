@@ -7,13 +7,13 @@
 //
 // It renders recorded state only. It never executes, never scores, and never
 // turns missing data into a zero.
-import { useState } from "react";
-import { ChevronDown, Radio } from "lucide-react";
+import { Radio } from "lucide-react";
 import { MachineLabel } from "@/components/ui/instrument";
 import { ProvenanceStrip } from "@/components/ui/provenance";
 import { Button } from "@/components/ui/button";
-import { SOURCE_LABEL, quietLine, unknownLine, type SituationLine, type SituationRead as Read } from "@/lib/situation";
-import { MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
+import { WhySurfaced } from "@/components/ui/why-surfaced";
+import { quietLine, unknownLine, type SituationLine, type SituationRead as Read } from "@/lib/situation";
+import { MOTION_ROW } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const OPEN_LABEL: Record<SituationLine["kind"], string> = {
@@ -23,6 +23,7 @@ const OPEN_LABEL: Record<SituationLine["kind"], string> = {
   due_soon: "Open commitment",
   noticed: "See what Vanta noticed",
   went_unusually_quiet: "Open project",
+  matter_open: "Review the reading",
   arrived: "Open inbox",
 };
 
@@ -33,25 +34,12 @@ function Line({
   line: SituationLine;
   onOpen?: (line: SituationLine) => void;
 }) {
-  const [why, setWhy] = useState(false);
-
   return (
     <li className={cn("border-t border-border/40 py-2.5 first:border-t-0 first:pt-0", MOTION_ROW)}>
       <p className="text-sm leading-snug text-foreground">{line.text}</p>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         <ProvenanceStrip source={line.source} at={line.at} />
-        <button
-          type="button"
-          onClick={() => setWhy((v) => !v)}
-          aria-expanded={why}
-          className={cn(
-            "vanta-machine inline-flex items-center gap-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/80 hover:text-foreground",
-            MOTION_FOCUS,
-          )}
-        >
-          Why this?
-          <ChevronDown className={cn("h-3 w-3 transition-transform", why && "rotate-180")} aria-hidden />
-        </button>
+        <WhySurfaced why={line.why} />
         {onOpen ? (
           <Button
             variant="ghost"
@@ -63,14 +51,6 @@ function Line({
           </Button>
         ) : null}
       </div>
-
-      {why ? (
-        <div className="mt-1.5 space-y-1 border-l border-border/60 pl-2.5 text-[11.5px] leading-snug text-muted-foreground">
-          <p>{line.reason}</p>
-          <p>Read from {SOURCE_LABEL[line.source]}.</p>
-          {line.baseline?.line ? <p>{line.baseline.line}</p> : null}
-        </div>
-      ) : null}
     </li>
   );
 }

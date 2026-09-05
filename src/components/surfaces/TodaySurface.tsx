@@ -19,6 +19,8 @@ import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { useSituation } from "@/hooks/useSituation";
+import { SourceHealthStrip } from "@/components/today/SourceHealthStrip";
+import { useSourceHealth } from "@/hooks/useSourceHealth";
 
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
@@ -169,6 +171,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* One situational read, built from the same authoritative state Today already
      fetched plus the cadence Vanta learned. Read-only. */
   const situation = useSituation(digest);
+  const health = useSourceHealth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
@@ -386,11 +389,15 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             meeting_soon: "schedule",
             noticed: "awareness",
             went_unusually_quiet: "projects",
+            matter_open: "sherlock",
             arrived: "inbox",
           };
           onNavigate(target[line.kind] ?? "work");
         }}
       />
+
+      {/* Proof of life. It persists until reality changes. */}
+      <SourceHealthStrip sources={health.sources} loading={health.loading} />
 
       <TodayDigestLine onNavigate={onNavigate as never} />
 

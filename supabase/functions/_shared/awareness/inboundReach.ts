@@ -9,6 +9,7 @@
 // signals may break them. The item is always in the inbox first — messaging is
 // notification only and can never approve or execute anything.
 import { isInQuietHours } from "../drift.ts";
+import { compactWhy, whyFor } from "../whySurfaced.ts";
 import { readBrandVoice, styleNotice } from "../brandVoice.ts";
 import type { Urgency } from "./urgency.ts";
 import {
@@ -91,11 +92,25 @@ export async function reachInboundSignal(
   const apiKey = Deno.env.get("TELEGRAM_API_KEY");
   if (!apiKey) return done("connector_missing");
 
+  /*
+   * Same reveal as the screen, compressed to one line. A notice that cannot say
+   * why it arrived has no business interrupting anyone.
+   */
+  const whyLine = compactWhy(
+    whyFor({
+      source: input.sourcePlatform,
+      whatChanged: detail.title,
+      reason: `${input.eventType.replace(/[._]/g, " ")} came in and reads as ${urgency}.`,
+      at: new Date().toISOString(),
+      whyItMatters: "It is in the inbox for review.",
+    }),
+  );
+
   const text = styleNotice(
-    inboundNoticeText(detail, {
+    `${inboundNoticeText(detail, {
       publicUrl: Deno.env.get("VANTA_PUBLIC_URL"),
       nextStep: "In Vanta's inbox for review — nothing was actioned.",
-    }),
+    })}\n\nWhy you're seeing this: ${whyLine}`,
     readBrandVoice(prefs),
   );
 
