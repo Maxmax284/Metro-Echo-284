@@ -10,6 +10,7 @@
 // Pure module: callers fetch rows, this ranks and words them.
 
 import { unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
+import { whyFor, type WhySurfaced } from "./whySurfaced.ts";
 
 export type SituationSource =
   | "commitments"
@@ -39,7 +40,8 @@ export type SituationKind =
   | "arrived"
   | "noticed"
   | "meeting_soon"
-  | "went_unusually_quiet";
+  | "went_unusually_quiet"
+  | "matter_open";
 
 /** Ranked by consequence, not by recency. Lower number wins. */
 const KIND_WEIGHT: Record<SituationKind, number> = {
@@ -48,8 +50,9 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   meeting_soon: 3,
   due_soon: 4,
   noticed: 5,
-  went_unusually_quiet: 6,
-  arrived: 7,
+  matter_open: 6,
+  went_unusually_quiet: 7,
+  arrived: 8,
 };
 
 export type SituationLine = {
@@ -65,6 +68,8 @@ export type SituationLine = {
   entity?: { type: string; id: string } | null;
   /** Present only when a baseline actually informed the line. */
   baseline?: BaselineRead | null;
+  /** The shared "Why this?" reveal. Same seven answers on every surface. */
+  why?: WhySurfaced | null;
   weight: number;
 };
 
@@ -89,6 +94,23 @@ export type SituationInput = {
   meetings: Array<{ id: string; title: string; starts_at: string }>;
   /** Projects with their stored cadence, for the "different from usual" read. */
   projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }>;
+  /**
+   * Cross-reference matters Sherlock read together and left waiting for review.
+   * They surface as one matter line, never as a pile of source reports.
+   */
+  matters?: Array<{
+    id: string;
+    title: string;
+    /** Filenames as recorded, so the reveal names the real sources. */
+    sources: string[];
+    /** The named expectation used to read them: "Fight card", "Contract". */
+    templateLabel: string | null;
+    /** Fields the template expected and the sources did not carry. */
+    gaps?: string[];
+    /** Conflicts found between sources, if any were recorded. */
+    conflicts?: number;
+    at: string;
+  }>;
   /** Sources the caller could not read (offline, off, not set up). */
   unknownSources?: SituationSource[];
 };
