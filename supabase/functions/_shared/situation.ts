@@ -134,7 +134,19 @@ export type SituationInput = {
   overdue: Array<{ id: string; summary: string; due_at: string | null }>;
   dueSoon: Array<{ id: string; summary: string; due_at: string | null }>;
   waitingOnYou: Array<{ id: string; title: string; updated_at: string }>;
-  arrived: Array<{ id: string; label: string; at: string; via?: string | null }>;
+  /**
+   * Things that landed and have no home yet. `read` and `why` come from the
+   * arrivals lane, so an arrival is described the same way here as it is in the
+   * Aware room and in Telegram.
+   */
+  arrived: Array<{
+    id: string;
+    label: string;
+    at: string;
+    via?: string | null;
+    read?: string | null;
+    why?: WhySurfaced | null;
+  }>;
   noticed: Array<{ id: string; title: string; reason: string; at: string }> ;
   meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null }>;
   /** Projects with their stored cadence, for the "different from usual" read. */
@@ -390,14 +402,28 @@ export function readSituation(input: SituationInput): SituationRead {
     const n = input.arrived.length;
     const first = input.arrived[0];
     const via = first.via ? ` from ${first.via}` : "";
+    /* One arrival is spoken about in the words the lane already chose. Several
+       are counted, because reading three summaries here would drown the day. */
+    const text = n === 1
+      ? (first.read?.trim() || `${first.label} arrived${via} and is not filed yet.`)
+      : `${n} things arrived${via} and are not filed yet.`;
     push({
       kind: "arrived",
       source: "inbox",
-      text: n === 1 ? `${first.label} arrived${via} and is not filed yet.` : `${n} things arrived${via} and are not filed yet.`,
+      text,
       reason: "Captures wait in Inbox until you file them. Nothing was acted on.",
       at: first.at,
       entity: { type: "capture", id: first.id },
+      /* The lane's own reveal when there is exactly one thing to reveal. */
+      why: n === 1 ? first.why ?? null : null,
     });
+    /* Something that landed minutes ago belongs beside a meeting or a promise,
+       not behind everything else. Older arrivals keep their usual place. */
+    const landed = new Date(first.at).getTime();
+    if (Number.isFinite(landed) && now - landed <= 60 * 60 * 1000) {
+      const line = lines[lines.length - 1];
+      if (line) line.weight = 3.5;
+    }
   }
 
   /* Consequence first. Place only decides which of two equally weighted lines
