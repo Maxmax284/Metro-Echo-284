@@ -8,7 +8,7 @@
 //
 // Nothing here infers a posture. It reads the posture the person set (or that a
 // session set deliberately) and picks a visual register for it.
-import type { Posture } from "@/lib/awarenessContext";
+import type { Posture } from "@/lib/awareness";
 import { useVantaContext } from "@/providers/VantaContextProvider";
 
 /** The visual register only. Not a state, not a mood — a way of drawing. */
