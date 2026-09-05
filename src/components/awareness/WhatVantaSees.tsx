@@ -12,7 +12,7 @@ type Row = { label: string; on: boolean | null; helps: string };
 function feedState(sources: SourceHealth[], key: string): boolean | null {
   const s = sources.find((x) => x.key === key);
   if (!s) return null;
-  return s.conn === "connected";
+  return s.state !== "off" && s.state !== "no_data";
 }
 
 export function WhatVantaSees({ className }: { className?: string }) {
