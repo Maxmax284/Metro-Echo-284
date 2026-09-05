@@ -81,7 +81,7 @@ export default function LocationSetupPage() {
       if (!allowed) await update({ sensor_consent: { ...consent, location: true } });
       const res = await requestFix();
       setPermission(await readLocationPermission());
-      if (!res.ok) {
+      if (!("fix" in res)) {
         toast.error(FIX_FAILURE_COPY[res.failure]);
         return;
       }
