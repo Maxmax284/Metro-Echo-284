@@ -18,6 +18,7 @@ import {
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
+import { objectIntentFor } from "@/lib/objectIntent";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
