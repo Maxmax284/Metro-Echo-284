@@ -57,6 +57,13 @@
       "when": 1788577812890,
       "tag": "0007_create_telegram_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788579626596,
+      "tag": "0008_create_object_cadence",
+      "breakpoints": true
     }
   ]
 }
