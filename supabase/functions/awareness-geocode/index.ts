@@ -194,14 +194,15 @@ Deno.serve(async (req: Request) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Nominatim usage policy requires a real User-Agent.
+    // Nominatim usage policy requires a real User-Agent. Header values must be
+    // ASCII, or the request fails before it ever leaves.
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=12&addressdetails=1`;
     let nomi: NominatimResp | null = null;
     let fetchError: string | null = null;
+    let lookupSource = "nominatim";
     try {
       const r = await fetch(url, {
         headers: {
-          /* ASCII only: a non-ASCII header value makes the request fail before it leaves. */
           "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)",
           "Accept-Language": "en",
         },
@@ -215,11 +216,48 @@ Deno.serve(async (req: Request) => {
       fetchError = e instanceof Error ? e.message : "fetch_failed";
     }
 
+    /* One place-name service being busy must not leave a person's place
+       nameless. Photon reads the same OpenStreetMap data, so the second try is
+       the same truth from another door. */
+    if (!nomi || !nomi.address) {
+      console.error("[vanta] first place lookup failed:", fetchError ?? "no address in response");
+      try {
+        const r2 = await fetch(
+          `https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&lang=en`,
+          { headers: { "User-Agent": "VantaMindfulAI/1.0 (https://vantav2.lovable.app)" } },
+        );
+        if (r2.ok) {
+          const j2 = await r2.json();
+          const pr = j2?.features?.[0]?.properties ?? null;
+          if (pr && (pr.country || pr.city || pr.state)) {
+            lookupSource = "photon";
+            nomi = {
+              address: {
+                country: pr.country ?? undefined,
+                country_code: pr.countrycode ?? undefined,
+                state: pr.state ?? undefined,
+                county: pr.county ?? undefined,
+                city: pr.city ?? pr.district ?? undefined,
+                suburb: pr.district ?? undefined,
+              },
+              display_name: [pr.name, pr.city, pr.state, pr.country].filter(Boolean).join(", "),
+            };
+          } else {
+            fetchError = fetchError ?? "photon_no_match";
+          }
+        } else {
+          fetchError = `${fetchError ?? "nominatim_failed"}+photon_${r2.status}`;
+        }
+      } catch (e) {
+        fetchError = `${fetchError ?? "nominatim_failed"}+${e instanceof Error ? e.message : "photon_failed"}`;
+      }
+    }
+
     if (!nomi || !nomi.address) {
       console.error("[vanta] place lookup failed:", fetchError ?? "no address in response");
       return new Response(JSON.stringify({
         error: "geocode_failed",
-        reason: fetchError ?? "nominatim returned no address",
+        reason: fetchError ?? "no address came back",
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -250,6 +288,7 @@ Deno.serve(async (req: Request) => {
       country_code: country_code ?? (geo as any).country_code ?? null,
       display_name: nomi.display_name ?? (geo as any).display_name ?? null,
       geocoded_at: new Date().toISOString(),
+      geocode_source: lookupSource,
       sanity: sanity?.sanity ?? (geo as any).sanity ?? null,
       sanity_meta: sanity ?? (geo as any).sanity_meta ?? null,
     };
