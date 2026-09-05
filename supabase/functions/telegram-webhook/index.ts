@@ -872,11 +872,25 @@ Deno.serve(async (req) => {
           const { data: note } = await admin.from("notes").select("body").eq("id", read.noteId).maybeSingle();
           words = String(note?.body ?? "").trim();
         }
+        /* Same introduction a document gets in the app: what it looks like,
+           what came off it, then what can happen next. Words only — the
+           buttons below are offers, and none of them execute anything. */
+        const intent = objectIntentFor({
+          filename: page.name,
+          mime: page.mime,
+          detectedDocType: (fileRec as any)?.detected_doc_type ?? null,
+          confidence: (fileRec as any)?.confidence ?? null,
+        });
         reply = read.ok
-          ? words
-            ? `${words.slice(0, 900)}${words.length > 900 ? "…" : ""}\n\nThat's what's on it. Saved in your Inbox.`
-            : "Nothing readable came off it, so I didn't guess. It's saved in your Inbox."
-          : "Couldn't read it just now — it's saved, and the daily sweep will try again.";
+          ? [
+              intent.line,
+              "",
+              readSummaryLine(words, 900),
+              "",
+              "Saved in your Inbox. Nothing filed under a project yet.",
+              nextStepsLine(intent.kind),
+            ].join("\n")
+          : `${intent.line}\n\nCouldn't read it just now — it's saved, and the daily sweep will try again.`;
       } else {
         try {
           const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);
