@@ -6,6 +6,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
+import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 import {
@@ -299,7 +300,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { conversation_id, message, scope, attachments, verbosity } = await req.json();
+    const { conversation_id, message, scope, attachments, verbosity, device } = await req.json();
     const hints: AttachmentHint[] = Array.isArray(attachments) ? attachments.slice(0, 6) : [];
 
     if (!conversation_id || !message) {
@@ -479,7 +480,10 @@ Deno.serve(async (req: Request) => {
       readBrandVoice((voiceProfile?.preferences ?? {}) as Record<string, unknown>),
     );
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]
+    // One Vanta, many bodies: same facts, same voice, less said on a small screen.
+    const depthBlock = depthDirective(bodyForDevice(typeof device === "string" ? device : null));
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
 
 
