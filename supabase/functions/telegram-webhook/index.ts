@@ -313,7 +313,21 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   const timeBlock = `User time context:
 - timezone: ${defaults.timezone}
 - morning: ${defaults.morning}, afternoon: ${defaults.afternoon}, evening/tonight: ${defaults.evening}`;
-  const sys = [SYSTEM, timeBlock, correctionsBlock, fieldNotesBlock].filter(Boolean).join("\n\n");
+
+  // Telegram now wears the same brand-voice layer as in-app chat, and the accent
+  // steps down automatically when the message is serious: legal, financial,
+  // medical, identity or safety content forces the calmest, most precise level.
+  const bv = readBrandVoice(prefs as Record<string, unknown>);
+  const sensitive = detectSensitive(text).sensitive;
+  const ctx: VoiceContext = sensitive
+    ? "sensitive"
+    : /\b(what'?s|whats|how'?s|hows|any|status|due|waiting|changed|going)\b/i.test(text)
+      ? "answer"
+      : "routine";
+  const brandBlock = brandVoiceDirective(bv, ctx);
+
+  const sys = [SYSTEM, brandBlock, timeBlock, correctionsBlock, fieldNotesBlock]
+    .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
 
