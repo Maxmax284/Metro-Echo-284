@@ -122,3 +122,64 @@ Every step keeps: visible state, opt-in, no silent background fix, and a receipt
 **G. Trips** — Start/End trip with a visible running state; distance, duration, stops; a history list; "how far did I ride this week?" answerable; deletable.
 
 **H. Voice notes** — opt-in transcription, arrives as a real object with the words attached.
+
+---
+
+# Addendum — does Today need to change too?
+
+Yes, but not by adding. Today is the room that needs **less**, arranged better.
+
+## What Today already has (and it's a lot)
+
+Read off `TodaySurface.tsx` in render order: header + one-line state headline (`todayHeadline`/`stateOfDay`), time-source line, 14-day activity trace, tick row, `GotSomethingChooser`, `FirstLapCard`, `JumpStrip`, `CrossDeviceResume`, **`SituationRead`**, `SourceHealthStrip`, `TodayDigestLine`, `AskVantaBar`, `QuickModes`, `LiveBulletin`, `NoticedRow`, `ResumeWorkSection`, `AgendaStrip`, `TodayBodyPanel`, then sections Needs attention / What's next / Security / What changed / Fresh in, then `SurfaceAftermath`.
+
+Supporting the companion direction already:
+- **The one read** — `SituationRead` with ranked lines, origin, freshness, Why this? on every line, and a "start here".
+- **Source health** — `SourceHealthStrip`, sources with nothing to say named once.
+- **Body/device** — `TodayBodyPanel`.
+- **Coming up** — `AgendaStrip` (calendar) + What's next (dated promises).
+- **Changed** — `LiveBulletin` + What changed.
+- **Proactive** — `NoticedRow` with dismiss/follow.
+- **Provenance and honesty** — `TimeSourceLine`, `FreshnessLine`, `CardMeta`, `ActivityTrace`, `ExplainThisButton`.
+
+## What's actually missing
+
+1. **Place.** `_shared/situation.ts` has no place input at all. Today cannot say "You're at Lamai."
+2. **Hierarchy.** Around twenty-two top-level blocks. The read is seventh. Four separate things answer "what changed" and two answer "coming up".
+3. **One sentence.** The headline is a state label; the read is a separate card. They don't compose into a paragraph a person can absorb in one look.
+
+Not "underpowered" — over-stacked. Adding cards would make it worse.
+
+## Answers
+
+**3) Should place surface in Today?** Yes — but as *words inside the read*, never a card, never a map. One clause in the opening sentence, and only when all three hold: location is on, the place is resolved above country level, and the place changed something (ordering, or a "can wait until after"). Otherwise Today says nothing about location at all. No pin, no coordinates, no "location context available".
+
+**4) Now / Around you / Changed / Coming up in Today?** No — not as headings. Today gets **one paragraph** built from the same four inputs, plus the sections it already has. Awareness owns the four named shelves because it is place-scoped. Today's framing stays "what matters right now" and "here's what's moving". Same inputs, same voice, different shape: Today = one paragraph + ranked lines; Awareness = one paragraph + four short shelves for this place.
+
+**5) Split.**
+- Awareness only: the place strip, tiers and pin quality, recenter/fix location/map picker, saved-places list, the eight place topics and Scan, nearby places, trip start/end and mileage history.
+- Today only: cross-project ranking, commitments, actions, inbox, security, what changed, hand-off, body panel, the Ask bar.
+- Shared: the read composer, Why this?, freshness/origin lines, source health, the depth law.
+
+**6) Shared so they feel like one system:** `_shared/situation.ts` (one composer, two callers), `whySurfaced.ts` + `why-surfaced.tsx`, `plainLabels`/`plainEnglish`/`vantaVoice`, `responseDepth.ts` (same compression), `motion.ts` tokens (`MOTION_ROW`/`MOTION_STAMP`/`LEAD_BAR`), `FreshnessLine`/`CardMeta`, and `deriveWeather` ambience. Nothing new invented for Awareness that Today doesn't also use.
+
+**8) Duplication and hierarchy problems found:**
+- "What changed" exists four times: `LiveBulletin`, `TodayDigestLine`, the What changed section, and `ActivityTrace`.
+- "Coming up" exists twice: `AgendaStrip` and What's next.
+- Navigation exists three times: `JumpStrip`, `QuickModes`, the read's own "start here".
+- `FirstLapCard` and `GotSomethingChooser` both sit above the read — onboarding outranking the answer.
+- `NoticedRow` (proactive) renders *below* the read that is supposed to be the single ranked list — two voices ranking the same day.
+
+## Smallest additions to the approved plan
+
+**A2. Today opens with the read.** Move `SituationRead` directly under the headline; `GotSomethingChooser`, `FirstLapCard`, `JumpStrip`, `CrossDeviceResume` move below it. The headline and the read merge into one paragraph.
+
+**A3. Place inside the read.** Add an optional place to the shared situation composer; when the three conditions hold, the paragraph opens with where you are and the Why this? for any line place touched says so in words. No new UI.
+
+**A4. Fold the duplicates.** `TodayDigestLine` + `LiveBulletin` + What changed become one "What changed" block; `AgendaStrip` folds into What's next; `QuickModes` folds into `JumpStrip`; `NoticedRow` becomes a line inside the read rather than a card beside it. Net: roughly twenty-two blocks down to about ten.
+
+**A5. One quiet state.** When there is nothing, Today says one sentence — "You're clear." — and shows only the read and source health.
+
+Acceptance: on a 384px screen, the paragraph and the ranked lines are visible without scrolling; every line still has origin, freshness and Why this?; nothing about location appears when location is off; the quiet day is one sentence.
+
+Order: A2 and A4 before A (Awareness rebuild) — they cost the least and make the Awareness read feel like the same system. A3 lands with E (place-aware softening).
