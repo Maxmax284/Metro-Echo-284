@@ -64,7 +64,9 @@ export function SherlockOverlay() {
         if (error) throw error;
         if (!cancelled) setFindings(data?.findings ?? {});
       } catch (e) {
-        if (!cancelled) toast.error(e instanceof Error ? e.message : "Sherlock failed");
+        if (!cancelled) toast.error("Didn't run.", {
+            description: `${e instanceof Error ? e.message : "The check couldn't finish."} Nothing changed. Try again in a moment.`,
+          });
       } finally {
         if (!cancelled) setLoading(false);
       }
