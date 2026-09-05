@@ -232,7 +232,7 @@ export const STATE_LABEL: Record<string, string> = {
   agrees: "Sources agree",
   conflicts: "Sources disagree",
   missing: "Not on any source",
-  unreadable: "Vanta could not read this",
+  unreadable: "Echo could not read this",
   calculated: "Calculated",
   corrected: "You set this",
 };

@@ -500,7 +500,7 @@ export function ActionsSurface() {
                     <span className="block text-sm font-medium text-foreground">{t.title}</span>
                     <span className="block text-xs text-muted-foreground">
                       {t.rollback_available
-                        ? "Vanta will try to reverse what ran. The receipt stays either way."
+                        ? "Echo will try to reverse what ran. The receipt stays either way."
                         : "No automatic undo. Marking it 'undone' is just bookkeeping — you'll need to reverse the effect yourself."}
                     </span>
                   </DialogDescription>

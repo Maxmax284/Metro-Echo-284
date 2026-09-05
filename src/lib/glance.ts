@@ -144,7 +144,7 @@ const PROMISE_HINTS = [
   /\bfollow up\b/i,
 ];
 
-/** A hint, not a decision. Vanta offers review; it never converts silently. */
+/** A hint, not a decision. Echo offers review; it never converts silently. */
 export function looksLikeCommitment(text: string): boolean {
   const t = (text ?? "").trim();
   if (t.length < 4) return false;

@@ -1,11 +1,11 @@
 // Spoke credential kit — the paste-once bundle another platform needs to push
-// signals into Vanta. Pure string building so it can be unit tested and so the
+// signals into Metro Echo. Pure string building so it can be unit tested and so the
 // secret never travels anywhere except the clipboard the owner asked for.
 
 export type SpokeKitInput = {
   /** Human label, e.g. "LMT Camp State". */
   platformName: string;
-  /** Canonical source key Vanta expects in the payload, e.g. "ground_truth_hub". */
+  /** Canonical source key Echo expects in the payload, e.g. "ground_truth_hub". */
   sourceKey: string;
   /** Full inbound webhook URL. */
   webhookUrl: string;
@@ -37,7 +37,7 @@ export function sampleNoticePayload(input: SpokeKitInput): Record<string, unknow
 export function buildSpokeKit(input: SpokeKitInput): string {
   const body = JSON.stringify(sampleNoticePayload(input));
   return [
-    `# ${input.platformName} → Vanta spoke credentials`,
+    `# ${input.platformName} → Echo spoke credentials`,
     ``,
     `Webhook URL: ${input.webhookUrl}`,
     `Source key:  ${input.sourceKey}`,
@@ -57,8 +57,8 @@ export function buildSpokeKit(input: SpokeKitInput): string {
     `  -H "X-Vanta-Signature: sha256=$SIG" \\`,
     `  --data "$BODY"`,
     ``,
-    `What happens next: the signal lands as a draft in Vanta and, if you have`,
-    `proactive awareness on, it reaches you through Vanta's own delivery pipe.`,
-    `Nothing executes from an inbound signal. Approval always happens in Vanta.`,
+    `What happens next: the signal lands as a draft in Metro Echo and, if you have`,
+    `proactive awareness on, it reaches you through Echo's own delivery pipe.`,
+    `Nothing executes from an inbound signal. Approval always happens in Metro Echo.`,
   ].join("\n");
 }

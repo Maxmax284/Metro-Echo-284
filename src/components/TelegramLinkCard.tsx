@@ -71,7 +71,7 @@ export function TelegramLinkCard() {
       if (error) throw error;
       const d = (data ?? {}) as { registered?: boolean; reason?: string; last_error_message?: string | null };
       if (d.registered) {
-        toast.success("Telegram now delivers messages to Vanta.");
+        toast.success("Telegram now delivers messages to Echo.");
       } else {
         toast(d.reason ?? d.last_error_message ?? "Telegram didn't accept the connection.");
       }
@@ -111,7 +111,7 @@ export function TelegramLinkCard() {
           Capture layer only
         </div>
         <p className="text-[11.5px] leading-snug text-muted-foreground">
-          Messages become <strong className="text-foreground/85">drafts</strong> inside Vanta — never live actions.
+          Messages become <strong className="text-foreground/85">drafts</strong> inside Metro Echo — never live actions.
           Plan → Approve → Execute always happens here. Telegram feeds the system; it doesn't control it.
         </p>
       </div>
@@ -139,7 +139,7 @@ export function TelegramLinkCard() {
             Reconnect inbound messages
           </Button>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            Run this once so messages you send the bot actually reach Vanta, and again if replies stop arriving.
+            Run this once so messages you send the bot actually reach Echo, and again if replies stop arriving.
           </p>
         </div>
       )}
@@ -162,7 +162,7 @@ export function TelegramLinkCard() {
             <Copy className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
           </button>
           <p className="text-xs text-muted-foreground">
-            {bot ? <>Open <span className="font-mono">@{bot}</span> and send:</> : "Open your Vanta bot and send:"}
+            {bot ? <>Open <span className="font-mono">@{bot}</span> and send:</> : "Open your Echo bot and send:"}
             <span className="ml-1 font-mono text-foreground">/start {code}</span>
           </p>
           {deepLink && (

@@ -53,7 +53,7 @@ function timeAwarePlaceholder(): string {
   if (h < 5) return "Late thought to capture?";
   if (h < 11) return "What's the day's shape?";
   if (h < 14) return "Midday check — anything to stage?";
-  if (h < 18) return "What needs Vanta's attention?";
+  if (h < 18) return "What needs Echo's attention?";
   if (h < 22) return "Wrap-up: capture, commit, or plan?";
   return "Anything to log before bed?";
 }
@@ -82,7 +82,7 @@ type Props = {
   onSend: (text: string) => void | Promise<void>;
   /** Optional: attach button is shown when this is provided. */
   onAttach?: (files: FileList) => void | Promise<void>;
-  /** Optional: open the deliberate camera seam — Vanta looks at one picture. */
+  /** Optional: open the deliberate camera seam — Echo looks at one picture. */
   onLook?: () => void;
   /** Optional: slash palette picks a registry tool by id. */
   onSlashPick?: (toolId: string) => void;
@@ -348,7 +348,7 @@ export function ConversationDock({
               <PopoverContent align="start" side="top" className="w-56 p-1">
                 {onLook && (
                   <>
-                    <AttachOption icon={Eye} label="Show Vanta something" onClick={onLook} />
+                    <AttachOption icon={Eye} label="Show Echo something" onClick={onLook} />
                     <div className="my-1 h-px bg-border/50" />
                   </>
                 )}

@@ -189,7 +189,7 @@ export function buildDraftDocx(args: {
   const sigPage = isSignature ? signaturePage(signatories) : [];
 
   return new Document({
-    creator: "Vanta",
+    creator: "Echo",
     title: doc.title,
     description: subtitle,
     styles: {

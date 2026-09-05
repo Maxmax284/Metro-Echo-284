@@ -1,6 +1,6 @@
 // SourceHealthStrip — proof of life, and it stays put.
 //
-// One line per feed Vanta reads, with the word first and the evidence under it.
+// One line per feed Echo reads, with the word first and the evidence under it.
 // It persists until reality changes, so nothing important depends on catching a
 // disappearing message. Nothing here connects, disconnects or runs anything.
 import { useState } from "react";

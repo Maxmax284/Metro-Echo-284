@@ -1,4 +1,4 @@
-// ProcessingLine — what Vanta is actually doing right now.
+// ProcessingLine — what Echo is actually doing right now.
 //
 // Only two states are real from the client's point of view: the request is out
 // and no tokens have come back yet ("reading"), or tokens are arriving
@@ -31,7 +31,7 @@ export function ProcessingLine({
         </span>
         {label}…
       </span>
-      {/* Signal track — purple because this is Vanta thinking, not a status. */}
+      {/* Signal track — purple because this is Echo thinking, not a status. */}
       <span
         aria-hidden
         className="relative block h-px w-28 overflow-hidden rounded-full bg-border/60"

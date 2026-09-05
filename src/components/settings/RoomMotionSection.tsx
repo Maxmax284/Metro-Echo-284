@@ -1,4 +1,4 @@
-// RoomMotionSection — per-device control over how much Vanta moves.
+// RoomMotionSection — per-device control over how much Echo moves.
 //
 // Doctrine:
 //  - Local to this device. Nothing here is account data, nothing is audited.
@@ -62,7 +62,7 @@ export function RoomMotionSection() {
             Feel
           </h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            How much Vanta moves when rooms hand over and answers arrive. This device only.
+            How much Echo moves when rooms hand over and answers arrive. This device only.
           </p>
         </div>
         <Switch

@@ -23,7 +23,7 @@ export interface LoopPromise {
 export interface LoopFacts {
   /** A Telegram chat is paired to this account. */
   linked: boolean;
-  /** Last message Vanta received from the phone. */
+  /** Last message Echo received from the phone. */
   lastMessageAt: string | null;
   /** The most recent promise that arrived from the phone. */
   promise: LoopPromise | null;
@@ -52,7 +52,7 @@ export function buildPromiseWalk(f: LoopFacts): LoopStep[] {
       line: f.lastMessageAt
         ? `Last message received ${f.lastMessageAt}.`
         : f.linked
-          ? "Chat is linked. Send Vanta a message to start the loop."
+          ? "Chat is linked. Send Echo a message to start the loop."
           : "No chat linked yet. Pair Telegram in Connected Accounts.",
       state: f.lastMessageAt ? "done" : "waiting",
     },
@@ -109,8 +109,8 @@ export function walkProgress(steps: LoopStep[]): { done: number; total: number }
 export function describeSweep(sweep: SweepReading | null, pendingPages: number): string {
   if (!sweep) {
     return pendingPages > 0
-      ? `${pendingPages} ${pendingPages === 1 ? "page is" : "pages are"} waiting to be read. Vanta has not swept yet.`
-      : "Vanta has not read any pages yet. Photograph a page and send it in.";
+      ? `${pendingPages} ${pendingPages === 1 ? "page is" : "pages are"} waiting to be read. Echo has not swept yet.`
+      : "Echo has not read any pages yet. Photograph a page and send it in.";
   }
   const parts: string[] = [];
   if (sweep.read > 0) parts.push(`${sweep.read} ${sweep.read === 1 ? "page" : "pages"} read`);

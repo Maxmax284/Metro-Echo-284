@@ -1,7 +1,7 @@
-// bridge-dispatch — drain the outbound bridge queue (Vanta → LMT Camp State).
+// bridge-dispatch — drain the outbound bridge queue (Echo → LMT Camp State).
 //
 // Runs on a schedule and can be poked by hand. Notification only: it forwards
-// awareness updates Vanta already recorded. It never executes anything and it
+// awareness updates Echo already recorded. It never executes anything and it
 // never accepts instructions back.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/http.ts";

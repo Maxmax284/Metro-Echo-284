@@ -188,7 +188,7 @@ export function CompanionWidget() {
             "md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:flex-col md:px-2 md:py-3.5",
             thinking && "text-accent border-accent/50",
           )}
-          title={thinking ? "Still working on your last question" : "Ask Vanta"}
+          title={thinking ? "Still working on your last question" : "Ask Echo"}
         >
           <MessageCircle className="h-3.5 w-3.5" />
           <span className="md:[writing-mode:vertical-rl]">Ask</span>

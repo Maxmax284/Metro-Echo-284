@@ -1,6 +1,6 @@
-// telegram-webhook: receive Telegram updates, route to Vanta intent pipeline.
+// telegram-webhook: receive Telegram updates, route to Echo intent pipeline.
 // - Verifies X-Telegram-Bot-Api-Secret-Token (derived from TELEGRAM_API_KEY).
-// - Pairing: /start <CODE> links a chat to a Vanta user account.
+// - Pairing: /start <CODE> links a chat to an Echo user account.
 // - Conversation: text messages from a linked chat are routed to AI with the
 //   same tools as vanta-converse (capture_note / stage_action / add_commitment),
 //   then the assistant reply is sent back to Telegram.
@@ -36,7 +36,7 @@ async function tg(method: string, body: unknown) {
 
 
 /** Thread record. Every message in or out is kept so the Telegram room inside
- *  Vanta shows the real conversation, not a webhook log. Never blocks a reply. */
+ *  Echo shows the real conversation, not a webhook log. Never blocks a reply. */
 async function logTgMessage(admin: any, row: Record<string, unknown>) {
   try { await admin.from("telegram_messages").insert(row); } catch (e) { console.error("telegram_messages insert", e); }
 }
@@ -110,7 +110,7 @@ You CAN answer read-only questions about the user's desks by calling the read
 tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
 of guessing from chat history — never invent counts or names. You can also file an
 existing capture under a project. You cannot approve, execute, export, send, book,
-or pay anything; for those, say it's waiting inside Vanta — flatly, not apologetically.
+or pay anything; for those, say it's waiting inside Metro Echo — flatly, not apologetically.
 Never write a tidy assistant paragraph.`;
 
 
@@ -146,7 +146,7 @@ type UserDefaults = { timezone: string; morning: string; afternoon: string; even
 // Telegram → hub bridge. Anything captured from Telegram that actually routed
 // somewhere is forwarded to LMT Camp State as an awareness notice: durable
 // queue, signed body, retried by bridge-dispatch. Notification only — the hub
-// is told what Vanta noticed, never what to do.
+// is told what Echo noticed, never what to do.
 async function applyIntent(
   sb: SupabaseClient,
   userId: string,
@@ -162,11 +162,11 @@ async function applyIntent(
       ownerId: userId,
       organizationId: orgId,
       eventType: `awareness.capture_routed.${res.routedTo}`,
-      title: `Vanta captured ${res.detectedType ?? "an item"}: ${title}`,
+      title: `Echo captured ${res.detectedType ?? "an item"}: ${title}`,
       lines: [
         `Captured via: Telegram`,
         `Landed in: ${res.routedTo}`,
-        "Nothing was executed — it is waiting for review in Vanta.",
+        "Nothing was executed — it is waiting for review in Metro Echo.",
       ],
       urgency: "normal",
       payload: {
@@ -273,7 +273,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: recent.id, via: "Telegram" });
     return res.ok
       ? { reply: `Filed under ${res.title}. Nothing else happened to it.`, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind }
-      : { reply: "Couldn't file that. Open Vanta and attach it there.", detectedType: null, routedTo: null, readOnly: true };
+      : { reply: "Couldn't file that. Open Metro Echo and attach it there.", detectedType: null, routedTo: null, readOnly: true };
   }
 
   return null;
@@ -331,7 +331,7 @@ async function telegramConversation(
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null, chatId: string | number | null = null) {
   // Identity questions never reach a model. Fixed copy, one line, done — so no
-  // provider or model name can ever be presented as Vanta's identity or author.
+  // provider or model name can ever be presented as Echo's identity or author.
   const idq = matchIdentityQuestion(text);
   if (idq) {
     return {
@@ -426,7 +426,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     const rows: SenseRow[] = [
       { key: "location", label: "Where you are", on: consent.location === true, helps: "so your day reads for the place you're in" },
       { key: "calendar", label: "Your calendar", on: (feedCount ?? 0) > 0, helps: "so meetings show up in your day" },
-      { key: "telegram", label: "Messages here", on: (linkCount ?? 0) > 0, helps: "so anything you send lands in Vanta" },
+      { key: "telegram", label: "Messages here", on: (linkCount ?? 0) > 0, helps: "so anything you send lands in Metro Echo" },
       { key: "motion", label: "Movement and trips", on: consent.motion === true, helps: "so travel time gets measured, not guessed" },
       { key: "wearable", label: "Wearable readings", on: consent.wearable === true, helps: "so a rough night can soften the day" },
     ];
@@ -515,7 +515,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       });
       if (finding && finding.suggested_route !== "ignore") {
         const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
-        reply = `${reply}\n\nLooks like ${lane}. Open Vanta to approve — nothing's been done yet.`.trim();
+        reply = `${reply}\n\nLooks like ${lane}. Open Metro Echo to approve — nothing's been done yet.`.trim();
       }
     } catch { /* best-effort */ }
   }
@@ -597,7 +597,7 @@ Deno.serve(async (req) => {
         );
         await tg("answerCallbackQuery", {
           callback_query_id: cbId,
-          text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Vanta.",
+          text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Metro Echo.",
         });
         if (res.ok) await dropButtons();
         return ok();
@@ -642,7 +642,7 @@ Deno.serve(async (req) => {
         }).eq("id", commitmentId).eq("user_id", cbLink.user_id);
         if (doneErr) {
           console.error("[vanta] telegram done failed:", doneErr.message);
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Metro Echo." });
           return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
         }
         await audit("commitment.completed", { from: "open", to: "done", completed_at: nowIso });
@@ -662,7 +662,7 @@ Deno.serve(async (req) => {
         }).eq("id", commitmentId).eq("user_id", cbLink.user_id);
         if (snoozeErr) {
           console.error("[vanta] telegram snooze failed:", snoozeErr.message);
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Vanta." });
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Metro Echo." });
           return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
         }
         const presetLabel = SNOOZE_PRESETS.find((p) => p.key === action)?.label ?? `+${snoozeMinutes}m`;
@@ -736,7 +736,7 @@ Deno.serve(async (req) => {
     }
 
     /* A photo — an image sent as a file — or a document (PDF, Word, plain
-       text) is a page. Vanta reads it and files it for review. It is capture,
+       text) is a page. Echo reads it and files it for review. It is capture,
        so it never routes or executes. One pipeline, many doors. */
     const photoSizes = Array.isArray(msg.photo) ? msg.photo : [];
     const biggest = photoSizes.length > 0 ? photoSizes[photoSizes.length - 1] : null;
@@ -783,7 +783,7 @@ Deno.serve(async (req) => {
             }
           : null;
 
-    /* A file Vanta can't take gets a plain answer, not silence. */
+    /* A file Echo can't take gets a plain answer, not silence. */
     if (!text && !page && msg.document) {
       await tg("sendMessage", {
         chat_id: chatId,
@@ -939,7 +939,7 @@ Deno.serve(async (req) => {
       }).select("id, user_id, organization_id, filename, mime_type, storage_path, source, metadata").single();
       if (fileErr || !fileRec) {
         console.error("[vanta] telegram page insert failed:", fileErr?.message);
-        await tg("sendMessage", { chat_id: chatId, text: "The page landed but I couldn't file it. Open Vanta and check the Inbox." });
+        await tg("sendMessage", { chat_id: chatId, text: "The page landed but I couldn't file it. Open Metro Echo and check the Inbox." });
         return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
       }
 
@@ -950,7 +950,7 @@ Deno.serve(async (req) => {
       });
 
       /* The answer belongs in the thread the question was asked in. A caption
-         is a question, so Vanta looks at the picture and says what it sees
+         is a question, so Echo looks at the picture and says what it sees
          here; the Inbox line is a footnote, not the reply. Only a "read this"
          caption goes down the text lane, and even then the words come back. */
       const wantIntent = intentFromCaption(caption);

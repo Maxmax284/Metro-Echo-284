@@ -52,7 +52,7 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
   const offline = /failed to fetch|network|offline|load failed/i.test(raw);
   if (offline) {
     return {
-      what: `Vanta couldn't reach the network${doing}. ${NOTHING_CHANGED}`,
+      what: `Echo couldn't reach the network${doing}. ${NOTHING_CHANGED}`,
       needsYou: false,
       fix: { kind: "retry", label: "Try again" },
       technical,
@@ -61,7 +61,7 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
 
   if (/credits exhausted/i.test(raw) || status === 402) {
     return {
-      what: "The workspace is out of AI credits, so Vanta can't think about this right now.",
+      what: "The workspace is out of AI credits, so Echo can't think about this right now.",
       needsYou: true,
       fix: { kind: "top_up", label: "Top up credits" },
       technical,
@@ -70,7 +70,7 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
 
   if (/missing|not configured|no key|secret/i.test(raw) && /key|token|secret|connector/i.test(raw)) {
     return {
-      what: "Vanta can't reach this connection because its key is missing.",
+      what: "Echo can't reach this connection because its key is missing.",
       needsYou: true,
       fix: { kind: "open_connections", label: "Open Connections" },
       technical,
@@ -80,14 +80,14 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
   switch (status) {
     case 400:
       return {
-        what: `That wasn't something Vanta could read${doing}. Try shorter or simpler input.`,
+        what: `That wasn't something Echo could read${doing}. Try shorter or simpler input.`,
         needsYou: true,
         fix: { kind: "none", label: null },
         technical,
       };
     case 401:
       return {
-        what: "Your session expired, so Vanta stopped before changing anything.",
+        what: "Your session expired, so Echo stopped before changing anything.",
         needsYou: true,
         fix: { kind: "sign_in", label: "Sign in again" },
         technical,
@@ -101,7 +101,7 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
       };
     case 404:
       return {
-        what: "Vanta couldn't find that record. It may have been moved or removed.",
+        what: "Echo couldn't find that record. It may have been moved or removed.",
         needsYou: false,
         fix: { kind: "none", label: null },
         technical,
@@ -119,7 +119,7 @@ export function readError(err: unknown, ctx?: { doing?: string }): ErrorReading 
 
   if (status !== null && status >= 500) {
     return {
-      what: `Vanta hit a temporary problem${doing}. Your work is still saved.`,
+      what: `Echo hit a temporary problem${doing}. Your work is still saved.`,
       needsYou: false,
       fix: { kind: "retry", label: "Try again" },
       technical,

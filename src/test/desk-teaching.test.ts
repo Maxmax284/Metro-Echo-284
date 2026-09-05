@@ -4,7 +4,7 @@ import { DESK_ROLES, type DeskKey } from "@/lib/deskRoles";
 
 const KEYS = Object.keys(DESK_ROLES) as DeskKey[];
 
-/** Words that would imply Vanta acts on its own. None may appear in copy. */
+/** Words that would imply Echo acts on its own. None may appear in copy. */
 const AUTONOMY_WORDS = [
   "automatically",
   "auto-send",

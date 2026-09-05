@@ -170,7 +170,7 @@ export function summarizeCandidate(input: {
   return `${where} — last thing: ${input.lastLabel}.`;
 }
 
-/** Ambiguity is not failure. Two near-equal candidates means Vanta asks. */
+/** Ambiguity is not failure. Two near-equal candidates means Echo asks. */
 export function isAmbiguous(candidates: WorkingCandidate[], margin = 0.12): boolean {
   if (candidates.length < 2) return false;
   const [a, b] = candidates;

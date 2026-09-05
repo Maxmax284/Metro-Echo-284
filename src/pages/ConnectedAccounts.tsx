@@ -135,7 +135,7 @@ export default function ConnectedAccounts() {
   };
 
   const disconnect = async (link: ChannelLink) => {
-    if (!confirm("Disconnect this channel? Future messages won't reach Vanta until you re-link.")) return;
+    if (!confirm("Disconnect this channel? Future messages won't reach Echo until you re-link.")) return;
     setSavingId(link.id);
     if (link.channel === "telegram" && link.external_channel_id) {
       await supabase.from("telegram_chat_links").delete().eq("chat_id", Number(link.external_channel_id));
@@ -169,7 +169,7 @@ export default function ConnectedAccounts() {
         </Link>
         <div>
           <h1 className="text-base font-semibold">Connected accounts</h1>
-          <p className="text-xs text-muted-foreground">Your private channels. Captures feed Vanta — nothing executes from chat.</p>
+          <p className="text-xs text-muted-foreground">Your private channels. Captures feed Echo — nothing executes from chat.</p>
         </div>
         <Button variant="ghost" size="sm" className="ml-auto h-7 gap-1 text-[11px]" onClick={refresh} disabled={loading}>
           {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}

@@ -16,9 +16,9 @@ export function InstallVantaSection() {
     setBusy(true);
     const r = await promptInstall();
     setBusy(false);
-    if (r === "accepted") toast.success("Vanta is installing. Check your home screen or app drawer.");
+    if (r === "accepted") toast.success("Metro Echo is installing. Check your home screen or app drawer.");
     else if (r === "dismissed") toast("No problem — you can install it later from Settings.");
-    else toast("Install isn't available from this browser right now. Try opening Vanta in Chrome.");
+    else toast("Install isn't available from this browser right now. Try opening Metro Echo in Chrome.");
   };
 
   if (standalone && !installed) {
@@ -33,8 +33,8 @@ export function InstallVantaSection() {
           <Download className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold">Install Vanta</h2>
-          <p className="text-[12px] text-muted-foreground">Use Vanta like an app on this device.</p>
+          <h2 className="text-sm font-semibold">Install Metro Echo</h2>
+          <p className="text-[12px] text-muted-foreground">Use Metro Echo like an app on this device.</p>
         </div>
       </div>
 
@@ -45,13 +45,13 @@ export function InstallVantaSection() {
           <AndroidChromiumCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
         ) : platform === "android-other" ? (
           <SimpleHint icon={<Smartphone className="h-4 w-4" />} title="Open in Chrome to install">
-            For the easiest one-tap install on Android, open Vanta in Chrome and come back to this screen.
+            For the easiest one-tap install on Android, open Metro Echo in Chrome and come back to this screen.
           </SimpleHint>
         ) : platform === "ios-safari" ? (
           <IosSafariCard />
         ) : platform === "ios-other" ? (
           <SimpleHint icon={<Apple className="h-4 w-4" />} title="Open in Safari on iPhone">
-            Apple does this through Safari. Open Vanta in Safari, then follow the Add to Home Screen steps.
+            Apple does this through Safari. Open Metro Echo in Safari, then follow the Add to Home Screen steps.
           </SimpleHint>
         ) : platform === "desktop-chromium" ? (
           <DesktopCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
@@ -72,7 +72,7 @@ function InstalledCard() {
     <div className="flex items-start gap-2 rounded-lg bg-emerald-500/10 p-3 ring-1 ring-emerald-500/30">
       <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
       <div className="text-xs">
-        <div className="font-medium text-emerald-300">You're using Vanta in app mode.</div>
+        <div className="font-medium text-emerald-300">You're using Metro Echo in app mode.</div>
         <div className="text-muted-foreground">Open from your home screen next time for the full app feel.</div>
       </div>
     </div>
@@ -84,11 +84,11 @@ function AndroidChromiumCard({ canPrompt, busy, onInstall }: { canPrompt: boolea
     <div className="space-y-2">
       <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={!canPrompt || busy}>
         <Download className="h-4 w-4" />
-        Install Vanta App
+        Install Metro Echo
       </Button>
       {!canPrompt && (
         <p className="text-[11px] text-muted-foreground">
-          Your browser hasn't offered the install prompt yet. Use Vanta for a moment, then check back here.
+          Your browser hasn't offered the install prompt yet. Use Metro Echo for a moment, then check back here.
         </p>
       )}
     </div>
@@ -100,13 +100,13 @@ function DesktopCard({ canPrompt, busy, onInstall }: { canPrompt: boolean; busy:
     return (
       <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={busy}>
         <Monitor className="h-4 w-4" />
-        Install Vanta on this computer
+        Install Metro Echo on this computer
       </Button>
     );
   }
   return (
     <SimpleHint icon={<Monitor className="h-4 w-4" />} title="Install from your browser menu">
-      In Chrome or Edge, look for the install icon in the address bar, or open the browser menu and choose Install Vanta.
+      In Chrome or Edge, look for the install icon in the address bar, or open the browser menu and choose Install Metro Echo.
     </SimpleHint>
   );
 }
@@ -145,11 +145,11 @@ function CapabilitiesCard() {
     <div className="mt-4 rounded-lg bg-background/30 p-3 ring-1 ring-border/40">
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">What installing does</div>
       <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">
-        <li>· Adds Vanta to your home screen or app drawer.</li>
+        <li>· Adds Metro Echo to your home screen or app drawer.</li>
         <li>· Opens in a clean standalone window — no browser chrome.</li>
         <li>· Faster launch into the core shell.</li>
         <li>· Camera, files, and location work where your browser allows them.</li>
-        <li>· Deep links into Vanta surfaces still work.</li>
+        <li>· Deep links into Metro Echo surfaces still work.</li>
       </ul>
       <div className="mt-3 text-[11px] uppercase tracking-wider text-muted-foreground">Honest limits</div>
       <ul className="mt-2 space-y-1 text-[12px] text-muted-foreground">

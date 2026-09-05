@@ -1,8 +1,8 @@
-// telegram-send — you, from inside Vanta, replying into your own Telegram chat.
+// telegram-send — you, from inside Metro Echo, replying into your own Telegram chat.
 //
 // This is the one outbound path a person drives by hand. It sends plain text to
 // a chat already paired to this account and records the message in the thread so
-// the room in Vanta shows the real conversation.
+// the room in Metro Echo shows the real conversation.
 //
 // It cannot execute anything: no approvals, no exports, no other people's chats.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";

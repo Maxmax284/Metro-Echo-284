@@ -210,7 +210,7 @@ describe("suppression", () => {
     expect(run(signal({ timestamp: daysBefore(40) }), null).reason).toBe("stale");
   });
 
-  it("raises the bar when Vanta has already spoken recently", () => {
+  it("raises the bar when Echo has already spoken recently", () => {
     expect(budgetFloor(CALM)).toBe("useful");
     expect(budgetFloor({ ...CALM, surfacedLast24h: 1 })).toBe("attention");
     expect(budgetFloor({ ...CALM, surfacedLast24h: 4 })).toBe("time_sensitive");
@@ -452,17 +452,17 @@ describe("inbound signal detail", () => {
     expect(shouldReachNow("useful")).toBe(false);
   });
 
-  it("notice text is notification-only and points back into Vanta", () => {
+  it("notice text is notification-only and points back into Metro Echo", () => {
     const d = buildSignalDetail("LMT Camp State", "payment.failed", { amount: "10", currency: "usd" });
     const text = inboundNoticeText(d, { publicUrl: "https://vanta.example.com/" });
     expect(text).toContain("Amount: 10 USD");
     expect(text).toContain("nothing was actioned");
-    expect(text).toContain("Open Vanta: https://vanta.example.com/");
+    expect(text).toContain("Open Metro Echo: https://vanta.example.com/");
     expect(text).not.toMatch(/approve|execute|\/run/i);
   });
 });
 
-describe("universal platform notices ride Vanta's own pipe", () => {
+describe("universal platform notices ride Echo's own pipe", () => {
   it("builds a notice from a title and lines", () => {
     const d = buildSignalDetail("CampCore", "notice.raised", {
       title: "Two waivers missing for tonight",

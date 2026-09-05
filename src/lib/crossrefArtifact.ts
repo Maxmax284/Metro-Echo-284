@@ -4,7 +4,7 @@
 //
 // Honesty rules baked in here:
 //   - a value the user corrected is printed and labelled "you set this"
-//   - a reading Vanta could not make out prints as "unreadable", never a guess
+//   - a reading Echo could not make out prints as "unreadable", never a guess
 //   - calculated values are labelled, and were computed in code
 //   - held-back sensitive fields are named as held back, not silently dropped
 import {
@@ -65,7 +65,7 @@ function fightCardSections(bundle: CaseBundle, fields: string[]): BriefSection[]
       lines.push({ label, value: fighterLine(bundle, m.record_key, m.display_label) });
     });
     const gap = bout.members.map((m) => shown(bundle, m.record_key, "weight_difference")).find(Boolean);
-    if (gap) lines.push({ label: "Weight gap", value: gap, note: "calculated by Vanta" });
+    if (gap) lines.push({ label: "Weight gap", value: gap, note: "calculated by Echo" });
     for (const f of ["rounds", "rule_set"]) {
       const v = bout.members.map((m) => shown(bundle, m.record_key, f)).find(Boolean);
       if (v) lines.push({ label: fieldLabel(f), value: v });
@@ -306,7 +306,7 @@ export function briefForCase(
             bundle.records.find((r) => r.record_key === c.record_key)?.display_label ?? c.record_key,
             fieldLabel(c.field),
             c.certainty === "uncertain" ? UNREADABLE : (c.value_text ?? "—"),
-            c.derived ? "calculated by Vanta" : sourceName(c.source_id),
+            c.derived ? "calculated by Echo" : sourceName(c.source_id),
             c.certainty,
           ]),
       },

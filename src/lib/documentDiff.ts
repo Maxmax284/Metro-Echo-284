@@ -111,11 +111,11 @@ export function compareVersions(
   }
   if (added > 0 && removed > 0) {
     uncertainty.push(
-      "Reworded lines show up as one removal plus one addition. Vanta does not guess which pairs belong together.",
+      "Reworded lines show up as one removal plus one addition. Echo does not guess which pairs belong together.",
     );
   }
   if (noted.some((c) => c.kind === "amount")) {
-    uncertainty.push("Amounts changed in the text. Vanta reports the wording, not the arithmetic.");
+    uncertainty.push("Amounts changed in the text. Echo reports the wording, not the arithmetic.");
   }
   if (noted.length === 0 && (added > 0 || removed > 0)) {
     uncertainty.push("Text changed, but nothing that reads like a date, amount, party or obligation.");

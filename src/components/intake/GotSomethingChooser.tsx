@@ -1,6 +1,6 @@
 // GotSomethingChooser — "I've got something." One door, three destinations.
 //
-// Doctrine: a first-time user should not need Vanta's taxonomy to get something
+// Doctrine: a first-time user should not need Echo's taxonomy to get something
 // in. They type it, then pick one of three plain choices. Nothing executes:
 //   Just park it     -> a capture in Inbox
 //   It's a promise   -> an open commitment, no date until you give one
@@ -79,7 +79,7 @@ export function GotSomethingChooser({
   async function file(door: IntakeDoor) {
     if (!user) return;
     if (!trimmed) {
-      vantaToast.message("Write the thing first — Vanta will not guess what you meant.");
+      vantaToast.message("Write the thing first — Echo will not guess what you meant.");
       return;
     }
     setBusy(door);
@@ -149,7 +149,7 @@ export function GotSomethingChooser({
         <DialogHeader>
           <DialogTitle className="text-[15px]">I've got something</DialogTitle>
           <DialogDescription className="text-[12px]">
-            Write it plainly, then pick where it goes. You do not need to know Vanta's words for it.
+            Write it plainly, then pick where it goes. You do not need to know Echo's words for it.
           </DialogDescription>
         </DialogHeader>
 
@@ -191,7 +191,7 @@ export function GotSomethingChooser({
         </div>
 
         <p className="text-[10.5px] leading-snug text-muted-foreground/80">
-          Not sure which one? Park it. Vanta would rather ask you later than file it wrong.
+          Not sure which one? Park it. Echo would rather ask you later than file it wrong.
         </p>
         <AftermathHint text="Whatever you pick becomes a record you can read · nothing runs without your approval" />
       </DialogContent>

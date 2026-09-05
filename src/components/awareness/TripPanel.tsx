@@ -81,7 +81,7 @@ export function TripPanel({ placeLabel }: { placeLabel?: string | null }) {
       ) : (
         <div className="space-y-2">
           <p className="text-[12.5px] leading-snug text-muted-foreground">
-            {week ?? "No trips recorded yet. Start one and Vanta measures the distance and how long it took."}
+            {week ?? "No trips recorded yet. Start one and Echo measures the distance and how long it took."}
           </p>
           <Input
             value={purpose}
@@ -121,7 +121,7 @@ export function TripPanel({ placeLabel }: { placeLabel?: string | null }) {
                     <p className="truncate text-[12.5px] text-foreground">{tripSummaryLine(t)}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {new Date(t.started_at).toLocaleString()}
-                      {t.closed_by === "auto_stale" ? " · closed by Vanta, end unknown" : ""}
+                      {t.closed_by === "auto_stale" ? " · closed by Echo, end unknown" : ""}
                     </p>
                   </div>
                   <Button

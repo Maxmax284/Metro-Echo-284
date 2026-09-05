@@ -57,12 +57,12 @@ export function ExplainThisButton({ room, className }: { room: RoomKey; classNam
           className="mt-2 h-8 w-full justify-start gap-1.5 px-2 text-xs"
           onClick={() => openWithPrefill(`Explain what I'm looking at in ${ROOM_LABEL[room]} right now.`)}
         >
-          <MessageSquare className="h-3.5 w-3.5" /> Ask Vanta about this room
+          <MessageSquare className="h-3.5 w-3.5" /> Ask Echo about this room
         </Button>
         {/* The structural answer, one tap away — never a trip through Settings. */}
         <Button asChild size="sm" variant="ghost" className="mt-0.5 h-8 w-full justify-start gap-1.5 px-2 text-xs">
           <Link to="/how">
-            <Map className="h-3.5 w-3.5" /> See how Vanta is organized
+            <Map className="h-3.5 w-3.5" /> See how Echo is organized
           </Link>
         </Button>
       </PopoverContent>

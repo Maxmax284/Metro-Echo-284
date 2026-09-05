@@ -1,7 +1,7 @@
 import { formatInTimeZone } from "date-fns-tz";
 
 /**
- * Vanta time-rules helpers. Pure, no I/O. Used by ReminderComposer + intent
+ * Echo time-rules helpers. Pure, no I/O. Used by ReminderComposer + intent
  * handlers to apply the "don't guess recklessly" rules.
  */
 

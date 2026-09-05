@@ -138,7 +138,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   generic: {
     id: "generic",
     label: "General cross-reference",
-    blurb: "No template — Vanta reads whatever fields are on the page.",
+    blurb: "No template — Echo reads whatever fields are on the page.",
     recordNoun: "record",
     cues: /$a^/,
     fields: [],
@@ -196,7 +196,7 @@ export function detectRecipe(args: {
   }
   return {
     recipe: RECIPES.generic,
-    why: "Vanta could not tell what kind of paper this is, so it read every field it found.",
+    why: "Echo could not tell what kind of paper this is, so it read every field it found.",
     fromRequest: false,
   };
 }

@@ -9,7 +9,7 @@ import { useSherlockSettings } from "@/hooks/useSherlockSettings";
 /**
  * Operator Profile — Phase 2 (read-only).
  *
- * Assembles "what Vanta knows about you" strictly from preferences you have
+ * Assembles "what Echo knows about you" strictly from preferences you have
  * already approved by using the app. No inference, no new tables, no silent
  * writes. Each trait shows: what / source / where to change it.
  *
@@ -169,7 +169,7 @@ export function OperatorProfileSection() {
       <div className="flex items-start gap-2">
         <UserCircle2 className="mt-0.5 h-4 w-4 text-primary" />
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">What Vanta knows about you</h2>
+          <h2 className="text-sm font-semibold">What Echo knows about you</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
             Read-only view. Every line below comes from a preference you already
             approved. Nothing is inferred, nothing is silent. Change or remove

@@ -1,4 +1,4 @@
-// SystemMap — "How Vanta Works" visual flow. Used in Settings.
+// SystemMap — "How Echo Works" visual flow. Used in Settings.
 // Pure text + arrows. No diagrams library needed. Mobile-first.
 import { ArrowDown } from "lucide-react";
 import { PLACE_LABELS, PLACE_TAGLINES } from "@/lib/plainLabels";

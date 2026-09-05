@@ -1,4 +1,4 @@
-// Vanta navigation model — four primary rooms, everything else is a desk that
+// Echo navigation model — four primary rooms, everything else is a desk that
 // lives under a room. Pure data + helpers so navigation behaviour is testable
 // without mounting the shell.
 

@@ -222,7 +222,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const tzState = useUserTimezone();
   const digest = useTodayDigest();
   /* One situational read, built from the same authoritative state Today already
-     fetched plus the cadence Vanta learned. Read-only. */
+     fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
   const health = useSourceHealth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -316,7 +316,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   }, [loadingCritical, digest.overdue.length, attention.length, captureCount, security.tone, noticed]);
 
   /* One-shot signal on the hero when real new change actually lands. It says
-     "Vanta noticed something", then it is gone. Never left on. */
+     "Echo noticed something", then it is gone. Never left on. */
   const [changeSignal, setChangeSignal] = useState(false);
   const lastChanged = useRef<number | null>(null);
   useEffect(() => {
@@ -336,7 +336,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
        so entering Today reads as a rig coming up rather than a page appearing. */
     <div className={cn("mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:py-8", MOTION_BOOT)}>
 
-      {/* Hero — where Vanta's presence lives. Ambient purple wash, grain, one
+      {/* Hero — where Echo's presence lives. Ambient purple wash, grain, one
           cut corner. The headline wears the mono face because it is a reading
           of real state, not a marketing line. */}
       <header
@@ -457,7 +457,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           <div className="flex flex-wrap items-center gap-2 px-1">
             <GotSomethingChooser />
             <span className="text-[10.5px] leading-snug text-muted-foreground">
-              Park it, promise it, or have a step prepared — Vanta files it, never runs it.
+              Park it, promise it, or have a step prepared — Echo files it, never runs it.
             </span>
           </div>
 
@@ -575,8 +575,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             {dueToday.length === 0 && upcoming.length === 0 ? (
               <EmptyState
                 title="No dated promises"
-                hint="When you tell Vanta you'll do something by a date, it lands here."
-                flow={["You say it", "Vanta dates it", "Commitments"]}
+                hint="When you tell Echo you'll do something by a date, it lands here."
+                flow={["You say it", "Echo dates it", "Commitments"]}
               />
             ) : (
               <div className="space-y-1.5">

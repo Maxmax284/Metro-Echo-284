@@ -170,7 +170,7 @@ async function aiCompose(format: Format, scope_label: string, snapshot: any, aud
   const sectionList = FORMAT_SECTIONS[format];
   const tone = FORMAT_TONE[format];
   const audienceTone = audience ? AUDIENCE_TONE[audience] : "";
-  const system = `You are Vanta's brief composer.
+  const system = `You are Echo's brief composer.
 
 Tone: ${tone}
 ${audienceTone ? `\n${audienceTone}\n` : ""}

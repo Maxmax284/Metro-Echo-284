@@ -43,9 +43,9 @@ export const MODE_DESC: Record<UsageMode, string> = {
 };
 
 const KILL_SWITCHES: Array<{ key: keyof SystemControls; label: string; hint: string }> = [
-  { key: "external_apis_enabled", label: "Everything outside Vanta", hint: "One switch that stops all outside lookups." },
+  { key: "external_apis_enabled", label: "Everything outside Metro Echo", hint: "One switch that stops all outside lookups." },
   { key: "serpapi_enabled", label: "Web and local lookups", hint: "Search, news and nearby places." },
-  { key: "gemini_enabled", label: "Vanta's reading and summarising", hint: "Turning documents, notes and surroundings into plain language." },
+  { key: "gemini_enabled", label: "Echo's reading and summarising", hint: "Turning documents, notes and surroundings into plain language." },
   { key: "weather_enabled", label: "Weather", hint: "Weather refresh." },
   { key: "calendar_sync_enabled", label: "Google Calendar", hint: "Calendar refresh." },
   { key: "background_awareness_enabled", label: "Background awareness refresh", hint: "Off by default." },

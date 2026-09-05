@@ -49,7 +49,7 @@ export function ArrivalsLane({ className }: { className?: string }) {
       ) : surfaced.length === 0 ? (
         <div className="vanta-card rounded-xl p-3">
           <p className="text-[11.5px] leading-snug text-muted-foreground">
-            Nothing is waiting. Things land here when you send Vanta a message, a photo or a voice note from
+            Nothing is waiting. Things land here when you send Echo a message, a photo or a voice note from
             Telegram, or add a file in the app.
           </p>
         </div>

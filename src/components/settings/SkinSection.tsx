@@ -1,6 +1,6 @@
 // Skin picker — how the room looks, per device.
 //
-// This is presentation only. No skin ever changes what Vanta says or what a
+// This is presentation only. No skin ever changes what Echo says or what a
 // number means, so switching is safe at any time and takes effect instantly.
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -31,7 +31,7 @@ export function SkinSection() {
           <h2 className="text-sm font-medium tracking-tight">Skin</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             The texture behind every room. This device only — it does not change any of your data
-            or what Vanta tells you.
+            or what Echo tells you.
           </p>
         </div>
       </header>

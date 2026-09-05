@@ -156,7 +156,7 @@ export function captureRouteToSignal(
   };
 }
 
-/** A pending Sherlock finding — a recognition Vanta made that nobody answered. */
+/** A pending Sherlock finding — a recognition Echo made that nobody answered. */
 export type SherlockFindingRow = {
   id: string;
   finding_type: string | null;
@@ -191,7 +191,7 @@ export function sherlockFindingToSignal(
   const age = days(f.created_at, now);
   if (!Number.isFinite(age) || age < SHERLOCK_STALE_AFTER_DAYS) return null;
 
-  const label = f.summary?.trim() || "A pattern Vanta noticed";
+  const label = f.summary?.trim() || "A pattern Echo noticed";
   return {
     id: `sherlock_finding_pending:${f.id}`,
     source: "sherlock",
@@ -200,7 +200,7 @@ export function sherlockFindingToSignal(
     entityType: "sherlock_finding",
     entityId: f.id,
     timestamp: new Date(now).toISOString(),
-    summary: "Something Vanta noticed is still waiting on you",
+    summary: "Something Echo noticed is still waiting on you",
     why: `${label} — raised ${age} ${age === 1 ? "day" : "days"} ago and still unanswered.`,
     nextStep: "Take a look and either accept it or wave it off.",
     confidence,

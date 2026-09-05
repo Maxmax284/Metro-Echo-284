@@ -1,6 +1,6 @@
 // LookAtSheet — the deliberate camera seam.
 //
-// Vanta looks at what you point it at, and only then. The camera opens because
+// Echo looks at what you point it at, and only then. The camera opens because
 // you opened it, one picture at a time, and the look happens because you
 // pressed a question. Nothing is scanned in the background, nothing is filed,
 // nothing executes.
@@ -105,7 +105,7 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
       setPhase("done");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
-      setFailure(msg && msg.startsWith("Didn't run") ? msg : "Didn't run. Vanta could not look at that one.");
+      setFailure(msg && msg.startsWith("Didn't run") ? msg : "Didn't run. Echo could not look at that one.");
       setPhase("failed");
     } finally {
       staged.clearCompleted();
@@ -122,7 +122,7 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
         <SheetHeader className="text-left">
-          <SheetTitle>Show Vanta something</SheetTitle>
+          <SheetTitle>Show Echo something</SheetTitle>
         </SheetHeader>
 
         <p className="mt-1 text-[12px] text-muted-foreground">
@@ -131,7 +131,7 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
             : phase === "picked"
               ? LOOK_STATES.captured
               : busy
-                ? "The camera is closed. Vanta is only looking at the picture you took."
+                ? "The camera is closed. Echo is only looking at the picture you took."
                 : LOOK_STATES.done}
         </p>
 
@@ -179,7 +179,7 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
               {preview && (
                 <img
                   src={preview}
-                  alt={`The picture you showed Vanta: ${file.name}`}
+                  alt={`The picture you showed Echo: ${file.name}`}
                   className={cn("max-h-56 w-full object-contain transition-opacity", busy && "opacity-70")}
                 />
               )}
@@ -205,7 +205,7 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
             {!busy && (
               <div className="space-y-1.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  {answer ? "Ask something else about it" : "What should Vanta look for?"}
+                  {answer ? "Ask something else about it" : "What should Echo look for?"}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {LOOK_INTENTS.map((i) => (
@@ -239,8 +239,8 @@ export function LookAtSheet({ open, onOpenChange, onAskAbout }: Props) {
                 <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-foreground/95">{answer}</p>
                 <p className="text-[11px] text-muted-foreground">
                   {uncertain
-                    ? "Vanta is not certain about this one — it said what it could see."
-                    : "This is what Vanta saw in the picture you showed it."}{" "}
+                    ? "Echo is not certain about this one — it said what it could see."
+                    : "This is what Echo saw in the picture you showed it."}{" "}
                   The picture is kept. Nothing was filed.
                 </p>
                 {onAskAbout && (

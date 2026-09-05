@@ -1,7 +1,7 @@
 // wearable.ts — pure reasoning about watch readings.
 //
 // Nothing here reads a device or writes a row. It turns recorded readings into
-// honest sentences: what arrived, when, and what Vanta still doesn't know. A
+// honest sentences: what arrived, when, and what Echo still doesn't know. A
 // reading that isn't there is never guessed at.
 import type { Posture } from "@/lib/awareness";
 
@@ -81,7 +81,7 @@ export interface WearableSweep {
 
 /** A sweep reports a diff, never a status. "Nothing new" is a real answer. */
 export function describeWearableSweep(sweep: WearableSweep | null): string {
-  if (!sweep) return "Vanta has not read your watch yet.";
+  if (!sweep) return "Echo has not read your watch yet.";
   const parts: string[] = [];
   if (sweep.steps) parts.push(`${sweep.steps} step ${sweep.steps === 1 ? "record" : "records"}`);
   if (sweep.heart_rate)
@@ -94,7 +94,7 @@ export function describeWearableSweep(sweep: WearableSweep | null): string {
 
 /**
  * A posture suggestion, only when the numbers disagree loudly with what you
- * set by hand. Vanta suggests; it never switches.
+ * set by hand. Echo suggests; it never switches.
  */
 export function suggestPosture(
   posture: Posture | null,
@@ -118,7 +118,7 @@ export interface WearableFacts {
   readings: Reading[];
   posture: Posture | null;
   sweep: WearableSweep | null;
-  /** A note Vanta held or surfaced because of the posture. */
+  /** A note Echo held or surfaced because of the posture. */
   postureActedAt: string | null;
 }
 
@@ -167,11 +167,11 @@ export function buildWearableWalk(f: WearableFacts): WalkStep[] {
       "posture",
       "Posture known",
       !!f.posture,
-      f.posture ? `You set a posture by hand.` : "Set a posture so Vanta knows the moment.",
+      f.posture ? `You set a posture by hand.` : "Set a posture so Echo knows the moment.",
     ),
     step(
       "adjusted",
-      "Vanta adjusted",
+      "Echo adjusted",
       !!f.postureActedAt,
       f.postureActedAt
         ? "A note was held or surfaced because of your posture."
@@ -210,7 +210,7 @@ export function bodySummary(f: WearableFacts, now = new Date()): string {
 
 /* ------------------------------------------------------------------ *
  * Trends. Pure arithmetic over recorded readings. A day with no
- * record is a gap, never a zero — Vanta does not invent a quiet day.
+ * record is a gap, never a zero — Echo does not invent a quiet day.
  * ------------------------------------------------------------------ */
 
 export interface DayBucket {
@@ -313,7 +313,7 @@ export function stepsCompare(buckets: DayBucket[], now = new Date()): string {
 export interface WorkBodyContext {
   /** One line for the desk, or null when there is nothing honest to say. */
   line: string | null;
-  /** True when Vanta should keep the desk short right now. */
+  /** True when Echo should keep the desk short right now. */
   keepShort: boolean;
   /** Why it's keeping things short, from a record. */
   because: string | null;
@@ -369,7 +369,7 @@ export function workBodyContext(
 
 /* ------------------------------------------------------------------ *
  * Sleep and rest. Sleep arrives as minutes for a night. A night with
- * no record is a gap, never a zero — Vanta never reads silence as
+ * no record is a gap, never a zero — Echo never reads silence as
  * insomnia.
  * ------------------------------------------------------------------ */
 

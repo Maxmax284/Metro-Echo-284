@@ -108,7 +108,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   const [counts, setCounts] = useState<Counts>({ inbox: 0, commitments: 0, actions: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  /* When Vanta last actually looked. Shown as a real stamp, never faked. */
+  /* When Echo last actually looked. Shown as a real stamp, never faked. */
   const [lastRead, setLastRead] = useState<number | null>(null);
   const { timezone } = useUserTimezone();
   const { briefing, loading: briefingLoading } = useWorkBriefing();
@@ -181,7 +181,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
 
         {/* Three tiers, always in the same order, always labelled: where
-            things stand, where work lands, where Vanta looks. The state of
+            things stand, where work lands, where Echo looks. The state of
             work comes before the directory of desks. */}
         <TierHeading
           n={1}
@@ -267,7 +267,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         )}
 
         {/* Two shelves instead of ten equal choices: where work lands, and
-            where Vanta looks. Presentation only — every route is unchanged. */}
+            where Echo looks. Presentation only — every route is unchanged. */}
         <TierHeading
           n={2}
           title="Where work lands"
@@ -294,7 +294,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             visible control with a count, never a mystery. */}
         <CollapsibleSection
           key={`${hasIntake ? "live" : "quiet"}-${hasFindings ? "findings" : "none"}`}
-          title="Where Vanta looks"
+          title="Where Echo looks"
           storageKey="work.looks"
           icon={<Search className="h-3.5 w-3.5" />}
           reading="4"
@@ -303,10 +303,10 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           defaultOpen={hasFindings || hasIntake}
           summary={
             hasFindings
-              ? "Where Vanta looks · Sherlock has something for you"
+              ? "Where Echo looks · Sherlock has something for you"
               : hasIntake
-                ? "Where Vanta looks · 4 places Vanta reads on your behalf"
-                : "Where Vanta looks · nothing needs your attention yet"
+                ? "Where Echo looks · 4 places Echo reads on your behalf"
+                : "Where Echo looks · nothing needs your attention yet"
           }
           className="border-dashed"
         >

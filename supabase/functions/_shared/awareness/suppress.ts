@@ -1,6 +1,6 @@
 // Suppression — built before delivery expands, on purpose.
 //
-// Vanta earns interruptions. This is where most candidates die quietly.
+// Echo earns interruptions. This is where most candidates die quietly.
 import type { AwarenessSignal } from "./signal.ts";
 import { isGrounded } from "./signal.ts";
 import type { RelevanceResult } from "./relevance.ts";
@@ -55,7 +55,7 @@ const STALE_MS = 21 * DAY;
 const MIN_CONFIDENCE = 0.35;
 
 /**
- * Attention has a cost. The more Vanta has already said recently, the higher
+ * Attention has a cost. The more Echo has already said recently, the higher
  * the bar for the next low-value note. Simple, explainable, testable.
  */
 export function budgetFloor(budget: AttentionBudget): Urgency {

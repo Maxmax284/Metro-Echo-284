@@ -49,7 +49,7 @@ async function textForSource(admin: any, file: any): Promise<{ text: string; ok:
     try {
       const text = await ocrImage(blob, mime || "image/png");
       if (text) await admin.from("ingested_files").update({ extracted_text: text }).eq("id", file.id);
-      return { text, ok: Boolean(text), error: text ? undefined : "Vanta could not make out any text on this page." };
+      return { text, ok: Boolean(text), error: text ? undefined : "Echo could not make out any text on this page." };
     } catch (e) {
       return { text: "", ok: false, error: e instanceof Error ? e.message : "reading failed" };
     }
@@ -59,7 +59,7 @@ async function textForSource(admin: any, file: any): Promise<{ text: string; ok:
     if (text) await admin.from("ingested_files").update({ extracted_text: text.slice(0, 200_000) }).eq("id", file.id);
     return { text: text.slice(0, 200_000), ok: Boolean(text.trim()) };
   }
-  return { text: "", ok: false, error: "Vanta cannot read this file type yet." };
+  return { text: "", ok: false, error: "Echo cannot read this file type yet." };
 }
 
 Deno.serve(async (req) => {

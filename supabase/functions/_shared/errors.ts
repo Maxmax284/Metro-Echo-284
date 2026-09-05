@@ -1,5 +1,5 @@
 // Canonical server error vocabulary.
-// Client-facing copy stays in Vanta voice: plain, calm, no exclamation marks,
+// Client-facing copy stays in Metro Echo voice: plain, calm, no exclamation marks,
 // no provider payloads, no secrets. Internal detail goes to logs only.
 
 import { jsonResponse } from "./http.ts";

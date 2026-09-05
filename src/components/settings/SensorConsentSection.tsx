@@ -19,7 +19,7 @@ export function SensorConsentSection() {
       <div className="flex items-start gap-2">
         <ShieldCheck className="mt-0.5 h-4 w-4 text-muted-foreground" />
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">What Vanta is allowed to sense</h2>
+          <h2 className="text-sm font-semibold">What Echo is allowed to sense</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
             One switch per sense. Everything starts off, and turning one on never turns on another.
           </p>

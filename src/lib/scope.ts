@@ -1,6 +1,6 @@
 // Scope contract — the single source of truth for "which room am I standing in".
 //
-// Vanta has exactly three rooms:
+// Echo has exactly three rooms:
 //   personal      -> organization_id IS NULL  (and user_id = me)
 //   organization  -> organization_id = <org>
 //   admin         -> platform-wide, no organization filter (owner only)

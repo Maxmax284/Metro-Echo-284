@@ -4,7 +4,7 @@
 //   1. Movement recorded: steps today against your own usual, the last
 //      workouts, fourteen days of bars. A missing day is a gap, never a zero.
 //   2. What it changes: the exact line the Work desk prints in "Where things
-//      stand", and whether Vanta is leading short because of your body.
+//      stand", and whether Echo is leading short because of your body.
 //
 // Nothing on this page routes, approves or runs anything. Movement is tone,
 // never a driver of work. The Feel controls at the bottom are the same
@@ -139,7 +139,7 @@ export default function MotionPage() {
             </p>
             {activityOn ? <MoveBars days={trends.days} usual={trends.stepsUsual} /> : null}
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
-              A flat grey bar means nothing was sent that day. Vanta does not read a missing day as
+              A flat grey bar means nothing was sent that day. Echo does not read a missing day as
               a still one.
             </p>
           </section>
@@ -199,7 +199,7 @@ export default function MotionPage() {
             </p>
             <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
               {posture
-                ? `You set “${POSTURE_LABEL[posture]}”. Vanta may suggest another; it never switches one for you.`
+                ? `You set “${POSTURE_LABEL[posture]}”. Echo may suggest another; it never switches one for you.`
                 : "You haven't set a posture, so only measured numbers are weighed here."}
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -229,7 +229,7 @@ export default function MotionPage() {
           {/* How the app itself moves */}
           <RoomMotionSection />
 
-          <AftermathHint text="Reading this changes nothing. Movement only changes how Vanta talks — it never routes, approves or runs anything. Feel is stored on this device alone." />
+          <AftermathHint text="Reading this changes nothing. Movement only changes how Echo talks — it never routes, approves or runs anything. Feel is stored on this device alone." />
         </div>
       )}
     </div>

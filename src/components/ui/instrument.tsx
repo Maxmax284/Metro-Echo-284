@@ -1,4 +1,4 @@
-// instrument — the machine-data layer of Vanta's visual language.
+// instrument — the machine-data layer of Echo's visual language.
 //
 // Doctrine: prose wears Rubik, machine data wears Space Mono. Timestamps, ids,
 // counts, status words and sync stamps are instrument readings, so they get the

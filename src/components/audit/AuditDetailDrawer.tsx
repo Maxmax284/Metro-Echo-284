@@ -159,7 +159,7 @@ export function AuditDetailDrawer({
 
           <div className="flex items-center justify-between gap-2 pt-1">
             <p className="text-[10.5px] italic text-muted-foreground">
-              Receipts are write-once. Vanta can't edit history — only add to it.
+              Receipts are write-once. Echo can't edit history — only add to it.
             </p>
             <Button
               size="sm"

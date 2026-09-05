@@ -347,7 +347,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
           </View>
         ))}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerLeft}>Vanta · source footnotes</Text>
+          <Text style={styles.footerLeft}>Echo · source footnotes</Text>
           <Text style={styles.footerRight} render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
@@ -449,7 +449,7 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
     template.layout.sectionOrder ??
     (["overall", "situation", "key_topics", "decisions", "risks", "next_move"] as const);
 
-  const footerLabel = template.layout.footerNote ?? `Vanta · ${brief.title}`;
+  const footerLabel = template.layout.footerNote ?? `Echo · ${brief.title}`;
 
   const renderSignaturePage = () => {
     if (signatures.length === 0) return null;
@@ -483,14 +483,14 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
   };
 
   return (
-    <Document title={brief.title} author="Vanta" subject={`${brief.format} brief`}>
+    <Document title={brief.title} author="Echo" subject={`${brief.format} brief`}>
       {template.layout.coverPage && (
         <Page size="LETTER" style={styles.page}>
           {watermark && <Text style={styles.watermark} fixed>{watermark}</Text>}
           <View style={{ marginTop: 120 }}>
             <Text style={styles.audienceChip}>{template.label} · {template.tagline}</Text>
             <Text style={styles.kicker}>
-              Vanta · {brief.format.replace("_", " ")} · {brief.scope_kind}
+              Echo · {brief.format.replace("_", " ")} · {brief.scope_kind}
             </Text>
             <Text style={styles.title}>{brief.title}</Text>
             {brief.subtitle ? <Text style={styles.subtitle}>{brief.subtitle}</Text> : null}

@@ -23,12 +23,12 @@ export function capabilityStatusLine(rows: SenseRow[]): string {
   const on = rows.filter((r) => r.on === true && !r.unset).map((r) => r.label);
   const off = rows.filter((r) => r.on === false || r.unset).map((r) => r.label);
   if (on.length === 0) {
-    return "Nothing is feeding Vanta yet, so it can only work from what you tell it.";
+    return "Nothing is feeding Echo yet, so it can only work from what you tell it.";
   }
   const onPart =
     on.length === rows.length
-      ? "Everything is feeding Vanta"
-      : `${on.join(", ")} ${on.length === 1 ? "is" : "are"} feeding Vanta`;
+      ? "Everything is feeding Echo"
+      : `${on.join(", ")} ${on.length === 1 ? "is" : "are"} feeding Echo`;
   if (off.length === 0) return `${onPart}. Nothing is switched off.`;
   return `${onPart}. ${off.join(", ")} ${off.length === 1 ? "isn't" : "aren't"}, so nothing comes from ${off.length === 1 ? "it" : "them"}.`;
 }
@@ -48,7 +48,7 @@ export function capabilityAnswer(rows: SenseRow[]): string {
   return [
     capabilityStatusLine(rows),
     ...lines,
-    "Change any of it in Vanta under what Vanta may sense. Nothing here acts on its own.",
+    "Change any of it in Metro Echo under what Echo may sense. Nothing here acts on its own.",
   ].join("\n");
 }
 

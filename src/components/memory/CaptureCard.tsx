@@ -155,7 +155,7 @@ export function CaptureCard({
             )}
             <span>· {formatDistanceToNow(new Date(item.ts), { addSuffix: true })}</span>
           </div>
-          {/* The reason Vanta already recorded, on demand. Never invented. */}
+          {/* The reason Echo already recorded, on demand. Never invented. */}
           <WhyThis reason={item.why} className="mt-1" />
           {item.sensitive && (
             <p className="mt-1 text-[10.5px] text-foreground/70">

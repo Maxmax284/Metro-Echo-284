@@ -3,7 +3,7 @@
 // A perforated slip in mono type. Lines stamp in one at a time (~40ms apart)
 // like a thermal printer, then the verdict stamp lands slightly off-axis. It's
 // the same audit facts as before, just presented as a printed artifact so the
-// most trustworthy surface in Vanta is also the coolest one.
+// most trustworthy surface in Metro Echo is also the coolest one.
 import { cn } from "@/lib/utils";
 
 export type SlipLine = { label: string; value: string; tone?: "default" | "muted" | "accent" };

@@ -291,7 +291,7 @@ Deno.serve(async (req: Request) => {
       if (isInQuietHours(tz, prefs.quiet_hours_start ?? "22:00", prefs.quiet_hours_end ?? "07:00", now)) {
         driftState = "quiet_hours";
       } else if (postureHolds(prefs, "attention", now.getTime())) {
-        // The user told Vanta what kind of moment this is. Ordinary drift waits.
+        // The user told Echo what kind of moment this is. Ordinary drift waits.
         driftState = "posture";
       } else {
         const nowMs = now.getTime();

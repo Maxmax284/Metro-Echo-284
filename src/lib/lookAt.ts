@@ -1,6 +1,6 @@
 // lookAt (frontend mirror) — the pure half of the deliberate camera seam.
 //
-// Same law as supabase/functions/_shared/lookAt.ts: Vanta looks only when a
+// Same law as supabase/functions/_shared/lookAt.ts: Echo looks only when a
 // person points it at something, one look at a time, and a look never files,
 // routes or executes anything.
 
@@ -13,11 +13,11 @@ export type LookIntent = {
 };
 
 export const LOOK_INTENTS: LookIntent[] = [
-  { id: "identify", label: "What is this?", looking: "Vanta is looking" },
-  { id: "unusual", label: "Anything off?", looking: "Vanta is looking for anything off" },
-  { id: "text", label: "Read what it says", looking: "Vanta is reading it" },
-  { id: "promises", label: "Find promises and dates", looking: "Vanta is looking for promises and dates" },
-  { id: "amount", label: "Read the total", looking: "Vanta is looking for the total" },
+  { id: "identify", label: "What is this?", looking: "Echo is looking" },
+  { id: "unusual", label: "Anything off?", looking: "Echo is looking for anything off" },
+  { id: "text", label: "Read what it says", looking: "Echo is reading it" },
+  { id: "promises", label: "Find promises and dates", looking: "Echo is looking for promises and dates" },
+  { id: "amount", label: "Read the total", looking: "Echo is looking for the total" },
 ];
 
 export function lookIntent(id: string | null | undefined): LookIntent {
@@ -27,9 +27,9 @@ export function lookIntent(id: string | null | undefined): LookIntent {
 export const LOOK_STATES = {
   idle: "Camera is off until you open it.",
   captured: "Got the picture. Nothing has been read yet.",
-  looking: "Vanta is looking",
+  looking: "Echo is looking",
   done: "Looked at it.",
-  nothing: "Vanta could not make anything of it.",
+  nothing: "Echo could not make anything of it.",
 } as const;
 
 /** Only pictures can be looked at. */

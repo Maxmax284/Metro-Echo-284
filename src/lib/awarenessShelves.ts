@@ -71,7 +71,7 @@ export type ShelvesInput = {
   locationWarning?: unknown;
   /** Latest briefing per layer, exactly as stored. */
   briefings: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
-  /** All layers Vanta knows how to read. */
+  /** All layers Echo knows how to read. */
   layers: readonly string[];
   /**
    * Meetings soon that are somewhere other than where you are. Today's read
@@ -103,13 +103,13 @@ const RISK_RANK: Record<RiskLevel, number> = { none: 0, low: 1, medium: 2, high:
 export function placeParagraph(input: ShelvesInput): string {
   const now = input.now ?? Date.now();
   if (!input.place) {
-    return "Vanta has no place to read from yet. Save where you are and it can start looking around you.";
+    return "Echo has no place to read from yet. Save where you are and it can start looking around you.";
   }
   const where = input.place.city || input.place.region || input.place.country || input.place.label;
   const read = Object.values(input.briefings).filter(Boolean).length;
   const parts: string[] = [];
   if (input.placeUnresolved) {
-    parts.push(`Vanta is working from ${input.place.label}, but it can't tell where that is yet.`);
+    parts.push(`Echo is working from ${input.place.label}, but it can't tell where that is yet.`);
   } else {
     parts.push(`You're reading this from ${where}.`);
   }
@@ -151,7 +151,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     const risk = RISK_RANK[sig.risk_level];
     const age = ageMs(b.generated_at, now) ?? 0;
 
-    /* Now — only what carries real risk, or a risky layer Vanta isn't sure of. */
+    /* Now — only what carries real risk, or a risky layer Echo isn't sure of. */
     if ((RISK_LAYERS as readonly string[]).includes(layer)) {
       if (risk >= 2) {
         nowLines.push({
@@ -166,7 +166,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
         nowLines.push({
           key: `unsure:${layer}`,
           text: sig.title || `${layer} is unclear.`,
-          detail: "Something is flagged here and Vanta isn't confident in the read. Worth checking yourself.",
+          detail: "Something is flagged here and Echo isn't confident in the read. Worth checking yourself.",
           section: layer,
           at: b.generated_at,
           tone: "warn",
@@ -186,13 +186,13 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       });
     }
 
-    /* Changed — read again since yesterday. Vanta keeps no before-picture of a
+    /* Changed — read again since yesterday. Echo keeps no before-picture of a
        layer, so it says what was re-read, never that something is different. */
     if (age < DAY_MS) {
       changed.push({
         key: `changed:${layer}`,
         text: `${layer} was read again ${agoPhrase(b.generated_at, now)}.`,
-        detail: "Vanta doesn't keep the previous read of a layer, so it can't tell you what moved — only that this is current.",
+        detail: "Echo doesn't keep the previous read of a layer, so it can't tell you what moved — only that this is current.",
         section: layer,
         at: b.generated_at,
       });
@@ -217,7 +217,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     nowLines.push({
       key: `stale:${layer}`,
       text: `The ${layer} read is ${agoPhrase(b.generated_at, now)}.`,
-      detail: "Old enough that Vanta wouldn't lean on it. Scan again when you need it.",
+      detail: "Old enough that Echo wouldn't lean on it. Scan again when you need it.",
       section: layer,
       at: b.generated_at,
     });
@@ -249,7 +249,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       label: SHELF_LABEL.now,
       lines: nowLines.slice(0, 3),
       quiet: input.place
-        ? "Nothing here is pulling at you. Anything risky Vanta reads would land on this shelf."
+        ? "Nothing here is pulling at you. Anything risky Echo reads would land on this shelf."
         : "Save a place and anything risky about it lands here first.",
     },
     {
@@ -268,7 +268,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "coming",
       label: SHELF_LABEL.coming,
       lines: coming.slice(0, 3),
-      quiet: "Nothing ahead that Vanta can see from here. Timing reads for this place land here.",
+      quiet: "Nothing ahead that Echo can see from here. Timing reads for this place land here.",
     },
   ];
 
@@ -282,5 +282,5 @@ export function neverReadLine(layers: string[]): string | null {
     layers.length === 1
       ? layers[0]
       : `${layers.slice(0, -1).join(", ")} and ${layers[layers.length - 1]}`;
-  return `Never read here: ${list}. Vanta leaves ${layers.length === 1 ? "it" : "them"} out rather than guess.`;
+  return `Never read here: ${list}. Echo leaves ${layers.length === 1 ? "it" : "them"} out rather than guess.`;
 }

@@ -74,7 +74,7 @@ async function undoGoogleCalendar(result: Record<string, unknown>, config: Recor
   return { undone: false, mode: "failed", detail: `Calendar refused the delete (${res.status}): ${text.slice(0, 200)}` };
 }
 
-/** Executor kinds Vanta can genuinely reverse. */
+/** Executor kinds Echo can genuinely reverse. */
 export const REVERSIBLE_KINDS = ["telegram", "google_calendar", "calendar"] as const;
 
 export function isReversibleKind(kind: string | null | undefined): boolean {

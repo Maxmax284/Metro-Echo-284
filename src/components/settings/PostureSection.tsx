@@ -1,6 +1,6 @@
-// PostureSection — tell Vanta what kind of moment this is.
+// PostureSection — tell Echo what kind of moment this is.
 //
-// Manual only. Vanta never switches a posture on by itself, and a posture is a
+// Manual only. Echo never switches a posture on by itself, and a posture is a
 // courtesy: it holds ordinary notes, never anything critical.
 import { useState } from "react";
 import { Activity, Loader2 } from "lucide-react";
@@ -34,7 +34,7 @@ export function PostureSection() {
       description:
         p && postureHoldsNoise(p)
           ? "Ordinary notes will hold. Anything critical still reaches you."
-          : "Vanta speaks as normal.",
+          : "Echo speaks as normal.",
     });
   };
 
@@ -102,7 +102,7 @@ export function PostureSection() {
             ? postureUntil
               ? `${POSTURE_LABEL[current]} until ${new Date(postureUntil).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`
               : `${POSTURE_LABEL[current]} until you clear it.`
-            : "No posture set. Vanta speaks as normal."}
+            : "No posture set. Echo speaks as normal."}
         </p>
         {current && (
           <Button variant="ghost" size="sm" onClick={() => choose(null)} disabled={saving !== null}>

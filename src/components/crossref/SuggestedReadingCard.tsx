@@ -1,4 +1,4 @@
-// SuggestedReadingCard — Vanta noticing that sources already in hand look
+// SuggestedReadingCard — Echo noticing that sources already in hand look
 // related, and offering to read them together.
 //
 // Doctrine: noticing is free, reading is not. The pairing is deterministic

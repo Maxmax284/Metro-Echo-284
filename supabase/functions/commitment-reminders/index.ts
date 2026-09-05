@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
                 ? `${c.summary}${when ? ` — was due ${when}` : ""}`
                 : `${c.summary}${when ? ` — due ${when}` : ""}`;
               const payload = {
-                title: `Vanta · ${title}`,
+                title: `Echo · ${title}`,
                 body,
                 tag: `commitment-${c.id}`,
                 url: `/?commitment=${c.id}`,

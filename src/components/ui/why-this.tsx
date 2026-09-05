@@ -1,6 +1,6 @@
 // WhyThis — the stored reason, on demand.
 //
-// Doctrine: Vanta never invents an explanation. This renders the reason the
+// Doctrine: Echo never invents an explanation. This renders the reason the
 // system already wrote down when it surfaced the item. No reason recorded means
 // no button at all.
 import { useState } from "react";

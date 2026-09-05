@@ -36,7 +36,7 @@ const SOURCE_WORD: Record<string, string> = {
   ask: "Ask",
   sherlock: "Sherlock",
   you: "you",
-  vanta: "Vanta",
+  vanta: "Echo",
 };
 
 function sourceWord(raw: string | null | undefined): string | null {

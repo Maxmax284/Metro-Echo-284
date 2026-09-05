@@ -1,6 +1,6 @@
 // ResearchSuggestionChip — Phase 3 of the Sherlock/Research/Recap roadmap.
 //
-// Plain-English chip that says "Want Vanta to look outside?" wherever
+// Plain-English chip that says "Want Echo to look outside?" wherever
 // outside context might help. Approval-gated: tapping the chip opens a
 // short confirmation with a prefilled question. Only quick mode runs from
 // here. Deep mode still lives in ResearchPanel behind the typed confirm.
@@ -20,7 +20,7 @@ import {
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 
 export interface ResearchSuggestionChipProps {
-  /** Prefilled question Vanta will ask outside. Editable in the confirm sheet. */
+  /** Prefilled question Echo will ask outside. Editable in the confirm sheet. */
   prompt: string;
   /** Short label rendered on the chip. Defaults to "Look outside?". */
   label?: string;
@@ -115,7 +115,7 @@ export function ResearchSuggestionChip({
           <DialogHeader>
             <DialogTitle>Look outside?</DialogTitle>
             <DialogDescription>
-              Vanta will run a quick web search and save the sources and a plain-English summary.
+              Echo will run a quick web search and save the sources and a plain-English summary.
               Nothing is sent or published.
             </DialogDescription>
           </DialogHeader>

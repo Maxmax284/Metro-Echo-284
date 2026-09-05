@@ -201,7 +201,7 @@ export function BriefComposerSheet({
           <SheetHeader className="text-left">
             <SheetTitle className="text-[16px]">Create brief</SheetTitle>
             <SheetDescription className="text-[12px]">
-              Vanta drafts. You review. Nothing exports until you approve.
+              Echo drafts. You review. Nothing exports until you approve.
             </SheetDescription>
           </SheetHeader>
 
@@ -356,7 +356,7 @@ export function BriefComposerSheet({
             {brief && <BriefRenderer brief={brief} />}
             {!brief && !drafting && (
               <div className="rounded-md border border-dashed border-border/50 p-6 text-center text-[12px] text-muted-foreground">
-                Pick a format and tap Draft. Vanta will compose a brief from your most recent linked items and audit receipts.
+                Pick a format and tap Draft. Echo will compose a brief from your most recent linked items and audit receipts.
               </div>
             )}
           </div>

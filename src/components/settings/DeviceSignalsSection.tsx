@@ -37,18 +37,18 @@ function buildRows(): Row[] {
   return [
     {
       kind: shareIn ? "on" : "off",
-      label: "Share into Vanta",
+      label: "Share into Metro Echo",
       detail: shareIn
         ? "Share a photo, PDF or link from another app and it stages in Memory for review."
         : installed
           ? "Available once your phone registers the share sheet."
-          : "Install Vanta to your home screen first, then Vanta appears in the share sheet.",
+          : "Install Metro Echo to your home screen first, then Echo appears in the share sheet.",
     },
     {
       kind: clipboardItems ? "on" : "off",
       label: "Paste a screenshot",
       detail: clipboardItems
-        ? "Copy a screenshot, then paste anywhere in Vanta — it stages in Memory, nothing ingests on its own."
+        ? "Copy a screenshot, then paste anywhere in Metro Echo — it stages in Memory, nothing ingests on its own."
         : "This browser doesn't hand pasted images to web apps.",
     },
     {
@@ -56,18 +56,18 @@ function buildRows(): Row[] {
       label: "Drag files in",
       detail: finePointer
         ? "Drop files anywhere on the window and they stage in Memory."
-        : "Desktop only. On a phone, use Share into Vanta instead.",
+        : "Desktop only. On a phone, use Share into Metro Echo instead.",
     },
     {
       kind: canRecord ? "on" : "off",
       label: "Voice notes",
       detail: canRecord
-        ? "Record a note and Vanta writes it down. Nothing is sent until you tap."
+        ? "Record a note and Echo writes it down. Nothing is sent until you tap."
         : "No microphone access in this browser.",
     },
     {
       kind: shareOut ? "on" : "off",
-      label: "Share out of Vanta",
+      label: "Share out of Echo",
       detail: shareOut
         ? "Briefs and exports can go straight to your phone's share sheet."
         : "This browser has no share sheet — use Download instead.",
@@ -75,7 +75,7 @@ function buildRows(): Row[] {
     {
       kind: "later",
       label: "Calendar context",
-      detail: "Not connected yet. When it is, Vanta will read your day only to add context — never write to it.",
+      detail: "Not connected yet. When it is, Echo will read your day only to add context — never write to it.",
     },
     {
       kind: native ? "on" : "later",
@@ -101,9 +101,9 @@ export function DeviceSignalsSection() {
       <div className="flex items-start gap-2">
         <Smartphone className="mt-0.5 h-4 w-4 text-muted-foreground" />
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Ways to get things into Vanta</h2>
+          <h2 className="text-sm font-semibold">Ways to get things into Metro Echo</h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            What this device can hand to Vanta right now. Everything lands staged — you still decide what's kept.
+            What this device can hand to Metro Echo right now. Everything lands staged — you still decide what's kept.
           </p>
         </div>
       </div>

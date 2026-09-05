@@ -329,16 +329,16 @@ function IosInstallGuidance() {
     <div className="mt-3 rounded-lg bg-amber-500/5 p-3 ring-1 ring-amber-500/30 text-[12px]">
       <div className="flex items-center gap-2 font-medium text-amber-300">
         <Info className="h-4 w-4" />
-        Install Vanta first on iPhone
+        Install Metro Echo first on iPhone
       </div>
       <p className="mt-1 text-muted-foreground">
-        iOS is picky — Safari only allows push notifications after Vanta is added to the Home Screen.
+        iOS is picky — Safari only allows push notifications after Echo is added to the Home Screen.
       </p>
       <ol className="mt-2 space-y-1 pl-5 text-muted-foreground list-decimal">
-        <li>Open Vanta in <span className="text-foreground">Safari</span> (not Chrome).</li>
+        <li>Open Metro Echo in <span className="text-foreground">Safari</span> (not Chrome).</li>
         <li>Tap the <span className="text-foreground">Share</span> button.</li>
         <li>Choose <span className="text-foreground">Add to Home Screen</span>, then <span className="text-foreground">Add</span>.</li>
-        <li>Open Vanta from the new Home Screen icon.</li>
+        <li>Open Metro Echo from the new Home Screen icon.</li>
         <li>Come back here and tap <span className="text-foreground">Enable push reminders</span>.</li>
       </ol>
     </div>

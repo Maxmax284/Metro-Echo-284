@@ -6,7 +6,7 @@
 // senses the user has consented to.
 //
 // Pure module. No IO. Mirrored into the client so server and UI agree on one
-// definition of "is Vanta allowed to speak right now".
+// definition of "is Echo allowed to speak right now".
 import type { IdentityLens, Posture, PostureSource, VantaContext, DeviceClass } from "./context.ts";
 import { POSTURES, postureHoldsNoise } from "./context.ts";
 import type { Urgency } from "./urgency.ts";
@@ -34,13 +34,13 @@ export const SENSOR_LABEL: Record<SensorKey, string> = {
 };
 
 export const SENSOR_DETAIL: Record<SensorKey, string> = {
-  calendar: "Read-only. Vanta can see the shape of your day; it can never move or reply to anything.",
+  calendar: "Read-only. Echo can see the shape of your day; it can never move or reply to anything.",
   location: "City-level only, used for timing and travel context. Never a live trail.",
   microphone: "Only while you hold record for a voice note. Nothing listens in the background.",
-  posture_inference: "Vanta may suggest a posture. It never switches one on by itself.",
-  device_class: "Lets Vanta say less on a phone or watch than it does at a desk.",
+  posture_inference: "Echo may suggest a posture. It never switches one on by itself.",
+  device_class: "Lets Echo say less on a phone or watch than it does at a desk.",
   heart_rate: "Only while you hold a Bluetooth connection open on the Wearables page. Nothing runs in the background.",
-  activity: "Daily numbers your phone sends over — steps, sleep, workouts. Vanta never pulls them on its own.",
+  activity: "Daily numbers your phone sends over — steps, sleep, workouts. Echo never pulls them on its own.",
 };
 
 /** The persisted slice, stored under `profiles.preferences.context`. */

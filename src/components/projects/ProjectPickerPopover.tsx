@@ -1,4 +1,4 @@
-// Single shared "pick a project" body — the only project picker in Vanta.
+// Single shared "pick a project" body — the only project picker in Metro Echo.
 // AttachToProjectMenu (one item), BulkAttachToProjectMenu (many items), the
 // agenda row and the Documents export presets all render this, so the list,
 // search, recents, create-new row and empty copy can never drift apart again.

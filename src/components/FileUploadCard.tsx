@@ -273,7 +273,7 @@ export function FileUploadCard() {
           <AlertDialogHeader>
             <AlertDialogTitle>File {stagedCount} {stagedCount === 1 ? "thing" : "things"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vanta will save and read the staged file{stagedCount === 1 ? "" : "s"} into memory. Nothing is final — you can review the result afterward.
+              Echo will save and read the staged file{stagedCount === 1 ? "" : "s"} into memory. Nothing is final — you can review the result afterward.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

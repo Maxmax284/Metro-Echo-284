@@ -35,7 +35,7 @@ const STEPS: Step[] = [
   {
     pill: "Step 1 — Capture",
     title: "Something arrives",
-    body: "You type it, drop a file, or send it from your phone. Vanta takes it exactly as-is and makes no decisions.",
+    body: "You type it, drop a file, or send it from your phone. Echo takes it exactly as-is and makes no decisions.",
     frame: { room: "Capture", rows: ["\u201CNikki needs the coach schedule by Friday\u201D"] },
     icon: Keyboard,
   },
@@ -49,20 +49,20 @@ const STEPS: Step[] = [
   {
     pill: "Step 3 — Route",
     title: "You decide where it belongs",
-    body: "You file it to a project. That single choice is what turns an arrival into work Vanta can follow.",
+    body: "You file it to a project. That single choice is what turns an arrival into work Echo can follow.",
     frame: { room: "Projects", rows: ["Lamai rollout \u2014 1 note attached"] },
     icon: FolderKanban,
   },
   {
     pill: "Step 4 — Promise",
     title: "The date becomes a promise",
-    body: "Because it had a date in it, Vanta offers a commitment: \u201CSend Nikki the schedule by Friday.\u201D You confirm the wording.",
+    body: "Because it had a date in it, Echo offers a commitment: \u201CSend Nikki the schedule by Friday.\u201D You confirm the wording.",
     frame: { room: "Commitments", rows: ["Send Nikki the schedule \u2014 due Friday \u00b7 open"] },
     icon: ListChecks,
   },
   {
     pill: "Step 5 — Draft",
-    title: "Vanta prepares a step",
+    title: "Echo prepares a step",
     body: "It drafts a reminder message and stops. This is the part people expect to be automatic \u2014 it is not.",
     frame: { room: "Actions", rows: ["Draft reminder to Nikki \u00b7 waiting on your approval"] },
     icon: ListChecks,
@@ -70,7 +70,7 @@ const STEPS: Step[] = [
   {
     pill: "Step 6 — Approve",
     title: "You approve, and only then it runs",
-    body: "You read the details, then tap approve. Plan, approve, execute \u2014 always in that order, always inside Vanta.",
+    body: "You read the details, then tap approve. Plan, approve, execute \u2014 always in that order, always inside Metro Echo.",
     frame: { room: "Actions", rows: ["Approved by you \u00b7 sent \u00b7 result recorded"] },
     icon: ShieldCheck,
   },

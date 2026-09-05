@@ -165,7 +165,7 @@ Deno.serve(async (req: Request) => {
       });
     }
     /* A hand-run that found nothing still deserves a stamp, so the panel can
-       honestly say when Vanta last looked. */
+       honestly say when Echo last looked. */
     if (onlyUserId && !perUser.has(onlyUserId)) {
       await admin.from("audit_log").insert({
         user_id: onlyUserId,

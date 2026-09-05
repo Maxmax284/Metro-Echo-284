@@ -32,7 +32,7 @@ const TITLES: Record<TodaySectionKey, { title: string; hint: string }> = {
   },
   changed: {
     title: "What changed",
-    hint: "Everything Vanta recorded recently, newest first.",
+    hint: "Everything Echo recorded recently, newest first.",
   },
   next: {
     title: "What's next",
@@ -144,7 +144,7 @@ export function TodaySectionSheet({
         return (
           <EmptyState
             title={section === "today" ? "Nothing promised for today" : "No dated promises"}
-            hint="When you tell Vanta you'll do something by a date, it lands here."
+            hint="When you tell Echo you'll do something by a date, it lands here."
           />
         );
       }

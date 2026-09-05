@@ -1,6 +1,6 @@
-// TelegramThread — the actual conversation, inside Vanta.
+// TelegramThread — the actual conversation, inside Metro Echo.
 //
-// Three voices, always labelled: what you sent from your phone, what Vanta
+// Three voices, always labelled: what you sent from your phone, what Echo
 // answered, and what you typed here and pushed back to the chat. Sending a
 // message is the only thing this does — it never approves, exports or files.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -29,13 +29,13 @@ export type TgMessage = {
 
 const KIND_NOTE: Record<string, string> = {
   page: "Photo of a page — read and filed in the Inbox",
-  page_reply: "Vanta's answer about that page",
+  page_reply: "Echo's answer about that page",
 };
 
 function who(m: TgMessage) {
   if (m.direction === "in") return { label: "You, from Telegram", Icon: Smartphone };
-  if (m.sent_by === "you") return { label: "You, from Vanta", Icon: User };
-  return { label: "Vanta", Icon: Sparkles };
+  if (m.sent_by === "you") return { label: "You, from Echo", Icon: User };
+  return { label: "Echo", Icon: Sparkles };
 }
 
 export function TelegramThread({
@@ -51,7 +51,7 @@ export function TelegramThread({
   const [rows, setRows] = useState<TgMessage[] | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
-  /* A reply leaves Vanta and can't be recalled, so it gets a look first. */
+  /* A reply leaves Echo and can't be recalled, so it gets a look first. */
   const [confirming, setConfirming] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -97,7 +97,7 @@ export function TelegramThread({
       }
       await load();
     } catch (e) {
-      toast.fromError(e, "The message didn't leave Vanta.");
+      toast.fromError(e, "The message didn't leave Echo.");
     } finally {
       setSending(false);
     }
@@ -129,7 +129,7 @@ export function TelegramThread({
         <div className="min-w-0">
           <h2 className="text-[13px] font-medium">The conversation</h2>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
-            Everything that has gone between your phone and Vanta. You can answer from
+            Everything that has gone between your phone and Echo. You can answer from
             here — the reply arrives in the same chat. Nothing you type executes.
           </p>
         </div>
@@ -223,7 +223,7 @@ export function TelegramThread({
         </Button>
       </div>
       <p className="mt-1 text-[10.5px] text-muted-foreground">
-        Goes out as plain text from your bot. Approvals, exports and payments stay in Vanta.
+        Goes out as plain text from your bot. Approvals, exports and payments stay in Metro Echo.
       </p>
     </section>
   );

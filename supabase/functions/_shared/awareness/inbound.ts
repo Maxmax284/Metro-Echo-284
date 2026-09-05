@@ -183,7 +183,7 @@ export function buildSignalDetail(
 
   if (family === "notice") {
     // Universal notice: any connected platform can raise one and it rides
-    // Vanta's own messaging pipe. Still capture-first, still notification only.
+    // Echo's own messaging pipe. Still capture-first, still notification only.
     const headline = pick(payload, ["title", "headline", "subject"]);
     const detailLines = Array.isArray(payload.lines)
       ? (payload.lines as unknown[]).map((l) => str(l)).filter((l): l is string => !!l)
@@ -233,7 +233,7 @@ export function inboundUrgency(eventType: string, payload: Payload = {}): Urgenc
       : "time_sensitive";
   }
   if (eventType === "notice.raised") {
-    // The raising platform states how loud it is; Vanta still owns the gates.
+    // The raising platform states how loud it is; Echo still owns the gates.
     if (severity === "critical") return "critical";
     if (severity === "urgent" || severity === "high" || severity === "time_sensitive") return "time_sensitive";
     if (severity === "low" || severity === "background") return "background";
@@ -269,7 +269,7 @@ export function inboundNoticeText(
     {
       title: detail.title,
       lines: detail.lines,
-      nextStepLine: opts.nextStep ?? "In Vanta's inbox for review — nothing was actioned.",
+      nextStepLine: opts.nextStep ?? "In Metro Echo's inbox for review — nothing was actioned.",
       publicUrl: opts.publicUrl,
     },
     opts.verbosity ?? "brief",

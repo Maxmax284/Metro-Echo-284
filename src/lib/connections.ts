@@ -1,7 +1,7 @@
 // connections — one honest state per connection, and the proof line under it.
 //
 // Doctrine: a connection card may only ever say one of six things, and it must
-// back that word with evidence Vanta actually recorded. "Connected" without a
+// back that word with evidence Echo actually recorded. "Connected" without a
 // last-received time is a claim, not a state. Off means off — never a zero,
 // never an empty chart that reads like bad news.
 //
@@ -116,7 +116,7 @@ export function telegramCard(input: {
     fix = "The bot is reachable, but this chat is not linked. Send it /link to pair.";
   } else if (!input.lastInAt) {
     state = "no_data";
-    fix = "Chat is linked. Vanta has not received a message from it yet — send one to prove the path.";
+    fix = "Chat is linked. Echo has not received a message from it yet — send one to prove the path.";
   } else if (!input.captureOn) {
     state = "partial";
     fix = "Messages arrive but capture is switched off, so nothing is being kept.";
@@ -146,7 +146,7 @@ export function emailCard(input: {
   return {
     key: "email",
     label: "Email",
-    blurb: "Forward mail to your Vanta address and it lands as a note with its attachments.",
+    blurb: "Forward mail to your Echo address and it lands as a note with its attachments.",
     state,
     proof: proofLine("Last received", input.lastReceivedAt, "Never received mail", now),
     facts: ["Direction · inbound only"],
@@ -184,7 +184,7 @@ export function calendarCard(input: {
   return {
     key: "calendar",
     label: "Calendar",
-    blurb: "Read-only feeds. Vanta sees your meetings and never writes back.",
+    blurb: "Read-only feeds. Echo sees your meetings and never writes back.",
     state,
     proof: proofLine("Last sync", input.lastSyncedAt, "Never synced", now),
     facts: [`Direction · read-only`, `${input.activeFeeds} of ${input.feeds} feed${input.feeds === 1 ? "" : "s"} on`],
@@ -221,7 +221,7 @@ export function wearableCard(input: {
     `Heart rate · ${input.heartConsent ? "on" : "off"}`,
     `Daily activity · ${input.activityConsent ? "on" : "off"}`,
     input.lastSource ? `Last source · ${sourceLabel(input.lastSource)}` : "No source yet",
-    "Body data changes how Vanta speaks, never what it decides.",
+    "Body data changes how Echo speaks, never what it decides.",
   ];
   return {
     key: "wearables",
@@ -288,7 +288,7 @@ export type DeviceFamily = {
   what: string;
   /** Honest examples. Never implies support that does not exist. */
   examples: string[];
-  /** True when Vanta can do this today. */
+  /** True when Echo can do this today. */
   supported: boolean;
   /** The honest caveat, if there is one. */
   caveat?: string;

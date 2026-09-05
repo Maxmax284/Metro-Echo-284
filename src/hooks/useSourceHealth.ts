@@ -1,4 +1,4 @@
-// useSourceHealth — proof of life for the feeds Vanta actually reads.
+// useSourceHealth — proof of life for the feeds Echo actually reads.
 //
 // Reads recorded facts only (last message, last sync, last reading) and hands
 // them to the pure health model. It writes nothing and never claims a feed is

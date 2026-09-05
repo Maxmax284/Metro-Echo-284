@@ -239,7 +239,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           conversation_id: threadId,
           message: text,
           scope: { type: scope.type, organization_id: scope.organizationId },
-          // One Vanta, many bodies — the server decides how much to say from this.
+          // One Echo, many bodies — the server decides how much to say from this.
           device: detectDeviceClass(),
           ...(hints.length ? { attachments: hints } : {}),
         }),
@@ -342,7 +342,7 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
 
 
-  // What Vanta is honestly reading this turn — the label follows the attachment,
+  // What Echo is honestly reading this turn — the label follows the attachment,
   // never a generic "thinking".
   const readingLabel = processingLabel(
     "reading",

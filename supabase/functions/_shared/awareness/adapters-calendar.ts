@@ -4,7 +4,7 @@
 // like into AwarenessSignals and stops there: no scoring, no channel choice, no
 // writes. Judgment stays central (relevance → urgency → suppression → delivery).
 //
-// Two things a calendar genuinely knows that Vanta cannot guess:
+// Two things a calendar genuinely knows that Echo cannot guess:
 //   1. Something starts soon and the user may not be looking at Today.
 //   2. A promise is due while the user is already booked elsewhere.
 //

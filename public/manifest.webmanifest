@@ -1,7 +1,7 @@
 {
-  "name": "Vanta — Operational companion",
-  "short_name": "Vanta",
-  "description": "Vanta is a contextual digital companion: continuous workspace, ambient awareness, and execution-safe orchestration.",
+  "name": "Metro Echo — situational companion",
+  "short_name": "Metro Echo",
+  "description": "Metro Echo is a situational companion for real life: place, movement, messages and documents read in context, with nothing acting on its own.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

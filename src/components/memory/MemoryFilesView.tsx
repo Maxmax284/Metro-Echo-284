@@ -370,7 +370,7 @@ export function MemoryFilesView() {
           <Inbox className="h-5 w-5 opacity-50" />
           {filter === "archived"
             ? "Nothing archived yet. Files you finish with end up here."
-            : "Files land here from uploads, email attachments, and anything you send Vanta on Telegram."}
+            : "Files land here from uploads, email attachments, and anything you send Echo on Telegram."}
         </div>
       )}
 

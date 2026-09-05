@@ -162,9 +162,9 @@ export async function recordDeviceFix(input: {
 
 /** The plain sentence for what a fix's accuracy actually buys you. */
 export function fixQualityLine(acc: number | null): string {
-  if (acc == null) return "The device didn't say how precise that fix is, so Vanta treats it as an area.";
+  if (acc == null) return "The device didn't say how precise that fix is, so Echo treats it as an area.";
   if (acc <= 50) return "That fix is street-level, so timing and travel reads will be right.";
   if (acc <= 500) return "That fix is good to a neighbourhood — enough for timing, not for a doorstep.";
-  if (acc <= 5000) return "That fix is city-level. Vanta will talk about the city, not the street.";
+  if (acc <= 5000) return "That fix is city-level. Echo will talk about the city, not the street.";
   return `That fix is only good to about ${Math.round(acc / 1000)}km, so set the place on the map if it matters.`;
 }

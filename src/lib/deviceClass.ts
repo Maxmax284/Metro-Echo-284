@@ -1,4 +1,4 @@
-// Which body Vanta is speaking through right now.
+// Which body Echo is speaking through right now.
 //
 // Coarse on purpose: enough to say less on a small screen, never enough to
 // fingerprint a device. Pure read of what the browser already tells us.

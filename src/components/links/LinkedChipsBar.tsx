@@ -67,7 +67,7 @@ export function LinkedChipsBar({
     return (
       <div className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border/50 bg-background/30 px-2 py-1 text-[10.5px] text-muted-foreground">
         <Link2 className="h-3 w-3" />
-        Not connected yet — tap <span className="text-foreground/90">Attach</span> so Vanta knows where it belongs.
+        Not connected yet — tap <span className="text-foreground/90">Attach</span> so Echo knows where it belongs.
       </div>
     );
   }

@@ -1,6 +1,6 @@
 // VantaContext — the cross-device context object.
 //
-// One Vanta core, multiple bodies. Every surface (desk, phone, messaging,
+// One Echo core, multiple bodies. Every surface (desk, phone, messaging,
 // wearable, earbuds) describes the moment with this same shape so no device
 // grows its own memory silo. Every field is optional on purpose: the
 // architecture must degrade gracefully when the moment is unknown, and an
@@ -16,7 +16,7 @@ export type DeviceClass = "desk" | "phone" | "tablet" | "wearable" | "earbuds" |
 
 /**
  * What KIND of moment this is. Manual activation first; automatic inference
- * only ever with explicit permission and strong confidence, and Vanta prefers
+ * only ever with explicit permission and strong confidence, and Echo prefers
  * suggesting a posture over silently assuming one.
  */
 export type Posture =
@@ -71,7 +71,7 @@ export type VantaContext = {
   projectId?: string | null;
   /** The open Ask thread, so it can travel between devices. */
   threadId?: string | null;
-  /** The question Vanta has not answered yet. */
+  /** The question Echo has not answered yet. */
   unresolvedQuestion?: string | null;
   /** Records the current thread is grounded in. */
   sourceRefs?: { kind: string; id: string; label?: string }[];

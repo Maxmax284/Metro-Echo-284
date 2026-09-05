@@ -17,8 +17,9 @@ import {
 } from "@/lib/brandVoice";
 
 describe("identity block", () => {
-  it("states Vanta belongs to the user and bans provider identity", () => {
-    expect(VANTA_IDENTITY).toMatch(/You are Vanta/);
+  it("states Echo belongs to the user and bans provider identity", () => {
+    expect(VANTA_IDENTITY).toMatch(/You are Echo/);
+    expect(VANTA_IDENTITY).toMatch(/inside Metro Echo/);
     expect(VANTA_IDENTITY).toMatch(/None of them made you/);
     expect(VANTA_IDENTITY).toMatch(/Never say "as an AI"/);
   });
@@ -38,6 +39,8 @@ describe("identity question matching", () => {
     ["Who are you", "who_are_you"],
     ["what are you?", "who_are_you"],
     ["what is vanta", "who_are_you"],
+    ["what is metro echo", "what_is_product"],
+    ["what's metro echo?", "what_is_product"],
     ["who made you?", "who_made_you"],
     ["who created you", "who_made_you"],
     ["what model are you", "what_model"],

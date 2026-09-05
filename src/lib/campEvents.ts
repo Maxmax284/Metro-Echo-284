@@ -261,7 +261,7 @@ export function hydrateOperationalEvent(
       : `${amount ?? "A payment"} received for ${who}${method ? ` via ${method}` : ""} at ${localTime}.${balance ? ` Balance ${balance}.` : ""}`;
   } else if (eventType === "integration.test") {
     headline = `${platformLabel} connection test`;
-    summary = `${platformLabel} reached Vanta at ${localTime}. Nothing to act on.`;
+    summary = `${platformLabel} reached Echo at ${localTime}. Nothing to act on.`;
   } else {
     const msg = pick(p, ["message", "text", "summary", "note", "body", "description", "request"]);
     headline = msg ? msg.slice(0, 90) : `${platformLabel} ${eventType.replace(/[._]/g, " ")}`;

@@ -265,7 +265,7 @@ export function DailyBriefingCard() {
               disabled={polishing}
             >
               <Wand2 className="mr-1 h-3 w-3" />
-              Polish with Vanta
+              Polish with Echo
             </Button>
           )}
         </div>

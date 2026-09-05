@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
           status,
           message:
             status === 402 || status === 403
-              ? "Didn't run. Vanta can't look right now."
+              ? "Didn't run. Echo can't look right now."
               : "Didn't run. The picture came back unreadable.",
         },
         status >= 400 && status < 600 ? status : 500,

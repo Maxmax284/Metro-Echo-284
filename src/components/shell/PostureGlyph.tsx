@@ -1,4 +1,4 @@
-// PostureGlyph — Vanta's face in the chrome.
+// PostureGlyph — Echo's face in the chrome.
 //
 // One element, many moods. It always breathes (the app is awake), it leans
 // toward the room you're in, it contracts once when something executes, and it

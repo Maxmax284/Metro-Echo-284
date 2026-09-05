@@ -6,7 +6,7 @@
 // always a gap: no zeros standing in for missing data.
 import { latest, stepsForDay, type Reading, type ReadingKind } from "@/lib/wearable";
 
-/** How long an automatic feed may go quiet before Vanta calls it late. */
+/** How long an automatic feed may go quiet before Echo calls it late. */
 export const AUTO_SEND_STALE_HOURS = 26;
 
 export type AutoSendState = "never" | "late" | "live";

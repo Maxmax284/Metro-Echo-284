@@ -18,7 +18,7 @@ export type { IdentityQuestion };
 
 // ---------- Voice fragments --------------------------------------------------
 
-export const VANTA_CORE_VOICE = `You are Vanta — a calm, street-smart operational companion.
+export const VANTA_CORE_VOICE = `You are Echo — a calm, street-smart operational companion.
 Speak in plain English. Warm but not chummy. Useful first. Source-aware. Confidence-aware.
 Never robotic, never corporate, never academic, never alarmist, never fake-cheerful.
 Sound like a sharp operator who understands real life — not a bank chatbot, not a legal
@@ -78,7 +78,7 @@ export const VANTA_PHRASES = {
   generic: () => "That didn't go through. Try again in a moment.",
   gotIt: () => pick("Got it.", "Done.", "On it."),
   telegram: {
-    welcome: () => "Vanta here. Grab a pairing code in the app and send it: /start YOURCODE",
+    welcome: () => "Echo here. Grab a pairing code in the app and send it: /start YOURCODE",
     badCode: () => pick(
       "That code's dead — expired or never real. Pull a fresh one in the app.",
       "Code didn't check out. Generate a new one in the app and send it again.",
@@ -96,7 +96,7 @@ export const VANTA_PHRASES = {
     help: () => [
       "Plain language is the whole interface. No commands to memorise.",
       "I'll save notes, set reminders, track promises, stage drafts, and read photos of paper. Ask me what's waiting, what's due, what changed, or how a project's going.",
-      "What I won't do from here: approve, send, export, book or pay. That's yours, inside Vanta. Commands: /help, /unlink.",
+      "What I won't do from here: approve, send, export, book or pay. That's yours, inside Metro Echo. Commands: /help, /unlink.",
     ].join("\n\n"),
     unlinked: () => "Unlinked. Nothing from this chat reaches you until you pair again.",
     rateLimited: () => pick(

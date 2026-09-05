@@ -59,7 +59,7 @@ describe("placeTruth", () => {
       NOW,
     );
     expect(old.stale).toBe(true);
-    expect(old.line).toMatch(/last place Vanta knew/);
+    expect(old.line).toMatch(/last place Echo knew/);
     expect(placeSourceBadge(old)).toBe("Last known place");
 
     const nothingRecorded = placeTruth(

@@ -1,6 +1,6 @@
 // FeedbackBar — surface-agnostic, lightweight correction controls.
 // Writes directly to `corrections` / `field_notes`. No surveys, no stars.
-// Wherever a card represents something Vanta inferred (signal, finding,
+// Wherever a card represents something Echo inferred (signal, finding,
 // memory, classification), drop this in the footer.
 
 import { useState } from "react";

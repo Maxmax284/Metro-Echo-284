@@ -1,4 +1,4 @@
-// BrandVoiceSection — how Vanta talks to you.
+// BrandVoiceSection — how Echo talks to you.
 //
 // Doctrine: tone is a preference, not a personality. This only changes phrasing
 // in reviews, briefs, recaps, answers and notices. Facts, confidence wording and
@@ -48,7 +48,7 @@ export function BrandVoiceSection() {
             Brand voice
           </h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            How Vanta phrases reviews, briefs, recaps and notices. Facts and receipts stay exactly
+            How Echo phrases reviews, briefs, recaps and notices. Facts and receipts stay exactly
             as they are.
           </p>
         </div>

@@ -162,7 +162,7 @@ Deno.serve(async (req: Request) => {
       let classified: any = null;
       if (apiKey) {
         try {
-          const SYSTEM = `You are Vanta's file intake classifier. Read the extracted text from one file and return strict JSON. You never execute actions, never speculate, and always cap confidence at low when unsure. Suggested actions are drafts only — they will be reviewed by a human before anything runs.`;
+          const SYSTEM = `You are Echo's file intake classifier. Read the extracted text from one file and return strict JSON. You never execute actions, never speculate, and always cap confidence at low when unsure. Suggested actions are drafts only — they will be reviewed by a human before anything runs.`;
           const SCHEMA = {
             type: "object",
             additionalProperties: false,

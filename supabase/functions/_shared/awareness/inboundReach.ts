@@ -109,7 +109,7 @@ export async function reachInboundSignal(
   const text = styleNotice(
     `${inboundNoticeText(detail, {
       publicUrl: Deno.env.get("VANTA_PUBLIC_URL"),
-      nextStep: "In Vanta's inbox for review — nothing was actioned.",
+      nextStep: "In Metro Echo's inbox for review — nothing was actioned.",
     })}\n\nWhy you're seeing this: ${whyLine}`,
     readBrandVoice(prefs),
   );

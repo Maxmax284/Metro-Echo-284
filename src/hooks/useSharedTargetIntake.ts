@@ -1,6 +1,6 @@
 // useSharedTargetIntake — H2 PWA share target seam.
 //
-// When the OS share sheet sends files to Vanta, the service worker stashes
+// When the OS share sheet sends files to Echo, the service worker stashes
 // the payload in a Cache and redirects to "/?shared=<id>". This hook runs on
 // mount, drains that cache once, and hands the files to a caller-provided
 // `onFiles` callback (typically staged.stage from useStagedUpload).

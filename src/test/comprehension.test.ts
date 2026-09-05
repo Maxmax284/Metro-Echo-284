@@ -147,7 +147,7 @@ describe("freshness", () => {
 });
 
 describe("provenance", () => {
-  it("names the sources Vanta actually records", () => {
+  it("names the sources Echo actually records", () => {
     expect(resolveProvenance("telegram")).toBe("telegram");
     expect(resolveProvenance("email_inbound")).toBe("email");
     expect(resolveProvenance("ics_feed")).toBe("calendar");
@@ -206,7 +206,7 @@ describe("errors that name the fix", () => {
 });
 
 describe("system health line", () => {
-  it("says all connected when everything Vanta relies on is live", () => {
+  it("says all connected when everything Echo relies on is live", () => {
     const h = readHealth([
       { name: "Telegram", status: "live" },
       { name: "Email", status: "live" },

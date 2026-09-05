@@ -1,4 +1,4 @@
-// Platform detection + installed-state checks for the Vanta PWA install flow.
+// Platform detection + installed-state checks for the Metro Echo PWA install flow.
 // Keep all install-related decisions isolated here so future native wrappers
 // (Capacitor, desktop shell, etc.) can plug in without touching UI code.
 

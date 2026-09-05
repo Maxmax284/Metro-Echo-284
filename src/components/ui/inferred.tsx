@@ -1,4 +1,4 @@
-// ReadNote — the visible difference between what Vanta read and what it guessed.
+// ReadNote — the visible difference between what Echo read and what it guessed.
 //
 // Doctrine: a direct read looks ordinary. An inference reads as an inference, on
 // the card, in words. Uncertainty is never hidden behind a tooltip and never
@@ -19,7 +19,7 @@ export function ReadNote({
   source?: string | null;
   /** 0..1 from the record, for inferences. */
   confidence?: number | null;
-  /** The thing Vanta thinks this relates to. */
+  /** The thing Echo thinks this relates to. */
   about?: string | null;
   className?: string;
 }) {

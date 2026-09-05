@@ -1,7 +1,7 @@
 import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
-// telegram-test: send a one-off test message (with Vanta deep link) to all
+// telegram-test: send a one-off test message (with Echo deep link) to all
 // of the signed-in user's linked Telegram chats. Capture layer untouched —
 // this only proves end-to-end delivery + deep link works.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -66,10 +66,10 @@ Deno.serve(async (req: Request) => {
       text = `${inboundNoticeText(detail, { publicUrl })}\n\n(Sample notice — test send, no real booking changed.)`;
     } else {
       const lines = [
-        "Vanta — test reminder",
+        "Echo — test reminder",
         "If you see this, Telegram delivery works end-to-end.",
       ];
-      if (publicUrl) lines.push(`Open Vanta: ${publicUrl}/`);
+      if (publicUrl) lines.push(`Open Metro Echo: ${publicUrl}/`);
       text = lines.join("\n");
     }
 

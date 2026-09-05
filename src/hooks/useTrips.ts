@@ -1,7 +1,7 @@
 // useTrips — reads and writes trips. Deliberate only.
 //
 // Start trip and End trip are taps. While a trip is running the page samples a
-// fix on a slow timer, and only while the tab is open — Vanta does not follow
+// fix on a slow timer, and only while the tab is open — Echo does not follow
 // you in the background and it does not start a trip because you moved.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";

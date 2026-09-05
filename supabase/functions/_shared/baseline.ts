@@ -11,7 +11,7 @@
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The minimum number of gaps before Vanta is allowed to claim a normal. */
+/** The minimum number of gaps before Echo is allowed to claim a normal. */
 export const MIN_SAMPLES = 3;
 
 export type Cadence = {
@@ -19,7 +19,7 @@ export type Cadence = {
   samples: number;
   /** Middle gap between events, in days. */
   medianGapDays: number;
-  /** The band Vanta treats as ordinary, in days. */
+  /** The band Echo treats as ordinary, in days. */
   normalLowDays: number;
   normalHighDays: number;
   /** The most recent event that fed the baseline. */
@@ -75,7 +75,7 @@ export function buildCadence(timestamps: Array<string | null | undefined>): Cade
   return {
     samples: gaps.length,
     medianGapDays: round1(m),
-    /* A wide, forgiving band. Vanta only speaks well outside ordinary. */
+    /* A wide, forgiving band. Echo only speaks well outside ordinary. */
     normalLowDays: round1(Math.max(0, m * 0.4)),
     normalHighDays: round1(m * 2.5),
     lastAt: new Date(ts[ts.length - 1]).toISOString(),

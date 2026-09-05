@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { OperationalState } from "@/lib/operationalState";
 import { Compass, MapPin, Moon, Sun } from "lucide-react";
 import { PostureGlyph } from "@/components/shell/PostureGlyph";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 const stateLabel: Record<OperationalState, string> = {
@@ -108,13 +109,13 @@ export function AmbientHeader({
   );
 }
 
-export function VantaMark({ className }: { className?: string }) {
+export function ProductMark({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)}>
       <span className="relative inline-flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow">
         <Compass className="h-3.5 w-3.5" />
       </span>
-      Vanta
+      {PRODUCT_NAME}
     </span>
   );
 }

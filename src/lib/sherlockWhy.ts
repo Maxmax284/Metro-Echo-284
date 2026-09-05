@@ -82,7 +82,7 @@ function signalsFor(f: SherlockFinding): WhySignal[] {
       const n = num(d.mention_count);
       push(n && `It came up ${n} times in the last two weeks.`, "your captures");
       const kind = str(d.kind);
-      push(kind && `Vanta has it filed as a ${kind}.`, "your memory");
+      push(kind && `Echo has it filed as a ${kind}.`, "your memory");
       break;
     }
     case "entity_gone_quiet": {
@@ -137,7 +137,7 @@ export function explainFinding(f: SherlockFinding): WhyExplanation {
     thin,
     closing: thin
       ? "Nothing else was recorded, so there is nothing more to show. Open the items behind it to judge for yourself."
-      : "Vanta read nothing else to decide this.",
+      : "Echo read nothing else to decide this.",
   };
 }
 
@@ -149,7 +149,7 @@ export function whyForFinding(f: SherlockFinding): WhySurfaced {
   const why = explainFinding(f);
   const read = why.signals.map((s) => `${s.text} (read from ${s.from})`).join(" ");
   return whyFor({
-    source: "What Vanta noticed",
+    source: "What Echo noticed",
     whatChanged: read || f.summary,
     comparedWith: null,
     reason: f.rationale || why.closing,

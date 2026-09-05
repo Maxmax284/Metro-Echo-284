@@ -1,6 +1,6 @@
 // handoffResume — one companion, several bodies.
 //
-// Start on the phone, continue at the desk, and Vanta should already know it is
+// Start on the phone, continue at the desk, and Echo should already know it is
 // the same thread of work. This module decides whether saying so is helpful,
 // and what may travel.
 //

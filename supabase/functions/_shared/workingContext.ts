@@ -1,5 +1,5 @@
 // Server-side working context — the same ranking the Today "Continue where you
-// left off" section uses, so Ask Vanta answers "where did I leave off?" from
+// left off" section uses, so Ask Echo answers "where did I leave off?" from
 // real records instead of guessing from unrelated history.
 //
 // Scope-isolated: the caller passes the already-scoped query wrapper.

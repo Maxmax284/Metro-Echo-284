@@ -171,7 +171,7 @@ export const BRIEF_TEMPLATES: Record<BriefAudience | "default", BriefTemplate> =
       hideRisks: true, receiptsFirst: false,
       stripRawReceipts: true,
       sectionOrder: ["situation", "key_topics", "decisions", "risks", "next_move"],
-      footerNote: "Prepared with Vanta · summary only, not a legal document",
+      footerNote: "Prepared with Echo · summary only, not a legal document",
       labels: { ...DEFAULT_LABELS, risks: "Considerations" },
     },
   },

@@ -63,7 +63,7 @@ describe("error vocabulary", () => {
     expect(statusFor("internal")).toBe(500);
   });
 
-  it("keeps client copy in Vanta voice", () => {
+  it("keeps client copy in Metro Echo voice", () => {
     for (const kind of ["unauthorized", "rate_limited", "internal", "budget_exceeded"] as const) {
       const msg = messageFor(kind);
       expect(msg).not.toMatch(/!/);

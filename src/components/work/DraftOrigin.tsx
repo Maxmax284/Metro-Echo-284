@@ -2,7 +2,7 @@
 //
 // Doctrine: the approval rule was stated but the mechanism was invisible, so an
 // empty Actions desk read as dead air. This makes the loop visible in three
-// steps and names the kinds of step Vanta can prepare today. It reads nothing
+// steps and names the kinds of step Echo can prepare today. It reads nothing
 // and runs nothing; each step is a link to the desk that owns it.
 import { ArrowRight, Inbox, PenLine, ShieldCheck } from "lucide-react";
 import { DRAFT_KINDS, DRAFT_ORIGIN } from "@/lib/deskTeaching";
@@ -59,7 +59,7 @@ export function DraftOrigin({
         })}
       </ol>
 
-      <p className="mt-3 vanta-machine-label text-foreground/70">What Vanta may draft for you</p>
+      <p className="mt-3 vanta-machine-label text-foreground/70">What Echo may draft for you</p>
       <ul className="mt-1.5 space-y-1">
         {DRAFT_KINDS.map((k) => (
           <li key={k} className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">

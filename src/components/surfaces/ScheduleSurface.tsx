@@ -27,7 +27,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   const { session, user } = useAuth();
   const { timezone } = useUserTimezone();
   const { applyScope, withScope, key: scopeKey } = useScope();
-  // The calendar half of the day. Read-only, and the same rows Vanta reasons on.
+  // The calendar half of the day. Read-only, and the same rows Echo reasons on.
   const { events: agendaEvents, loading: agendaLoading, setProject } = useAgenda({ days: 7 });
   const [tab, setTab] = useState<TabKey>("today");
 
@@ -184,7 +184,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               empty={
                 agendaLoading
                   ? "Reading the calendars…"
-                  : "Nothing on the calendar today that Vanta can see. Linked calendars are listed at the bottom of this page."
+                  : "Nothing on the calendar today that Echo can see. Linked calendars are listed at the bottom of this page."
               }
             >
               {todayEvents.map((e) => (
@@ -240,7 +240,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               ))
             )}
             <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-              Meetings are read from your calendars — Vanta never writes back. Filing one under a project is your own
+              Meetings are read from your calendars — Echo never writes back. Filing one under a project is your own
               structure and survives every re-sync.
             </p>
             <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />

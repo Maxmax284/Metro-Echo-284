@@ -43,8 +43,8 @@ async function runEmail(config: any, action: any) {
   if (!apiKey || !resendKey) throw new Error("email executor requires Resend connector (RESEND_API_KEY) — link Resend in Connectors");
   const to = Array.isArray(config?.to) ? config.to : (config?.to ? [String(config.to)] : null);
   if (!to || to.length === 0) throw new Error("email executor missing config.to");
-  const from = config?.from ?? "Vanta <onboarding@resend.dev>";
-  const subject = config?.subject ?? action.title ?? "Vanta action";
+  const from = config?.from ?? "Echo <onboarding@resend.dev>";
+  const subject = config?.subject ?? action.title ?? "Echo action";
   const html = config?.html ?? `<p>${(action.description ?? action.title ?? "").replace(/</g, "&lt;")}</p>`;
   const text = config?.text;
   const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
@@ -87,7 +87,7 @@ async function runGoogleCalendar(config: any, action: any) {
       ? tpl.replace(/\{\{\s*(title|description)\s*\}\}/g, (_, k) => String((action as any)[k] ?? ""))
       : fallback;
   const event: Record<string, unknown> = {
-    summary: fill(config?.summary_template, action.title ?? "Vanta event"),
+    summary: fill(config?.summary_template, action.title ?? "Echo event"),
     description: fill(config?.description_template, action.description ?? undefined),
     location: config?.location ?? payload.location ?? undefined,
     start: { dateTime: start, timeZone: tz },
@@ -181,7 +181,7 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: msg }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Reversible means Vanta can actually undo it later, not just relabel it.
+    // Reversible means Echo can actually undo it later, not just relabel it.
     const rollback_available = isReversibleKind(executor.kind) && !!(result?.message_id ?? result?.event_id);
     const rollback_token = String(result?.message_id ?? result?.event_id ?? "") || null;
     await supabase.from("actions").update({

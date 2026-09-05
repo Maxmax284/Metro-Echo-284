@@ -1,4 +1,4 @@
-// placeTruth — how precisely Vanta is allowed to speak about where you are.
+// placeTruth — how precisely Echo is allowed to speak about where you are.
 //
 // Doctrine: never claim more precision than the fix supports. A 3km fix may
 // name a city; it may not name a street. A pin the person dragged themselves
@@ -37,7 +37,7 @@ export type PlaceTruth = {
   setByYou: boolean;
   /** The most precise name we are allowed to use, or null. */
   name: string | null;
-  /** One sentence: where Vanta thinks you are and how sure it is. */
+  /** One sentence: where Echo thinks you are and how sure it is. */
   line: string;
   /** Age of the fix in plain words, or null when nothing was recorded. */
   age: string | null;
@@ -102,7 +102,7 @@ export function placeTruth(place: PlaceLike | null | undefined, now = Date.now()
       source: "unknown",
       setByYou: false,
       name: null,
-      line: "Vanta has no place to work from yet. Set where you are and it can start reading around you.",
+      line: "Echo has no place to work from yet. Set where you are and it can start reading around you.",
       age: null,
       stale: false,
     };
@@ -124,8 +124,8 @@ export function placeTruth(place: PlaceLike | null | undefined, now = Date.now()
   if (!name) {
     parts.push(
       setByYou
-        ? "You placed this pin yourself, and Vanta still can't tell what's there."
-        : "Vanta has a fix but can't tell what's there yet.",
+        ? "You placed this pin yourself, and Echo still can't tell what's there."
+        : "Echo has a fix but can't tell what's there yet.",
     );
   } else if (precision === "street" || precision === "neighbourhood") {
     parts.push(setByYou ? `You set this to ${name}.` : `You're in ${name}.`);
@@ -134,10 +134,10 @@ export function placeTruth(place: PlaceLike | null | undefined, now = Date.now()
   } else if (precision === "area") {
     parts.push(`Somewhere around ${name} — the fix is wide.`);
   } else {
-    parts.push(setByYou ? `You set this to ${name}.` : `Vanta is working from ${name}.`);
+    parts.push(setByYou ? `You set this to ${name}.` : `Echo is working from ${name}.`);
   }
 
-  if (stale && age) parts.push(`That was ${age}, so treat it as the last place Vanta knew.`);
+  if (stale && age) parts.push(`That was ${age}, so treat it as the last place Echo knew.`);
   else if (age && !setByYou) parts.push(`Fix taken ${age}.`);
 
   if (precision === "area" && acc) parts.push(`Accurate to about ${Math.round(acc / 1000)}km.`);
@@ -151,6 +151,6 @@ export function placeSourceBadge(truth: PlaceTruth): string {
   if (truth.stale) return "Last known place";
   if (truth.source === "device") return "From your device";
   if (truth.source === "saved") return "Saved place";
-  /* Nothing recorded how this place was set, and Vanta will not invent it. */
+  /* Nothing recorded how this place was set, and Echo will not invent it. */
   return "How this was set wasn't recorded";
 }

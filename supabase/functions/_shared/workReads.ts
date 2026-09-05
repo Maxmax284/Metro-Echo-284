@@ -63,7 +63,7 @@ export function formatChanged(counts: { captures: number; commitmentsClosed: num
   if (counts.captures) bits.push(`${counts.captures} thing${counts.captures === 1 ? "" : "s"} came in`);
   if (counts.commitmentsClosed) bits.push(`${counts.commitmentsClosed} promise${counts.commitmentsClosed === 1 ? "" : "s"} closed`);
   if (counts.drafts) bits.push(`${counts.drafts} draft${counts.drafts === 1 ? "" : "s"} prepared`);
-  if (counts.findings) bits.push(`${counts.findings} thing${counts.findings === 1 ? "" : "s"} Vanta flagged`);
+  if (counts.findings) bits.push(`${counts.findings} thing${counts.findings === 1 ? "" : "s"} Echo flagged`);
   if (!bits.length) return `Quiet — nothing moved in the last ${days} day${days === 1 ? "" : "s"}.`;
   return `Last ${days} day${days === 1 ? "" : "s"}: ${bits.join(", ")}.`;
 }

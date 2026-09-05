@@ -51,7 +51,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
 
     /* Unfiled captures — what landed and is still waiting in Inbox. Two shapes
        land there: files and pages, and messages that arrived from a channel
-       (Telegram, email) that Vanta could not route on its own. Both are things
+       (Telegram, email) that Echo could not route on its own. Both are things
        waiting on a person, so both count here. */
     let arrived: Array<{
       id: string;
@@ -123,7 +123,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       };
     });
 
-    /* Projects plus the cadence Vanta already learned for them. */
+    /* Projects plus the cadence Echo already learned for them. */
     let projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }> = [];
     const [projRes, cadRes] = await Promise.all([
       applyScope(supabase.from("projects").select("id, title, updated_at")).limit(40),
@@ -259,7 +259,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           ? [{
               id: digest.noticed.id,
               title: digest.noticed.title,
-              reason: digest.noticed.body ?? "Vanta flagged this from what it already had on record.",
+              reason: digest.noticed.body ?? "Echo flagged this from what it already had on record.",
               at: new Date().toISOString(),
             }]
           : [],

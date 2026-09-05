@@ -53,7 +53,7 @@ export default function Settings() {
       <header className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
         <Link
           to="/"
-          aria-label="Back to Vanta"
+          aria-label="Back to Echo"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -87,7 +87,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* One plain read on the connections Vanta relies on. */}
+      {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />
 
       <ul className="space-y-2">

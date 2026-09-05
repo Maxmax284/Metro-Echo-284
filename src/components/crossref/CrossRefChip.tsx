@@ -43,7 +43,7 @@ export function CrossRefChip({
     if (ready.length < 2) {
       vantaToast({
         title: "Ingest the files first",
-        description: "Vanta reads them once, then cross-references. Tap Ingest staged.",
+        description: "Echo reads them once, then cross-references. Tap Ingest staged.",
       });
       return;
     }
@@ -73,7 +73,7 @@ export function CrossRefChip({
         <div className="min-w-0">
           <div className="text-[12px] font-medium">{sources.length} sources arrived together</div>
           <div className="truncate text-[11px] text-muted-foreground">
-            Vanta can line them up and show you what does not match.
+            Echo can line them up and show you what does not match.
           </div>
         </div>
         <button

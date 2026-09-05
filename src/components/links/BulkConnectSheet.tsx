@@ -91,7 +91,7 @@ export function BulkConnectSheet({
         <SheetHeader className="text-left">
           <SheetTitle className="text-[14px]">Connect {sources.length} item{sources.length === 1 ? "" : "s"} to…</SheetTitle>
           <SheetDescription className="text-[11.5px]">
-            Pick one place — Vanta will link all selected captures to it. Nothing runs.
+            Pick one place — Echo will link all selected captures to it. Nothing runs.
           </SheetDescription>
         </SheetHeader>
 

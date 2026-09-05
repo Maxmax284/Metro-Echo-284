@@ -18,7 +18,7 @@ export function SpokeKitPanel({ kit, onDone }: { kit: SpokeKitInput; onDone: () 
       </div>
       <p className="text-[11.5px] text-muted-foreground">
         Give this to {kit.platformName}. It has the webhook address, the shared secret, and the exact way to sign a
-        notice so Vanta trusts it. Copy it now — the secret is not shown again.
+        notice so Echo trusts it. Copy it now — the secret is not shown again.
       </p>
       <dl className="mt-2 space-y-1 text-[11px]">
         <div>

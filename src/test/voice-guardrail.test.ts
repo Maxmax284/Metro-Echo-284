@@ -1,5 +1,5 @@
 // Guardrail: forbid direct `sonner` imports outside the wrapper + Toaster,
-// and forbid the generic chatbot/productivity copy that violates the Vanta
+// and forbid the generic chatbot/productivity copy that violates the Echo
 // Default Operator Voice. Route all user-facing copy through vantaSay.*.
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -39,7 +39,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// Forbidden phrases from the Vanta voice spec. These are the strings the
+// Forbidden phrases from the Echo voice spec. These are the strings the
 // platform must *never* ship in user-facing copy.
 const FORBIDDEN: RegExp[] = [
   /how can i help you today/i,

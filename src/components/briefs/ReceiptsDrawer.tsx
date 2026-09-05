@@ -50,7 +50,7 @@ export function ReceiptsDrawer({
             <SheetTitle className="text-[15px]">Receipts</SheetTitle>
             <SheetDescription className="text-[12px]">
               {sectionLabel ? <>Backing this claim in <span className="text-foreground/90">{sectionLabel}</span>.</> : "Backing this claim."}{" "}
-              Vanta only states what these sources contain.
+              Echo only states what these sources contain.
             </SheetDescription>
           </SheetHeader>
 
@@ -128,7 +128,7 @@ export function ReceiptsDrawer({
 
 
           <p className="mt-4 text-center text-[10.5px] text-muted-foreground">
-            Every claim in a Vanta brief points back to real items and audit receipts.
+            Every claim in an Echo brief points back to real items and audit receipts.
           </p>
         </div>
       </SheetContent>

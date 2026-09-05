@@ -54,7 +54,7 @@ export function consequenceRows(c: Consequence): ConsequenceRow[] {
     { label: "What does not change", lines: c.unchanged },
     {
       label: "What gets notified",
-      lines: c.notified.length ? c.notified : ["Nobody. This stays inside Vanta."],
+      lines: c.notified.length ? c.notified : ["Nobody. This stays inside Metro Echo."],
     },
     {
       label: "What stays reversible",

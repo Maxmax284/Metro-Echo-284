@@ -11,7 +11,7 @@ import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 
 const RULES = [
-  "A wearable can tell Vanta what kind of moment you're in. That's context.",
+  "A wearable can tell Echo what kind of moment you're in. That's context.",
   "A wearable can show you what's next and what just changed. That's reading.",
   "A wearable can never approve or run anything. Approval doesn't travel.",
   "Nothing here goes through Telegram. This is your own device, feeding your own core.",
@@ -23,7 +23,7 @@ export default function WearablesPage() {
       <header className="mb-5 flex items-center gap-3">
         <Link
           to="/"
-          aria-label="Back to Vanta"
+          aria-label="Back to Echo"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -39,7 +39,7 @@ export default function WearablesPage() {
       <section className="vanta-card mb-4 p-4">
         <h2 className="text-[14px] font-semibold tracking-tight">How this works</h2>
         <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-          Vanta has one brain and many bodies. A phone, a desk, a watch — each one gets the same
+          Echo has one brain and many bodies. A phone, a desk, a watch — each one gets the same
           truth in a different size. The watch gets the shortest version, because you're moving.
         </p>
         <ul className="mt-3 space-y-1.5">

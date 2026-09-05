@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
-  Vanta V2 design system.
+  Metro Echo design system.
   All colors are HSL. No raw hex/rgb in components.
   Dark-first, calm, cinematic. Subtle glass surfaces. Restrained motion.
 */
@@ -69,7 +69,7 @@
     --glass: hsl(220 16% 12% / 0.72);
     --glass-border: hsl(220 14% 28% / 0.4);
 
-    /* Vanta intelligence accent — purple. Identity only, never decoration. */
+    /* Echo intelligence accent — purple. Identity only, never decoration. */
     --vanta-accent: 268 70% 66%;
     /* Hero ambient: one controlled purple wash. */
     --gradient-hero: radial-gradient(120% 140% at 15% 0%, hsl(var(--vanta-accent) / 0.18), transparent 62%),
@@ -211,7 +211,7 @@
     border-radius: inherit;
   }
 
-  /* Hero: where Vanta's presence lives. One controlled purple wash, grain,
+  /* Hero: where Echo's presence lives. One controlled purple wash, grain,
      and a slow drift. Only used on the Today state area. */
   .vanta-hero {
     position: relative;
@@ -597,7 +597,7 @@ html.vanta-exhale-once body {
 
 
 
-/* Signal line: the one reusable "Vanta noticed something" motif.
+/* Signal line: the one reusable "Echo noticed something" motif.
    A 1px purple line that sweeps once and settles. Event-driven, never looped.
    Apply to a positioned container. */
 .vanta-signal { position: relative; }

@@ -23,7 +23,7 @@ const OFFSETS: { label: string; minutes: number }[] = [
 ];
 
 /**
- * Compact, mobile-friendly reminder composer. Implements Vanta's time rules
+ * Compact, mobile-friendly reminder composer. Implements Echo's time rules
  * and the doctrine's aftermath rule: title is the next-life verb, and
  * remind_at can lead due_at so reminders actually nudge before the deadline.
  */

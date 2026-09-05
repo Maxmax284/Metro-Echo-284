@@ -21,7 +21,7 @@ const OPEN_LABEL: Record<SituationLine["kind"], string> = {
   waiting_on_you: "Review changes",
   meeting_soon: "Open schedule",
   due_soon: "Open commitment",
-  noticed: "See what Vanta noticed",
+  noticed: "See what Echo noticed",
   went_unusually_quiet: "Open project",
   matter_open: "Review the reading",
   matter_proposed: "Read them together",
@@ -103,7 +103,7 @@ export function SituationRead({
       ) : null}
 
       {/* Where this was read from. One clause, and only when the place is both
-          resolved and recent — otherwise Vanta says nothing about location. */}
+          resolved and recent — otherwise Echo says nothing about location. */}
       {read.placeNote ? (
         <p className="text-[11px] leading-snug text-muted-foreground/80">{read.placeNote}</p>
       ) : null}

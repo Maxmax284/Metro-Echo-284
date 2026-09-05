@@ -1,4 +1,4 @@
-// What Vanta can see — one honest list of the senses and feeds, built from the
+// What Echo can see — one honest list of the senses and feeds, built from the
 // consent switches and the recorded source health. Each row says on or off,
 // what it helps with, and — where there is a recorded moment — when it last
 // had something to say.
@@ -61,8 +61,8 @@ export function WhatVantaSees({ className }: { className?: string }) {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      () => toast.success("Location is on. Tap Recenter and Vanta will use this spot."),
-      () => toast("Location is allowed in Vanta, but your phone still refused. Allow it for this site in your browser settings."),
+      () => toast.success("Location is on. Tap Recenter and Echo will use this spot."),
+      () => toast("Location is allowed in Metro Echo, but your phone still refused. Allow it for this site in your browser settings."),
       { enableHighAccuracy: false, timeout: 8000 },
     );
   };
@@ -93,13 +93,13 @@ export function WhatVantaSees({ className }: { className?: string }) {
       label: "Wearable",
       on: feedState(sources, "wearable"),
       unset: feedMissing(sources, "wearable"),
-      helps: "Readings your watch shares, so Vanta can notice a hard week.",
+      helps: "Readings your watch shares, so Echo can notice a hard week.",
       detail: feedProof(sources, "wearable"),
     },
     {
       label: "Camera",
       on: null,
-      helps: "Only when you tap to show Vanta something. It never looks on its own.",
+      helps: "Only when you tap to show Echo something. It never looks on its own.",
     },
     {
       label: "Microphone",
@@ -109,9 +109,9 @@ export function WhatVantaSees({ className }: { className?: string }) {
   ];
 
   return (
-    <section className={className} aria-label="What Vanta can see">
+    <section className={className} aria-label="What Echo can see">
       <div className="vanta-card rounded-xl p-3">
-        <div className="text-[12px] font-semibold">What Vanta can see</div>
+        <div className="text-[12px] font-semibold">What Echo can see</div>
         <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{capabilityStatusLine(rows)}</p>
         <ul className="mt-2 space-y-2">
           {rows.map((r) => (
@@ -155,7 +155,7 @@ export function WhatVantaSees({ className }: { className?: string }) {
           onClick={() => navigate("/settings/g/awareness")}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          Change what Vanta may sense
+          Change what Echo may sense
         </Button>
       </div>
     </section>

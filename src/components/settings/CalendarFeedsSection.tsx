@@ -1,8 +1,8 @@
 // CalendarFeedsSection — the calendar sense, honestly presented.
 //
 // Doctrine:
-//  - Read-only sense. Subscribing to a calendar never lets Vanta write to it,
-//    move anything, or act on anything. It only earns Vanta the ability to know
+//  - Read-only sense. Subscribing to a calendar never lets Echo write to it,
+//    move anything, or act on anything. It only earns Echo the ability to know
 //    what starts soon and which promise lands mid-meeting.
 //  - Scope-filtered: a calendar added in a workspace belongs to that room only.
 //  - Honest status: last check, how many entries, and the real error text when a
@@ -168,7 +168,7 @@ export function CalendarFeedsSection() {
             Your calendar
           </h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            Link a calendar and Vanta can see what starts soon and when a promise lands mid-meeting.
+            Link a calendar and Echo can see what starts soon and when a promise lands mid-meeting.
             Reading only — nothing gets changed, moved or answered on your behalf.
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
@@ -212,7 +212,7 @@ export function CalendarFeedsSection() {
             the ICS link.
           </p>
           <p>
-            Paste it below, then hit Sync now. Vanta re-reads every 20 minutes on its own; the button is for
+            Paste it below, then hit Sync now. Echo re-reads every 20 minutes on its own; the button is for
             when you just changed something and do not feel like waiting.
           </p>
           <p className="text-foreground/70">

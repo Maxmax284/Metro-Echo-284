@@ -245,7 +245,7 @@ export const COMPANION_TOOLS: Tool[] = [
     id: "research-this",
     label: "Research this",
     icon: Search,
-    description: "Look something up outside Vanta (rate-limited).",
+    description: "Look something up outside Metro Echo (rate-limited).",
     surfaces: ["*"],
     modes: ["advisor", "operator"],
     provider: "serpapi",
@@ -280,9 +280,9 @@ export function getToolAvailability(
     device?: ToolDevice;
   }
 ): ToolAvailability {
-  // Direct-invocation gate — some capabilities exist only for Vanta to reach for.
+  // Direct-invocation gate — some capabilities exist only for Echo to reach for.
   if (opts.direct && tool.hiddenFromDirectInvocation) {
-    return { available: false, reason: "Vanta uses this on its own" };
+    return { available: false, reason: "Echo uses this on its own" };
   }
   // Scope gate — scope is absolute.
   if (opts.scope && tool.allowedScopes && !tool.allowedScopes.includes(opts.scope)) {

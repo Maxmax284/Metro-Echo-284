@@ -114,7 +114,7 @@ export function useGlance() {
         detail: r.body,
         urgency: urgencyForNudge(r),
         createdAt: r.created_at,
-        // "seen" is Vanta's record that it was put in front of you already.
+        // "seen" is Echo's record that it was put in front of you already.
         lastSurfacedAt: r.status === "seen" ? r.updated_at : null,
         entity: { type: r.related_entity_type, id: r.related_entity_id },
         href: hrefFor(r),

@@ -73,7 +73,7 @@ export function readArrival(a: Arrival, opts: { now?: number; reason?: string } 
   const nextStep = a.tiedTo
     ? `File it under ${a.tiedTo}, or say where else it belongs.`
     : a.timeSensitive
-      ? "Say when it needs answering, and Vanta will hold the time for you."
+      ? "Say when it needs answering, and Echo will hold the time for you."
       : a.unfiled
         ? "Say where it belongs and it stops being loose."
         : "Nothing is needed. It is already filed.";

@@ -1,6 +1,6 @@
 // roomCopy — the information layer's words, in one place.
 //
-// Doctrine: the walls give Vanta identity, the copy gives it clarity. Every
+// Doctrine: the walls give Echo identity, the copy gives it clarity. Every
 // major section gets one plain line that says what lives there. Every room can
 // explain itself without a tutorial and without an AI call. Nothing here
 // invents state; these are descriptions of structure, not readings of data.
@@ -13,7 +13,7 @@ export const ROOM_INTRO: Record<RoomKey, string> = {
   work: "Projects live here. Desks organize everything else.",
   ask: "Ask naturally. Add a file, photo, or voice note when needed.",
   receipts: "Every recorded state change lands here.",
-  settings: "How Vanta behaves, remembers, and reaches you.",
+  settings: "How Echo behaves, remembers, and reaches you.",
 };
 
 /**
@@ -23,19 +23,19 @@ export const ROOM_INTRO: Record<RoomKey, string> = {
 export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
   today: [
     "Today is the short version of what matters now.",
-    "Needs attention is what is waiting on you. What's next is dated promises. What changed is the last few things Vanta recorded. Fresh in is new captures nobody has sorted yet.",
+    "Needs attention is what is waiting on you. What's next is dated promises. What changed is the last few things Echo recorded. Fresh in is new captures nobody has sorted yet.",
     "Tapping a row opens the place that owns it. Nothing runs on its own.",
   ],
   work: [
     "Work opens with where things stand, then the desks.",
     "Start here promotes the single strongest next tap. Needs you, Arrived, Due and Drifting summarize the rest.",
-    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Vanta looks holds Memory, Sherlock, Awareness and Cockpit.",
+    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Echo looks holds Memory, Sherlock, Awareness and Cockpit.",
   ],
 
   ask: [
     "Ask is a conversation with a workspace behind it.",
     "Threads keep their own context: what they were about, which space owned them, and what they produced.",
-    "You can attach a photo, a file, or a voice note. Vanta reads and drafts — it never executes from here.",
+    "You can attach a photo, a file, or a voice note. Echo reads and drafts — it never executes from here.",
   ],
   receipts: [
     "Receipts is the evidence room.",
@@ -58,17 +58,17 @@ export const SECTION_NOTE = {
   "today.changed": "Recent state changes across this space.",
   "today.fresh": "New captures that have not been sorted yet.",
   "today.resume": "Pick up work that is still open.",
-  "today.live": "Live activity Vanta already recorded.",
+  "today.live": "Live activity Echo already recorded.",
   "today.security": "Anything unusual about access or trust.",
-  "work.projects": "The jobs Vanta is tracking for you.",
+  "work.projects": "The jobs Echo is tracking for you.",
   "work.state": "The short version of where work stands right now.",
   "work.lands": "Everything that arrives, gets promised, or gets written down.",
-  "work.looks": "Where Vanta reads, searches, and watches for you.",
+  "work.looks": "Where Echo reads, searches, and watches for you.",
 
   "work.daily": "The three lanes you touch every day.",
-  "work.knowledge": "What Vanta has read, written, and remembered.",
+  "work.knowledge": "What Echo has read, written, and remembered.",
   "work.deeper": "Denser views for when you want the whole picture.",
-  "work.desks": "Desks hold the different kinds of work Vanta tracks.",
+  "work.desks": "Desks hold the different kinds of work Echo tracks.",
   "receipts.lifecycle": "How actions moved from proposed to done.",
   "receipts.log": "Every recorded change, newest first.",
   "ask.threads": "Threads keep their own context and outputs.",
@@ -106,7 +106,7 @@ export const ROOM_MAP: Array<{
   {
     key: "ask",
     title: "Ask",
-    purpose: "Talk to Vanta with context.",
+    purpose: "Talk to Echo with context.",
     owns: ["Threads", "Files", "Research", "Questions", "Prepared work"],
   },
   {
@@ -144,7 +144,7 @@ export const ROOM_HELP: Record<RoomKey, RoomHelpCopy> = {
   today: {
     forWhat: "The short version of what matters now, so you don't have to open five desks to find out.",
     lands:
-      "Anything already recorded elsewhere: promises coming due, captures nobody sorted yet, changes Vanta wrote down, and readings from a watch you connected.",
+      "Anything already recorded elsewhere: promises coming due, captures nobody sorted yet, changes Echo wrote down, and readings from a watch you connected.",
     canDo: "Read it, then tap a row to open the desk that actually owns it.",
     never: "Today never runs anything and never changes a record. It only reads.",
     next: "Every tap lands on the real desk, where approval and receipts happen.",
@@ -166,7 +166,7 @@ export const ROOM_HELP: Record<RoomKey, RoomHelpCopy> = {
     forWhat: "A conversation that already knows your workspace, so you don't re-explain yourself.",
     lands:
       "Threads you started, plus anything you attached to them: a photo, a file, a voice note, or a project you pointed the thread at.",
-    canDo: "Ask, attach, have Vanta read or research, and save the result to a desk as a draft.",
+    canDo: "Ask, attach, have Echo read or research, and save the result to a desk as a draft.",
     never: "Ask never executes. It drafts and suggests; approval only happens on the desk that owns the object.",
     next: "Saving from a thread files a note, a promise or a proposed action — and records where it came from.",
     empty: "No threads yet. Ask one plain question and the thread keeps its own context from then on.",
@@ -180,7 +180,7 @@ export const ROOM_HELP: Record<RoomKey, RoomHelpCopy> = {
     empty: "Nothing has changed state yet. The first approval you make writes the first line.",
   },
   settings: {
-    forWhat: "The back of house: how Vanta behaves, remembers, speaks and reaches you.",
+    forWhat: "The back of house: how Echo behaves, remembers, speaks and reaches you.",
     lands: "Your own choices — channels you connected, consents you gave, and the way you want to be spoken to.",
     canDo: "Connect a channel, switch a sense on or off, set quiet hours, and check what is actually reaching you.",
     never: "Settings never turns a sense on for you, and never sends on a channel you have not connected.",

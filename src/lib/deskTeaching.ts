@@ -2,7 +2,7 @@
 //
 // Doctrine: learning one desk should teach all of them. Each desk answers, in
 // the same order and the same words: what happens here, what you can do, what
-// Vanta may prepare for you, what a real record looks like, and where a record
+// Echo may prepare for you, what a real record looks like, and where a record
 // goes after you touch it.
 //
 // Nothing here reads state and nothing here executes. It is copy, written once,
@@ -10,7 +10,7 @@
 
 import type { DeskKey } from "@/lib/deskRoles";
 
-/** An assist Vanta can offer. Every one of these only ever prepares something. */
+/** An assist Echo can offer. Every one of these only ever prepares something. */
 export type DeskAssist = {
   /** Verb-first, plain English. */
   label: string;
@@ -39,7 +39,7 @@ export type DeskTeaching = {
   doThis: string[];
   /** Which of doThis is the one to reach for first. */
   recommended: string;
-  /** What Vanta may prepare. Empty means Vanta has nothing to offer here. */
+  /** What Echo may prepare. Empty means Echo has nothing to offer here. */
   assists: DeskAssist[];
   /** Where a record goes after you touch it. One line. */
   next: string;
@@ -53,8 +53,8 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     doThis: ["Start a project", "Attach notes, files and promises", "Read where it stands", "Archive one that is finished"],
     recommended: "Start a project",
     assists: [
-      { label: "Summarize where this project stands", note: "Vanta drafts the summary. You read it before anyone else does." },
-      { label: "Suggest what to attach", note: "Vanta proposes unsorted captures that look related. You accept each one." },
+      { label: "Summarize where this project stands", note: "Echo drafts the summary. You read it before anyone else does." },
+      { label: "Suggest what to attach", note: "Echo proposes unsorted captures that look related. You accept each one." },
     ],
     next: "Anything you attach shows up in the project's brief, and the attachment is recorded in Receipts.",
     example: {
@@ -70,8 +70,8 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     doThis: ["Route what arrived", "Turn one into a promise", "Keep it as a note", "Discard what does not matter"],
     recommended: "Route what arrived",
     assists: [
-      { label: "Suggest where these belong", note: "Vanta proposes a project per item. Nothing is filed until you accept." },
-      { label: "Group what looks related", note: "Vanta clusters arrivals that mention the same thing. You confirm the group." },
+      { label: "Suggest where these belong", note: "Echo proposes a project per item. Nothing is filed until you accept." },
+      { label: "Group what looks related", note: "Echo clusters arrivals that mention the same thing. You confirm the group." },
     ],
     next: "Once routed, an arrival lives in its project and stops asking for your attention here.",
     example: {
@@ -87,8 +87,8 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     doThis: ["Record a promise", "Mark one done", "Move the date", "Hand it to someone else"],
     recommended: "Record a promise",
     assists: [
-      { label: "Find promises in what I captured", note: "Vanta proposes what looks like a promise. You confirm each one before it is recorded." },
-      { label: "Draft the follow-up message", note: "Vanta writes the message. Sending it is a separate approval." },
+      { label: "Find promises in what I captured", note: "Echo proposes what looks like a promise. You confirm each one before it is recorded." },
+      { label: "Draft the follow-up message", note: "Echo writes the message. Sending it is a separate approval." },
     ],
     next: "Closing a promise writes a receipt. Nothing else moves.",
     example: {
@@ -100,11 +100,11 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     },
   },
   actions: {
-    does: "Steps Vanta has prepared and will not run until you approve them.",
+    does: "Steps Echo has prepared and will not run until you approve them.",
     doThis: ["Review what is waiting", "Read a draft in full", "Approve it", "Discard it"],
     recommended: "Review what is waiting",
     assists: [
-      { label: "Explain what this step would do", note: "Vanta describes the effect in plain English before you approve." },
+      { label: "Explain what this step would do", note: "Echo describes the effect in plain English before you approve." },
     ],
     next: "Approving stages it. Running it is a second, separate tap \u2014 and it writes a receipt either way.",
     example: {
@@ -116,11 +116,11 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     },
   },
   briefs: {
-    does: "A short readable write-up of what Vanta already holds, for someone else to read.",
+    does: "A short readable write-up of what Echo already holds, for someone else to read.",
     doThis: ["Compose a brief", "Read an old one", "Export it as PDF or Word"],
     recommended: "Compose a brief",
     assists: [
-      { label: "Build this from the last 7 days", note: "Vanta pre-fills the sources. You still tap to generate, and nothing leaves Vanta until you export." },
+      { label: "Build this from the last 7 days", note: "Echo pre-fills the sources. You still tap to generate, and nothing leaves Echo until you export." },
     ],
     next: "A generated brief stays here with its receipt. Exporting is what puts it in your hands.",
     example: {
@@ -132,12 +132,12 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     },
   },
   documents: {
-    does: "Real documents \u2014 contracts and agreements Vanta drafts for you or reads back to you.",
+    does: "Real documents \u2014 contracts and agreements Echo drafts for you or reads back to you.",
     doThis: ["Draft from a template", "Upload one for review", "Revise a draft in plain English", "Export it"],
     recommended: "Draft from a template",
     assists: [
-      { label: "Read this and flag what's missing", note: "Vanta reads the upload and lists risks and gaps. It changes nothing." },
-      { label: "Explain this clause in plain English", note: "Read-only. Vanta translates, it does not rewrite unless you ask." },
+      { label: "Read this and flag what's missing", note: "Echo reads the upload and lists risks and gaps. It changes nothing." },
+      { label: "Explain this clause in plain English", note: "Read-only. Echo translates, it does not rewrite unless you ask." },
     ],
     next: "A draft stays a draft until you export it. Every revision is recorded.",
     example: {
@@ -149,11 +149,11 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     },
   },
   memory: {
-    does: "Search across everything Vanta holds. It only reads.",
+    does: "Search across everything Echo holds. It only reads.",
     doThis: ["Search a name or phrase", "Follow a result to its source", "Attach a result to a project"],
     recommended: "Search a name or phrase",
     assists: [
-      { label: "Find things that mention this", note: "Vanta gathers related records. Nothing is changed or moved." },
+      { label: "Find things that mention this", note: "Echo gathers related records. Nothing is changed or moved." },
     ],
     next: "Nothing changes by searching. Attaching a result is the only write, and you make it.",
     example: {
@@ -169,9 +169,9 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     doThis: ["Read the day or week", "Connect a calendar", "Check what changed since last sync"],
     recommended: "Read the day or week",
     assists: [
-      { label: "Tell me what changed", note: "Vanta reports the difference since the last sync. It never writes to your calendar." },
+      { label: "Tell me what changed", note: "Echo reports the difference since the last sync. It never writes to your calendar." },
     ],
-    next: "Calendars are read-only. Vanta never writes back to them.",
+    next: "Calendars are read-only. Echo never writes back to them.",
     example: {
       title: "Thursday",
       lines: ["09:00 staff call \u00b7 13:00 supplier \u00b7 one promise due \u00b7 gap at 15:00."],
@@ -185,7 +185,7 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     doThis: ["Read a finding", "See the evidence behind it", "Say helpful or not right", "Accept the link"],
     recommended: "Read a finding",
     assists: [
-      { label: "Show me why this triggered", note: "Vanta shows the recorded evidence only \u2014 no new guessing." },
+      { label: "Show me why this triggered", note: "Echo shows the recorded evidence only \u2014 no new guessing." },
     ],
     next: "A finding is a suggestion until you accept it. Accepting writes the link and a receipt.",
     example: {
@@ -197,9 +197,9 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
     },
   },
   awareness: {
-    does: "What Vanta currently knows about your situation, and what it is allowed to read.",
-    doThis: ["See what Vanta is reading", "Turn a signal off", "Read why a notice appeared"],
-    recommended: "See what Vanta is reading",
+    does: "What Echo currently knows about your situation, and what it is allowed to read.",
+    doThis: ["See what Echo is reading", "Turn a signal off", "Read why a notice appeared"],
+    recommended: "See what Echo is reading",
     assists: [],
     next: "Notices here are drafts. Acting on one opens the desk that owns the record.",
     example: {
@@ -207,7 +207,7 @@ export const DESK_TEACHING: Record<DeskKey, DeskTeaching> = {
       lines: ["Non-urgent nudges are being held until the morning."],
       chips: ["time", "place", "device"],
       buttons: ["Turn a signal off", "Why"],
-      caption: "This is the reason Vanta is quiet or loud at any given moment.",
+      caption: "This is the reason Echo is quiet or loud at any given moment.",
     },
   },
   command: {
@@ -236,12 +236,12 @@ export function deskTeaching(key: DeskKey): DeskTeaching {
  */
 export const DRAFT_ORIGIN: { step: string; line: string; desk: DeskKey }[] = [
   { step: "Something arrives", line: "A message, a note, a file, a page from your phone.", desk: "inbox" },
-  { step: "Vanta drafts a step", line: "If it implies a next move, Vanta prepares it and stops.", desk: "actions" },
+  { step: "Echo drafts a step", line: "If it implies a next move, Echo prepares it and stops.", desk: "actions" },
   { step: "You approve", line: "Nothing runs before this. The receipt is written either way.", desk: "actions" },
 ];
 
 /**
- * The kinds of step Vanta can actually draft today. Kept short and truthful —
+ * The kinds of step Echo can actually draft today. Kept short and truthful —
  * if it is not built, it does not belong on this list.
  */
 export const DRAFT_KINDS: string[] = [

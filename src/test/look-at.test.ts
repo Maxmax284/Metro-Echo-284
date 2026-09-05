@@ -14,7 +14,7 @@ describe("deliberate camera seam", () => {
 
   it("says the camera is off until it is opened", () => {
     expect(LOOK_STATES.idle.toLowerCase()).toContain("off");
-    expect(LOOK_STATES.looking).toBe("Vanta is looking");
+    expect(LOOK_STATES.looking).toBe("Echo is looking");
   });
 
   it("only looks at pictures", () => {

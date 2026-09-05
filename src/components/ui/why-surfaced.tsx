@@ -1,6 +1,6 @@
 // WhySurfaced — the one reveal, everywhere.
 //
-// Any item Vanta put in front of you unasked uses this. Same seven answers,
+// Any item Echo put in front of you unasked uses this. Same seven answers,
 // same order, same words as the chat and watch versions. It renders recorded
 // facts only, so a thin reveal reads as thin instead of being padded out.
 import { useState } from "react";

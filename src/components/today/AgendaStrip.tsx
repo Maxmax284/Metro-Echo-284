@@ -1,4 +1,4 @@
-// AgendaStrip — the next few things on the day, as Vanta sees them.
+// AgendaStrip — the next few things on the day, as Echo sees them.
 //
 // Today only reads. It shows what starts next and the honest open air between
 // entries, then gets out of the way. Filing lives in Work.

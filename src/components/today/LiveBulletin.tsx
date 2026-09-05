@@ -3,7 +3,7 @@
 // One line per real change, newest on top, each one naming what happened and
 // where it landed so "6 things changed" is never the whole story. Rows arrive
 // with a single one-shot animation and then go still. If nothing has landed
-// since you opened Vanta, this renders nothing at all — silence is valid.
+// since you opened Echo, this renders nothing at all — silence is valid.
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpRight, Radio } from "lucide-react";
 import { MachineText } from "@/components/ui/instrument";
