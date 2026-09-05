@@ -96,3 +96,26 @@ export function defaultOffersFor(kind: ObjectKind): string[] {
       return ["File it", "Ask about it"];
   }
 }
+
+/**
+ * "What can I do next?" in one plain sentence. Offers only — nothing here runs
+ * on its own, and the words never promise more than the surface can do.
+ */
+export function nextStepsLine(kind: ObjectKind): string {
+  const offers = defaultOffersFor(kind).map((o) => o.toLowerCase());
+  const list =
+    offers.length === 1
+      ? offers[0]
+      : `${offers.slice(0, -1).join(", ")} or ${offers[offers.length - 1]}`;
+  return `What can I do next? ${list} — your call, nothing runs on its own.`;
+}
+
+/**
+ * The read, said honestly. A short read is quoted as-is; a long one is cut with
+ * an ellipsis; no read at all says so rather than guessing.
+ */
+export function readSummaryLine(text: string | null | undefined, limit = 400): string {
+  const words = (text ?? "").replace(/\s+/g, " ").trim();
+  if (!words) return "Nothing readable came off it, so I didn't guess.";
+  return words.length > limit ? `${words.slice(0, limit - 1)}…` : words;
+}
