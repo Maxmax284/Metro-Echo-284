@@ -18,6 +18,7 @@ import {
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
+import { objectIntentFor } from "@/lib/objectIntent";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
@@ -258,7 +259,7 @@ export function FileAftermathTray({
             def.kind === "extract_dates" ? "Extract dates from" :
             def.kind === "extract_people" ? "Extract people from" :
             "Extract amounts from";
-          setPrefill(`${verb} "${row.filename}" (ingested_file_id: ${row.id}).`);
+          setPrefill(`${verb} "${row.filename}".`);
           void logFileEvent(
             user.id,
             def.kind === "summarize" ? "file.summarize_requested" : "file.extract_requested",
@@ -401,11 +402,11 @@ export function FileAftermathTray({
             <span className="truncate text-[13px] font-medium text-foreground" title={row.filename}>
               {row.filename}
             </span>
-            {row.detected_doc_type && row.detected_doc_type !== "unknown" && (
-              <span className="rounded-full bg-muted/30 px-1.5 py-0.5 text-[10px] text-muted-foreground ring-1 ring-border/40">
-                {row.detected_doc_type.replace(/_/g, " ")}
-              </span>
-            )}
+            {/* One shared voice line for what this probably is — the same words
+                Ask and Telegram use, instead of a raw detected-type code. */}
+            <span className="text-[11px] text-muted-foreground">
+              {objectIntentFor({ filename: row.filename, detectedDocType: row.detected_doc_type, confidence: row.confidence }).line}
+            </span>
             {row.confidence && (
               <span className="text-[10px] text-muted-foreground">· {row.confidence}</span>
             )}

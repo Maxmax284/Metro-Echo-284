@@ -76,7 +76,7 @@ export function FileUploadCard() {
         const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
         for (const k of keys) staged.setNote(k, note);
       }
-      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`);
+      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review them, then file.`);
     }
   });
 
@@ -87,7 +87,7 @@ export function FileUploadCard() {
       const detail = (e as CustomEvent<VantaStageFilesDetail>).detail;
       if (!detail?.files?.length) return;
       staged.stage(detail.files, { sourceOverride: detail.source });
-      toast.success(`${detail.files.length} file${detail.files.length === 1 ? "" : "s"} staged. Review and ingest.`);
+      toast.success(`${detail.files.length} file${detail.files.length === 1 ? "" : "s"} staged. Review, then file.`);
     };
     window.addEventListener(VANTA_STAGE_FILES_EVENT, onStage);
     return () => window.removeEventListener(VANTA_STAGE_FILES_EVENT, onStage);
@@ -137,7 +137,7 @@ export function FileUploadCard() {
             </span>
             {counts.pending > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-                <StatusDot tone="accent" pulse /> {counts.pending} processing
+                <StatusDot tone="accent" pulse /> {counts.pending} being read
               </span>
             )}
             {counts.failed > 0 && (
@@ -163,7 +163,7 @@ export function FileUploadCard() {
           <span className="text-muted-foreground">
             {busy ? "Working on it…" : "Drop files or click to attach"}
           </span>
-          <span className="text-[10px] text-muted-foreground/70">Stage first · review before ingest · max 20MB</span>
+          <span className="text-[10px] text-muted-foreground/70">Nothing is filed until you confirm · max 20MB</span>
           <input
             ref={inputRef}
             type="file"
@@ -198,7 +198,7 @@ export function FileUploadCard() {
                 onClick={() => setConfirmOpen(true)}
                 disabled={busy || !staged.staged.some((s) => s.status === "staged")}
               >
-                {busy ? "Working…" : "Ingest"}
+                {busy ? "Reading…" : "File these"}
               </Button>
             </div>
           </div>
@@ -271,14 +271,14 @@ export function FileUploadCard() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ingest {stagedCount} file{stagedCount === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogTitle>File {stagedCount} {stagedCount === 1 ? "thing" : "things"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will upload and extract the staged file{stagedCount === 1 ? "" : "s"} into memory. You can still review the result afterward.
+              Vanta will save and read the staged file{stagedCount === 1 ? "" : "s"} into memory. Nothing is final — you can review the result afterward.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCommit}>Ingest</AlertDialogAction>
+            <AlertDialogAction onClick={handleCommit}>File them</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -73,8 +73,22 @@ export type PageReadResult =
 export function isPageFile(rec: { mime_type: string | null; filename: string }): boolean {
   const mime = (rec.mime_type ?? "").toLowerCase();
   if (mime.startsWith("image/")) return true;
+  if (isDocumentFile(rec)) return true;
   const ext = rec.filename.split(".").pop()?.toLowerCase() ?? "";
   return ["png", "jpg", "jpeg", "webp", "heic", "heif"].includes(ext);
+}
+
+/** Documents go through files-ingest (unpdf / mammoth), never through OCR. */
+export function isDocumentFile(rec: { mime_type: string | null; filename: string }): boolean {
+  const mime = (rec.mime_type ?? "").toLowerCase();
+  const ext = rec.filename.split(".").pop()?.toLowerCase() ?? "";
+  if (mime === "application/pdf" || ext === "pdf") return true;
+  if (
+    mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    ext === "docx"
+  ) return true;
+  if (mime.startsWith("text/") || ["txt", "md"].includes(ext)) return true;
+  return false;
 }
 
 /**
@@ -107,6 +121,23 @@ export async function readPageFile(
   };
 
   if (!rec.storage_path) return await fail("The file never finished uploading.");
+
+  /* Documents take the files-ingest lane (unpdf for PDF, mammoth for DOCX) —
+     one extraction pipeline, many doors. OCR below stays images-only. */
+  if (isDocumentFile(rec)) {
+    const { error: ingErr } = await admin.functions.invoke("files-ingest", {
+      body: { ingested_file_id: rec.id },
+    });
+    if (ingErr) return await fail(ingErr.message ?? "The document could not be read.");
+    const { data: after } = await admin.from("ingested_files")
+      .select("status, note_id, error")
+      .eq("id", rec.id)
+      .maybeSingle();
+    if (!after || after.status !== "done" || !after.note_id) {
+      return await fail(after?.error ?? "The document came back unreadable.");
+    }
+    return { ok: true, noteId: after.note_id, chars: 0 };
+  }
 
   await admin.from("ingested_files").update({ status: "processing" }).eq("id", rec.id);
 

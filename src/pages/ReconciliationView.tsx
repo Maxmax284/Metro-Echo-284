@@ -363,8 +363,8 @@ export default function ReconciliationView() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Compares raw external-platform signals against what briefing-compose surfaced,
-            inside the active lane. Switch scope in the cockpit header to reconcile a different workspace.
+            Compares what actually arrived from outside platforms against what made it into
+            your briefing, inside the active lane. Switch scope in the cockpit header to check a different workspace.
           </p>
         </div>
 
@@ -476,7 +476,7 @@ export default function ReconciliationView() {
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-muted-foreground text-sm">
-                    {loading ? "Loading…" : "No external signals or briefing data in window."}
+                    {loading ? "Loading…" : "Nothing arrived from outside platforms in this window."}
                   </td>
                 </tr>
               )}
@@ -527,7 +527,7 @@ export default function ReconciliationView() {
         )}
 
         <Card className="p-4 space-y-2">
-          <div className="text-sm font-medium">Recent raw signals (last 20)</div>
+          <div className="text-sm font-medium">What arrived lately (last 20)</div>
           <ul className="text-xs space-y-1 font-mono">
             {signals.slice(0, 20).map((s) => (
               <li key={s.id} className="flex justify-between gap-2 text-muted-foreground">
