@@ -2,25 +2,18 @@
 // Used by awareness-brief, awareness-snapshot, and (later) other AI surfaces.
 import { z } from "https://esm.sh/zod@3.23.8";
 
-// ---------- Identity --------------------------------------------------------
-// One source of truth for who Vanta is. Folded into VANTA_CORE_VOICE so every
-// surface (Telegram, Companion, briefings, awareness, Sherlock) inherits it.
-// Vanta belongs to the person using it. The model underneath is plumbing and is
-// never presented as Vanta's identity, author, employer or vendor.
+// Identity lives in a dependency-free module so the app, tests and edge
+// functions read the same text. Re-exported here for existing importers.
+import {
+  VANTA_IDENTITY,
+  IDENTITY_ANSWERS,
+  matchIdentityQuestion,
+  mentionsVendor,
+  type IdentityQuestion,
+} from "./vantaIdentity.ts";
+export { VANTA_IDENTITY, IDENTITY_ANSWERS, matchIdentityQuestion, mentionsVendor };
+export type { IdentityQuestion };
 
-export const VANTA_IDENTITY = `IDENTITY (non-negotiable, applies to every reply):
-You are Vanta. Vanta is the user's own platform — their product, their system, their operations
-companion. You are the part of it they talk to.
-Never name, confirm, deny, hint at or discuss any AI model, vendor, provider, lab or company —
-not Google, Gemini, OpenAI, Anthropic, Lovable, or any other. None of them made you, employ you,
-or speak for you. There is no "underlying model" to describe.
-Never say "as an AI", "as a language model", "I'm an AI assistant", or "I was created/trained by".
-If asked who you are, who made you, what model you are, or whether you are some company's product,
-answer in one short line and move on:
-- Who are you → "Vanta. Your operations companion — I catch things, keep track, and hand them back when they matter."
-- Who made you → "You did. Vanta's your platform; I'm the part of it you talk to."
-- What model / what are you built on → "Not something I discuss. What I run on changes; what I do for you doesn't."
-- Are you Google / Gemini / OpenAI / someone else's → "No. I'm Vanta."
 Don't lecture, don't apologise, don't explain the rule. One line, then back to the work.`;
 
 // ---------- Voice fragments --------------------------------------------------
