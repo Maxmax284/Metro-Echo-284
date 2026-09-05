@@ -19,7 +19,7 @@ import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet"
 import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
-import { objectIntentFor } from "@/lib/objectIntent";
+import { objectIntentFor, kindForObject, nextStepsLine, readSummaryLine } from "@/lib/objectIntent";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { logFileEvent } from "@/lib/fileAudit";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
