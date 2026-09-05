@@ -1,3 +1,4 @@
+import { stripJargon } from "@/lib/brandVoice";
 // Plain-English event renderer — the single library every surface uses to
 // turn raw platform/capture rows into a human line:
 //   subject → verb → object → when → why it matters
@@ -40,7 +41,7 @@ export type PlainEvent = {
 };
 
 export function renderPlainLine(e: PlainEvent | PlainItem): string {
-  const head = [e.subject, e.verb, e.object].filter(Boolean).join(" ");
+  const head = stripJargon([e.subject, e.verb, e.object].filter(Boolean).join(" "));
   return e.when ? `${head} · ${e.when}` : head;
 }
 

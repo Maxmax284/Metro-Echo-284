@@ -6,6 +6,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { BRIEFING_VOICE } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
+import { ANSWER_ORDER } from "../_shared/responseDepth.ts";
 
 
 const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -562,7 +563,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: `${BRIEFING_VOICE}\n\n${brandBlock}` },
+              { role: "system", content: `${BRIEFING_VOICE}\n\n${brandBlock}\n\n${ANSWER_ORDER}` },
               { role: "user", content: prompt },
             ],
             temperature: 0.4,

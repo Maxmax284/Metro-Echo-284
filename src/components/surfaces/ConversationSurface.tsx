@@ -49,6 +49,8 @@ type Msg = {
   metadata?: { source?: string; detected_type?: string; routed_to?: string; needs_review?: boolean } | null;
 };
 
+import { detectDeviceClass } from "@/lib/deviceClass";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 
 
@@ -236,6 +238,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           conversation_id: threadId,
           message: text,
           scope: { type: scope.type, organization_id: scope.organizationId },
+          // One Vanta, many bodies — the server decides how much to say from this.
+          device: detectDeviceClass(),
           ...(hints.length ? { attachments: hints } : {}),
         }),
         signal: ctrl.signal,
