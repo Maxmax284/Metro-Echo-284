@@ -26,10 +26,22 @@ export type Trip = {
   distance_m: number | null;
   point_count: number;
   closed_by: string;
+  /** Bumped by the row trigger. Doubles as the "held open" timestamp. */
+  updated_at?: string | null;
 };
 
-/** How a trip ended. Only "you" is a clean close; the rest are reported. */
-export type ClosedBy = "open" | "you" | "auto_stale" | "auto_gap";
+/**
+ * How a trip ended. Only "you" is a clean close; the rest are reported.
+ * "held" is not an ending — it marks an open session the person asked Echo to
+ * keep alive, and it lives in the same column so no schema had to grow for it.
+ */
+export type ClosedBy = "open" | "held" | "you" | "auto_stale" | "auto_gap";
+
+/** True while a session is live, whether or not it was explicitly held. */
+export function isOpenTrip(trip: Trip): boolean {
+  return !trip.ended_at;
+}
+
 
 const EARTH_M = 6_371_000;
 

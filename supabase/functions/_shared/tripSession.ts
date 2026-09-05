@@ -21,7 +21,8 @@ import { pathDistanceMeters, staleTripDiff, type Trip, type TripPoint } from "./
 export const WALK_PURPOSE = "walk_with_me";
 
 const TRIP_COLS =
-  "id, label, purpose, started_at, ended_at, start_label, end_label, distance_m, point_count, closed_by";
+  "id, label, purpose, started_at, ended_at, start_label, end_label, distance_m, point_count, closed_by, updated_at";
+
 
 export type TripScope = { userId: string; orgId?: string | null };
 
