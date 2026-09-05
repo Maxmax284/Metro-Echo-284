@@ -833,7 +833,7 @@ Deno.serve(async (req) => {
         status: "pending",
         review_status: "new",
         metadata: {
-          page_photo: true,
+          page_photo: !page.isDoc,
           telegram_update_id: String(update.update_id),
           chat_id: chatId,
           caption: caption || null,
