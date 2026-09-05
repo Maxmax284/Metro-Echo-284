@@ -652,14 +652,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
-    /* A photo — or an image sent as a file — is a page. Vanta reads it and
-       files it for review. It is capture, so it never routes or executes. */
+    /* A photo — an image sent as a file — or a document (PDF, Word, plain
+       text) is a page. Vanta reads it and files it for review. It is capture,
+       so it never routes or executes. One pipeline, many doors. */
     const photoSizes = Array.isArray(msg.photo) ? msg.photo : [];
     const biggest = photoSizes.length > 0 ? photoSizes[photoSizes.length - 1] : null;
-    const imageDoc = msg.document && String(msg.document.mime_type ?? "").startsWith("image/")
+    const docMime = String(msg.document?.mime_type ?? "").toLowerCase();
+    const docName = String(msg.document?.file_name ?? "");
+    const docExt = docName.split(".").pop()?.toLowerCase() ?? "";
+    const isDocMime =
+      docMime === "application/pdf" ||
+      docMime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      docMime.startsWith("text/") ||
+      ["pdf", "docx", "txt", "md"].includes(docExt);
+    const imageDoc = msg.document && docMime.startsWith("image/")
       ? msg.document
       : null;
-    const page: { fileId: string; mime: string; name: string } | null = biggest
+    const paperDoc = msg.document && !imageDoc && isDocMime ? msg.document : null;
+    const page: { fileId: string; mime: string; name: string; isDoc?: boolean } | null = biggest
       ? { fileId: biggest.file_id, mime: "image/jpeg", name: `page-${update.update_id}.jpg` }
       : imageDoc
         ? {
@@ -667,7 +677,23 @@ Deno.serve(async (req) => {
             mime: String(imageDoc.mime_type ?? "image/jpeg"),
             name: String(imageDoc.file_name ?? `page-${update.update_id}.jpg`),
           }
-        : null;
+        : paperDoc
+          ? {
+              fileId: paperDoc.file_id,
+              mime: String(paperDoc.mime_type ?? "application/octet-stream"),
+              name: String(paperDoc.file_name ?? `document-${update.update_id}`),
+              isDoc: true,
+            }
+          : null;
+
+    /* A file Vanta can't take gets a plain answer, not silence. */
+    if (!text && !page && msg.document) {
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "I can't read that type yet. Photos, PDFs and Word documents work — and a plain message always does.",
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
 
     if (!text && !page) {
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.textOnly() });
