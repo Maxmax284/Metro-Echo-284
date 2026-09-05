@@ -28,55 +28,6 @@ Keep top-level summaries short. Put long detail behind "long_detail".
 
 ${VANTA_IDENTITY}`;
 
-// ---------- Canonical identity answers --------------------------------------
-// Fixed copy so the four identity questions never reach a model at all.
-
-export type IdentityQuestion = "who_are_you" | "who_made_you" | "what_model" | "are_you_vendor";
-
-export const IDENTITY_ANSWERS: Record<IdentityQuestion, string> = {
-  who_are_you:
-    "Vanta. Your operations companion — I catch things, keep track, and hand them back when they matter.",
-  who_made_you: "You did. Vanta's your platform; I'm the part of it you talk to.",
-  what_model: "Not something I discuss. What I run on changes; what I do for you doesn't.",
-  are_you_vendor: "No. I'm Vanta. Everything I keep for you lives in your own system.",
-};
-
-const VENDOR_WORDS =
-  /(google|gemini|openai|chatgpt|gpt|anthropic|claude|llama|mistral|deepseek|grok|copilot|bard|lovable|supabase)/i;
-
-/**
- * Detect an identity question in an incoming message. Returns null for anything
- * that isn't clearly one, so normal work never gets intercepted.
- */
-export function matchIdentityQuestion(raw: string | null | undefined): IdentityQuestion | null {
-  const t = (raw ?? "").trim().toLowerCase().replace(/[?!.]+$/g, "");
-  if (!t || t.length > 120) return null;
-
-  // "are you google", "you're gemini right", "is this chatgpt"
-  if (VENDOR_WORDS.test(t) && /\b(are|is|you|this|running|built|based|powered|use|using)\b/.test(t)) {
-    return "are_you_vendor";
-  }
-  // "what model are you", "which llm", "what are you built on"
-  if (/\b(model|llm|ai model|version)\b/.test(t) && /\b(what|which|whats|what's|who)\b/.test(t)) {
-    return "what_model";
-  }
-  if (/\bbuilt on\b|\brunning on\b|\bpowered by\b|\btrained (on|by)\b/.test(t)) return "what_model";
-  // "who made you", "who created you", "who built you", "who owns you"
-  if (/\bwho\b.*\b(made|created|built|owns|developed|designed|wrote)\b.*\byou\b/.test(t)) {
-    return "who_made_you";
-  }
-  if (/\b(who|what)\b.*\byour (creator|maker|developer|owner|company)\b/.test(t)) return "who_made_you";
-  // "who are you", "what are you", "who is this", "what is vanta"
-  if (/^(so\s+)?(and\s+)?(who|what)\s+(are|r)\s+(you|u)\b/.test(t)) return "who_are_you";
-  if (/^(who|what)\s+(is|the hell is|exactly is)\s+(this|vanta)\b/.test(t)) return "who_are_you";
-  if (/^(introduce yourself|tell me about yourself)\b/.test(t)) return "who_are_you";
-  return null;
-}
-
-/** True when composed copy leaks a model/vendor name. Used by tests and guards. */
-export function mentionsVendor(text: string | null | undefined): boolean {
-  return VENDOR_WORDS.test(text ?? "");
-}
 
 
 // Shared phrase library — mirrors src/lib/vantaVoice.ts `vantaSay`.
