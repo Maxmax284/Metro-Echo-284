@@ -101,6 +101,12 @@ export function SituationRead({
           {[quiet, unknown].filter(Boolean).join(" ")}
         </p>
       ) : null}
+
+      {/* Where this was read from. One clause, and only when the place is both
+          resolved and recent — otherwise Vanta says nothing about location. */}
+      {read.placeNote ? (
+        <p className="text-[11px] leading-snug text-muted-foreground/80">{read.placeNote}</p>
+      ) : null}
     </section>
   );
 }
