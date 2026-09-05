@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
+import { useStageAction } from "@/hooks/useStageAction";
 import { vantaToast } from "@/lib/vantaVoice";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { cn } from "@/lib/utils";
@@ -68,6 +69,7 @@ export function GotSomethingChooser({
 }) {
   const { user } = useAuth();
   const { withScope, destination } = useScope();
+  const stageAction = useStageAction();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<IntakeDoor | null>(null);
@@ -106,17 +108,13 @@ export function GotSomethingChooser({
         if (error) throw error;
         vantaToast.success(`Recorded as an open promise · ${destination}. Add a date in Commitments.`);
       } else {
-        const { error } = await supabase.from("actions").insert(
-          withScope({
-            user_id: user.id,
-            title: trimmed.slice(0, 120),
-            description: trimmed,
-            risk: "standard",
-            status: "proposed",
-            source: "got_something",
-          }) as never,
-        );
-        if (error) throw error;
+        await stageAction({
+          title: trimmed.slice(0, 120),
+          description: trimmed,
+          risk: "standard",
+          status: "proposed",
+          source: "got_something",
+        });
         vantaToast.success("Drafted in Actions. It will not run until you approve it.");
       }
       onFiled?.(door);

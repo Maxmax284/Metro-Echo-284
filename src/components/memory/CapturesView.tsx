@@ -29,6 +29,7 @@ import type { ProjectItemType } from "@/lib/projects";
 import { BulkConnectSheet } from "@/components/links/BulkConnectSheet";
 import { BulkAttachToProjectMenu } from "@/components/projects/BulkAttachToProjectMenu";
 import type { CrossKind } from "@/lib/crossLinks";
+import { useStageAction } from "@/hooks/useStageAction";
 import { useIntakeDismissals } from "@/hooks/useIntakeDismissals";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { FirstRunCapture } from "./FirstRunCapture";
@@ -91,6 +92,7 @@ async function stampMessageRoute(item: IntakeRow, destination: string) {
 export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolean }) {
   const { user } = useAuth();
   const { openSherlock } = useSherlock();
+  const stageAction = useStageAction();
   const { items, loading, refresh } = useIntakeFeed(60);
   const { dismissed, dismiss, restore } = useIntakeDismissals();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>(ambiguousOnly ? "review" : "all");
@@ -381,8 +383,7 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
             if (lane === "ignore") return ignore(item);
             if (lane === "action") {
               if (!user) return;
-              await supabase.from("actions").insert({
-                user_id: user.id,
+              await stageAction({
                 title: item.text.slice(0, 80),
                 description: item.text,
                 risk: "standard",

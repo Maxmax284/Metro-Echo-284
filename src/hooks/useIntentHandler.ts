@@ -10,6 +10,7 @@ import { parseReminderHint } from "@/lib/reminderParse";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { linkEntities } from "@/lib/entityGraph";
 import { useScope } from "@/hooks/useScope";
+import { useStageAction } from "@/hooks/useStageAction";
 import { askAftermath } from "@/lib/vantaNouns";
 
 /**
@@ -33,6 +34,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   // Scope is authoritative: anything Ask creates belongs to the workspace the
   // user is standing in, never to whichever row happened to be default.
   const { withScope, scope } = useScope();
+  const stageAction = useStageAction();
 
   return useCallback(
     async (kind: string, args: any) => {
@@ -62,15 +64,14 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           toast.success({ title: vantaSay.capturedToMemory(), description: askAftermath("capture") });
           onAck?.({ kind: "capture_note", id: data?.id, summary: args.title || (args.body ?? "").slice(0, 80) || "Note" });
         } else if (kind === "stage_action") {
-          const { data } = await supabase.from("actions").insert(withScope({
-            user_id: user.id,
+          const actionId = await stageAction({
             title: args.title,
             description: args.description ?? null,
-            risk: args.risk ?? "standard",
-            status: "staged" as const,
+            risk: args.risk,
+            status: "staged",
             source: "companion",
-          })).select("id").single();
-          await audit("actions", { action_id: data?.id });
+          });
+          await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
           onAck?.({ kind: "stage_action", id: data?.id, summary: args.title || "Action" });
         } else if (kind === "add_commitment") {

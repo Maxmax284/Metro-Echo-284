@@ -9,6 +9,7 @@ import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { SignalRoute, VantaSignal } from "@/lib/vantaSignal";
 import { useCompanion } from "@/components/companion/CompanionContext";
+import { useStageAction } from "@/hooks/useStageAction";
 import { geohashFromGeo } from "@/lib/geohash";
 import { linkEntities } from "@/lib/entityGraph";
 
@@ -23,6 +24,7 @@ export function useSignalRoute(): SignalRouteHandler {
   const { refresh, refreshSnapshot, place } = useAwareness();
   const { openSherlock } = useSherlock();
   const { openWithPrefill } = useCompanion();
+  const stageAction = useStageAction();
 
   return useCallback<SignalRouteHandler>((route, signal) => {
     const title = signal.title || signal.signal_type;
@@ -123,16 +125,14 @@ export function useSignalRoute(): SignalRouteHandler {
               signal.why_it_matters && `Why it matters: ${signal.why_it_matters}`,
               signal.what_to_do_next && `Next: ${signal.what_to_do_next}`,
             ].filter(Boolean).join("\n\n");
-            const { error } = await supabase.from("actions").insert({
-              user_id: u.user.id,
+            await stageAction({
               title: signal.what_to_do_next || title,
               description: description || null,
               source: `vanta-signal:${signal.signal_type}`,
               status: "proposed",
-              risk: (signal.risk_level === "high" ? "high" : signal.risk_level === "medium" ? "medium" : "low") as any,
-              payload: { signal } as any,
+              risk: signal.risk_level,
+              payload: { signal } as Record<string, unknown>,
             });
-            if (error) throw error;
             toast.success(vantaSay.actionDrafted());
           } catch (e: any) {
             toast.error(vantaSay.couldntSave());
