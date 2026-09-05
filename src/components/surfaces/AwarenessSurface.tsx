@@ -11,7 +11,6 @@ import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
 import { LayerChips } from "@/components/awareness/LayerChips";
 import { PlaceSourceLine } from "@/components/context/ContextSourceLine";
 import { SectionDrawer } from "@/components/awareness/SectionDrawer";
-import { AttentionQueue } from "@/components/awareness/AttentionQueue";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { BadLocationRecoveryPanel } from "@/components/awareness/BadLocationRecoveryPanel";
 import { classifyPlaceBadness } from "@/lib/locationSanity";
@@ -310,7 +309,7 @@ export function AwarenessSurface() {
                     size="sm"
                     variant="ghost"
                     className="h-9 gap-1 text-[12px] text-muted-foreground shrink-0"
-                    onClick={() => setShowPlaces((v) => !v)}
+                    onClick={() => { setShowPlaces((v) => !v); setShowMore(true); }}
                   >
                     {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                     Switch
@@ -329,6 +328,37 @@ export function AwarenessSurface() {
             onDismiss={() => { setRecoveryOpen(false); setRecoveryDismissed(true); }}
           />
         )}
+
+        {/* One read of where you are, then four shelves. This is the answer;
+            the radar, chips and place list below are only the workings. */}
+        {(() => {
+          const tier = classifyTier(place);
+          const locState = resolveLocationState(place, { generatedAt });
+          const shelvesRead = readShelves({
+            place: place
+              ? { label: place.label, city: (place.geo as any)?.city ?? null, region: place.region, country: place.country }
+              : null,
+            locationMessage: locState.message,
+            placeUnresolved: locState.placeUnresolved,
+            newestAt: overall.newest_at,
+            locationWarning: (snapshot?.compact as any)?.location_warning ?? null,
+            briefings: latestBySection as any,
+            layers: AWARENESS_SECTIONS,
+          });
+          const never = neverReadLine(shelvesRead.neverRead);
+          return (
+            <div className="space-y-3">
+              <p className="text-[13.5px] leading-relaxed text-foreground/90">{shelvesRead.paragraph}</p>
+              {tier.tier !== "unknown" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Placed as {tier.display}. Nothing here is safety, legal, or medical advice.
+                </p>
+              )}
+              <AwarenessShelves shelves={shelvesRead.shelves} onOpenSection={openSection} />
+              {never && <p className="text-[11px] leading-snug text-muted-foreground/80">{never}</p>}
+            </div>
+          );
+        })()}
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {
@@ -354,6 +384,15 @@ export function AwarenessSurface() {
           );
         })()}
 
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="w-full rounded-xl border border-border/60 bg-surface-elevated/20 px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground"
+        >
+          {showMore ? "Hide the workings" : "Show the workings — radar, layers and saved places"}
+        </button>
+
+        {showMore && (<div className="space-y-4">
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
           <div className="relative">
@@ -403,11 +442,6 @@ export function AwarenessSurface() {
         )}
 
 
-        {/* Attention queue — derived, never alarmist */}
-        <div className="rounded-xl border border-border/60 bg-surface-elevated/30 p-3">
-          <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">Attention</div>
-          <AttentionQueue onOpenSection={openSection} />
-        </div>
 
         {/* Layer chips — tap = filter the radar; drawer is "view full detail" */}
         <div>
@@ -565,6 +599,7 @@ export function AwarenessSurface() {
             )}
           </div>
         )}
+        </div>)}
       </div>
 
       <SectionDrawer
