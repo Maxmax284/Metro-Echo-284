@@ -1,31 +1,38 @@
-# Consolidation pass — status
+# Consolidation + field-companion pass — status
 
-## Done
-- [x] 1. One action path. `_shared/actionStaging.ts` + `useStageAction` own every action row.
-      Risk words normalised to `low_reversible|standard|high`; scope (organization_id) always stamped;
-      guard tests fail the build on a raw insert or a rejected risk word.
-- [x] 2. One depth model + one urgency ladder. `responseDepth.ts` owns body -> verbosity
-      (`VERBOSITY_FOR_BODY`, `bodyForChannel`); `deviceCompression.ts` is a renderer only and
-      re-exports the awareness urgency ladder. Retired `fyi/meaningful/needs_you`.
-      Telegram form added to formsAgree.
-- [x] 3a. Telegram keeps its own conversation thread (`telegramConversation`), bound to the linked
-      chat, created on first message. No more borrowing the newest desk thread / dropping new users.
-- [x] 8. Provider names out of user-facing copy (Gemini / Lovable AI / SerpApi / Open-Meteo).
-      "Sherlock failed" replaced with the doctrine failure shape.
-
-## Open
-- [ ] 3b. Telegram reuses the Ask capability router + working-context assembly (retire the parallel
-      tool list in the webhook).
-- [ ] 3c. Telegram uploads through the shared ingestion pipeline (PDF/DOCX/voice groundwork).
-- [ ] 4. One place spine (merge the two geocode/nearby implementations, one precision policy).
-- [ ] 5. Today hierarchy pass (one "What changed" owner, one agenda owner, less launcher clutter).
-- [ ] 6. Aware room prove-it pass at 384px against real records.
-- [ ] 7. What Metro Echo can see: six rows + one summary sentence, reusing existing readers.
-- [ ] 9. Motion consolidation (retire legacy animations conflicting with the motion grammar).
-- [ ] 10. Ask <-> widget continuity (no reset on expand).
-- [ ] 11. Route consolidation: /watch /motion /glance /wearables /wearable-loop /physical-loop /how
-      /awareness/location folded into the four rooms or retired.
-
-## Brand
+## Brand law
 - Product = Metro Echo. Intelligence = Echo. Owned by `src/lib/brand.ts` / `_shared/brand.ts`.
-- Internal legacy Vanta identifiers (vantaIdentity, vantaVoice, VANTA_*, vanta-converse, `vanta-*` CSS, X-Vanta-* headers, vanta_* columns) stay as-is on purpose.
+- **Frozen legacy identifiers (never rename — no user benefit, real breakage risk):**
+  `vanta_*` database columns; `X-Vanta-*` signed webhook headers (outside platforms sign against
+  these); the `vanta-converse` function name; `vanta-*` CSS classes; `vantaVoice` / `vantaIdentity` /
+  `vantaSay` / `vantaBlocks` / `vantaNouns` / `vantaSignal` module names and their `VANTA_*` exports;
+  `localStorage` keys prefixed `vanta.` (renaming wipes user settings); `sent_by: "vanta"` and
+  `source_platform: "vanta"` wire/row values.
+
+## Done (earlier)
+- [x] 1. One action path (`_shared/actionStaging.ts` + `useStageAction`).
+- [x] 2. One depth model + one urgency ladder (`responseDepth.ts`, `deviceCompression.ts`).
+- [x] 3a. Telegram keeps its own conversation thread (`telegramConversation`).
+- [x] 8. Provider names out of user-facing copy.
+
+## This pass
+- [x] A. Public identity cleanup: `@inbound.vanta` address, geocoder User-Agent + baked old URL,
+      push tag, `ask_vanta` prompt/route token, cosmetic filenames, frozen-list documented.
+- [x] B. One brain for Telegram: shared capability router, shared working context, shared transcript
+      (`messages` canonical / `telegram_messages` transport-and-audit only), provenance on replies,
+      shared file-intake schema, one outbound sender.
+- [x] C. One place spine: single geocode/nearby owner mirroring `placeTruth` precision + freshness.
+- [x] D. Trips as the shared cross-surface session: server-side trip owner, active-trip as shared
+      state, Telegram can start/read/append/end the same trip, deep links carry session context.
+- [x] E. Walk With Me as shared router capability + `walk_with_me` posture; `operationalState.ts` retired.
+- [x] F. High-stakes groundwork: router recognition, simplified options, device dialer link,
+      prepared-not-sent handoff. No sharing, no contacts, no execution.
+- [x] G. Proactive field delivery through the existing awareness pipeline only, one sender.
+- [ ] Remaining roadmap (not this pass): Today hierarchy pass; Aware 384px prove-it; motion
+      consolidation; Ask <-> widget continuity; route consolidation (/watch /motion /glance
+      /wearables /wearable-loop /physical-loop /how).
+
+## Parked deliberately
+Background/always-on location. Geofencing. Autonomous SOS or emergency calling. Silent location
+sharing. Trusted contacts / `location_shares` execution. Realtime public-safety or crime-risk
+scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live location trails.
