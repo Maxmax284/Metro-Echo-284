@@ -280,7 +280,9 @@ Deno.serve(async (req) => {
       })));
     }
 
+    const templateLine = recipe.id === "generic" ? "" : `Read as a ${recipe.label.toLowerCase()}. `;
     const summary =
+      templateLine +
       `${matrix.counts.records} record${matrix.counts.records === 1 ? "" : "s"} across ${sources.length} sources. ` +
       `${matrix.counts.agrees} agree, ${matrix.counts.conflicts} disagree, ` +
       `${matrix.counts.missing} missing, ${matrix.counts.unreadable} unreadable.`;
@@ -292,10 +294,10 @@ Deno.serve(async (req) => {
       entityType: "cross_ref_case",
       entityId: caseId!,
       event: "crossref.matrix_built",
-      metadata: { sources: sources.length, ...matrix.counts },
+      metadata: { sources: sources.length, recipe: recipe.id, ...matrix.counts },
     });
 
-    return jsonResponse({ ok: true, case_id: caseId, summary, counts: matrix.counts, matrix, records, sources });
+    return jsonResponse({ ok: true, case_id: caseId, summary, recipe: recipe.id, recipe_why: match.why, counts: matrix.counts, matrix, records, sources });
   } catch (e) {
     console.error("[crossref-run]", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "failed" }), {
