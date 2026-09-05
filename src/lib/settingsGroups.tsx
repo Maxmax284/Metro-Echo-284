@@ -145,6 +145,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       <>
         <ConnectYourWorldSection />
         <LinkOut
+          to="/settings/telegram"
+          title="Telegram"
+          blurb="Connect your bot, pair your phone, and watch messages land in the Inbox."
+        />
+        <LinkOut
 
           to="/settings/integrations"
           title="Platform Integrations"
