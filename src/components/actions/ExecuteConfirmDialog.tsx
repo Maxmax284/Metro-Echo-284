@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Boxes, FileCode2, History, Loader2, Play, Receipt, RotateCcw, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_COMMIT } from "@/lib/motion";
+import { ConsequencePreview } from "@/components/ui/consequence-preview";
+import { actionConsequence, moveBookingConsequence, sendReplyConsequence } from "@/lib/consequence";
 
 export type ExecutableAction = {
   id: string;
@@ -49,6 +51,40 @@ const riskLabel = {
 } as const;
 
 const CONFIRM_WORD = "run";
+
+/** Reads the staged action and picks the closest plain-English preview. */
+function consequenceForAction(action: ExecutableAction, executorLabel: string | null) {
+  const p = (action.payload ?? {}) as Record<string, any>;
+  const kind = String(p.kind ?? p.type ?? "").toLowerCase();
+  const title = `${action.title} ${action.description ?? ""}`.toLowerCase();
+  const looksBooking = kind.includes("booking") || kind.includes("reschedul") || /\bmove\b.*\bbooking|reschedul/.test(title);
+  const looksReply = kind.includes("reply") || kind.includes("message") || kind.includes("email") || /\bsend\b.*(reply|message|email)/.test(title);
+  if (looksBooking) {
+    return moveBookingConsequence({
+      label: p.label ?? p.booking_label ?? action.title,
+      fromIso: p.from ?? p.from_at ?? p.current_at ?? null,
+      toIso: p.to ?? p.to_at ?? p.new_at ?? null,
+      who: p.who ?? p.customer ?? null,
+      notifies: Array.isArray(p.notifies) ? p.notifies.map(String) : [],
+      reversible: action.rollback_available !== false,
+    });
+  }
+  if (looksReply && typeof (p.text ?? p.body) === "string") {
+    return sendReplyConsequence({
+      channel: String(p.channel ?? p.via ?? action.source ?? "the channel it came from"),
+      to: p.to ?? p.recipient ?? null,
+      text: String(p.text ?? p.body),
+    });
+  }
+  return actionConsequence({
+    title: action.title,
+    description: action.description,
+    risk: action.risk,
+    affectedCount: Array.isArray(action.affected_entities) ? action.affected_entities.length : 0,
+    rollback: action.rollback_available,
+    executorLabel,
+  });
+}
 
 /** True when this action needs a typed confirmation before it runs. */
 export function needsTypedRunConfirm(risk: ExecutableAction["risk"]): boolean {
@@ -99,6 +135,8 @@ export function ExecuteConfirmDialog({
   const payloadStr =
     action.payload && Object.keys(action.payload).length > 0 ? JSON.stringify(action.payload, null, 2) : null;
   const chosen = executors.find((e) => e.id === executorId);
+  const executorLabel = chosen ? `${chosen.kind}: ${chosen.name}` : null;
+  const consequence = consequenceForAction(action, executorLabel);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onCancel()}>
@@ -140,13 +178,7 @@ export function ExecuteConfirmDialog({
             </Badge>
           </div>
 
-          <div className="rounded-lg border border-border/60 bg-surface-elevated/60 p-2.5">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">What happens</p>
-            <p className="mt-1 text-xs leading-snug text-foreground/90">
-              Vanta runs this {chosen ? `through ${chosen.kind}: ${chosen.name}` : "and records it as done by you"}, then
-              writes a receipt you can read in Receipts.
-            </p>
-          </div>
+          <ConsequencePreview consequence={consequence} />
 
           {executors.length > 0 && onExecutorChange ? (
             <label className="block">

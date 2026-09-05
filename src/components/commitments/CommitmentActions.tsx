@@ -6,6 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
+import { ConfirmConsequenceDialog } from "@/components/ui/consequence-preview";
+import { closeCommitmentConsequence, snoozeCommitmentConsequence, type Consequence } from "@/lib/consequence";
 
 export type CommitmentLike = {
   id: string;
@@ -29,6 +31,13 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
   const { session } = useAuth();
   const [busy, setBusy] = useState<"done" | "snooze" | "drop" | null>(null);
   const [open, setOpen] = useState(false);
+  /* Closing a promise and moving one both change the record, so both stop for a
+     preview first. Nothing is written until the dialog is confirmed. */
+  const [pending, setPending] = useState<
+    | { kind: "done"; consequence: Consequence }
+    | { kind: "snooze"; consequence: Consequence; at: Date; label: string }
+    | null
+  >(null);
 
   const isReminder = !!c.remind_at;
   const tap = size === "sm" ? "h-7 w-7" : "h-8 w-8";
@@ -45,6 +54,31 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     });
   };
 
+  const askDone = () =>
+    setPending({
+      kind: "done",
+      consequence: closeCommitmentConsequence({
+        title: c.title,
+        dueAt: c.due_at,
+        remindAt: c.remind_at,
+        isReminder,
+      }),
+    });
+
+  const askSnooze = (at: Date, label: string) =>
+    setPending({
+      kind: "snooze",
+      at,
+      label,
+      consequence: snoozeCommitmentConsequence({
+        title: c.title,
+        dueAt: c.due_at,
+        remindAt: c.remind_at,
+        toIso: at.toISOString(),
+        presetLabel: label,
+      }),
+    });
+
   const markDone = async () => {
     if (!session || busy) return;
     setBusy("done");
@@ -57,6 +91,7 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     await audit(isReminder ? "reminder.completed" : "commitment.completed");
     toast.success({ title: vantaSay.markedDone() });
     setBusy(null);
+    setPending(null);
     onChanged?.();
   };
 
@@ -82,6 +117,7 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     toast.success({ title: vantaSay.snoozed(label) });
     setBusy(null);
     setOpen(false);
+    setPending(null);
     onChanged?.();
   };
 
@@ -118,6 +154,25 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
 
   return (
     <div className="flex shrink-0 items-center gap-1">
+      <ConfirmConsequenceDialog
+        open={!!pending}
+        title={
+          pending?.kind === "snooze"
+            ? `Move this to ${pending.label}?`
+            : isReminder
+              ? "Close this reminder?"
+              : "Close this promise?"
+        }
+        consequence={pending?.consequence ?? null}
+        confirmLabel={pending?.kind === "snooze" ? "Move it" : "Mark done"}
+        busy={!!busy}
+        onCancel={() => setPending(null)}
+        onConfirm={() => {
+          if (!pending) return;
+          if (pending.kind === "done") return markDone();
+          return snoozeTo(pending.at, pending.label);
+        }}
+      />
       <AskAboutButton
         kind="commitment"
         id={c.id}
@@ -126,7 +181,7 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
         size="icon"
       />
       <button
-        onClick={markDone}
+        onClick={askDone}
         disabled={!!busy}
         title="Mark done"
         aria-label="Mark done"
@@ -150,7 +205,7 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
           {snoozeOptions.map((o) => (
             <button
               key={o.label}
-              onClick={() => snoozeTo(o.at, o.label)}
+              onClick={() => { setOpen(false); askSnooze(o.at, o.label); }}
               className="block w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent hover:text-accent-foreground"
             >
               {o.label}
