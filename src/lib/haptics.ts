@@ -6,7 +6,7 @@
 // replacement for it.
 import { URGENCY_RANK, type Urgency } from "@/lib/deviceCompression";
 
-export type HapticPattern = "note" | "change" | "time_sensitive" | "critical";
+export type HapticPattern = "note" | "change" | "needs_you" | "critical";
 
 export interface HapticSpec {
   label: string;
