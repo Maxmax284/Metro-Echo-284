@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
     const set = await tg("setWebhook", {
       url: webhookUrl,
       secret_token: secret,
-      allowed_updates: ["message"],
+      allowed_updates: ["message", "edited_message", "callback_query"],
       drop_pending_updates: true,
     });
 
