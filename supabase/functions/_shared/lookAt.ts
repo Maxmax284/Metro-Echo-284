@@ -158,3 +158,18 @@ export async function lookAtImage(
   const answer = String(j.choices?.[0]?.message?.content ?? "").trim();
   return { answer, uncertain: isUncertain(answer), intent: intent.id };
 }
+
+/**
+ * Pick the question from what the person actually wrote next to the picture.
+ * A caption is a question, not a filing instruction — "what is this?" must not
+ * come back as a character count.
+ */
+export function intentFromCaption(caption: string | null | undefined): LookIntentId {
+  const c = (caption ?? "").toLowerCase().trim();
+  if (!c) return "identify";
+  if (/(total|amount|how much|price|cost|bill|invoice|receipt)/.test(c)) return "amount";
+  if (/(promise|deadline|due|date|task|owe|commit)/.test(c)) return "promises";
+  if (/(wrong|off|broken|damaged|unsafe|weird|problem|issue|safe)/.test(c)) return "unusual";
+  if (/(read|says|text|write|written|transcribe|word)/.test(c)) return "text";
+  return "identify";
+}
