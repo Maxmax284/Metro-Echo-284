@@ -349,6 +349,8 @@ export function totalFor(values: Array<string | null>): { total: number; unit: s
  * ------------------------------------------------------------------ */
 
 export const OUTPUT_SHAPES = [
+  "fight_card",
+  "contract_terms",
   "roster_sheet",
   "reconciliation",
   "comparison_dossier",
@@ -357,6 +359,7 @@ export const OUTPUT_SHAPES = [
   "executive_summary",
   "table_report",
 ] as const;
+
 
 export type OutputShape = (typeof OUTPUT_SHAPES)[number];
 
