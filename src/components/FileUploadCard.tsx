@@ -76,7 +76,7 @@ export function FileUploadCard() {
         const note = [ctx.text, ctx.url].filter(Boolean).join(" · ").slice(0, 280);
         for (const k of keys) staged.setNote(k, note);
       }
-      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review and ingest.`);
+      toast.success(`${files.length} file${files.length === 1 ? "" : "s"} shared in. Review them, then file.`);
     }
   });
 
@@ -87,7 +87,7 @@ export function FileUploadCard() {
       const detail = (e as CustomEvent<VantaStageFilesDetail>).detail;
       if (!detail?.files?.length) return;
       staged.stage(detail.files, { sourceOverride: detail.source });
-      toast.success(`${detail.files.length} file${detail.files.length === 1 ? "" : "s"} staged. Review and ingest.`);
+      toast.success(`${detail.files.length} file${detail.files.length === 1 ? "" : "s"} staged. Review, then file.`);
     };
     window.addEventListener(VANTA_STAGE_FILES_EVENT, onStage);
     return () => window.removeEventListener(VANTA_STAGE_FILES_EVENT, onStage);
