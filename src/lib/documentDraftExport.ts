@@ -80,11 +80,7 @@ function sectionsFromMarkdown(body: string): BriefSection[] {
     }
     const bullet = bulletText(line);
     if (bullet !== null) {
-      if (prose.length) {
-        const held = currentHeading;
-        flush();
-        currentHeading = held ? undefined : currentHeading;
-      }
+      if (prose.length) flush();
       bullets.push(bullet);
       continue;
     }
