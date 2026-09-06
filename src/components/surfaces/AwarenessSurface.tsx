@@ -71,6 +71,47 @@ export function AwarenessSurface() {
   const [showRadar, setShowRadar] = useState(false);
   const [showAllBadges, setShowAllBadges] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  /* Named places around the current fix, from the same nearby lookup the
+     location-recovery panel uses. Map data, cached server-side — no AI, no web
+     search, and it feeds the "Around you" shelf so that shelf is about ground
+     rather than about search results. */
+  const [nearbyTowns, setNearbyTowns] = useState<Array<{ name: string; kind: string | null; distanceM: number }>>([]);
+
+  const fixLat = Number((place?.geo as any)?.lat);
+  const fixLon = Number((place?.geo as any)?.lon);
+  useEffect(() => {
+    if (!Number.isFinite(fixLat) || !Number.isFinite(fixLon)) { setNearbyTowns([]); return; }
+    let live = true;
+    void supabase.functions
+      .invoke("awareness-nearby-places", { body: { lat: fixLat, lon: fixLon } })
+      .then(({ data }) => {
+        if (!live) return;
+        const rows = ((data as any)?.places ?? []) as Array<{ name?: string; kind?: string; distance_m?: number }>;
+        setNearbyTowns(
+          rows
+            .filter((r) => r.name && Number.isFinite(Number(r.distance_m)))
+            .map((r) => ({ name: String(r.name), kind: r.kind ?? null, distanceM: Number(r.distance_m) })),
+        );
+      })
+      .catch(() => { /* a missing nearby read stays missing; the shelf says so */ });
+    return () => { live = false; };
+  }, [fixLat, fixLon]);
+
+  /* Your own saved places, measured from the fix Echo is using. Recorded ground
+     truth: nothing is looked up for this. */
+  const savedNearby = (() => {
+    if (!Number.isFinite(fixLat) || !Number.isFinite(fixLon)) return [];
+    const out: Array<{ id: string; label: string; distanceM: number }> = [];
+    for (const p of places) {
+      if (p.id === place?.id) continue;
+      const g = p.geo as any;
+      const lat = Number(g?.lat);
+      const lon = Number(g?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      out.push({ id: p.id, label: p.label, distanceM: metersBetween({ lat: fixLat, lon: fixLon }, { lat, lon }) });
+    }
+    return out;
+  })();
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
@@ -351,6 +392,8 @@ export function AwarenessSurface() {
             briefings: latestBySection as any,
             layers: AWARENESS_SECTIONS,
             elsewhereMeetings: situation?.elsewhereMeetings ?? [],
+            savedNearby,
+            nearbyTowns,
           });
           const never = neverReadLine(shelvesRead.neverRead);
           const truth = placeTruth(place as PlaceLike | null);
