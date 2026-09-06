@@ -230,10 +230,15 @@ export function buildDraftDocx(args: {
   });
 }
 
+/**
+ * Export the draft as Word. The file is kept the same way the PDF is — stored
+ * and recorded as an export row — so it can be reopened later instead of only
+ * living in whatever folder the download landed in.
+ */
 export async function exportDraftDocx(args: {
   document_id: string;
   audience: DraftExportAudience;
-}): Promise<{ filename: string }> {
+}): Promise<{ filename: string; brief_export_id: string | null; storage_path: string | null }> {
   const doc = await getDocument(args.document_id);
   if (!doc) throw new Error("Document not found");
   const version = await getLatestVersion(args.document_id);
@@ -250,14 +255,86 @@ export async function exportDraftDocx(args: {
   saveAs(blob, filename);
 
   const { data: u } = await supabase.auth.getUser();
-  if (u?.user?.id) {
-    await supabase.from("audit_log").insert({
-      user_id: u.user.id,
-      entity_type: "document",
-      entity_id: doc.id,
-      event: "document.exported_docx",
-      payload: { audience: args.audience, filename, kind: "draft" },
-    });
+  const uid = u?.user?.id ?? null;
+  if (!uid) return { filename, brief_export_id: null, storage_path: null };
+
+  /* Record it as an export row first, so the stored file has an id to live under. */
+  const brief = {
+    title: `${doc.title} — Word packet`,
+    subtitle: `${kindLabel(doc.kind)} · ${args.audience}`,
+    sections: [],
+    appendix_receipts: [],
+    grounding: {
+      scope: "project",
+      output: "docx",
+      document_id: doc.id,
+      version_id: version.id,
+      project_id: doc.project_id ?? null,
+      audience: args.audience,
+    },
+    signals_hash: version.id,
+    format: "word_packet",
+    scope_kind: "project",
+    entity_id: null,
+    project_id: doc.project_id ?? null,
+    generated_at: new Date().toISOString(),
+  };
+
+  const { data: row } = await supabase
+    .from("brief_exports")
+    .insert({
+      user_id: uid,
+      organization_id: doc.organization_id ?? null,
+      project_id: doc.project_id ?? null,
+      entity_id: null,
+      format: "word_packet",
+      scope_kind: "project",
+      title: brief.title,
+      subtitle: brief.subtitle,
+      brief: brief as any,
+      signals_hash: version.id,
+      status: "draft",
+    })
+    .select("id")
+    .maybeSingle();
+
+  let storage_path: string | null = null;
+  if (row?.id) {
+    const path = `${uid}/documents/${row.id}.docx`;
+    const { error: upErr } = await supabase.storage
+      .from("memory-uploads")
+      .upload(path, blob, {
+        contentType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        upsert: true,
+      });
+    if (!upErr) {
+      storage_path = path;
+      const now = new Date().toISOString();
+      await supabase
+        .from("brief_exports")
+        .update({ status: "exported", approved_at: now, exported_at: now, storage_path })
+        .eq("id", row.id);
+    }
   }
-  return { filename };
+
+  await supabase.from("audit_log").insert({
+    user_id: uid,
+    entity_type: "document",
+    entity_id: doc.id,
+    event: "document.exported_docx",
+    payload: {
+      audience: args.audience,
+      filename,
+      kind: "draft",
+      document_id: doc.id,
+      version_id: version.id,
+      project_id: doc.project_id ?? null,
+      brief_export_id: row?.id ?? null,
+      storage_path,
+    },
+  });
+
+  return { filename, brief_export_id: row?.id ?? null, storage_path };
 }
+

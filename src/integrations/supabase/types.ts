@@ -1553,6 +1553,7 @@ export type Database = {
       }
       documents: {
         Row: {
+          conversation_id: string | null
           created_at: string
           draft_inputs: Json
           failure_reason: string | null
@@ -1571,6 +1572,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conversation_id?: string | null
           created_at?: string
           draft_inputs?: Json
           failure_reason?: string | null
@@ -1589,6 +1591,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conversation_id?: string | null
           created_at?: string
           draft_inputs?: Json
           failure_reason?: string | null
@@ -1607,6 +1610,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documents_latest_review_fk"
             columns: ["latest_review_id"]

@@ -48,7 +48,9 @@ export function BriefExportsList({
     try {
       const url = await getBriefDownloadUrl(row.storage_path);
       if (!url) throw new Error("Could not create download link");
-      const filename = `${(row.title || "brief").replace(/[^\w.-]+/g, "_")}.pdf`;
+      const ext = row.storage_path.toLowerCase().endsWith(".docx") ? "docx" : "pdf";
+      const filename = `${(row.title || "brief").replace(/[^\w.-]+/g, "_")}.${ext}`;
+
       try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

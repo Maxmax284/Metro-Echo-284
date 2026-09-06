@@ -11,7 +11,9 @@ export type BriefFormat =
   | "weekly_review"   // across projects/entities — also recap_weekly
   | "audio_script"    // single spoken-prose block
   | "research_brief"  // outside-context brief attached to a project
+  | "word_packet"     // Word (.docx) packet of a drafted document
   | "monthly_review"; // monthly recap (Phase 5)
+
 
 export type BriefSectionKind =
   | "prose"
@@ -93,6 +95,7 @@ export const FORMAT_LABEL: Record<BriefFormat, string> = {
   weekly_review: "Weekly review",
   audio_script: "Audio briefing",
   research_brief: "Outside research",
+  word_packet: "Word packet",
   monthly_review: "Monthly review",
 };
 
@@ -103,8 +106,10 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
   weekly_review: "What changed across your projects this week.",
   audio_script: "Spoken-style script. Read aloud or play in browser.",
   research_brief: "Plain-English outside context, with sources.",
+  word_packet: "Editable Word file, kept alongside its receipt.",
   monthly_review: "What bigger pattern is forming this month.",
 };
+
 
 export type BriefAudience =
   | "me"
@@ -176,6 +181,26 @@ export async function saveBriefDraft(args: {
   return data as unknown as BriefExportRow;
 }
 
+/**
+ * Every receipt an export writes carries the ids it was built from, so the
+ * chain in Receipts can be walked without guessing what a row referred to.
+ */
+export function exportReceiptFacts(row: BriefExportRow, storage_path: string | null) {
+  const grounding = (row.brief?.grounding ?? {}) as Record<string, unknown>;
+  const pick = (k: string) => (typeof grounding[k] === "string" ? (grounding[k] as string) : null);
+  return {
+    format: row.format,
+    scope_kind: row.scope_kind,
+    storage_path,
+    brief_export_id: row.id,
+    project_id: row.project_id ?? pick("project_id"),
+    entity_id: row.entity_id ?? pick("entity_id"),
+    document_id: pick("document_id"),
+    review_id: pick("review_id"),
+    conversation_id: pick("conversation_id"),
+  };
+}
+
 export async function approveAndExportBrief(args: {
   row: BriefExportRow;
   pdfBlob?: Blob | null;
@@ -202,7 +227,7 @@ export async function approveAndExportBrief(args: {
       entity_type: "brief_export",
       entity_id: args.row.id,
       event: "pdf.generated",
-      payload: { format: args.row.format, scope_kind: args.row.scope_kind, storage_path },
+      payload: exportReceiptFacts(args.row, storage_path),
     });
   }
 
@@ -232,8 +257,9 @@ export async function approveAndExportBrief(args: {
     entity_type: "brief_export",
     entity_id: args.row.id,
     event: eventName,
-    payload: { format: args.row.format, scope_kind: args.row.scope_kind, storage_path },
+    payload: exportReceiptFacts(args.row, storage_path),
   });
+
 
   return data as unknown as BriefExportRow;
 }

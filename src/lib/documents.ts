@@ -164,6 +164,8 @@ export async function treatFileAsDocument(opts: {
   projectId?: string | null;
   organizationId?: string | null;
   kind?: DocumentKind;
+  /** The thread this came out of, when it came out of one. */
+  conversationId?: string | null;
 }): Promise<DocumentRow> {
   const { data, error } = await supabase
     .from("documents")
@@ -172,6 +174,7 @@ export async function treatFileAsDocument(opts: {
       organization_id: opts.organizationId ?? null,
       project_id: opts.projectId ?? null,
       source_file_id: opts.fileId,
+      conversation_id: opts.conversationId ?? null,
       kind: opts.kind ?? "unknown",
       title: opts.filename || "Untitled document",
       status: "uploaded",
@@ -184,10 +187,16 @@ export async function treatFileAsDocument(opts: {
     entity_type: "document",
     entity_id: data.id,
     event: "document.uploaded",
-    payload: { source_file_id: opts.fileId, project_id: opts.projectId ?? null },
+    payload: {
+      source_file_id: opts.fileId,
+      project_id: opts.projectId ?? null,
+      conversation_id: opts.conversationId ?? null,
+      document_id: data.id,
+    },
   });
   return data as DocumentRow;
 }
+
 
 export async function runExtraction(documentId: string): Promise<{ ok: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke("documents-extract", {

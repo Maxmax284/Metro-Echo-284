@@ -651,7 +651,17 @@ Deno.serve(async (req: Request) => {
     );
 
     const body = await req.json().catch(() => ({} as any));
-    const onlyUser: string | null = body?.user_id ?? null;
+    /* The cron sweeps everyone. A person asking from inside the app can only
+       ever sweep themselves, whatever the body says. */
+    const caller = await (async (): Promise<string | null> => {
+      const authz = req.headers.get("Authorization") ?? "";
+      const token = authz.replace(/^Bearer\s+/i, "");
+      if (!token || token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) return null;
+      const { data } = await sb.auth.getUser(token);
+      return data?.user?.id ?? null;
+    })();
+    const onlyUser: string | null = caller ?? body?.user_id ?? null;
+
 
     // Opt-in only. No preference, no sweep.
     let profileQuery = sb.from("profiles").select("id, timezone, preferences").limit(2000);

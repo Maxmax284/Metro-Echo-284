@@ -5,15 +5,18 @@
 // recorded evaluator decision — nothing here is reconstructed after the fact.
 import { useCallback, useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { EyeOff } from "lucide-react";
+import { EyeOff, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
+import { Button } from "@/components/ui/button";
 import { EmptyState, LoadingState } from "@/components/ui/state-views";
+import { vantaToast } from "@/lib/vantaVoice";
 import { heldBackRead, type HeldBackRead } from "@/lib/heldBack";
 
 export function HeldBackPanel() {
   const { applyScope, key } = useScope();
   const [read, setRead] = useState<HeldBackRead | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await applyScope(
@@ -26,17 +29,43 @@ export function HeldBackPanel() {
 
   useEffect(() => { void load(); }, [key, load]);
 
+  /* A look-now tap, so the decision record isn't only whatever the last
+     scheduled pass happened to leave behind. It sweeps you and no one else. */
+  const checkNow = useCallback(async () => {
+    setChecking(true);
+    const { data, error } = await supabase.functions.invoke("awareness-drift-sweep", { body: {} });
+    setChecking(false);
+    if (error) {
+      vantaToast.error({ title: "Couldn't run that check just now", description: "Nothing changed. Try again in a moment." });
+      return;
+    }
+    await load();
+    const quiet = (data as any)?.quiet > 0;
+    if (quiet) vantaToast.say({ title: "Inside your quiet hours", description: "Echo looked but wrote nothing." });
+  }, [load]);
+
   return (
     <section className="vanta-card p-3">
       <div className="mb-2 flex items-start gap-2">
         <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-[13px] font-medium">Held back</h3>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
             {read ? read.sentence : "Reading the decisions Echo recorded."}
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-9 shrink-0 gap-1.5 text-[11.5px]"
+          onClick={checkNow}
+          disabled={checking}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} />
+          {checking ? "Looking" : "Look now"}
+        </Button>
       </div>
+
 
       {read === null ? (
         <LoadingState label="Reading held-back decisions" />
