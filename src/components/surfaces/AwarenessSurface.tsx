@@ -52,7 +52,7 @@ function freshLabel(generated: string | null): string {
 
 export function AwarenessSurface() {
   const { session } = useAuth();
-  const { place, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
+  const { place, briefings, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   /* Same read Today uses, so a meeting can't be quiet here and loud there. */
@@ -109,6 +109,18 @@ export function AwarenessSurface() {
       const lon = Number(g?.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
       out.push({ id: p.id, label: p.label, distanceM: metersBetween({ lat: fixLat, lon: fixLon }, { lat, lon }) });
+    }
+    return out;
+  })();
+
+  /* The read before the newest one, per layer. Recorded history only — this is
+     what lets the "Changed" shelf say what moved instead of that a scan ran. */
+  const previousBySection = (() => {
+    const seen = new Set<string>();
+    const out: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined> = {};
+    for (const b of briefings ?? []) {
+      if (!seen.has(b.section)) { seen.add(b.section); continue; }
+      if (!out[b.section]) out[b.section] = b as any;
     }
     return out;
   })();
@@ -390,6 +402,7 @@ export function AwarenessSurface() {
             newestAt: overall.newest_at,
             locationWarning: (snapshot?.compact as any)?.location_warning ?? null,
             briefings: latestBySection as any,
+            previousBriefings: previousBySection as any,
             layers: AWARENESS_SECTIONS,
             elsewhereMeetings: situation?.elsewhereMeetings ?? [],
             savedNearby,
