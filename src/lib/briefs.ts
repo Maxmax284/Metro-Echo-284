@@ -11,7 +11,9 @@ export type BriefFormat =
   | "weekly_review"   // across projects/entities — also recap_weekly
   | "audio_script"    // single spoken-prose block
   | "research_brief"  // outside-context brief attached to a project
+  | "word_packet"     // Word (.docx) packet of a drafted document
   | "monthly_review"; // monthly recap (Phase 5)
+
 
 export type BriefSectionKind =
   | "prose"
@@ -93,6 +95,7 @@ export const FORMAT_LABEL: Record<BriefFormat, string> = {
   weekly_review: "Weekly review",
   audio_script: "Audio briefing",
   research_brief: "Outside research",
+  word_packet: "Word packet",
   monthly_review: "Monthly review",
 };
 
@@ -103,8 +106,10 @@ export const FORMAT_DESCRIPTION: Record<BriefFormat, string> = {
   weekly_review: "What changed across your projects this week.",
   audio_script: "Spoken-style script. Read aloud or play in browser.",
   research_brief: "Plain-English outside context, with sources.",
+  word_packet: "Editable Word file, kept alongside its receipt.",
   monthly_review: "What bigger pattern is forming this month.",
 };
+
 
 export type BriefAudience =
   | "me"
