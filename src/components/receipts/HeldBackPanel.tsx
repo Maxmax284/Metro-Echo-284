@@ -36,12 +36,12 @@ export function HeldBackPanel() {
     const { data, error } = await supabase.functions.invoke("awareness-drift-sweep", { body: {} });
     setChecking(false);
     if (error) {
-      vantaToast.plain("Couldn't run that check just now", "Nothing changed. Try again in a moment.");
+      vantaToast.error({ title: "Couldn't run that check just now", description: "Nothing changed. Try again in a moment." });
       return;
     }
     await load();
     const quiet = (data as any)?.quiet > 0;
-    if (quiet) vantaToast.plain("Inside your quiet hours", "Echo looked but wrote nothing.");
+    if (quiet) vantaToast.say({ title: "Inside your quiet hours", description: "Echo looked but wrote nothing." });
   }, [load]);
 
   return (
