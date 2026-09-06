@@ -38,6 +38,12 @@ function extractSignatories(inputs: Record<string, unknown> | null | undefined) 
   return out;
 }
 
+function runsFor(text: string, boldAll = false): TextRun[] {
+  const spans = inlineSpans(text);
+  if (spans.length === 0) return [new TextRun({ text: "" })];
+  return spans.map((s) => new TextRun({ text: s.text, bold: boldAll || s.bold }));
+}
+
 function bodyParagraphs(body: string): Paragraph[] {
   const out: Paragraph[] = [];
   const lines = body.split(/\r?\n/);
@@ -49,7 +55,7 @@ function bodyParagraphs(body: string): Paragraph[] {
     if (!text) return;
     out.push(new Paragraph({
       spacing: { after: 160 },
-      children: [new TextRun({ text })],
+      children: runsFor(text),
     }));
   };
 
@@ -66,16 +72,16 @@ function bodyParagraphs(body: string): Paragraph[] {
           : level === 2 ? HeadingLevel.HEADING_2
           : HeadingLevel.HEADING_3,
         spacing: { before: 240, after: 120 },
-        children: [new TextRun({ text: h[2].trim(), bold: true })],
+        children: runsFor(h[2].trim(), true),
       }));
       continue;
     }
-    const bullet = /^[-*]\s+(.*)$/.exec(line);
-    if (bullet) {
+    const bullet = bulletText(line);
+    if (bullet !== null) {
       flushParagraph();
       out.push(new Paragraph({
         numbering: { reference: "doc-bullets", level: 0 },
-        children: [new TextRun({ text: bullet[1].trim() })],
+        children: runsFor(bullet),
       }));
       continue;
     }
@@ -84,6 +90,7 @@ function bodyParagraphs(body: string): Paragraph[] {
   flushParagraph();
   return out;
 }
+
 
 function signaturePage(signatories: Array<{ name: string; role: string }>): Paragraph[] {
   const heading = new Paragraph({
