@@ -315,7 +315,8 @@ async function telegramConversation(
     .insert({
       user_id: userId,
       organization_id: orgId,
-      scope: orgId ? "workspace" : "personal",
+      // "organization" is the wire value Ask reads; "workspace" is user-facing wording only.
+      scope: orgId ? "organization" : "personal",
       title: "Telegram",
       auto_titled: true,
       state: { channel: "telegram", chat_id: key },
