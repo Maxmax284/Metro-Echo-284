@@ -12,6 +12,7 @@
 // Pure module: the caller hands over provider state, this ranks and words it.
 
 import { coerceSignal, type RiskLevel } from "@/lib/vantaSignal";
+import { formatDistance } from "@/lib/trips";
 
 export type ShelfKey = "now" | "around" | "changed" | "coming";
 
@@ -71,6 +72,11 @@ export type ShelvesInput = {
   locationWarning?: unknown;
   /** Latest briefing per layer, exactly as stored. */
   briefings: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
+  /**
+   * The read immediately before the current one, per layer. With this, "Changed"
+   * can say what moved; without it, it only says what is current. Never inferred.
+   */
+  previousBriefings?: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
   /** All layers Echo knows how to read. */
   layers: readonly string[];
   /**
@@ -78,7 +84,21 @@ export type ShelvesInput = {
    * leaves them alone; they belong on the "Around you" shelf.
    */
   elsewhereMeetings?: Array<{ id: string; title: string; starts_at: string; location: string }>;
+  /**
+   * Your own saved places with a measured distance from the current fix. This is
+   * recorded ground truth, not a search result, so it is the first thing the
+   * "Around you" shelf says.
+   */
+  savedNearby?: Array<{ id: string; label: string; distanceM: number }>;
+  /**
+   * Populated places around the fix, from the nearby lookup Echo already runs.
+   * Named towns with a measured distance — no interpretation on top.
+   */
+  nearbyTowns?: Array<{ name: string; kind?: string | null; distanceM: number }>;
 };
+
+/** How close a saved place has to be before it counts as "around you". */
+export const NEAR_RADIUS_M = 5000;
 
 function ageMs(iso: string | null | undefined, now: number): number | null {
   if (!iso) return null;
@@ -120,6 +140,48 @@ export function placeParagraph(input: ShelvesInput): string {
   }
   if (input.locationMessage && input.placeUnresolved) parts.push(input.locationMessage);
   return parts.join(" ");
+}
+
+const RISK_WORD: Record<RiskLevel, string> = { none: "clear", low: "low", medium: "worth a look", high: "serious" };
+
+/**
+ * Two reads of the same layer, compared. Only recorded fields are used: the risk
+ * level and the headline. If neither moved, it says so — "same as before" is a
+ * real answer and more useful than implying something changed.
+ */
+export function diffLayer(
+  layer: string,
+  prev: { signal?: unknown; generated_at: string },
+  next: { signal?: unknown; generated_at: string },
+  now = Date.now(),
+): { text: string; detail: string; tone?: "warn" | "plain" } {
+  const a = coerceSignal(prev.signal ?? {});
+  const b = coerceSignal(next.signal ?? {});
+  const when = agoPhrase(next.generated_at, now);
+  const since = agoPhrase(prev.generated_at, now);
+
+  if (RISK_RANK[b.risk_level] !== RISK_RANK[a.risk_level]) {
+    const rose = RISK_RANK[b.risk_level] > RISK_RANK[a.risk_level];
+    return {
+      text: `${layer} went from ${RISK_WORD[a.risk_level]} to ${RISK_WORD[b.risk_level]} ${when}.`,
+      detail: `Compared against the read from ${since}. ${b.short_summary || b.title || "No detail was recorded beyond the level."}`,
+      tone: rose && RISK_RANK[b.risk_level] >= 2 ? "warn" : "plain",
+    };
+  }
+
+  const titleA = (a.title || "").trim();
+  const titleB = (b.title || "").trim();
+  if (titleA && titleB && titleA !== titleB) {
+    return {
+      text: `${layer} reads differently now: ${titleB}`,
+      detail: `Last read ${since} it said "${titleA}". Same level, different headline.`,
+    };
+  }
+
+  return {
+    text: `${layer} was read again ${when} — same as before.`,
+    detail: `Level and headline match the read from ${since}. Nothing moved.`,
+  };
 }
 
 export function readShelves(input: ShelvesInput): ShelvesRead {
@@ -186,15 +248,21 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       });
     }
 
-    /* Changed — read again since yesterday. Echo keeps no before-picture of a
-       layer, so it says what was re-read, never that something is different. */
+    /* Changed — read again since yesterday. When the read before it is on
+       record, the two are compared and the line says what moved. When there is
+       no earlier read, it says only that this one is current. */
     if (age < DAY_MS) {
+      const prev = input.previousBriefings?.[layer];
+      const diff = prev ? diffLayer(layer, prev, b, now) : null;
       changed.push({
         key: `changed:${layer}`,
-        text: `${layer} was read again ${agoPhrase(b.generated_at, now)}.`,
-        detail: "Echo doesn't keep the previous read of a layer, so it can't tell you what moved — only that this is current.",
+        text: diff?.text ?? `${layer} was read again ${agoPhrase(b.generated_at, now)}.`,
+        detail:
+          diff?.detail ??
+          "This is the first read Echo has of this layer here, so there is nothing to compare it against.",
         section: layer,
         at: b.generated_at,
+        tone: diff?.tone,
       });
     }
 
@@ -223,6 +291,35 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     });
   }
 
+  /* Around you, grounded. Your own saved places first: these are places you
+     recorded yourself, so the distance is measured, not guessed. */
+  const saved = (input.savedNearby ?? [])
+    .filter((p) => Number.isFinite(p.distanceM) && p.distanceM <= NEAR_RADIUS_M)
+    .sort((a, b) => a.distanceM - b.distanceM)
+    .slice(0, 2);
+  for (const p of saved.slice().reverse()) {
+    around.unshift({
+      key: `saved:${p.id}`,
+      text: `${p.label} is ${formatDistance(p.distanceM)} from here.`,
+      detail: "One of your own saved places, measured from the fix Echo is using. Nothing was searched for this.",
+      at: null,
+    });
+  }
+
+  /* Then the named towns from the nearby lookup — the closest one only, so the
+     shelf stays a read and not a list of map results. */
+  const town = (input.nearbyTowns ?? [])
+    .filter((t) => Number.isFinite(t.distanceM))
+    .sort((a, b) => a.distanceM - b.distanceM)[0];
+  if (town) {
+    around.push({
+      key: `town:${town.name}`,
+      text: `Nearest named place is ${town.name}, about ${formatDistance(town.distanceM)} away.`,
+      detail: "From the nearby-places lookup against the fix Echo is using — map data, not a web search.",
+      at: null,
+    });
+  }
+
   /* Meetings happening somewhere you aren't. Today deliberately stays quiet
      about these, so this is the one place they're said — as a where-it-is note,
      never as a nudge, and never with a claim about how far away it is. */
@@ -237,7 +334,13 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
 
   const byNewest = (a: ShelfLine, b: ShelfLine) =>
     new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
-  around.sort(byNewest);
+  /* Saved-place and town lines carry no read time, so a newest-first sort would
+     bury them. They are ground truth: they stay at the top in distance order. */
+  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:"));
+  const read = around.filter((l) => !grounded.includes(l));
+  read.sort(byNewest);
+  around.length = 0;
+  around.push(...grounded, ...read);
   changed.sort(byNewest);
   coming.sort(byNewest);
 
@@ -256,13 +359,13 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "around",
       label: SHELF_LABEL.around,
       lines: around.slice(0, 3),
-      quiet: "Nothing read about this place yet. Scan, and getting around, paying, local habits and meetings held elsewhere land here.",
+      quiet: "Nothing around you yet. Save a place or two near where you are, and getting around, paying, local habits and meetings held elsewhere land here.",
     },
     {
       key: "changed",
       label: SHELF_LABEL.changed,
       lines: changed.slice(0, 3),
-      quiet: "Nothing re-read in the last day. Each scan you run shows up here so you know what's current.",
+      quiet: "Nothing re-read in the last day. Scan again and this shelf compares the new read against the last one and tells you what moved.",
     },
     {
       key: "coming",

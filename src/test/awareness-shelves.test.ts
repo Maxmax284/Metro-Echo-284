@@ -48,14 +48,54 @@ describe("awareness shelves", () => {
     expect(around.lines.map((l) => l.text)).toEqual(["Cash still rules"]);
   });
 
-  it("never claims a layer changed, only that it was read again", () => {
+  it("with no earlier read, says only that this one is current", () => {
     const read = readShelves({
       ...base,
       briefings: { transport: { generated_at: iso(3 * 60 * 60 * 1000), confidence: "high", signal: {} } },
     });
     const changed = read.shelves.find((s) => s.key === "changed")!;
     expect(changed.lines[0].text).toContain("read again 3h ago");
-    expect(changed.lines[0].detail).toContain("can't tell you what moved");
+    expect(changed.lines[0].detail).toContain("nothing to compare it against");
+  });
+
+  it("with an earlier read on record, says what moved", () => {
+    const read = readShelves({
+      ...base,
+      briefings: {
+        hazards: { generated_at: iso(60 * 60 * 1000), confidence: "high", signal: { risk_level: "medium", title: "Road washed out" } },
+      },
+      previousBriefings: {
+        hazards: { generated_at: iso(26 * 60 * 60 * 1000), confidence: "high", signal: { risk_level: "low", title: "Wet season starting" } },
+      },
+    });
+    const changed = read.shelves.find((s) => s.key === "changed")!;
+    expect(changed.lines[0].text).toContain("from low to worth a look");
+  });
+
+  it("says same as before when neither level nor headline moved", () => {
+    const read = readShelves({
+      ...base,
+      briefings: { transport: { generated_at: iso(60 * 60 * 1000), confidence: "high", signal: { risk_level: "none", title: "Songthaews all day" } } },
+      previousBriefings: { transport: { generated_at: iso(30 * 60 * 60 * 1000), confidence: "high", signal: { risk_level: "none", title: "Songthaews all day" } } },
+    });
+    const changed = read.shelves.find((s) => s.key === "changed")!;
+    expect(changed.lines[0].text).toContain("same as before");
+  });
+
+  it("puts your own saved places at the top of Around you, measured not searched", () => {
+    const read = readShelves({
+      ...base,
+      savedNearby: [
+        { id: "far", label: "Airport", distanceM: 40_000 },
+        { id: "near", label: "The gym", distanceM: 400 },
+      ],
+      nearbyTowns: [{ name: "Rawai", kind: "town", distanceM: 2_600 }],
+    });
+    const around = read.shelves.find((s) => s.key === "around")!;
+    expect(around.lines[0].text).toContain("The gym is 400 m from here");
+    // 40km is outside the near radius, so it is left out rather than padded in.
+    expect(around.lines.map((l) => l.text).join(" ")).not.toContain("Airport");
+    expect(around.lines.map((l) => l.text).join(" ")).toContain("Rawai");
   });
 
   it("names layers never read rather than showing them as empty", () => {

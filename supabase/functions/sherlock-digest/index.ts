@@ -1,4 +1,5 @@
 import { corsHeaders } from "../_shared/http.ts";
+import { sendTelegram } from "../_shared/telegramApi.ts";
 // sherlock-digest — the weekly read.
 //
 // Doctrine:
@@ -12,7 +13,6 @@ import { corsHeaders } from "../_shared/http.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 /** Bounds per run, so one invocation always ends. */
 const MAX_USERS_PER_RUN = 200;
@@ -246,31 +246,18 @@ async function reachTelegram(admin: any, userId: string, text: string, orgId: st
   const chatId = (link as { chat_id?: number } | null)?.chat_id;
   if (!chatId) return;
 
-  let ok = false;
-  let err: string | null = null;
-  try {
-    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    });
-    ok = r.ok;
-    if (!ok) err = JSON.stringify(await r.json().catch(() => ({}))).slice(0, 200);
-  } catch (e) {
-    err = e instanceof Error ? e.message : "send failed";
-  }
-
-  await admin.from("audit_log").insert({
-    user_id: userId,
-    organization_id: orgId,
-    entity_type: "sherlock_digest",
-    event: ok ? "sherlock_digest_reached_messaging" : "sherlock_digest_reach_failed",
-    payload: { channel: "telegram", ...(err ? { error: err } : {}) },
+  const res = await sendTelegram({
+    admin,
+    userId,
+    chatId,
+    text,
+    organizationId: orgId,
+    kind: "digest",
+    entityType: "sherlock_digest",
+    auditEvent: "sherlock_digest_reached_messaging",
+    auditFailedEvent: "sherlock_digest_reach_failed",
   });
+  if (!res.ok) console.error("sherlock digest telegram reach failed", res.reason);
 }
 
 async function runForUser(admin: any, userId: string, settings: Record<string, unknown>, now: Date) {

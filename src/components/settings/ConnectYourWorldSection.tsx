@@ -196,7 +196,7 @@ export function ConnectYourWorldSection() {
         lastSource: r.wearableLastSource,
       }),
       icon: Activity,
-      action: { label: "Wearable setup", to: "/wearables" },
+      action: { label: "Wearable setup", to: "/wearable-loop" },
     },
     {
       card: platformCard({

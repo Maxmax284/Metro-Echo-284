@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,7 +35,6 @@ import ProjectsPage from "./pages/Projects.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
 import DocumentsPage from "./pages/Documents.tsx";
 import RoomMapPage from "./pages/RoomMap.tsx";
-import WearablesPage from "./pages/Wearables.tsx";
 import WearableLoopPage from "./pages/WearableLoop.tsx";
 import WatchPage from "./pages/Watch.tsx";
 import MotionPage from "./pages/Motion.tsx";
@@ -74,7 +73,7 @@ const App = () => (
                               <Route path="/projects/:id" element={<ProjectBriefPage />} />
                               <Route path="/documents" element={<DocumentsPage />} />
                               <Route path="/how" element={<RoomMapPage />} />
-                              <Route path="/wearables" element={<WearablesPage />} />
+                              <Route path="/wearables" element={<Navigate to="/wearable-loop" replace />} />
                               <Route path="/physical-loop" element={<PhysicalLoopPage />} />
                               <Route path="/wearable-loop" element={<WearableLoopPage />} />
                               <Route path="/watch" element={<WatchPage />} />

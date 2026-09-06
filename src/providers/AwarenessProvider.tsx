@@ -63,7 +63,12 @@ export type AwarenessSnapshot = {
   id: string;
   compact: {
     place?: { id: string; label: string };
-    weather?: { tempC: number | null; condition: string | null; updated_at: string } | null;
+    weather?: {
+      tempC: number | null;
+      condition: string | null;
+      updated_at: string;
+      hourly?: Array<{ at: string; tempC: number | null; condition: string | null; rainChance: number | null }>;
+    } | null;
     summary?: string | null;
     briefing_count?: number;
     generated_at?: string;

@@ -5,6 +5,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
+import { EveningReadCard } from "@/components/today/EveningReadCard";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
@@ -27,7 +28,7 @@ import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
 import { useScope } from "@/hooks/useScope";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
-import { applyWeather, deriveWeather } from "@/lib/weather";
+import { applyWeather } from "@/lib/weather";
 import { formatDistanceToNow, isToday, isTomorrow } from "date-fns";
 import {
   AlertTriangle,
@@ -301,20 +302,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const secondaryQuiet =
     quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
 
-  /* Shell weather: Today owns the read on the state of the world, so it is the
-     one place that writes it onto <html>. Everything visual follows from CSS. */
+  /* Shell weather is owned by the shell (`useShellWeather`) so every room wears
+     it. Today still escalates on one thing the shell can't see: a live security
+     signal in its own lane. */
   useEffect(() => {
     if (loadingCritical) return;
-    applyWeather(
-      deriveWeather({
-        overdue: digest.overdue.length,
-        attention: attention.length,
-        captures: captureCount,
-        securityAlert: security.tone === "critical" || security.tone === "attention",
-        noticed: !!noticed,
-      }),
-    );
-  }, [loadingCritical, digest.overdue.length, attention.length, captureCount, security.tone, noticed]);
+    if (security.tone === "critical" || security.tone === "attention") applyWeather("pressure");
+  }, [loadingCritical, security.tone]);
 
   /* One-shot signal on the hero when real new change actually lands. It says
      "Echo noticed something", then it is gone. Never left on. */
@@ -441,6 +435,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       {/* A trip you started is still running: field context before desk work. */}
       <FieldSessionCard variant="today" />
+
+      {/* The rest of today, on a tap: calendar plus the forecast window. */}
+      <EveningReadCard />
 
       {/* Work already open elsewhere comes back before anything new. */}
       <ResumeWorkSection onNavigate={onNavigate} />

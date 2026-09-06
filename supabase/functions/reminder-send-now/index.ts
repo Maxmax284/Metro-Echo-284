@@ -70,7 +70,10 @@ Deno.serve(async (req: Request) => {
     const composed = composeReminder(comm.summary, overdue, comm.due_at, tz, {
       noteTitle, noteSnippet, commitmentId: comm.id,
     });
-    const sent = await sendTelegramReminder(link.chat_id, composed.text, composed.reply_markup);
+    const sent = await sendTelegramReminder(admin, user.id, link.chat_id, composed.text, composed.reply_markup, {
+      organizationId: comm.organization_id ?? null,
+      commitmentId: comm.id,
+    });
 
     await admin.from("audit_log").insert({
       user_id: user.id,
