@@ -17,6 +17,7 @@ import {
   type DocumentRow,
 } from "@/lib/documents";
 import type { DraftExportAudience } from "@/lib/documentDraftExport";
+import { bulletText, inlineSpans } from "@/lib/markdownText";
 
 const SIGNATORY_KEYS = [
   "party_a", "party_b", "client_name", "contractor_name",
