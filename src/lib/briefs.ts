@@ -181,6 +181,26 @@ export async function saveBriefDraft(args: {
   return data as unknown as BriefExportRow;
 }
 
+/**
+ * Every receipt an export writes carries the ids it was built from, so the
+ * chain in Receipts can be walked without guessing what a row referred to.
+ */
+export function exportReceiptFacts(row: BriefExportRow, storage_path: string | null) {
+  const grounding = (row.brief?.grounding ?? {}) as Record<string, unknown>;
+  const pick = (k: string) => (typeof grounding[k] === "string" ? (grounding[k] as string) : null);
+  return {
+    format: row.format,
+    scope_kind: row.scope_kind,
+    storage_path,
+    brief_export_id: row.id,
+    project_id: row.project_id ?? pick("project_id"),
+    entity_id: row.entity_id ?? pick("entity_id"),
+    document_id: pick("document_id"),
+    review_id: pick("review_id"),
+    conversation_id: pick("conversation_id"),
+  };
+}
+
 export async function approveAndExportBrief(args: {
   row: BriefExportRow;
   pdfBlob?: Blob | null;
@@ -207,7 +227,7 @@ export async function approveAndExportBrief(args: {
       entity_type: "brief_export",
       entity_id: args.row.id,
       event: "pdf.generated",
-      payload: { format: args.row.format, scope_kind: args.row.scope_kind, storage_path },
+      payload: exportReceiptFacts(args.row, storage_path),
     });
   }
 
@@ -237,8 +257,9 @@ export async function approveAndExportBrief(args: {
     entity_type: "brief_export",
     entity_id: args.row.id,
     event: eventName,
-    payload: { format: args.row.format, scope_kind: args.row.scope_kind, storage_path },
+    payload: exportReceiptFacts(args.row, storage_path),
   });
+
 
   return data as unknown as BriefExportRow;
 }
