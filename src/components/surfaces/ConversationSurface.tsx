@@ -283,7 +283,16 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
               /* One staging path only. Anything else double-writes the draft:
                  the surface owns it, hosts just render. */
               staged.push(p.intent);
-              void internalIntent(p.intent.name, p.intent.args);
+              void internalIntent(p.intent.name, p.intent.args, {
+                surface: "ask",
+                conversation_id: threadId,
+                asked_at: new Date().toISOString(),
+                question: text.slice(0, 300),
+                ...(activeThread?.context_kind ? { context_kind: activeThread.context_kind } : {}),
+                ...(activeThread?.context_id ? { context_id: activeThread.context_id } : {}),
+                ...(activeThread?.context_label ? { context_label: activeThread.context_label } : {}),
+                ...(hints.length ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingestedFileId ?? null })) } : {}),
+              });
             }
           } catch { /* partial */ }
         }

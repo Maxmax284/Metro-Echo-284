@@ -36,8 +36,10 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { withScope, scope } = useScope();
   const stageAction = useStageAction();
 
+  /* Provenance rides with the intent: a receipt has to be able to say which
+     source, which conversation and which day the draft came from. */
   return useCallback(
-    async (kind: string, args: any) => {
+    async (kind: string, args: any, provenance?: Record<string, unknown>) => {
       if (!user) return;
       if (!modeAllows(mode, kind)) {
         toast.warning({ title: vantaSay.intentBlocked(MODE_LABEL[mode], kind), description: "Switch mode in the header to allow this." });
@@ -70,6 +72,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             risk: args.risk,
             status: "staged",
             source: "companion",
+            payload: provenance ? { provenance } : null,
           });
           await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
