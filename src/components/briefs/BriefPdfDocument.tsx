@@ -316,11 +316,19 @@ export function BriefPdfDocument({ brief }: { brief: Brief }) {
         .filter((s) => s.name.length > 0)
     : [];
 
+  const tidyLabel = (s: string) => {
+    const t = s.trim().replace(/[\s,;:.\-]+$/, "");
+    if (t.length <= 46) return t;
+    const cut = t.slice(0, 46);
+    const at = cut.lastIndexOf(" ");
+    return `${(at > 20 ? cut.slice(0, at) : cut).replace(/[\s,;:.\-]+$/, "")}…`;
+  };
+
   const renderCitations = (cites: string[] | undefined) => {
     if (!cites?.length) return null;
     return (
       <Text style={styles.receipt}>
-        Sources: {cites.map((c) => refIndex[c]?.label ?? c).slice(0, 4).join(" · ")}
+        Sources: {cites.map((c) => tidyLabel(refIndex[c]?.label ?? c)).slice(0, 4).join(" · ")}
       </Text>
     );
   };
