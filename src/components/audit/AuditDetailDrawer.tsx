@@ -27,7 +27,12 @@ const DEV_KEY = "vanta.dev_details";
 
 /** Best-effort plain-English summary of an audit payload.
  * Tries common shapes first, falls back to a key/value bullet list. */
-function payloadFacts(row: AuditRow): { label: string; value: string }[] {
+function payloadFacts(row: AuditRow, timezone: string): { label: string; value: string }[] {
+  /* A receipt never shows a machine timestamp: same clock the rest of the room uses. */
+  const when = (v: unknown): string => {
+    const d = new Date(String(v));
+    return isNaN(d.getTime()) ? String(v) : formatInTimeZone(d, timezone, "d MMM HH:mm");
+  };
   const out: { label: string; value: string }[] = [];
   const p = row.payload ?? {};
   if (typeof p !== "object") return out;
@@ -84,12 +89,13 @@ function payloadFacts(row: AuditRow): { label: string; value: string }[] {
     }
     if (prov.surface) out.push({ label: "Asked in", value: String(prov.surface) });
     if (prov.context_label) out.push({ label: "About", value: String(prov.context_label) });
-    if (prov.asked_at) out.push({ label: "Asked", value: String(prov.asked_at) });
+    if (prov.asked_at) out.push({ label: "Asked", value: when(prov.asked_at) });
   }
 
   for (const [k, v] of Object.entries(p)) {
     if (hide.has(k) || k === "provenance") continue;
-    out.push({ label: labelMap[k] ?? k.replace(/_/g, " "), value: pretty(v) });
+    const isTime = k === "drafted_at" || k.endsWith("_at");
+    out.push({ label: labelMap[k] ?? k.replace(/_/g, " "), value: isTime ? when(v) : pretty(v) });
   }
   return out.slice(0, 14);
 }
@@ -119,7 +125,7 @@ export function AuditDetailDrawer({
   };
 
   if (!row) return null;
-  const facts = payloadFacts(row);
+  const facts = payloadFacts(row, timezone);
   const exact = formatInTimeZone(new Date(row.created_at), timezone, "PPpp");
   const ago = formatDistanceToNow(new Date(row.created_at), { addSuffix: true });
 
