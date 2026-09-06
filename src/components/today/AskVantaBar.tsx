@@ -25,7 +25,7 @@ export function AskVantaBar() {
   function ask(q: string) {
     const question = q.trim();
     if (!question) return;
-    openWithPrefill(question);
+    openWithPrefill(question, { send: true });
     setText("");
   }
 
