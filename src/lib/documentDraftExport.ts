@@ -10,6 +10,7 @@ import {
   DOCUMENT_DISCLAIMER, getDocument, getLatestVersion, kindLabel,
   type DocumentRow,
 } from "@/lib/documents";
+import { bulletText, stripInlineMarkdown } from "@/lib/markdownText";
 
 export type DraftExportAudience = "operator" | "client" | "signature";
 
@@ -37,38 +38,66 @@ function extractSignatories(inputs: Record<string, string> | null | undefined) {
 function sectionsFromMarkdown(body: string): BriefSection[] {
   const lines = body.split(/\r?\n/);
   const sections: BriefSection[] = [];
-  let currentHeading = "Document";
-  let buffer: string[] = [];
+  let currentHeading: string | undefined = "Document";
+  let prose: string[] = [];
+  let bullets: string[] = [];
 
   function flush() {
-    const text = buffer.join("\n").trim();
-    if (text.length === 0) return;
-    sections.push({
-      id: `s-${sections.length}`,
-      heading: currentHeading,
-      kind: "prose",
-      body: text,
-    });
-    buffer = [];
+    if (prose.length) {
+      const text = prose.join("\n").trim();
+      prose = [];
+      if (text) {
+        sections.push({
+          id: `s-${sections.length}`,
+          heading: currentHeading,
+          kind: "prose",
+          body: stripInlineMarkdown(text),
+        });
+        currentHeading = undefined;
+      }
+    }
+    if (bullets.length) {
+      const items = bullets.map((b) => ({ text: stripInlineMarkdown(b) })).filter((i) => i.text);
+      bullets = [];
+      if (items.length) {
+        sections.push({
+          id: `s-${sections.length}`,
+          heading: currentHeading,
+          kind: "list",
+          body: items,
+        });
+        currentHeading = undefined;
+      }
+    }
   }
 
   for (const line of lines) {
     const m = /^#{1,3}\s+(.*)$/.exec(line);
     if (m) {
       flush();
-      currentHeading = m[1].trim();
-    } else {
-      buffer.push(line);
+      currentHeading = stripInlineMarkdown(m[1].trim());
+      continue;
     }
+    const bullet = bulletText(line);
+    if (bullet !== null) {
+      if (prose.length) flush();
+      bullets.push(bullet);
+      continue;
+    }
+    if (bullets.length && line.trim()) flush();
+    prose.push(line);
   }
   flush();
 
   // Single fallback section when no headings present.
   if (sections.length === 0 && body.trim()) {
-    sections.push({ id: "body", heading: "Document", kind: "prose", body: body.trim() });
+    sections.push({
+      id: "body", heading: "Document", kind: "prose", body: stripInlineMarkdown(body.trim()),
+    });
   }
   return sections;
 }
+
 
 export function buildDraftBrief(args: {
   doc: DocumentRow;

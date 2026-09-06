@@ -78,6 +78,13 @@
       "when": 1788664610809,
       "tag": "0010_documents_conversation_link",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788675374728,
+      "tag": "0011_brief_exports_allow_word_packet",
+      "breakpoints": true
     }
   ]
 }
