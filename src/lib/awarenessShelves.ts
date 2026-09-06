@@ -72,6 +72,11 @@ export type ShelvesInput = {
   locationWarning?: unknown;
   /** Latest briefing per layer, exactly as stored. */
   briefings: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
+  /**
+   * The read immediately before the current one, per layer. With this, "Changed"
+   * can say what moved; without it, it only says what is current. Never inferred.
+   */
+  previousBriefings?: Record<string, { signal?: unknown; confidence?: string | null; generated_at: string } | undefined>;
   /** All layers Echo knows how to read. */
   layers: readonly string[];
   /**
@@ -135,6 +140,48 @@ export function placeParagraph(input: ShelvesInput): string {
   }
   if (input.locationMessage && input.placeUnresolved) parts.push(input.locationMessage);
   return parts.join(" ");
+}
+
+const RISK_WORD: Record<RiskLevel, string> = { none: "clear", low: "low", medium: "worth a look", high: "serious" };
+
+/**
+ * Two reads of the same layer, compared. Only recorded fields are used: the risk
+ * level and the headline. If neither moved, it says so — "same as before" is a
+ * real answer and more useful than implying something changed.
+ */
+export function diffLayer(
+  layer: string,
+  prev: { signal?: unknown; generated_at: string },
+  next: { signal?: unknown; generated_at: string },
+  now = Date.now(),
+): { text: string; detail: string; tone?: "warn" | "plain" } {
+  const a = coerceSignal(prev.signal ?? {});
+  const b = coerceSignal(next.signal ?? {});
+  const when = agoPhrase(next.generated_at, now);
+  const since = agoPhrase(prev.generated_at, now);
+
+  if (RISK_RANK[b.risk_level] !== RISK_RANK[a.risk_level]) {
+    const rose = RISK_RANK[b.risk_level] > RISK_RANK[a.risk_level];
+    return {
+      text: `${layer} went from ${RISK_WORD[a.risk_level]} to ${RISK_WORD[b.risk_level]} ${when}.`,
+      detail: `Compared against the read from ${since}. ${b.short_summary || b.title || "No detail was recorded beyond the level."}`,
+      tone: rose && RISK_RANK[b.risk_level] >= 2 ? "warn" : "plain",
+    };
+  }
+
+  const titleA = (a.title || "").trim();
+  const titleB = (b.title || "").trim();
+  if (titleA && titleB && titleA !== titleB) {
+    return {
+      text: `${layer} reads differently now: ${titleB}`,
+      detail: `Last read ${since} it said "${titleA}". Same level, different headline.`,
+    };
+  }
+
+  return {
+    text: `${layer} was read again ${when} — same as before.`,
+    detail: `Level and headline match the read from ${since}. Nothing moved.`,
+  };
 }
 
 export function readShelves(input: ShelvesInput): ShelvesRead {
@@ -201,15 +248,21 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       });
     }
 
-    /* Changed — read again since yesterday. Echo keeps no before-picture of a
-       layer, so it says what was re-read, never that something is different. */
+    /* Changed — read again since yesterday. When the read before it is on
+       record, the two are compared and the line says what moved. When there is
+       no earlier read, it says only that this one is current. */
     if (age < DAY_MS) {
+      const prev = input.previousBriefings?.[layer];
+      const diff = prev ? diffLayer(layer, prev, b, now) : null;
       changed.push({
         key: `changed:${layer}`,
-        text: `${layer} was read again ${agoPhrase(b.generated_at, now)}.`,
-        detail: "Echo doesn't keep the previous read of a layer, so it can't tell you what moved — only that this is current.",
+        text: diff?.text ?? `${layer} was read again ${agoPhrase(b.generated_at, now)}.`,
+        detail:
+          diff?.detail ??
+          "This is the first read Echo has of this layer here, so there is nothing to compare it against.",
         section: layer,
         at: b.generated_at,
+        tone: diff?.tone,
       });
     }
 
@@ -312,7 +365,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "changed",
       label: SHELF_LABEL.changed,
       lines: changed.slice(0, 3),
-      quiet: "Nothing re-read in the last day. Each scan you run shows up here so you know what's current.",
+      quiet: "Nothing re-read in the last day. Scan again and this shelf compares the new read against the last one and tells you what moved.",
     },
     {
       key: "coming",
