@@ -9,8 +9,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/http.ts";
 import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
+import { sendTelegram } from "../_shared/telegramApi.ts";
 
-const GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 const MAX_CHARS = 3500;
 
 Deno.serve(async (req: Request) => {
@@ -47,42 +47,19 @@ Deno.serve(async (req: Request) => {
     const wanted = body?.chat_id != null ? Number(body.chat_id) : chats[0];
     const chatId = chats.includes(wanted) ? wanted : chats[0];
 
-    const res = await fetch(`${GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    });
-    const raw = await res.text();
-    let out: any = null;
-    try { out = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
-    const ok = res.ok && out?.ok !== false;
-    const reason = ok ? null : (out?.description ?? raw?.slice(0, 200) ?? `HTTP ${res.status}`);
-
-    await admin.from("telegram_messages").insert({
-      user_id: user.id,
-      chat_id: chatId,
-      direction: "out",
+    /* One outbound path: sends, records the message on the thread, writes the receipt. */
+    const send = await sendTelegram({
+      admin,
+      userId: user.id,
+      chatId,
       text,
-      kind: "text",
-      sent_by: "you",
-      error: reason,
-      meta: { message_id: out?.result?.message_id ?? null },
+      sentBy: "you",
     });
-
-    await admin.from("audit_log").insert({
-      user_id: user.id,
-      entity_type: "telegram",
-      event: ok ? "telegram.message_out" : "telegram.message_out_failed",
-      payload: { chat_id: chatId, chars: text.length, reason },
-    });
+    const ok = send.ok;
+    const reason = send.reason;
 
     if (!ok) {
-      console.error(`telegram-send failed [${res.status}]: ${raw}`);
-      return json({ sent: false, reason, status: res.status }, res.status === 401 ? 400 : 502);
+      return json({ sent: false, reason, status: send.status }, send.status === 401 ? 400 : 502);
     }
     return json({ sent: true, chat_id: chatId });
   } catch (e) {

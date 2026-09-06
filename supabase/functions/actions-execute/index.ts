@@ -1,4 +1,5 @@
 import { resolveUser } from "../_shared/authContext.ts";
+import { sendTelegram } from "../_shared/telegramApi.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
 import { isReversibleKind } from "../_shared/actionRollback.ts";
@@ -111,25 +112,27 @@ async function runGoogleCalendar(config: any, action: any) {
   return { provider: "google_calendar", event_id: data?.id, html_link: data?.htmlLink, calendar_id: config?.calendar_id ?? "primary" };
 }
 
-async function runTelegram(config: any, action: any) {
+async function runTelegram(admin: any, userId: string, config: any, action: any) {
   const chat_id = config?.chat_id;
   if (!chat_id) throw new Error("telegram executor missing config.chat_id");
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   const tgKey = Deno.env.get("TELEGRAM_API_KEY");
   if (!apiKey || !tgKey) throw new Error("telegram credentials missing");
   const text = `<b>${action.title}</b>${action.description ? `\n${action.description}` : ""}`;
-  const res = await fetch("https://connector-gateway.lovable.dev/telegram/sendMessage", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "X-Connection-Api-Key": tgKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id, text, parse_mode: "HTML" }),
+  /* One outbound path, so an executed message lands on the thread with a receipt. */
+  const res = await sendTelegram({
+    admin,
+    userId,
+    chatId: chat_id,
+    text,
+    kind: "action",
+    entityType: "action",
+    entityId: action?.id ?? null,
+    auditEvent: "action.telegram_message_out",
+    auditFailedEvent: "action.telegram_message_out_failed",
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`telegram ${res.status}: ${JSON.stringify(data).slice(0, 300)}`);
-  return { message_id: data?.result?.message_id, chat_id };
+  if (!res.ok) throw new Error(`telegram ${res.status}: ${res.reason ?? "send failed"}`);
+  return { message_id: res.result?.message_id, chat_id };
 }
 
 Deno.serve(async (req: Request) => {

@@ -6,9 +6,9 @@ import { corsHeaders } from "../_shared/http.ts";
 // this only proves end-to-end delivery + deep link works.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildSignalDetail, inboundNoticeText } from "../_shared/awareness/inbound.ts";
+import { sendTelegram } from "../_shared/telegramApi.ts";
 
 
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -78,48 +78,26 @@ Deno.serve(async (req: Request) => {
     const errors: string[] = [];
     const receipts: { chat_id: string; message_id?: number }[] = [];
     for (const l of links) {
-      try {
-        const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-            "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ chat_id: l.chat_id, text }),
-        });
-        // A 200 from the gateway is not proof of delivery. Telegram answers
-        // with { ok, result: { message_id } } on a real send and { ok: false,
-        // description } when the chat is unreachable (bot never started, chat
-        // blocked, wrong bot token). Trust the body, not the status.
-        const raw = await r.text();
-        let body: any = null;
-        try { body = raw ? JSON.parse(raw) : null; } catch { /* non-JSON */ }
-        const result = body?.result ?? body?.data?.result ?? null;
-        const messageId = typeof result?.message_id === "number" ? result.message_id : undefined;
-        const okFlag = body?.ok ?? body?.data?.ok;
-        const delivered = r.ok && okFlag !== false && messageId !== undefined;
-
-        if (delivered) {
-          sent++;
-          receipts.push({ chat_id: String(l.chat_id), message_id: messageId });
-        } else {
-          failed++;
-          const description =
-            body?.description ?? body?.data?.description ?? body?.error ?? body?.message ?? null;
-          if (description) {
-            errors.push(String(description).slice(0, 200));
-          } else if (r.ok && messageId === undefined) {
-            errors.push(
-              "The delivery service accepted it but Telegram never confirmed a message. Re-link this chat: open the bot in Telegram, send /start, then link again.",
-            );
-          } else {
-            errors.push((raw || `HTTP ${r.status}`).slice(0, 200));
-          }
-        }
-      } catch (e) {
+      /* One outbound path, so a test message shows up on the thread like any other. */
+      const r = await sendTelegram({
+        admin,
+        userId: user.id,
+        chatId: l.chat_id,
+        text,
+        kind: "notice",
+        auditEvent: "telegram.test_message_out",
+        auditFailedEvent: "telegram.test_message_out_failed",
+      });
+      const messageId = typeof r.result?.message_id === "number" ? r.result.message_id : undefined;
+      if (r.ok && messageId !== undefined) {
+        sent++;
+        receipts.push({ chat_id: String(l.chat_id), message_id: messageId });
+      } else {
         failed++;
-        errors.push(e instanceof Error ? e.message : "send failed");
+        errors.push(
+          (r.reason ??
+            "The delivery service accepted it but Telegram never confirmed a message. Re-link this chat: open the bot in Telegram, send /start, then link again.").slice(0, 200),
+        );
       }
     }
 
