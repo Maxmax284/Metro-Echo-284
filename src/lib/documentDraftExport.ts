@@ -10,6 +10,7 @@ import {
   DOCUMENT_DISCLAIMER, getDocument, getLatestVersion, kindLabel,
   type DocumentRow,
 } from "@/lib/documents";
+import { bulletText, stripInlineMarkdown } from "@/lib/markdownText";
 
 export type DraftExportAudience = "operator" | "client" | "signature";
 
