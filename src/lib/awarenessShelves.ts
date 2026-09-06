@@ -244,7 +244,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     .filter((p) => Number.isFinite(p.distanceM) && p.distanceM <= NEAR_RADIUS_M)
     .sort((a, b) => a.distanceM - b.distanceM)
     .slice(0, 2);
-  for (const p of saved) {
+  for (const p of saved.slice().reverse()) {
     around.unshift({
       key: `saved:${p.id}`,
       text: `${p.label} is ${formatDistance(p.distanceM)} from here.`,
