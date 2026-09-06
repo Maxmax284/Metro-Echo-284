@@ -11,7 +11,6 @@ import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessag
 
 
 
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 const TG_THROTTLE_MS = 6 * 60 * 60 * 1000;
 const PUSH_THROTTLE_MS = 6 * 60 * 60 * 1000;
 
@@ -169,7 +168,10 @@ Deno.serve(async (req: Request) => {
               const composed = composeTelegram(c.summary, overdue, c.due_at, prof.tz, {
                 noteTitle, noteSnippet: noteBody, commitmentId: c.id,
               });
-              const r = await sendTelegram(chatId, composed.text, composed.reply_markup);
+              const r = await sendTelegram(supabase, c.user_id, chatId, composed.text, composed.reply_markup, {
+                organizationId: (c as { organization_id?: string | null }).organization_id ?? null,
+                commitmentId: c.id,
+              });
               if (r.ok) {
                 telegramSent++;
                 await supabase.from("commitments")

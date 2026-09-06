@@ -3,7 +3,7 @@
 //
 // Doctrine: a reminder is a notification. Its buttons acknowledge a promise;
 // they never approve or execute anything.
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
+import { sendTelegram } from "./telegramApi.ts";
 
 export type TgInlineButton = { text: string; callback_data?: string; url?: string };
 export type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
@@ -56,30 +56,26 @@ export function composeReminder(
 }
 
 export async function sendTelegramReminder(
+  admin: any,
+  userId: string,
   chatId: number,
   text: string,
   reply_markup?: TgReplyMarkup,
+  opts: { organizationId?: string | null; commitmentId?: string | null } = {},
 ): Promise<{ ok: boolean; err?: string }> {
-  try {
-    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        disable_web_page_preview: true,
-        ...(reply_markup ? { reply_markup } : {}),
-      }),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) return { ok: false, err: JSON.stringify(j).slice(0, 200) };
-    if (j && j.ok === false) return { ok: false, err: String(j.description ?? "telegram refused") };
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, err: e instanceof Error ? e.message : "send failed" };
-  }
+  /* Single outbound path: the reminder lands on the Telegram thread with a receipt. */
+  const res = await sendTelegram({
+    admin,
+    userId,
+    chatId,
+    text,
+    replyMarkup: reply_markup,
+    organizationId: opts.organizationId ?? null,
+    kind: "reminder",
+    entityType: "commitment",
+    entityId: opts.commitmentId ?? null,
+    auditEvent: "reminder.telegram_sent",
+    auditFailedEvent: "reminder.telegram_failed",
+  });
+  return res.ok ? { ok: true } : { ok: false, err: res.reason ?? "send failed" };
 }
