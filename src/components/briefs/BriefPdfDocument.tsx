@@ -56,10 +56,11 @@ function makeStyles(t: ReturnType<typeof templateFor>) {
     pullQuote: { fontFamily: "Times-Italic", fontSize: 13, color: c.ink, borderLeftWidth: 2, borderLeftColor: c.accent, paddingLeft: 10, marginVertical: 8 },
     appendixTitle: { fontFamily: c.titleFont, fontSize: 16, color: c.ink, marginBottom: 10 },
     appendixIntro: { fontSize: 10, color: c.muted, marginBottom: 12 },
-    footnoteRow: { flexDirection: "row", marginBottom: 6 },
-    footnoteNum: { width: 22, fontSize: 10, fontFamily: "Helvetica-Bold", color: c.accent },
-    footnoteText: { flex: 1, fontSize: 10, color: c.body },
-    footnoteMeta: { fontSize: 8, color: c.muted, marginTop: 1 },
+    footnoteRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 8 },
+    footnoteNum: { width: 22, fontSize: 10, fontFamily: "Helvetica-Bold", color: c.accent, lineHeight: 1.4 },
+    footnoteText: { fontSize: 10, color: c.body, lineHeight: 1.4 },
+    footnoteMeta: { fontSize: 8, color: c.muted, lineHeight: 1.4, marginTop: 2 },
+
     fn: { fontSize: 8, color: c.accent, textDecoration: "none" },
     audienceChip: {
       alignSelf: "flex-start", marginBottom: 10, paddingVertical: 3, paddingHorizontal: 8,
