@@ -299,6 +299,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
       <SheetContent side="right" className="w-full max-w-xl overflow-y-auto pb-32 sm:max-w-2xl">
         {!doc || loading ? (
           <div className="flex h-64 items-center justify-center text-muted-foreground">
+            <SheetTitle className="sr-only">Document</SheetTitle>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : (
