@@ -5,6 +5,7 @@ import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-view
 import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
+import { EveningReadCard } from "@/components/today/EveningReadCard";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
@@ -441,6 +442,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       {/* A trip you started is still running: field context before desk work. */}
       <FieldSessionCard variant="today" />
+
+      {/* The rest of today, on a tap: calendar plus the forecast window. */}
+      <EveningReadCard />
 
       {/* Work already open elsewhere comes back before anything new. */}
       <ResumeWorkSection onNavigate={onNavigate} />
