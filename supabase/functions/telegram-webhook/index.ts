@@ -6,6 +6,7 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { firstPassIntake } from "../_shared/fileIntake.ts";
+import { replyWhyLine } from "../_shared/telegramWhy.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
@@ -578,6 +579,18 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       }
     } catch { /* best-effort */ }
   }
+
+  /* The same "why this" the screen shows, one line, from recorded outcomes
+     only. Field replies already carry theirs; this covers everything else. */
+  const whyLine = replyWhyLine({
+    routedTo,
+    detectedType,
+    readOnly,
+    needsReview: userMeta.needs_review === true,
+    usedRecords: readOnly ? ["your own records in Metro Echo"] : [],
+    at: new Date().toISOString(),
+  });
+  if (whyLine) reply = `${reply}\n\n${whyLine}`;
 
   // One deep link, at most one action button. Fixed vocabulary only.
   const markup = commitmentId
