@@ -92,7 +92,7 @@ describe("awareness shelves", () => {
       nearbyTowns: [{ name: "Rawai", kind: "town", distanceM: 2_600 }],
     });
     const around = read.shelves.find((s) => s.key === "around")!;
-    expect(around.lines[0].text).toContain("The gym is 400m from here");
+    expect(around.lines[0].text).toContain("The gym is 400 m from here");
     // 40km is outside the near radius, so it is left out rather than padded in.
     expect(around.lines.map((l) => l.text).join(" ")).not.toContain("Airport");
     expect(around.lines.map((l) => l.text).join(" ")).toContain("Rawai");
