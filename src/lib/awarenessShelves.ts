@@ -12,6 +12,7 @@
 // Pure module: the caller hands over provider state, this ranks and words it.
 
 import { coerceSignal, type RiskLevel } from "@/lib/vantaSignal";
+import { formatDistance } from "@/lib/trips";
 
 export type ShelfKey = "now" | "around" | "changed" | "coming";
 
@@ -78,7 +79,21 @@ export type ShelvesInput = {
    * leaves them alone; they belong on the "Around you" shelf.
    */
   elsewhereMeetings?: Array<{ id: string; title: string; starts_at: string; location: string }>;
+  /**
+   * Your own saved places with a measured distance from the current fix. This is
+   * recorded ground truth, not a search result, so it is the first thing the
+   * "Around you" shelf says.
+   */
+  savedNearby?: Array<{ id: string; label: string; distanceM: number }>;
+  /**
+   * Populated places around the fix, from the nearby lookup Echo already runs.
+   * Named towns with a measured distance — no interpretation on top.
+   */
+  nearbyTowns?: Array<{ name: string; kind?: string | null; distanceM: number }>;
 };
+
+/** How close a saved place has to be before it counts as "around you". */
+export const NEAR_RADIUS_M = 5000;
 
 function ageMs(iso: string | null | undefined, now: number): number | null {
   if (!iso) return null;
@@ -223,6 +238,35 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     });
   }
 
+  /* Around you, grounded. Your own saved places first: these are places you
+     recorded yourself, so the distance is measured, not guessed. */
+  const saved = (input.savedNearby ?? [])
+    .filter((p) => Number.isFinite(p.distanceM) && p.distanceM <= NEAR_RADIUS_M)
+    .sort((a, b) => a.distanceM - b.distanceM)
+    .slice(0, 2);
+  for (const p of saved) {
+    around.unshift({
+      key: `saved:${p.id}`,
+      text: `${p.label} is ${formatDistance(p.distanceM)} from here.`,
+      detail: "One of your own saved places, measured from the fix Echo is using. Nothing was searched for this.",
+      at: null,
+    });
+  }
+
+  /* Then the named towns from the nearby lookup — the closest one only, so the
+     shelf stays a read and not a list of map results. */
+  const town = (input.nearbyTowns ?? [])
+    .filter((t) => Number.isFinite(t.distanceM))
+    .sort((a, b) => a.distanceM - b.distanceM)[0];
+  if (town) {
+    around.push({
+      key: `town:${town.name}`,
+      text: `Nearest named place is ${town.name}, about ${formatDistance(town.distanceM)} away.`,
+      detail: "From the nearby-places lookup against the fix Echo is using — map data, not a web search.",
+      at: null,
+    });
+  }
+
   /* Meetings happening somewhere you aren't. Today deliberately stays quiet
      about these, so this is the one place they're said — as a where-it-is note,
      never as a nudge, and never with a claim about how far away it is. */
@@ -237,7 +281,13 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
 
   const byNewest = (a: ShelfLine, b: ShelfLine) =>
     new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
-  around.sort(byNewest);
+  /* Saved-place and town lines carry no read time, so a newest-first sort would
+     bury them. They are ground truth: they stay at the top in distance order. */
+  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:"));
+  const read = around.filter((l) => !grounded.includes(l));
+  read.sort(byNewest);
+  around.length = 0;
+  around.push(...grounded, ...read);
   changed.sort(byNewest);
   coming.sort(byNewest);
 
@@ -256,7 +306,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "around",
       label: SHELF_LABEL.around,
       lines: around.slice(0, 3),
-      quiet: "Nothing read about this place yet. Scan, and getting around, paying, local habits and meetings held elsewhere land here.",
+      quiet: "Nothing around you yet. Save a place or two near where you are, and getting around, paying, local habits and meetings held elsewhere land here.",
     },
     {
       key: "changed",
