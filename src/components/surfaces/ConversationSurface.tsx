@@ -291,7 +291,11 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                 ...(activeThread?.context_kind ? { context_kind: activeThread.context_kind } : {}),
                 ...(activeThread?.context_id ? { context_id: activeThread.context_id } : {}),
                 ...(activeThread?.context_label ? { context_label: activeThread.context_label } : {}),
-                ...(hints.length ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingestedFileId ?? null })) } : {}),
+                ...(p.intent.grounding?.sources?.length
+                  ? { sources: p.intent.grounding.sources }
+                  : hints.length
+                    ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingestedFileId ?? null })) }
+                    : {}),
               });
             }
           } catch { /* partial */ }

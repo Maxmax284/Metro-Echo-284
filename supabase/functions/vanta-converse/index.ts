@@ -449,6 +449,12 @@ Deno.serve(async (req: Request) => {
         }).join("\n\n")
       : "";
 
+    /* Which sources this answer was actually allowed to read. A receipt written
+       later has to name the same source the answer stood on. */
+    const groundedSources = fileRows
+      .filter((f: any) => (askedForFileWords || pointsAt(f)) && f.extracted_text)
+      .map((f: any) => ({ file_id: f.id, name: f.filename, source: f.source ?? null, uploaded_at: f.created_at }));
+
 
     // External research — private context shapes the query, never leaves as-is.
     let researchBlock = "";
@@ -555,7 +561,7 @@ Deno.serve(async (req: Request) => {
           for (const [, t] of toolBuf) {
             try {
               const args = t.args ? JSON.parse(t.args) : {};
-              const evt = `data: ${JSON.stringify({ intent: { name: t.name, args } })}\n\n`;
+              const evt = `data: ${JSON.stringify({ intent: { name: t.name, args, grounding: { sources: groundedSources, asked_at: new Date().toISOString() } } })}\n\n`;
               controller.enqueue(enc.encode(evt));
             } catch { /* ignore */ }
           }
