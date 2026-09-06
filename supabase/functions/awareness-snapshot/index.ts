@@ -14,19 +14,44 @@ const Body = z.object({
   force_refresh: z.boolean().optional(),
 });
 
-type WeatherSummary = { tempC: number | null; condition: string | null; updated_at: string } | null;
+type ForecastHour = { at: string; tempC: number | null; condition: string | null; rainChance: number | null };
+/* Current conditions plus the hours still ahead, so the evening read has a real
+   window to stand on instead of a single reading of right now. */
+type WeatherSummary = {
+  tempC: number | null;
+  condition: string | null;
+  updated_at: string;
+  hourly?: ForecastHour[];
+} | null;
 
 async function fetchWeather(lat: number, lon: number): Promise<WeatherSummary> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`;
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+    `&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code,precipitation_probability` +
+    `&forecast_days=2&timezone=auto`;
   const r = await fetch(url);
   if (!r.ok) throw new Error(`weather ${r.status}`);
   const j = await r.json();
   const code = j?.current?.weather_code;
   const condition = weatherCodeLabel(code);
+  /* Open-Meteo returns hourly arrays in the place's own timezone. Kept as
+     given — no interpolation, no gap filling. */
+  const times: string[] = Array.isArray(j?.hourly?.time) ? j.hourly.time : [];
+  const temps: unknown[] = Array.isArray(j?.hourly?.temperature_2m) ? j.hourly.temperature_2m : [];
+  const codes: unknown[] = Array.isArray(j?.hourly?.weather_code) ? j.hourly.weather_code : [];
+  const rain: unknown[] = Array.isArray(j?.hourly?.precipitation_probability) ? j.hourly.precipitation_probability : [];
+  const hourly: ForecastHour[] = times.slice(0, 48).map((t, i) => ({
+    at: String(t),
+    tempC: typeof temps[i] === "number" ? (temps[i] as number) : null,
+    condition: weatherCodeLabel(typeof codes[i] === "number" ? (codes[i] as number) : undefined),
+    rainChance: typeof rain[i] === "number" ? (rain[i] as number) : null,
+  }));
+
   return {
     tempC: typeof j?.current?.temperature_2m === "number" ? j.current.temperature_2m : null,
     condition,
     updated_at: new Date().toISOString(),
+    hourly,
   };
 }
 
