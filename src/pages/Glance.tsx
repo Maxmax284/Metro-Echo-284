@@ -371,7 +371,7 @@ export default function GlancePage() {
       <p className={cn("mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground")}>
         <Link to="/watch" className="hover:text-foreground">Watch trends</Link>
         {" · "}
-        <Link to="/wearables" className="hover:text-foreground">Wearables</Link>
+        <Link to="/wearable-loop" className="hover:text-foreground">Wearables</Link>
       </p>
     </div>
   );
