@@ -17,6 +17,7 @@ import { AuditDetailDrawer } from "@/components/audit/AuditDetailDrawer";
 import { markFlipOriginFromEvent } from "@/lib/flip";
 import { MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, MOTION_TIME_LOCK } from "@/lib/motion";
 import { SectionNote } from "@/components/ui/section-note";
+import { HeldBackPanel } from "@/components/receipts/HeldBackPanel";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { ReceiptUnfold, receiptFacts } from "@/components/audit/ReceiptUnfold";
@@ -250,6 +251,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
       </div>
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
+        <HeldBackPanel />
         <section>
           <SectionRail
             className="mb-2"
