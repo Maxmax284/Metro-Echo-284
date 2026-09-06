@@ -56,7 +56,7 @@ export function EveningReadCard({ className }: { className?: string }) {
             <p className="mt-2 text-[13px] leading-relaxed text-foreground/90">{read.sentence}</p>
             <div className="mt-2">
               <WhyThis
-                lines={[
+                reason={[
                   read.ahead.length > 0
                     ? `${read.ahead.length} ${read.ahead.length === 1 ? "entry" : "entries"} left before midnight, from your connected calendar.`
                     : "No calendar entries left before midnight.",
@@ -64,7 +64,7 @@ export function EveningReadCard({ className }: { className?: string }) {
                     ? `${read.hours.length} forecast ${read.hours.length === 1 ? "hour" : "hours"} read${weather?.updated_at ? ` at ${new Date(weather.updated_at).toLocaleTimeString()}` : ""}${place?.label ? ` for ${place.label}` : ""}.`
                     : "No forecast has been read for the rest of today.",
                   "Nothing here was searched for or guessed. Reading this changes nothing.",
-                ]}
+                ].join(" ")}
               />
             </div>
           </>
