@@ -13,6 +13,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
 import {
@@ -55,7 +56,6 @@ type ScopeTarget = { organizationId: string | null };
 type SweepOutcome = "none" | "shadow" | "proposed";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const base = q.eq("user_id", userId);
@@ -614,38 +614,25 @@ async function reachMessaging(
     readBrandVoice((voiceProfile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}),
   );
 
-  let ok = false;
-  let err: string | null = null;
-  try {
-    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": Deno.env.get("TELEGRAM_API_KEY") ?? "",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    });
-    ok = r.ok;
-    if (!ok) err = JSON.stringify(await r.json().catch(() => ({}))).slice(0, 200);
-  } catch (e) {
-    err = e instanceof Error ? e.message : "send failed";
-  }
-
-  await sb.from("audit_log").insert({
-    user_id: userId,
-    ...scopeCols,
-    entity_type: "nudge",
-    entity_id: decision.entityId ?? null,
-    event: ok ? "nudge.reached_messaging" : "nudge.reach_messaging_failed",
-    payload: {
-      channel: "telegram",
+  /* One outbound path: sends, records the message on the thread, writes the receipt. */
+  const res = await sendTelegram({
+    admin: sb,
+    userId,
+    chatId,
+    text,
+    organizationId: (scopeCols as { organization_id?: string | null }).organization_id ?? null,
+    kind: "notice",
+    entityType: decision.entityType ?? "nudge",
+    entityId: decision.entityId ?? null,
+    auditEvent: "nudge.reached_messaging",
+    auditFailedEvent: "nudge.reach_messaging_failed",
+    auditPayload: {
       urgency: decision.urgency,
       title: decision.title,
       source: "scheduled_sweep",
-      ...(err ? { error: err } : {}),
     },
   });
+  if (!res.ok) console.error("drift sweep telegram reach failed", res.reason);
 }
 
 Deno.serve(async (req: Request) => {
