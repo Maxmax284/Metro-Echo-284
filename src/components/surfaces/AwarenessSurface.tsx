@@ -26,7 +26,6 @@ import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/state-views";
 import { AwarenessShelves } from "@/components/awareness/AwarenessShelves";
-import { TripPanel } from "@/components/awareness/TripPanel";
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
 import { useSituation } from "@/hooks/useSituation";
 import { useTodayDigest } from "@/hooks/useTodayDigest";
@@ -384,7 +383,6 @@ export function AwarenessSurface() {
 
         {/* Trips — deliberate start and end, and what you've covered. */}
         <FieldSessionCard variant="aware" />
-        <TripPanel placeLabel={place?.label ?? null} />
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {

@@ -13,6 +13,8 @@ import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { WearableReadingsPanel } from "@/components/wearables/WearableReadingsPanel";
+import { WearableContextPanel } from "@/components/wearables/WearableContextPanel";
+import { AutoSendPanel } from "@/components/wearables/AutoSendPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
@@ -151,6 +153,14 @@ export default function WearableLoopPage() {
           the device in your hand.
         </p>
       </section>
+
+      <div className="mb-4">
+        <WearableContextPanel />
+      </div>
+
+      <div className="mb-4">
+        <AutoSendPanel />
+      </div>
 
       <div className="mb-4">
         <WearableReadingsPanel />
