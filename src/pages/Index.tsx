@@ -163,82 +163,6 @@ function IndexInner() {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  const onIntent = async (kind: string, args: any) => {
-    try {
-      if (kind === "capture_note") {
-        const { data } = await supabase
-          .from("notes")
-          .insert({ user_id: user.id, title: args.title ?? null, body: args.body ?? "" })
-          .select("id")
-          .single();
-        if (data) generateEmbedding("note", data.id);
-        toast.success(vantaSay.capturedToMemory());
-      } else if (kind === "stage_action") {
-        await stageAction({
-          title: args.title,
-          description: args.description ?? null,
-          risk: args.risk,
-          status: "staged",
-          source: "conversation",
-        });
-        toast.success(vantaSay.actionStaged());
-      } else if (kind === "add_commitment") {
-        const remindAt = args.due_at
-          ? new Date(new Date(args.due_at).getTime() - 24 * 60 * 60 * 1000).toISOString()
-          : null;
-        const { data } = await supabase
-          .from("commitments")
-          .insert({
-            user_id: user.id,
-            summary: args.summary,
-            due_at: args.due_at ?? null,
-            remind_at: remindAt,
-          })
-          .select("id")
-          .single();
-        if (data) generateEmbedding("commitment", data.id);
-        toast.success(vantaSay.commitmentAdded());
-      } else if (kind === "run_sherlock") {
-        openSherlock({
-          entity_type: "freeform",
-          title: (args.text ?? "").slice(0, 80),
-          text: args.text ?? "",
-        });
-      } else if (kind === "query_awareness") {
-        // Phase C: real round-trip — answer grounded in the active place + briefings,
-        // then post the result back into the active conversation as an assistant turn.
-        const question = String(args.question ?? "").trim();
-        if (!question) return;
-        const { data, error } = await supabase.functions.invoke("awareness-query", {
-          body: { question, section: args.section ?? null },
-        });
-        if (error || (data as any)?.error) {
-          throw new Error((data as any)?.error || error?.message || "awareness query failed");
-        }
-        const { answer, confidence, place } = data as { answer: string; confidence: string; place: { label: string } | null };
-        const tag = place ? `📍 ${place.label} · confidence: ${confidence}` : `confidence: ${confidence}`;
-        const composed = `${answer}\n\n_${tag}_`;
-        const { data: conv } = await supabase
-          .from("conversations")
-          .select("id")
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (conv?.id) {
-          await supabase.from("messages").insert({
-            user_id: user.id,
-            conversation_id: conv.id,
-            role: "assistant",
-            content: composed,
-            metadata: { source: "awareness", confidence, place_id: place ? (data as any).place.id : null },
-          });
-        }
-        toast.success(vantaSay.awarenessAnswered(place?.label));
-      }
-    } catch (e) {
-      toast.fromError(e);
-    }
-  };
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -358,7 +282,7 @@ function IndexInner() {
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <ThreadBar />
                   <div className="min-h-0 flex-1">
-                    <ConversationSurface onIntent={onIntent} />
+                    <ConversationSurface />
                   </div>
                 </div>
               </div>

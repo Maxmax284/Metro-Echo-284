@@ -101,7 +101,7 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
   save_artifact: { label: "Artifact saved", icon: BookmarkPlus, surface: "memory" },
 };
 
-export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?: (kind: string, payload: any) => void; readOnly?: boolean }) {
+export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }) {
   const { session } = useAuth();
   const { scope } = useScope();
   const { context, setContext } = useCurrentContext();
@@ -214,6 +214,8 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
     beginAskStream(threadId, ctrl);
     let aborted = false;
     let assistantSoFar = "";
+    const staged: { name: string; args?: Record<string, unknown> }[] = [];
+
     let hints: AttachmentHint[] = [];
     try {
       // Wave 3 — anything staged travels with this turn. Files are ingested
@@ -266,7 +268,10 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
           if (line.endsWith("\r")) line = line.slice(0, -1);
           if (!line.startsWith("data: ")) continue;
           const json = line.slice(6).trim();
-          if (json === "[DONE]") { done = true; break; }
+          /* "[DONE]" ends the words, not the turn: the draft Echo prepared
+             arrives after it. Keep reading until the stream itself closes,
+             otherwise a turn that only stages something is thrown away. */
+          if (json === "[DONE]") continue;
           try {
             const p = JSON.parse(json);
             const delta = p.choices?.[0]?.delta?.content as string | undefined;
@@ -275,19 +280,44 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
               write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
             }
             if (p.intent) {
-              onIntent?.(p.intent.name, p.intent.args);
-              void internalIntent(p.intent.name, p.intent.args);
+              /* One staging path only. Anything else double-writes the draft:
+                 the surface owns it, hosts just render. */
+              staged.push(p.intent);
+              void internalIntent(p.intent.name, p.intent.args, {
+                surface: "ask",
+                conversation_id: threadId,
+                asked_at: new Date().toISOString(),
+                question: text.slice(0, 300),
+                ...(activeThread?.context_kind ? { context_kind: activeThread.context_kind } : {}),
+                ...(activeThread?.context_id ? { context_id: activeThread.context_id } : {}),
+                ...(activeThread?.context_label ? { context_label: activeThread.context_label } : {}),
+                ...(p.intent.grounding?.sources?.length
+                  ? { sources: p.intent.grounding.sources }
+                  : hints.length
+                    ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingestedFileId ?? null })) }
+                    : {}),
+              });
             }
           } catch { /* partial */ }
         }
       }
 
+      /* A turn that only prepares a draft still has to be readable tomorrow:
+         say what was drafted, and say plainly that nothing ran. */
+      const stagedLine = staged.length
+        ? staged.map((s) => {
+            const a = (s.args ?? {}) as Record<string, unknown>;
+            const what = String(a.title ?? a.summary ?? a.text ?? "").trim();
+            return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
+          }).join("\n")
+        : "";
       const finalContent = aborted && assistantSoFar
         ? `${assistantSoFar}\n\n_Stopped._`
-        : assistantSoFar;
-      if (aborted) {
+        : (assistantSoFar || stagedLine);
+      if (aborted || (!assistantSoFar && stagedLine)) {
         write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
       }
+
 
       if (finalContent) {
         const { data: inserted } = await supabase.from("messages").insert([
@@ -635,11 +665,12 @@ export function ConversationSurface({ onIntent, readOnly = false }: { onIntent?:
 
 // Stage 6 — bridge that wires Companion prefill into the dock.
 function ConversationDockBridge(props: React.ComponentProps<typeof ConversationDock>) {
-  const { prefill, setPrefill } = useCompanion();
+  const { prefill, setPrefill, prefillSend } = useCompanion();
   return (
     <ConversationDock
       {...props}
       initialText={prefill}
+      initialTextSubmit={prefillSend}
       onInitialTextConsumed={() => setPrefill(null)}
     />
   );

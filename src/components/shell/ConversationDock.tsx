@@ -93,6 +93,8 @@ type Props = {
   controls?: SystemControls | null;
   /** Stage 6 — externally-driven prefill (e.g. from useSignalRoute `ask_vanta`). */
   initialText?: string | null;
+  /** The prefill is a finished question: send it instead of parking it. */
+  initialTextSubmit?: boolean;
   onInitialTextConsumed?: () => void;
   /** Companion Maturity — abort in-flight stream. When provided + busy, send button becomes Stop. */
   onStop?: () => void;
@@ -116,6 +118,7 @@ export function ConversationDock({
   isOwner = null,
   controls = null,
   initialText = null,
+  initialTextSubmit = false,
   onInitialTextConsumed,
   onStop,
   aboveComposer,
@@ -142,8 +145,20 @@ export function ConversationDock({
   }, [v]);
 
   // Stage 6 — apply external prefill, focus, and ack so parent can clear it.
+  const sentPrefill = useRef<string | null>(null);
   useEffect(() => {
     if (initialText && initialText.length > 0) {
+      /* A question handed over whole gets asked. Parking it in the box and
+         waiting for a second tap reads as if nothing happened. One send per
+         handover, though — a remount must never ask twice. */
+      if (initialTextSubmit && !busy) {
+        if (sentPrefill.current === initialText) return;
+        sentPrefill.current = initialText;
+        setV("");
+        onInitialTextConsumed?.();
+        void onSend(initialText);
+        return;
+      }
       setV(initialText);
       requestAnimationFrame(() => {
         ref.current?.focus();
@@ -154,6 +169,7 @@ export function ConversationDock({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialText]);
+
   const [listening, setListening] = useState(false);
   const [paletteIdx, setPaletteIdx] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);

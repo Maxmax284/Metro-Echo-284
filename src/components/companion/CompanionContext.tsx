@@ -12,8 +12,12 @@ type Ctx = {
   /** Stage 6 — pending dock prefill (consumed once by ConversationSurface). */
   prefill: string | null;
   setPrefill: (text: string | null) => void;
-  /** Convenience: open the companion panel with a prefilled message. */
-  openWithPrefill: (text: string) => void;
+  /** True when the prefill was a finished question, not a starting point:
+      the dock should send it instead of waiting for a second tap. */
+  prefillSend: boolean;
+  /** Convenience: open the companion panel with a prefilled message.
+      Pass { send: true } when the text is already the whole question. */
+  openWithPrefill: (text: string, opts?: { send?: boolean }) => void;
 };
 
 const CompanionCtx = createContext<Ctx | null>(null);
@@ -26,13 +30,15 @@ export function CompanionProvider({ children }: { children: ReactNode }) {
   const toggle = useCallback(() => setMode((m) => (m === "closed" ? "panel" : "closed")), []);
   const expand = useCallback(() => setMode("full"), []);
   const collapse = useCallback(() => setMode("panel"), []);
-  const openWithPrefill = useCallback((text: string) => {
+  const [prefillSend, setPrefillSend] = useState(false);
+  const openWithPrefill = useCallback((text: string, opts?: { send?: boolean }) => {
+    setPrefillSend(opts?.send === true);
     setPrefill(text);
     setMode((m) => (m === "closed" ? "panel" : m));
   }, []);
   const value = useMemo(
-    () => ({ mode, open, close, toggle, expand, collapse, prefill, setPrefill, openWithPrefill }),
-    [mode, open, close, toggle, expand, collapse, prefill, openWithPrefill],
+    () => ({ mode, open, close, toggle, expand, collapse, prefill, setPrefill, prefillSend, openWithPrefill }),
+    [mode, open, close, toggle, expand, collapse, prefill, prefillSend, openWithPrefill],
   );
   return <CompanionCtx.Provider value={value}>{children}</CompanionCtx.Provider>;
 }

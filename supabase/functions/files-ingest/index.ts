@@ -1,4 +1,4 @@
-import { resolveUser } from "../_shared/authContext.ts";
+import { bearerToken, resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
 // files-ingest: extract text from an uploaded file (PDF, DOCX, image OCR, text),
@@ -75,18 +75,28 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const auth = req.headers.get("Authorization") ?? "";
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: auth } } },
-    );
-    const user = await resolveUser(req, supabase as any);
-    if (!user) return unauthorized();
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    /* Two doors, one reader. A person uploads with their own session; a
+       background job (a file handed over in chat, the daily sweep) arrives with
+       the service key and no session at all. In that case the owner is taken
+       from the file itself, never from the caller. */
+    const internal = bearerToken(req) === serviceKey;
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+    const supabase = internal
+      ? admin
+      : createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: auth } } },
+      );
+    let user = internal ? null : await resolveUser(req, supabase as any);
+    if (!internal && !user) return unauthorized();
 
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "files-ingest", _limit: 60, _window_seconds: 60 });
-    if (allowed === false) {
-      return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (user) {
+      const { data: allowed } = await admin.rpc("rate_limit_hit", { _user_id: user.id, _bucket: "files-ingest", _limit: 60, _window_seconds: 60 });
+      if (allowed === false) {
+        return new Response(JSON.stringify({ error: "rate_limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
 
     const { ingested_file_id } = await req.json();
@@ -97,6 +107,9 @@ Deno.serve(async (req: Request) => {
     const { data: rec, error: recErr } = await supabase
       .from("ingested_files").select("*").eq("id", ingested_file_id).maybeSingle();
     if (recErr || !rec) return new Response(JSON.stringify({ error: "not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (internal) user = { id: rec.user_id as string };
+    if (!user) return unauthorized();
+
     if (!rec.storage_path) return new Response(JSON.stringify({ error: "no storage_path" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     await supabase.from("ingested_files").update({ status: "processing" }).eq("id", rec.id);

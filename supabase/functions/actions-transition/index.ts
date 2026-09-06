@@ -120,7 +120,17 @@ Deno.serve(async (req: Request) => {
       // Receipts live in the scope the work happened in, not always Personal.
       organization_id: action.organization_id ?? null,
       event: `transition:${from}->${to_status}`,
-      payload: { reason: reason ?? null, undo: undo ? { undone: undo.undone, mode: undo.mode, detail: undo.detail } : null },
+      payload: {
+        reason: reason ?? null,
+        undo: undo ? { undone: undo.undone, mode: undo.mode, detail: undo.detail } : null,
+        /* The receipt carries the draft's own story forward: what it was, where
+           it came from, and which source it stood on. Read from the action row
+           only — never re-derived here. */
+        title: action.title ?? null,
+        source: action.source ?? null,
+        drafted_at: action.created_at ?? null,
+        provenance: (action.payload as Record<string, unknown> | null)?.provenance ?? null,
+      },
     });
 
     return new Response(JSON.stringify({ ok: true, status: to_status, undo }), {

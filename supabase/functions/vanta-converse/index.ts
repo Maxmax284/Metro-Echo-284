@@ -334,8 +334,14 @@ Deno.serve(async (req: Request) => {
     });
 
     const attachedIds = hints.map((h) => h.ingested_file_id).filter((x): x is string => typeof x === "string" && !!x);
-    const wantsFileContext = attachedIds.length > 0
-      || /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e)\b/i.test(String(message));
+    /* A person names a source the way it exists in the world — "the delivery
+       note", "Harbour Logistics" — not "the ingested file". So Echo always
+       carries a short list of what it holds, and reads the words off a source
+       when the question points at one. Nothing here is a guess: every line
+       comes off the record. */
+    const askedForFileWords = /\b(file|files|upload|uploaded|attachment|receipt|invoice|pdf|docx|image|screenshot|telegram|ingest|ingested|analy[sz]e|note|document|paper|letter|statement|report|contract|quote|delivery)\b/i.test(String(message));
+    const wantsFileContext = true; // Echo always knows what it holds.
+
 
 
     // Load recent context (last ~30 messages)
@@ -382,7 +388,8 @@ Deno.serve(async (req: Request) => {
                 .select("id, filename, mime_type, source, status, error, created_at, detected_doc_type, suggested_summary, extracted_entities, sensitive, confidence, review_status, metadata, extracted_text"))
                 .eq("user_id", user.id)
                 .order("created_at", { ascending: false })
-                .limit(3))
+                .limit(6))
+
         : Promise.resolve({ data: [] }),
 
     ]);
@@ -409,11 +416,24 @@ Deno.serve(async (req: Request) => {
 - evening / tonight default: ${prefs.default_evening_time ?? "19:00"}
 - quiet hours: ${prefs.quiet_hours_start ?? "22:00"}–${prefs.quiet_hours_end ?? "07:00"}`;
 
-    const fileContextBlock = wantsFileContext && (recentFiles ?? []).length
-      ? "Recent uploaded / inbound files (newest first; use as source context when the user references an uploaded, ingested, Telegram, or receipt file):\n" +
-        (recentFiles ?? []).map((f: any, idx: number) => {
+    /* Does this question point at this source? Either the person attached it,
+       used file words, or used a word that actually appears in the source's own
+       name, type or summary. Pointed-at sources get read; the rest are only
+       listed, so Echo can say what it holds without dumping it. */
+    const words = String(message).toLowerCase().match(/[a-z0-9][a-z0-9'-]{3,}/g) ?? [];
+    const pointsAt = (f: any) => {
+      if (attachedIds.includes(f.id)) return true;
+      const hay = [f.filename, f.detected_doc_type, f.suggested_summary, (f.metadata ?? {}).caption]
+        .filter(Boolean).join(" ").toLowerCase();
+      return words.some((w) => hay.includes(w));
+    };
+    const fileRows = (recentFiles ?? []) as any[];
+    const fileContextBlock = fileRows.length
+      ? "Sources Echo holds in this space (newest first). Read only from these — never invent a source, and if the answer is not in one, say you do not see it:\n" +
+        fileRows.map((f: any, idx: number) => {
           const meta = f.metadata ?? {};
-          const extracted = String(f.extracted_text ?? "").slice(0, idx === 0 ? 6000 : 1200);
+          const named = askedForFileWords || pointsAt(f);
+          const extracted = named ? String(f.extracted_text ?? "").slice(0, idx === 0 ? 6000 : 1500) : "";
           return [
             `FILE ${idx + 1}: ${f.filename} (${f.id})`,
             `- source: ${f.source ?? "unknown"}; status: ${f.status ?? "unknown"}; uploaded_at: ${f.created_at}`,
@@ -422,10 +442,19 @@ Deno.serve(async (req: Request) => {
             f.error ? `- ingestion_error: ${f.error}` : "",
             f.suggested_summary ? `- intake_summary: ${f.suggested_summary}` : "",
             f.extracted_entities ? `- extracted_entities: ${JSON.stringify(f.extracted_entities).slice(0, 1200)}` : "",
-            extracted ? `- extracted_text:\n${extracted}` : "- extracted_text: none available",
+            extracted
+              ? `- extracted_text:\n${extracted}`
+              : (f.extracted_text ? "- extracted_text: held back (not asked about this turn)" : "- extracted_text: none available"),
           ].filter(Boolean).join("\n");
         }).join("\n\n")
       : "";
+
+    /* Which sources this answer was actually allowed to read. A receipt written
+       later has to name the same source the answer stood on. */
+    const groundedSources = fileRows
+      .filter((f: any) => (askedForFileWords || pointsAt(f)) && f.extracted_text)
+      .map((f: any) => ({ file_id: f.id, name: f.filename, source: f.source ?? null, uploaded_at: f.created_at }));
+
 
     // External research — private context shapes the query, never leaves as-is.
     let researchBlock = "";
@@ -532,7 +561,7 @@ Deno.serve(async (req: Request) => {
           for (const [, t] of toolBuf) {
             try {
               const args = t.args ? JSON.parse(t.args) : {};
-              const evt = `data: ${JSON.stringify({ intent: { name: t.name, args } })}\n\n`;
+              const evt = `data: ${JSON.stringify({ intent: { name: t.name, args, grounding: { sources: groundedSources, asked_at: new Date().toISOString() } } })}\n\n`;
               controller.enqueue(enc.encode(evt));
             } catch { /* ignore */ }
           }

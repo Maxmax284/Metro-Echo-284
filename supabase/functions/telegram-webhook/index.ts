@@ -33,8 +33,16 @@ function safeEqual(a: string | null, b: string) {
    behaviour subtly different. */
 async function tg(method: string, body: unknown) {
   const res = await tgCall(method, body);
-  return { ok: res.ok, status: res.status, json: async () => res.body } as any;
+  /* Shape the reply like a fetch Response so callers can read Telegram's own
+     envelope. `tgCall` exposes the parsed result as `result`, never `body` —
+     reading the wrong field silently lost every file handed over by chat. */
+  return {
+    ok: res.ok,
+    status: res.status,
+    json: async () => ({ ok: res.ok, result: res.result, description: res.reason }),
+  } as any;
 }
+
 
 
 /** Thread record. Every message in or out is kept so the Telegram room inside

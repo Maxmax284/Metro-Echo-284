@@ -11,7 +11,6 @@ import { useCompanion } from "./CompanionContext";
 import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
-import { useIntentHandler } from "@/hooks/useIntentHandler";
 import { useAuth } from "@/lib/auth";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import { getAskSession, subscribeAskSession } from "@/lib/askSession";
@@ -40,7 +39,6 @@ export function CompanionWidget() {
   const { overall: awareness } = useAwareness();
   const { mode, setMode } = useMode();
   const isMobile = useIsMobile();
-  const onIntent = useIntentHandler();
   const location = useLocation();
   const { active } = useAskThreads();
 
@@ -166,7 +164,7 @@ export function CompanionWidget() {
         </div>
       </div>
       <div className="min-h-0 flex-1">
-        <ConversationSurface onIntent={onIntent} />
+        <ConversationSurface />
       </div>
     </div>
   );
