@@ -28,6 +28,7 @@ import {
 
 import { generateEmbedding } from "@/lib/embeddings";
 import { useOperationalState } from "@/lib/operationalState";
+import { useShellWeather } from "@/hooks/useShellWeather";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LogOut, Loader2, Settings as SettingsIcon, Sparkles, FolderKanban, FileText } from "lucide-react";
@@ -104,6 +105,8 @@ function IndexInner() {
 
 
   const { state } = useOperationalState(surface);
+  /* Calm / drift / pressure now holds in all four rooms, not only Today. */
+  useShellWeather();
   const { openSherlock } = useSherlock();
   const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
