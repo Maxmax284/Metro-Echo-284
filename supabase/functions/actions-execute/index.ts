@@ -167,7 +167,7 @@ Deno.serve(async (req: Request) => {
     let result: any;
     try {
       if (executor.kind === "webhook") result = await runWebhook(executor.config, action);
-      else if (executor.kind === "telegram") result = await runTelegram(executor.config, action);
+      else if (executor.kind === "telegram") result = await runTelegram(supabase, user.id, executor.config, action);
       else if (executor.kind === "email") result = await runEmail(executor.config, action);
       else if (executor.kind === "google_calendar" || executor.kind === "calendar") result = await runGoogleCalendar(executor.config, action);
       else throw new Error(`unknown executor kind: ${executor.kind}`);

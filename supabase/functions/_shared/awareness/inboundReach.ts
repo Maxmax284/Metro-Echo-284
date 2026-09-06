@@ -9,6 +9,7 @@
 // signals may break them. The item is always in the inbox first — messaging is
 // notification only and can never approve or execute anything.
 import { isInQuietHours } from "../drift.ts";
+import { sendTelegram } from "../telegramApi.ts";
 import { compactWhy, whyFor } from "../whySurfaced.ts";
 import { readBrandVoice, styleNotice } from "../brandVoice.ts";
 import type { Urgency } from "./urgency.ts";
@@ -20,7 +21,6 @@ import {
   type SignalDetail,
 } from "./inbound.ts";
 
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
 
 export type InboundReachResult = {
   reached: boolean;
@@ -114,47 +114,26 @@ export async function reachInboundSignal(
     readBrandVoice(prefs),
   );
 
-  let ok = false;
-  let err: string | null = null;
-  try {
-    const r = await fetch(`${TG_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY") ?? ""}`,
-        "X-Connection-Api-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
-    });
-    ok = r.ok;
-    if (!ok) err = JSON.stringify(await r.json().catch(() => ({}))).slice(0, 200);
-    else {
-      const j = await r.json().catch(() => ({} as any));
-      if (j && j.ok === false) {
-        ok = false;
-        err = String(j.description ?? "telegram rejected the message").slice(0, 200);
-      }
-    }
-  } catch (e) {
-    err = e instanceof Error ? e.message : "send failed";
-  }
-
-  await admin.from("audit_log").insert({
-    user_id: input.ownerId,
-    entity_type: "capture",
-    entity_id: input.captureId,
-    event: ok ? "nudge.reached_messaging" : "nudge.reach_messaging_failed",
-    payload: {
-      channel: "telegram",
+  /* One outbound path: sends, records the message on the thread, writes the receipt. */
+  const res = await sendTelegram({
+    admin,
+    userId: input.ownerId,
+    chatId,
+    text,
+    kind: "notice",
+    entityType: "capture",
+    entityId: input.captureId,
+    auditEvent: "nudge.reached_messaging",
+    auditFailedEvent: "nudge.reach_messaging_failed",
+    auditPayload: {
       source: "inbound_signal",
       source_platform: input.sourcePlatform,
       event_type: input.eventType,
       urgency,
       title: detail.title,
       idempotency_key: input.idempotencyKey,
-      ...(err ? { error: err } : {}),
     },
   });
 
-  return ok ? done("sent", true) : done("send_failed");
+  return res.ok ? done("sent", true) : done("send_failed");
 }
