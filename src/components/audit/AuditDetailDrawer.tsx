@@ -69,11 +69,29 @@ function payloadFacts(row: AuditRow): { label: string; value: string }[] {
   // Hide noisy / internal keys.
   const hide = new Set(["audit_event_id", "previous_status", "new_status", "embedding"]);
 
+  /* Provenance is the point of a receipt: which source the draft stood on,
+     where it was asked, and when. Read it out instead of printing "(details)". */
+  const prov = (p as any).provenance;
+  if (prov && typeof prov === "object") {
+    const srcs = Array.isArray(prov.sources) ? prov.sources : [];
+    if (srcs.length) {
+      out.push({
+        label: "Stood on",
+        value: srcs.map((s: any) => String(s?.name ?? "a source")).slice(0, 3).join(", "),
+      });
+      const from = srcs.map((s: any) => s?.source).find(Boolean);
+      if (from) out.push({ label: "Source arrived by", value: String(from) });
+    }
+    if (prov.surface) out.push({ label: "Asked in", value: String(prov.surface) });
+    if (prov.context_label) out.push({ label: "About", value: String(prov.context_label) });
+    if (prov.asked_at) out.push({ label: "Asked", value: String(prov.asked_at) });
+  }
+
   for (const [k, v] of Object.entries(p)) {
-    if (hide.has(k)) continue;
+    if (hide.has(k) || k === "provenance") continue;
     out.push({ label: labelMap[k] ?? k.replace(/_/g, " "), value: pretty(v) });
   }
-  return out.slice(0, 10);
+  return out.slice(0, 14);
 }
 
 export function AuditDetailDrawer({
