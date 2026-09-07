@@ -294,7 +294,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                 ...(p.intent.grounding?.sources?.length
                   ? { sources: p.intent.grounding.sources }
                   : hints.length
-                    ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingestedFileId ?? null })) }
+                    ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingested_file_id ?? null })) }
                     : {}),
               });
             }
