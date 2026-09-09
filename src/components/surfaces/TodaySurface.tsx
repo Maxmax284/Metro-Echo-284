@@ -21,6 +21,8 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
+import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
+import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useSituation } from "@/hooks/useSituation";
 import { SourceHealthStrip } from "@/components/today/SourceHealthStrip";
 import { useSourceHealth } from "@/hooks/useSourceHealth";
@@ -227,6 +229,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* One situational read, built from the same authoritative state Today already
      fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
+  /* Awareness gets one light line above the read, and only when place actually
+     changes what the day means. No card, and nothing at all on a quiet day. */
+  const placeCue = useTodayPlaceCue({
+    lineCount: situation.read?.lines.length ?? 0,
+    explainsRead: !!situation.read?.placeNote,
+    timezoneDrift: false,
+    pressure: security.tone === "critical" || security.tone === "attention",
+  });
   const health = useSourceHealth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -407,6 +417,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         {/* The answer belongs to the hero: the situational read is the first
             thing a person reads, not the seventh block down the page. */}
         <div className="mt-3 border-t border-border/40 pt-3">
+          <PlaceCueStrip cue={placeCue} onOpen={() => onNavigate("awareness")} className="mb-1.5" />
           <SituationRead
             read={situation.read}
             loading={situation.loading}
