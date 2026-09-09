@@ -296,10 +296,20 @@ export function readSituation(input: SituationInput): SituationRead {
   const soonMeeting = soonWindow.find((m) => !elsewhereIds.has(m.id));
   if (soonMeeting) {
     const h = hoursUntil(soonMeeting.starts_at, now);
+    /* Place, weather and distance ride on this sentence rather than becoming
+       three more cards beside it. Missing facts simply do not appear. */
+    const context = meetingContextClause({
+      startsAt: soonMeeting.starts_at,
+      distanceM: soonMeeting.distanceM ?? null,
+      forecast: input.forecast ?? null,
+      now,
+    });
+    const base =
+      h <= 0 ? `${soonMeeting.title} is starting now` : `${soonMeeting.title} starts in ${Math.max(1, Math.round(h * 60))} minutes`;
     push({
       kind: "meeting_soon",
       source: "calendar",
-      text: h <= 0 ? `${soonMeeting.title} is starting now.` : `${soonMeeting.title} starts in ${Math.max(1, Math.round(h * 60))} minutes.`,
+      text: context ? `${base} — ${context}.` : `${base}.`,
       reason: "It came from a calendar you connected.",
       at: soonMeeting.starts_at,
       entity: { type: "calendar_event", id: soonMeeting.id },
