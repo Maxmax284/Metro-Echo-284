@@ -125,10 +125,12 @@ export function AwarenessMap({
   const savePin = async () => {
     if (!drag || !place) return;
     setSaving(true);
-    const geo = { ...((place.geo ?? {}) as Record<string, unknown>), lat: drag[0], lon: drag[1], acc: 30, source: "manual" };
+    /* Drop a pin far from the last one and the old names go with it — Echo
+       stays quiet about the spot until the lookup for it answers. */
+    const patch = placePatchForFix(place as any, { lat: drag[0], lon: drag[1], acc: 30, source: "manual" });
     const { error } = await supabase
       .from("awareness_places")
-      .update({ geo, updated_at: new Date().toISOString() })
+      .update(patch)
       .eq("id", place.id);
     setSaving(false);
     if (error) {
