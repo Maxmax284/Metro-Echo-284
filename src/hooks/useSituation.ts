@@ -41,7 +41,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const unknownSources: SituationSource[] = [];
 
     /* Meetings — only the next few hours matter for a situational read. */
-    let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null }> = [];
+    let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null; distanceM?: number | null }> = [];
     const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at, location"))
       .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
       .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
@@ -301,7 +301,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         unknownSources,
         place,
         /* Weather rides on the lines it affects instead of taking a card. */
-        forecast: (snapshot?.compact?.weather?.hourly ?? []).map((h: any) => ({
+        forecast: (snapshot?.compact?.weather?.hourly ?? []).map((h) => ({
           at: h.at,
           tempC: h.tempC,
           condition: h.condition,
