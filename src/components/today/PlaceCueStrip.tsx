@@ -14,7 +14,7 @@ import { MachineLabel } from "@/components/ui/instrument";
 import { MOTION_ARRIVE, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { PlaceCue } from "@/lib/todayContext";
-import type { PlaceBoard } from "@/lib/placeBoard";
+import type { PlaceBoard, BoardLine, BoardGroupKey } from "@/lib/placeBoard";
 
 export function PlaceCueStrip({
   cue,
