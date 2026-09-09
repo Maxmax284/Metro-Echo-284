@@ -422,7 +422,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         {/* The answer belongs to the hero: the situational read is the first
             thing a person reads, not the seventh block down the page. */}
         <div className="mt-3 border-t border-border/40 pt-3">
-          <PlaceCueStrip cue={placeCue} onOpen={() => onNavigate("awareness")} className="mb-1.5" />
+          <PlaceCueStrip
+            cue={placeCue}
+            board={placeBoard.board}
+            scanning={placeBoard.scanning}
+            onScan={placeBoard.scan}
+            onOpen={() => onNavigate("awareness")}
+            className="mb-1.5"
+          />
           <SituationRead
             read={situation.read}
             loading={situation.loading}
