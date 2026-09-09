@@ -95,7 +95,32 @@ export type ShelvesInput = {
    * Named towns with a measured distance — no interpretation on top.
    */
   nearbyTowns?: Array<{ name: string; kind?: string | null; distanceM: number }>;
+  /**
+   * Named venues the last scan actually found around the fix — map results, with
+   * whatever detail was recorded (type, hours, rating). Recorded, not inferred,
+   * so they belong on "Around you" the moment a scan has run.
+   */
+  nearbyVenues?: Array<{ name: string; detail?: string | null }>;
+  /** The plain-prose read the last scan wrote, if one has run here. */
+  scanSummary?: string | null;
+  /** When that scan ran. */
+  scanAt?: string | null;
 };
+
+/**
+ * A scan summary is prose, not a form. Some model replies leak the field labels
+ * of the signal schema into the text; those never reach a person.
+ */
+export function cleanScanSummary(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const text = String(raw)
+    .replace(/^\s*(short_summary|why_it_matters|what_to_do_next|title|long_detail)\s*:\s*/gim, "")
+    .replace(/\*\*/g, "")
+    .replace(/\n{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > 0 ? text : null;
+}
 
 /** How close a saved place has to be before it counts as "around you". */
 export const NEAR_RADIUS_M = 5000;
