@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readShelves, neverReadLine } from "@/lib/awarenessShelves";
+import { readShelves, neverReadLine, cleanScanSummary } from "@/lib/awarenessShelves";
 import { readSituation, placeSpeaks, type SituationPlace } from "@/lib/situation";
 
 const LAYERS = ["transport", "payments", "hazards", "scams", "connectivity", "timing"] as const;
