@@ -98,6 +98,36 @@ export function PlaceCueStrip({
         </button>
       </div>
 
+      {/* The brief read, no tap needed. Tapping the line opens the rest. */}
+      {preview.length > 0 ? (
+        <div className="mb-1 space-y-0.5 border-l border-border/50 pl-3">
+          {preview.map((line) => (
+            <p key={line.key} className="truncate text-[12px] leading-snug text-muted-foreground">
+              {line.text}
+            </p>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[28px] text-[11.5px] text-primary hover:underline"
+          >
+            {board!.count > preview.length ? `More here (${board!.count})` : "More here"}
+          </button>
+        </div>
+      ) : null}
+
+      {expandable && !open && board!.count === 0 ? (
+        <div className="mb-1 border-l border-border/50 pl-3">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[28px] text-left text-[11.5px] text-primary hover:underline"
+          >
+            Nothing read around here yet — see what's missing
+          </button>
+        </div>
+      ) : null}
+
       {expandable && open ? (
         <div className="mb-1 space-y-2 border-l border-border/50 pl-3">
           {board!.count === 0 ? (
