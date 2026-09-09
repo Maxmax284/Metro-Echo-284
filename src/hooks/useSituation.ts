@@ -11,7 +11,7 @@ import { cadenceFromRow, type Cadence } from "@/lib/baseline";
 import { readSituation, type SituationPlace, type SituationRead, type SituationSource } from "@/lib/situation";
 import { classifyTier } from "@/lib/awarenessPlainTalk";
 import { placeYouAreAt } from "@/lib/trips";
-import type { AwarenessPlace } from "@/providers/AwarenessProvider";
+import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { recipeById } from "@/lib/crossref";
 import { proposeReading, type PairProposal, type ReadableSource } from "@/lib/crossrefPairs";
 import type { TodayDigest } from "@/hooks/useTodayDigest";
@@ -26,6 +26,11 @@ type ArrivedRow = { id: string; original_name: string | null; created_at: string
 export function useSituation(digest: TodayDigest): { read: SituationRead | null; loading: boolean } {
   const { session } = useAuth();
   const { applyScope, key: scopeKey } = useScope();
+  /* Today used to fetch its own place and then never look again, so a fix in a
+     new city moved the map and left this read talking about the last country.
+     The provider already listens for place writes; Today rides that signal. */
+  const { place: livePlace } = useAwareness();
+  const placeTick = `${livePlace?.id ?? ""}|${livePlace?.updated_at ?? ""}|${livePlace?.country ?? ""}`;
   const [read, setRead] = useState<SituationRead | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -274,7 +279,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }),
     );
     setLoading(false);
-  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope]);
+  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick]);
 
   useEffect(() => {
     if (digest.loadingCritical) return;
