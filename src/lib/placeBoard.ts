@@ -125,11 +125,13 @@ export function readPlaceBoard(input: PlaceBoardInput): PlaceBoard {
       };
     });
 
-  const groups: BoardGroup[] = [
-    { key: "around", label: "Around you", lines: around },
-    { key: "changed", label: "Local changes", lines: changed },
-    { key: "day", label: "Your day here", lines: day },
-  ].filter((g) => g.lines.length > 0);
+  const groups: BoardGroup[] = (
+    [
+      { key: "around", label: "Around you", lines: around },
+      { key: "changed", label: "Local changes", lines: changed },
+      { key: "day", label: "Your day here", lines: day },
+    ] as BoardGroup[]
+  ).filter((g) => g.lines.length > 0);
 
   const count = groups.reduce((n, g) => n + g.lines.length, 0);
   const scanLine = input.scanAt ? `Scanned ${ago(input.scanAt, now)}` : "Never scanned here";
