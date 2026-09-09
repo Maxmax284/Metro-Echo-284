@@ -329,7 +329,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
   const saved = (input.savedNearby ?? [])
     .filter((p) => Number.isFinite(p.distanceM) && p.distanceM <= NEAR_RADIUS_M)
     .sort((a, b) => a.distanceM - b.distanceM)
-    .slice(0, 2);
+    .slice(0, (input.nearbyVenues?.length ?? 0) > 0 ? 1 : 2);
   for (const p of saved.slice().reverse()) {
     around.unshift({
       key: `saved:${p.id}`,
@@ -381,7 +381,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
   /* Saved-place and town lines carry no read time, so a newest-first sort would
      bury them. They are ground truth: they stay at the top in distance order. */
-  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:"));
+  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:") || l.key.startsWith("venue:"));
   const read = around.filter((l) => !grounded.includes(l));
   read.sort(byNewest);
   around.length = 0;
@@ -404,7 +404,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "around",
       label: SHELF_LABEL.around,
       lines: around.slice(0, 3),
-      quiet: "Nothing around you yet. Save a place or two near where you are, and getting around, paying, local habits and meetings held elsewhere land here.",
+      quiet: "Nothing around you yet. Scan this spot and named places nearby land here, along with getting around, paying, local habits and meetings held elsewhere.",
     },
     {
       key: "changed",
