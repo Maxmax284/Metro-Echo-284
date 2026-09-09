@@ -310,7 +310,9 @@ export function readSituation(input: SituationInput): SituationRead {
       kind: "meeting_soon",
       source: "calendar",
       text: context ? `${base} — ${context}.` : `${base}.`,
-      reason: "It came from a calendar you connected.",
+      reason: context
+        ? "It came from a calendar you connected, read against where you are."
+        : "It came from a calendar you connected.",
       at: soonMeeting.starts_at,
       entity: { type: "calendar_event", id: soonMeeting.id },
     });
