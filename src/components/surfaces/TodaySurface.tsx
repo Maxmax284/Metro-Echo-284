@@ -23,6 +23,7 @@ import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
+import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
 import { SourceHealthStrip } from "@/components/today/SourceHealthStrip";
 import { useSourceHealth } from "@/hooks/useSourceHealth";
@@ -256,11 +257,14 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   } = digest;
 
   /* Awareness gets one light line above the read, and only when place actually
-     changes what the day means. No card, and nothing at all on a quiet day. */
+     changes what the day means. No card, and nothing at all on a quiet day.
+     What's on file about this spot sits behind that line, one tap in. */
+  const placeBoard = useTodayPlaceBoard();
   const placeCue = useTodayPlaceCue({
     lineCount: situation.read?.lines.length ?? 0,
     explainsRead: !!situation.read?.placeNote,
     timezoneDrift: tzState.drifted && !!tzState.storedTimezone,
+    boardLines: placeBoard.board.count,
     pressure: security.tone === "critical" || security.tone === "attention",
   });
 
