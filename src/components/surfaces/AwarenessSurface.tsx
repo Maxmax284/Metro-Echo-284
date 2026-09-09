@@ -37,6 +37,9 @@ import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
+import { SavedPlacesPanel } from "@/components/awareness/SavedPlacesPanel";
+import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
+import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -378,15 +381,6 @@ export function AwarenessSurface() {
                       <span className="truncate">Recenter</span>
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-9 gap-1 text-[12px] text-muted-foreground shrink-0"
-                    onClick={() => { setShowPlaces((v) => !v); setShowMore(true); }}
-                  >
-                    {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    Switch
-                  </Button>
                   <div className="shrink-0"><SourceStatusPill /></div>
                 </div>
               </div>
@@ -485,8 +479,61 @@ export function AwarenessSurface() {
 
         <AwarenessMapPanel places={places as any} onMoved={loadList} />
 
+        {/* The place desk proper: your pins, the named ground around the fix,
+            the running trip and every leg you've closed. */}
+        <SavedPlacesPanel
+          places={places.map((p) => ({
+            id: p.id,
+            label: p.label,
+            country: p.country ?? null,
+            region: p.region ?? null,
+            distanceM: savedNearby.find((s) => s.id === p.id)?.distanceM ?? null,
+            unresolved: classifyPlaceBadness(p as any).bad,
+          }))}
+          activeId={place?.id ?? null}
+          newLabel={newLabel}
+          onNewLabel={setNewLabel}
+          onCaptureHere={captureHere}
+          onSwitch={(id) => {
+            const row = places.find((p) => p.id === id);
+            void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
+          }}
+          onDelete={async (id, label) => {
+            if (!confirm(`Delete "${label}"?`)) return;
+            await deletePlace(id);
+            await loadList();
+            toast.success(vantaSay.placeDeleted());
+          }}
+        />
+
+        <NearbyPlacesPanel
+          rows={[
+            ...nearbyTowns.map((t) => ({
+              key: `town:${t.name}`,
+              name: t.name,
+              detail: t.kind ? `${t.kind}, from map data.` : null,
+              distanceM: t.distanceM,
+              source: "map" as const,
+            })),
+            ...(((snapshot?.full_data as any)?.local_signals ?? []) as Array<{ title?: string; snippet?: string; kind?: string; distance_m?: number }>)
+              .filter((s) => s.kind === "place" && s.title)
+              .map((s) => ({
+                key: `venue:${s.title}`,
+                name: String(s.title),
+                detail: s.snippet ?? null,
+                distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
+                source: "scan" as const,
+              })),
+          ]}
+          scanLine={freshLabel(generatedAt ?? null).replace(/^n/, "N").replace(/^j/, "J").replace(/^s/, "S")}
+          scanning={snapshotLoading}
+          onScan={() => refreshSnapshot(true)}
+        />
+
         {/* Trips — deliberate start and end, and what you've covered. */}
         <FieldSessionCard variant="aware" />
+
+        <TripHistoryPanel />
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {
