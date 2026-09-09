@@ -253,12 +253,17 @@ export function AwarenessSurface() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const acc = pos.coords.accuracy;
+        /* A fix far from the last one is a different place. The old city,
+           country and region are cleared with the same write, so no later
+           lookup can quietly fall back to where you used to be. */
         const { error } = await supabase
           .from("awareness_places")
-          .update({
-            geo: { ...((place.geo ?? {}) as any), lat: pos.coords.latitude, lon: pos.coords.longitude, acc, source: "device" },
-            updated_at: new Date().toISOString(),
-          })
+          .update(placePatchForFix(place as any, {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            acc,
+            source: "device",
+          }))
           .eq("id", place.id);
         setRecentering(false);
         if (error) {
