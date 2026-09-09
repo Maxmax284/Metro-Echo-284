@@ -402,6 +402,32 @@ export function AwarenessSurface() {
           />
         )}
 
+        {/* New country, old brief. Echo says which read is on file and offers
+            to look at the new place instead of dressing the old one up. */}
+        {newCountry && place && (
+          <div className="vanta-card rounded-xl p-3">
+            <p className="text-[12.5px] leading-snug text-foreground">
+              You were in {newCountry.from}. Echo now has you in {newCountry.to}.
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Everything read below was written about {newCountry.from}. It stays on file until
+              you ask for a fresh look at {newCountry.to}.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={() => { setNewCountry(null); refreshSnapshot(true).catch(() => {}); }}
+              >
+                Read {newCountry.to} now
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setNewCountry(null)}>
+                Not now
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* One read of where you are, then four shelves. This is the answer;
             the radar, chips and place list below are only the workings. */}
         {(() => {
