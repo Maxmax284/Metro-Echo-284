@@ -148,7 +148,16 @@ export type SituationInput = {
     why?: WhySurfaced | null;
   }>;
   noticed: Array<{ id: string; title: string; reason: string; at: string }> ;
-  meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null }>;
+  /**
+   * `distanceM` is set only when the caller could measure it from two recorded
+   * fixes. It is never estimated, and travel time is never invented from it.
+   */
+  meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null; distanceM?: number | null }>;
+  /**
+   * Hours of forecast already read for where you are. Used to fold weather into
+   * the meeting line instead of spawning a weather card beside it.
+   */
+  forecast?: ContextForecastHour[] | null;
   /** Projects with their stored cadence, for the "different from usual" read. */
   projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }>;
   /**
