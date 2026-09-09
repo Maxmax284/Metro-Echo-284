@@ -14,6 +14,7 @@ import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { BadLocationRecoveryPanel } from "@/components/awareness/BadLocationRecoveryPanel";
 import { classifyPlaceBadness } from "@/lib/locationSanity";
+import { placePatchForFix } from "@/lib/placeMove";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
@@ -127,6 +128,7 @@ export function AwarenessSurface() {
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
+  const [newCountry, setNewCountry] = useState<{ from: string; to: string } | null>(null);
   const autoRescanFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!place) { prevCountryRef.current = undefined; return; }
@@ -138,6 +140,13 @@ export function AwarenessSurface() {
       setRecoveryDismissed(true);
       // Auto-fire a snapshot rescan for the freshly-resolved place.
       refreshSnapshot(true).catch(() => {});
+    }
+    /* A different country is a different read. The local brief on file was
+       written about somewhere else, so Echo offers a fresh one instead of
+       presenting the old one as current. Offer, never auto-run: a scan costs
+       lookups and the traveller decides when it's worth it. */
+    if (prev && place.country && prev !== place.country) {
+      setNewCountry({ from: prev, to: place.country });
     }
     prevCountryRef.current = place.country ?? null;
   }, [place?.id, place?.country, refreshSnapshot]);
@@ -253,12 +262,17 @@ export function AwarenessSurface() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const acc = pos.coords.accuracy;
+        /* A fix far from the last one is a different place. The old city,
+           country and region are cleared with the same write, so no later
+           lookup can quietly fall back to where you used to be. */
         const { error } = await supabase
           .from("awareness_places")
-          .update({
-            geo: { ...((place.geo ?? {}) as any), lat: pos.coords.latitude, lon: pos.coords.longitude, acc, source: "device" },
-            updated_at: new Date().toISOString(),
-          })
+          .update(placePatchForFix(place as any, {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            acc,
+            source: "device",
+          }))
           .eq("id", place.id);
         setRecentering(false);
         if (error) {
@@ -386,6 +400,32 @@ export function AwarenessSurface() {
             alternatives={alternatives}
             onDismiss={() => { setRecoveryOpen(false); setRecoveryDismissed(true); }}
           />
+        )}
+
+        {/* New country, old brief. Echo says which read is on file and offers
+            to look at the new place instead of dressing the old one up. */}
+        {newCountry && place && (
+          <div className="vanta-card rounded-xl p-3">
+            <p className="text-[12.5px] leading-snug text-foreground">
+              You were in {newCountry.from}. Echo now has you in {newCountry.to}.
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Everything read below was written about {newCountry.from}. It stays on file until
+              you ask for a fresh look at {newCountry.to}.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={() => { setNewCountry(null); refreshSnapshot(true).catch(() => {}); }}
+              >
+                Read {newCountry.to} now
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => setNewCountry(null)}>
+                Not now
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* One read of where you are, then four shelves. This is the answer;
