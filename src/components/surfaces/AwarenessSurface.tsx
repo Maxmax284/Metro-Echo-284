@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -54,6 +54,11 @@ function freshLabel(generated: string | null): string {
   return `${days}d old — time for a refresh`;
 }
 
+/** "never scanned" → "Never scanned". Wording stays, the sentence starts right. */
+function sentenceCase(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function AwarenessSurface() {
   const { session } = useAuth();
   const { place, briefings, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
@@ -64,7 +69,7 @@ export function AwarenessSurface() {
   const { read: situation } = useSituation(digest);
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
-  const [showPlaces, setShowPlaces] = useState(false);
+  
   const [newLabel, setNewLabel] = useState("");
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -525,7 +530,7 @@ export function AwarenessSurface() {
                 source: "scan" as const,
               })),
           ]}
-          scanLine={freshLabel(generatedAt ?? null).replace(/^n/, "N").replace(/^j/, "J").replace(/^s/, "S")}
+          scanLine={sentenceCase(freshLabel(generatedAt ?? null))}
           scanning={snapshotLoading}
           onScan={() => refreshSnapshot(true)}
         />
