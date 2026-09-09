@@ -39,6 +39,15 @@ export function PlaceCueStrip({
   /* Severe boards simplify: the strip carries the place and nothing else. */
   const expandable = !!board && !cue.simplified;
 
+  /* A brief read stays on screen without a tap: the nearest named thing, then
+     the next entry on the day. Two lines at most, recorded facts only. */
+  const preview: BoardLine[] = expandable && !open
+    ? (() => {
+        const pick = (key: BoardGroupKey) => board!.groups.find((g) => g.key === key)?.lines[0] ?? null;
+        return [pick("around"), pick("day") ?? pick("changed")].filter((l): l is BoardLine => !!l).slice(0, 2);
+      })()
+    : [];
+
   return (
     <div className={cn(MOTION_ARRIVE, className)}>
       <div className="flex w-full items-center gap-2 py-1">
