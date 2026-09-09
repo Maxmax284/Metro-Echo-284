@@ -17,6 +17,8 @@ export function useTodayPlaceCue(input: {
   explainsRead?: boolean;
   /** The clock disagrees with the device and Echo has already said so. */
   timezoneDrift?: boolean;
+  /** Recorded lines on file about this spot: nearby places, changes, your day. */
+  boardLines?: number;
   /** Severe board. The strip simplifies instead of decorating. */
   pressure?: boolean;
 }): PlaceCue {
@@ -42,6 +44,7 @@ export function useTodayPlaceCue(input: {
     movedFrom,
     timezoneDrift: input.timezoneDrift,
     tripActive: !!running,
+    boardLines: input.boardLines,
     pressure: input.pressure,
   });
 }
