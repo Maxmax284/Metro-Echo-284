@@ -11,6 +11,7 @@
 
 import { gapPhrase, unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
 import { whyFor, type WhySurfaced } from "./whySurfaced.ts";
+import { meetingContextClause, type ContextForecastHour } from "./todayContext.ts";
 
 export type SituationSource =
   | "commitments"
