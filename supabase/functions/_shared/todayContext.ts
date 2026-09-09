@@ -132,7 +132,7 @@ export type PlaceCue = {
   /** A real move, for one mechanical flip. Never continuous movement. */
   transition: { from: string; to: string } | null;
   /** Why the strip is on screen at all. */
-  reason: "moved" | "trip" | "clock" | "grounds" | null;
+  reason: "moved" | "trip" | "clock" | "grounds" | "board" | null;
   /** Severe state: the strip carries the place and nothing else. */
   simplified: boolean;
 };
