@@ -14,6 +14,7 @@ import { SectionDrawer } from "@/components/awareness/SectionDrawer";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { BadLocationRecoveryPanel } from "@/components/awareness/BadLocationRecoveryPanel";
 import { classifyPlaceBadness } from "@/lib/locationSanity";
+import { placePatchForFix } from "@/lib/placeMove";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { normalizeAwarenessSignal, classifyTier, tierScanCopy, terrainModeFor, terrainModeCaption, type LocationTier } from "@/lib/awarenessPlainTalk";
