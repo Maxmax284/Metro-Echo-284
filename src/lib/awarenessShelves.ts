@@ -353,6 +353,18 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     });
   }
 
+  /* Venues the last scan actually found. These are the concrete answer to
+     "what's around me" — named places with recorded detail. Two at most, so the
+     shelf stays a read rather than a directory. */
+  for (const v of (input.nearbyVenues ?? []).filter((v) => v.name?.trim()).slice(0, 2)) {
+    around.push({
+      key: `venue:${v.name}`,
+      text: v.detail ? `${v.name} — ${v.detail}` : v.name,
+      detail: "Found by the last scan of this spot, from map data. Hours and ratings are whatever the listing said.",
+      at: input.scanAt ?? null,
+    });
+  }
+
   /* Meetings happening somewhere you aren't. Today deliberately stays quiet
      about these, so this is the one place they're said — as a where-it-is note,
      never as a nudge, and never with a claim about how far away it is. */
