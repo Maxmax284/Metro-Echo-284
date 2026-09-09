@@ -39,6 +39,7 @@ function clockLabel(iso: string): string | null {
  * a rounded kilometre reading, or nothing.
  */
 export function distanceClause(distanceM: number | null | undefined): string | null {
+  if (distanceM === null || distanceM === undefined) return null;
   const n = Number(distanceM);
   if (!Number.isFinite(n) || n < 0) return null;
   if (n < 300) return "you're already there";
