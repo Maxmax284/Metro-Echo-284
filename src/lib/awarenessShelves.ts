@@ -158,7 +158,15 @@ export function placeParagraph(input: ShelvesInput): string {
   } else {
     parts.push(`You're reading this from ${where}.`);
   }
-  if (read === 0) {
+  const scan = cleanScanSummary(input.scanSummary);
+  if (scan) {
+    /* A scan that ran is a read. Saying "nothing has been read here" while its
+       result sits in the record is the lie this fixes. */
+    parts.push(`Scanned ${agoPhrase(input.scanAt, now)}: ${scan}`);
+    if (read > 0) {
+      parts.push(`${read === 1 ? "One layer has" : `${read} layers have`} also been read, newest ${agoPhrase(input.newestAt, now)}.`);
+    }
+  } else if (read === 0) {
     parts.push("Nothing has been read here yet — a scan only runs when you tap it.");
   } else {
     parts.push(`${read === 1 ? "One layer has" : `${read} layers have`} been read, newest ${agoPhrase(input.newestAt, now)}.`);
