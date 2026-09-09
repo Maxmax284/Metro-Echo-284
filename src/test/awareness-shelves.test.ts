@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readShelves, neverReadLine } from "@/lib/awarenessShelves";
+import { readShelves, neverReadLine, cleanScanSummary } from "@/lib/awarenessShelves";
 import { readSituation, placeSpeaks, type SituationPlace } from "@/lib/situation";
 
 const LAYERS = ["transport", "payments", "hazards", "scams", "connectivity", "timing"] as const;
@@ -145,5 +145,36 @@ describe("place in the situation read", () => {
     expect(without.placeNote).toBeNull();
     expect(withPlace.lines.map((l) => l.text)).toEqual(without.lines.map((l) => l.text));
     expect(withPlace.headline).toBe(without.headline);
+  });
+});
+
+describe("a scan that ran is a read", () => {
+  const place = { label: "Spot", city: "Chantilly", region: "Virginia", country: "United States" };
+  const base = { place, briefings: {}, layers: ["transport", "payments"] as const };
+
+  it("named venues from the scan land on Around you", () => {
+    const r = readShelves({
+      ...base,
+      nearbyVenues: [
+        { name: "Wells Fargo ATM", detail: "ATM · Open 24 hours" },
+        { name: "CVS", detail: "Pharmacy · closes 10pm" },
+        { name: "Third place", detail: null },
+      ],
+      scanAt: new Date().toISOString(),
+    });
+    const around = r.shelves.find((s) => s.key === "around")!;
+    expect(around.lines.length).toBe(2);
+    expect(around.lines[0].text).toContain("Wells Fargo ATM");
+  });
+
+  it("the paragraph carries the scan read instead of claiming nothing was read", () => {
+    const r = readShelves({ ...base, scanSummary: "Plenty open nearby.", scanAt: new Date().toISOString() });
+    expect(r.paragraph).toContain("Plenty open nearby.");
+    expect(r.paragraph).not.toContain("Nothing has been read here yet");
+  });
+
+  it("leaked field labels never reach a person", () => {
+    expect(cleanScanSummary("short_summary:\nIt is clear.\n\nwhy_it_matters:\nCash.")).toBe("It is clear. Cash.");
+    expect(cleanScanSummary(null)).toBeNull();
   });
 });

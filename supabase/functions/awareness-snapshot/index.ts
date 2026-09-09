@@ -6,7 +6,26 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { runGuarded, adminClient } from "../_shared/apiGuard.ts";
-import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
+import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
+
+/* The snapshot writes prose, not a signal object. AWARENESS_VOICE names the
+   signal fields, and models leak those labels into the text, so the scan read
+   gets its own voice. */
+const SNAPSHOT_VOICE = `${VANTA_CORE_VOICE}
+
+You are writing the short read of somewhere the person is standing right now.
+Plain prose. Lead with what is actually around them. Never emit field labels,
+headings, bullets, asterisks or emoji.`;
+
+/* Belt and braces: any label that still slips through never reaches a person. */
+function cleanSummary(raw: string): string {
+  return raw
+    .replace(/^\s*(short_summary|why_it_matters|what_to_do_next|title|long_detail)\s*:\s*/gim, "")
+    .replace(/\*\*/g, "")
+    .replace(/\n{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 
 const Body = z.object({
@@ -481,8 +500,9 @@ Deno.serve(async (req: Request) => {
       async () => {
         const key = Deno.env.get("LOVABLE_API_KEY");
         if (!key) throw new Error("LOVABLE_API_KEY not configured");
+        const placeName = geoCity ?? place.region ?? place.country ?? "this spot";
         const prompt = `Location tier: ${tier} (scope: ${tierScope || "unknown"})
-Place: ${place.label}
+Place: ${placeName}
 Country: ${place.country ?? "?"} | Region: ${place.region ?? "?"} | City: ${geoCity ?? "?"}
 Weather: ${weather ? `${weather.tempC}C ${weather.condition}` : "(none collected)"}
 
@@ -495,21 +515,23 @@ ${communityText}
 Briefings:
 ${briefingsText || "(none)"}
 
-Write a 2-3 sentence operational pulse. Use only the evidence above. If tier isn't exact, say you're using broader ${tierScope || "area"} context. If no live sources fired, say so plainly. Human, warm, direct tone — no report voice, no "geospatial", no "infrastructure effectively zero".`;
+Write a 2-3 sentence operational pulse in plain prose. Use only the evidence above. Name at least one real nearby place from the results when there is one. Do not mention the time of day unless it is in the evidence. If tier isn't exact, say you're using broader ${tierScope || "area"} context. If no live sources fired, say so plainly. Human, warm, direct tone — no report voice, no "geospatial", no "infrastructure effectively zero".
+
+Output rules: prose sentences only. Never write field labels such as "short_summary:", "why_it_matters:" or "what_to_do_next:". No headings, no bullets, no markdown, no blank lines.`;
         const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: `${AWARENESS_VOICE}\n\nSnapshot mode: summarize ONLY the evidence given. Never invent local detail. Plain English, 1-3 short sentences.` },
+              { role: "system", content: `${SNAPSHOT_VOICE}\n\nSnapshot mode: summarize ONLY the evidence given. Never invent local detail. Plain English prose, 1-3 short sentences, no field labels of any kind.` },
               { role: "user", content: prompt },
             ],
           }),
         });
         if (!r.ok) throw new Error(`ai ${r.status}`);
         const j = await r.json();
-        return (j.choices?.[0]?.message?.content ?? "").trim();
+        return cleanSummary((j.choices?.[0]?.message?.content ?? "").trim());
       },
     );
     if (synth.ok) {

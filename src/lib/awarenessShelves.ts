@@ -95,7 +95,32 @@ export type ShelvesInput = {
    * Named towns with a measured distance — no interpretation on top.
    */
   nearbyTowns?: Array<{ name: string; kind?: string | null; distanceM: number }>;
+  /**
+   * Named venues the last scan actually found around the fix — map results, with
+   * whatever detail was recorded (type, hours, rating). Recorded, not inferred,
+   * so they belong on "Around you" the moment a scan has run.
+   */
+  nearbyVenues?: Array<{ name: string; detail?: string | null }>;
+  /** The plain-prose read the last scan wrote, if one has run here. */
+  scanSummary?: string | null;
+  /** When that scan ran. */
+  scanAt?: string | null;
 };
+
+/**
+ * A scan summary is prose, not a form. Some model replies leak the field labels
+ * of the signal schema into the text; those never reach a person.
+ */
+export function cleanScanSummary(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const text = String(raw)
+    .replace(/^\s*(short_summary|why_it_matters|what_to_do_next|title|long_detail)\s*:\s*/gim, "")
+    .replace(/\*\*/g, "")
+    .replace(/\n{2,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > 0 ? text : null;
+}
 
 /** How close a saved place has to be before it counts as "around you". */
 export const NEAR_RADIUS_M = 5000;
@@ -133,7 +158,15 @@ export function placeParagraph(input: ShelvesInput): string {
   } else {
     parts.push(`You're reading this from ${where}.`);
   }
-  if (read === 0) {
+  const scan = cleanScanSummary(input.scanSummary);
+  if (scan) {
+    /* A scan that ran is a read. Saying "nothing has been read here" while its
+       result sits in the record is the lie this fixes. */
+    parts.push(`Scanned ${agoPhrase(input.scanAt, now)}: ${scan}`);
+    if (read > 0) {
+      parts.push(`${read === 1 ? "One layer has" : `${read} layers have`} also been read, newest ${agoPhrase(input.newestAt, now)}.`);
+    }
+  } else if (read === 0) {
     parts.push("Nothing has been read here yet — a scan only runs when you tap it.");
   } else {
     parts.push(`${read === 1 ? "One layer has" : `${read} layers have`} been read, newest ${agoPhrase(input.newestAt, now)}.`);
@@ -296,7 +329,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
   const saved = (input.savedNearby ?? [])
     .filter((p) => Number.isFinite(p.distanceM) && p.distanceM <= NEAR_RADIUS_M)
     .sort((a, b) => a.distanceM - b.distanceM)
-    .slice(0, 2);
+    .slice(0, (input.nearbyVenues?.length ?? 0) > 0 ? 1 : 2);
   for (const p of saved.slice().reverse()) {
     around.unshift({
       key: `saved:${p.id}`,
@@ -320,6 +353,18 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     });
   }
 
+  /* Venues the last scan actually found. These are the concrete answer to
+     "what's around me" — named places with recorded detail. Two at most, so the
+     shelf stays a read rather than a directory. */
+  for (const v of (input.nearbyVenues ?? []).filter((v) => v.name?.trim()).slice(0, 2)) {
+    around.push({
+      key: `venue:${v.name}`,
+      text: v.detail ? `${v.name} — ${v.detail}` : v.name,
+      detail: "Found by the last scan of this spot, from map data. Hours and ratings are whatever the listing said.",
+      at: input.scanAt ?? null,
+    });
+  }
+
   /* Meetings happening somewhere you aren't. Today deliberately stays quiet
      about these, so this is the one place they're said — as a where-it-is note,
      never as a nudge, and never with a claim about how far away it is. */
@@ -336,7 +381,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
     new Date(b.at ?? 0).getTime() - new Date(a.at ?? 0).getTime();
   /* Saved-place and town lines carry no read time, so a newest-first sort would
      bury them. They are ground truth: they stay at the top in distance order. */
-  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:"));
+  const grounded = around.filter((l) => l.key.startsWith("saved:") || l.key.startsWith("town:") || l.key.startsWith("venue:"));
   const read = around.filter((l) => !grounded.includes(l));
   read.sort(byNewest);
   around.length = 0;
@@ -359,7 +404,7 @@ export function readShelves(input: ShelvesInput): ShelvesRead {
       key: "around",
       label: SHELF_LABEL.around,
       lines: around.slice(0, 3),
-      quiet: "Nothing around you yet. Save a place or two near where you are, and getting around, paying, local habits and meetings held elsewhere land here.",
+      quiet: "Nothing around you yet. Scan this spot and named places nearby land here, along with getting around, paying, local habits and meetings held elsewhere.",
     },
     {
       key: "changed",

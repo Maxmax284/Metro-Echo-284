@@ -447,6 +447,14 @@ export function AwarenessSurface() {
             elsewhereMeetings: situation?.elsewhereMeetings ?? [],
             savedNearby,
             nearbyTowns,
+            /* What the last scan actually found. Named venues from map data, so
+               "Around you" answers the question instead of staying quiet while
+               the record holds eight of them. */
+            nearbyVenues: (((snapshot?.full_data as any)?.local_signals ?? []) as Array<{ title?: string; snippet?: string; kind?: string }>)
+              .filter((s) => s.kind === "place" && s.title)
+              .map((s) => ({ name: String(s.title), detail: s.snippet ?? null })),
+            scanSummary: (snapshot?.compact as any)?.summary ?? null,
+            scanAt: snapshot?.generated_at ?? null,
           });
           const never = neverReadLine(shelvesRead.neverRead);
           const truth = placeTruth(place as PlaceLike | null);
