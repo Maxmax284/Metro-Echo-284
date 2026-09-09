@@ -221,6 +221,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
        recently touched one — the same rule the Aware room uses, so both rooms
        are standing in the same spot. Place only changes wording. */
     let place: SituationPlace | null = null;
+    let activeFix: { lat: number; lon: number } | null = null;
     const placeRes = await supabase
       .from("awareness_places")
       .select("id, label, geo, country, region, updated_at")
@@ -239,6 +240,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         Number.isFinite(Number(geo.lat)) && Number.isFinite(Number(geo.lon))
           ? { lat: Number(geo.lat), lon: Number(geo.lon) }
           : null;
+      activeFix = fix;
       const savedPlace = placeYouAreAt(
         fix,
         placeRows.slice(1).map((p) => ({
@@ -253,6 +255,27 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         at: row.updated_at ?? null,
         savedPlace,
       };
+
+      /* Distance to a meeting is measured, never estimated: it exists only when
+         the meeting names a place you have saved with a fix of its own. No
+         match, no coordinates — no distance in the sentence. */
+      if (activeFix) {
+        const saved = placeRows
+          .map((p) => ({
+            label: String(p.label ?? "").trim(),
+            lat: Number((p.geo as any)?.lat),
+            lon: Number((p.geo as any)?.lon),
+          }))
+          .filter((p) => p.label && Number.isFinite(p.lat) && Number.isFinite(p.lon));
+        meetings = meetings.map((m) => {
+          const where = String(m.location ?? "").trim().toLowerCase();
+          if (!where) return m;
+          const hit = saved.find(
+            (p) => where.includes(p.label.toLowerCase()) || p.label.toLowerCase().includes(where),
+          );
+          return hit ? { ...m, distanceM: distMeters(activeFix!, { lat: hit.lat, lon: hit.lon }) } : m;
+        });
+      }
     }
 
     setRead(
@@ -287,7 +310,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }),
     );
     setLoading(false);
-  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick]);
+  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick, snapshot?.id]);
 
   useEffect(() => {
     if (digest.loadingCritical) return;
