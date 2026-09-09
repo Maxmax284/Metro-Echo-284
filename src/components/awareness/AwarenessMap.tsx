@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useTrips } from "@/hooks/useTrips";
 import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
+import { placePatchForFix } from "@/lib/placeMove";
 import { placeTruth, placeSourceBadge, type PlaceLike } from "@/lib/placeTruth";
 import { fieldRead } from "@/lib/fieldRead";
 
