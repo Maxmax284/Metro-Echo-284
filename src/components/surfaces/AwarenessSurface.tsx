@@ -128,6 +128,7 @@ export function AwarenessSurface() {
 
   // Watch for country null → set transition to offer a rescan prompt + auto-fire snapshot once.
   const prevCountryRef = useRef<string | null | undefined>(undefined);
+  const [newCountry, setNewCountry] = useState<{ from: string; to: string } | null>(null);
   const autoRescanFiredRef = useRef<string | null>(null);
   useEffect(() => {
     if (!place) { prevCountryRef.current = undefined; return; }
@@ -139,6 +140,13 @@ export function AwarenessSurface() {
       setRecoveryDismissed(true);
       // Auto-fire a snapshot rescan for the freshly-resolved place.
       refreshSnapshot(true).catch(() => {});
+    }
+    /* A different country is a different read. The local brief on file was
+       written about somewhere else, so Echo offers a fresh one instead of
+       presenting the old one as current. Offer, never auto-run: a scan costs
+       lookups and the traveller decides when it's worth it. */
+    if (prev && place.country && prev !== place.country) {
+      setNewCountry({ from: prev, to: place.country });
     }
     prevCountryRef.current = place.country ?? null;
   }, [place?.id, place?.country, refreshSnapshot]);
