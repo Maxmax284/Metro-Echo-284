@@ -18,6 +18,7 @@ import type { TodayDigest } from "@/hooks/useTodayDigest";
 import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLane";
 import { readArrival } from "@/lib/arrivalRead";
 import { displayPlatform } from "@/lib/plainEnglish";
+import { distMeters } from "@/lib/locationSanity";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
@@ -29,7 +30,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
   /* Today used to fetch its own place and then never look again, so a fix in a
      new city moved the map and left this read talking about the last country.
      The provider already listens for place writes; Today rides that signal. */
-  const { place: livePlace } = useAwareness();
+  const { place: livePlace, snapshot } = useAwareness();
   const placeTick = `${livePlace?.id ?? ""}|${livePlace?.updated_at ?? ""}|${livePlace?.country ?? ""}`;
   const [read, setRead] = useState<SituationRead | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +41,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const unknownSources: SituationSource[] = [];
 
     /* Meetings — only the next few hours matter for a situational read. */
-    let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null }> = [];
+    let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null; distanceM?: number | null }> = [];
     const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at, location"))
       .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
       .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
@@ -220,6 +221,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
        recently touched one — the same rule the Aware room uses, so both rooms
        are standing in the same spot. Place only changes wording. */
     let place: SituationPlace | null = null;
+    let activeFix: { lat: number; lon: number } | null = null;
     const placeRes = await supabase
       .from("awareness_places")
       .select("id, label, geo, country, region, updated_at")
@@ -238,6 +240,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         Number.isFinite(Number(geo.lat)) && Number.isFinite(Number(geo.lon))
           ? { lat: Number(geo.lat), lon: Number(geo.lon) }
           : null;
+      activeFix = fix;
       const savedPlace = placeYouAreAt(
         fix,
         placeRows.slice(1).map((p) => ({
@@ -252,6 +255,27 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
         at: row.updated_at ?? null,
         savedPlace,
       };
+
+      /* Distance to a meeting is measured, never estimated: it exists only when
+         the meeting names a place you have saved with a fix of its own. No
+         match, no coordinates — no distance in the sentence. */
+      if (activeFix) {
+        const saved = placeRows
+          .map((p) => ({
+            label: String(p.label ?? "").trim(),
+            lat: Number((p.geo as any)?.lat),
+            lon: Number((p.geo as any)?.lon),
+          }))
+          .filter((p) => p.label && Number.isFinite(p.lat) && Number.isFinite(p.lon));
+        meetings = meetings.map((m) => {
+          const where = String(m.location ?? "").trim().toLowerCase();
+          if (!where) return m;
+          const hit = saved.find(
+            (p) => where.includes(p.label.toLowerCase()) || p.label.toLowerCase().includes(where),
+          );
+          return hit ? { ...m, distanceM: distMeters(activeFix!, { lat: hit.lat, lon: hit.lon }) } : m;
+        });
+      }
     }
 
     setRead(
@@ -276,10 +300,17 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           : null,
         unknownSources,
         place,
+        /* Weather rides on the lines it affects instead of taking a card. */
+        forecast: (snapshot?.compact?.weather?.hourly ?? []).map((h) => ({
+          at: h.at,
+          tempC: h.tempC,
+          condition: h.condition,
+          rainChance: h.rainChance,
+        })),
       }),
     );
     setLoading(false);
-  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick]);
+  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick, snapshot?.id]);
 
   useEffect(() => {
     if (digest.loadingCritical) return;

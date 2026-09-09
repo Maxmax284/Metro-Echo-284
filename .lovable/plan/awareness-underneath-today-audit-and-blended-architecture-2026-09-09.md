@@ -36,6 +36,7 @@ Collapse: `CollapsibleSection` persists per-panel state in `localStorage`, sweep
 `src/components/surfaces/AwarenessSurface.tsx` (744 lines). Not a route — a surface reached via `?surface=awareness`, already parented to Work in `src/lib/navigation.ts:50` and hidden in the More sheet in `SurfaceTabs.tsx`. Only `/awareness/location` (`LocationSetup`) is a real route.
 
 Worth preserving as a desk:
+
 - One honest place sentence + source badge + accuracy (`placeTruth`, `placeSourceBadge`, `accuracyMetres`).
 - `readShelves` → paragraph plus four shelves: Now / Around you / Changed / Coming up (`src/lib/awarenessShelves.ts`).
 - `AwarenessMapPanel` / `AwarenessMap` (drag-to-fix), `MapPickerDialog`, `BadLocationRecoveryPanel` + nearby-place alternatives.
@@ -80,16 +81,18 @@ Physio at 4:30 in Fairfax — about 25 min out, rain starts around 4.
 
 Reuse the vocabulary in `src/lib/motion.ts`; add no new keyframe families.
 
-| Event | Treatment | Existing class |
-| --- | --- | --- |
-| New place resolved, real move | strip lands once from the left, then still | `MOTION_ARRIVE` |
-| Place value replaced (city → city) | single flip of the strip's text only | one small flip, reusing `flip.ts` timing |
-| Related facts threading into one notice | lead rail draws down the bundled line once | `LEAD_BAR` |
-| Something completed / trip ended | presses in and settles, then clears | `MOTION_STAMP` |
-| Stale place | opacity drop, no motion | static |
-| Needs attention | one controlled sweep, then still | `MOTION_SIGNAL` |
-| Severe state | strip simplifies to one sentence, motion removed | none |
-| Position, weather, radar | never animate | none |
+
+| Event                                   | Treatment                                        | Existing class                           |
+| --------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| New place resolved, real move           | strip lands once from the left, then still       | `MOTION_ARRIVE`                          |
+| Place value replaced (city → city)      | single flip of the strip's text only             | one small flip, reusing `flip.ts` timing |
+| Related facts threading into one notice | lead rail draws down the bundled line once       | `LEAD_BAR`                               |
+| Something completed / trip ended        | presses in and settles, then clears              | `MOTION_STAMP`                           |
+| Stale place                             | opacity drop, no motion                          | static                                   |
+| Needs attention                         | one controlled sweep, then still                 | `MOTION_SIGNAL`                          |
+| Severe state                            | strip simplifies to one sentence, motion removed | none                                     |
+| Position, weather, radar                | never animate                                    | none                                     |
+
 
 Bulletin-board language, elegant end only: the strip reads as a small tape label above the read; a bundled notice gets one hairline route rail on its left; a completed item gets the existing stamp. No pins, no scatter, no rotation, no graffiti on data — paint stays still per the identity rules.
 
@@ -128,6 +131,7 @@ The Aware surface remains under Work, unchanged in scope: map and drag-to-fix, s
 ## J. Acceptance criteria
 
 At 384px:
+
 - Quiet day: no strip, no place words, no empty location card. Today is spacious.
 - Strip is one line, tap target at least 44px tall, never wraps to three lines.
 - A bundled notice is one card with one reveal, not four cards.
@@ -135,10 +139,12 @@ At 384px:
 - No motion loops. At most one animation per real change. `prefers-reduced-motion` removes all of it.
 
 Desktop:
+
 - The strip stays light and does not become a dashboard row.
 - The Aware desk is unchanged and complete.
 
 Both:
+
 - Place never invents precision; a device guess is always labelled.
 - No new notification path; `NoticedRow` remains the only proactive voice.
 - Four rooms, four tabs.
@@ -159,3 +165,77 @@ The in-progress certification (`.lovable/plan/metro-echo-release-grade-smoke-tes
 - Travel time: use existing place + meeting location data only. If a distance cannot be derived from what is already recorded, the sentence omits it rather than estimating.
 - Frozen identifiers stay frozen (`vanta-*` classes, `vanta.` localStorage keys, `vanta_*` columns) per `roadmap.md`.
 - Anything proactive routes through `supabase/functions/_shared/awareness/*`. No second decision path.
+
+L. Additional design rules for the Today/Awareness blend
+
+&nbsp;
+
+Awareness may animate the board, but it must not add clutter to the board. Motion should make existing information feel alive and situationally responsive without increasing the number of visible modules.
+
+&nbsp;
+
+A new awareness fact should first try to modify an existing situation before it is allowed to create a new visual object. Meeting + weather + travel time should remain one situation. Trip + place transition should remain one trip situation. A Telegram update affecting a project should update that project situation rather than spawning a separate notice.
+
+&nbsp;
+
+Today should distinguish “new” from “changed” through motion. New information lands. Changed information flips or updates in place. Completed information stamps and settles. Stale or uncertain information becomes quieter and explicitly shows freshness where needed.
+
+&nbsp;
+
+The board should change; the board should not grow. When reality changes, the preferred behavior is to update the existing pinned situation rather than stack another card beneath it.
+
+&nbsp;
+
+Meaningful place transitions may use a compact transit-board treatment. A genuine move such as CHANTILLY → WASHINGTON, DC can perform one mechanical flip or destination change, then immediately settle. Continuous GPS movement must never animate.
+
+&nbsp;
+
+When location materially explains an existing Today sentence, the compact place strip may appear even if the location itself is not independently noteworthy. Its purpose is to show that the current read is grounded in where the user actually is.
+
+&nbsp;
+
+Stale place context must remain visually quiet but unmistakably honest. Do not rely on reduced opacity alone. Where space permits, show freshness language such as last confirmed 3h ago so an aging fix is never mistaken for a current location.
+
+&nbsp;
+
+Changed values should update in place. For example, if travel conditions move a recommended departure from 2:20 to 2:05, the time should visibly change within the existing situation, receive one restrained CHANGED treatment, and then settle.
+
+&nbsp;
+
+Related facts may visually thread into the same situation. A thin route rail, trace, or existing lead-bar treatment may briefly show that calendar + place + forecast contributed to one conclusion. The visual connection should disappear into a settled state rather than remain decorative.
+
+&nbsp;
+
+Awareness animation should respect whether the user has already seen the underlying event elsewhere. If Telegram, push, wearable, or another Metro Echo surface has already delivered and acknowledged the same event, Today should render it as already known rather than replaying a first-arrival animation.
+
+&nbsp;
+
+Design every Today awareness item around one shared event identity. Future push, Telegram, wearable, and in-app delivery should be able to acknowledge the same underlying event so Metro Echo never behaves as though four surfaces discovered the same fact independently.
+
+&nbsp;
+
+The compact Today place cue may be the most convenient entrance to Aware, but it must not become the only discoverable entrance. Aware should remain deliberately reachable through Work and naturally accessible through Ask even when Today has no location reason to show the strip.
+
+&nbsp;
+
+Ask should treat Aware as a capability, not a navigation problem. Questions such as “What’s around me?”, “Where am I?”, “What changed around here?”, or “What matters near me?” should use the same place truth and Aware context without requiring the user to manually open the deeper desk first.
+
+&nbsp;
+
+Today shows conclusions; Aware shows the physical-world evidence and workings. Today may say Rain affects your 4:30. Aware is where the user can inspect the map, current fix, freshness, precision, nearby context, saved places, scan result, layers, and supporting evidence.
+
+&nbsp;
+
+Quiet Today remains a feature. If place has nothing meaningful to contribute, Today should not display an empty location affordance merely to prove Awareness is running underneath it.
+
+&nbsp;
+
+Severe or high-consequence situations should simplify the board rather than increase visual activity. Decorative motion, contextual flourishes, and secondary information should recede so the single important fact and required action become obvious.
+
+&nbsp;
+
+The completed implementation should not feel like “location was added to Today.” The target experience is that Today feels better informed about the user’s real situation because Awareness now influences the existing read naturally.
+
+&nbsp;
+
+After phases 2–6, run a focused Today/Awareness regression Proof Pack in addition to the main smoke-test baseline. Verify a quiet day, meaningful place transition, meeting + weather + place bundling, active trip, stale location, unavailable location, 384px mobile, desktop, and reduced-motion behavior without creating a parallel QA system.

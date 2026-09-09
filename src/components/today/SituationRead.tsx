@@ -7,13 +7,14 @@
 //
 // It renders recorded state only. It never executes, never scores, and never
 // turns missing data into a zero.
+import { useEffect, useRef, useState } from "react";
 import { Radio } from "lucide-react";
 import { MachineLabel } from "@/components/ui/instrument";
 import { ProvenanceStrip } from "@/components/ui/provenance";
 import { Button } from "@/components/ui/button";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
 import { quietLine, unknownLine, type SituationLine, type SituationRead as Read } from "@/lib/situation";
-import { MOTION_ROW } from "@/lib/motion";
+import { MOTION_ROW, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const OPEN_LABEL: Record<SituationLine["kind"], string> = {
@@ -35,8 +36,28 @@ function Line({
   line: SituationLine;
   onOpen?: (line: SituationLine) => void;
 }) {
+  /* When a line's facts change — a meeting gets closer, weather turns, the
+     place it is read against moves — the existing line updates in place and
+     signals once. It does not become a second line, and it does not keep
+     pulsing after it has been seen. */
+  const previous = useRef(line.text);
+  const [changed, setChanged] = useState(false);
+  useEffect(() => {
+    if (previous.current === line.text) return;
+    previous.current = line.text;
+    setChanged(true);
+    const t = setTimeout(() => setChanged(false), 1200);
+    return () => clearTimeout(t);
+  }, [line.text]);
+
   return (
-    <li className={cn("border-t border-border/40 py-2.5 first:border-t-0 first:pt-0", MOTION_ROW)}>
+    <li
+      className={cn(
+        "border-t border-border/40 py-2.5 first:border-t-0 first:pt-0",
+        MOTION_ROW,
+        changed && MOTION_SIGNAL,
+      )}
+    >
       <p className="text-sm leading-snug text-foreground">{line.text}</p>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         <ProvenanceStrip source={line.source} at={line.at} />

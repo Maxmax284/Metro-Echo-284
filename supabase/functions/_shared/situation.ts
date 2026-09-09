@@ -11,6 +11,7 @@
 
 import { gapPhrase, unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
 import { whyFor, type WhySurfaced } from "./whySurfaced.ts";
+import { meetingContextClause, type ContextForecastHour } from "./todayContext.ts";
 
 export type SituationSource =
   | "commitments"
@@ -148,7 +149,16 @@ export type SituationInput = {
     why?: WhySurfaced | null;
   }>;
   noticed: Array<{ id: string; title: string; reason: string; at: string }> ;
-  meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null }>;
+  /**
+   * `distanceM` is set only when the caller could measure it from two recorded
+   * fixes. It is never estimated, and travel time is never invented from it.
+   */
+  meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null; distanceM?: number | null }>;
+  /**
+   * Hours of forecast already read for where you are. Used to fold weather into
+   * the meeting line instead of spawning a weather card beside it.
+   */
+  forecast?: ContextForecastHour[] | null;
   /** Projects with their stored cadence, for the "different from usual" read. */
   projects: Array<{ id: string; title: string; lastEventAt: string | null; cadence: Cadence | null }>;
   /**
@@ -286,11 +296,23 @@ export function readSituation(input: SituationInput): SituationRead {
   const soonMeeting = soonWindow.find((m) => !elsewhereIds.has(m.id));
   if (soonMeeting) {
     const h = hoursUntil(soonMeeting.starts_at, now);
+    /* Place, weather and distance ride on this sentence rather than becoming
+       three more cards beside it. Missing facts simply do not appear. */
+    const context = meetingContextClause({
+      startsAt: soonMeeting.starts_at,
+      distanceM: soonMeeting.distanceM ?? null,
+      forecast: input.forecast ?? null,
+      now,
+    });
+    const base =
+      h <= 0 ? `${soonMeeting.title} is starting now` : `${soonMeeting.title} starts in ${Math.max(1, Math.round(h * 60))} minutes`;
     push({
       kind: "meeting_soon",
       source: "calendar",
-      text: h <= 0 ? `${soonMeeting.title} is starting now.` : `${soonMeeting.title} starts in ${Math.max(1, Math.round(h * 60))} minutes.`,
-      reason: "It came from a calendar you connected.",
+      text: context ? `${base} — ${context}.` : `${base}.`,
+      reason: context
+        ? "It came from a calendar you connected, read against where you are."
+        : "It came from a calendar you connected.",
       at: soonMeeting.starts_at,
       entity: { type: "calendar_event", id: soonMeeting.id },
     });
