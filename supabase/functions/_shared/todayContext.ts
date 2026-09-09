@@ -159,8 +159,9 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
   const movedFrom = (input.movedFrom ?? "").trim();
   const transition = movedFrom && movedFrom !== where ? { from: movedFrom, to: where } : null;
 
-  /* The four reasons place is allowed to speak, in order of consequence. */
+  /* The reasons place is allowed to speak, in order of consequence. */
   const grounds = input.lineCount > 0 && (!!input.explainsRead || !stale);
+  const hasBoard = (input.boardLines ?? 0) > 0 && !stale;
   const reason: PlaceCue["reason"] = transition
     ? "moved"
     : input.tripActive
@@ -169,7 +170,9 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
         ? "clock"
         : grounds
           ? "grounds"
-          : null;
+          : hasBoard
+            ? "board"
+            : null;
 
   /* Quiet day, quiet strip. Echo does not prove it is running. */
   if (!reason) return HIDDEN;
