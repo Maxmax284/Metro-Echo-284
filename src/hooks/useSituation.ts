@@ -18,6 +18,7 @@ import type { TodayDigest } from "@/hooks/useTodayDigest";
 import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLane";
 import { readArrival } from "@/lib/arrivalRead";
 import { displayPlatform } from "@/lib/plainEnglish";
+import { distMeters } from "@/lib/locationSanity";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
@@ -29,7 +30,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
   /* Today used to fetch its own place and then never look again, so a fix in a
      new city moved the map and left this read talking about the last country.
      The provider already listens for place writes; Today rides that signal. */
-  const { place: livePlace } = useAwareness();
+  const { place: livePlace, snapshot } = useAwareness();
   const placeTick = `${livePlace?.id ?? ""}|${livePlace?.updated_at ?? ""}|${livePlace?.country ?? ""}`;
   const [read, setRead] = useState<SituationRead | null>(null);
   const [loading, setLoading] = useState(true);
@@ -276,6 +277,13 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           : null,
         unknownSources,
         place,
+        /* Weather rides on the lines it affects instead of taking a card. */
+        forecast: (snapshot?.compact?.weather?.hourly ?? []).map((h: any) => ({
+          at: h.at,
+          tempC: h.tempC,
+          condition: h.condition,
+          rainChance: h.rainChance,
+        })),
       }),
     );
     setLoading(false);

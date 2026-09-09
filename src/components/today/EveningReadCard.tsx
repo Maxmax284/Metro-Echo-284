@@ -12,6 +12,7 @@ import { WhyThis } from "@/components/ui/why-this";
 import { useAgenda } from "@/hooks/useAgenda";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { eveningRead } from "@/lib/eveningRead";
+import { placeTruth } from "@/lib/placeTruth";
 
 export function EveningReadCard({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
@@ -19,6 +20,9 @@ export function EveningReadCard({ className }: { className?: string }) {
   const { snapshot, place } = useAwareness();
 
   const weather = snapshot?.compact?.weather ?? null;
+  /* The place is named through the one truth reader, so this line can never
+     read out a saved label like "Spot 4:47" as if it were a city. */
+  const placeName = placeTruth(place).name;
   const read = eveningRead({
     events: (events ?? []).map((e) => ({
       id: e.id,
@@ -33,7 +37,7 @@ export function EveningReadCard({ className }: { className?: string }) {
       condition: h.condition,
       rainChance: h.rainChance,
     })),
-    placeLabel: place?.label ?? null,
+    placeLabel: placeName,
   });
 
   return (
@@ -61,7 +65,7 @@ export function EveningReadCard({ className }: { className?: string }) {
                     ? `${read.ahead.length} ${read.ahead.length === 1 ? "entry" : "entries"} left before midnight, from your connected calendar.`
                     : "No calendar entries left before midnight.",
                   read.hours.length > 0
-                    ? `${read.hours.length} forecast ${read.hours.length === 1 ? "hour" : "hours"} read${weather?.updated_at ? ` at ${new Date(weather.updated_at).toLocaleTimeString()}` : ""}${place?.label ? ` for ${place.label}` : ""}.`
+                    ? `${read.hours.length} forecast ${read.hours.length === 1 ? "hour" : "hours"} read${weather?.updated_at ? ` at ${new Date(weather.updated_at).toLocaleTimeString()}` : ""}${placeName ? ` for ${placeName}` : ""}.`
                     : "No forecast has been read for the rest of today.",
                   "Nothing here was searched for or guessed. Reading this changes nothing.",
                 ].join(" ")}
