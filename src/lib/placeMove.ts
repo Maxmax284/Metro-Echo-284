@@ -79,7 +79,7 @@ export function placePatchForFix(
   prev: { geo?: unknown; country?: string | null; region?: string | null } | null,
   fix: Fix,
   thresholdM = MOVE_RESET_M,
-): { geo: Record<string, unknown>; country?: null; region?: null; updated_at: string } {
+): any {
   const geo = geoForFix(prev?.geo, fix, thresholdM);
   const patch: any = { geo, updated_at: new Date().toISOString() };
   if (movedFar(prev?.geo, fix, thresholdM)) {
