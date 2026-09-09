@@ -111,6 +111,12 @@ export type PlaceCueInput = {
   timezoneDrift?: boolean;
   /** A trip is running right now. */
   tripActive?: boolean;
+  /**
+   * How many recorded lines the place board holds behind the strip: named places
+   * nearby, local changes, entries on your day here. Real content earns the
+   * strip on its own; an empty board never does.
+   */
+  boardLines?: number;
   /** Severe board. Simplify rather than decorate. */
   pressure?: boolean;
 };
