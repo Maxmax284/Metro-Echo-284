@@ -29,5 +29,8 @@ export function useUserTimezone() {
     browserTimezone: browser,
     drifted: !!stored && stored !== browser,
     loading,
+    /* Used after the traveller accepts a new zone, so Today re-reads at once
+       instead of waiting for a reload. */
+    applyLocal: (tz: string) => setStored(tz),
   };
 }

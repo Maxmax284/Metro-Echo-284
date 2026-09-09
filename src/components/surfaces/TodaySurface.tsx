@@ -16,6 +16,7 @@ import { JumpStrip } from "@/components/today/JumpStrip";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { FirstLapCard } from "@/components/today/FirstLapCard";
 import { TimeSourceLine } from "@/components/context/ContextSourceLine";
+import { TimezoneFollowPrompt } from "@/components/context/TimezoneFollowPrompt";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
@@ -393,6 +394,15 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           source={tzState.storedTimezone ? "profile" : "device"}
           confidence={tzState.storedTimezone ? "high" : "low"}
         />
+        {/* Crossed a zone? Echo says so once and offers the switch. It never
+            moves the clock quietly — that would move every deadline with it. */}
+        {tzState.drifted && tzState.storedTimezone ? (
+          <TimezoneFollowPrompt
+            storedTimezone={tzState.storedTimezone}
+            browserTimezone={tzState.browserTimezone}
+            onChanged={(tz) => tzState.applyLocal(tz)}
+          />
+        ) : null}
 
         {/* The answer belongs to the hero: the situational read is the first
             thing a person reads, not the seventh block down the page. */}
