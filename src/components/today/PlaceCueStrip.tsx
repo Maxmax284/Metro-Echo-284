@@ -14,7 +14,7 @@ import { MachineLabel } from "@/components/ui/instrument";
 import { MOTION_ARRIVE, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { PlaceCue } from "@/lib/todayContext";
-import type { PlaceBoard } from "@/lib/placeBoard";
+import type { PlaceBoard, BoardLine, BoardGroupKey } from "@/lib/placeBoard";
 
 export function PlaceCueStrip({
   cue,
@@ -38,6 +38,15 @@ export function PlaceCueStrip({
   const moved = !!cue.transition;
   /* Severe boards simplify: the strip carries the place and nothing else. */
   const expandable = !!board && !cue.simplified;
+
+  /* A brief read stays on screen without a tap: the nearest named thing, then
+     the next entry on the day. Two lines at most, recorded facts only. */
+  const preview: BoardLine[] = expandable && !open
+    ? (() => {
+        const pick = (key: BoardGroupKey) => board!.groups.find((g) => g.key === key)?.lines[0] ?? null;
+        return [pick("around"), pick("day") ?? pick("changed")].filter((l): l is BoardLine => !!l).slice(0, 2);
+      })()
+    : [];
 
   return (
     <div className={cn(MOTION_ARRIVE, className)}>
@@ -88,6 +97,36 @@ export function PlaceCueStrip({
           ) : null}
         </button>
       </div>
+
+      {/* The brief read, no tap needed. Tapping the line opens the rest. */}
+      {preview.length > 0 ? (
+        <div className="mb-1 space-y-0.5 border-l border-border/50 pl-3">
+          {preview.map((line) => (
+            <p key={line.key} className="truncate text-[12px] leading-snug text-muted-foreground">
+              {line.text}
+            </p>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[28px] text-[11.5px] text-primary hover:underline"
+          >
+            {board!.count > preview.length ? `More here (${board!.count})` : "More here"}
+          </button>
+        </div>
+      ) : null}
+
+      {expandable && !open && board!.count === 0 ? (
+        <div className="mb-1 border-l border-border/50 pl-3">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="min-h-[28px] text-left text-[11.5px] text-primary hover:underline"
+          >
+            Nothing read around here yet — see what's missing
+          </button>
+        </div>
+      ) : null}
 
       {expandable && open ? (
         <div className="mb-1 space-y-2 border-l border-border/50 pl-3">
