@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronUp, Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -37,6 +37,9 @@ import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
+import { SavedPlacesPanel } from "@/components/awareness/SavedPlacesPanel";
+import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
+import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -51,6 +54,11 @@ function freshLabel(generated: string | null): string {
   return `${days}d old — time for a refresh`;
 }
 
+/** "never scanned" → "Never scanned". Wording stays, the sentence starts right. */
+function sentenceCase(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function AwarenessSurface() {
   const { session } = useAuth();
   const { place, briefings, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
@@ -61,7 +69,7 @@ export function AwarenessSurface() {
   const { read: situation } = useSituation(digest);
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
-  const [showPlaces, setShowPlaces] = useState(false);
+  
   const [newLabel, setNewLabel] = useState("");
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -378,15 +386,6 @@ export function AwarenessSurface() {
                       <span className="truncate">Recenter</span>
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-9 gap-1 text-[12px] text-muted-foreground shrink-0"
-                    onClick={() => { setShowPlaces((v) => !v); setShowMore(true); }}
-                  >
-                    {showPlaces ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    Switch
-                  </Button>
                   <div className="shrink-0"><SourceStatusPill /></div>
                 </div>
               </div>
@@ -485,8 +484,61 @@ export function AwarenessSurface() {
 
         <AwarenessMapPanel places={places as any} onMoved={loadList} />
 
+        {/* The place desk proper: your pins, the named ground around the fix,
+            the running trip and every leg you've closed. */}
+        <SavedPlacesPanel
+          places={places.map((p) => ({
+            id: p.id,
+            label: p.label,
+            country: p.country ?? null,
+            region: p.region ?? null,
+            distanceM: savedNearby.find((s) => s.id === p.id)?.distanceM ?? null,
+            unresolved: classifyPlaceBadness(p as any).bad,
+          }))}
+          activeId={place?.id ?? null}
+          newLabel={newLabel}
+          onNewLabel={setNewLabel}
+          onCaptureHere={captureHere}
+          onSwitch={(id) => {
+            const row = places.find((p) => p.id === id);
+            void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
+          }}
+          onDelete={async (id, label) => {
+            if (!confirm(`Delete "${label}"?`)) return;
+            await deletePlace(id);
+            await loadList();
+            toast.success(vantaSay.placeDeleted());
+          }}
+        />
+
+        <NearbyPlacesPanel
+          rows={[
+            ...nearbyTowns.map((t) => ({
+              key: `town:${t.name}`,
+              name: t.name,
+              detail: t.kind ? `${t.kind}, from map data.` : null,
+              distanceM: t.distanceM,
+              source: "map" as const,
+            })),
+            ...(((snapshot?.full_data as any)?.local_signals ?? []) as Array<{ title?: string; snippet?: string; kind?: string; distance_m?: number }>)
+              .filter((s) => s.kind === "place" && s.title)
+              .map((s) => ({
+                key: `venue:${s.title}`,
+                name: String(s.title),
+                detail: s.snippet ?? null,
+                distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
+                source: "scan" as const,
+              })),
+          ]}
+          scanLine={sentenceCase(freshLabel(generatedAt ?? null))}
+          scanning={snapshotLoading}
+          onScan={() => refreshSnapshot(true)}
+        />
+
         {/* Trips — deliberate start and end, and what you've covered. */}
         <FieldSessionCard variant="aware" />
+
+        <TripHistoryPanel />
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {
@@ -666,69 +718,8 @@ export function AwarenessSurface() {
 
         </div>
 
-        {/* Places list — collapsed by default */}
-        {(showPlaces || !place) && (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input placeholder="Place label (optional)" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
-              <Button onClick={captureHere} className="gap-1 shrink-0">
-                <MapPin className="h-4 w-4" /> Use here
-              </Button>
-            </div>
-            {places.length === 0 ? (
-              <EmptyState
-                icon={<MapPin className="h-4 w-4" />}
-                title="No places saved"
-                hint="Tap Use here to save where you are. Saved places are what layers read from, so nothing is scanned until one exists."
-                flow={["Use here", "Place", "Layer read"]}
-              />
-            ) : (
-              <ul className="space-y-2">
-                {places.map((p) => {
-                  const isActive = place?.id === p.id;
-                  const pBad = classifyPlaceBadness(p as any).bad;
-                  return (
-                    <li key={p.id}>
-                      <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-surface-elevated/40 px-3 py-2">
-                        <MapPin className="h-4 w-4 text-primary/80 shrink-0" />
-                        <button
-                          onClick={() => !isActive && setActivePlace(p.id).then(() => toast.success(vantaSay.switchedPlace(p.label)))}
-                          className="text-left text-sm font-medium truncate hover:text-primary"
-                          disabled={isActive}
-                        >
-                          {p.label}
-                        </button>
-                        {pBad && (
-                          <span className="rounded-full bg-warn/15 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-warn ring-1 ring-warn/30">
-                            unresolved
-                          </span>
-                        )}
-                        {isActive && (
-                          <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary ring-1 ring-primary/30">
-                            active
-                          </span>
-                        )}
-                        {!isActive && (
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Delete "${p.label}"?`)) return;
-                              await deletePlace(p.id);
-                              toast.success(vantaSay.placeDeleted());
-                            }}
-                            className="ml-auto text-muted-foreground hover:text-destructive"
-                            title="Delete place"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        )}
+        {/* Saved places and nearby ground are first-class panels above — the
+            workings hold only the radar and layers now. */}
         </div>)}
       </div>
 

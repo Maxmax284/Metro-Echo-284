@@ -111,6 +111,12 @@ export type PlaceCueInput = {
   timezoneDrift?: boolean;
   /** A trip is running right now. */
   tripActive?: boolean;
+  /**
+   * How many recorded lines the place board holds behind the strip: named places
+   * nearby, local changes, entries on your day here. Real content earns the
+   * strip on its own; an empty board never does.
+   */
+  boardLines?: number;
   /** Severe board. Simplify rather than decorate. */
   pressure?: boolean;
 };
@@ -126,7 +132,7 @@ export type PlaceCue = {
   /** A real move, for one mechanical flip. Never continuous movement. */
   transition: { from: string; to: string } | null;
   /** Why the strip is on screen at all. */
-  reason: "moved" | "trip" | "clock" | "grounds" | null;
+  reason: "moved" | "trip" | "clock" | "grounds" | "board" | null;
   /** Severe state: the strip carries the place and nothing else. */
   simplified: boolean;
 };
@@ -153,8 +159,9 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
   const movedFrom = (input.movedFrom ?? "").trim();
   const transition = movedFrom && movedFrom !== where ? { from: movedFrom, to: where } : null;
 
-  /* The four reasons place is allowed to speak, in order of consequence. */
+  /* The reasons place is allowed to speak, in order of consequence. */
   const grounds = input.lineCount > 0 && (!!input.explainsRead || !stale);
+  const hasBoard = (input.boardLines ?? 0) > 0 && !stale;
   const reason: PlaceCue["reason"] = transition
     ? "moved"
     : input.tripActive
@@ -163,7 +170,9 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
         ? "clock"
         : grounds
           ? "grounds"
-          : null;
+          : hasBoard
+            ? "board"
+            : null;
 
   /* Quiet day, quiet strip. Echo does not prove it is running. */
   if (!reason) return HIDDEN;
