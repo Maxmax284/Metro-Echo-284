@@ -229,14 +229,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* One situational read, built from the same authoritative state Today already
      fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
-  /* Awareness gets one light line above the read, and only when place actually
-     changes what the day means. No card, and nothing at all on a quiet day. */
-  const placeCue = useTodayPlaceCue({
-    lineCount: situation.read?.lines.length ?? 0,
-    explainsRead: !!situation.read?.placeNote,
-    timezoneDrift: false,
-    pressure: security.tone === "critical" || security.tone === "attention",
-  });
   const health = useSourceHealth();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
@@ -262,6 +254,15 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     followNoticed,
     refresh,
   } = digest;
+
+  /* Awareness gets one light line above the read, and only when place actually
+     changes what the day means. No card, and nothing at all on a quiet day. */
+  const placeCue = useTodayPlaceCue({
+    lineCount: situation.read?.lines.length ?? 0,
+    explainsRead: !!situation.read?.placeNote,
+    timezoneDrift: tzState.drifted && !!tzState.storedTimezone,
+    pressure: security.tone === "critical" || security.tone === "attention",
+  });
 
   const securityEvents = events.filter((e) => e.event.startsWith("fenrir."));
   /* One "what changed" list: live arrivals on top of the recorded changes,
