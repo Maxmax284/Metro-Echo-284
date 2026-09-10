@@ -93,24 +93,42 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
   },
 ];
 
-/** The Telegram answer to "how do I use you". Short, no markdown tables. */
+/** The Telegram answer to "how do I use you". Detailed, plain English, no tables. */
 export function renderTelegramHelp(): string {
-  const commands = TELEGRAM_COMMANDS.map((c) => `${c.cmd} — ${c.does}`).join("\n");
-  const say = TELEGRAM_PHRASEBOOK.slice(0, 5).map((p) => `“${p}”`).join("\n");
+  const commands = TELEGRAM_COMMANDS.map((c) => `${c.cmd}\n   ${c.does}`).join("\n");
+  const say = TELEGRAM_PHRASEBOOK.map((p) => `• “${p}”`).join("\n");
+  const send = (TELEGRAM_GUIDE.find((s) => s.title === "What you can send it")?.lines ?? [])
+    .map((l) => `• ${l}`)
+    .join("\n");
   return [
-    "Here's the honest rundown.",
+    "Here's the honest rundown, in detail.",
     "",
-    "Same Echo as the app — same memory, same calendar, same rules. This is just the field door.",
+    "Same Echo as the app — same memory, same calendar, same rules. This is just the field door: quick, one-handed, wherever you are.",
     "",
-    "Shortcuts:",
+    "SHORTCUTS",
     commands,
     "",
-    "Or talk normal:",
+    "WHAT YOU CAN SEND ME",
+    send,
+    "",
+    "TALKING NORMAL",
+    "No keywords, no syntax. Rough voice-to-text is fine. If I'm not sure what you mean, I ask one question instead of guessing. Say “no” or “not that” and I fix the same draft instead of starting over.",
     say,
     "",
-    "What I won't do: change anything outside Metro Echo without your yes, guess when two sources disagree, or pretend a read-only calendar can be edited. Reading never stages anything.",
+    "WHERE IT LANDS",
+    "• Notes and files go to memory, attached to the right project or place.",
+    "• Promises you make out loud go on the board so they don't get lost.",
+    "• Calendar changes wait as a draft with buttons — nothing moves until you tap yes.",
+    "• Everything leaves a receipt you can read later in the app.",
     "",
-    "Full rundown lives in Settings → Telegram, and you can save it there.",
+    "WHAT I WON'T DO",
+    "• Change anything outside Metro Echo without your yes.",
+    "• Guess when two sources disagree — I show you the contradiction first.",
+    "• Pretend a calendar you added by link can be edited. It's read-only, and I'll say so.",
+    "• Finish big, messy or high-stakes changes from a chat window. Those get done in the app.",
+    "Reading never stages anything. Looking is just looking.",
+    "",
+    "Full rundown lives in Settings → Telegram, and you can save a copy there.",
   ].join("\n");
 }
 
