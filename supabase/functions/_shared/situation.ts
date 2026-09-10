@@ -225,6 +225,8 @@ const KIND_STAKES: Record<SituationKind, { matters: string; ignored: string | nu
   overdue: { matters: "You told someone this would be done.", ignored: "It stays open and keeps ageing. Nobody is told." },
   waiting_on_you: { matters: "Work is prepared but stopped at your approval.", ignored: "The draft sits there. Nothing runs on its own." },
   meeting_soon: { matters: "It starts soon and you may need something ready.", ignored: "The meeting still happens. Echo won't act for you." },
+  happening_now: { matters: "It is on your calendar and running right now.", ignored: "Nothing changes. It ends when the calendar says it ends." },
+
   due_soon: { matters: "The due time is close and it is still open.", ignored: "It becomes overdue." },
   noticed: { matters: "Echo spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
   matter_open: { matters: "Sources were read together and the result is unreviewed.", ignored: "The reading waits. Nothing is exported or sent." },
