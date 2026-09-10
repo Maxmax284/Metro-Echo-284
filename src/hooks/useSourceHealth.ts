@@ -105,11 +105,12 @@ export function useSourceHealth(): { sources: SourceHealth[]; loading: boolean; 
 
     setSources(out);
     setLoading(false);
-  }, [session?.user?.id, nonce]);
+  }, [uid]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // Refetch on an explicit refresh only; `load` itself is keyed to the user.
+  }, [load, nonce]);
 
   return { sources, loading, refresh: () => setNonce((n) => n + 1) };
 }
