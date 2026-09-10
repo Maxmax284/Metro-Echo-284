@@ -9,6 +9,7 @@ import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
+import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
 import {
   routeRequest,
   sanitizeQuery,
