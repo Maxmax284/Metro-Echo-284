@@ -525,6 +525,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 due_soon: "commitments",
                 waiting_on_you: "actions",
                 meeting_soon: "schedule",
+                happening_now: "schedule",
                 noticed: "awareness",
                 went_unusually_quiet: "projects",
                 matter_open: "sherlock",

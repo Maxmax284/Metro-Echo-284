@@ -14,7 +14,7 @@ import { ProvenanceStrip } from "@/components/ui/provenance";
 import { Button } from "@/components/ui/button";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
 import { quietLine, unknownLine, type SituationLine, type SituationRead as Read } from "@/lib/situation";
-import { MOTION_ROW, MOTION_SIGNAL } from "@/lib/motion";
+import { MOTION_FLIP, MOTION_ROW, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const OPEN_LABEL: Record<SituationLine["kind"], string> = {
