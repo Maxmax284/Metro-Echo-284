@@ -121,6 +121,7 @@ export type Database = {
       actions: {
         Row: {
           affected_entities: Json
+          archived_at: string | null
           created_at: string
           description: string | null
           executed_at: string | null
@@ -141,6 +142,7 @@ export type Database = {
         }
         Insert: {
           affected_entities?: Json
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           executed_at?: string | null
@@ -161,6 +163,7 @@ export type Database = {
         }
         Update: {
           affected_entities?: Json
+          archived_at?: string | null
           created_at?: string
           description?: string | null
           executed_at?: string | null
@@ -423,6 +426,7 @@ export type Database = {
       awareness_places: {
         Row: {
           address: string | null
+          archived_at: string | null
           category: string | null
           country: string | null
           created_at: string
@@ -436,6 +440,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
           category?: string | null
           country?: string | null
           created_at?: string
@@ -449,6 +454,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
           category?: string | null
           country?: string | null
           created_at?: string
