@@ -742,7 +742,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             )}
             {/* The calendar lives here too: what's next is promises and
                 meetings, one shelf. */}
-            <AgendaInNext onOpenWeek={() => onNavigate("schedule")} />
+            <AgendaInNext
+              events={agenda.events}
+              loading={agenda.loading}
+              onOpenWeek={() => onNavigate("schedule")}
+            />
           </Section>
           )}
 
