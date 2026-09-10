@@ -167,5 +167,5 @@ export function useAgenda(
 
   const days_ = useMemo(() => groupByDay(events), [events]);
 
-  return { events, days: days_, projects, loading, error, refresh, setProject };
+  return { events, ongoing, days: days_, projects, loading, error, refresh, setProject };
 }
