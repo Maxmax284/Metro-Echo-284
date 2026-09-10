@@ -924,7 +924,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </p>
                 )}
               </Section>
-            </>
+            </Lane>
           )}
         </>
       )}
