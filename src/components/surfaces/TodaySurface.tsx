@@ -766,6 +766,24 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           </Lane>
           )}
 
+          {/* Lane: the trip itself, read out of the calendar. Absent when there
+              is no travel on the books. */}
+          {travelEvents.length > 0 ? (
+            <Lane label="Travel" hint="Flights and stays on the books">
+              <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
+            </Lane>
+          ) : null}
+
+          {/* Lane: promises as a checklist. Same records, same close path. */}
+          {digest.commitments.length > 0 ? (
+            <Lane label="Tasks" hint="Open promises, closable here">
+              <TasksLane
+                tasks={digest.commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at }))}
+                onChanged={() => digest.refresh()}
+              />
+            </Lane>
+          ) : null}
+
           {/* Background wave: never blocks the two sections above. */}
           {backgroundError ? (
             <ErrorState
