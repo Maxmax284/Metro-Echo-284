@@ -37,6 +37,8 @@ export type CalendarChangeField =
   | "reminder"
   | "existence";
 
+export type CalendarExecuteMode = "create" | "update" | "delete";
+
 /** One field moving from one value to another. `before: null` means "not set". */
 export type CalendarFieldChange = {
   field: CalendarChangeField;
