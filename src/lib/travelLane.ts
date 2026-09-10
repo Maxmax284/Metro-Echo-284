@@ -48,7 +48,14 @@ export function travelLegs(events: EventLike[], now = Date.now()): TravelLeg[] {
   for (const e of events) {
     const kind = travelKind(e);
     if (!kind) continue;
-    const end = e.ends_at ? new Date(e.ends_at).getTime() : new Date(e.starts_at).getTime();
+    /* An all-day entry with no end covers its own day; a timed one with no end
+       is treated as ending when it started. Neither gets a made-up date. */
+    const start = new Date(e.starts_at).getTime();
+    const end = e.ends_at
+      ? new Date(e.ends_at).getTime()
+      : e.all_day
+        ? start + 86_400_000
+        : start;
     if (Number.isFinite(end) && end < now) continue;
     legs.push({
       id: e.id,
