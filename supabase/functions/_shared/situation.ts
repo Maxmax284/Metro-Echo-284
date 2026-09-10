@@ -340,6 +340,27 @@ export function readSituation(input: SituationInput): SituationRead {
     });
   }
 
+  /* What is already under way. One line, however many are running, because a
+     stay, a trip and a conference are one situation to a person standing in it.
+     The soon-meeting is never repeated here. */
+  const running = onNow(input.ongoing ?? [], now).filter((o) => o.id !== soonMeeting?.id);
+  if (running.length > 0) {
+    const first = running[0];
+    const rest = running.length - 1;
+    const until = untilPhrase(first.ends_at, now);
+    const base = `${first.title} is on now${until ? `, ${until}` : ""}`;
+    push({
+      kind: "happening_now",
+      source: "calendar",
+      text: rest > 0 ? `${base} — and ${rest} ${plural(rest, "other entry is", "other entries are")} running too.` : `${base}.`,
+      reason: "It started earlier and the calendar has it still running.",
+      at: first.starts_at,
+      entity: { type: "calendar_event", id: first.id },
+    });
+  }
+
+
+
   if (input.dueSoon.length > 0 && input.overdue.length === 0) {
     const first = input.dueSoon[0];
     const rest = input.dueSoon.length - 1;
