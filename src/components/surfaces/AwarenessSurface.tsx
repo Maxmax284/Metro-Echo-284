@@ -136,6 +136,21 @@ export function AwarenessSurface() {
     return out;
   })();
 
+  /* Real driving time to each of those places — road routing, one read per fix.
+     A route the router can't work out stays absent; the panel says so. */
+  const travelTargets = useMemo(
+    () =>
+      places
+        .filter((p) => p.id !== place?.id)
+        .map((p) => ({ id: p.id, lat: Number((p.geo as any)?.lat), lon: Number((p.geo as any)?.lon) }))
+        .filter((t) => Number.isFinite(t.lat) && Number.isFinite(t.lon)),
+    [places, place?.id],
+  );
+  const { legs: travelLegs } = useTravelTimes(
+    Number.isFinite(fixLat) && Number.isFinite(fixLon) ? { lat: fixLat, lon: fixLon } : null,
+    travelTargets,
+  );
+
   /* The read before the newest one, per layer. Recorded history only — this is
      what lets the "Changed" shelf say what moved instead of that a scan ran. */
   const previousBySection = (() => {
