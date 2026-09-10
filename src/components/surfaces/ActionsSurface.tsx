@@ -27,6 +27,8 @@ import { ReadNote } from "@/components/ui/inferred";
 import type { LifeEvent } from "@/lib/objectLife";
 import { DeskIntro } from "@/components/work/DeskIntro";
 import { DraftOrigin } from "@/components/work/DraftOrigin";
+import { ARCHIVE_COPY, archiveRecord, restoreRecord } from "@/lib/archive";
+import { Archive, ArchiveRestore } from "lucide-react";
 
 
 type Action = {
@@ -41,6 +43,8 @@ type Action = {
   source: string | null;
   affected_entities: unknown[] | null;
   rollback_available: boolean | null;
+  /** Set when the row has been cleared off the desk. Never deleted. */
+  archived_at?: string | null;
 };
 
 const RiskIcon = { low_reversible: ShieldCheck, standard: Shield, high: ShieldAlert } as const;
@@ -78,6 +82,8 @@ export function ActionsSurface() {
   const [rollbackText, setRollbackText] = useState("");
   const [receiptActionId, setReceiptActionId] = useState<string | null>(null);
   const [receiptAwaitWrite, setReceiptAwaitWrite] = useState(false);
+  /* Cleared rows stay on record; this only decides whether the desk shows them. */
+  const [showArchived, setShowArchived] = useState(false);
 
   /** Recorded life per action, so a card can explain itself without Receipts. */
   const [lives, setLives] = useState<Record<string, LifeEvent[]>>({});
@@ -85,7 +91,7 @@ export function ActionsSurface() {
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).is("archived_at", showArchived ? ("__never__" as never) : null).order("updated_at", { ascending: false }).limit(100),
+      applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available, archived_at")).order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
     const rows = (a.data ?? []) as Action[];
@@ -169,16 +175,54 @@ export function ActionsSurface() {
   };
 
   /* The waiting queue, so the desk can say its own depth. */
-  const waiting = actions.filter((a) => a.status === "proposed" || a.status === "staged");
+  const waiting = actions.filter((a) => !a.archived_at && (a.status === "proposed" || a.status === "staged"));
   const oldestWaiting = waiting.length
     ? waiting.reduce((o, a) => (new Date(a.created_at) < new Date(o.created_at) ? a : o))
     : null;
 
+  /* Cleared rows leave the desk unless you ask to see them. */
+  const visible = actions.filter((a) => (showArchived ? !!a.archived_at : !a.archived_at));
+  const archivedCount = actions.filter((a) => !!a.archived_at).length;
+  const settled = visible.filter(
+    (a) => a.status === "executed" || a.status === "audited" || a.status === "cancelled" || a.status === "rolled_back",
+  );
+
+  const clearSettled = async () => {
+    setBusy("clear");
+    try {
+      for (const a of settled) await archiveRecord("action", a.id, { label: a.title, reason: "cleared settled" });
+      toast.success(aftermathLine({ verb: "Cleared", appearsIn: "Receipts" }));
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't clear those.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const setArchived = async (a: Action, archived: boolean) => {
+    setBusy(a.id);
+    try {
+      if (archived) await archiveRecord("action", a.id, { label: a.title });
+      else await restoreRecord("action", a.id, { label: a.title });
+      toast.success(
+        archived
+          ? aftermathLine({ verb: "Archived", appearsIn: "Receipts" })
+          : aftermathLine({ verb: "Restored", appearsIn: "Actions" }),
+      );
+      await refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "That didn't go through.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const groups = {
-    "Ready to run": actions.filter((a) => a.status === "approved"),
-    "Needs your eye": actions.filter((a) => a.status === "proposed" || a.status === "staged"),
-    "Just ran": actions.filter((a) => a.status === "executed" || a.status === "audited"),
-    "Cancelled or undone": actions.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
+    "Ready to run": visible.filter((a) => a.status === "approved"),
+    "Needs your eye": visible.filter((a) => a.status === "proposed" || a.status === "staged"),
+    "Just ran": visible.filter((a) => a.status === "executed" || a.status === "audited"),
+    "Cancelled or undone": visible.filter((a) => a.status === "rolled_back" || a.status === "cancelled"),
   };
 
   return (
@@ -211,6 +255,22 @@ export function ActionsSurface() {
           </p>
         )}
 
+
+        {!loading && (archivedCount > 0 || settled.length > 0) && (
+          <div className="mb-3 flex flex-wrap items-center gap-1.5">
+            {settled.length > 0 && !showArchived && (
+              <Button size="sm" variant="secondary" className={cn("gap-1", MOTION_FOCUS)} disabled={busy === "clear"} onClick={clearSettled}>
+                <Archive className="h-3.5 w-3.5" /> Clear settled ({settled.length})
+              </Button>
+            )}
+            {archivedCount > 0 && (
+              <Button size="sm" variant="ghost" className={MOTION_FOCUS} onClick={() => setShowArchived((v) => !v)}>
+                {showArchived ? "Back to the desk" : `Archived (${archivedCount})`}
+              </Button>
+            )}
+            <span className="text-[10.5px] text-muted-foreground">{ARCHIVE_COPY.hint}</span>
+          </div>
+        )}
 
         {!loading && Object.entries(groups).map(([label, list]) =>
           list.length === 0 ? null : (
@@ -350,6 +410,22 @@ export function ActionsSurface() {
                               <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
                                 Cancel
                               </Button>
+                            )}
+
+                            {/* Clearing clutter is not forgetting: the row goes
+                                off the desk and the receipt stays. */}
+                            {a.archived_at ? (
+                              <Button size="sm" variant="ghost" className={cn("gap-1", MOTION_FOCUS)} disabled={busy === a.id} onClick={() => setArchived(a, false)}>
+                                <ArchiveRestore className="h-3.5 w-3.5" /> Restore
+                              </Button>
+                            ) : (
+                              a.status !== "proposed" &&
+                              a.status !== "staged" &&
+                              a.status !== "approved" && (
+                                <Button size="sm" variant="ghost" className={cn("gap-1", MOTION_FOCUS)} disabled={busy === a.id} onClick={() => setArchived(a, true)} title={ARCHIVE_COPY.hint}>
+                                  <Archive className="h-3.5 w-3.5" /> Archive
+                                </Button>
+                              )
                             )}
                           </div>
                         </div>
