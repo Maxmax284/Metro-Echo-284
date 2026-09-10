@@ -85,7 +85,7 @@ export function ActionsSurface() {
   const refresh = async () => {
     setLoading(true);
     const [a, e] = await Promise.all([
-      applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).order("updated_at", { ascending: false }).limit(100),
+      applyScope(supabase.from("actions").select("id, title, description, risk, status, created_at, updated_at, payload, source, affected_entities, rollback_available")).is("archived_at", showArchived ? ("__never__" as never) : null).order("updated_at", { ascending: false }).limit(100),
       supabase.from("action_executors").select("id, name, kind, enabled").eq("enabled", true),
     ]);
     const rows = (a.data ?? []) as Action[];

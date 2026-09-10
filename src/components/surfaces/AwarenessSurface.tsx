@@ -194,8 +194,16 @@ export function AwarenessSurface() {
     const { data } = await supabase
       .from("awareness_places")
       .select("id,label,geo,country,region,updated_at,category,notes,address")
+      .is("archived_at", null)
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as AwarenessPlace[]);
+    const { data: gone } = await supabase
+      .from("awareness_places")
+      .select("id,label,country,region,archived_at")
+      .not("archived_at", "is", null)
+      .order("archived_at", { ascending: false })
+      .limit(30);
+    setArchivedPlaces((gone ?? []) as ArchivedPlaceRow[]);
   };
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);

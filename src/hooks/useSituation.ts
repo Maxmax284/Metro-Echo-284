@@ -268,6 +268,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
     const placeRes = await supabase
       .from("awareness_places")
       .select("id, label, geo, country, region, updated_at")
+      .is("archived_at", null)
       .order("updated_at", { ascending: false })
       .limit(12);
     const placeRows = (placeRes.data ?? []) as Array<AwarenessPlace & { updated_at: string }>;
