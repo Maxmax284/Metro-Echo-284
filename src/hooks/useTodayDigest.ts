@@ -4,7 +4,7 @@
 // approval) renders as soon as it lands, and the background wave (receipts,
 // fresh captures, security) fills in after. A slow or failing background feed
 // never blocks Today.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
