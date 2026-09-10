@@ -24,6 +24,10 @@ export type SavedPlaceRow = {
   /** Road distance from the same route, when the router returned one. */
   roadDistanceM?: number | null;
   unresolved?: boolean;
+  /** Your own words when you seeded the place by hand. Never inferred. */
+  category?: string | null;
+  notes?: string | null;
+  address?: string | null;
 };
 
 export function SavedPlacesPanel({
