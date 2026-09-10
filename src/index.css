@@ -528,22 +528,22 @@
 }
 
 /* Reading out loud: the lead line of a new read types on once, with a thin
-   block caret while it is still writing. The caret is the only blinking thing
-   in the app and it exists for at most one line, then it is gone. */
-@keyframes vanta-caret {
+   block caret while it is still writing. It exists for one line at a time and
+   is gone the moment the line finishes. */
+@keyframes vanta-typing-blink {
   0%, 45%  { opacity: 1; }
   50%, 95% { opacity: 0.15; }
   100%     { opacity: 1; }
 }
-.vanta-caret::after {
+.vanta-typing::after {
   content: "";
   display: inline-block;
-  width: 0.42em;
-  height: 1em;
-  margin-left: 0.12em;
-  translate: 0 0.12em;
+  width: 0.4em;
+  height: 0.9em;
+  margin-left: 0.1em;
+  translate: 0 0.08em;
   background: hsl(var(--primary) / 0.75);
-  animation: vanta-caret 900ms steps(1, end) infinite;
+  animation: vanta-typing-blink 900ms steps(1, end) infinite;
 }
 
 /* Lane rail: a hairline down the left of a Today lane so grouped rows read as
