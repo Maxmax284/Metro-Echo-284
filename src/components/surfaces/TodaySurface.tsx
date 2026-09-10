@@ -785,7 +785,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Button>
             </section>
           ) : (
-            <>
+            /* Lane three: what already happened, and what landed. */
+            <Lane label="History" hint="Recorded, newest first">
+
 
               <Section
                 title="Security"
