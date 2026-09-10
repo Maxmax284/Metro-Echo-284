@@ -88,7 +88,7 @@ export function FirstRunCapture({ className }: { className?: string }) {
       Icon: Smartphone,
       ready: telegram || Boolean(emailSlug),
       hint: telegram || emailSlug ? undefined : "Not connected yet",
-      href: telegram || emailSlug ? undefined : "/settings/integrations",
+      href: telegram || emailSlug ? undefined : "/settings/telegram",
     },
   ];
 
