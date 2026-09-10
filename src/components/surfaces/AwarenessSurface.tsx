@@ -192,7 +192,7 @@ export function AwarenessSurface() {
   const loadList = async () => {
     const { data } = await supabase
       .from("awareness_places")
-      .select("id,label,geo,country,region,updated_at")
+      .select("id,label,geo,country,region,updated_at,category,notes,address")
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as AwarenessPlace[]);
   };
