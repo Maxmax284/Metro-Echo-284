@@ -24,6 +24,10 @@ export type SavedPlaceRow = {
   /** Road distance from the same route, when the router returned one. */
   roadDistanceM?: number | null;
   unresolved?: boolean;
+  /** Your own words when you seeded the place by hand. Never inferred. */
+  category?: string | null;
+  notes?: string | null;
+  address?: string | null;
 };
 
 export function SavedPlacesPanel({
@@ -106,6 +110,11 @@ export function SavedPlacesPanel({
                     className="block max-w-full truncate text-left text-[13px] font-medium text-foreground hover:text-primary disabled:cursor-default"
                   >
                     {p.label}
+                    {p.category ? (
+                      <span className="ml-1.5 align-middle text-[10px] uppercase tracking-wider text-muted-foreground">
+                        {p.category}
+                      </span>
+                    ) : null}
                   </button>
                   <p className="truncate text-[11px] text-muted-foreground">
                     {isActive
@@ -114,6 +123,12 @@ export function SavedPlacesPanel({
                           .filter(Boolean)
                           .join(" · ")}
                   </p>
+                  {p.address ? (
+                    <p className="truncate text-[10.5px] text-muted-foreground/70">{p.address}</p>
+                  ) : null}
+                  {p.notes ? (
+                    <p className="line-clamp-2 text-[11px] leading-snug text-foreground/80">{p.notes}</p>
+                  ) : null}
                   {!isActive && !drive && dist ? (
                     <p className="truncate text-[10.5px] text-muted-foreground/70">
                       No road route on file — straight-line distance only.

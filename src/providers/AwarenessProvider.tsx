@@ -12,6 +12,10 @@ export type AwarenessPlace = {
   country: string | null;
   region: string | null;
   updated_at?: string;
+  /** Your own words, when you seeded the place by hand. */
+  category?: string | null;
+  notes?: string | null;
+  address?: string | null;
 };
 
 export type AwarenessBriefing = {

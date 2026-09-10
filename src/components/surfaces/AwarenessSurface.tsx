@@ -39,6 +39,7 @@ import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
 import { SavedPlacesPanel } from "@/components/awareness/SavedPlacesPanel";
+import { AddPlaceForm } from "@/components/awareness/AddPlaceForm";
 import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 
@@ -192,7 +193,7 @@ export function AwarenessSurface() {
   const loadList = async () => {
     const { data } = await supabase
       .from("awareness_places")
-      .select("id,label,geo,country,region,updated_at")
+      .select("id,label,geo,country,region,updated_at,category,notes,address")
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as AwarenessPlace[]);
   };
@@ -554,6 +555,9 @@ export function AwarenessSurface() {
           }}
         />
 
+        {/* Seed a place by hand — address, category, your notes. */}
+        <AddPlaceForm onSaved={loadList} />
+
         {/* The place desk proper: your pins, the named ground around the fix,
             the running trip and every leg you've closed. */}
         <SavedPlacesPanel
@@ -566,6 +570,9 @@ export function AwarenessSurface() {
             travelS: travelLegs[p.id]?.durationS ?? null,
             roadDistanceM: travelLegs[p.id]?.distanceM ?? null,
             unresolved: classifyPlaceBadness(p as any).bad,
+            category: p.category ?? null,
+            notes: p.notes ?? null,
+            address: p.address ?? null,
           }))}
           activeId={place?.id ?? null}
           newLabel={newLabel}

@@ -1,0 +1,4 @@
+ALTER TABLE public.awareness_places
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS notes TEXT,
+  ADD COLUMN IF NOT EXISTS address TEXT;
