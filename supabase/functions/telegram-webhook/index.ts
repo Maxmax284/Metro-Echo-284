@@ -1411,10 +1411,12 @@ Deno.serve(async (req) => {
 
     let reply = VANTA_PHRASES.gotIt();
     let markup: TgReplyMarkup | undefined;
+    let calendarActionId: string | null = null;
     try {
       const out = await aiRespond(admin, link.user_id, text, routeOrgId, chatId);
       reply = out.reply;
       markup = out.markup;
+      calendarActionId = out.calendarActionId ?? null;
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
@@ -1423,12 +1425,28 @@ Deno.serve(async (req) => {
       user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
       direction: "out", text: reply, kind: "text", sent_by: "vanta",
     });
-    await tg("sendMessage", {
+    const sent = await tg("sendMessage", {
       chat_id: chatId,
       text: reply,
       disable_web_page_preview: true,
       ...(markup ? { reply_markup: markup } : {}),
     });
+    /* Remember where this proposal's Yes/No lives. If the same action is decided
+       in Metro Echo, those buttons are retired instead of asking twice. */
+    if (calendarActionId) {
+      try {
+        const messageId = (await sent.json())?.result?.message_id ?? null;
+        if (messageId) {
+          const { data: act } = await admin.from("actions")
+            .select("payload").eq("id", calendarActionId).eq("user_id", link.user_id).maybeSingle();
+          if (act && isCalendarProposal(act.payload)) {
+            await admin.from("actions")
+              .update({ payload: withTelegramRef(act.payload, { chat_id: Number(chatId), message_id: Number(messageId) }) })
+              .eq("id", calendarActionId).eq("status", "staged");
+          }
+        }
+      } catch { /* best-effort: a missing ref only means the buttons stay put */ }
+    }
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     console.error("telegram-webhook error", e);
