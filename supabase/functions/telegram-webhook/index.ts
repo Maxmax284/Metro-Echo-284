@@ -20,6 +20,13 @@ import {
   type CalendarFieldChange,
 } from "../_shared/calendarProposal.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
+import {
+  answerAfterEvent,
+  answerCalendarQuestion,
+  clockLabel,
+  parseCalendarQuestion,
+  type CalReadEvent,
+} from "../_shared/calendarRead.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
@@ -116,7 +123,7 @@ const ROUTE_LABEL: Record<string, string> = {
   memory: "a note for Memory",
   commitment: "a commitment",
   reminder: "a reminder",
-  action: "an action draft",
+  action: "something waiting on your yes",
   sherlock: "something worth a closer look",
   ignore: "noise to file away",
 };
@@ -127,13 +134,18 @@ const ROUTE_LABEL: Record<string, string> = {
 // from the shared response-depth model, so Telegram can never drift into its own
 // private compression rules.
 const TELEGRAM_CHANNEL = `Telegram channel law:
-Messaging feeds the system — it does not control it. Never claim to have executed anything risky;
-notes, actions, and commitments surface as drafts inside the app for review.
-You CAN answer read-only questions about the user's desks by calling the read
-tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
-of guessing from chat history — never invent counts or names. You can also file an
-existing capture under a project. You cannot approve, execute, export, send, book,
-or pay anything; for those, say it's waiting inside Metro Echo — flatly, not apologetically.
+Telegram is not a remote control — it is the same Echo, in the user's pocket. Same memory,
+same calendar, same drafts, same approval spine as the app. Never say "open Metro Echo" for
+something you can already do here.
+You CAN read: their desks (whats_waiting, whats_due, project_status, whats_changed) and their
+calendar (whats_on_calendar). Call the tools instead of guessing — never invent a count, a
+time or a name. A read-only calendar feed means you cannot CHANGE a calendar; it has never
+meant you cannot READ one.
+You CAN propose a calendar change with stage_calendar_change and, when the user then refines it
+("actually 3:30"), update that same pending proposal with refine_calendar_change. The user
+decides right here with Yes / No. A yes approves only that one change, never future ones.
+Say plainly that nothing has changed anywhere until it actually has.
+You still cannot export, send, book or pay anything.
 Never write a tidy assistant paragraph.`;
 
 
