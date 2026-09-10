@@ -148,11 +148,15 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   // user filed it — so remember the links before replacing the window.
   // The same read is the before-picture used to work out what actually changed:
   // "synced" is not news, "your Tuesday meeting moved" is.
+  // The window is anything touching it, not only what begins inside it — a stay
+  // that started last week is still the truest thing about today.
+  const fromIso = new Date(fromMs).toISOString();
+  const inWindow = `starts_at.gte.${fromIso},ends_at.gt.${fromIso}`;
   const { data: priorRows } = await sb
     .from("calendar_events")
     .select("uid, starts_at, title, project_id")
     .eq("feed_id", feed.id)
-    .gte("starts_at", new Date(fromMs).toISOString());
+    .or(inWindow);
   const prior = (priorRows ?? []) as PriorRow[];
   const priorLinks = new Map<string, string>();
   for (const r of prior) {
@@ -161,7 +165,7 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
 
   // Replace the window: the feed is the source of truth, so removed entries
   // must disappear instead of lingering as ghosts.
-  await sb.from("calendar_events").delete().eq("feed_id", feed.id).gte("starts_at", new Date(fromMs).toISOString());
+  await sb.from("calendar_events").delete().eq("feed_id", feed.id).or(inWindow);
 
   if (events.length) {
     const rows = events.map((e) => ({

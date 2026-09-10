@@ -47,7 +47,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_ARRIVE, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, feelMs } from "@/lib/motion";
+import { LEAD_BAR, MOTION_ARRIVE, MOTION_BOOT, MOTION_FLIP, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, feelMs } from "@/lib/motion";
 import { untilPhrase } from "@/lib/situation";
 
 import {
@@ -173,34 +173,93 @@ function gapLine(mins: number): string {
   return m ? `${h}h ${m}m clear` : `${h}h clear`;
 }
 
+/**
+ * A lane label. Today reads top to bottom as three answers — what is true right
+ * now, what is coming, what already happened — so each lane says which of the
+ * three you are looking at instead of leaving the reader to infer it from a
+ * stack of same-sized cards.
+ */
+function Lane({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2.5" aria-label={label}>
+      <div className="flex items-baseline gap-2 px-1">
+        <MachineLabel className="shrink-0 text-foreground/70">{label}</MachineLabel>
+        <span className="h-px min-w-4 flex-1 bg-border/50" aria-hidden />
+        <span className="shrink-0 text-[10.5px] leading-snug text-muted-foreground">{hint}</span>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+type OngoingEntryRow = ReturnType<typeof useAgenda>["ongoing"][number];
+
+/**
+ * One running truth. When its wording changes — a stay now ends on a different
+ * day, an entry is about to close — the line turns over once like a split-flap
+ * board instead of quietly swapping text. It never re-flips on re-render.
+ */
+function RunningLine({ entry }: { entry: OngoingEntryRow }) {
+  const until = untilPhrase(entry.ends_at, Date.now()) ?? "no end time on file";
+  const text = `${entry.title || "Untitled entry"}|${until}`;
+  const previous = useRef(text);
+  const [flipped, setFlipped] = useState(false);
+  useEffect(() => {
+    if (previous.current === text) return;
+    previous.current = text;
+    setFlipped(true);
+    const t = setTimeout(() => setFlipped(false), feelMs(700, { min: 0 }) || 1);
+    return () => clearTimeout(t);
+  }, [text]);
+
+  return (
+    <div
+      className={cn(
+        "flex items-baseline gap-2 vanta-inset px-2.5 py-1.5",
+        LEAD_BAR,
+        "text-accent",
+        flipped && MOTION_FLIP,
+      )}
+    >
+      <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
+        {entry.title || "Untitled entry"}
+      </span>
+      <MachineText className="shrink-0 text-[10px] text-muted-foreground">{until}</MachineText>
+    </div>
+  );
+}
+
+/** What is already running, in its own lane. Reads only. */
+function RunningNow({ ongoing }: { ongoing: OngoingEntryRow[] }) {
+  if (ongoing.length === 0) return null;
+  return (
+    <section className="vanta-card space-y-1.5 px-4 py-3">
+      <MachineLabel className="text-foreground/60">On now</MachineLabel>
+      {ongoing.slice(0, 3).map((e) => (
+        <RunningLine key={e.id} entry={e} />
+      ))}
+      <p className="pt-0.5 text-[11px] leading-snug text-muted-foreground">
+        Read from your calendar. No end time on file means Echo will not guess one.
+      </p>
+    </section>
+  );
+}
+
 /** The next couple of calendar entries, folded into What's next. Reads only. */
-function AgendaInNext({ onOpenWeek }: { onOpenWeek?: () => void }) {
-  const { events, ongoing, loading } = useAgenda({ days: 2 });
-  if (loading || (events.length === 0 && ongoing.length === 0)) return null;
+function AgendaInNext({
+  events,
+  loading,
+  onOpenWeek,
+}: {
+  events: ReturnType<typeof useAgenda>["events"];
+  loading: boolean;
+  onOpenWeek?: () => void;
+}) {
+  if (loading || events.length === 0) return null;
   const shown = events.slice(0, 3);
   const more = events.length - shown.length;
   return (
     <div className="mt-2 border-t border-border/40 pt-2.5">
-      {/* What is already running. It never starts today, so a "what's next"
-          read alone would leave the truest thing about your day off the page. */}
-      {ongoing.length > 0 ? (
-        <div className={cn("mb-2.5 space-y-1", MOTION_ARRIVE)}>
-          <MachineLabel className="text-foreground/60">On now</MachineLabel>
-          {ongoing.slice(0, 2).map((e) => (
-            <div
-              key={e.id}
-              className={cn("flex items-baseline gap-2 vanta-inset px-2.5 py-1.5", LEAD_BAR, "text-accent")}
-            >
-              <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
-                {e.title || "Untitled entry"}
-              </span>
-              <MachineText className="shrink-0 text-[10px] text-muted-foreground">
-                {untilPhrase(e.ends_at, Date.now()) ?? "no end time on file"}
-              </MachineText>
-            </div>
-          ))}
-        </div>
-      ) : null}
       <div className="mb-1.5 flex items-center gap-2">
         <MachineLabel className="text-foreground/60">On your day</MachineLabel>
 
@@ -254,6 +313,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
   const health = useSourceHealth();
+  /* One calendar read for the whole surface: what is running now goes in the
+     first lane, what is coming goes in the second. Two hooks would mean two
+     queries for the same truth. */
+  const agenda = useAgenda({ days: 2 });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
@@ -462,6 +525,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 due_soon: "commitments",
                 waiting_on_you: "actions",
                 meeting_soon: "schedule",
+                happening_now: "schedule",
                 noticed: "awareness",
                 went_unusually_quiet: "projects",
                 matter_open: "sherlock",
@@ -547,7 +611,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <>
           <TodayBodyPanel />
 
-
+          {/* Lane one: what is true as you read this. */}
+          {agenda.ongoing.length > 0 || !quiet ? (
+            <Lane label="Happening now" hint="True as of this minute">
+          <RunningNow ongoing={agenda.ongoing} />
           {!quiet && (
             <Section
               title="Needs attention"
@@ -609,8 +676,12 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </div>
             </Section>
           )}
+            </Lane>
+          ) : null}
 
+          {/* Lane two: what is coming. */}
           {nextTotal > 0 && (
+          <Lane label="Next up" hint="Promises and meetings ahead">
           <Section
             title="What's next"
             hint={sectionNote("today.next")}
@@ -679,8 +750,13 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             )}
             {/* The calendar lives here too: what's next is promises and
                 meetings, one shelf. */}
-            <AgendaInNext onOpenWeek={() => onNavigate("schedule")} />
+            <AgendaInNext
+              events={agenda.events}
+              loading={agenda.loading}
+              onOpenWeek={() => onNavigate("schedule")}
+            />
           </Section>
+          </Lane>
           )}
 
           {/* Background wave: never blocks the two sections above. */}
@@ -710,7 +786,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Button>
             </section>
           ) : (
-            <>
+            /* Lane three: what already happened, and what landed. */
+            <Lane label="History" hint="Recorded, newest first">
+
 
               <Section
                 title="Security"
@@ -847,7 +925,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </p>
                 )}
               </Section>
-            </>
+            </Lane>
           )}
         </>
       )}

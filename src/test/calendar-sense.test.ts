@@ -124,3 +124,35 @@ describe("calendar sense", () => {
     expect(out.every((s) => s.scope.organizationId === null)).toBe(true);
   });
 });
+
+describe("a stay that is already underway", () => {
+  it("stays in the window it overlaps, not only the one it starts in", () => {
+    const feed = [
+      "BEGIN:VEVENT",
+      "UID:stay@example",
+      "DTSTART;VALUE=DATE:20260909",
+      "DTEND;VALUE=DATE:20260920",
+      "SUMMARY:Stay at Wingate by Wyndham",
+      "LOCATION:Chantilly\\, VA",
+      "END:VEVENT",
+    ].join("\r\n");
+    const from = Date.UTC(2026, 8, 14);
+    const events = parseIcs(feed, { fromMs: from, toMs: from + 30 * 86_400_000 });
+    expect(events).toHaveLength(1);
+    expect(events[0].allDay).toBe(true);
+    expect(events[0].endsAt).toBe(new Date(Date.UTC(2026, 8, 20)).toISOString());
+  });
+
+  it("says nothing about an entry that already ended", () => {
+    const feed = [
+      "BEGIN:VEVENT",
+      "UID:past@example",
+      "DTSTART;VALUE=DATE:20260901",
+      "DTEND;VALUE=DATE:20260903",
+      "SUMMARY:Old stay",
+      "END:VEVENT",
+    ].join("\r\n");
+    const from = Date.UTC(2026, 8, 14);
+    expect(parseIcs(feed, { fromMs: from, toMs: from + 86_400_000 })).toHaveLength(0);
+  });
+});

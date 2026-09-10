@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { CheckCircle2, Clock, X, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
+import { MOTION_STAMPED_DONE, feelMs } from "@/lib/motion";
 import { AskAboutButton } from "@/components/ask/AskAboutButton";
 import { ConfirmConsequenceDialog } from "@/components/ui/consequence-preview";
 import { closeCommitmentConsequence, snoozeCommitmentConsequence, type Consequence } from "@/lib/consequence";
@@ -38,6 +39,15 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     | { kind: "snooze"; consequence: Consequence; at: Date; label: string }
     | null
   >(null);
+
+  /* Closing a promise should be visible: the row it lives in presses down and
+     dims for a beat before the list refreshes it away, so the close reads as a
+     thing that happened rather than a row that blinked out. */
+  const wrap = useRef<HTMLDivElement>(null);
+  const stampRow = () => {
+    const row = wrap.current?.closest("[data-echo-row], li, .vanta-inset") ?? wrap.current?.parentElement;
+    if (row instanceof HTMLElement) row.classList.add(MOTION_STAMPED_DONE);
+  };
 
   const isReminder = !!c.remind_at;
   const tap = size === "sm" ? "h-7 w-7" : "h-8 w-8";
@@ -92,7 +102,10 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
     toast.success({ title: vantaSay.markedDone() });
     setBusy(null);
     setPending(null);
-    onChanged?.();
+    stampRow();
+    const hold = feelMs(420, { min: 0 });
+    if (hold) setTimeout(() => onChanged?.(), hold);
+    else onChanged?.();
   };
 
   const snoozeTo = async (target: Date, label: string) => {
@@ -153,7 +166,7 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
   })();
 
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div ref={wrap} className="flex shrink-0 items-center gap-1">
       <ConfirmConsequenceDialog
         open={!!pending}
         title={

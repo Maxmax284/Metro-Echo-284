@@ -151,7 +151,7 @@ function eventsFrom(props: Record<string, Prop>, window: IcsWindow): IcsEvent[] 
 
   const rule = props.RRULE ? simpleRepeat(props.RRULE.value) : null;
   if (!rule) {
-    return startMs_inWindow(dtstart.ms, window) ? [make(dtstart.ms)] : [];
+    return overlapsWindow(dtstart.ms, durationMs, window) ? [make(dtstart.ms)] : [];
   }
 
   const events: IcsEvent[] = [];
@@ -161,15 +161,25 @@ function eventsFrom(props: Record<string, Prop>, window: IcsWindow): IcsEvent[] 
   while (startMs < window.toMs && n < 500) {
     if (rule.count != null && n >= rule.count) break;
     if (rule.untilMs != null && startMs > rule.untilMs) break;
-    if (startMs_inWindow(startMs, window)) events.push(make(startMs));
+    if (overlapsWindow(startMs, durationMs, window)) events.push(make(startMs));
     startMs += rule.stepMs;
     n++;
   }
   return events;
 }
 
-function startMs_inWindow(ms: number, w: IcsWindow): boolean {
-  return ms >= w.fromMs && ms < w.toMs;
+/**
+ * An entry belongs in the window when any part of it falls inside it — not only
+ * when it *begins* there. A hotel stay, a travel week or a conference starts
+ * days before you ask about today, and asking only about start times is exactly
+ * how the truest thing about a day gets dropped on the floor.
+ *
+ * An entry with no recorded end is treated as a moment: no duration is invented
+ * for it, so it counts only if it begins inside the window.
+ */
+export function overlapsWindow(startMs: number, durationMs: number, w: IcsWindow): boolean {
+  const endMs = startMs + Math.max(0, durationMs);
+  return startMs < w.toMs && endMs > w.fromMs;
 }
 
 /** webcal:// is just https:// wearing a hat. */
