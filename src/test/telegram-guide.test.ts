@@ -4,7 +4,7 @@ import {
   matchHelpQuestion,
   renderTelegramGuideMarkdown,
   renderTelegramHelp,
-} from "../../supabase/functions/_shared/telegramGuide";
+} from "../../supabase/functions/_shared/telegram_guide";
 
 describe("telegram guide", () => {
   it("hears the ways people actually ask how to use it", () => {

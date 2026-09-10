@@ -10,7 +10,7 @@ import {
   TELEGRAM_GUIDE,
   TELEGRAM_PHRASEBOOK,
   renderTelegramGuideMarkdown,
-} from "../../../supabase/functions/_shared/telegramGuide";
+} from "../../../supabase/functions/_shared/telegram_guide";
 
 export function TelegramGuideCard({ botUsername }: { botUsername?: string | null }) {
   const [open, setOpen] = useState(true);

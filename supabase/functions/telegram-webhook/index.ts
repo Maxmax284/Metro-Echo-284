@@ -43,7 +43,7 @@ import {
   type AgendaCommitment,
   type AgendaPendingChange,
 } from "../_shared/calendarAgenda.ts";
-import { matchHelpQuestion, renderTelegramHelp } from "../_shared/telegramGuide.ts";
+import { matchHelpQuestion, renderTelegramHelp } from "../_shared/telegram_guide.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
