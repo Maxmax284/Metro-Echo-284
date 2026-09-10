@@ -627,6 +627,9 @@ export function headlineFor(lines: SituationLine[]): string {
       return "Work is drafted and waiting on your call.";
     case "meeting_soon":
       return "You're due somewhere shortly.";
+    case "happening_now":
+      return "Here's what you're in the middle of.";
+
     case "due_soon":
       return "Here's what's next.";
     case "noticed":
