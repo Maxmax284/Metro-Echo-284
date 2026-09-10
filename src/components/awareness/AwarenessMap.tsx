@@ -56,14 +56,38 @@ function Recenter({ center }: { center: [number, number] }) {
 
 type PlaceRow = PlaceLike & { id: string; label: string };
 
+/** Named ground around the fix: map-data towns and scanned venues. */
+export type NearbyMapPin = {
+  key: string;
+  name: string;
+  detail?: string | null;
+  lat: number;
+  lon: number;
+  distanceM?: number | null;
+  source: "map" | "scan";
+};
+
+const nearbyIcon = L.divIcon({
+  className: "",
+  html:
+    '<span style="display:block;width:10px;height:10px;border-radius:2px;background:hsl(var(--muted-foreground));box-shadow:0 0 0 2px hsl(var(--background))"></span>',
+  iconSize: [10, 10],
+  iconAnchor: [5, 5],
+});
+
 export function AwarenessMap({
   places,
+  nearby,
   className,
   onMoved,
+  onSelectPlace,
 }: {
   places: PlaceRow[];
+  nearby?: NearbyMapPin[];
   className?: string;
   onMoved?: () => void;
+  /** Tapping one of your own pins. Switching is always your tap. */
+  onSelectPlace?: (id: string) => void;
 }) {
   const { place, refresh } = useAwareness();
   const { points, running } = useTrips();
