@@ -321,6 +321,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }
     }
 
+    if (stale()) return;
     setRead(
       readSituation({
         overdue: digest.overdue.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at })),
@@ -355,7 +356,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }),
     );
     setLoading(false);
-  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick, snapshot?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, scopeKey, overdueKey, dueSoonKey, actionsKey, noticedKey, applyScope, placeTick, snapshot?.id]);
 
   useEffect(() => {
     if (digest.loadingCritical) return;
