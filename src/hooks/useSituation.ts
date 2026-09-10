@@ -34,9 +34,22 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
   const placeTick = `${livePlace?.id ?? ""}|${livePlace?.updated_at ?? ""}|${livePlace?.country ?? ""}`;
   const [read, setRead] = useState<SituationRead | null>(null);
   const [loading, setLoading] = useState(true);
+  /* Only the newest read may speak. Two reads in flight used to land in
+     whatever order the network felt like, so the same row alternated between
+     two truthful-but-different sentences. A stale answer is discarded. */
+  const runRef = useRef(0);
+  /* The rows this read is built from, identified by content instead of by
+     array identity — a refetch that returns the same promises must not count
+     as a change. */
+  const overdueKey = digest.overdue.map((c) => `${c.id}:${c.due_at ?? ""}`).join(",");
+  const dueSoonKey = [...digest.dueToday, ...digest.upcoming].map((c) => `${c.id}:${c.due_at ?? ""}`).join(",");
+  const actionsKey = digest.actions.map((a) => `${a.id}:${a.updated_at ?? ""}`).join(",");
+  const noticedKey = digest.noticed?.id ?? "";
 
   const build = useCallback(async () => {
     if (!session?.user) return;
+    const run = ++runRef.current;
+    const stale = () => run !== runRef.current;
     setLoading(true);
     const unknownSources: SituationSource[] = [];
 
