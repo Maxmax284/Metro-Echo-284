@@ -12,6 +12,15 @@ import { linkEntities } from "@/lib/entityGraph";
 import { useScope } from "@/hooks/useScope";
 import { useStageAction } from "@/hooks/useStageAction";
 import { askAftermath } from "@/lib/vantaNouns";
+import {
+  buildCalendarProposal,
+  calendarProposalRisk,
+  calendarProposalTitle,
+  proposalSummary,
+  type CalendarFieldChange,
+} from "@/lib/calendarProposal";
+import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
+import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -77,6 +86,99 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
           onAck?.({ kind: "stage_action", id: actionId, summary: args.title || "Action" });
+        } else if (kind === "stage_calendar_change") {
+          /* A calendar change is a staged action like any other: it resolves the
+             event first, shows exact before/after, and never touches the
+             provider. While the calendar is read-only, approval only holds it. */
+          const { data: eventRows } = await supabase
+            .from("calendar_events")
+            .select("feed_id, uid, starts_at, ends_at, title")
+            .gte("starts_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+            .order("starts_at", { ascending: true })
+            .limit(200);
+          const events = ((eventRows ?? []) as any[]).map((r) => ({
+            feed_id: r.feed_id ?? null,
+            uid: r.uid ?? null,
+            starts_at: r.starts_at,
+            ends_at: r.ends_at ?? null,
+            title: r.title ?? "Untitled",
+          })) as ResolvableEvent[];
+
+          const reference = String(args.event_reference ?? "").trim();
+          let target: ResolvableEvent | null = null;
+          if (reference) {
+            const resolved = resolveEventReference(reference, events);
+            if (resolved.status === "none") {
+              toast.warning({
+                title: "I couldn't find that one",
+                description: `Nothing on the calendar matches "${reference}". Nothing has changed.`,
+              });
+              return;
+            }
+            if (resolved.status === "many") {
+              toast.warning({
+                title: "Which one do you mean?",
+                description: resolved.candidates.map((c) => c.title).join(" · "),
+              });
+              return;
+            }
+            target = resolved.event;
+          }
+
+          const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : [])
+            .map((c: any) => {
+              const field = normalizeCalendarField(c?.field);
+              return {
+                field,
+                label: calendarFieldLabel(field),
+                /* An omitted `after` means removal — same reading as Telegram. */
+                before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+                after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
+              };
+            });
+
+          if (!changes.length) {
+            toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
+            return;
+          }
+
+          const timeChange = changes.find((c) => c.field === "time" && c.after);
+          const proposedStart = timeChange?.after ? new Date(timeChange.after) : null;
+          const conflicts =
+            proposedStart && !Number.isNaN(proposedStart.getTime())
+              ? findConflicts(proposedStart.toISOString(), null, events, target?.uid ?? null)
+              : [];
+
+          const proposal = buildCalendarProposal({
+            event: target
+              ? {
+                  feed_id: target.feed_id,
+                  uid: target.uid,
+                  starts_at: target.starts_at,
+                  title: target.title,
+                }
+              : null,
+            changes,
+            attendeeCount: Number(args.attendee_count ?? 0),
+            source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
+            conflicts,
+            writeState: calendarWriteState(),
+          });
+
+          const actionId = await stageAction({
+            title: calendarProposalTitle(proposal),
+            description: proposalSummary(proposal),
+            risk: calendarProposalRisk(proposal),
+            status: "staged",
+            source: "companion",
+            payload: provenance ? { ...proposal, provenance } : proposal,
+          });
+          await audit("actions", { action_id: actionId, as: "calendar_change" });
+          toast.success({
+            title: "Calendar change staged",
+            description: "Nothing has changed yet — approve it to hold it.",
+          });
+          onAck?.({ kind: "stage_action", id: actionId, summary: calendarProposalTitle(proposal) });
         } else if (kind === "add_commitment") {
           const remindAt = args.due_at
             ? new Date(new Date(args.due_at).getTime() - 24 * 60 * 60 * 1000).toISOString()

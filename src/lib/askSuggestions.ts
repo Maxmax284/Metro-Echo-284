@@ -15,6 +15,8 @@ export type AskSuggestionState = {
   nextEvent: { title: string; startsAt: string } | null;
   /** Something Echo noticed and has not been read yet. */
   noticed: number;
+  /** Calendar entries tomorrow that overlap each other. */
+  overlapsTomorrow?: number;
 };
 
 export type AskSuggestion = {
@@ -34,6 +36,14 @@ export function askSuggestions(state: AskSuggestionState): AskSuggestion[] {
       id: "waiting",
       label: "Anything waiting on me?",
       question: "What is waiting on me right now, and what does approving it do?",
+    });
+  }
+
+  if ((state.overlapsTomorrow ?? 0) > 0) {
+    out.push({
+      id: "conflicts",
+      label: "Anything conflicting tomorrow?",
+      question: "What conflicts tomorrow, and what would need to move?",
     });
   }
 
@@ -67,6 +77,15 @@ export function askSuggestions(state: AskSuggestionState): AskSuggestion[] {
       id: "promises",
       label: "What did I promise?",
       question: "Which promises are still open, and which one is closest to its date?",
+    });
+  }
+
+  if (state.nextEvent) {
+    const title = state.nextEvent.title.trim();
+    out.push({
+      id: "move",
+      label: `Move ${shortTitle(title)}?`,
+      question: `I may need to move ${title}. Show me what changing it would look like before anything happens.`,
     });
   }
 

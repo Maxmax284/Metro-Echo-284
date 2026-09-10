@@ -165,6 +165,42 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "stage_calendar_change",
+      description:
+        "Propose a change to a calendar event (move, retitle, add a location or note, set a reminder, cancel) or a brand-new event. This only stages a proposal for approval — it never changes any calendar. Use the user's own words in `event_reference` so the event can be resolved; omit it for a new event. Give exact before and after values.",
+      parameters: {
+        type: "object",
+        properties: {
+          event_reference: {
+            type: "string",
+            description: "How the user referred to the event, e.g. 'my doctor appointment tomorrow'. Omit for a new event.",
+          },
+          changes: {
+            type: "array",
+            description: "One entry per field that would change.",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] },
+                before: { type: "string", description: "Current value in plain words, or omit if not set." },
+                after: { type: "string", description: "New value. ISO timestamp for `time`. Omit to remove (a cancellation for `existence`)." },
+              },
+              required: ["field"],
+              additionalProperties: false,
+            },
+          },
+          attendee_count: { type: "number", description: "People the provider would notify. 0 if nobody else is involved." },
+          source_kind: { type: "string", description: "Where the justification came from: telegram, email, file, you." },
+          source_note: { type: "string", description: "One human phrase for the source, e.g. \"the clinic's Telegram message\"." },
+        },
+        required: ["changes"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "add_commitment",
       description: "Record a commitment the user made.",
       parameters: {
