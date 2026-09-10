@@ -110,11 +110,7 @@ export function SavedPlacesPanel({
                   <p className="truncate text-[11px] text-muted-foreground">
                     {isActive
                       ? `Echo is reading from here${where ? ` · ${where}` : ""}`
-                      : [
-                          drive ?? (dist ? null : "no distance on file"),
-                          dist ? `${dist} by road` : null,
-                          where,
-                        ]
+                      : [drive ?? (dist ? null : "no distance on file"), dist, where]
                           .filter(Boolean)
                           .join(" · ")}
                   </p>
