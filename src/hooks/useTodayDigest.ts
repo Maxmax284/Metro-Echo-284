@@ -167,7 +167,11 @@ export function useTodayDigest(): TodayDigest {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, scopeKey, nonce]);
 
-  const attention = buildAttention(commitments, actions);
+  /* Everything derived is memoised on the rows it came from. Recomputing these
+     on every render handed downstream readers a brand-new array each time,
+     which restarted their effects, which set state, which rendered again — the
+     loop that read as flickering. Same numbers, one identity. */
+  const attention = useMemo(() => buildAttention(commitments, actions), [commitments, actions]);
 
   useEffect(() => {
     if (!session || loadingCritical) return;
@@ -175,14 +179,24 @@ export function useTodayDigest(): TodayDigest {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, scopeKey, loadingCritical, attention.length]);
 
-  const now = new Date();
-  const overdue = commitments.filter((c) => c.due_at && new Date(c.due_at) < now);
-  const dueToday = commitments.filter((c) => c.due_at && new Date(c.due_at) >= now && isSameDay(new Date(c.due_at), now));
-  const upcoming = commitments.filter(
-    (c) => !c.due_at || (new Date(c.due_at) >= now && !isSameDay(new Date(c.due_at), now)),
-  );
+  const buckets = useMemo(() => {
+    const now = new Date();
+    return {
+      now,
+      overdue: commitments.filter((c) => c.due_at && new Date(c.due_at) < now),
+      dueToday: commitments.filter(
+        (c) => c.due_at && new Date(c.due_at) >= now && isSameDay(new Date(c.due_at), now),
+      ),
+      upcoming: commitments.filter(
+        (c) => !c.due_at || (new Date(c.due_at) >= now && !isSameDay(new Date(c.due_at), now)),
+      ),
+    };
+  }, [commitments]);
+  const { now, overdue, dueToday, upcoming } = buckets;
 
-  const security = securityLine(events);
+  const security = useMemo(() => securityLine(events), [events]);
+  const groups = useMemo(() => groupAttention(attention, projectOf), [attention, projectOf]);
+  const recentEvents = useMemo(() => events.slice(0, 6), [events]);
   const next = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
 
   return {
@@ -193,11 +207,11 @@ export function useTodayDigest(): TodayDigest {
     commitments,
     actions,
     attention,
-    groups: groupAttention(attention, projectOf),
+    groups,
     overdue,
     dueToday,
     upcoming,
-    events: events.slice(0, 6),
+    events: recentEvents,
     allEvents: events,
     captureCount,
     security,
