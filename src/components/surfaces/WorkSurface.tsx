@@ -10,7 +10,7 @@ import {
   ListChecks,
   Search,
   Compass,
-  LayoutDashboard,
+  
   ChevronRight,
   Briefcase,
 } from "lucide-react";
@@ -297,7 +297,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           title="Where Echo looks"
           storageKey="work.looks"
           icon={<Search className="h-3.5 w-3.5" />}
-          reading="4"
+          reading="3"
           /* A real finding is never hidden. Otherwise the shelf stays folded
              until there is something for these rooms to read. */
           defaultOpen={hasFindings || hasIntake}
@@ -305,7 +305,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             hasFindings
               ? "Where Echo looks · Sherlock has something for you"
               : hasIntake
-                ? "Where Echo looks · 4 places Echo reads on your behalf"
+                ? "Where Echo looks · 3 places Echo reads on your behalf"
                 : "Where Echo looks · nothing needs your attention yet"
           }
           className="border-dashed"
@@ -318,7 +318,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
             <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            <Desk deskKey="command" label="Cockpit" Icon={LayoutDashboard} onOpen={() => onNavigate("command")} />
+            
           </div>
         </CollapsibleSection>
 
