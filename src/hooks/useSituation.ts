@@ -3,7 +3,7 @@
 // It fetches authoritative state (never chat memory), hands it to the pure
 // situation reader, and reports which sources had nothing to say versus which
 // ones could not be read at all. It writes nothing and decides nothing.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
@@ -48,8 +48,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
 
   const build = useCallback(async () => {
     if (!session?.user) return;
-    const run = ++runRef.current;
-    const stale = () => run !== runRef.current;
+    const runId = ++runRef.current;
+    const stale = () => runId !== runRef.current;
     setLoading(true);
     const unknownSources: SituationSource[] = [];
 
