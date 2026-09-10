@@ -84,7 +84,9 @@ export function AwarenessSurface() {
      location-recovery panel uses. Map data, cached server-side — no AI, no web
      search, and it feeds the "Around you" shelf so that shelf is about ground
      rather than about search results. */
-  const [nearbyTowns, setNearbyTowns] = useState<Array<{ name: string; kind: string | null; distanceM: number }>>([]);
+  const [nearbyTowns, setNearbyTowns] = useState<
+    Array<{ name: string; kind: string | null; distanceM: number; lat?: number | null; lon?: number | null }>
+  >([]);
 
   const fixLat = Number((place?.geo as any)?.lat);
   const fixLon = Number((place?.geo as any)?.lon);

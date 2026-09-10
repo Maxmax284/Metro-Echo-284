@@ -257,6 +257,13 @@ export function AwarenessMap({
             )}
           </MapContainer>
         </div>
+        {/* What you last tapped on the map, said in words. */}
+        {focus ? (
+          <div className="border-t border-border/50 px-3 py-2">
+            <div className="text-[12.5px] font-medium leading-snug text-foreground">{focus.name}</div>
+            <p className="text-[11px] leading-snug text-muted-foreground">{focus.detail}</p>
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 px-3 py-2">
           {drag ? (
             <>
