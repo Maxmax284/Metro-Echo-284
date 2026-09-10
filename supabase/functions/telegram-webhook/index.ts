@@ -753,6 +753,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
         commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
         toolMarkup = ((res as any).markup as TgReplyMarkup | undefined) ?? toolMarkup;
+        calendarActionId = ((res as any).calendarActionId as string | null | undefined) ?? calendarActionId;
       }
     } catch { /* ignore */ }
   }
