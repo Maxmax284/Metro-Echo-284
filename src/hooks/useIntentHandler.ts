@@ -155,6 +155,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
                   feed_id: target.feed_id,
                   uid: target.uid,
                   starts_at: target.starts_at,
+                  ends_at: target.ends_at ?? null,
                   title: target.title,
                 }
               : null,
@@ -162,7 +163,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             attendeeCount: Number(args.attendee_count ?? 0),
             source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
             conflicts,
-            writeState: calendarWriteState(),
+            writeState: await calendarWriteState(),
           });
 
           const actionId = await stageAction({
