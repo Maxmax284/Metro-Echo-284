@@ -74,6 +74,9 @@ export function useAgenda(
   const { user } = useAuth();
   const { applyScope, orgId, key } = useScope();
   const [events, setEvents] = useState<AgendaEvent[]>([]);
+  /** Entries running right now, kept apart so they never fake a past day. */
+  const [ongoing, setOngoing] = useState<AgendaEvent[]>([]);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
