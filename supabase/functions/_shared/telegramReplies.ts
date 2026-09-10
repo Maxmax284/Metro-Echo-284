@@ -2,8 +2,10 @@
 // small, fixed button vocabulary Echo is allowed to show in a chat.
 //
 // Doctrine: a button in Telegram either acknowledges something (Noted, Mark
-// done, Snooze), files something where it belongs (File under <project>), or
-// opens Echo. No button approves or executes.
+// done, Snooze), files something where it belongs (File under <project>),
+// approves exactly ONE staged change it just showed in full, or opens Echo.
+// No button executes anything by itself, and a Yes never becomes standing
+// permission for the next change.
 
 export type TgInlineButton = { text: string; callback_data?: string; url?: string };
 export type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };
@@ -98,6 +100,18 @@ export function snoozeButtons(commitmentId: string): TgInlineButton[] {
 export function fileUnderButton(projectId: string, projectTitle: string, itemType: string, itemId: string): TgInlineButton {
   const label = projectTitle.length > 22 ? `${projectTitle.slice(0, 21)}…` : projectTitle;
   return { text: `File under ${label}`, callback_data: `file:${projectId}:${itemType}:${itemId}` };
+}
+
+/**
+ * Yes / No for one staged calendar change. The version rides along so an
+ * approval can only ever land on the exact proposal that was shown — if the
+ * user refined it since, the old button no longer matches.
+ */
+export function calendarApprovalButtons(actionId: string, version: number): TgInlineButton[] {
+  return [
+    { text: "Yes", callback_data: `calyes:${actionId}:${version}` },
+    { text: "No", callback_data: `calno:${actionId}:${version}` },
+  ];
 }
 
 /** Assemble rows, dropping anything that couldn't be built (no public URL). */

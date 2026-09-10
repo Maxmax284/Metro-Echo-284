@@ -8,6 +8,18 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { firstPassIntake } from "../_shared/fileIntake.ts";
 import { replyWhyLine } from "../_shared/telegramWhy.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
+import {
+  approvalOutcomeLine,
+  buildCalendarProposal,
+  calendarFieldLabel,
+  calendarProposalRisk,
+  calendarProposalTitle,
+  isCalendarProposal,
+  normalizeCalendarChangeField,
+  proposalSummary,
+  type CalendarFieldChange,
+} from "../_shared/calendarProposal.ts";
+import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
@@ -71,6 +83,7 @@ import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
 import { intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
+  calendarApprovalButtons,
   fileUnderButton,
   keyboard,
   markDoneButton,
@@ -142,6 +155,7 @@ const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
+  { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
   // Read-only Work questions. These never write anything.
   { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
@@ -235,6 +249,105 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions", linkKind: "actions" as VantaLinkKind };
+  }
+  if (name === "stage_calendar_change") {
+    /* Field replies never write to the calendar. This resolves which event is
+       meant, shows exact before/after, and stages ONE proposal for a Yes/No.
+       Approval is per-proposal and, while the feed is read-only, only holds it. */
+    const { data: eventRows } = await sb
+      .from("calendar_events")
+      .select("feed_id, uid, starts_at, ends_at, title")
+      .eq("user_id", userId)
+      .gte("starts_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(200);
+    const events: ResolvableEvent[] = ((eventRows ?? []) as any[]).map((r) => ({
+      feed_id: r.feed_id ?? null,
+      uid: r.uid ?? null,
+      starts_at: r.starts_at,
+      ends_at: r.ends_at ?? null,
+      title: r.title ?? "Untitled",
+    }));
+
+    const reference = String(args.event_reference ?? "").trim();
+    let target: ResolvableEvent | null = null;
+    if (reference) {
+      const resolved = resolveEventReference(reference, events);
+      if (resolved.status === "none") {
+        return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
+      }
+      if (resolved.status === "many") {
+        return {
+          reply: `Which one? ${resolved.candidates.map((c) => c.title).join(" · ")}. Nothing has changed.`,
+          detectedType: "calendar change",
+          routedTo: null,
+          readOnly: true,
+        };
+      }
+      target = resolved.event;
+    }
+
+    const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : []).map((c: any) => {
+      const field = normalizeCalendarChangeField(c?.field);
+      return {
+        field,
+        label: calendarFieldLabel(field),
+        before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+        after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
+      };
+    });
+    if (!changes.length) {
+      return { reply: "Tell me what should be different and I'll show you before you decide.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    }
+
+    const when = changes.find((c) => c.field === "time" && c.after)?.after ?? null;
+    const proposedStart = when ? new Date(when) : null;
+    const conflicts =
+      proposedStart && !Number.isNaN(proposedStart.getTime())
+        ? findConflicts(proposedStart.toISOString(), null, events, target?.uid ?? null)
+        : [];
+
+    const proposal = buildCalendarProposal({
+      event: target ? { feed_id: target.feed_id, uid: target.uid, starts_at: target.starts_at, title: target.title } : null,
+      changes,
+      attendeeCount: Number(args.attendee_count ?? 0),
+      source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
+      conflicts,
+      writeState: "read_only",
+    });
+
+    const { data: staged } = await sb
+      .from("actions")
+      .insert(
+        buildActionRow({
+          userId,
+          organizationId: orgId,
+          title: calendarProposalTitle(proposal),
+          description: proposalSummary(proposal),
+          risk: calendarProposalRisk(proposal),
+          status: "staged",
+          source: "telegram",
+          payload: proposal,
+        }),
+      )
+      .select("id")
+      .single();
+    await sb.from("audit_log").insert({
+      user_id: userId, organization_id: orgId, entity_type: "action", entity_id: staged?.id ?? null,
+      event: "action.staged",
+      payload: { source: "telegram", as: "calendar_change", version: proposal.version, write_state: proposal.write_state },
+    });
+
+    const ask = calendarProposalRisk(proposal) === "high"
+      ? "This one reaches other people. Approve it? Yes / No."
+      : "Approve this change? Yes / No.";
+    return {
+      reply: `${proposalSummary(proposal)}\n\n${ask}`,
+      detectedType: "calendar change",
+      routedTo: "actions",
+      linkKind: "actions" as VantaLinkKind,
+      markup: staged?.id ? keyboard(calendarApprovalButtons(staged.id, proposal.version), [openButton("actions")]) : undefined,
+    };
   }
   if (name === "add_commitment") {
     const remind = args.due_at ? new Date(new Date(args.due_at).getTime() - 24 * 3600 * 1000).toISOString() : null;
@@ -483,6 +596,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let readOnly = false;
   let linkKind: VantaLinkKind | null = null;
   let commitmentId: string | null = null;
+  /* A staged calendar change brings its own Yes/No, so it wins over the default
+     "open Echo" link. Nothing else in chat gets to supply buttons. */
+  let toolMarkup: TgReplyMarkup | undefined;
   let reply = "";
 
   if (matchCapabilityQuestion(text)) {
@@ -522,6 +638,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         if ((res as any).readOnly) readOnly = true;
         linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
         commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
+        toolMarkup = ((res as any).markup as TgReplyMarkup | undefined) ?? toolMarkup;
       }
     } catch { /* ignore */ }
   }
@@ -601,9 +718,10 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (whyLine) reply = `${reply}\n\n${whyLine}`;
 
   // One deep link, at most one action button. Fixed vocabulary only.
-  const markup = commitmentId
-    ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
-    : keyboard([openButton(linkKind ?? "today")]);
+  const markup = toolMarkup
+    ?? (commitmentId
+      ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
+      : keyboard([openButton(linkKind ?? "today")]));
   return { reply, markup };
 }
 
@@ -682,6 +800,66 @@ Deno.serve(async (req) => {
         if (res.ok) await dropButtons();
         return ok();
       }
+      /* Yes / No on ONE staged calendar change. This approves the exact
+         proposal that was shown — version has to match, so a refinement
+         retires the old buttons. It never executes: while the calendar is a
+         read-only feed, an approval holds the change and says so. */
+      if (action === "calyes" || action === "calno") {
+        const version = Number(parts[2] ?? "0");
+        const { data: act } = await admin.from("actions")
+          .select("id, status, payload, risk, organization_id, title")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!act || !isCalendarProposal(act.payload)) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
+          await dropButtons();
+          return ok();
+        }
+        const proposal = act.payload;
+        if (proposal.version !== version) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That one changed since I asked. Open Metro Echo." });
+          await dropButtons();
+          return ok();
+        }
+        if (act.status !== "staged") {
+          await tg("answerCallbackQuery", {
+            callback_query_id: cbId,
+            text: act.status === "cancelled" ? "Already dropped." : "Already decided.",
+          });
+          await dropButtons();
+          return ok();
+        }
+        const to = action === "calyes" ? "approved" : "cancelled";
+        const patch: Record<string, unknown> = { status: to };
+        if (to === "approved" && act.risk === "high") patch.risk_acknowledged_at = new Date().toISOString();
+        const { error: transErr } = await admin.from("actions").update(patch).eq("id", act.id).eq("user_id", cbLink.user_id).eq("status", "staged");
+        if (transErr) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Metro Echo." });
+          return ok();
+        }
+        await admin.from("action_events").insert({
+          user_id: cbLink.user_id, action_id: act.id, from_status: "staged", to_status: to,
+          actor: "user", reason: `telegram ${action === "calyes" ? "yes" : "no"} (v${version})`,
+        });
+        await admin.from("audit_log").insert({
+          user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+          entity_type: "action", entity_id: act.id, event: `transition:staged->${to}`,
+          payload: {
+            source: "telegram_callback", as: "calendar_change", version,
+            write_state: proposal.write_state, title: act.title ?? null,
+          },
+        });
+        const text = to === "approved" ? approvalOutcomeLine(proposal.write_state) : "Dropped. Nothing changed.";
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: text.slice(0, 190) });
+        await dropButtons();
+        await logTgMessage(admin, {
+          user_id: cbLink.user_id, organization_id: act.organization_id ?? null, chat_id: cbChatId,
+          direction: "out", text, kind: "text", sent_by: "vanta",
+          entity_type: "action", entity_id: act.id,
+        });
+        await tg("sendMessage", { chat_id: cbChatId, text, disable_web_page_preview: true });
+        return ok();
+      }
+
       // Verify the commitment belongs to this user.
       const { data: comm } = await admin.from("commitments")
         .select("id, summary, metadata, status, due_at, remind_at, organization_id")

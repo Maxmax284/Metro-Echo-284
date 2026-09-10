@@ -9,6 +9,7 @@ export const ROUTING_RULES = `Tool routing rules (apply identically across chann
 - "Add a note…" / "Save this…" / "Note that…" / "Remember this…" / "File this…" / "Jot down…" → call capture_note.
 - "I promised…" / "I committed to…" / "Track this as a commitment" / "Hold me to…" → call add_commitment.
 - "Draft an action…" / "Stage…" / external action to take → call stage_action.
+- Any calendar change ("move my … to 3", "cancel that", "put this address on the event", "remind me 30 min before", "add this to my calendar") → call stage_calendar_change if available. Give exact before/after values, pass the user's own wording as event_reference, and never claim the calendar changed — it only stages a proposal. If the user then refines ("actually make it 3:30"), call it again with the corrected values.
 - "Analyze this" / "what am I missing" / "what risks" / "critique" / "what's wrong with…" → call run_sherlock if available; otherwise acknowledge it as something worth a closer look.
 - Location/place question (where / nearby / safe / how do I get to…) → call query_awareness if available.
 - "What's on today" / "what's due" / "schedule" / "next up" / "what's next" → call query_schedule if available.

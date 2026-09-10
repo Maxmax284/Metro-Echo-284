@@ -15,6 +15,8 @@ import { ExecuteConfirmDialog } from "@/components/actions/ExecuteConfirmDialog"
 import { ActionReceiptDrawer } from "@/components/actions/ActionReceiptDrawer";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { askAftermath, aftermathLine } from "@/lib/vantaNouns";
+import { CalendarProposalCard } from "@/components/calendar/CalendarProposalCard";
+import { isCalendarProposal } from "@/lib/calendarProposal";
 
 type PendingStatus = "proposed" | "staged" | "approved";
 
@@ -158,6 +160,7 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
                 </p>
               </div>
             </div>
+            {isCalendarProposal(a.payload) && <CalendarProposalCard proposal={a.payload} />}
             <div className="mt-2 flex flex-wrap gap-1.5">
               {a.status === "proposed" && (
                 <Button size="sm" variant="secondary" className="min-h-[44px]" disabled={working} onClick={() => transition(a, "staged")}>
@@ -196,9 +199,11 @@ export function InlineApprovalActions({ detail }: { detail: string }) {
             </div>
             <AftermathHint
               text={
-                a.status === "approved"
-                  ? "Executing writes a Receipt and opens it here. Nothing else runs."
-                  : `${askAftermath("action")} — approval still happens in Actions.`
+                isCalendarProposal(a.payload) && a.payload.write_state === "read_only"
+                  ? "Approving holds this change. Google write access isn't connected, so nothing changes there yet."
+                  : a.status === "approved"
+                    ? "Executing writes a Receipt and opens it here. Nothing else runs."
+                    : `${askAftermath("action")} — approval still happens in Actions.`
               }
             />
           </div>
