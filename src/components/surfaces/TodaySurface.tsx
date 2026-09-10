@@ -23,6 +23,8 @@ import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
+import { TravelLane } from "@/components/today/TravelLane";
+import { TasksLane } from "@/components/today/TasksLane";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
