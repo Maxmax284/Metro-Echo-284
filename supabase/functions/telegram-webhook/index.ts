@@ -449,7 +449,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       : "Approve this change? Yes / No.";
     /* The app link is an escape hatch for depth, not the way to approve. It only
        shows when there is genuinely more to look at than fits here. */
-    const deep = risk === "high" || conflicts.length > 1;
+    const deep = calendarProposalNeedsDepth(proposal);
     return {
       reply: `${proposalSummary(proposal)}\n\n${ask}`,
       detectedType: "calendar change",
@@ -457,6 +457,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       markup: staged?.id
         ? keyboard(calendarApprovalButtons(staged.id, proposal.version), ...(deep ? [[openButton("actions")]] : []))
         : undefined,
+      calendarActionId: (staged?.id as string | undefined) ?? null,
     };
   }
   if (name === "add_commitment") {
