@@ -50,7 +50,7 @@ describe("reading the calendar", () => {
   });
 
   it("stays quiet when a day is empty", () => {
-    expect(answerCalendarQuestion({ kind: "day", dayOffset: 5, reference: null }, events, { now, tz }).text)
+    expect(answerCalendarQuestion({ kind: "day", dayOffset: 20, reference: null }, events, { now, tz }).text)
       .toMatch(/Nothing on your calendar/);
   });
 

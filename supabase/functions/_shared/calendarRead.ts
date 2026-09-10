@@ -47,7 +47,7 @@ export function parseCalendarQuestion(phrase: string, opts?: { now?: Date }): Ca
   const now = opts?.now ?? new Date();
   const reference = null;
 
-  if (/\b(conflict|conflicts|clash|clashes|overlap|double.?book)\b/.test(p)) {
+  if (/\b(conflict\w*|clash\w*|overlap\w*|double.?book\w*)\b/.test(p)) {
     return { kind: "conflicts", dayOffset: /\btomorrow\b/.test(p) ? 1 : 0, reference };
   }
   if (/\b(after|following|comes next after|then what)\b/.test(p) && /\b(my|the)\b/.test(p)) {
@@ -130,9 +130,15 @@ export function eventsOnDay(events: CalReadEvent[], offset: number, nowIso: stri
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
 }
 
-/** Real overlaps on one day, as plain lines. Each pair is reported once. */
+/**
+ * Real overlaps on one day, as plain lines. Each pair is reported once.
+ *
+ * A hotel stay is not a clash with everything inside it, and neither is an
+ * all-day marker — anything that covers the whole day is background, not a
+ * collision, so it never accuses the appointments happening during it.
+ */
 export function overlapsOnDay(events: CalReadEvent[], offset: number, nowIso: string, tz: string): string[] {
-  const day = eventsOnDay(events, offset, nowIso, tz);
+  const day = eventsOnDay(events, offset, nowIso, tz).filter((e) => !isBackground(e, tz));
   const lines: string[] = [];
   for (let i = 0; i < day.length; i++) {
     for (let j = i + 1; j < day.length; j++) {
@@ -144,6 +150,12 @@ export function overlapsOnDay(events: CalReadEvent[], offset: number, nowIso: st
     }
   }
   return lines;
+}
+
+/** All-day, or spanning more than one calendar day: background, not a clash. */
+function isBackground(event: CalReadEvent, tz: string): boolean {
+  if (event.all_day) return true;
+  return dayKey(event.starts_at, tz) !== dayKey(new Date(endOf(event)).toISOString(), tz);
 }
 
 /** The next event that starts after a given one ends. */
