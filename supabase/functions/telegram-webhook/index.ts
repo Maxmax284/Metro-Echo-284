@@ -977,13 +977,22 @@ Deno.serve(async (req) => {
           },
         });
 
+        // The staged snapshot can be stale — the person may have connected (or
+        // disconnected) their own Google account since the proposal was made.
+        const liveWriteState = to === "approved"
+          ? await calendarWriteStateForUser(cbLink.user_id)
+          : proposal.write_state;
+
         let outcomeText = to === "approved"
-          ? approvalOutcomeLine(proposal.write_state)
+          ? approvalOutcomeLine(liveWriteState)
           : "Dropped. Nothing changed.";
 
         // For connected, non-high-risk calendar changes, Yes also executes now so
         // Telegram is a first-class Echo surface, not a remote control.
-        if (to === "approved" && proposal.write_state === "connected" && telegramMayAutoExecute(proposal)) {
+        if (
+          to === "approved" && liveWriteState === "connected" &&
+          telegramMayAutoExecute({ ...proposal, write_state: "connected" })
+        ) {
           try {
             const result = await executeCalendarProposal(admin, cbLink.user_id, {
               id: act.id,
