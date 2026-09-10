@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
+import { TelegramQuickConnect } from "@/components/settings/TelegramQuickConnect";
 import { setRoom } from "@/lib/skins";
 
 export default function Settings() {
@@ -89,6 +90,9 @@ export default function Settings() {
 
       {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />
+
+      {/* Telegram is the field interface — it gets its own door, not a nested one. */}
+      <TelegramQuickConnect />
 
       <ul className="space-y-2">
         {SETTINGS_GROUPS.map((g) => (

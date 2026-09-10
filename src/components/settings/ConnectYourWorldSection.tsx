@@ -173,7 +173,7 @@ export function ConnectYourWorldSection() {
         botConfigured: secrets.TELEGRAM_API_KEY?.present !== false,
       }),
       icon: MessageSquare,
-      action: { label: "Telegram setup and test", to: "/settings/g/time" },
+      action: { label: "Telegram setup and test", to: "/settings/telegram" },
     },
     {
       card: emailCard({ addressActive: r.emailActive, lastReceivedAt: r.emailLastReceived }),
