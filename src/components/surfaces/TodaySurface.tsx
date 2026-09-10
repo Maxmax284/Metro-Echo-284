@@ -22,6 +22,9 @@ import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
+import { TypeOnLine } from "@/components/today/TypeOnLine";
+import { TravelLane } from "@/components/today/TravelLane";
+import { TasksLane } from "@/components/today/TasksLane";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
@@ -187,7 +190,9 @@ function Lane({ label, hint, children }: { label: string; hint: string; children
         <span className="h-px min-w-4 flex-1 bg-border/50" aria-hidden />
         <span className="shrink-0 text-[10.5px] leading-snug text-muted-foreground">{hint}</span>
       </div>
-      <div className="space-y-3">{children}</div>
+      {/* A static hairline pins the lane's rows into one column. It never
+          animates — the rail is structure, not an event. */}
+      <div className="vanta-lane space-y-3">{children}</div>
     </section>
   );
 }
@@ -317,6 +322,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      first lane, what is coming goes in the second. Two hooks would mean two
      queries for the same truth. */
   const agenda = useAgenda({ days: 2 });
+  /* Travel needs a longer look than the next two days: a flight three weeks out
+     is still the plan. Read-only, same table. */
+  const travelAgenda = useAgenda({ days: 21 });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
@@ -374,6 +382,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   });
 
   const nextTotal = dueToday.length + upcoming.length;
+  /* Travel is read out of the same calendar rows Today already holds — running
+     stays included, so a hotel you are in does not vanish after day one. */
+  const travelEvents = [...travelAgenda.ongoing, ...travelAgenda.events];
   const nearest = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
   const nearestLabel = nearest?.due_at
     ? isToday(new Date(nearest.due_at))
@@ -482,7 +493,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
-          {loadingCritical ? "Reading this space…" : headline}
+          {/* The lead line is Echo speaking, so it writes itself on — once per
+              wording, never again on a refetch. */}
+          <TypeOnLine text={loadingCritical ? "Reading this space…" : headline} />
         </h1>
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
@@ -758,6 +771,24 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           </Section>
           </Lane>
           )}
+
+          {/* Lane: the trip itself, read out of the calendar. Absent when there
+              is no travel on the books. */}
+          {travelEvents.length > 0 ? (
+            <Lane label="Travel" hint="Flights and stays on the books">
+              <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
+            </Lane>
+          ) : null}
+
+          {/* Lane: promises as a checklist. Same records, same close path. */}
+          {digest.commitments.length > 0 ? (
+            <Lane label="Tasks" hint="Open promises, closable here">
+              <TasksLane
+                tasks={digest.commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at }))}
+                onChanged={() => digest.refresh()}
+              />
+            </Lane>
+          ) : null}
 
           {/* Background wave: never blocks the two sections above. */}
           {backgroundError ? (

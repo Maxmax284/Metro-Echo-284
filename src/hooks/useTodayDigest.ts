@@ -4,7 +4,7 @@
 // approval) renders as soon as it lands, and the background wave (receipts,
 // fresh captures, security) fills in after. A slow or failing background feed
 // never blocks Today.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
@@ -74,9 +74,14 @@ export function useTodayDigest(): TodayDigest {
   const [projectOf, setProjectOf] = useState<Record<string, string | undefined>>({});
   const [nonce, setNonce] = useState(0);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  /* A refresh is not a first load. Flipping loading back on every refetch tore
+     the whole feed down and rebuilt it — which is what read as flickering. The
+     loading state now belongs to the first read of a scope only; after that the
+     page holds the rows it has and swaps values in place. */
+  const loadedOnce = useRef(false);
 
   const loadCritical = useCallback(async () => {
-    setLoadingCritical(true);
+    if (!loadedOnce.current) setLoadingCritical(true);
     const [c, a] = await Promise.all([
       applyScope(supabase.from("commitments").select("id, summary, due_at, priority"))
         .eq("status", "open")
@@ -90,10 +95,11 @@ export function useTodayDigest(): TodayDigest {
     setCommitments((c.data as DigestCommitment[]) ?? []);
     setActions((a.data as DigestAction[]) ?? []);
     setLoadingCritical(false);
+    loadedOnce.current = true;
   }, [applyScope]);
 
   const loadBackground = useCallback(async () => {
-    setLoadingBackground(true);
+    if (!loadedOnce.current) setLoadingBackground(true);
     setBackgroundError(null);
     try {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -147,6 +153,11 @@ export function useTodayDigest(): TodayDigest {
     },
     [],
   );
+
+  /* Changing scope IS a first load: different room, different rows. */
+  useEffect(() => {
+    loadedOnce.current = false;
+  }, [scopeKey]);
 
   useEffect(() => {
     if (!session) return;

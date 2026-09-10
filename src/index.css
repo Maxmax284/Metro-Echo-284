@@ -527,6 +527,47 @@
   animation: vanta-time-lock calc(var(--motion-slow) * 2 * var(--feel-k, 1)) var(--ease-out) both;
 }
 
+/* Reading out loud: the lead line of a new read types on once, with a thin
+   block caret while it is still writing. It exists for one line at a time and
+   is gone the moment the line finishes. */
+@keyframes vanta-typing-blink {
+  0%, 45%  { opacity: 1; }
+  50%, 95% { opacity: 0.15; }
+  100%     { opacity: 1; }
+}
+.vanta-typing::after {
+  content: "";
+  display: inline-block;
+  width: 0.4em;
+  height: 0.9em;
+  margin-left: 0.1em;
+  translate: 0 0.08em;
+  background: hsl(var(--primary) / 0.75);
+  animation: vanta-typing-blink 900ms steps(1, end) infinite;
+}
+
+/* Lane rail: a hairline down the left of a Today lane so grouped rows read as
+   one pinned column instead of three loose cards. Static — it never moves. */
+.vanta-lane {
+  position: relative;
+  padding-left: 0.6rem;
+}
+.vanta-lane::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  bottom: 0.15rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--border) / 0.75),
+    hsl(var(--border) / 0.15)
+  );
+}
+
+
+
 
 /* Press: tap compression. Micro feedback only — never a bounce. */
 .motion-press {
