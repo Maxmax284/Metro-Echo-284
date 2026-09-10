@@ -29,6 +29,8 @@ import { DeskIntro } from "@/components/work/DeskIntro";
 import { DraftOrigin } from "@/components/work/DraftOrigin";
 import { ARCHIVE_COPY, archiveRecord, restoreRecord } from "@/lib/archive";
 import { Archive, ArchiveRestore } from "lucide-react";
+import { isCalendarProposal } from "@/lib/calendarProposal";
+
 
 
 type Action = {
