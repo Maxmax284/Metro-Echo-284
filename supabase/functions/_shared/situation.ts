@@ -41,6 +41,7 @@ export type SituationKind =
   | "arrived"
   | "noticed"
   | "meeting_soon"
+  | "happening_now"
   | "went_unusually_quiet"
   | "matter_open"
   | "matter_proposed";
@@ -50,6 +51,9 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   overdue: 1,
   waiting_on_you: 2,
   meeting_soon: 3,
+  /* Something already under way is context, not pressure — it sits just behind
+     the thing that is about to start, and ahead of what is merely due. */
+  happening_now: 3.5,
   due_soon: 4,
   noticed: 5,
   matter_open: 6,
@@ -57,6 +61,7 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   went_unusually_quiet: 8,
   arrived: 9,
 };
+
 
 export type SituationLine = {
   kind: SituationKind;
