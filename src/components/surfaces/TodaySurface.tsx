@@ -313,6 +313,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
   const health = useSourceHealth();
+  /* One calendar read for the whole surface: what is running now goes in the
+     first lane, what is coming goes in the second. Two hooks would mean two
+     queries for the same truth. */
+  const agenda = useAgenda({ days: 2 });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
