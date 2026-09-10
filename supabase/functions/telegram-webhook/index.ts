@@ -23,6 +23,12 @@ import {
   settledElsewhereLine,
   withTelegramRef,
 } from "../_shared/calendarProposal.ts";
+import {
+  calendarWriteStateFromEnv,
+  executeCalendarProposal,
+  projectCalendarEvent,
+  telegramMayAutoExecute,
+} from "../_shared/calendarExecute.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import {
   answerAfterEvent,
