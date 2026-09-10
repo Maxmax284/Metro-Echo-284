@@ -12,8 +12,10 @@
 //
 // Pure module: no IO, no React. The caller hands over already-read state.
 import { formatDistance } from "@/lib/trips";
+import { untilPhrase } from "@/lib/situation";
 
-export type BoardGroupKey = "around" | "changed" | "day";
+export type BoardGroupKey = "now" | "around" | "changed" | "day";
+
 
 export type BoardLine = {
   key: string;
