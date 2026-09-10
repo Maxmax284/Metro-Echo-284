@@ -384,7 +384,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const nextTotal = dueToday.length + upcoming.length;
   /* Travel is read out of the same calendar rows Today already holds — running
      stays included, so a hotel you are in does not vanish after day one. */
-  const travelEvents = [...agenda.ongoing, ...agenda.events];
+  const travelEvents = [...travelAgenda.ongoing, ...travelAgenda.events];
   const nearest = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
   const nearestLabel = nearest?.due_at
     ? isToday(new Date(nearest.due_at))
