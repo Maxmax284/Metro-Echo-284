@@ -323,6 +323,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
             }]
           : [],
         meetings,
+        ongoing,
+
         projects,
         matters,
         proposal: proposal
