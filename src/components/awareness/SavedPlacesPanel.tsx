@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MachineLabel } from "@/components/ui/instrument";
 import { EmptyState } from "@/components/ui/state-views";
 import { formatDistance } from "@/lib/trips";
+import { driveLabel } from "@/hooks/useTravelTimes";
 import { cn } from "@/lib/utils";
 
 export type SavedPlaceRow = {
@@ -18,6 +19,10 @@ export type SavedPlaceRow = {
   region?: string | null;
   /** Measured from the current fix, when both have coordinates. */
   distanceM?: number | null;
+  /** Road driving time from the current fix, from map routing. Null when unknown. */
+  travelS?: number | null;
+  /** Road distance from the same route, when the router returned one. */
+  roadDistanceM?: number | null;
   unresolved?: boolean;
 };
 
@@ -80,7 +85,13 @@ export function SavedPlacesPanel({
         <ul className="mt-2 space-y-1.5">
           {sorted.map((p) => {
             const isActive = p.id === activeId;
-            const dist = Number.isFinite(Number(p.distanceM)) ? formatDistance(Number(p.distanceM)) : null;
+            const byRoad = Number.isFinite(Number(p.roadDistanceM));
+            const dist = byRoad
+              ? `${formatDistance(Number(p.roadDistanceM))} by road`
+              : Number.isFinite(Number(p.distanceM))
+                ? `${formatDistance(Number(p.distanceM))} away`
+                : null;
+            const drive = driveLabel(p.travelS);
             const where = [p.region, p.country].filter(Boolean).join(", ");
             return (
               <li
@@ -99,8 +110,15 @@ export function SavedPlacesPanel({
                   <p className="truncate text-[11px] text-muted-foreground">
                     {isActive
                       ? `Echo is reading from here${where ? ` · ${where}` : ""}`
-                      : [dist ? `${dist} away` : "no distance on file", where].filter(Boolean).join(" · ")}
+                      : [drive ?? (dist ? null : "no distance on file"), dist, where]
+                          .filter(Boolean)
+                          .join(" · ")}
                   </p>
+                  {!isActive && !drive && dist ? (
+                    <p className="truncate text-[10.5px] text-muted-foreground/70">
+                      No road route on file — straight-line distance only.
+                    </p>
+                  ) : null}
                 </div>
                 {p.unresolved ? (
                   <span className="shrink-0 rounded-full bg-warn/15 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-warn ring-1 ring-warn/30">

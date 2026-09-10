@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTravelTimes } from "@/hooks/useTravelTimes";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -135,6 +136,21 @@ export function AwarenessSurface() {
     }
     return out;
   })();
+
+  /* Real driving time to each of those places — road routing, one read per fix.
+     A route the router can't work out stays absent; the panel says so. */
+  const travelTargets = useMemo(
+    () =>
+      places
+        .filter((p) => p.id !== place?.id)
+        .map((p) => ({ id: p.id, lat: Number((p.geo as any)?.lat), lon: Number((p.geo as any)?.lon) }))
+        .filter((t) => Number.isFinite(t.lat) && Number.isFinite(t.lon)),
+    [places, place?.id],
+  );
+  const { legs: travelLegs } = useTravelTimes(
+    Number.isFinite(fixLat) && Number.isFinite(fixLon) ? { lat: fixLat, lon: fixLon } : null,
+    travelTargets,
+  );
 
   /* The read before the newest one, per layer. Recorded history only — this is
      what lets the "Changed" shelf say what moved instead of that a scan ran. */
@@ -547,6 +563,8 @@ export function AwarenessSurface() {
             country: p.country ?? null,
             region: p.region ?? null,
             distanceM: savedNearby.find((s) => s.id === p.id)?.distanceM ?? null,
+            travelS: travelLegs[p.id]?.durationS ?? null,
+            roadDistanceM: travelLegs[p.id]?.distanceM ?? null,
             unresolved: classifyPlaceBadness(p as any).bad,
           }))}
           activeId={place?.id ?? null}
