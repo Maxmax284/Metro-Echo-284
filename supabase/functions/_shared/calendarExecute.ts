@@ -18,6 +18,11 @@ import {
   type CalendarProposal,
 } from "./calendarProposal.ts";
 import type { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  calendarGatewayHeaders,
+  googleCalendarConnection,
+  type CalendarConnection,
+} from "./calendarConnection.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
@@ -41,15 +46,17 @@ export function calendarWriteStateFromEnv(): "read_only" | "connected" {
   return apiKey && calKey ? "connected" : "read_only";
 }
 
-function authHeaders(): Record<string, string> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  const calKey = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
-  if (!apiKey || !calKey) throw new Error("Google Calendar connector not configured");
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "X-Connection-Api-Key": calKey,
-    "Content-Type": "application/json",
-  };
+/**
+ * Whether THIS person can write to Google right now. Their own connected
+ * account counts first; the workspace connector is only a fallback.
+ */
+export async function calendarWriteStateForUser(userId: string): Promise<"read_only" | "connected"> {
+  const conn = await googleCalendarConnection(userId);
+  return conn ? "connected" : "read_only";
+}
+
+function authHeaders(conn: CalendarConnection): Record<string, string> {
+  return calendarGatewayHeaders(conn);
 }
 
 function parseIso(v: string | null): string | null {
@@ -167,7 +174,7 @@ export async function ensureGoogleCalendarExecutor(
   sb: SbClient,
   userId: string,
 ): Promise<string | null> {
-  if (calendarWriteStateFromEnv() === "read_only") return null;
+  if ((await calendarWriteStateForUser(userId)) === "read_only") return null;
 
   const { data: existing } = await sb
     .from("action_executors")
@@ -209,8 +216,9 @@ export async function executeCalendarProposal(
   if (!proposal || !isCalendarProposal(proposal)) {
     throw new Error("not a calendar proposal");
   }
-  if (calendarWriteStateFromEnv() === "read_only") {
-    throw new Error("Google Calendar is not connected");
+  const conn = await googleCalendarConnection(userId);
+  if (!conn) {
+    throw new Error("Google Calendar is not connected for this account");
   }
 
   const tz = await userTimeZone(sb, userId);
@@ -218,7 +226,7 @@ export async function executeCalendarProposal(
 
   const res = await fetch(`${GATEWAY}/${path}`, {
     method,
-    headers: authHeaders(),
+    headers: authHeaders(conn),
     ...(method !== "DELETE" && body ? { body: JSON.stringify(body) } : {}),
   });
 
@@ -335,7 +343,8 @@ export async function projectCalendarEvent(
 
 /** Whether Telegram Yes may execute directly or only approve and hand off. */
 export function telegramMayAutoExecute(proposal: CalendarProposal): boolean {
-  if (calendarWriteStateFromEnv() === "read_only") return false;
+  // The proposal carries the write state it was staged with; the caller checks it.
+  if (proposal.write_state === "read_only") return false;
   // High-risk changes (cancelling with attendees, or anything explicitly high)
   // still need the stronger in-app gate.
   return calendarProposalRisk(proposal) !== "high";

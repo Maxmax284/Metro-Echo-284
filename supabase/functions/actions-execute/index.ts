@@ -7,7 +7,7 @@ import {
   executeCalendarProposal,
   ensureGoogleCalendarExecutor,
   projectCalendarEvent,
-  calendarWriteStateFromEnv,
+  calendarWriteStateForUser,
 } from "../_shared/calendarExecute.ts";
 import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
@@ -184,8 +184,8 @@ Deno.serve(async (req: Request) => {
 
     // Calendar_change proposals can auto-route through the linked Google Calendar connector.
     if (!targetId && isCalendarProposal(action.payload)) {
-      if (calendarWriteStateFromEnv() === "read_only") {
-        return new Response(JSON.stringify({ error: "Google Calendar is not connected" }), {
+      if ((await calendarWriteStateForUser(user.id)) === "read_only") {
+        return new Response(JSON.stringify({ error: "Google Calendar is not connected for this account" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

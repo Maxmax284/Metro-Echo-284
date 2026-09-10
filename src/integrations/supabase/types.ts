@@ -283,6 +283,36 @@ export type Database = {
         }
         Relationships: []
       }
+      app_user_connections: {
+        Row: {
+          account_label: string | null
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_label?: string | null
+          connection_key_ciphertext: string
+          connector_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_label?: string | null
+          connection_key_ciphertext?: string
+          connector_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_annotations: {
         Row: {
           audit_event_id: string | null
@@ -723,8 +753,9 @@ export type Database = {
           last_moved: number
           last_synced_at: string | null
           organization_id: string | null
+          provider: string
           updated_at: string
-          url: string
+          url: string | null
           user_id: string
         }
         Insert: {
@@ -740,8 +771,9 @@ export type Database = {
           last_moved?: number
           last_synced_at?: string | null
           organization_id?: string | null
+          provider?: string
           updated_at?: string
-          url: string
+          url?: string | null
           user_id: string
         }
         Update: {
@@ -757,8 +789,9 @@ export type Database = {
           last_moved?: number
           last_synced_at?: string | null
           organization_id?: string | null
+          provider?: string
           updated_at?: string
-          url?: string
+          url?: string | null
           user_id?: string
         }
         Relationships: [

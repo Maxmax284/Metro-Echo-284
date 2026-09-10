@@ -24,6 +24,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import Index from "./pages/Index.tsx";
+import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import SettingsGroup from "./pages/SettingsGroup.tsx";
@@ -83,6 +84,7 @@ const App = () => (
                               <Route path="/awareness/location" element={<LocationSetupPage />} />
 
                               <Route path="/auth" element={<Auth />} />
+                              <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
                               <Route path="/settings" element={<Settings />} />
                               <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
                               <Route path="/settings/telegram" element={<TelegramSetupPage />} />

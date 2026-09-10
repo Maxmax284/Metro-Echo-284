@@ -10,6 +10,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
 import { TelegramQuickConnect } from "@/components/settings/TelegramQuickConnect";
+import { CalendarQuickConnect } from "@/components/settings/CalendarQuickConnect";
 import { setRoom } from "@/lib/skins";
 
 export default function Settings() {
@@ -93,6 +94,9 @@ export default function Settings() {
 
       {/* Telegram is the field interface — it gets its own door, not a nested one. */}
       <TelegramQuickConnect />
+
+      {/* The calendar is the other surface people arrive looking for. */}
+      <CalendarQuickConnect />
 
       <ul className="space-y-2">
         {SETTINGS_GROUPS.map((g) => (
