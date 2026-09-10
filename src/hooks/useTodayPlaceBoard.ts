@@ -65,11 +65,14 @@ export function useTodayPlaceBoard(): {
       distance_m?: number;
     }>).filter((s) => s.kind === "place" && s.title);
 
-    const nearby = local.map((s) => ({
-      name: String(s.title),
-      detail: s.snippet ?? null,
-      distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
-    }));
+    const nearby = [
+      ...local.map((s) => ({
+        name: String(s.title),
+        detail: s.snippet ?? null,
+        distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
+      })),
+      ...towns,
+    ];
 
     /* Local changes: layers read again in the last day, worded from the record
        and nothing else. */
