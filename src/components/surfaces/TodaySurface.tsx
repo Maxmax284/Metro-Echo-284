@@ -483,7 +483,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             tone === "urgent" ? "text-danger" : "text-foreground",
           )}
         >
-          {loadingCritical ? "Reading this space…" : headline}
+          {/* The lead line is Echo speaking, so it writes itself on — once per
+              wording, never again on a refetch. */}
+          <TypeOnLine text={loadingCritical ? "Reading this space…" : headline} />
         </h1>
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
