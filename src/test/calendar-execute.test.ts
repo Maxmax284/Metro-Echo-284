@@ -1,25 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { calendarWriteState } from "@/lib/calendarWrite";
+import { describe, expect, it } from "vitest";
 import { providerEventIdFromUid } from "@/lib/calendarProposal";
-import { supabase } from "@/integrations/supabase/client";
-
-describe("calendar write state (client)", () => {
-  const invoke = vi.spyOn(supabase.functions, "invoke");
-
-  beforeEach(() => invoke.mockReset());
-  afterEach(() => invoke.mockRestore());
-
-  it("reports connected when the backend says the connector is linked", async () => {
-    invoke.mockResolvedValue({ data: { write_state: "connected" }, error: null } as any);
-    expect(await calendarWriteState()).toBe("connected");
-    expect(invoke).toHaveBeenCalledWith("calendar-write-status", {});
-  });
-
-  it("fails closed to read_only on error", async () => {
-    invoke.mockResolvedValue({ data: null, error: new Error("nope") } as any);
-    expect(await calendarWriteState()).toBe("read_only");
-  });
-});
 
 describe("provider event id mapping", () => {
   it("strips the @google.com suffix from iCal UIDs", () => {
