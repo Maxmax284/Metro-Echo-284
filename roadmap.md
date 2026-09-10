@@ -36,3 +36,5 @@
 Background/always-on location. Geofencing. Autonomous SOS or emergency calling. Silent location
 sharing. Trusted contacts / `location_shares` execution. Realtime public-safety or crime-risk
 scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live location trails.
+
+- [ ] Google Calendar per-user connection (App User Connector) — blocked: workspace Google client card was closed; user to decide connector vs secret iCal link.
