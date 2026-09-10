@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { feedStateLine, syncSummary, type FeedSyncResult } from "@/lib/calendarSync";
+import { GoogleCalendarConnectCard } from "./GoogleCalendarConnectCard";
 
 type Feed = {
   id: string;
@@ -168,8 +169,8 @@ export function CalendarFeedsSection() {
             Your calendar
           </h2>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            Link a calendar and Echo can see what starts soon and when a promise lands mid-meeting.
-            Reading only — nothing gets changed, moved or answered on your behalf.
+            Sign in with Google and Echo reads your real calendar — and can change it once you approve the
+            exact edit. Pasted calendar links stay read-only: Echo sees them, never touches them.
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
             Calendars linked here belong to{" "}
@@ -189,9 +190,11 @@ export function CalendarFeedsSection() {
         </Button>
       </div>
 
+      <GoogleCalendarConnectCard onChanged={() => void load()} />
+
       <details className="mt-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
         <summary className="vanta-focus cursor-pointer list-none text-[12px] font-medium">
-          How do I find my calendar link?
+          Rather paste a link than sign in?
         </summary>
         <div className="mt-2 space-y-2 text-[11.5px] leading-relaxed text-muted-foreground">
           <p>

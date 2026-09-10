@@ -9,7 +9,9 @@
 //   - cron (service role, x-vanta-cron header or no session): sync every active feed.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, jsonResponse, preflight, readJson } from "../_shared/http.ts";
-import { normalizeCalendarUrl, parseIcs } from "../_shared/ics.ts";
+import { normalizeCalendarUrl, parseIcs, type IcsEvent } from "../_shared/ics.ts";
+import { googleCalendarConnection } from "../_shared/calendarConnection.ts";
+import { fetchGoogleEvents } from "./google.ts";
 
 const DAY_MS = 86_400_000;
 const WINDOW_BACK_DAYS = 1;
@@ -21,9 +23,12 @@ type FeedRow = {
   user_id: string;
   organization_id: string | null;
   label: string;
-  url: string;
+  url: string | null;
+  provider?: string | null;
   default_project_id: string | null;
 };
+
+const FEED_COLUMNS = "id, user_id, organization_id, label, url, provider, default_project_id";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -116,32 +121,51 @@ export function diffWindow(prior: PriorRow[], events: ParsedEvent[], now: number
 
 
 async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now: number) {
-  const url = normalizeCalendarUrl(feed.url);
   const stamp = new Date(now).toISOString();
-  if (!url) {
-    await sb.from("calendar_feeds").update({ last_error: "That link is not a secure calendar address.", last_synced_at: stamp }).eq("id", feed.id);
-    return { feed: feed.id, ok: false, error: "bad_url" };
-  }
-
-  let text = "";
-  try {
-    const r = await fetch(url, { headers: { Accept: "text/calendar, text/plain" } });
-    if (!r.ok) throw new Error(explainStatus(r.status, url));
-    text = await r.text();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "the calendar did not answer";
-    await sb.from("calendar_feeds").update({ last_error: msg.slice(0, 200), last_synced_at: stamp }).eq("id", feed.id);
-    return { feed: feed.id, ok: false, error: msg };
-  }
-
-  if (!/BEGIN:VCALENDAR/i.test(text)) {
-    await sb.from("calendar_feeds").update({ last_error: "That address did not return a calendar.", last_synced_at: stamp }).eq("id", feed.id);
-    return { feed: feed.id, ok: false, error: "not_a_calendar" };
-  }
-
   const fromMs = now - WINDOW_BACK_DAYS * DAY_MS;
   const toMs = now + WINDOW_FORWARD_DAYS * DAY_MS;
-  const events = parseIcs(text, { fromMs, toMs }).slice(0, MAX_EVENTS_PER_FEED);
+  const provider = feed.provider === "google" ? "google" : "ical";
+
+  const fail = async (message: string, code: string) => {
+    await sb.from("calendar_feeds").update({ last_error: message.slice(0, 200), last_synced_at: stamp }).eq("id", feed.id);
+    return { feed: feed.id, ok: false, error: code };
+  };
+
+  let events: IcsEvent[] = [];
+
+  if (provider === "google") {
+    // A signed-in Google account, read through the connector on this person's
+    // behalf. No connection means no guessing: say so on the feed and stop.
+    const conn = await googleCalendarConnection(feed.user_id);
+    if (!conn) {
+      return await fail("Google is not connected for this account. Sign in again in Settings.", "not_connected");
+    }
+    try {
+      events = await fetchGoogleEvents(conn, "primary", fromMs, toMs, MAX_EVENTS_PER_FEED);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Google did not answer";
+      return await fail(msg, "google_unreachable");
+    }
+  } else {
+    const url = normalizeCalendarUrl(feed.url ?? "");
+    if (!url) return await fail("That link is not a secure calendar address.", "bad_url");
+
+    let text = "";
+    try {
+      const r = await fetch(url, { headers: { Accept: "text/calendar, text/plain" } });
+      if (!r.ok) throw new Error(explainStatus(r.status, url));
+      text = await r.text();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "the calendar did not answer";
+      return await fail(msg, msg);
+    }
+
+    if (!/BEGIN:VCALENDAR/i.test(text)) {
+      return await fail("That address did not return a calendar.", "not_a_calendar");
+    }
+    events = parseIcs(text, { fromMs, toMs }).slice(0, MAX_EVENTS_PER_FEED);
+  }
+
 
   // Project links are the user's own structural work, not the calendar's. The
   // feed is the source of truth for *what* is on the day, never for how the
@@ -250,14 +274,14 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await sb.auth.getUser(token);
     const userId = userData?.user?.id;
     if (!userId) return jsonResponse({ error: "sign in required" }, 401);
-    let q = sb.from("calendar_feeds").select("id, user_id, organization_id, label, url, default_project_id").eq("user_id", userId).eq("active", true);
+    let q = sb.from("calendar_feeds").select(FEED_COLUMNS).eq("user_id", userId).eq("active", true);
     if (body?.feed_id) q = q.eq("id", body.feed_id);
     const { data } = await q.limit(20);
     feeds = (data ?? []) as FeedRow[];
   } else {
     const { data } = await sb
       .from("calendar_feeds")
-      .select("id, user_id, organization_id, label, url, default_project_id")
+      .select(FEED_COLUMNS)
       .eq("active", true)
       .limit(200);
     feeds = (data ?? []) as FeedRow[];

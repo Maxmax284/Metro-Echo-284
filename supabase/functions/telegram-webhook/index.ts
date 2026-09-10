@@ -24,7 +24,7 @@ import {
   withTelegramRef,
 } from "../_shared/calendarProposal.ts";
 import {
-  calendarWriteStateFromEnv,
+  calendarWriteStateForUser,
   executeCalendarProposal,
   projectCalendarEvent,
   telegramMayAutoExecute,
@@ -431,7 +431,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       attendeeCount: Number(args.attendee_count ?? 0),
       source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
       conflicts,
-      writeState: calendarWriteStateFromEnv(),
+      writeState: await calendarWriteStateForUser(userId),
     });
 
     const { data: staged } = await sb
