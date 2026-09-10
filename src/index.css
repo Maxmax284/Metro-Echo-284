@@ -490,6 +490,31 @@
   animation: vanta-stamp calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
 }
 
+/* Transit-board flip: a fact that is true right now changed its wording. The
+   line turns over once on its top edge, like a split-flap board, and stops.
+   One-shot, event-driven — never a loop, never on first paint. */
+@keyframes vanta-flip {
+  from { transform: perspective(320px) rotateX(-88deg); opacity: 0.25; }
+  55%  { transform: perspective(320px) rotateX(6deg); opacity: 1; }
+  to   { transform: perspective(320px) rotateX(0deg); opacity: 1; }
+}
+.motion-flip {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  animation: vanta-flip calc(var(--motion-base) * 1.35 * var(--feel-k, 1)) var(--ease-out) both;
+}
+
+/* Closed and cleared: a promise just marked done presses down and dims for a
+   beat, so the close is visible before the list refreshes it away. */
+@keyframes vanta-stamped-done {
+  from { transform: scale(1); opacity: 1; }
+  35%  { transform: scale(0.985); opacity: 0.9; }
+  to   { transform: scale(0.99); opacity: 0.45; }
+}
+.motion-stamped-done {
+  animation: vanta-stamped-done calc(var(--motion-slow) * var(--feel-k, 1)) var(--ease-out) both;
+}
+
 /* Timestamp lock: the clock on a genuinely new row lights once in the live
    colour, then settles to the room's muted tone. Pairs with motion-arrive
    and motion-stamp — never applied on its own, never re-runs on re-render. */
