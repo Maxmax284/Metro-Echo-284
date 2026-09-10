@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordDeletion } from "@/lib/archive";
 import { useAuth } from "@/lib/auth";
 
 export type AwarenessConfidence = "low" | "medium" | "high";
@@ -243,6 +244,14 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const deletePlace = useCallback(async (id: string) => {
+    /* Provenance first: a snapshot receipt is written before the row and its
+       briefings go, so a deleted pin can still be accounted for. */
+    const { data: row } = await supabase
+      .from("awareness_places")
+      .select("id,label,geo,country,region,category,notes,address,created_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (row) await recordDeletion("place", id, row as unknown as Record<string, unknown>);
     await supabase.from("awareness_briefings").delete().eq("place_id", id);
     await supabase.from("awareness_snapshots" as any).delete().eq("place_id", id);
     await supabase.from("awareness_places").delete().eq("id", id);
