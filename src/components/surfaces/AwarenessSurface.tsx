@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTravelTimes } from "@/hooks/useTravelTimes";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
