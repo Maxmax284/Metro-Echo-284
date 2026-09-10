@@ -43,7 +43,7 @@ export function WorkBodyLine() {
           MOTION_FOCUS,
         )}
       >
-        Movement
+        Body trends
         <ArrowUpRight className="h-3 w-3" />
       </Link>
     </div>
