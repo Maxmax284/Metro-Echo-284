@@ -23,6 +23,7 @@ Rendered on Today today: SituationRead, PlaceCueStrip, SourceHealthStrip, AskVan
 Dismiss audit, verified: only `NoticedRow` (nudge → `dismissed` + audit event), `FirstLapCard` and `CrossDeviceResume` (localStorage), `ResumeWorkSection` (`useContinuity.dismiss`). Everything else — including the "Review changes" line, which is `SituationRead.tsx:22` `waiting_on_you` — has **no** ignore, snooze, handled or clear path. Confirmed: situation lines are pure derived output with no per-line state at all.
 
 Proposed semantics (five distinct meanings, no synonyms):
+
 - **Ignore** — this kind of thing, not now. Presentation state + a suppression receipt, expires (e.g. 7 days).
 - **Snooze / Save for later** — still true, ask me at a time. Persistent, reappears, receipt on reappearance.
 - **Mark handled** — I did the real-world thing Echo can't see. Closes the underlying row where one exists (commitment/action/file), receipt always.
@@ -50,7 +51,7 @@ Delete controls today: projects have a real delete (`projects.ts:132`), notes de
 
 ## E. Ask — worth opening
 
-`ConversationSurface` already computes `suggestions` from tools. Change the source, not the mechanism: derive 2–3 questions from live state — "What changed since this morning?" (audit_log delta), "Anything waiting on me?" (staged actions / overdue), "What do I need before <next event>?" (calendar), "Why is this on Today?" (deep-linked from a line). They vanish when their state is empty. Provenance, scope and Telegram continuity already exist and are reused.
+`ConversationSurface` already computes `suggestions` from tools. Change the source, not the mechanism: derive 2–3 questions from live state — "What changed since this morning?" (audit_log delta), "Anything waiting on me?" (staged actions / overdue), "What do I need before &nbsp;?" (calendar), "Why is this on Today?" (deep-linked from a line). They vanish when their state is empty. Provenance, scope and Telegram continuity already exist and are reused.
 
 ## F. Receipts — a weekly human read
 
@@ -98,3 +99,39 @@ Meaningful sources connected · days with enough context for a real Today read �
 8. Only then the pinned Body / Food / device expansion.
 
 Each item above is marked in its section as reuse, wire-and-polish, or new. Nothing here adds a fifth room, a second notification engine, a second action system, or deletes durable provenance.
+
+## O. Additional companion-design rules to preserve during simplification
+
+- **Finish certification before declaring the platform ready for the next expansion.** The current smoke-test work has exercised real paths, but the formal Proof Pack should still be completed so simplification starts from a known baseline rather than moving the finish line mid-run.
+- **Treat the current problem as underfeeding and overexposure, not missing intelligence.** The architecture is already broad enough. The next phase should prioritize better source coverage, stronger interaction semantics, and fewer visible surfaces before adding new engines.
+- **Use one lifecycle vocabulary across the whole product.** `Ignore`, `Snooze / Save for later`, `Mark handled`, `Remove`, `Archive`, and `Delete` should have consistent meanings everywhere. The available action depends on the underlying object; do not show every verb on every item.
+- **Removing something from Today must never silently delete its source truth.** Today is a presentation of current reality. A user should be able to clear clutter without accidentally destroying a project, document, calendar event, message, or receipt.
+- **Clear settled should only clear things that are genuinely resolved.** It must never hide open work, unresolved dependencies, or unhandled changes merely to make the screen look clean.
+- **Work should use stable shelves with progressive contents.** The shelf structure stays predictable, but empty capabilities should recede until they contain meaningful state. Do not give an empty Sherlock desk the same visual weight as a live project simply because both exist in navigation.
+- **Prefer human concepts over department names in Work.** The three-shelf model should feel closer to `Coming in`, `In motion`, and `Echo noticed` than ten software modules competing for attention.
+- **A capability should not earn permanent navigation simply because code for it exists.** Experimental and underfed surfaces should be absorbed, hidden, or retired while preserving useful hooks and backend capabilities for future reuse.
+- **New sources should be ranked by how many existing companion behaviors they improve.** Calendar is valuable because it strengthens Today, preparedness, travel, transitions, drift detection, and Ask at once. Future integrations should meet the same standard.
+- **Capture first, structure second.** Metro Echo should increasingly infer candidate projects, commitments, places, intentions, and loose ends from connected sources and natural capture rather than requiring users to manually seed every structure before Echo becomes useful.
+- **Candidate structure should be proposed, not silently committed.** When Echo thinks a message sounds like a commitment, a file belongs to a project, or a recurring place should be saved, it should ask for confirmation where that structure has consequences.
+- **Ask should open with live reasons to use it.** Suggested questions must come from actual current state and disappear when that state does not exist. Two relevant questions are better than a permanent wall of generic prompts.
+- **Receipts should explain trust in human language, not merely expose logs.** Periodic reads should summarize what came in, what Echo noticed, what it held back, what the user approved, what executed, what failed, and what Echo created while retaining the raw evidence underneath.
+- **Receipts should eventually be queryable conversationally.** Questions such as `What did Echo do while I was away?`, `What did you hold back?`, `What did I approve yesterday?`, and `What changed something outside Metro Echo?` should resolve against the same durable provenance rather than a second summary system.
+- **One underlying event should have one acknowledgment state across every surface.** Push, Telegram, Today, wearable, and future surfaces must not behave as if they independently discovered the same fact.
+- **Push is an interruption surface; Telegram is a conversational surface.** They may both participate in one event, but they should not automatically duplicate one another. Delivery choice belongs to the existing Awareness judgment path.
+- **Acknowledging an event anywhere should change how every other surface presents it.** If the user reads it in Telegram, opens the push, acknowledges it on a watch, or handles it in Metro Echo, other surfaces should render the same event as known or settled instead of replaying first-arrival behavior.
+- **Useful silence is a product behavior.** Metro Echo should measure and preserve cases where Echo had information but correctly determined that no interruption was warranted.
+- **Attention is a limited resource.** Interruption frequency, recent notification load, user posture, urgency, confidence, and whether telling the user now can improve the outcome should all influence delivery without suppressing genuinely critical situations.
+- **Contradiction awareness should move earlier in the companion roadmap.** As more feeds are connected, Echo must be able to identify when two trustworthy sources disagree rather than silently selecting the most recent row or whichever provider answered last.
+- **When sources disagree, Echo should expose the disagreement before resolving it.** `Calendar says 3:00 PM; Telegram says 3:30 PM` is preferable to inventing certainty.
+- **Freshness should eventually become universal, not location-specific.** Opening hours, schedules, prices, project status, policies, health records, travel details, and other changing facts should carry age and confidence appropriate to their domain.
+- **Different facts should decay at different rates.** A passport expiration date may remain durable for months, while a restaurant closing time or flight gate may require immediate reconfirmation.
+- **Today should continue gaining intelligence without gaining inventory.** Body, Food, Calendar, Travel, Telegram, weather, and future sources should modify existing situations wherever possible rather than automatically introducing permanent cards.
+- **The default rule for future Today features is: modify an existing situation before creating a new visual object.** This should remain true for every future companion expansion.
+- **Companion usefulness should be measured by synthesis, not page activity.** Meaningful connected sources, cross-source situations, duplicate notices avoided, corrections captured, expectations closed, useful suppressions, provenance use, and successful handoffs matter more than page views or raw Ask message counts.
+- **Track time-to-context as a product-health signal.** Measure how quickly a new user can connect enough real-world context for Echo to produce a genuinely useful Today read without requiring extensive manual setup.
+- **An underfed account should explain itself gracefully.** Instead of filling empty surfaces with fake activity, Echo may identify the single highest-value missing source and explain plainly how connecting it would improve understanding.
+- **Do not turn onboarding into data-entry homework.** The user should not have to manually build projects, routines, commitments, saved places, relationships, and goals before Metro Echo becomes useful.
+- **The two pinned companion expansions remain downstream of this cleanup.** Companion Substrate, Body, Food Graph, environment/travel synthesis, object continuity, richer devices, medical continuity, Life Rhythm, transitions, dependencies, loose ends, preparedness, gap summaries, still-true, contextual memory, disruption recovery, and cross-surface handoff remain part of the roadmap rather than being removed by simplification.
+- **Before Body or Food expansion, consolidate the existing wearable experiments into one coherent capability surface.** Preserve useful hooks, data models, and functions while retiring duplicate demo routes so the next generation builds on one foundation instead of inheriting a museum.
+- **Every future capability must answer four questions before earning expansion:** Does it improve Echo’s understanding of the user’s real situation? Can Echo prove where the information came from? Does the user retain meaningful control? Can Echo remain quiet when the information does not matter?
+- **The simplification goal is not fewer capabilities underneath. It is fewer concepts the user has to manage on top.** Metro Echo may become substantially more sophisticated internally while Today, Work, Ask, and Receipts become increasingly obvious to use.
