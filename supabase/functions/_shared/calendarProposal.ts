@@ -8,6 +8,15 @@
 // While the only calendar source is a read-only .ics feed, an approved proposal
 // is HELD, never applied — see `writeCeilingLine`.
 
+/** Google Calendar event ids are the iCal UID without the @google.com suffix. */
+export function providerEventIdFromUid(uid: string | null): string | null {
+  if (!uid) return null;
+  if (uid.toLowerCase().endsWith("@google.com")) {
+    return uid.slice(0, -"@google.com".length);
+  }
+  return uid;
+}
+
 export type CalendarWriteState = "read_only" | "connected";
 
 const FIELD_LABELS: Record<string, string> = {
