@@ -72,6 +72,8 @@ import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
 import { markFlipOriginFromEvent } from "@/lib/flip";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
+import { useArrivals } from "@/hooks/useArrivals";
+import { readArrival } from "@/lib/arrivalRead";
 
 
 
@@ -354,6 +356,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      changes what the day means. No card, and nothing at all on a quiet day.
      What's on file about this spot sits behind that line, one tap in. */
   const placeBoard = useTodayPlaceBoard();
+  /* What actually landed — Telegram messages, files, voice notes — read through
+     the same lane rules Inbox and the Telegram reply use. Today shows the top
+     few lines; filing still happens in Inbox. */
+  const arrivals = useArrivals();
+  const arrivalLines = arrivals.items.filter((i) => i.surface).slice(0, 3);
   const placeCue = useTodayPlaceCue({
     lineCount: situation.read?.lines.length ?? 0,
     explainsRead: !!situation.read?.placeNote,
@@ -398,7 +405,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       ? "attention"
       : dueToday.length > 0
         ? "next"
-        : captureCount > 0
+        : captureCount > 0 || arrivalLines.length > 0
           ? "fresh"
           : events.length > 0
             ? "changed"
@@ -408,12 +415,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const emptyNames = [
     nextTotal === 0 ? "Commitments" : null,
     events.length === 0 ? "Receipts" : null,
-    captureCount === 0 ? "Inbox" : null,
+    captureCount === 0 && arrivalLines.length === 0 ? "Inbox" : null,
   ].filter(Boolean) as string[];
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
-    quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
+    quiet &&
+    security.tone === "good" &&
+    captureCount === 0 &&
+    arrivalLines.length === 0 &&
+    events.length === 0;
 
   /* Shell weather is owned by the shell (`useShellWeather`) so every room wears
      it. Today still escalates on one thing the shell can't see: a live security
@@ -943,12 +954,31 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </Button>
                 }
               >
-                {captureCount === 0 ? (
+                {arrivalLines.length === 0 && captureCount === 0 ? (
                   <EmptyState
                     title="Nothing new"
-                    hint="Captures land in Inbox, then you sort them into the work they belong to."
+                    hint="Send Echo a message, photo or voice note on Telegram and it lands here, then you sort it into the work it belongs to."
                     flow={["Telegram", "Email", "Voice", "Inbox"]}
                   />
+                ) : arrivalLines.length > 0 ? (
+                  <ul className="space-y-2">
+                    {arrivalLines.map((item) => {
+                      const r = readArrival(item.arrival);
+                      return (
+                        <li
+                          key={`${item.arrival.channel}:${item.arrival.id}`}
+                          className="rounded-lg border border-border/50 bg-muted/20 p-2.5"
+                        >
+                          <p className="text-[12px] font-medium leading-snug">{r.read}</p>
+                          <p className="mt-0.5 text-[11.5px] leading-snug text-foreground/85">{r.summary}</p>
+                          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Next: {r.nextStep}</p>
+                        </li>
+                      );
+                    })}
+                    {arrivals.held ? (
+                      <li className="text-[11px] leading-snug text-muted-foreground/80">{arrivals.held}</li>
+                    ) : null}
+                  </ul>
                 ) : (
                   <p className="text-xs leading-snug text-muted-foreground">
                     <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
