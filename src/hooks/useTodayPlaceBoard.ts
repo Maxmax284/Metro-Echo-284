@@ -96,7 +96,7 @@ export function useTodayPlaceBoard(): {
       events,
       scanAt: snapshot?.generated_at ?? null,
     });
-  }, [snapshot, latestBySection, events]);
+  }, [snapshot, latestBySection, events, towns]);
 
   const scan = useCallback(() => {
     void refreshSnapshot(true).catch(() => {});
