@@ -53,6 +53,20 @@ export type PlaceBoardInput = {
     all_day?: boolean;
     location?: string | null;
   }>;
+  /**
+   * Entries already running — a stay, a travel week. They started before today
+   * so they never show up in a "what's next" read, and they are the truest thing
+   * about where you actually are.
+   */
+  ongoing?: Array<{
+    id: string;
+    title: string | null;
+    starts_at: string;
+    ends_at: string | null;
+    all_day?: boolean;
+    location?: string | null;
+  }>;
+
   /** When this spot was last scanned, if ever. */
   scanAt?: string | null;
 };
