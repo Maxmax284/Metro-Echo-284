@@ -19,8 +19,43 @@ export function useTodayPlaceBoard(): {
   scanning: boolean;
   scan: () => void;
 } {
-  const { snapshot, snapshotLoading, refreshSnapshot, latestBySection } = useAwareness();
+  const { place, snapshot, snapshotLoading, refreshSnapshot, latestBySection } = useAwareness();
   const { events } = useAgenda({ days: 1 });
+
+  /* The same nearby-places lookup the Aware desk uses: map data, cached
+     server-side. One read per fix — no watcher, no polling. It is what lets
+     Today name real ground before anything has been scanned here. */
+  const [towns, setTowns] = useState<Array<{ name: string; detail: string | null; distanceM: number }>>([]);
+  const fixLat = Number((place?.geo as any)?.lat);
+  const fixLon = Number((place?.geo as any)?.lon);
+  useEffect(() => {
+    if (!Number.isFinite(fixLat) || !Number.isFinite(fixLon)) {
+      setTowns([]);
+      return;
+    }
+    let live = true;
+    void supabase.functions
+      .invoke("awareness-nearby-places", { body: { lat: fixLat, lon: fixLon } })
+      .then(({ data }) => {
+        if (!live) return;
+        const rows = ((data as any)?.places ?? []) as Array<{ name?: string; kind?: string; distance_m?: number }>;
+        setTowns(
+          rows
+            .filter((r) => r.name && Number.isFinite(Number(r.distance_m)))
+            .map((r) => ({
+              name: String(r.name),
+              detail: r.kind ? `${r.kind}, from map data.` : null,
+              distanceM: Number(r.distance_m),
+            })),
+        );
+      })
+      .catch(() => {
+        /* A missing lookup stays missing. The strip says what it has. */
+      });
+    return () => {
+      live = false;
+    };
+  }, [fixLat, fixLon]);
 
   const board = useMemo(() => {
     const local = (((snapshot?.full_data as any)?.local_signals ?? []) as Array<{
