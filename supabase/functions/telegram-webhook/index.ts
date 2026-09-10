@@ -17,6 +17,7 @@ import {
   isCalendarProposal,
   normalizeCalendarChangeField,
   proposalSummary,
+  refineCalendarProposal,
   type CalendarFieldChange,
 } from "../_shared/calendarProposal.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
