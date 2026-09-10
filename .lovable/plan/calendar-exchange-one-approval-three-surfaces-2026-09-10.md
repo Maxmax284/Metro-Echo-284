@@ -86,3 +86,167 @@ Calendar proposals land in Work's *what's landing* / *what I owe* shelves rather
 ## Technical notes
 
 Proposal payload keyed on `feed_id + uid + starts_at` (row ids are not stable across syncs). A Google event id and calendar id get stored on the action once a write happens, and a durable Echo-side link between a Google event and its context is added in Phase 2. Timezone handling must be explicit for writes — the current floating-time-as-UTC read is not accurate enough to write back. Executor stays the only write path; `actions-execute` gets an execute-once guard. The Telegram approval route approves exactly the referenced staged action, re-checks ownership, respects the risk gate, and cannot execute anything else.
+
+&nbsp;
+
+Additional calendar-exchange and cross-surface rules
+
+&nbsp;
+
+Never make the user think about syncing. The user should think about what they want changed; Echo determines which source owns the durable fact, what needs approval, where the write should happen, and which surfaces need to reflect the new state afterward.
+
+&nbsp;
+
+Calendar is a source of truth and an action target, not a separate product area. Do not create a Calendar room. Calendar information should strengthen Today, Work, Ask, Telegram, preparedness, travel, loose ends, and Receipts.
+
+&nbsp;
+
+Read anywhere, reason in Echo, approve once, write back to the authoritative source. A calendar change proposed from Ask, the global chat widget, Today, Work, or Telegram must become the same staged action rather than separate surface-specific operations.
+
+&nbsp;
+
+Full Ask and the compact chat widget must expose the same calendar capabilities. The user should never discover that moving an event works in one Echo conversation surface but not another.
+
+&nbsp;
+
+Telegram is a field interface into the same calendar action system. It must not have a separate calendar bot, separate proposal format, separate approval state, or alternate execution path.
+
+&nbsp;
+
+Simple calendar changes should be approvable in Telegram with a plain Yes / No interaction. Echo should first show the exact event and exact proposed change, then accept a simple confirmation when the consequence is ordinary and reversible.
+
+&nbsp;
+
+Higher-consequence calendar changes should require stronger but still concise confirmation. Cancelling an event with attendees, removing participants, changing something that notifies other people, or performing another consequential write should clearly state the consequence before approval.
+
+&nbsp;
+
+A Telegram Yes approves only the specific staged action being shown. It must never create blanket permission for future calendar writes or imply that Echo may silently modify later events.
+
+&nbsp;
+
+Natural-language refinement must update the proposal, not the external calendar. If the user says Actually make it 3:30, Echo should revise the pending proposal and ask for approval again while leaving the provider untouched.
+
+&nbsp;
+
+Bundled calendar edits should remain one proposal when they belong to one intention. Move training to 6 and remind me 30 minutes before should normally become one preview, one approval, one execution, and one receipt.
+
+&nbsp;
+
+Do not force users into forms for ordinary calendar work. Commands such as Move this to Friday, Put that address on the event, Add a two-hour reminder, Cancel that, Add this to my calendar, and Make sure tomorrow isn't double-booked should be first-class conversational abilities.
+
+&nbsp;
+
+Make calendar capability discoverable through useful context rather than feature advertising. Relevant agenda items may quietly offer Ask Echo to move this; Ask may suggest grounded questions about the next event; Telegram may offer an update when a forwarded message clearly relates to an existing event.
+
+&nbsp;
+
+Calendar-aware suggestions must only appear when grounded in real state. Do not permanently show generic calendar prompts merely to demonstrate capability.
+
+&nbsp;
+
+Echo should resolve references before proposing changes. Move my doctor appointment tomorrow should identify one specific event where possible; if several events match, Echo asks which one; if none match, Echo says so rather than guessing.
+
+&nbsp;
+
+A staged calendar proposal should preserve the event identity independently of unstable local row IDs. The proposal must use the most durable available provider/feed identity and later upgrade to provider-side event identifiers when writable Google Calendar access exists.
+
+&nbsp;
+
+Before any write, show the exact before and after state. The preview should make changes such as 2:00 PM → 3:30 PM, No location → 42 Sathorn Rd, or No reminder → 30 minutes before immediately understandable.
+
+&nbsp;
+
+Before any write, Echo should reason about relevant consequences. Where supported by current evidence, check conflicts, travel time, downstream commitments, reminders, and other facts that become invalid because of the proposed change.
+
+&nbsp;
+
+Calendar changes should support still true / no longer true reasoning. After a move or cancellation, Echo should be able to explain what downstream plans remain unaffected and what now needs attention.
+
+&nbsp;
+
+Google Calendar should contain durable event facts; Echo should retain interpretation and private situational context. Time, title, location, attendees, reminders, links, and deliberately shared notes may belong in Google. Why the event matters, private reasoning, loose ends, source disagreements, and temporary context normally remain inside Metro Echo.
+
+&nbsp;
+
+Finding useful context does not automatically authorize writing it into Google. If Echo finds an address, confirmation number, preparation note, or other detail in Telegram, email, a file, or another source, it may attach that fact to Echo's internal context while separately offering to add it to the calendar.
+
+&nbsp;
+
+Every proposed external write must preserve provenance. Echo should know which message, file, calendar event, or other source justified the change and make that source available through Why this? and Receipts.
+
+&nbsp;
+
+Contradictions must be surfaced before calendar writes. If a message says 11:30 while the calendar says 11:00, Echo should show both versions and their sources rather than silently selecting one.
+
+&nbsp;
+
+Provider truth should win only after it is deliberately reconciled. A newer source is not automatically a more trustworthy source merely because it arrived later.
+
+&nbsp;
+
+iCal remains an honest read-only input. Echo may reason from it, detect changes, prepare proposals, and hold approved changes, but it must never claim that an iCal feed can write back to Google.
+
+&nbsp;
+
+Until provider write access is connected, every approved calendar proposal must state clearly that no external change has occurred. The UI may hold the action as ready, but it must never display Done, Synced, or equivalent provider-success language.
+
+&nbsp;
+
+Once Google write access exists, previously designed proposal behavior should remain unchanged. Connecting the provider should unlock execution rather than introduce a second calendar UX.
+
+&nbsp;
+
+The calendar executor remains the only path that performs provider writes. Ask, Telegram, Today, Work, notifications, and the chat widget may propose or approve actions but must never write directly around the action spine.
+
+&nbsp;
+
+Calendar execution must be idempotent. Repeated taps, Telegram callbacks, retries, reconnects, or approvals arriving from two surfaces must result in one provider-side change.
+
+&nbsp;
+
+Approval anywhere resolves the same pending action everywhere. If the user approves in Telegram, the app must stop asking. If the user approves in Ask, Telegram's pending controls should become inactive or visibly resolved.
+
+&nbsp;
+
+A calendar proposal should have one shared acknowledgment and execution state across Today, Ask, the widget, Work, Telegram, push, and future wearable surfaces.
+
+&nbsp;
+
+Push, Telegram, and Today must not independently announce the same calendar change. The existing Awareness delivery policy should determine where an event deserves interruption, while other surfaces quietly reflect the shared state.
+
+&nbsp;
+
+Telegram should support conversational follow-up after execution. After Done. Appointment moved to 3:30, the user should be able to ask Will I still make training? and Echo should reason from the newly updated reality.
+
+&nbsp;
+
+Changes made directly in Google should eventually flow back into Echo as reality changes, not merely database refreshes. Echo should explain what moved, what the change affects, and what remains true.
+
+&nbsp;
+
+External edits should feed Awareness rather than create another calendar notification engine. A provider-side change is an awareness signal whose relevance, urgency, bundling, suppression, and delivery are decided by the same shared judgment path.
+
+&nbsp;
+
+Receipts must prove calendar writes in human language. A receipt should show the previous value, new value, who approved it, which surface carried approval, which source justified it, whether the provider confirmed it, and whether rollback is available.
+
+&nbsp;
+
+Provider failure must be as visible as provider success. If Google rejects a change, Echo should state what failed, whether anything changed externally, and the single next step needed from the user.
+
+&nbsp;
+
+Preparedness should grow naturally from calendar context. Before an important event, Echo may combine relevant calendar facts, location, travel time, documents, messages, reminders, and loose ends into a temporary context pack without creating a permanent dashboard.
+
+&nbsp;
+
+Temporary event context should expire when the situation ends. Airport, appointment, meeting, or travel-day context should dissolve after it stops being useful rather than permanently increasing memory and Work clutter.
+
+&nbsp;
+
+Calendar enrichment should strengthen the broader companion model. Event changes may contribute to transitions, loose ends, preparedness, gap summaries, contradiction awareness, disruption recovery, and what changed since I last looked?.
+
+&nbsp;
+
+The target experience is not Metro Echo has Google Calendar integration. The target experience is I told Echo what I wanted changed, approved it once, and everything agreed afterward.
