@@ -1336,6 +1336,29 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    /* /day and /week — the calendar board, straight from the field. Same rows
+       the app reads, same overlays, no staging. A command is just a faster
+       door to the read. */
+    if (/^\/(day|week|today)\b/.test(text)) {
+      const span = text.startsWith("/week") ? "week" : "day";
+      const { data: prof } = await admin.from("profiles").select("timezone").eq("id", link.user_id).maybeSingle();
+      const agenda = await calendarBoard(
+        admin,
+        link.user_id,
+        (prof as { timezone?: string } | null)?.timezone || "UTC",
+        span === "week" ? "this week" : "today",
+        span,
+      );
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: agenda.text,
+        reply_markup: agenda.deep ? keyboard([openButton("today", { label: "Open it in Metro Echo" })]) : undefined,
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+
+
     // Rate limit per linked user — same bucket pattern as vanta-converse
     const { data: allowed } = await admin.rpc("rate_limit_hit", {
       _user_id: link.user_id, _bucket: "telegram-webhook", _limit: 30, _window_seconds: 60,
