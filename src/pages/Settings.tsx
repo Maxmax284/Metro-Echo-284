@@ -90,6 +90,9 @@ export default function Settings() {
       {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />
 
+      {/* Telegram is the field interface — it gets its own door, not a nested one. */}
+      <TelegramQuickConnect />
+
       <ul className="space-y-2">
         {SETTINGS_GROUPS.map((g) => (
           <li key={g.id}>
