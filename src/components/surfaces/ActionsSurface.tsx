@@ -63,7 +63,7 @@ const riskLabel = {
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
 
-type Executor = { id: string; name: string; kind: "webhook" | "telegram"; enabled: boolean };
+type Executor = { id: string; name: string; kind: "webhook" | "telegram" | "google_calendar" | "email"; enabled: boolean };
 
 
 export function ActionsSurface() {
