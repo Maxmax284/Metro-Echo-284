@@ -14,8 +14,9 @@ export function useSourceHealth(): { sources: SourceHealth[]; loading: boolean; 
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
+  const uid = session?.user?.id ?? null;
+
   const load = useCallback(async () => {
-    const uid = session?.user?.id;
     if (!uid) return;
     setLoading(true);
 
