@@ -173,14 +173,35 @@ function gapLine(mins: number): string {
 
 /** The next couple of calendar entries, folded into What's next. Reads only. */
 function AgendaInNext({ onOpenWeek }: { onOpenWeek?: () => void }) {
-  const { events, loading } = useAgenda({ days: 2 });
-  if (loading || events.length === 0) return null;
+  const { events, ongoing, loading } = useAgenda({ days: 2 });
+  if (loading || (events.length === 0 && ongoing.length === 0)) return null;
   const shown = events.slice(0, 3);
   const more = events.length - shown.length;
   return (
     <div className="mt-2 border-t border-border/40 pt-2.5">
+      {/* What is already running. It never starts today, so a "what's next"
+          read alone would leave the truest thing about your day off the page. */}
+      {ongoing.length > 0 ? (
+        <div className={cn("mb-2.5 space-y-1", MOTION_ARRIVE)}>
+          <MachineLabel className="text-foreground/60">On now</MachineLabel>
+          {ongoing.slice(0, 2).map((e) => (
+            <div
+              key={e.id}
+              className={cn("flex items-baseline gap-2 vanta-inset px-2.5 py-1.5", LEAD_BAR, "text-accent")}
+            >
+              <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
+                {e.title || "Untitled entry"}
+              </span>
+              <MachineText className="shrink-0 text-[10px] text-muted-foreground">
+                {untilPhrase(e.ends_at, Date.now()) ?? "no end time on file"}
+              </MachineText>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="mb-1.5 flex items-center gap-2">
         <MachineLabel className="text-foreground/60">On your day</MachineLabel>
+
         {onOpenWeek ? (
           <button
             type="button"
