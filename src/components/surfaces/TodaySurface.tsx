@@ -47,7 +47,9 @@ import {
   Sun,
 } from "lucide-react";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, feelMs } from "@/lib/motion";
+import { LEAD_BAR, MOTION_ARRIVE, MOTION_BOOT, MOTION_FOCUS, MOTION_ROW, MOTION_STAMP, feelMs } from "@/lib/motion";
+import { untilPhrase } from "@/lib/situation";
+
 import {
   ActivityTrace,
   MachineLabel,
