@@ -66,7 +66,10 @@ export type CalendarEventRef = {
   feed_id: string | null;
   uid: string | null;
   starts_at: string | null;
+  ends_at: string | null;
   title: string;
+  /** Last known location from the feed; helps track place context across changes. */
+  location?: string | null;
 };
 
 export type CalendarProposalSource = {
