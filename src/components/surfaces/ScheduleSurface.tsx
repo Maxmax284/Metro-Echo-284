@@ -206,7 +206,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               ))}
             </Section>
             <QuickJump onNavigate={onNavigate} captures={reviewCaptures} actions={pendingActions} />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
           </div>
         ) : tab === "upcoming" ? (
           <div className="space-y-2">
@@ -217,7 +217,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
         ) : tab === "month" ? (
           <div className="space-y-3">
             <MonthGrid />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -243,7 +243,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               Meetings are read from your calendars — Echo never writes back. Filing one under a project is your own
               structure and survives every re-sync.
             </p>
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
           </div>
         )}
 
