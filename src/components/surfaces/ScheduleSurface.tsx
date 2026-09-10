@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";

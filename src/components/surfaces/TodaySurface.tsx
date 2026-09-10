@@ -7,6 +7,7 @@ import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/Toda
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
 import { EveningReadCard } from "@/components/today/EveningReadCard";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
+import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
