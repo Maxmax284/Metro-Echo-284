@@ -85,10 +85,11 @@ export function SavedPlacesPanel({
         <ul className="mt-2 space-y-1.5">
           {sorted.map((p) => {
             const isActive = p.id === activeId;
-            const dist = Number.isFinite(Number(p.roadDistanceM))
-              ? formatDistance(Number(p.roadDistanceM))
+            const byRoad = Number.isFinite(Number(p.roadDistanceM));
+            const dist = byRoad
+              ? `${formatDistance(Number(p.roadDistanceM))} by road`
               : Number.isFinite(Number(p.distanceM))
-                ? formatDistance(Number(p.distanceM))
+                ? `${formatDistance(Number(p.distanceM))} away`
                 : null;
             const drive = driveLabel(p.travelS);
             const where = [p.region, p.country].filter(Boolean).join(", ");
