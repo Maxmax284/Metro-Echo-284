@@ -37,6 +37,12 @@ import {
   parseCalendarQuestion,
   type CalReadEvent,
 } from "../_shared/calendarRead.ts";
+import {
+  agendaSpanFromWords,
+  buildAgenda,
+  type AgendaCommitment,
+  type AgendaPendingChange,
+} from "../_shared/calendarAgenda.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
