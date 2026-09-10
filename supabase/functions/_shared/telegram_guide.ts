@@ -64,6 +64,17 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
     ],
   },
   {
+    title: "What you can send it",
+    lines: [
+      "A photo — a receipt, a whiteboard, a sign, a parking spot. It reads what's in it and files it.",
+      "A screenshot of a message or a booking, and it pulls out the date, the name and the ask.",
+      "A document — PDF, Word, a scan straight off your phone. It reads it and keeps the file.",
+      "A voice note. It writes it out and treats it like anything you typed.",
+      "A forwarded message from someone else. It'll say what changed before it drafts anything.",
+      "A link or an address. It keeps it attached to the right project or place.",
+    ],
+  },
+  {
     title: "How to talk to it",
     lines: [
       "Talk normal. No keywords, no syntax, no shouting at it in caps.",
