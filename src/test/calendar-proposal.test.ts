@@ -23,7 +23,7 @@ const move = (after: string): CalendarFieldChange => ({
 
 const cancel: CalendarFieldChange = { field: "existence", label: "Event", before: "Standup", after: null };
 
-const event = { feed_id: "f1", uid: "u1", starts_at: "2026-03-02T07:00:00.000Z", title: "Doctor" };
+const event = { feed_id: "f1", uid: "u1", starts_at: "2026-03-02T07:00:00.000Z", ends_at: "2026-03-02T08:00:00.000Z", title: "Doctor" };
 
 describe("calendar proposals", () => {
   it("never claims a write while the feed is read-only", () => {
