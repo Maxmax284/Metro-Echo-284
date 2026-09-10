@@ -97,11 +97,23 @@ export function AwarenessSurface() {
       .invoke("awareness-nearby-places", { body: { lat: fixLat, lon: fixLon } })
       .then(({ data }) => {
         if (!live) return;
-        const rows = ((data as any)?.places ?? []) as Array<{ name?: string; kind?: string; distance_m?: number }>;
+        const rows = ((data as any)?.places ?? []) as Array<{
+          name?: string;
+          kind?: string;
+          distance_m?: number;
+          lat?: number;
+          lon?: number;
+        }>;
         setNearbyTowns(
           rows
             .filter((r) => r.name && Number.isFinite(Number(r.distance_m)))
-            .map((r) => ({ name: String(r.name), kind: r.kind ?? null, distanceM: Number(r.distance_m) })),
+            .map((r) => ({
+              name: String(r.name),
+              kind: r.kind ?? null,
+              distanceM: Number(r.distance_m),
+              lat: Number.isFinite(Number(r.lat)) ? Number(r.lat) : null,
+              lon: Number.isFinite(Number(r.lon)) ? Number(r.lon) : null,
+            })),
         );
       })
       .catch(() => { /* a missing nearby read stays missing; the shelf says so */ });
