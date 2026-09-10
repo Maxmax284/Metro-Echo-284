@@ -3,7 +3,7 @@
 // It fetches authoritative state (never chat memory), hands it to the pure
 // situation reader, and reports which sources had nothing to say versus which
 // ones could not be read at all. It writes nothing and decides nothing.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
@@ -34,9 +34,22 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
   const placeTick = `${livePlace?.id ?? ""}|${livePlace?.updated_at ?? ""}|${livePlace?.country ?? ""}`;
   const [read, setRead] = useState<SituationRead | null>(null);
   const [loading, setLoading] = useState(true);
+  /* Only the newest read may speak. Two reads in flight used to land in
+     whatever order the network felt like, so the same row alternated between
+     two truthful-but-different sentences. A stale answer is discarded. */
+  const runRef = useRef(0);
+  /* The rows this read is built from, identified by content instead of by
+     array identity — a refetch that returns the same promises must not count
+     as a change. */
+  const overdueKey = digest.overdue.map((c) => `${c.id}:${c.due_at ?? ""}`).join(",");
+  const dueSoonKey = [...digest.dueToday, ...digest.upcoming].map((c) => `${c.id}:${c.due_at ?? ""}`).join(",");
+  const actionsKey = digest.actions.map((a) => `${a.id}:${a.updated_at ?? ""}`).join(",");
+  const noticedKey = digest.noticed?.id ?? "";
 
   const build = useCallback(async () => {
     if (!session?.user) return;
+    const runId = ++runRef.current;
+    const stale = () => runId !== runRef.current;
     setLoading(true);
     const unknownSources: SituationSource[] = [];
 
@@ -308,6 +321,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }
     }
 
+    if (stale()) return;
     setRead(
       readSituation({
         overdue: digest.overdue.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at })),
@@ -342,7 +356,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       }),
     );
     setLoading(false);
-  }, [session?.user?.id, scopeKey, digest.overdue, digest.dueToday, digest.upcoming, digest.actions, digest.noticed, applyScope, placeTick, snapshot?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id, scopeKey, overdueKey, dueSoonKey, actionsKey, noticedKey, applyScope, placeTick, snapshot?.id]);
 
   useEffect(() => {
     if (digest.loadingCritical) return;
