@@ -10,7 +10,7 @@ import {
   ListChecks,
   Search,
   Compass,
-  LayoutDashboard,
+  
   ChevronRight,
   Briefcase,
 } from "lucide-react";
@@ -305,7 +305,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             hasFindings
               ? "Where Echo looks · Sherlock has something for you"
               : hasIntake
-                ? "Where Echo looks · 4 places Echo reads on your behalf"
+                ? "Where Echo looks · 3 places Echo reads on your behalf"
                 : "Where Echo looks · nothing needs your attention yet"
           }
           className="border-dashed"
