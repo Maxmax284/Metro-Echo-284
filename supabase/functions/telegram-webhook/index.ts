@@ -43,6 +43,7 @@ import {
   type AgendaCommitment,
   type AgendaPendingChange,
 } from "../_shared/calendarAgenda.ts";
+import { matchHelpQuestion, renderTelegramHelp } from "../_shared/telegramGuide.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
@@ -666,6 +667,18 @@ async function telegramConversation(
 }
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null, chatId: string | number | null = null) {
+  /* "How do I use you?" is fixed copy from the shared guide — the same words the
+     settings page prints. A model must never invent a capability list. */
+  if (matchHelpQuestion(text)) {
+    return {
+      reply: renderTelegramHelp(),
+      detectedType: null as string | null,
+      routedTo: null as string | null,
+      readOnly: true,
+      linkKind: null as VantaLinkKind | null,
+      commitmentId: null as string | null,
+    };
+  }
   // Identity questions never reach a model. Fixed copy, one line, done — so no
   // provider or model name can ever be presented as Echo's identity or author.
   const idq = matchIdentityQuestion(text);
@@ -1333,6 +1346,13 @@ Deno.serve(async (req) => {
         .eq("user_id", link.user_id).eq("channel", "telegram").eq("external_channel_id", String(chatId));
       await admin.from("audit_log").insert({ user_id: link.user_id, entity_type: "telegram", event: "telegram.unlinked", payload: { chat_id: chatId } });
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.unlinked() });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    /* /help — the shared rundown, word for word. Never composed by a model, so
+       the chat can't promise a capability the app doesn't have. */
+    if (/^\/help\b/.test(text)) {
+      await tg("sendMessage", { chat_id: chatId, text: renderTelegramHelp() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 

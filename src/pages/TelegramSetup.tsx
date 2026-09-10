@@ -15,6 +15,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/state-views";
 import { TelegramLinkCard } from "@/components/TelegramLinkCard";
 import { TelegramThread } from "@/components/telegram/TelegramThread";
+import { TelegramGuideCard } from "@/components/telegram/TelegramGuideCard";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 type Status = {
@@ -185,6 +186,10 @@ export default function TelegramSetup() {
         <p className="text-[11.5px] leading-snug text-muted-foreground">
           Messages become drafts inside Metro Echo — never live actions. Approving and executing always happens here.
         </p>
+      </div>
+
+      <div className="mb-3">
+        <TelegramGuideCard botUsername={status?.bot.username ?? null} />
       </div>
 
       {loading && <LoadingState label="Checking the connection" />}

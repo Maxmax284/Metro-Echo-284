@@ -125,7 +125,15 @@ export function buildAgenda(input: AgendaInput): Agenda {
   const tz = input.tz || "UTC";
   const span = Math.max(1, Math.min(14, input.days ?? 1));
   const start = input.startOffset ?? 0;
-  const events = input.events ?? [];
+  /* The same calendar can arrive twice — signed in to Google and subscribed by
+     link. One entry per title-and-start, so a board never says it twice. */
+  const seen = new Set<string>();
+  const events = (input.events ?? []).filter((e) => {
+    const k = `${(e.title ?? "").trim().toLowerCase()}|${e.starts_at}|${e.ends_at ?? ""}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
   const commitments = input.commitments ?? [];
   const pending = input.pending ?? [];
 
