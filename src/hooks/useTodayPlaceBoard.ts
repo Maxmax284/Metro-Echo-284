@@ -4,7 +4,8 @@
 // layer reads on file) plus the calendar Echo can already see, and hands the
 // pure reader one input. No watcher, no background scan: the only scan is the
 // explicit tap this hook exposes.
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useAgenda } from "@/hooks/useAgenda";
 import { agoPhrase } from "@/lib/awarenessShelves";
