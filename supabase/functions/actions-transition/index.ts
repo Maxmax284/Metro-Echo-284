@@ -2,6 +2,8 @@ import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
 import { attemptUndo } from "../_shared/actionRollback.ts";
+import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+import { tgCall } from "../_shared/telegramApi.ts";
 // actions-transition: validate a state transition for an action and write events + audit.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -132,6 +134,24 @@ Deno.serve(async (req: Request) => {
         provenance: (action.payload as Record<string, unknown> | null)?.provenance ?? null,
       },
     });
+
+    /* One pending change, one decision. If this action was also asked about in
+       Telegram, its Yes/No is retired here so the same thing is never approved
+       twice from two surfaces. Best-effort: a failed edit never fails the
+       transition that already happened. */
+    if (isCalendarProposal(action.payload) && action.payload.telegram && to_status !== action.status) {
+      const ref = action.payload.telegram;
+      try {
+        await tgCall("editMessageReplyMarkup", {
+          chat_id: ref.chat_id, message_id: ref.message_id, reply_markup: { inline_keyboard: [] },
+        });
+        await tgCall("sendMessage", {
+          chat_id: ref.chat_id,
+          text: settledElsewhereLine(to_status),
+          disable_web_page_preview: true,
+        });
+      } catch { /* the receipt is already written; chat cosmetics can fail */ }
+    }
 
     return new Response(JSON.stringify({ ok: true, status: to_status, undo }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

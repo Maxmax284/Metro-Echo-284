@@ -79,7 +79,35 @@ export type CalendarProposal = {
   /** Plain lines: "overlaps Standup, 15:00". */
   conflicts: string[];
   write_state: CalendarWriteState;
+  /** Where the Yes/No buttons live, so approving elsewhere can retire them. */
+  telegram?: TelegramProposalRef | null;
 };
+
+/** The exact message carrying this proposal's buttons in Telegram. */
+export type TelegramProposalRef = { chat_id: number; message_id: number };
+
+/** Remember where the buttons are. Nothing else about the proposal changes. */
+export function withTelegramRef(
+  proposal: CalendarProposal,
+  ref: TelegramProposalRef,
+): CalendarProposal {
+  return { ...proposal, telegram: ref };
+}
+
+/**
+ * Whether opening the app actually earns its place. Ordinary proposals are
+ * decided in the conversation; depth is for things you'd want to look at.
+ */
+export function calendarProposalNeedsDepth(proposal: CalendarProposal): boolean {
+  return calendarProposalRisk(proposal) === "high" || proposal.conflicts.length > 1;
+}
+
+/** What Telegram says when the same change was already decided somewhere else. */
+export function settledElsewhereLine(status: string): string {
+  if (status === "cancelled") return "Dropped in Metro Echo. Nothing changed.";
+  if (status === "approved") return "Approved in Metro Echo. Nothing changed in Google.";
+  return "Already decided in Metro Echo.";
+}
 
 export type BuildCalendarProposalInput = {
   event?: CalendarEventRef | null;

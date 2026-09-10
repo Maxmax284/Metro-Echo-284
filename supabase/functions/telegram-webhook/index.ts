@@ -19,6 +19,9 @@ import {
   proposalSummary,
   refineCalendarProposal,
   type CalendarFieldChange,
+  calendarProposalNeedsDepth,
+  settledElsewhereLine,
+  withTelegramRef,
 } from "../_shared/calendarProposal.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import {
@@ -361,6 +364,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       routedTo: "actions",
       markup: keyboard(calendarApprovalButtons(row.id, refined.version)),
       readOnly: true,
+      calendarActionId: row.id as string,
     };
   }
   if (name === "stage_calendar_change") {
@@ -445,7 +449,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       : "Approve this change? Yes / No.";
     /* The app link is an escape hatch for depth, not the way to approve. It only
        shows when there is genuinely more to look at than fits here. */
-    const deep = risk === "high" || conflicts.length > 1;
+    const deep = calendarProposalNeedsDepth(proposal);
     return {
       reply: `${proposalSummary(proposal)}\n\n${ask}`,
       detectedType: "calendar change",
@@ -453,6 +457,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       markup: staged?.id
         ? keyboard(calendarApprovalButtons(staged.id, proposal.version), ...(deep ? [[openButton("actions")]] : []))
         : undefined,
+      calendarActionId: (staged?.id as string | undefined) ?? null,
     };
   }
   if (name === "add_commitment") {
@@ -705,6 +710,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* A staged calendar change brings its own Yes/No, so it wins over the default
      "open Echo" link. Nothing else in chat gets to supply buttons. */
   let toolMarkup: TgReplyMarkup | undefined;
+  /* Which staged calendar change these buttons belong to, so the message can be
+     retired when the same action is decided on another surface. */
+  let calendarActionId: string | null = null;
   let reply = "";
 
   if (matchCapabilityQuestion(text)) {
@@ -745,6 +753,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
         commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
         toolMarkup = ((res as any).markup as TgReplyMarkup | undefined) ?? toolMarkup;
+        calendarActionId = ((res as any).calendarActionId as string | null | undefined) ?? calendarActionId;
       }
     } catch { /* ignore */ }
   }
@@ -828,7 +837,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     ?? (commitmentId
       ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
       : keyboard([openButton(linkKind ?? "today")]));
-  return { reply, markup };
+  return { reply, markup, calendarActionId };
 }
 
 Deno.serve(async (req) => {
@@ -1402,10 +1411,12 @@ Deno.serve(async (req) => {
 
     let reply = VANTA_PHRASES.gotIt();
     let markup: TgReplyMarkup | undefined;
+    let calendarActionId: string | null = null;
     try {
       const out = await aiRespond(admin, link.user_id, text, routeOrgId, chatId);
       reply = out.reply;
       markup = out.markup;
+      calendarActionId = out.calendarActionId ?? null;
     } catch (e) {
       reply = VANTA_PHRASES.telegram.snag();
       console.error("aiRespond error", e);
@@ -1414,12 +1425,28 @@ Deno.serve(async (req) => {
       user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
       direction: "out", text: reply, kind: "text", sent_by: "vanta",
     });
-    await tg("sendMessage", {
+    const sent = await tg("sendMessage", {
       chat_id: chatId,
       text: reply,
       disable_web_page_preview: true,
       ...(markup ? { reply_markup: markup } : {}),
     });
+    /* Remember where this proposal's Yes/No lives. If the same action is decided
+       in Metro Echo, those buttons are retired instead of asking twice. */
+    if (calendarActionId) {
+      try {
+        const messageId = (await sent.json())?.result?.message_id ?? null;
+        if (messageId) {
+          const { data: act } = await admin.from("actions")
+            .select("payload").eq("id", calendarActionId).eq("user_id", link.user_id).maybeSingle();
+          if (act && isCalendarProposal(act.payload)) {
+            await admin.from("actions")
+              .update({ payload: withTelegramRef(act.payload, { chat_id: Number(chatId), message_id: Number(messageId) }) })
+              .eq("id", calendarActionId).eq("status", "staged");
+          }
+        }
+      } catch { /* best-effort: a missing ref only means the buttons stay put */ }
+    }
     return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
   } catch (e) {
     console.error("telegram-webhook error", e);
