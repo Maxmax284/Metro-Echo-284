@@ -396,6 +396,25 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       markup: answer.deep ? keyboard([openButton("today", { label: "See the full day" })]) : undefined,
     };
   }
+  if (name === "show_calendar_view") {
+    /* A board, not a new engine: the same ingested rows the app reads, with
+       Echo's read labelled as a read. Looking never stages. */
+    const tz = defaults.timezone || "UTC";
+    const agenda = await calendarBoard(
+      sb,
+      userId,
+      tz,
+      String(args?.when ?? "today"),
+      typeof args?.span === "string" ? args.span : undefined,
+    );
+    return {
+      reply: agenda.text,
+      detectedType: "calendar read",
+      routedTo: null,
+      readOnly: true,
+      markup: agenda.deep ? keyboard([openButton("today", { label: "Open it in Metro Echo" })]) : undefined,
+    };
+  }
   if (name === "refine_calendar_change") {
     /* One pending proposal, adjusted. The version moves up so the buttons the
        user already saw can no longer approve something they never read. */
