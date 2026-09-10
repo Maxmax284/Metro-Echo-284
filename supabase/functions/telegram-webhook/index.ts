@@ -710,6 +710,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* A staged calendar change brings its own Yes/No, so it wins over the default
      "open Echo" link. Nothing else in chat gets to supply buttons. */
   let toolMarkup: TgReplyMarkup | undefined;
+  /* Which staged calendar change these buttons belong to, so the message can be
+     retired when the same action is decided on another surface. */
+  let calendarActionId: string | null = null;
   let reply = "";
 
   if (matchCapabilityQuestion(text)) {
