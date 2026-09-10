@@ -563,6 +563,8 @@ export function AwarenessSurface() {
             country: p.country ?? null,
             region: p.region ?? null,
             distanceM: savedNearby.find((s) => s.id === p.id)?.distanceM ?? null,
+            travelS: travelLegs[p.id]?.durationS ?? null,
+            roadDistanceM: travelLegs[p.id]?.distanceM ?? null,
             unresolved: classifyPlaceBadness(p as any).bad,
           }))}
           activeId={place?.id ?? null}
