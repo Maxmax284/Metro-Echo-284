@@ -93,6 +93,7 @@ export function AwarenessMap({
   const { points, running } = useTrips();
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState<[number, number] | null>(null);
+  const [focus, setFocus] = useState<{ name: string; detail: string } | null>(null);
   const startRef = useRef<[number, number] | null>(null);
 
   const active = useMemo(() => {
@@ -198,10 +199,46 @@ export function AwarenessMap({
               </Marker>
             ))}
             {saved.map((s) => (
-              <Marker key={s.id} position={s.at} icon={savedIcon}>
+              <Marker
+                key={s.id}
+                position={s.at}
+                icon={savedIcon}
+                eventHandlers={{
+                  click: () => {
+                    setFocus({ name: s.label, detail: "One of your saved places. Tap again to read from here." });
+                    onSelectPlace?.(s.id);
+                  },
+                }}
+              >
                 <Tooltip>{s.label}</Tooltip>
               </Marker>
             ))}
+            {/* Named ground around the fix. Recorded lookups only — tapping one
+                says what it is, it never moves your place. */}
+            {(nearby ?? [])
+              .filter((n) => Number.isFinite(n.lat) && Number.isFinite(n.lon))
+              .map((n) => (
+                <Marker
+                  key={n.key}
+                  position={[n.lat, n.lon]}
+                  icon={nearbyIcon}
+                  eventHandlers={{
+                    click: () =>
+                      setFocus({
+                        name: Number.isFinite(Number(n.distanceM))
+                          ? `${n.name} — ${formatDistance(Number(n.distanceM))} away`
+                          : n.name,
+                        detail:
+                          n.detail?.trim() ||
+                          (n.source === "map"
+                            ? "From the nearby-places lookup — map data, not a web search."
+                            : "Found by the last read of this spot."),
+                      }),
+                  }}
+                >
+                  <Tooltip>{n.name}</Tooltip>
+                </Marker>
+              ))}
             {active && (
               <Marker
                 position={drag ?? active}
