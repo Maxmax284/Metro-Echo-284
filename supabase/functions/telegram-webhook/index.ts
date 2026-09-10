@@ -224,6 +224,32 @@ async function shortHash(input: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * The calendar rows Echo already holds for this person. Always scoped to the
+ * user — this function runs on a service-role client, so the filter is the
+ * whole safety story. Read-only by construction: it only selects.
+ */
+async function loadCalendarEvents(sb: SupabaseClient, userId: string): Promise<CalReadEvent[]> {
+  const { data } = await sb
+    .from("calendar_events")
+    .select("feed_id, uid, starts_at, ends_at, title, location, all_day")
+    .eq("user_id", userId)
+    .gte("starts_at", new Date(Date.now() - 36 * 3600 * 1000).toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(200);
+  return ((data ?? []) as any[]).map((r) => ({
+    feed_id: r.feed_id ?? null,
+    uid: r.uid ?? null,
+    starts_at: r.starts_at,
+    ends_at: r.ends_at ?? null,
+    title: r.title ?? "Untitled",
+    location: r.location ?? null,
+    all_day: r.all_day ?? null,
+  }));
+}
+
+
+
 async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
