@@ -22,6 +22,7 @@ import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
 import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
+import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
