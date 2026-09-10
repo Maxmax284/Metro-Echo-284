@@ -797,7 +797,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       });
       if (finding && finding.suggested_route !== "ignore") {
         const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
-        reply = `${reply}\n\nLooks like ${lane}. Open Metro Echo to approve — nothing's been done yet.`.trim();
+        reply = `${reply}\n\nReads like ${lane}. Nothing has changed yet.`.trim();
       }
     } catch { /* best-effort */ }
   }
