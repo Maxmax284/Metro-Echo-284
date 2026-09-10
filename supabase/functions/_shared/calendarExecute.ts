@@ -275,6 +275,17 @@ export async function executeCalendarProposal(
 /** Find an active iCal feed to project a freshly created/updated event into. */
 async function findProjectionFeed(sb: SbClient, userId: string, fallbackFeedId: string | null): Promise<string | null> {
   if (fallbackFeedId) return fallbackFeedId;
+  // Prefer the person's own Google feed: that's the calendar we just wrote to.
+  const { data: google } = await sb
+    .from("calendar_feeds")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .eq("provider", "google")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (google?.id) return google.id;
   const { data } = await sb
     .from("calendar_feeds")
     .select("id")
