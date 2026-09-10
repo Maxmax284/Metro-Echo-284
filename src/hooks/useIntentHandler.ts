@@ -131,11 +131,11 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
               return {
                 field,
                 label: calendarFieldLabel(field),
-                before: c?.before ? String(c.before) : null,
-                after: c?.after === null ? null : c?.after ? String(c.after) : null,
+                /* An omitted `after` means removal — same reading as Telegram. */
+                before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+                after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
               };
-            })
-            .filter((c: CalendarFieldChange) => c.after !== undefined);
+            });
 
           if (!changes.length) {
             toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
