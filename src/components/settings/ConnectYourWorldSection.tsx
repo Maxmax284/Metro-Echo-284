@@ -186,7 +186,7 @@ export function ConnectYourWorldSection() {
         lastSyncedAt: r.calendarLastSync, brokenFeeds: r.brokenFeeds,
       }),
       icon: CalendarClock,
-      action: { label: "Calendars", to: "/settings/g/time" },
+      action: { label: "Calendars", to: "/settings/g/calendar" },
     },
     {
       card: wearableCard({

@@ -37,6 +37,12 @@ import {
   parseCalendarQuestion,
   type CalReadEvent,
 } from "../_shared/calendarRead.ts";
+import {
+  agendaSpanFromWords,
+  buildAgenda,
+  type AgendaCommitment,
+  type AgendaPendingChange,
+} from "../_shared/calendarAgenda.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
@@ -182,6 +188,7 @@ const tools = [
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
   // Read-only questions. These never write anything.
   { type: "function", function: { name: "whats_on_calendar", description: "Read-only: read the user's real ingested calendar. Use for 'what's on my calendar', 'what do I have tomorrow', 'anything conflicting', 'what comes after my appointment'. Pass their exact wording in `when`; pass `event_reference` only when they asked what follows a specific event.", parameters: { type: "object", properties: { when: { type: "string", description: "Their own time wording: 'right now', 'tomorrow', 'Friday', 'anything conflicting tomorrow'." }, event_reference: { type: "string", description: "Their words for one event, when asking what comes after it." } }, additionalProperties: false } } },
+  { type: "function", function: { name: "show_calendar_view", description: "Read-only: show a laid-out board of the real calendar for a day or the week ahead, with Echo's read over it (promises due, changes waiting on a yes, collisions). Use for 'show me my day', 'what does my week look like', 'walk me through Friday'. Never writes and never stages.", parameters: { type: "object", properties: { when: { type: "string", description: "Their own wording: 'today', 'tomorrow', 'this week'." }, span: { type: "string", enum: ["day", "week"] } }, additionalProperties: false } } },
   { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
   { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
   { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
@@ -258,6 +265,68 @@ async function loadCalendarEvents(sb: SupabaseClient, userId: string): Promise<C
   }));
 }
 
+/**
+ * Echo's read, laid over the calendar: promises that land that day, changes
+ * still waiting on a yes. Read-only — loading a board never stages anything.
+ */
+async function loadAgendaOverlays(
+  sb: SupabaseClient,
+  userId: string,
+): Promise<{ commitments: AgendaCommitment[]; pending: AgendaPendingChange[] }> {
+  const [{ data: comms }, { data: staged }] = await Promise.all([
+    sb.from("commitments")
+      .select("summary, due_at")
+      .eq("user_id", userId)
+      .eq("status", "open")
+      .not("due_at", "is", null)
+      .order("due_at", { ascending: true })
+      .limit(50),
+    sb.from("actions")
+      .select("payload, status")
+      .eq("user_id", userId)
+      .eq("status", "staged")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+  const pending: AgendaPendingChange[] = ((staged ?? []) as any[])
+    .filter((r) => isCalendarProposal(r.payload))
+    .map((r) => ({
+      title: calendarProposalTitle(r.payload),
+      event_uid: r.payload?.event?.uid ?? null,
+      event_starts_at: r.payload?.event?.starts_at ?? null,
+    }));
+  return {
+    commitments: ((comms ?? []) as any[]).map((c) => ({
+      summary: c.summary ?? "Something you owe",
+      due_at: c.due_at ?? null,
+    })),
+    pending,
+  };
+}
+
+/** One renderer for /day, /week and "what's my day" — same board every door. */
+async function calendarBoard(
+  sb: SupabaseClient,
+  userId: string,
+  tz: string,
+  phrase: string,
+  spanHint?: string,
+) {
+  const events = await loadCalendarEvents(sb, userId);
+  const parsed = agendaSpanFromWords(phrase);
+  const days = spanHint === "week" ? 7 : spanHint === "day" ? 1 : parsed.days;
+  const overlays = await loadAgendaOverlays(sb, userId);
+  return buildAgenda({
+    events,
+    commitments: overlays.commitments,
+    pending: overlays.pending,
+    tz,
+    days,
+    startOffset: spanHint === "week" ? 0 : parsed.startOffset,
+  });
+}
+
+
 
 
 async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
@@ -325,6 +394,25 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       routedTo: null,
       readOnly: true,
       markup: answer.deep ? keyboard([openButton("today", { label: "See the full day" })]) : undefined,
+    };
+  }
+  if (name === "show_calendar_view") {
+    /* A board, not a new engine: the same ingested rows the app reads, with
+       Echo's read labelled as a read. Looking never stages. */
+    const tz = defaults.timezone || "UTC";
+    const agenda = await calendarBoard(
+      sb,
+      userId,
+      tz,
+      String(args?.when ?? "today"),
+      typeof args?.span === "string" ? args.span : undefined,
+    );
+    return {
+      reply: agenda.text,
+      detectedType: "calendar read",
+      routedTo: null,
+      readOnly: true,
+      markup: agenda.deep ? keyboard([openButton("today", { label: "Open it in Metro Echo" })]) : undefined,
     };
   }
   if (name === "refine_calendar_change") {
@@ -1247,6 +1335,29 @@ Deno.serve(async (req) => {
       await tg("sendMessage", { chat_id: chatId, text: VANTA_PHRASES.telegram.unlinked() });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
+
+    /* /day and /week — the calendar board, straight from the field. Same rows
+       the app reads, same overlays, no staging. A command is just a faster
+       door to the read. */
+    if (/^\/(day|week|today)\b/.test(text)) {
+      const span = text.startsWith("/week") ? "week" : "day";
+      const { data: prof } = await admin.from("profiles").select("timezone").eq("id", link.user_id).maybeSingle();
+      const agenda = await calendarBoard(
+        admin,
+        link.user_id,
+        (prof as { timezone?: string } | null)?.timezone || "UTC",
+        span === "week" ? "this week" : "today",
+        span,
+      );
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: agenda.text,
+        reply_markup: agenda.deep ? keyboard([openButton("today", { label: "Open it in Metro Echo" })]) : undefined,
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+
 
     // Rate limit per linked user — same bucket pattern as vanta-converse
     const { data: allowed } = await admin.rpc("rate_limit_hit", {

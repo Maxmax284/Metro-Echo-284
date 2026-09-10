@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Rocket, User, CalendarClock, Radar, Sparkles, Plug, Gauge, Receipt,
+  Rocket, User, CalendarClock, CalendarCheck2, Radar, Sparkles, Plug, Gauge, Receipt,
   type LucideIcon,
 } from "lucide-react";
 
@@ -83,13 +83,19 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ),
   },
   {
+    id: "calendar",
+    title: "Your calendar",
+    blurb: "Sign in with Google so Echo reads your real calendar — or paste a read-only link.",
+    icon: CalendarCheck2,
+    render: () => <CalendarFeedsSection />,
+  },
+  {
     id: "time",
-    title: "Time, calendar and reminders",
-    blurb: "Linked calendars, quiet hours, when the daily recap lands.",
+    title: "Time and reminders",
+    blurb: "Quiet hours, your day boundaries, when the daily recap lands.",
     icon: CalendarClock,
     render: () => (
       <>
-        <CalendarFeedsSection />
         <TimeRemindersSection />
         <RecapSettingsPanel />
       </>
