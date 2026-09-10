@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MachineLabel } from "@/components/ui/instrument";
 import { EmptyState } from "@/components/ui/state-views";
 import { formatDistance } from "@/lib/trips";
+import { driveLabel } from "@/hooks/useTravelTimes";
 import { cn } from "@/lib/utils";
 
 export type SavedPlaceRow = {
@@ -18,6 +19,10 @@ export type SavedPlaceRow = {
   region?: string | null;
   /** Measured from the current fix, when both have coordinates. */
   distanceM?: number | null;
+  /** Road driving time from the current fix, from map routing. Null when unknown. */
+  travelS?: number | null;
+  /** Road distance from the same route, when the router returned one. */
+  roadDistanceM?: number | null;
   unresolved?: boolean;
 };
 
