@@ -39,6 +39,7 @@ import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
 import { SavedPlacesPanel } from "@/components/awareness/SavedPlacesPanel";
+import { AddPlaceForm } from "@/components/awareness/AddPlaceForm";
 import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 
