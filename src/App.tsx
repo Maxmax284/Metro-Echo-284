@@ -37,7 +37,7 @@ import DocumentsPage from "./pages/Documents.tsx";
 import RoomMapPage from "./pages/RoomMap.tsx";
 import WearableLoopPage from "./pages/WearableLoop.tsx";
 import WatchPage from "./pages/Watch.tsx";
-import MotionPage from "./pages/Motion.tsx";
+
 import GlancePage from "./pages/Glance.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import TelegramSetupPage from "./pages/TelegramSetup.tsx";
@@ -77,7 +77,8 @@ const App = () => (
                               <Route path="/physical-loop" element={<PhysicalLoopPage />} />
                               <Route path="/wearable-loop" element={<WearableLoopPage />} />
                               <Route path="/watch" element={<WatchPage />} />
-                              <Route path="/motion" element={<MotionPage />} />
+                              {/* Retired demo route; the body desk is /watch. */}
+                              <Route path="/motion" element={<Navigate to="/watch" replace />} />
                               <Route path="/glance" element={<GlancePage />} />
                               <Route path="/awareness/location" element={<LocationSetupPage />} />
 
