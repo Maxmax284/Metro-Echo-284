@@ -95,10 +95,11 @@ export function useTodayDigest(): TodayDigest {
     setCommitments((c.data as DigestCommitment[]) ?? []);
     setActions((a.data as DigestAction[]) ?? []);
     setLoadingCritical(false);
+    loadedOnce.current = true;
   }, [applyScope]);
 
   const loadBackground = useCallback(async () => {
-    setLoadingBackground(true);
+    if (!loadedOnce.current) setLoadingBackground(true);
     setBackgroundError(null);
     try {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
