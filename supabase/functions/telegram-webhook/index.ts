@@ -19,6 +19,9 @@ import {
   proposalSummary,
   refineCalendarProposal,
   type CalendarFieldChange,
+  calendarProposalNeedsDepth,
+  settledElsewhereLine,
+  withTelegramRef,
 } from "../_shared/calendarProposal.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import {
@@ -361,6 +364,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       routedTo: "actions",
       markup: keyboard(calendarApprovalButtons(row.id, refined.version)),
       readOnly: true,
+      calendarActionId: row.id as string,
     };
   }
   if (name === "stage_calendar_change") {
