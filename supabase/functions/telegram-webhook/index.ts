@@ -304,10 +304,19 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
         return { reply: `Which one? ${resolved.candidates.map((c) => `${c.title} (${clockLabel(c.starts_at, tz)})`).join(" · ")}`, detectedType: "calendar read", routedTo: null, readOnly: true };
       }
       const anchor = events.find((e) => e.uid === resolved.event.uid && e.starts_at === resolved.event.starts_at) ?? (resolved.event as CalReadEvent);
-      return { reply: answerAfterEvent(anchor, events, tz), detectedType: "calendar read", routedTo: null, readOnly: true };
+      const after = answerAfterEvent(anchor, events, { tz });
+      return { reply: after.text, detectedType: "calendar read", routedTo: null, readOnly: true };
     }
-    const query = parseCalendarQuestion(String(args?.when ?? "right now"), { tz });
-    return { reply: answerCalendarQuestion(query, events, tz), detectedType: "calendar read", routedTo: null, readOnly: true };
+    const query = parseCalendarQuestion(String(args?.when ?? "right now"));
+    const answer = answerCalendarQuestion(query, events, { tz });
+    /* The app link only earns its place when there is more to see than fits. */
+    return {
+      reply: answer.text,
+      detectedType: "calendar read",
+      routedTo: null,
+      readOnly: true,
+      markup: answer.deep ? keyboard([openButton("today", { label: "See the full day" })]) : undefined,
+    };
   }
   if (name === "refine_calendar_change") {
     /* One pending proposal, adjusted. The version moves up so the buttons the
