@@ -52,12 +52,16 @@ function Line({
     return () => clearTimeout(t);
   }, [line.text]);
 
+  /* A fact that is true right now turns over like a transit board when its
+     wording changes; everything else signals once. */
+  const flip = line.kind === "happening_now" || line.kind === "meeting_soon";
+
   return (
     <li
       className={cn(
         "border-t border-border/40 py-2.5 first:border-t-0 first:pt-0",
         MOTION_ROW,
-        changed && MOTION_SIGNAL,
+        changed && (flip ? MOTION_FLIP : MOTION_SIGNAL),
       )}
     >
       <p className="text-sm leading-snug text-foreground">{line.text}</p>
