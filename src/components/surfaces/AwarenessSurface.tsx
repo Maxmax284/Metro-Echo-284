@@ -496,7 +496,47 @@ export function AwarenessSurface() {
         {/* The map sits under the words, never over them. */}
         <ArrivalsLane />
 
-        <AwarenessMapPanel places={places as any} onMoved={loadList} />
+        <AwarenessMapPanel
+          places={places as any}
+          onMoved={loadList}
+          /* Named ground on the map, from the same lookups the panels below read. */
+          nearby={[
+            ...nearbyTowns
+              .filter((t) => Number.isFinite(Number(t.lat)) && Number.isFinite(Number(t.lon)))
+              .map((t) => ({
+                key: `town:${t.name}`,
+                name: t.name,
+                detail: t.kind ? `${t.kind}, from map data.` : null,
+                lat: Number(t.lat),
+                lon: Number(t.lon),
+                distanceM: t.distanceM,
+                source: "map" as const,
+              })),
+            ...(((snapshot?.full_data as any)?.local_signals ?? []) as Array<{
+              title?: string;
+              snippet?: string;
+              kind?: string;
+              distance_m?: number;
+              lat?: number;
+              lon?: number;
+            }>)
+              .filter((s) => s.kind === "place" && s.title && Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon)))
+              .map((s) => ({
+                key: `venue:${s.title}`,
+                name: String(s.title),
+                detail: s.snippet ?? null,
+                lat: Number(s.lat),
+                lon: Number(s.lon),
+                distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
+                source: "scan" as const,
+              })),
+          ]}
+          onSelectPlace={(id) => {
+            if (id === place?.id) return;
+            const row = places.find((p) => p.id === id);
+            void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
+          }}
+        />
 
         {/* The place desk proper: your pins, the named ground around the fix,
             the running trip and every leg you've closed. */}
