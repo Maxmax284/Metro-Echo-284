@@ -675,8 +675,12 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </div>
             </Section>
           )}
+            </Lane>
+          ) : null}
 
+          {/* Lane two: what is coming. */}
           {nextTotal > 0 && (
+          <Lane label="Next up" hint="Promises and meetings ahead">
           <Section
             title="What's next"
             hint={sectionNote("today.next")}
