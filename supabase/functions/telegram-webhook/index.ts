@@ -837,7 +837,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     ?? (commitmentId
       ? keyboard([markDoneButton(commitmentId)], [openButton("commitments", { commitmentId })])
       : keyboard([openButton(linkKind ?? "today")]));
-  return { reply, markup };
+  return { reply, markup, calendarActionId };
 }
 
 Deno.serve(async (req) => {
