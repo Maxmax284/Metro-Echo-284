@@ -99,7 +99,7 @@ export const EMPTY_FEED_ADVICE =
   "Either the calendar genuinely has nothing in the next 30 days, or the link is the share page rather than the private iCal address. In Google Calendar that is Settings for my calendars → Secret address in iCal format.";
 
 /** Echo checks calendars on its own; a person should be told that once. */
-export const SYNC_CADENCE_NOTE = "Echo checks every calendar on its own about every 20 minutes. You never have to press this.";
+export const SYNC_CADENCE_NOTE = "Echo checks every calendar on its own every few minutes. You never have to press this.";
 
 /** The toast after a manual check: a diff, or an honest nothing. */
 export function syncSummary(results: FeedSyncResult[]): { title: string; description: string } {

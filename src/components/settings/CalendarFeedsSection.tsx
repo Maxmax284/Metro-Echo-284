@@ -215,7 +215,7 @@ export function CalendarFeedsSection() {
             the ICS link.
           </p>
           <p>
-            Paste it below, then hit Sync now. Echo re-reads every 20 minutes on its own; the button is for
+            Paste it below, then hit Sync now. Echo re-reads every few minutes on its own; the button is for
             when you just changed something and do not feel like waiting.
           </p>
           <p className="text-foreground/70">
