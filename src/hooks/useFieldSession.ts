@@ -31,7 +31,7 @@ export function useFieldSession(): FieldSession {
       setPlaces([]);
       return;
     }
-    const { data } = await supabase.from("awareness_places").select("id, label, geo");
+    const { data } = await supabase.from("awareness_places").select("id, label, geo").is("archived_at", null);
     const rows: FieldPlace[] = [];
     for (const p of data ?? []) {
       const g = (p.geo ?? {}) as { lat?: number; lon?: number };

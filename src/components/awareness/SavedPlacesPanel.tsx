@@ -3,7 +3,7 @@
 // Recorded ground truth: every distance here was measured from the fix Echo is
 // using against a pin you saved yourself. Nothing is looked up, nothing is
 // guessed, and switching or deleting a place is always your tap.
-import { MapPin, X } from "lucide-react";
+import { Archive, ArchiveRestore, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MachineLabel } from "@/components/ui/instrument";
@@ -30,8 +30,19 @@ export type SavedPlaceRow = {
   address?: string | null;
 };
 
+export type ArchivedPlaceRow = {
+  id: string;
+  label: string;
+  country?: string | null;
+  region?: string | null;
+  archived_at?: string | null;
+};
+
 export function SavedPlacesPanel({
   places,
+  archived = [],
+  onArchive,
+  onRestore,
   activeId,
   newLabel,
   onNewLabel,
@@ -41,6 +52,10 @@ export function SavedPlacesPanel({
   className,
 }: {
   places: SavedPlaceRow[];
+  /** Pins you cleared off the desk. Still on record, still restorable. */
+  archived?: ArchivedPlaceRow[];
+  onArchive?: (id: string, label: string) => void;
+  onRestore?: (id: string, label: string) => void;
   activeId: string | null;
   newLabel: string;
   onNewLabel: (v: string) => void;
@@ -145,6 +160,18 @@ export function SavedPlacesPanel({
                     active
                   </span>
                 ) : (
+                  <>
+                    {onArchive ? (
+                      <button
+                        type="button"
+                        onClick={() => onArchive(p.id, p.label)}
+                        className="shrink-0 p-1.5 text-muted-foreground hover:text-foreground"
+                        aria-label={`Archive ${p.label}`}
+                        title="Archive — off the desk, still on record"
+                      >
+                        <Archive className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
                   <button
                     type="button"
                     onClick={() => onDelete(p.id, p.label)}
@@ -154,11 +181,47 @@ export function SavedPlacesPanel({
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
+                  </>
                 )}
               </li>
             );
           })}
         </ul>
+      )}
+
+      {/* Archived pins: cleared from the desk, never lost. */}
+      {archived.length > 0 && (
+        <details className="mt-2 rounded-lg border border-border/50 px-2.5 py-2">
+          <summary className="cursor-pointer text-[11px] uppercase tracking-wider text-muted-foreground">
+            Archived ({archived.length})
+          </summary>
+          <ul className="mt-1.5 space-y-1">
+            {archived.map((p) => {
+              const where = [p.region, p.country].filter(Boolean).join(", ");
+              return (
+                <li key={p.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground/80">
+                    {p.label}
+                    {where ? <span className="text-muted-foreground"> · {where}</span> : null}
+                  </span>
+                  {onRestore ? (
+                    <button
+                      type="button"
+                      onClick={() => onRestore(p.id, p.label)}
+                      className="shrink-0 inline-flex items-center gap-1 p-1.5 text-[11px] text-primary hover:underline"
+                      aria-label={`Restore ${p.label}`}
+                    >
+                      <ArchiveRestore className="h-3.5 w-3.5" /> Restore
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-1.5 text-[10.5px] text-muted-foreground">
+            Archiving keeps the pin and its history — deleting writes a receipt of what it was first.
+          </p>
+        </details>
       )}
     </section>
   );

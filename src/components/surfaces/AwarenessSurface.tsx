@@ -38,7 +38,8 @@ import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
 import { metersBetween } from "@/lib/trips";
-import { SavedPlacesPanel } from "@/components/awareness/SavedPlacesPanel";
+import { SavedPlacesPanel, type ArchivedPlaceRow } from "@/components/awareness/SavedPlacesPanel";
+import { archiveRecord, restoreRecord } from "@/lib/archive";
 import { AddPlaceForm } from "@/components/awareness/AddPlaceForm";
 import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
@@ -71,6 +72,8 @@ export function AwarenessSurface() {
   const { read: situation } = useSituation(digest);
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
+  /* Pins you cleared off the desk. Read-only here until you restore one. */
+  const [archivedPlaces, setArchivedPlaces] = useState<ArchivedPlaceRow[]>([]);
   
   const [newLabel, setNewLabel] = useState("");
   const [drawerSection, setDrawerSection] = useState<string | null>(null);
@@ -194,8 +197,16 @@ export function AwarenessSurface() {
     const { data } = await supabase
       .from("awareness_places")
       .select("id,label,geo,country,region,updated_at,category,notes,address")
+      .is("archived_at", null)
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as AwarenessPlace[]);
+    const { data: gone } = await supabase
+      .from("awareness_places")
+      .select("id,label,country,region,archived_at")
+      .not("archived_at", "is", null)
+      .order("archived_at", { ascending: false })
+      .limit(30);
+    setArchivedPlaces((gone ?? []) as ArchivedPlaceRow[]);
   };
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
@@ -581,6 +592,17 @@ export function AwarenessSurface() {
           onSwitch={(id) => {
             const row = places.find((p) => p.id === id);
             void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
+          }}
+          archived={archivedPlaces}
+          onArchive={async (id, label) => {
+            await archiveRecord("place", id, { label });
+            await loadList();
+            toast.success({ title: "Archived.", description: `${label} is off the desk. The record stays in Receipts.` });
+          }}
+          onRestore={async (id, label) => {
+            await restoreRecord("place", id, { label });
+            await loadList();
+            toast.success({ title: "Back on the desk.", description: `${label} is a live pin again.` });
           }}
           onDelete={async (id, label) => {
             if (!confirm(`Delete "${label}"?`)) return;

@@ -54,6 +54,7 @@ export default function LocationSetupPage() {
     const { data } = await supabase
       .from("awareness_places")
       .select("id,label,geo,country,region,updated_at")
+      .is("archived_at", null)
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as PlaceRow[]);
   }, []);
