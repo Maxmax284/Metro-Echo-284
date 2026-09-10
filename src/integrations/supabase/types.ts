@@ -422,31 +422,40 @@ export type Database = {
       }
       awareness_places: {
         Row: {
+          address: string | null
+          category: string | null
           country: string | null
           created_at: string
           geo: Json | null
           id: string
           label: string
+          notes: string | null
           region: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
+          category?: string | null
           country?: string | null
           created_at?: string
           geo?: Json | null
           id?: string
           label: string
+          notes?: string | null
           region?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
+          category?: string | null
           country?: string | null
           created_at?: string
           geo?: Json | null
           id?: string
           label?: string
+          notes?: string | null
           region?: string | null
           updated_at?: string
           user_id?: string
