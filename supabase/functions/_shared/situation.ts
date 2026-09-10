@@ -160,6 +160,21 @@ export type SituationInput = {
    */
   meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null; distanceM?: number | null }>;
   /**
+   * Calendar entries that are under way right now — a hotel stay, a travel
+   * week, a conference. They never start "today", so a window that only asks
+   * "what begins from here" drops them on the floor. Recorded rows only: the
+   * end time comes from the calendar, never from a guess.
+   */
+  ongoing?: Array<{
+    id: string;
+    title: string;
+    starts_at: string;
+    ends_at: string | null;
+    all_day?: boolean;
+    location?: string | null;
+  }>;
+
+  /**
    * Hours of forecast already read for where you are. Used to fold weather into
    * the meeting line instead of spawning a weather card beside it.
    */
