@@ -28,7 +28,8 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   const { timezone } = useUserTimezone();
   const { applyScope, withScope, key: scopeKey } = useScope();
   // The calendar half of the day. Read-only, and the same rows Echo reasons on.
-  const { events: agendaEvents, loading: agendaLoading, setProject } = useAgenda({ days: 7 });
+  const { events: agendaEvents, loading: agendaLoading, setProject, refresh: refreshAgenda } = useAgenda({ days: 7 });
+  useCalendarOpenRefresh(() => { void refreshAgenda(); });
   const [tab, setTab] = useState<TabKey>("today");
 
   const [commits, setCommits] = useState<Commitment[]>([]);
