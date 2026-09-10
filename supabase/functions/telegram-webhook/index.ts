@@ -913,7 +913,7 @@ Deno.serve(async (req) => {
         }
         const proposal = act.payload;
         if (proposal.version !== version) {
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That one changed since I asked. Open Metro Echo." });
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That changed since I asked — use the newest message." });
           await dropButtons();
           return ok();
         }
