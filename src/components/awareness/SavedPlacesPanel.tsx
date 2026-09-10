@@ -109,8 +109,19 @@ export function SavedPlacesPanel({
                   <p className="truncate text-[11px] text-muted-foreground">
                     {isActive
                       ? `Echo is reading from here${where ? ` · ${where}` : ""}`
-                      : [dist ? `${dist} away` : "no distance on file", where].filter(Boolean).join(" · ")}
+                      : [
+                          drive ?? (dist ? null : "no distance on file"),
+                          dist ? `${dist} by road` : null,
+                          where,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                   </p>
+                  {!isActive && !drive && dist ? (
+                    <p className="truncate text-[10.5px] text-muted-foreground/70">
+                      No road route on file — straight-line distance only.
+                    </p>
+                  ) : null}
                 </div>
                 {p.unresolved ? (
                   <span className="shrink-0 rounded-full bg-warn/15 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-warn ring-1 ring-warn/30">
