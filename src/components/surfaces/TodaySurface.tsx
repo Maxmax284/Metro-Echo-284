@@ -610,7 +610,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <>
           <TodayBodyPanel />
 
-
+          {/* Lane one: what is true as you read this. */}
+          {agenda.ongoing.length > 0 || !quiet ? (
+            <Lane label="Happening now" hint="True as of this minute">
+          <RunningNow ongoing={agenda.ongoing} />
           {!quiet && (
             <Section
               title="Needs attention"
