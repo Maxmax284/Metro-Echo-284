@@ -11,6 +11,7 @@ import {
   isCancellation,
   isCreation,
   normalizeCalendarChangeField,
+  providerEventIdFromUid,
   type CalendarEventRef,
   type CalendarExecuteMode,
   type CalendarFieldChange,
@@ -38,15 +39,6 @@ export function calendarWriteStateFromEnv(): "read_only" | "connected" {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   const calKey = Deno.env.get("GOOGLE_CALENDAR_API_KEY");
   return apiKey && calKey ? "connected" : "read_only";
-}
-
-/** Google Calendar event ids are the iCal UID without the @google.com suffix. */
-export function providerEventIdFromUid(uid: string | null): string | null {
-  if (!uid) return null;
-  if (uid.toLowerCase().endsWith("@google.com")) {
-    return uid.slice(0, -"@google.com".length);
-  }
-  return uid;
 }
 
 function authHeaders(): Record<string, string> {
