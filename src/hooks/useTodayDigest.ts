@@ -154,6 +154,11 @@ export function useTodayDigest(): TodayDigest {
     [],
   );
 
+  /* Changing scope IS a first load: different room, different rows. */
+  useEffect(() => {
+    loadedOnce.current = false;
+  }, [scopeKey]);
+
   useEffect(() => {
     if (!session) return;
     setProjectOf({});
