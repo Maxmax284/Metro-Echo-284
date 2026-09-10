@@ -188,7 +188,9 @@ function Lane({ label, hint, children }: { label: string; hint: string; children
         <span className="h-px min-w-4 flex-1 bg-border/50" aria-hidden />
         <span className="shrink-0 text-[10.5px] leading-snug text-muted-foreground">{hint}</span>
       </div>
-      <div className="space-y-3">{children}</div>
+      {/* A static hairline pins the lane's rows into one column. It never
+          animates — the rail is structure, not an event. */}
+      <div className="vanta-lane space-y-3">{children}</div>
     </section>
   );
 }
