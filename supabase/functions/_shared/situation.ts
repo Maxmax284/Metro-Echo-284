@@ -557,7 +557,7 @@ export function readSituation(input: SituationInput): SituationRead {
     ["actions", input.waitingOnYou.length > 0],
     ["inbox", input.arrived.length > 0],
     ["sherlock", input.noticed.length > 0 || matters.length > 0],
-    ["calendar", input.meetings.length > 0],
+    ["calendar", input.meetings.length > 0 || (input.ongoing ?? []).length > 0],
   ];
   for (const [src, hasAny] of candidates) {
     if (unknown.includes(src)) continue;
