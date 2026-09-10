@@ -41,6 +41,22 @@ export const MOTION_ARRIVE = "motion-arrive";
 export const MOTION_STAMP = "motion-stamp";
 
 /**
+ * Transit-board flip — a fact that is true *right now* changed its wording: a
+ * stay ends on a different day, a meeting is running, a truth ended. The line
+ * turns over once, like a split-flap board, and stops. One-shot only: apply
+ * while the change is acknowledged, then remove it. Never for new rows (those
+ * arrive) and never for history (that stamps).
+ */
+export const MOTION_FLIP = "motion-flip";
+
+/**
+ * Closed and cleared — a promise that was just marked done. The row presses
+ * down, dims and holds for a beat so the person sees it land before the list
+ * refreshes and it leaves. Applied once, on the row that closed.
+ */
+export const MOTION_STAMPED_DONE = "motion-stamped-done";
+
+/**
  * Timestamp lock — the clock on a genuinely new row lights once, then
  * settles. Pair with MOTION_ARRIVE (live) or MOTION_STAMP (receipts) on the
  * row; this goes on the timestamp element only. Never re-applied.
