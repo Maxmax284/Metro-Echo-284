@@ -128,7 +128,15 @@ export function useAgenda(
         feedLabel: r.calendar_feeds?.label ?? "Calendar",
         projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
       });
-      const windowRows = ((data ?? []) as any[]).map(shape);
+      /* The same calendar can arrive twice — signed in to Google and subscribed
+         by link. One row per title-and-start so a day never reads double. */
+      const seen = new Set<string>();
+      const windowRows = ((data ?? []) as any[]).map(shape).filter((r) => {
+        const k = `${(r.title ?? "").trim().toLowerCase()}|${r.starts_at}|${r.ends_at ?? ""}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
       const windowIds = new Set(windowRows.map((r) => r.id));
       setEvents(windowRows);
       setOngoing(

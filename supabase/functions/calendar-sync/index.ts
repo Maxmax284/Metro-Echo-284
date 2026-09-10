@@ -257,6 +257,37 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
   return { feed: feed.id, ok: true, label: feed.label, events: events.length, ...tally };
 }
 
+/**
+ * If Google is reachable for this person and no Google feed exists yet, make one.
+ *
+ * Signing in should be the whole job — a person shouldn't have to paste a link
+ * as well to get their own events. Read-only: the feed only ever pulls.
+ */
+async function ensureGoogleFeed(sb: ReturnType<typeof createClient>, userId: string) {
+  const { data: existing } = await sb
+    .from("calendar_feeds")
+    .select("id, active")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .maybeSingle();
+  if (existing) {
+    if (existing.active === false) {
+      await sb.from("calendar_feeds").update({ active: true }).eq("id", existing.id as string);
+    }
+    return;
+  }
+  const conn = await googleCalendarConnection(userId);
+  if (!conn) return;
+  await sb.from("calendar_feeds").insert({
+    user_id: userId,
+    organization_id: null,
+    provider: "google",
+    label: "Google Calendar",
+    url: null,
+    active: true,
+  } as never);
+}
+
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -274,6 +305,8 @@ Deno.serve(async (req: Request) => {
     const { data: userData } = await sb.auth.getUser(token);
     const userId = userData?.user?.id;
     if (!userId) return jsonResponse({ error: "sign in required" }, 401);
+    // Signing in to Google is enough. If the account is reachable, the feed exists.
+    if (!body?.feed_id) await ensureGoogleFeed(sb, userId);
     let q = sb.from("calendar_feeds").select(FEED_COLUMNS).eq("user_id", userId).eq("active", true);
     if (body?.feed_id) q = q.eq("id", body.feed_id);
     const { data } = await q.limit(20);
