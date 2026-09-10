@@ -89,24 +89,38 @@ export function useAgenda(
       const explicit = spanFrom != null && spanTo != null;
       const from = new Date(explicit ? spanFrom! : Date.now() - HOUR_MS).toISOString();
       const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
-      const [{ data, error: err }, projs] = await Promise.all([
-        applyScope(
-          supabase
-            .from("calendar_events")
-            .select("id,title,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)"),
-        )
+      const nowIso = new Date().toISOString();
+      const columns =
+        "id,title,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)";
+      const [{ data, error: err }, running, projs] = await Promise.all([
+        applyScope(supabase.from("calendar_events").select(columns))
           .gte("starts_at", from)
           .lte("starts_at", to)
           .order("starts_at", { ascending: true })
           .limit(explicit ? 500 : 120),
+        /* Entries that began before this window and have not ended — a stay, a
+           travel week. Without this read they never appear in a day at all. */
+        explicit
+          ? Promise.resolve({ data: [] as any[], error: null })
+          : applyScope(supabase.from("calendar_events").select(columns))
+              .lte("starts_at", nowIso)
+              .gt("ends_at", nowIso)
+              .order("ends_at", { ascending: true })
+              .limit(10),
         listProjects({ userId: user.id, organizationId: orgId ?? null }).catch(() => [] as Project[]),
       ]);
       if (err) throw err;
 
       const byId = new Map((projs ?? []).map((p) => [p.id, p.title]));
       setProjects(projs ?? []);
+      const seen = new Set<string>();
+      const rows = [...((running as any)?.data ?? []), ...((data ?? []) as any[])].filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
       setEvents(
-        ((data ?? []) as any[]).map((r) => ({
+        rows.map((r) => ({
           id: r.id,
           title: r.title,
           starts_at: r.starts_at,
@@ -119,6 +133,7 @@ export function useAgenda(
           projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
         })),
       );
+
     } catch (e: any) {
       setError(e?.message ?? "The calendar could not be read.");
     } finally {
