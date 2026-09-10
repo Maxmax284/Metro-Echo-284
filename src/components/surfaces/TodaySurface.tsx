@@ -405,7 +405,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       ? "attention"
       : dueToday.length > 0
         ? "next"
-        : captureCount > 0
+        : captureCount > 0 || arrivalLines.length > 0
           ? "fresh"
           : events.length > 0
             ? "changed"
@@ -415,12 +415,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const emptyNames = [
     nextTotal === 0 ? "Commitments" : null,
     events.length === 0 ? "Receipts" : null,
-    captureCount === 0 ? "Inbox" : null,
+    captureCount === 0 && arrivalLines.length === 0 ? "Inbox" : null,
   ].filter(Boolean) as string[];
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
-    quiet && security.tone === "good" && captureCount === 0 && events.length === 0;
+    quiet &&
+    security.tone === "good" &&
+    captureCount === 0 &&
+    arrivalLines.length === 0 &&
+    events.length === 0;
 
   /* Shell weather is owned by the shell (`useShellWeather`) so every room wears
      it. Today still escalates on one thing the shell can't see: a live security
