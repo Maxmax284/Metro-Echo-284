@@ -29,6 +29,8 @@ import { DeskIntro } from "@/components/work/DeskIntro";
 import { DraftOrigin } from "@/components/work/DraftOrigin";
 import { ARCHIVE_COPY, archiveRecord, restoreRecord } from "@/lib/archive";
 import { Archive, ArchiveRestore } from "lucide-react";
+import { isCalendarProposal } from "@/lib/calendarProposal";
+
 
 
 type Action = {
@@ -61,7 +63,7 @@ const riskLabel = {
 
 const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "executed", "audited"];
 
-type Executor = { id: string; name: string; kind: "webhook" | "telegram"; enabled: boolean };
+type Executor = { id: string; name: string; kind: "webhook" | "telegram" | "google_calendar" | "email"; enabled: boolean };
 
 
 export function ActionsSurface() {
@@ -150,13 +152,16 @@ export function ActionsSurface() {
     const executor_id = chosenExecutor[a.id];
     setBusy(a.id);
     try {
-      if (executor_id) {
+      // Calendar_change actions with a connected Google Calendar can execute
+      // through the shared executor even when no specific executor is chosen.
+      const canAutoCalendar = isCalendarProposal(a.payload) && a.payload.write_state === "connected";
+      if (executor_id || canAutoCalendar) {
         const { data, error } = await supabase.functions.invoke("actions-execute", {
-          body: { action_id: a.id, executor_id },
+          body: { action_id: a.id, ...(executor_id ? { executor_id } : {}) },
         });
         if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
         toast.success({
-          title: "Executed.",
+          title: canAutoCalendar && !executor_id ? "Synced to Google Calendar." : "Executed.",
           description: aftermathLine({ verb: "Ran", appearsIn: "Receipts" }),
         });
         setReceiptAwaitWrite(true);

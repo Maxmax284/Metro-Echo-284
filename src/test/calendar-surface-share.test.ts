@@ -22,7 +22,7 @@ const move = (after: string): CalendarFieldChange => ({
 
 const proposal = (over: Partial<Parameters<typeof buildCalendarProposal>[0]> = {}) =>
   buildCalendarProposal({
-    event: { feed_id: "f1", uid: "u1", starts_at: "2026-09-11T07:00:00Z", title: "Doctor" },
+    event: { feed_id: "f1", uid: "u1", starts_at: "2026-09-11T07:00:00Z", ends_at: "2026-09-11T08:00:00Z", title: "Doctor" },
     changes: [move("3:00 PM")],
     writeState: "read_only",
     ...over,

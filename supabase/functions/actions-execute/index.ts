@@ -1,9 +1,16 @@
 import { resolveUser } from "../_shared/authContext.ts";
-import { sendTelegram } from "../_shared/telegramApi.ts";
+import { sendTelegram, tgCall } from "../_shared/telegramApi.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders } from "../_shared/http.ts";
 import { isReversibleKind } from "../_shared/actionRollback.ts";
-// actions-execute: dispatch an approved action via a configured executor (webhook or telegram).
+import {
+  executeCalendarProposal,
+  ensureGoogleCalendarExecutor,
+  projectCalendarEvent,
+  calendarWriteStateFromEnv,
+} from "../_shared/calendarExecute.ts";
+import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+// actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
@@ -135,6 +142,23 @@ async function runTelegram(admin: any, userId: string, config: any, action: any)
   return { message_id: res.result?.message_id, chat_id };
 }
 
+/** Retire a Telegram Yes/No inline keyboard once the action is decided elsewhere. */
+async function settleCalendarTelegramButtons(payload: unknown, toStatus: string) {
+  if (!isCalendarProposal(payload)) return;
+  const ref = payload.telegram;
+  if (!ref) return;
+  try {
+    await tgCall("editMessageReplyMarkup", {
+      chat_id: ref.chat_id, message_id: ref.message_id, reply_markup: { inline_keyboard: [] },
+    });
+    await tgCall("sendMessage", {
+      chat_id: ref.chat_id,
+      text: settledElsewhereLine(toStatus),
+      disable_web_page_preview: true,
+    });
+  } catch { /* cosmetic; receipt is already written */ }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -156,7 +180,18 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: `action must be approved (is ${action.status})` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const targetId = executor_id ?? action.payload?.executor_id;
+    let targetId = executor_id ?? action.payload?.executor_id;
+
+    // Calendar_change proposals can auto-route through the linked Google Calendar connector.
+    if (!targetId && isCalendarProposal(action.payload)) {
+      if (calendarWriteStateFromEnv() === "read_only") {
+        return new Response(JSON.stringify({ error: "Google Calendar is not connected" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      targetId = await ensureGoogleCalendarExecutor(supabase, user.id);
+    }
+
     if (!targetId) return new Response(JSON.stringify({ error: "no executor specified" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { data: executor, error: eErr } = await supabase.from("action_executors").select("*").eq("id", targetId).maybeSingle();
@@ -169,8 +204,14 @@ Deno.serve(async (req: Request) => {
       if (executor.kind === "webhook") result = await runWebhook(executor.config, action);
       else if (executor.kind === "telegram") result = await runTelegram(supabase, user.id, executor.config, action);
       else if (executor.kind === "email") result = await runEmail(executor.config, action);
-      else if (executor.kind === "google_calendar" || executor.kind === "calendar") result = await runGoogleCalendar(executor.config, action);
-      else throw new Error(`unknown executor kind: ${executor.kind}`);
+      else if (executor.kind === "google_calendar" || executor.kind === "calendar") {
+        if (isCalendarProposal(action.payload)) {
+          result = await executeCalendarProposal(supabase, user.id, action);
+          await projectCalendarEvent(supabase, user.id, action.payload as any, result);
+        } else {
+          result = await runGoogleCalendar(executor.config, action);
+        }
+      } else throw new Error(`unknown executor kind: ${executor.kind}`);
     } catch (execErr) {
       const msg = execErr instanceof Error ? execErr.message : "executor failed";
       await supabase.from("audit_log").insert({
@@ -204,6 +245,9 @@ Deno.serve(async (req: Request) => {
       event: "execute.success",
       payload: { executor_id: executor.id, kind: executor.kind, result },
     });
+
+    // The same proposal might have Yes/No buttons living in Telegram. Retire them.
+    await settleCalendarTelegramButtons(action.payload, "executed");
 
     return new Response(JSON.stringify({ ok: true, result }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

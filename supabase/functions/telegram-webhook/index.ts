@@ -23,6 +23,12 @@ import {
   settledElsewhereLine,
   withTelegramRef,
 } from "../_shared/calendarProposal.ts";
+import {
+  calendarWriteStateFromEnv,
+  executeCalendarProposal,
+  projectCalendarEvent,
+  telegramMayAutoExecute,
+} from "../_shared/calendarExecute.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import {
   answerAfterEvent,
@@ -413,12 +419,19 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
         : [];
 
     const proposal = buildCalendarProposal({
-      event: target ? { feed_id: target.feed_id, uid: target.uid, starts_at: target.starts_at, title: target.title } : null,
+      event: target ? {
+        feed_id: target.feed_id,
+        uid: target.uid,
+        starts_at: target.starts_at,
+        ends_at: target.ends_at ?? null,
+        title: target.title,
+        location: (target as any).location ?? null,
+      } : null,
       changes,
       attendeeCount: Number(args.attendee_count ?? 0),
       source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
       conflicts,
-      writeState: "read_only",
+      writeState: calendarWriteStateFromEnv(),
     });
 
     const { data: staged } = await sb
@@ -963,15 +976,53 @@ Deno.serve(async (req) => {
             write_state: proposal.write_state, title: act.title ?? null,
           },
         });
-        const text = to === "approved" ? approvalOutcomeLine(proposal.write_state) : "Dropped. Nothing changed.";
-        await tg("answerCallbackQuery", { callback_query_id: cbId, text: text.slice(0, 190) });
+
+        let outcomeText = to === "approved"
+          ? approvalOutcomeLine(proposal.write_state)
+          : "Dropped. Nothing changed.";
+
+        // For connected, non-high-risk calendar changes, Yes also executes now so
+        // Telegram is a first-class Echo surface, not a remote control.
+        if (to === "approved" && proposal.write_state === "connected" && telegramMayAutoExecute(proposal)) {
+          try {
+            const result = await executeCalendarProposal(admin, cbLink.user_id, {
+              id: act.id,
+              title: act.title,
+              payload: proposal,
+            });
+            await projectCalendarEvent(admin, cbLink.user_id, proposal, result);
+            await admin.from("actions").update({
+              status: "executed", result, executed_at: new Date().toISOString(),
+            }).eq("id", act.id).eq("user_id", cbLink.user_id);
+            await admin.from("action_events").insert({
+              user_id: cbLink.user_id, action_id: act.id, from_status: "approved", to_status: "executed",
+              actor: "executor", reason: "telegram_yes_auto_execute",
+            });
+            await admin.from("audit_log").insert({
+              user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+              entity_type: "action", entity_id: act.id, event: "execute.success",
+              payload: { source: "telegram_callback", result },
+            });
+            outcomeText = "Done. Google confirmed it, and the receipt is saved.";
+          } catch (execErr) {
+            const msg = execErr instanceof Error ? execErr.message : "execution failed";
+            await admin.from("audit_log").insert({
+              user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+              entity_type: "action", entity_id: act.id, event: "execute.failed",
+              payload: { source: "telegram_callback", error: msg },
+            });
+            outcomeText = `Approved in Metro Echo, but Google couldn't write it: ${msg.slice(0, 120)}. Open Metro Echo to retry.`;
+          }
+        }
+
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: outcomeText.slice(0, 190) });
         await dropButtons();
         await logTgMessage(admin, {
           user_id: cbLink.user_id, organization_id: act.organization_id ?? null, chat_id: cbChatId,
-          direction: "out", text, kind: "text", sent_by: "vanta",
+          direction: "out", text: outcomeText, kind: "text", sent_by: "vanta",
           entity_type: "action", entity_id: act.id,
         });
-        await tg("sendMessage", { chat_id: cbChatId, text, disable_web_page_preview: true });
+        await tg("sendMessage", { chat_id: cbChatId, text: outcomeText, disable_web_page_preview: true });
         return ok();
       }
 
