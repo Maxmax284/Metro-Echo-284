@@ -84,7 +84,9 @@ export function AwarenessSurface() {
      location-recovery panel uses. Map data, cached server-side — no AI, no web
      search, and it feeds the "Around you" shelf so that shelf is about ground
      rather than about search results. */
-  const [nearbyTowns, setNearbyTowns] = useState<Array<{ name: string; kind: string | null; distanceM: number }>>([]);
+  const [nearbyTowns, setNearbyTowns] = useState<
+    Array<{ name: string; kind: string | null; distanceM: number; lat?: number | null; lon?: number | null }>
+  >([]);
 
   const fixLat = Number((place?.geo as any)?.lat);
   const fixLon = Number((place?.geo as any)?.lon);
@@ -95,11 +97,23 @@ export function AwarenessSurface() {
       .invoke("awareness-nearby-places", { body: { lat: fixLat, lon: fixLon } })
       .then(({ data }) => {
         if (!live) return;
-        const rows = ((data as any)?.places ?? []) as Array<{ name?: string; kind?: string; distance_m?: number }>;
+        const rows = ((data as any)?.places ?? []) as Array<{
+          name?: string;
+          kind?: string;
+          distance_m?: number;
+          lat?: number;
+          lon?: number;
+        }>;
         setNearbyTowns(
           rows
             .filter((r) => r.name && Number.isFinite(Number(r.distance_m)))
-            .map((r) => ({ name: String(r.name), kind: r.kind ?? null, distanceM: Number(r.distance_m) })),
+            .map((r) => ({
+              name: String(r.name),
+              kind: r.kind ?? null,
+              distanceM: Number(r.distance_m),
+              lat: Number.isFinite(Number(r.lat)) ? Number(r.lat) : null,
+              lon: Number.isFinite(Number(r.lon)) ? Number(r.lon) : null,
+            })),
         );
       })
       .catch(() => { /* a missing nearby read stays missing; the shelf says so */ });
@@ -482,7 +496,47 @@ export function AwarenessSurface() {
         {/* The map sits under the words, never over them. */}
         <ArrivalsLane />
 
-        <AwarenessMapPanel places={places as any} onMoved={loadList} />
+        <AwarenessMapPanel
+          places={places as any}
+          onMoved={loadList}
+          /* Named ground on the map, from the same lookups the panels below read. */
+          nearby={[
+            ...nearbyTowns
+              .filter((t) => Number.isFinite(Number(t.lat)) && Number.isFinite(Number(t.lon)))
+              .map((t) => ({
+                key: `town:${t.name}`,
+                name: t.name,
+                detail: t.kind ? `${t.kind}, from map data.` : null,
+                lat: Number(t.lat),
+                lon: Number(t.lon),
+                distanceM: t.distanceM,
+                source: "map" as const,
+              })),
+            ...(((snapshot?.full_data as any)?.local_signals ?? []) as Array<{
+              title?: string;
+              snippet?: string;
+              kind?: string;
+              distance_m?: number;
+              lat?: number;
+              lon?: number;
+            }>)
+              .filter((s) => s.kind === "place" && s.title && Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon)))
+              .map((s) => ({
+                key: `venue:${s.title}`,
+                name: String(s.title),
+                detail: s.snippet ?? null,
+                lat: Number(s.lat),
+                lon: Number(s.lon),
+                distanceM: Number.isFinite(Number(s.distance_m)) ? Number(s.distance_m) : null,
+                source: "scan" as const,
+              })),
+          ]}
+          onSelectPlace={(id) => {
+            if (id === place?.id) return;
+            const row = places.find((p) => p.id === id);
+            void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
+          }}
+        />
 
         {/* The place desk proper: your pins, the named ground around the fix,
             the running trip and every leg you've closed. */}

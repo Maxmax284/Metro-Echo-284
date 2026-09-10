@@ -19,6 +19,7 @@ import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import { placePatchForFix } from "@/lib/placeMove";
 import { placeTruth, placeSourceBadge, type PlaceLike } from "@/lib/placeTruth";
 import { fieldRead } from "@/lib/fieldRead";
+import { formatDistance } from "@/lib/trips";
 
 const markerIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -56,19 +57,44 @@ function Recenter({ center }: { center: [number, number] }) {
 
 type PlaceRow = PlaceLike & { id: string; label: string };
 
+/** Named ground around the fix: map-data towns and scanned venues. */
+export type NearbyMapPin = {
+  key: string;
+  name: string;
+  detail?: string | null;
+  lat: number;
+  lon: number;
+  distanceM?: number | null;
+  source: "map" | "scan";
+};
+
+const nearbyIcon = L.divIcon({
+  className: "",
+  html:
+    '<span style="display:block;width:10px;height:10px;border-radius:2px;background:hsl(var(--muted-foreground));box-shadow:0 0 0 2px hsl(var(--background))"></span>',
+  iconSize: [10, 10],
+  iconAnchor: [5, 5],
+});
+
 export function AwarenessMap({
   places,
+  nearby,
   className,
   onMoved,
+  onSelectPlace,
 }: {
   places: PlaceRow[];
+  nearby?: NearbyMapPin[];
   className?: string;
   onMoved?: () => void;
+  /** Tapping one of your own pins. Switching is always your tap. */
+  onSelectPlace?: (id: string) => void;
 }) {
   const { place, refresh } = useAwareness();
   const { points, running } = useTrips();
   const [saving, setSaving] = useState(false);
   const [drag, setDrag] = useState<[number, number] | null>(null);
+  const [focus, setFocus] = useState<{ name: string; detail: string } | null>(null);
   const startRef = useRef<[number, number] | null>(null);
 
   const active = useMemo(() => {
@@ -174,10 +200,46 @@ export function AwarenessMap({
               </Marker>
             ))}
             {saved.map((s) => (
-              <Marker key={s.id} position={s.at} icon={savedIcon}>
+              <Marker
+                key={s.id}
+                position={s.at}
+                icon={savedIcon}
+                eventHandlers={{
+                  click: () => {
+                    setFocus({ name: s.label, detail: "One of your saved places. Tap again to read from here." });
+                    onSelectPlace?.(s.id);
+                  },
+                }}
+              >
                 <Tooltip>{s.label}</Tooltip>
               </Marker>
             ))}
+            {/* Named ground around the fix. Recorded lookups only — tapping one
+                says what it is, it never moves your place. */}
+            {(nearby ?? [])
+              .filter((n) => Number.isFinite(n.lat) && Number.isFinite(n.lon))
+              .map((n) => (
+                <Marker
+                  key={n.key}
+                  position={[n.lat, n.lon]}
+                  icon={nearbyIcon}
+                  eventHandlers={{
+                    click: () =>
+                      setFocus({
+                        name: Number.isFinite(Number(n.distanceM))
+                          ? `${n.name} — ${formatDistance(Number(n.distanceM))} away`
+                          : n.name,
+                        detail:
+                          n.detail?.trim() ||
+                          (n.source === "map"
+                            ? "From the nearby-places lookup — map data, not a web search."
+                            : "Found by the last read of this spot."),
+                      }),
+                  }}
+                >
+                  <Tooltip>{n.name}</Tooltip>
+                </Marker>
+              ))}
             {active && (
               <Marker
                 position={drag ?? active}
@@ -195,6 +257,13 @@ export function AwarenessMap({
             )}
           </MapContainer>
         </div>
+        {/* What you last tapped on the map, said in words. */}
+        {focus ? (
+          <div className="border-t border-border/50 px-3 py-2">
+            <div className="text-[12.5px] font-medium leading-snug text-foreground">{focus.name}</div>
+            <p className="text-[11px] leading-snug text-muted-foreground">{focus.detail}</p>
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 px-3 py-2">
           {drag ? (
             <>
