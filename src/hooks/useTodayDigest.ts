@@ -74,9 +74,14 @@ export function useTodayDigest(): TodayDigest {
   const [projectOf, setProjectOf] = useState<Record<string, string | undefined>>({});
   const [nonce, setNonce] = useState(0);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  /* A refresh is not a first load. Flipping loading back on every refetch tore
+     the whole feed down and rebuilt it — which is what read as flickering. The
+     loading state now belongs to the first read of a scope only; after that the
+     page holds the rows it has and swaps values in place. */
+  const loadedOnce = useRef(false);
 
   const loadCritical = useCallback(async () => {
-    setLoadingCritical(true);
+    if (!loadedOnce.current) setLoadingCritical(true);
     const [c, a] = await Promise.all([
       applyScope(supabase.from("commitments").select("id, summary, due_at, priority"))
         .eq("status", "open")
