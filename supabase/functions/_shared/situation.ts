@@ -227,6 +227,48 @@ function hoursUntil(iso: string, now: number): number {
   return (new Date(iso).getTime() - now) / HOUR;
 }
 
+export type OngoingEntry = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  all_day?: boolean;
+  location?: string | null;
+};
+
+/**
+ * Which recorded entries are actually running at this instant. An entry with no
+ * end time is not assumed to be open-ended — without an end, Echo cannot say it
+ * is still on, so it stays out.
+ */
+export function onNow(entries: OngoingEntry[], now: number): OngoingEntry[] {
+  return entries
+    .filter((e) => {
+      const s = new Date(e.starts_at).getTime();
+      const end = e.ends_at ? new Date(e.ends_at).getTime() : NaN;
+      if (!Number.isFinite(s) || !Number.isFinite(end)) return false;
+      return s <= now && end > now;
+    })
+    .sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime());
+}
+
+/** "until 4:30 pm" / "until Friday" / "until Sep 24". Recorded end only. */
+export function untilPhrase(endsAt: string | null, now: number): string | null {
+  if (!endsAt) return null;
+  const end = new Date(endsAt);
+  const t = end.getTime();
+  if (!Number.isFinite(t) || t <= now) return null;
+  const hours = (t - now) / HOUR;
+  if (hours <= 18 && end.toDateString() === new Date(now).toDateString()) {
+    return `until ${end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase()}`;
+  }
+  if (hours <= 24 * 6) {
+    return `until ${end.toLocaleDateString(undefined, { weekday: "long" })}`;
+  }
+  return `until ${end.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+}
+
+
 /**
  * Build the one read. Every branch either produces a line with a source and a
  * reason, or produces nothing at all.
