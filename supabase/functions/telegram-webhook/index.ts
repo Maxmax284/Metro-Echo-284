@@ -258,6 +258,68 @@ async function loadCalendarEvents(sb: SupabaseClient, userId: string): Promise<C
   }));
 }
 
+/**
+ * Echo's read, laid over the calendar: promises that land that day, changes
+ * still waiting on a yes. Read-only — loading a board never stages anything.
+ */
+async function loadAgendaOverlays(
+  sb: SupabaseClient,
+  userId: string,
+): Promise<{ commitments: AgendaCommitment[]; pending: AgendaPendingChange[] }> {
+  const [{ data: comms }, { data: staged }] = await Promise.all([
+    sb.from("commitments")
+      .select("summary, due_at")
+      .eq("user_id", userId)
+      .eq("status", "open")
+      .not("due_at", "is", null)
+      .order("due_at", { ascending: true })
+      .limit(50),
+    sb.from("actions")
+      .select("payload, status")
+      .eq("user_id", userId)
+      .eq("status", "staged")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+  const pending: AgendaPendingChange[] = ((staged ?? []) as any[])
+    .filter((r) => isCalendarProposal(r.payload))
+    .map((r) => ({
+      title: calendarProposalTitle(r.payload),
+      event_uid: r.payload?.event?.uid ?? null,
+      event_starts_at: r.payload?.event?.starts_at ?? null,
+    }));
+  return {
+    commitments: ((comms ?? []) as any[]).map((c) => ({
+      summary: c.summary ?? "Something you owe",
+      due_at: c.due_at ?? null,
+    })),
+    pending,
+  };
+}
+
+/** One renderer for /day, /week and "what's my day" — same board every door. */
+async function calendarBoard(
+  sb: SupabaseClient,
+  userId: string,
+  tz: string,
+  phrase: string,
+  spanHint?: string,
+) {
+  const events = await loadCalendarEvents(sb, userId);
+  const parsed = agendaSpanFromWords(phrase);
+  const days = spanHint === "week" ? 7 : spanHint === "day" ? 1 : parsed.days;
+  const overlays = await loadAgendaOverlays(sb, userId);
+  return buildAgenda({
+    events,
+    commitments: overlays.commitments,
+    pending: overlays.pending,
+    tz,
+    days,
+    startOffset: spanHint === "week" ? 0 : parsed.startOffset,
+  });
+}
+
+
 
 
 async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
