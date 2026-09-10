@@ -116,26 +116,25 @@ export function useAgenda(
 
       const byId = new Map((projs ?? []).map((p) => [p.id, p.title]));
       setProjects(projs ?? []);
-      const seen = new Set<string>();
-      const rows = [...((running as any)?.data ?? []), ...((data ?? []) as any[])].filter((r) => {
-        if (seen.has(r.id)) return false;
-        seen.add(r.id);
-        return true;
+      const shape = (r: any): AgendaEvent => ({
+        id: r.id,
+        title: r.title,
+        starts_at: r.starts_at,
+        ends_at: r.ends_at,
+        all_day: r.all_day,
+        location: r.location,
+        feed_id: r.feed_id,
+        project_id: r.project_id ?? null,
+        feedLabel: r.calendar_feeds?.label ?? "Calendar",
+        projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
       });
-      setEvents(
-        rows.map((r) => ({
-          id: r.id,
-          title: r.title,
-          starts_at: r.starts_at,
-          ends_at: r.ends_at,
-          all_day: r.all_day,
-          location: r.location,
-          feed_id: r.feed_id,
-          project_id: r.project_id ?? null,
-          feedLabel: r.calendar_feeds?.label ?? "Calendar",
-          projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
-        })),
+      const windowRows = ((data ?? []) as any[]).map(shape);
+      const windowIds = new Set(windowRows.map((r) => r.id));
+      setEvents(windowRows);
+      setOngoing(
+        (((running as any)?.data ?? []) as any[]).map(shape).filter((r) => !windowIds.has(r.id)),
       );
+
 
     } catch (e: any) {
       setError(e?.message ?? "The calendar could not be read.");
