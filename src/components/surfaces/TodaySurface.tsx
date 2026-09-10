@@ -322,6 +322,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      first lane, what is coming goes in the second. Two hooks would mean two
      queries for the same truth. */
   const agenda = useAgenda({ days: 2 });
+  /* Travel needs a longer look than the next two days: a flight three weeks out
+     is still the plan. Read-only, same table. */
+  const travelAgenda = useAgenda({ days: 21 });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
