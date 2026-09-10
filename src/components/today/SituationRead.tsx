@@ -21,6 +21,8 @@ const OPEN_LABEL: Record<SituationLine["kind"], string> = {
   overdue: "Open commitment",
   waiting_on_you: "Review changes",
   meeting_soon: "Open schedule",
+  happening_now: "Open schedule",
+
   due_soon: "Open commitment",
   noticed: "See what Echo noticed",
   went_unusually_quiet: "Open project",

@@ -74,6 +74,9 @@ export function useAgenda(
   const { user } = useAuth();
   const { applyScope, orgId, key } = useScope();
   const [events, setEvents] = useState<AgendaEvent[]>([]);
+  /** Entries running right now, kept apart so they never fake a past day. */
+  const [ongoing, setOngoing] = useState<AgendaEvent[]>([]);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,36 +92,50 @@ export function useAgenda(
       const explicit = spanFrom != null && spanTo != null;
       const from = new Date(explicit ? spanFrom! : Date.now() - HOUR_MS).toISOString();
       const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
-      const [{ data, error: err }, projs] = await Promise.all([
-        applyScope(
-          supabase
-            .from("calendar_events")
-            .select("id,title,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)"),
-        )
+      const nowIso = new Date().toISOString();
+      const columns =
+        "id,title,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)";
+      const [{ data, error: err }, running, projs] = await Promise.all([
+        applyScope(supabase.from("calendar_events").select(columns))
           .gte("starts_at", from)
           .lte("starts_at", to)
           .order("starts_at", { ascending: true })
           .limit(explicit ? 500 : 120),
+        /* Entries that began before this window and have not ended — a stay, a
+           travel week. Without this read they never appear in a day at all. */
+        explicit
+          ? Promise.resolve({ data: [] as any[], error: null })
+          : applyScope(supabase.from("calendar_events").select(columns))
+              .lte("starts_at", nowIso)
+              .gt("ends_at", nowIso)
+              .order("ends_at", { ascending: true })
+              .limit(10),
         listProjects({ userId: user.id, organizationId: orgId ?? null }).catch(() => [] as Project[]),
       ]);
       if (err) throw err;
 
       const byId = new Map((projs ?? []).map((p) => [p.id, p.title]));
       setProjects(projs ?? []);
-      setEvents(
-        ((data ?? []) as any[]).map((r) => ({
-          id: r.id,
-          title: r.title,
-          starts_at: r.starts_at,
-          ends_at: r.ends_at,
-          all_day: r.all_day,
-          location: r.location,
-          feed_id: r.feed_id,
-          project_id: r.project_id ?? null,
-          feedLabel: r.calendar_feeds?.label ?? "Calendar",
-          projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
-        })),
+      const shape = (r: any): AgendaEvent => ({
+        id: r.id,
+        title: r.title,
+        starts_at: r.starts_at,
+        ends_at: r.ends_at,
+        all_day: r.all_day,
+        location: r.location,
+        feed_id: r.feed_id,
+        project_id: r.project_id ?? null,
+        feedLabel: r.calendar_feeds?.label ?? "Calendar",
+        projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
+      });
+      const windowRows = ((data ?? []) as any[]).map(shape);
+      const windowIds = new Set(windowRows.map((r) => r.id));
+      setEvents(windowRows);
+      setOngoing(
+        (((running as any)?.data ?? []) as any[]).map(shape).filter((r) => !windowIds.has(r.id)),
       );
+
+
     } catch (e: any) {
       setError(e?.message ?? "The calendar could not be read.");
     } finally {
@@ -150,5 +167,5 @@ export function useAgenda(
 
   const days_ = useMemo(() => groupByDay(events), [events]);
 
-  return { events, days: days_, projects, loading, error, refresh, setProject };
+  return { events, ongoing, days: days_, projects, loading, error, refresh, setProject };
 }

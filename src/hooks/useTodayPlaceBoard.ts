@@ -20,7 +20,7 @@ export function useTodayPlaceBoard(): {
   scan: () => void;
 } {
   const { place, snapshot, snapshotLoading, refreshSnapshot, latestBySection } = useAwareness();
-  const { events } = useAgenda({ days: 1 });
+  const { events, ongoing } = useAgenda({ days: 1 });
 
   /* The same nearby-places lookup the Aware desk uses: map data, cached
      server-side. One read per fix — no watcher, no polling. It is what lets
@@ -94,9 +94,11 @@ export function useTodayPlaceBoard(): {
       nearby,
       changes,
       events,
+      ongoing,
       scanAt: snapshot?.generated_at ?? null,
     });
-  }, [snapshot, latestBySection, events, towns]);
+  }, [snapshot, latestBySection, events, ongoing, towns]);
+
 
   const scan = useCallback(() => {
     void refreshSnapshot(true).catch(() => {});

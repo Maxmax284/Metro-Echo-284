@@ -41,6 +41,7 @@ export type SituationKind =
   | "arrived"
   | "noticed"
   | "meeting_soon"
+  | "happening_now"
   | "went_unusually_quiet"
   | "matter_open"
   | "matter_proposed";
@@ -50,6 +51,9 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   overdue: 1,
   waiting_on_you: 2,
   meeting_soon: 3,
+  /* Something already under way is context, not pressure — it sits just behind
+     the thing that is about to start, and ahead of what is merely due. */
+  happening_now: 3.5,
   due_soon: 4,
   noticed: 5,
   matter_open: 6,
@@ -57,6 +61,7 @@ const KIND_WEIGHT: Record<SituationKind, number> = {
   went_unusually_quiet: 8,
   arrived: 9,
 };
+
 
 export type SituationLine = {
   kind: SituationKind;
@@ -155,6 +160,21 @@ export type SituationInput = {
    */
   meetings: Array<{ id: string; title: string; starts_at: string; location?: string | null; distanceM?: number | null }>;
   /**
+   * Calendar entries that are under way right now — a hotel stay, a travel
+   * week, a conference. They never start "today", so a window that only asks
+   * "what begins from here" drops them on the floor. Recorded rows only: the
+   * end time comes from the calendar, never from a guess.
+   */
+  ongoing?: Array<{
+    id: string;
+    title: string;
+    starts_at: string;
+    ends_at: string | null;
+    all_day?: boolean;
+    location?: string | null;
+  }>;
+
+  /**
    * Hours of forecast already read for where you are. Used to fold weather into
    * the meeting line instead of spawning a weather card beside it.
    */
@@ -207,6 +227,48 @@ function hoursUntil(iso: string, now: number): number {
   return (new Date(iso).getTime() - now) / HOUR;
 }
 
+export type OngoingEntry = {
+  id: string;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  all_day?: boolean;
+  location?: string | null;
+};
+
+/**
+ * Which recorded entries are actually running at this instant. An entry with no
+ * end time is not assumed to be open-ended — without an end, Echo cannot say it
+ * is still on, so it stays out.
+ */
+export function onNow(entries: OngoingEntry[], now: number): OngoingEntry[] {
+  return entries
+    .filter((e) => {
+      const s = new Date(e.starts_at).getTime();
+      const end = e.ends_at ? new Date(e.ends_at).getTime() : NaN;
+      if (!Number.isFinite(s) || !Number.isFinite(end)) return false;
+      return s <= now && end > now;
+    })
+    .sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime());
+}
+
+/** "until 4:30 pm" / "until Friday" / "until Sep 24". Recorded end only. */
+export function untilPhrase(endsAt: string | null, now: number): string | null {
+  if (!endsAt) return null;
+  const end = new Date(endsAt);
+  const t = end.getTime();
+  if (!Number.isFinite(t) || t <= now) return null;
+  const hours = (t - now) / HOUR;
+  if (hours <= 18 && end.toDateString() === new Date(now).toDateString()) {
+    return `until ${end.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }).toLowerCase()}`;
+  }
+  if (hours <= 24 * 6) {
+    return `until ${end.toLocaleDateString(undefined, { weekday: "long" })}`;
+  }
+  return `until ${end.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+}
+
+
 /**
  * Build the one read. Every branch either produces a line with a source and a
  * reason, or produces nothing at all.
@@ -220,6 +282,8 @@ const KIND_STAKES: Record<SituationKind, { matters: string; ignored: string | nu
   overdue: { matters: "You told someone this would be done.", ignored: "It stays open and keeps ageing. Nobody is told." },
   waiting_on_you: { matters: "Work is prepared but stopped at your approval.", ignored: "The draft sits there. Nothing runs on its own." },
   meeting_soon: { matters: "It starts soon and you may need something ready.", ignored: "The meeting still happens. Echo won't act for you." },
+  happening_now: { matters: "It is on your calendar and running right now.", ignored: "Nothing changes. It ends when the calendar says it ends." },
+
   due_soon: { matters: "The due time is close and it is still open.", ignored: "It becomes overdue." },
   noticed: { matters: "Echo spotted a pattern you did not ask about.", ignored: "It stays on the Sherlock desk until you look." },
   matter_open: { matters: "Sources were read together and the result is unreviewed.", ignored: "The reading waits. Nothing is exported or sent." },
@@ -317,6 +381,27 @@ export function readSituation(input: SituationInput): SituationRead {
       entity: { type: "calendar_event", id: soonMeeting.id },
     });
   }
+
+  /* What is already under way. One line, however many are running, because a
+     stay, a trip and a conference are one situation to a person standing in it.
+     The soon-meeting is never repeated here. */
+  const running = onNow(input.ongoing ?? [], now).filter((o) => o.id !== soonMeeting?.id);
+  if (running.length > 0) {
+    const first = running[0];
+    const rest = running.length - 1;
+    const until = untilPhrase(first.ends_at, now);
+    const base = `${first.title} is on now${until ? `, ${until}` : ""}`;
+    push({
+      kind: "happening_now",
+      source: "calendar",
+      text: rest > 0 ? `${base} — and ${rest} ${plural(rest, "other entry is", "other entries are")} running too.` : `${base}.`,
+      reason: "It started earlier and the calendar has it still running.",
+      at: first.starts_at,
+      entity: { type: "calendar_event", id: first.id },
+    });
+  }
+
+
 
   if (input.dueSoon.length > 0 && input.overdue.length === 0) {
     const first = input.dueSoon[0];
@@ -472,7 +557,7 @@ export function readSituation(input: SituationInput): SituationRead {
     ["actions", input.waitingOnYou.length > 0],
     ["inbox", input.arrived.length > 0],
     ["sherlock", input.noticed.length > 0 || matters.length > 0],
-    ["calendar", input.meetings.length > 0],
+    ["calendar", input.meetings.length > 0 || (input.ongoing ?? []).length > 0],
   ];
   for (const [src, hasAny] of candidates) {
     if (unknown.includes(src)) continue;
@@ -542,6 +627,9 @@ export function headlineFor(lines: SituationLine[]): string {
       return "Work is drafted and waiting on your call.";
     case "meeting_soon":
       return "You're due somewhere shortly.";
+    case "happening_now":
+      return "Here's what you're in the middle of.";
+
     case "due_soon":
       return "Here's what's next.";
     case "noticed":

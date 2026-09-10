@@ -12,8 +12,10 @@
 //
 // Pure module: no IO, no React. The caller hands over already-read state.
 import { formatDistance } from "@/lib/trips";
+import { untilPhrase } from "@/lib/situation";
 
-export type BoardGroupKey = "around" | "changed" | "day";
+export type BoardGroupKey = "now" | "around" | "changed" | "day";
+
 
 export type BoardLine = {
   key: string;
@@ -53,6 +55,20 @@ export type PlaceBoardInput = {
     all_day?: boolean;
     location?: string | null;
   }>;
+  /**
+   * Entries already running — a stay, a travel week. They started before today
+   * so they never show up in a "what's next" read, and they are the truest thing
+   * about where you actually are.
+   */
+  ongoing?: Array<{
+    id: string;
+    title: string | null;
+    starts_at: string;
+    ends_at: string | null;
+    all_day?: boolean;
+    location?: string | null;
+  }>;
+
   /** When this spot was last scanned, if ever. */
   scanAt?: string | null;
 };
@@ -125,13 +141,35 @@ export function readPlaceBoard(input: PlaceBoardInput): PlaceBoard {
       };
     });
 
+  /* On now — recorded start behind us, recorded end still ahead. */
+  const onNow: BoardLine[] = (input.ongoing ?? [])
+    .filter((e) => {
+      const s = new Date(e.starts_at).getTime();
+      const end = e.ends_at ? new Date(e.ends_at).getTime() : NaN;
+      return Number.isFinite(s) && Number.isFinite(end) && s <= now && end > now;
+    })
+    .sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime())
+    .slice(0, 2)
+    .map((e) => {
+      const title = (e.title ?? "").trim() || "Untitled entry";
+      const until = untilPhrase(e.ends_at, now);
+      const where = (e.location ?? "").trim();
+      return {
+        key: `now:${e.id}`,
+        text: until ? `${title} — ${until}` : title,
+        detail: where ? `At ${where}. Read from a calendar you connected.` : "Read from a calendar you connected.",
+      };
+    });
+
   const groups: BoardGroup[] = (
     [
+      { key: "now", label: "On now", lines: onNow },
       { key: "around", label: "Around you", lines: around },
       { key: "changed", label: "Local changes", lines: changed },
       { key: "day", label: "Your day here", lines: day },
     ] as BoardGroup[]
   ).filter((g) => g.lines.length > 0);
+
 
   const count = groups.reduce((n, g) => n + g.lines.length, 0);
   const scanLine = input.scanAt ? `Scanned ${ago(input.scanAt, now)}` : "Never scanned here";

@@ -85,3 +85,60 @@ describe("situation: one read, not five reports", () => {
     }
   });
 });
+
+describe("what is already running", () => {
+  const base = {
+    overdue: [],
+    dueSoon: [],
+    waitingOnYou: [],
+    arrived: [],
+    noticed: [],
+    meetings: [],
+    projects: [],
+  };
+  const now = new Date("2026-09-10T12:00:00Z").getTime();
+
+  it("surfaces a multi-day stay that never starts today", () => {
+    const read = readSituation({
+      ...base,
+      now,
+      ongoing: [
+        {
+          id: "e1",
+          title: "Wingate by Wyndham",
+          starts_at: "2026-09-07T20:00:00Z",
+          ends_at: "2026-09-12T15:00:00Z",
+        },
+      ],
+    });
+    const line = read.lines.find((l) => l.kind === "happening_now");
+    expect(line?.text).toContain("Wingate by Wyndham is on now");
+    expect(line?.source).toBe("calendar");
+  });
+
+  it("stays silent when the entry has already ended or has no end on file", () => {
+    const read = readSituation({
+      ...base,
+      now,
+      ongoing: [
+        { id: "e1", title: "Old block", starts_at: "2026-09-01T00:00:00Z", ends_at: "2026-09-02T00:00:00Z" },
+        { id: "e2", title: "No end", starts_at: "2026-09-09T00:00:00Z", ends_at: null },
+      ],
+    });
+    expect(read.lines.some((l) => l.kind === "happening_now")).toBe(false);
+  });
+
+  it("counts several running entries as one line", () => {
+    const read = readSituation({
+      ...base,
+      now,
+      ongoing: [
+        { id: "a", title: "Hotel", starts_at: "2026-09-08T00:00:00Z", ends_at: "2026-09-12T00:00:00Z" },
+        { id: "b", title: "Conference", starts_at: "2026-09-09T00:00:00Z", ends_at: "2026-09-11T00:00:00Z" },
+      ],
+    });
+    const lines = read.lines.filter((l) => l.kind === "happening_now");
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toContain("1 other entry is running too");
+  });
+});

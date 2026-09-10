@@ -42,11 +42,30 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
 
     /* Meetings — only the next few hours matter for a situational read. */
     let meetings: Array<{ id: string; title: string; starts_at: string; location: string | null; distanceM?: number | null }> = [];
-    const cal = await applyScope(supabase.from("calendar_events").select("id, title, starts_at, location"))
-      .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
-      .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(5);
+    /* Ongoing — a hotel stay, a travel week, anything that started before today
+       and has not ended. It never appears in a "starts from now" window, which
+       is exactly why it used to vanish from the day. */
+    let ongoing: Array<{
+      id: string;
+      title: string;
+      starts_at: string;
+      ends_at: string | null;
+      all_day: boolean;
+      location: string | null;
+    }> = [];
+    const nowIso = new Date().toISOString();
+    const [cal, run] = await Promise.all([
+      applyScope(supabase.from("calendar_events").select("id, title, starts_at, location"))
+        .gte("starts_at", new Date(Date.now() - HOURS_12).toISOString())
+        .lte("starts_at", new Date(Date.now() + HOURS_12).toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(5),
+      applyScope(supabase.from("calendar_events").select("id, title, starts_at, ends_at, all_day, location"))
+        .lte("starts_at", nowIso)
+        .gt("ends_at", nowIso)
+        .order("ends_at", { ascending: true })
+        .limit(5),
+    ]);
     if (cal.error) unknownSources.push("calendar");
     else meetings = (cal.data ?? []).map((e) => ({
       id: e.id,
@@ -54,6 +73,17 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       starts_at: e.starts_at,
       location: (e as any).location ?? null,
     }));
+    if (!run.error) {
+      ongoing = (run.data ?? []).map((e: any) => ({
+        id: e.id,
+        title: e.title ?? "Untitled event",
+        starts_at: e.starts_at,
+        ends_at: e.ends_at ?? null,
+        all_day: Boolean(e.all_day),
+        location: e.location ?? null,
+      }));
+    }
+
 
     /* Unfiled captures — what landed and is still waiting in Inbox. Two shapes
        land there: files and pages, and messages that arrived from a channel
@@ -293,6 +323,8 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
             }]
           : [],
         meetings,
+        ongoing,
+
         projects,
         matters,
         proposal: proposal
