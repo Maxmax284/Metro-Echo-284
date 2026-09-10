@@ -19,6 +19,7 @@ import { vantaSay, vantaToast as toast } from "@/lib/vantaVoice";
 import { placePatchForFix } from "@/lib/placeMove";
 import { placeTruth, placeSourceBadge, type PlaceLike } from "@/lib/placeTruth";
 import { fieldRead } from "@/lib/fieldRead";
+import { formatDistance } from "@/lib/trips";
 
 const markerIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
