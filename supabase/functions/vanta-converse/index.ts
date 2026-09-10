@@ -549,8 +549,32 @@ Deno.serve(async (req: Request) => {
     // One Echo, many bodies: same facts, same voice, less said on a small screen.
     const depthBlock = depthDirective(bodyForDevice(typeof device === "string" ? device : null));
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, fileContextBlock, researchBlock]
+    /* Calendar truth, read the same way Telegram reads it. Read-only feeds mean
+       Echo cannot change a calendar — it has never meant Echo cannot read one. */
+    let calendarBlock = "";
+    try {
+      const { data: calRows } = await supabase
+        .from("calendar_events")
+        .select("feed_id, uid, starts_at, ends_at, title, location, all_day")
+        .eq("user_id", user.id)
+        .gte("starts_at", new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(120);
+      const calEvents: CalReadEvent[] = ((calRows ?? []) as any[]).map((r) => ({
+        feed_id: r.feed_id ?? null,
+        uid: r.uid ?? null,
+        starts_at: r.starts_at,
+        ends_at: r.ends_at ?? null,
+        title: r.title ?? "Untitled",
+        location: r.location ?? null,
+        all_day: r.all_day ?? null,
+      }));
+      calendarBlock = calendarContextBlock(calEvents, { tz });
+    } catch (e) { console.error("ask calendar context", e); }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
+
 
 
     const messages = [
