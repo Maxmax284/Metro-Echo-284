@@ -29,7 +29,7 @@ export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
   work: [
     "Work opens with where things stand, then the desks.",
     "Start here promotes the single strongest next tap. Needs you, Arrived, Due and Drifting summarize the rest.",
-    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Echo looks holds Memory, Sherlock, Awareness and Cockpit.",
+    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Echo looks holds Memory, Sherlock and Awareness.",
   ],
 
   ask: [
