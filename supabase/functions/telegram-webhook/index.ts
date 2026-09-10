@@ -17,9 +17,17 @@ import {
   isCalendarProposal,
   normalizeCalendarChangeField,
   proposalSummary,
+  refineCalendarProposal,
   type CalendarFieldChange,
 } from "../_shared/calendarProposal.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
+import {
+  answerAfterEvent,
+  answerCalendarQuestion,
+  clockLabel,
+  parseCalendarQuestion,
+  type CalReadEvent,
+} from "../_shared/calendarRead.ts";
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
@@ -116,7 +124,7 @@ const ROUTE_LABEL: Record<string, string> = {
   memory: "a note for Memory",
   commitment: "a commitment",
   reminder: "a reminder",
-  action: "an action draft",
+  action: "something waiting on your yes",
   sherlock: "something worth a closer look",
   ignore: "noise to file away",
 };
@@ -127,13 +135,18 @@ const ROUTE_LABEL: Record<string, string> = {
 // from the shared response-depth model, so Telegram can never drift into its own
 // private compression rules.
 const TELEGRAM_CHANNEL = `Telegram channel law:
-Messaging feeds the system — it does not control it. Never claim to have executed anything risky;
-notes, actions, and commitments surface as drafts inside the app for review.
-You CAN answer read-only questions about the user's desks by calling the read
-tools (whats_waiting, whats_due, project_status, whats_changed). Use them instead
-of guessing from chat history — never invent counts or names. You can also file an
-existing capture under a project. You cannot approve, execute, export, send, book,
-or pay anything; for those, say it's waiting inside Metro Echo — flatly, not apologetically.
+Telegram is not a remote control — it is the same Echo, in the user's pocket. Same memory,
+same calendar, same drafts, same approval spine as the app. Never say "open Metro Echo" for
+something you can already do here.
+You CAN read: their desks (whats_waiting, whats_due, project_status, whats_changed) and their
+calendar (whats_on_calendar). Call the tools instead of guessing — never invent a count, a
+time or a name. A read-only calendar feed means you cannot CHANGE a calendar; it has never
+meant you cannot READ one.
+You CAN propose a calendar change with stage_calendar_change and, when the user then refines it
+("actually 3:30"), update that same pending proposal with refine_calendar_change. The user
+decides right here with Yes / No. A yes approves only that one change, never future ones.
+Say plainly that nothing has changed anywhere until it actually has.
+You still cannot export, send, book or pay anything.
 Never write a tidy assistant paragraph.`;
 
 
@@ -156,8 +169,10 @@ const tools = [
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
+  { type: "function", function: { name: "refine_calendar_change", description: "The user is adjusting the calendar change you already showed them (\"actually 3:30\", \"make it the clinic on Sathorn\"). Updates that same pending proposal and re-asks Yes/No. Never creates a second proposal and never touches the calendar.", parameters: { type: "object", properties: { changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
-  // Read-only Work questions. These never write anything.
+  // Read-only questions. These never write anything.
+  { type: "function", function: { name: "whats_on_calendar", description: "Read-only: read the user's real ingested calendar. Use for 'what's on my calendar', 'what do I have tomorrow', 'anything conflicting', 'what comes after my appointment'. Pass their exact wording in `when`; pass `event_reference` only when they asked what follows a specific event.", parameters: { type: "object", properties: { when: { type: "string", description: "Their own time wording: 'right now', 'tomorrow', 'Friday', 'anything conflicting tomorrow'." }, event_reference: { type: "string", description: "Their words for one event, when asking what comes after it." } }, additionalProperties: false } } },
   { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
   { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
   { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
@@ -210,6 +225,32 @@ async function shortHash(input: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * The calendar rows Echo already holds for this person. Always scoped to the
+ * user — this function runs on a service-role client, so the filter is the
+ * whole safety story. Read-only by construction: it only selects.
+ */
+async function loadCalendarEvents(sb: SupabaseClient, userId: string): Promise<CalReadEvent[]> {
+  const { data } = await sb
+    .from("calendar_events")
+    .select("feed_id, uid, starts_at, ends_at, title, location, all_day")
+    .eq("user_id", userId)
+    .gte("starts_at", new Date(Date.now() - 36 * 3600 * 1000).toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(200);
+  return ((data ?? []) as any[]).map((r) => ({
+    feed_id: r.feed_id ?? null,
+    uid: r.uid ?? null,
+    starts_at: r.starts_at,
+    ends_at: r.ends_at ?? null,
+    title: r.title ?? "Untitled",
+    location: r.location ?? null,
+    all_day: r.all_day ?? null,
+  }));
+}
+
+
+
 async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
@@ -250,24 +291,84 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "capture", event: "capture.routed", payload: { source: "telegram", destination: "actions", action_id: data?.id } });
     return { reply: VANTA_PHRASES.actionStaged(args.title), detectedType: "action draft", routedTo: "actions", linkKind: "actions" as VantaLinkKind };
   }
+  if (name === "whats_on_calendar") {
+    /* Reading the calendar is not a privilege of the app. Same rows, same
+       timezone, same wording Ask would use. Nothing here writes. */
+    const tz = defaults.timezone || "UTC";
+    const events = await loadCalendarEvents(sb, userId);
+    const reference = String(args?.event_reference ?? "").trim();
+    if (reference) {
+      const resolved = resolveEventReference(reference, events as ResolvableEvent[]);
+      if (resolved.status === "none") return { reply: `Nothing on your calendar matches "${reference}".`, detectedType: "calendar read", routedTo: null, readOnly: true };
+      if (resolved.status === "many") {
+        return { reply: `Which one? ${resolved.candidates.map((c) => `${c.title} (${clockLabel(c.starts_at, tz)})`).join(" · ")}`, detectedType: "calendar read", routedTo: null, readOnly: true };
+      }
+      const anchor = events.find((e) => e.uid === resolved.event.uid && e.starts_at === resolved.event.starts_at) ?? (resolved.event as CalReadEvent);
+      const after = answerAfterEvent(anchor, events, { tz });
+      return { reply: after.text, detectedType: "calendar read", routedTo: null, readOnly: true };
+    }
+    const query = parseCalendarQuestion(String(args?.when ?? "right now"));
+    const answer = answerCalendarQuestion(query, events, { tz });
+    /* The app link only earns its place when there is more to see than fits. */
+    return {
+      reply: answer.text,
+      detectedType: "calendar read",
+      routedTo: null,
+      readOnly: true,
+      markup: answer.deep ? keyboard([openButton("today", { label: "See the full day" })]) : undefined,
+    };
+  }
+  if (name === "refine_calendar_change") {
+    /* One pending proposal, adjusted. The version moves up so the buttons the
+       user already saw can no longer approve something they never read. */
+    const changes: CalendarFieldChange[] = (Array.isArray(args?.changes) ? args.changes : []).map((c: any) => {
+      const field = normalizeCalendarChangeField(c?.field);
+      return {
+        field,
+        label: calendarFieldLabel(field),
+        before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+        after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
+      };
+    });
+    if (!changes.length) return { reply: "Tell me what should be different and I'll show it again.", detectedType: "calendar change", routedTo: null, readOnly: true };
+
+    const { data: pending } = await sb
+      .from("actions")
+      .select("id, payload, status")
+      .eq("user_id", userId)
+      .eq("status", "staged")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    const row = ((pending ?? []) as any[]).find((r) => isCalendarProposal(r.payload));
+    if (!row) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
+
+    const refined = refineCalendarProposal(row.payload, changes);
+    await sb.from("actions").update({
+      payload: refined,
+      title: calendarProposalTitle(refined),
+      description: proposalSummary(refined),
+      risk: calendarProposalRisk(refined),
+    }).eq("id", row.id).eq("status", "staged");
+    await sb.from("audit_log").insert({
+      user_id: userId, organization_id: orgId, entity_type: "action", entity_id: row.id,
+      event: "action.staged",
+      payload: { source: "telegram", as: "calendar_change", refined: true, version: refined.version },
+    });
+    const ask = calendarProposalRisk(refined) === "high" ? "Still reaches other people. Approve it? Yes / No." : "Approve this change? Yes / No.";
+    return {
+      reply: `${proposalSummary(refined)}\n\n${ask}`,
+      detectedType: "calendar change",
+      routedTo: "actions",
+      markup: keyboard(calendarApprovalButtons(row.id, refined.version)),
+      readOnly: true,
+    };
+  }
   if (name === "stage_calendar_change") {
     /* Field replies never write to the calendar. This resolves which event is
        meant, shows exact before/after, and stages ONE proposal for a Yes/No.
        Approval is per-proposal and, while the feed is read-only, only holds it. */
-    const { data: eventRows } = await sb
-      .from("calendar_events")
-      .select("feed_id, uid, starts_at, ends_at, title")
-      .eq("user_id", userId)
-      .gte("starts_at", new Date(Date.now() - 24 * 3600 * 1000).toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(200);
-    const events: ResolvableEvent[] = ((eventRows ?? []) as any[]).map((r) => ({
-      feed_id: r.feed_id ?? null,
-      uid: r.uid ?? null,
-      starts_at: r.starts_at,
-      ends_at: r.ends_at ?? null,
-      title: r.title ?? "Untitled",
-    }));
+    const events = (await loadCalendarEvents(sb, userId)) as ResolvableEvent[];
+
 
     const reference = String(args.event_reference ?? "").trim();
     let target: ResolvableEvent | null = null;
@@ -338,15 +439,20 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       payload: { source: "telegram", as: "calendar_change", version: proposal.version, write_state: proposal.write_state },
     });
 
-    const ask = calendarProposalRisk(proposal) === "high"
+    const risk = calendarProposalRisk(proposal);
+    const ask = risk === "high"
       ? "This one reaches other people. Approve it? Yes / No."
       : "Approve this change? Yes / No.";
+    /* The app link is an escape hatch for depth, not the way to approve. It only
+       shows when there is genuinely more to look at than fits here. */
+    const deep = risk === "high" || conflicts.length > 1;
     return {
       reply: `${proposalSummary(proposal)}\n\n${ask}`,
       detectedType: "calendar change",
       routedTo: "actions",
-      linkKind: "actions" as VantaLinkKind,
-      markup: staged?.id ? keyboard(calendarApprovalButtons(staged.id, proposal.version), [openButton("actions")]) : undefined,
+      markup: staged?.id
+        ? keyboard(calendarApprovalButtons(staged.id, proposal.version), ...(deep ? [[openButton("actions")]] : []))
+        : undefined,
     };
   }
   if (name === "add_commitment") {
@@ -700,7 +806,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       });
       if (finding && finding.suggested_route !== "ignore") {
         const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
-        reply = `${reply}\n\nLooks like ${lane}. Open Metro Echo to approve — nothing's been done yet.`.trim();
+        reply = `${reply}\n\nReads like ${lane}. Nothing has changed yet.`.trim();
       }
     } catch { /* best-effort */ }
   }
@@ -816,7 +922,7 @@ Deno.serve(async (req) => {
         }
         const proposal = act.payload;
         if (proposal.version !== version) {
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That one changed since I asked. Open Metro Echo." });
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That changed since I asked — use the newest message." });
           await dropButtons();
           return ok();
         }
