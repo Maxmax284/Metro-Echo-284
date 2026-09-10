@@ -7,6 +7,7 @@ import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/Toda
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
 import { EveningReadCard } from "@/components/today/EveningReadCard";
 import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
+import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
@@ -327,6 +328,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* Travel needs a longer look than the next two days: a flight three weeks out
      is still the plan. Read-only, same table. */
   const travelAgenda = useAgenda({ days: 21 });
+  /* Walking in after a while is a good moment to re-read the calendar once. */
+  useCalendarOpenRefresh(() => { void agenda.refresh(); void travelAgenda.refresh(); });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);

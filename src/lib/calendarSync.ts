@@ -99,7 +99,27 @@ export const EMPTY_FEED_ADVICE =
   "Either the calendar genuinely has nothing in the next 30 days, or the link is the share page rather than the private iCal address. In Google Calendar that is Settings for my calendars → Secret address in iCal format.";
 
 /** Echo checks calendars on its own; a person should be told that once. */
-export const SYNC_CADENCE_NOTE = "Echo checks every calendar on its own about every 20 minutes. You never have to press this.";
+export const SYNC_CADENCE_NOTE = "Echo checks every calendar on its own every few minutes. You never have to press this.";
+
+/**
+ * Opening a surface is a good moment to re-read the calendar — but only if it
+ * has been a while. Debounced per browser session so walking between rooms
+ * never turns into a sync storm, and never blocking what you came to read.
+ */
+const OPEN_REFRESH_KEY = "vanta.calendarOpenSync";
+const OPEN_REFRESH_MS = 4 * 60 * 1000;
+
+export function shouldRefreshCalendars(now = Date.now()): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(OPEN_REFRESH_KEY) ?? 0);
+    if (Number.isFinite(last) && now - last < OPEN_REFRESH_MS) return false;
+    sessionStorage.setItem(OPEN_REFRESH_KEY, String(now));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 /** The toast after a manual check: a diff, or an honest nothing. */
 export function syncSummary(results: FeedSyncResult[]): { title: string; description: string } {
