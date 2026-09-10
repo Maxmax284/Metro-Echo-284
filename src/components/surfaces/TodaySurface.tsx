@@ -755,6 +755,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               onOpenWeek={() => onNavigate("schedule")}
             />
           </Section>
+          </Lane>
           )}
 
           {/* Background wave: never blocks the two sections above. */}
