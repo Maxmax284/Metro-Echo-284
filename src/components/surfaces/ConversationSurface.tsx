@@ -32,6 +32,7 @@ import { ProcessingLine } from "@/components/companion/ProcessingLine";
 
 import { useScope } from "@/hooks/useScope";
 import { useAskThreads } from "@/providers/AskThreadProvider";
+import { useAskSuggestions } from "@/hooks/useAskSuggestions";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
@@ -424,6 +425,8 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     return picked;
   }, [activeThread?.context_kind, context.surface, mode, isOwner, controls]);
 
+  const liveAsks = useAskSuggestions();
+
   const surfaceHint = SURFACE_HINTS[context.surface] ?? SURFACE_HINTS.conversation;
 
   return (
@@ -472,6 +475,23 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                   ? <>About <span className="font-medium text-foreground/85">{activeThread.context_label}</span>. {surfaceHint}</>
                   : surfaceHint}
               </p>
+              {/* Live questions, derived from real records only. They vanish
+                  when the record behind them is gone. */}
+              {liveAsks.length > 0 && !readOnly && (
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {liveAsks.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void send(s.question)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-1 text-[12px] text-foreground/90 transition-colors hover:bg-primary/15 disabled:opacity-50"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {suggestions.length > 0 && !readOnly && (
                 <div className="flex flex-wrap justify-center gap-1.5">
                   {suggestions.map((t) => {
