@@ -356,6 +356,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      changes what the day means. No card, and nothing at all on a quiet day.
      What's on file about this spot sits behind that line, one tap in. */
   const placeBoard = useTodayPlaceBoard();
+  /* What actually landed — Telegram messages, files, voice notes — read through
+     the same lane rules Inbox and the Telegram reply use. Today shows the top
+     few lines; filing still happens in Inbox. */
+  const arrivals = useArrivals();
+  const arrivalLines = arrivals.items.filter((i) => i.surface).slice(0, 3);
   const placeCue = useTodayPlaceCue({
     lineCount: situation.read?.lines.length ?? 0,
     explainsRead: !!situation.read?.placeNote,
