@@ -180,9 +180,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <WorkFlowDemo open={demoOpen} onOpenChange={setDemoOpen} />
 
 
-        {/* The state of work comes before any directory of desks. No numbered
-            tour: people live in this room, they do not need it introduced. */}
-        <ShelfHeading title="Where things stand" />
+        {/* The state of work comes before any directory of desks. The briefing
+            panel labels itself, so this level adds no second heading. */}
 
         <WorkBodyLine />
 
