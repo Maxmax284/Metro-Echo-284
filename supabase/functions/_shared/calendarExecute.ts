@@ -257,6 +257,29 @@ export async function executeCalendarProposal(
   }
   const { method, path, body, operation } = buildCalendarRequestBody(executableProposal, tz);
 
+  /* A PATCH replaces the whole attendee list, so read the current event and
+     merge existing guests with the new ones before writing. */
+  if (method === "PATCH" && Array.isArray(body?.attendees) && proposal.event?.uid) {
+    const eventId = providerEventIdFromUid(proposal.event.uid);
+    if (eventId) {
+      const getRes = await fetch(
+        `${GATEWAY}/calendars/${encodeURIComponent("primary")}/events/${encodeURIComponent(eventId)}`,
+        { headers: authHeaders(conn) },
+      );
+      if (getRes.ok) {
+        const current = await getRes.json().catch(() => ({}));
+        const existing = (Array.isArray(current?.attendees) ? current.attendees : [])
+          .map((a: any) => String(a?.email ?? "").toLowerCase())
+          .filter(Boolean);
+        const merged = [...existing];
+        for (const a of body!.attendees as { email: string }[]) {
+          if (!merged.includes(a.email.toLowerCase())) merged.push(a.email.toLowerCase());
+        }
+        body!.attendees = merged.map((email) => ({ email }));
+      }
+    }
+  }
+
   const res = await fetch(`${GATEWAY}/${path}`, {
     method,
     headers: authHeaders(conn),
