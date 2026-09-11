@@ -86,6 +86,44 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
           onAck?.({ kind: "stage_action", id: actionId, summary: args.title || "Action" });
+        } else if (kind === "refine_calendar_change") {
+          /* Talking a proposal into shape is not a new proposal. The pending one
+             is updated in place and its version moves up, so an approval button
+             the user already saw can never approve something they never read. */
+          const changes = mapCalendarChanges(args?.changes);
+          if (!changes.length) {
+            toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
+            return;
+          }
+          const { data: pending } = await supabase
+            .from("actions")
+            .select("id, payload")
+            .eq("user_id", user.id)
+            .eq("status", "staged")
+            .order("created_at", { ascending: false })
+            .limit(10);
+          const row = ((pending ?? []) as any[]).find((r) => isCalendarProposal(r.payload));
+          if (!row) {
+            toast.warning({
+              title: "Nothing pending to adjust",
+              description: "Tell me the change and I'll show it fresh.",
+            });
+            return;
+          }
+          const refined = refineCalendarProposal(row.payload, changes);
+          await supabase
+            .from("actions")
+            .update({
+              payload: refined,
+              title: calendarProposalTitle(refined),
+              description: proposalSummary(refined),
+              risk: calendarProposalRisk(refined),
+            })
+            .eq("id", row.id)
+            .eq("status", "staged");
+          await audit("actions", { action_id: row.id, as: "calendar_change", refined: true, version: refined.version });
+          toast.success({ title: "Updated the change", description: proposalSummary(refined) });
+          onAck?.({ kind: "stage_action", id: row.id, summary: calendarProposalTitle(refined) });
         } else if (kind === "stage_calendar_change") {
           /* A calendar change is a staged action like any other: it resolves the
              event first, shows exact before/after, and never touches the
