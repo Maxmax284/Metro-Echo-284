@@ -145,7 +145,9 @@ export function buildCalendarRequestBody(
   // For a brand-new event, require at least a title and a time.
   if (isCreation(proposal)) {
     if (!body.start) throw new Error("New events need a time.");
-    body.summary = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title")?.after ?? "New event";
+    body.summary = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title")?.after
+      ?? proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "existence")?.after
+      ?? "New event";
     return { method: "POST", path: `calendars/${calendarId}/events`, body, operation: "create" };
   }
 
@@ -337,7 +339,8 @@ export async function projectCalendarEvent(
     return;
   }
 
-  const titleChange = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title");
+  const titleChange = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title")
+    ?? proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "existence");
   const locationChange = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "location");
 
   const allDay = !!result.start && /^\d{4}-\d{2}-\d{2}T/.test(result.start) && result.start.endsWith("T00:00:00.000Z");

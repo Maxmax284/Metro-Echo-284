@@ -36,6 +36,7 @@ describe("calendar agenda board", () => {
       "9:00 AM — ADHD appointment · Clinic",
       "2:00 PM — Call with Nikki",
     ]);
+    expect(agenda.days[0].lines[0]).toMatchObject({ starts_at: "2026-09-10T09:00:00.000Z" });
     expect(agenda.text).toContain("Today, Sep 10");
   });
 

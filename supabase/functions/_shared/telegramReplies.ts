@@ -122,6 +122,11 @@ export function calendarStrongConfirmationButtons(actionId: string, version: num
   ];
 }
 
+/** Select one owned calendar row for a conversational edit. Looking still writes nothing. */
+export function calendarEditButton(rowId: string, label: string): TgInlineButton {
+  return { text: label, callback_data: `calevt:${rowId}` };
+}
+
 /** Assemble rows, dropping anything that couldn't be built (no public URL). */
 export function keyboard(...rows: (TgInlineButton | null)[][]): TgReplyMarkup | undefined {
   const cleaned = rows

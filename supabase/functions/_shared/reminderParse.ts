@@ -92,15 +92,36 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
   // Determine day offset: today / tomorrow / weekday / "next weekday" / "this weekend"
   let dayOffset = 0;
   let dayPhrase = "today";
+  let explicitDate: { y: number; m: number; d: number } | null = null;
 
-  if (/\btomorrow\b/i.test(txt)) { dayOffset = 1; dayPhrase = "tomorrow"; }
-  else if (/\b(this\s+)?weekend\b/i.test(txt)) {
+  const today = todayPartsInTz(d.timezone);
+  const ordinal = txt.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?this\s+month\b/i);
+  if (ordinal) {
+    const day = Number(ordinal[1]);
+    if (day >= 1 && day <= 31) {
+      explicitDate = { ...today, d: day };
+      dayPhrase = `${today.m}/${day}`;
+    }
+  }
+  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  const namedDate = txt.match(new RegExp(`\\b(${monthNames.join("|")})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, "i"));
+  if (namedDate) {
+    const month = monthNames.indexOf(namedDate[1].toLowerCase()) + 1;
+    const day = Number(namedDate[2]);
+    if (month > 0 && day >= 1 && day <= 31) {
+      explicitDate = { y: today.y, m: month, d: day };
+      dayPhrase = `${month}/${day}`;
+    }
+  }
+
+  if (!explicitDate && /\btomorrow\b/i.test(txt)) { dayOffset = 1; dayPhrase = "tomorrow"; }
+  else if (!explicitDate && /\b(this\s+)?weekend\b/i.test(txt)) {
     // next saturday from today
     const { y, m, d: dd } = todayPartsInTz(d.timezone);
     const todayIdx = new Date(Date.UTC(y, m - 1, dd)).getUTCDay();
     dayOffset = (6 - todayIdx + 7) % 7 || 7;
     dayPhrase = "this weekend";
-  } else {
+  } else if (!explicitDate) {
     for (let i = 0; i < WEEKDAY_NAMES.length; i++) {
       const re = new RegExp(`\\b(on\\s+|next\\s+)?${WEEKDAY_NAMES[i]}\\b`, "i");
       if (re.test(txt)) {
@@ -116,7 +137,11 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
   }
 
   // Specific time: "5pm", "5:30pm", "17:00", "at 5"
-  const tm = txt.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?\b/i);
+  const timeText = txt
+    .replace(/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?this\s+month\b/gi, "")
+    .replace(new RegExp(`\\b(?:${monthNames.join("|")})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b`, "gi"), "");
+  const tm = timeText.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.?m\.?|p\.?m\.?)(?=\s|$|[,.!?])/i)
+    ?? timeText.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\b/i);
   let hh: number | null = null;
   let mm = 0;
   let ampmKnown = false;
@@ -159,10 +184,10 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
   }
 
   const tz = d.timezone;
-  const { y, m, d: dd } = todayPartsInTz(tz);
-  let due = wallClockInTz(y, m, dd + dayOffset, hh, mm, tz);
+  const { y, m, d: dd } = explicitDate ?? todayPartsInTz(tz);
+  let due = wallClockInTz(y, m, explicitDate ? dd : dd + dayOffset, hh, mm, tz);
   // If "today" + time already passed, roll to tomorrow (unless user gave an explicit relative anchor)
-  if (dayOffset === 0 && due.getTime() <= Date.now()) {
+  if (!explicitDate && dayOffset === 0 && due.getTime() <= Date.now()) {
     due = wallClockInTz(y, m, dd + 1, hh, mm, tz);
     dayPhrase = "tomorrow";
   }

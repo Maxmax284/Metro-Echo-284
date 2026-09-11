@@ -42,6 +42,12 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
     return { field, label: calendarFieldLabel(field), before, after };
   });
 
+  const existence = normalized.find((change) => change.field === "existence")?.after?.trim() ?? "";
+  const hasTitle = normalized.some((change) => change.field === "title" && change.after?.trim());
+  if (existence && !hasTitle && !/^(create|add|new|event)$/i.test(existence)) {
+    normalized.push({ field: "title", label: calendarFieldLabel("title"), before: null, after: existence });
+  }
+
   const reminders = normalized.filter((change) => change.field === "reminder");
   if (reminders.length <= 1) return normalized;
   const offsets = [...new Set(reminders.flatMap((change) => parseReminderOffsets(change.after)))]

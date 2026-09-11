@@ -16,6 +16,7 @@
 - [x] 8. Provider names out of user-facing copy.
 
 ## This pass
+- [x] Telegram calendar panel + tap-to-edit + multi-turn calendar draft retention.
 - [x] A. Public identity cleanup: `@inbound.vanta` address, geocoder User-Agent + baked old URL,
       push tag, `ask_vanta` prompt/route token, cosmetic filenames, frozen-list documented.
 - [x] B. One brain for Telegram: shared capability router, shared working context, shared transcript

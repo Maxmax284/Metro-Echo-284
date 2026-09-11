@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 // rules. Kept as a plain contract test: the button vocabulary is fixed and the
 // read-only answers must stay short and truthful.
 import { formatChanged, formatDue, formatWaiting } from "../../supabase/functions/_shared/workReads";
-import { SNOOZE_PRESETS, vantaLink } from "../../supabase/functions/_shared/telegramReplies";
+import { calendarEditButton, SNOOZE_PRESETS, vantaLink } from "../../supabase/functions/_shared/telegramReplies";
 
 describe("telegram deep links", () => {
   it("points a commitment at its own focus param", () => {
@@ -23,6 +23,13 @@ describe("telegram deep links", () => {
 
   it("offers exactly three snooze presets", () => {
     expect(SNOOZE_PRESETS.map((p) => p.minutes)).toEqual([60, 180, 1440]);
+  });
+
+  it("uses a compact owned-row callback for calendar edits", () => {
+    expect(calendarEditButton("row-1", "Edit Dani meetup")).toEqual({
+      text: "Edit Dani meetup",
+      callback_data: "calevt:row-1",
+    });
   });
 });
 

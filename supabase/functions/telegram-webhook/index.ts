@@ -117,6 +117,13 @@ import {
   wantsReminderCancellation,
 } from "../_shared/reminderActions.ts";
 import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
+import {
+  activeCalendarDraft,
+  calendarDraftContext,
+  calendarEventButtons,
+  mergeCalendarDraft,
+  type TelegramCalendarDraft,
+} from "../_shared/telegramCalendarPanel.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
@@ -126,6 +133,7 @@ import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
+  calendarEditButton,
   calendarStrongConfirmationButtons,
   fileUnderButton,
   keyboard,
@@ -281,12 +289,13 @@ async function shortHash(input: string): Promise<string> {
 async function loadCalendarEvents(sb: SupabaseClient, userId: string): Promise<CalReadEvent[]> {
   const { data } = await sb
     .from("calendar_events")
-    .select("feed_id, uid, starts_at, ends_at, title, location, all_day")
+    .select("id, feed_id, uid, starts_at, ends_at, title, location, all_day")
     .eq("user_id", userId)
     .gte("starts_at", new Date(Date.now() - 36 * 3600 * 1000).toISOString())
     .order("starts_at", { ascending: true })
     .limit(200);
   return ((data ?? []) as any[]).map((r) => ({
+    id: r.id,
     feed_id: r.feed_id ?? null,
     uid: r.uid ?? null,
     starts_at: r.starts_at,
@@ -552,9 +561,17 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     }
 
 
-    const reference = String(args.event_reference ?? "").trim();
+    let calendarDraft: TelegramCalendarDraft | null = null;
+    if (args._conversation_id) {
+      const { data: draftConversation } = await sb.from("conversations")
+        .select("state").eq("id", String(args._conversation_id)).eq("user_id", userId).maybeSingle();
+      calendarDraft = activeCalendarDraft((draftConversation?.state as any)?.calendar_draft);
+    }
+    const reference = String(args.event_reference ?? calendarDraft?.event_reference ?? "").trim();
     let target: ResolvableEvent | null = null;
-    if (reference) {
+    if (calendarDraft?.edit_target) {
+      target = calendarDraft.edit_target;
+    } else if (reference) {
       const resolved = resolveEventReference(reference, events);
       if (resolved.status === "none") {
         const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
@@ -571,15 +588,29 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       }
     }
 
-    const changes: CalendarFieldChange[] = normalizeCalendarChanges(args.changes, defaults);
+    const incomingChanges = normalizeCalendarChanges(args.changes, defaults);
+    const mergedDraft = mergeCalendarDraft(calendarDraft, incomingChanges);
+    const changes: CalendarFieldChange[] = calendarDraft
+      ? normalizeCalendarChanges(mergedDraft.changes, defaults)
+      : incomingChanges;
     if (!changes.length) {
       return { reply: "Tell me what should be different and I'll show you before you decide.", detectedType: "calendar change", routedTo: null, readOnly: true };
     }
 
     if (!target && createsCalendarEvent(changes)) {
       const missing = calendarCreationMissing(changes);
-      if (missing === "title") return { reply: "What should I call the event? Nothing's staged yet.", detectedType: "calendar change", routedTo: null, readOnly: true };
-      if (missing === "time") return { reply: "What day and time should it be? Nothing's staged yet.", detectedType: "calendar change", routedTo: null, readOnly: true };
+      if (missing && args._conversation_id) {
+        const { data: draftConversation } = await sb.from("conversations")
+          .select("state").eq("id", String(args._conversation_id)).eq("user_id", userId).maybeSingle();
+        await sb.from("conversations").update({
+          state: {
+            ...((draftConversation?.state as Record<string, unknown>) ?? {}),
+            calendar_draft: { ...mergedDraft, event_reference: reference || null },
+          },
+        }).eq("id", String(args._conversation_id)).eq("user_id", userId);
+      }
+      if (missing === "title") return { reply: "What should I call the event? I kept the rest of the details right here.", detectedType: "calendar change", routedTo: null, readOnly: true };
+      if (missing === "time") return { reply: "What day and time should it be? I kept the rest of the details right here.", detectedType: "calendar change", routedTo: null, readOnly: true };
     }
 
     const when = changes.find((c) => c.field === "time" && c.after)?.after ?? null;
@@ -621,6 +652,14 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       )
       .select("id")
       .single();
+    if (args._conversation_id) {
+      const { data: draftConversation } = await sb.from("conversations")
+        .select("state").eq("id", String(args._conversation_id)).eq("user_id", userId).maybeSingle();
+      const nextState = { ...((draftConversation?.state as Record<string, unknown>) ?? {}) };
+      delete nextState.calendar_draft;
+      await sb.from("conversations").update({ state: nextState })
+        .eq("id", String(args._conversation_id)).eq("user_id", userId);
+    }
     await sb.from("audit_log").insert({
       user_id: userId, organization_id: orgId, entity_type: "action", entity_id: staged?.id ?? null,
       event: "action.staged",
@@ -704,11 +743,11 @@ async function telegramConversation(
   userId: string,
   orgId: string | null,
   chatId: string | number,
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; state: Record<string, unknown> } | null> {
   const key = String(chatId);
   const { data: found } = await sb
     .from("conversations")
-    .select("id")
+    .select("id, state")
     .eq("user_id", userId)
     .eq("state->>channel", "telegram")
     .eq("state->>chat_id", key)
@@ -718,9 +757,9 @@ async function telegramConversation(
     .maybeSingle();
   if (found?.id) {
     await sb.from("conversations")
-      .update({ organization_id: orgId, last_message_at: new Date().toISOString() })
+      .update({ ...(orgId ? { organization_id: orgId } : {}), last_message_at: new Date().toISOString() })
       .eq("id", found.id);
-    return { id: found.id };
+    return { id: found.id, state: (found.state as Record<string, unknown>) ?? {} };
   }
   const { data: made, error } = await sb
     .from("conversations")
@@ -734,13 +773,13 @@ async function telegramConversation(
       state: { channel: "telegram", chat_id: key },
       last_message_at: new Date().toISOString(),
     })
-    .select("id")
+    .select("id, state")
     .single();
   if (error) {
     console.error("telegram conversation create failed", error.message);
     return null;
   }
-  return made ? { id: made.id } : null;
+  return made ? { id: made.id, state: (made.state as Record<string, unknown>) ?? {} } : null;
 }
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null, chatId: string | number | null = null) {
@@ -778,6 +817,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 
   // Telegram's own thread — same memory, same scope, just the pocket form of it.
   const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
+  const calendarDraft = activeCalendarDraft(conv?.state?.calendar_draft);
 
   if (plan.field) {
     const handled = await runFieldIntent(sb, { userId, orgId }, plan.field, { via: "telegram" });
@@ -884,7 +924,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 - may prepare an action: ${plan.may_prepare_action ? "yes, as a draft only" : "no"}
 - confidence needed before stating something plainly: ${plan.min_confidence}`;
 
-  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, workBlock, correctionsBlock, fieldNotesBlock]
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, calendarDraftContext(calendarDraft), workBlock, correctionsBlock, fieldNotesBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
@@ -905,6 +945,38 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      retired when the same action is decided on another surface. */
   let calendarActionId: string | null = null;
   let reply = "";
+
+  /* When Echo asked one focused calendar question, the answer completes that
+     same short-lived draft deterministically. This prevents a title like
+     “Evening Meetup with Dani” from falling sideways into a private reminder. */
+  if (calendarDraft && !calendarDraft.edit_target) {
+    const current = normalizeCalendarChanges(calendarDraft.changes, defaults);
+    const missing = createsCalendarEvent(current) ? calendarCreationMissing(current) : null;
+    let completion: CalendarFieldChange[] = [];
+    if (missing === "title" && text.length <= 160) {
+      completion = [{ field: "title", label: calendarFieldLabel("title"), before: null, after: text }];
+    } else if (missing === "time") {
+      const parsed = parseReminderHint(text, defaults);
+      if (parsed.status === "ok") {
+        completion = [
+          { field: "time", label: calendarFieldLabel("time"), before: null, after: parsed.due_at },
+          ...(reminderOffsetsMinutes(text).length
+            ? [{ field: "reminder" as const, label: calendarFieldLabel("reminder"), before: null, after: reminderOffsetsMinutes(text).join(",") }]
+            : []),
+        ];
+      }
+    }
+    if (completion.length) {
+      const res = await applyIntent(sb, userId, "stage_calendar_change", {
+        changes: completion,
+        _conversation_id: conv?.id ?? null,
+      }, defaults, orgId);
+      if (res) {
+        intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
+        toolMarkup = res.markup; calendarActionId = res.calendarActionId;
+      }
+    }
+  }
 
   /* Deterministic rescue for the two follow-ups that caused the live dead end.
      Clear commands should not depend on the model deciding to use a tool. */
@@ -1001,7 +1073,10 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
-      const res = await applyIntent(sb, userId, tc.function.name, args, defaults, orgId);
+      const toolName = calendarDraft && tc.function.name === "refine_calendar_change"
+        ? "stage_calendar_change"
+        : tc.function.name;
+      const res = await applyIntent(sb, userId, toolName, { ...args, _conversation_id: conv?.id ?? null }, defaults, orgId);
       if (res) {
         intents.push(res.reply);
         detectedType = res.detectedType ?? detectedType;
@@ -1173,6 +1248,41 @@ Deno.serve(async (req) => {
           text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Metro Echo.",
         });
         if (res.ok) await dropButtons();
+        return ok();
+      }
+
+      /* Pick one exact owned calendar row. This only establishes conversational
+         context; no proposal exists and Google is untouched until a change is
+         stated and approved. */
+      if (action === "calevt") {
+        const { data: event } = await admin.from("calendar_events")
+          .select("id, feed_id, uid, starts_at, ends_at, title, location")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!event) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That event moved or disappeared." });
+          return ok();
+        }
+        const conv = await telegramConversation(admin, cbLink.user_id, null, cbChatId);
+        if (conv) {
+          const draft = mergeCalendarDraft({
+            changes: [],
+            event_reference: event.title,
+            edit_target: {
+              feed_id: event.feed_id ?? null, uid: event.uid ?? null,
+              starts_at: event.starts_at, ends_at: event.ends_at ?? null,
+              title: event.title, location: event.location ?? null,
+            },
+            expires_at: new Date().toISOString(),
+          }, []);
+          await admin.from("conversations").update({ state: { ...conv.state, calendar_draft: draft } })
+            .eq("id", conv.id).eq("user_id", cbLink.user_id);
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Got it." });
+        await tg("sendMessage", {
+          chat_id: cbChatId,
+          text: `Editing ${event.title}. What should change? You can say “move it to 7,” “change the place,” or “cancel it.” Nothing changes until you approve.`,
+          disable_web_page_preview: true,
+        });
         return ok();
       }
 
@@ -1527,10 +1637,42 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    /* /calendar — the pocket calendar: real upcoming events, private reminders,
+       and pending edits together, with exact event rows available to edit. */
+    if (/^\/calendar\b/.test(text)) {
+      const [{ data: prof }, { data: eventRows }, { data: reminders }, { data: actionRows }] = await Promise.all([
+        admin.from("profiles").select("timezone").eq("id", link.user_id).maybeSingle(),
+        admin.from("calendar_events").select("id, feed_id, uid, starts_at, ends_at, title, location, all_day")
+          .eq("user_id", link.user_id).gte("starts_at", new Date(Date.now() - 36 * 3600_000).toISOString())
+          .order("starts_at", { ascending: true }).limit(30),
+        admin.from("commitments").select("id, summary, due_at").eq("user_id", link.user_id)
+          .eq("status", "open").eq("metadata->>kind", "reminder").order("due_at", { ascending: true }).limit(5),
+        admin.from("actions").select("id, title, status, payload, result").eq("user_id", link.user_id)
+          .in("status", ["staged", "approved", "executed", "audited"]).order("created_at", { ascending: false }).limit(30),
+      ]);
+      const tz = (prof as { timezone?: string } | null)?.timezone || "UTC";
+      const agenda = buildAgenda({ events: (eventRows ?? []) as CalReadEvent[], tz, days: 7 });
+      const queue = buildCalendarQueue((actionRows ?? []) as any[]);
+      const reminderLines = (reminders ?? []).length
+        ? `\n\nPrivate reminders:\n${(reminders ?? []).map((r: any) => `· ${r.summary}${r.due_at ? ` — ${clockLabel(r.due_at, tz)}` : ""}`).join("\n")}`
+        : "\n\nPrivate reminders: none.";
+      const buttons = calendarEventButtons((eventRows ?? []) as any[]);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: `${agenda.text}${reminderLines}\n\n${queue.text}`,
+        reply_markup: keyboard(
+          ...buttons.map((button) => [calendarEditButton(button.id, button.label)]),
+          ...queue.retryIds.slice(0, 2).map((id) => [{ text: "Retry write", callback_data: `calretry:${id}` }, { text: "Stop it", callback_data: `calstop:${id}` }]),
+          ...queue.stopIds.slice(0, 2).map((id) => [{ text: "Stop it", callback_data: `calstop:${id}` }]),
+        ),
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
     /* /queue — where every calendar edit stands: waiting on a yes, approved but
        not written to Google, already written. Reading changes nothing; Retry
        write only pushes edits the user already approved. */
-    if (/^\/(queue|calendar|status)\b/.test(text)) {
+    if (/^\/(queue|status)\b/.test(text)) {
       const { data: rows } = await admin.from("actions")
         .select("id, title, status, payload, result")
         .eq("user_id", link.user_id)
