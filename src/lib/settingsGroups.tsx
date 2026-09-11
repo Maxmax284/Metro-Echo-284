@@ -156,6 +156,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
           blurb="Connect your bot, pair your phone, and watch messages land in the Inbox."
         />
         <LinkOut
+          to="/guide/telegram"
+          title="What the chat can do"
+          blurb="File types, sizes, read-only sources, and what only finishes here. Save a copy to hand to someone else."
+        />
+        <LinkOut
 
           to="/settings/integrations"
           title="Platform Integrations"
