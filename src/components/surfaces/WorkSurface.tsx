@@ -180,14 +180,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <WorkFlowDemo open={demoOpen} onOpenChange={setDemoOpen} />
 
 
-        {/* Three tiers, always in the same order, always labelled: where
-            things stand, where work lands, where Echo looks. The state of
-            work comes before the directory of desks. */}
-        <TierHeading
-          n={1}
-          title="Where things stand"
-          line="Today's state of play — the briefing, what you left open, and the week ahead."
-        />
+        {/* The state of work comes before any directory of desks. The briefing
+            panel labels itself, so this level adds no second heading. */}
 
         <WorkBodyLine />
 
@@ -266,59 +260,75 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </section>
         )}
 
-        {/* Two shelves instead of ten equal choices: where work lands, and
-            where Echo looks. Presentation only — every route is unchanged. */}
-        <TierHeading
-          n={2}
-          title="Where work lands"
-          line="The desks that hold your records. Everything you route, promise or approve ends up in one of these."
-        />
-
-        <section className="vanta-card p-3" aria-label="Where work lands">
-          <SectionRail label="Desks" icon={<FolderKanban className="h-3.5 w-3.5" />} />
+        {/* Three stable shelves instead of ten equal choices: what is coming
+            in, what is in motion, and what Echo noticed. Presentation only —
+            every route is unchanged. A shelf with nothing in it names itself
+            in one quiet line rather than showing a wall of empty tiles. */}
+        <ShelfHeading title="Coming in" line="What arrived and what the calendar says." />
+        <section className="vanta-card p-3" aria-label="Coming in">
           <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
-            <Desk deskKey="inbox" label="Inbox" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
-            <Desk deskKey="commitments" label="Commitments" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
-            <Desk deskKey="actions" label="Actions" Icon={ListChecks} count={counts.actions} recommended={recommendedStep("actions", counts, projects.length)} onOpen={() => onNavigate("actions")} />
-            <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
-            <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
+            {counts.inbox > 0 ? (
+              <Desk deskKey="inbox" label="Just arrived" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
+            ) : null}
             <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            {counts.inbox === 0 ? (
+              <QuietShelfLine
+                line="Nothing new to sort."
+                cta="Open where things land"
+                onOpen={() => onNavigate("inbox")}
+              />
+            ) : null}
           </div>
         </section>
 
-        {/* Reading rooms fold, but they stop hiding the moment intake starts:
-            once anything has arrived, these desks have something to read, so
-            the shelf opens itself unless you closed it yourself. The fold is a
-            visible control with a count, never a mystery. */}
+        <ShelfHeading title="In motion" line="Jobs, promises and anything waiting on your yes." />
+        <section className="vanta-card p-3" aria-label="In motion">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
+            {counts.actions > 0 ? (
+              <Desk deskKey="actions" label="Waiting on you" Icon={ListChecks} count={counts.actions} recommended={recommendedStep("actions", counts, projects.length)} onOpen={() => onNavigate("actions")} />
+            ) : null}
+            {counts.commitments > 0 ? (
+              <Desk deskKey="commitments" label="Promises" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
+            ) : null}
+            <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
+            {counts.actions === 0 && counts.commitments === 0 ? (
+              <QuietShelfLine
+                line="Nothing waiting on your yes, nothing promised."
+                cta="See what waiting looks like"
+                onOpen={() => onNavigate("actions")}
+              />
+            ) : null}
+          </div>
+        </section>
+
+        {/* What Echo noticed. Real findings are never hidden; with nothing to
+            read the shelf stays folded behind one visible control. */}
         <CollapsibleSection
           key={`${hasIntake ? "live" : "quiet"}-${hasFindings ? "findings" : "none"}`}
-          title="Where Echo looks"
+          title="Echo noticed"
           storageKey="work.looks"
           icon={<Search className="h-3.5 w-3.5" />}
-          reading="3"
-          /* A real finding is never hidden. Otherwise the shelf stays folded
-             until there is something for these rooms to read. */
           defaultOpen={hasFindings || hasIntake}
           summary={
             hasFindings
-              ? "Where Echo looks · Sherlock has something for you"
+              ? "Echo noticed · something worth a look"
               : hasIntake
-                ? "Where Echo looks · 3 places Echo reads on your behalf"
-                : "Where Echo looks · nothing needs your attention yet"
+                ? "Echo noticed · reading what you captured"
+                : "Echo noticed · nothing yet"
           }
           className="border-dashed"
         >
           <p className="text-[11px] leading-snug text-muted-foreground">
-            These read what you already captured and draft suggestions. Nothing here acts on its own.
+            These read what you already captured and suggest. Nothing here acts on its own.
           </p>
           <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-            <Desk deskKey="memory" label="Memory" Icon={Notebook} onOpen={() => onNavigate("memory")} />
-            <Desk deskKey="sherlock" label="Sherlock" Icon={Search} onOpen={() => onNavigate("sherlock")} />
-            <Desk deskKey="awareness" label="Awareness" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            
+            <Desk deskKey="sherlock" label="What Echo noticed" Icon={Search} onOpen={() => onNavigate("sherlock")} />
+            <Desk deskKey="awareness" label="Place and context" Icon={Compass} onOpen={() => onNavigate("awareness")} />
+            <Desk deskKey="memory" label="Find something" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+            <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
           </div>
         </CollapsibleSection>
 
@@ -333,18 +343,34 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   );
 }
 
-/** A tier label. Presentation only — it explains the three levels of Work. */
-function TierHeading({ n, title, line }: { n: 1 | 2 | 3; title: string; line: string }) {
+/** A shelf label. Typography carries the hierarchy — no numbered tour. */
+function ShelfHeading({ title, line }: { title: string; line?: string }) {
   return (
-    <div className="flex items-start gap-2 px-1 pt-2">
-      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-primary/40 text-[9px] font-mono text-primary">
-        {n}
-      </span>
-      <div className="min-w-0">
-        <h2 className="text-[12.5px] font-semibold leading-tight text-foreground">{title}</h2>
+    <div className="min-w-0 px-1 pt-2">
+      <h2 className="text-[13px] font-semibold leading-tight text-foreground">{title}</h2>
+      {line ? (
         <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{line}</p>
-      </div>
+      ) : null}
     </div>
+  );
+}
+
+/**
+ * What an empty shelf says. One quiet line and one way in — never a grid of
+ * zeroed tiles competing with the shelf that actually has work in it.
+ */
+function QuietShelfLine({ line, cta, onOpen }: { line: string; cta: string; onOpen: () => void }) {
+  return (
+    <p className="min-[420px]:col-span-2 px-1 text-[11.5px] leading-snug text-muted-foreground">
+      {line}{" "}
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn("text-primary hover:underline", MOTION_FOCUS)}
+      >
+        {cta}
+      </button>
+    </p>
   );
 }
 

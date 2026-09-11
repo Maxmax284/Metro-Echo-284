@@ -206,15 +206,15 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
         <PopoverTrigger asChild>
           <button
             disabled={!!busy}
-            title="Snooze"
-            aria-label="Snooze"
+            title="Later"
+            aria-label="Later"
             className={cn(btn, tap)}
           >
             {busy === "snooze" ? <Loader2 className={cn(icon, "animate-spin")} /> : <Clock className={icon} />}
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" sideOffset={6} className="w-44 p-1">
-          <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">Snooze until</div>
+          <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">Bring it back</div>
           {snoozeOptions.map((o) => (
             <button
               key={o.label}
@@ -229,8 +229,8 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
       <button
         onClick={dismiss}
         disabled={!!busy}
-        title="Dismiss"
-        aria-label="Dismiss"
+        title="Cancel it"
+        aria-label="Cancel it"
         className={cn(btn, tap, "hover:text-danger hover:ring-danger/40")}
       >
         {busy === "drop" ? <Loader2 className={cn(icon, "animate-spin")} /> : <X className={icon} />}

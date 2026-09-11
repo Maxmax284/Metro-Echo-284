@@ -48,3 +48,25 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       Google attendees + sendUpdates=all, existing-guest merge on updates, high-risk
       double-confirm (Google emails a real person). Telegram + Ask tool schemas updated.
       874 tests green. Dani's event still needs her email, then approve in Telegram.
+
+## Simplification pass 1 — quick wins (approved plan: metro-echo-simplification-audit-and-roadmap-2026-09-11)
+- [x] One interaction vocabulary: `src/lib/interactionVerbs.ts` (Not now / Later / Handled /
+      Hide / Archive / Delete / Clear settled) + tests. `vantaSignal.ROUTE_LABEL` now reads
+      its labels from it. Retired "Dismiss"/"Snooze"/"Ignore" from Today's noticed row,
+      nudges, the file tray and commitment rows; a commitment cancel now says "Cancel it"
+      because it really cancels.
+- [x] Today copy pass: "Fresh in" -> "Just landed", "Happening now" -> "Right now",
+      "Needs attention" -> "Needs you", "Next up" -> "Coming up", "What changed" -> "Changed",
+      human empty states and loading lines. Expand all / Collapse all sweep deleted.
+- [x] Work rebuilt as three stable shelves: Coming in / In motion / Echo noticed.
+      Numbered tier tour removed, duplicate "Where things stand" heading removed,
+      empty countable desks hidden behind one quiet line with one way in.
+- [x] Desk labels de-jargoned: Inbox -> Just arrived, Commitments -> Promises,
+      Actions -> Waiting on you, Sherlock -> What Echo noticed, Awareness -> Place and
+      context, Memory -> Find something.
+- [x] Cockpit (`command`) removed from `ADVANCED_SURFACES` — still reachable by deep link
+      and legacy `?surface=cockpit`, no longer offered as a place to go.
+- [ ] Next (deeper refactors): Today section count down to Current read / Needs you /
+      Coming up / Changed; Receipts front layer in six human lines; Briefs as project
+      outputs; location-only-when-it-changes-the-answer; route cleanup
+      (/watch /motion /glance /wearables /wearable-loop /physical-loop /how).

@@ -62,7 +62,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "Start your first project",
   },
   inbox: {
-    label: "Inbox",
+    label: "Just arrived",
     is: "Everything that came in and has not been sorted yet.",
     lands: "Forwarded email, Telegram messages, uploads, and quick notes.",
     you: "Read it, then file it to a project or turn it into a promise.",
@@ -75,7 +75,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "See how things get in",
   },
   commitments: {
-    label: "Commitments",
+    label: "Promises",
     is: "Promises with a date on them \u2014 yours and other people's.",
     lands: "You record one, or Echo spots one in something you captured.",
     you: "Complete it, move the date, or hand it off.",
@@ -88,7 +88,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "Record your first promise",
   },
   actions: {
-    label: "Actions",
+    label: "Waiting on you",
     is: "Work Echo has prepared but will not run until you approve it.",
     lands: "Echo drafts one when something you captured implies a step.",
     you: "Review the details, then approve or discard. Nothing runs on its own.",
@@ -127,7 +127,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "Draft your first document",
   },
   memory: {
-    label: "Memory",
+    label: "Find something",
     is: "Search across everything Echo has ever held for you.",
     lands: "Nothing lands here directly \u2014 it reads all the other desks.",
     you: "Search a name, a phrase, or a date and follow it to the source.",
@@ -153,7 +153,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "Connect a calendar",
   },
   sherlock: {
-    label: "Sherlock",
+    label: "What Echo noticed",
     is: "The investigator. It looks for patterns and quiet problems.",
     lands: "You point it at something, or it scans on a schedule.",
     you: "Read the findings and decide whether they matter.",
@@ -166,7 +166,7 @@ export const DESK_ROLES: Record<DeskKey, DeskRole> = {
     emptyAction: "See what Sherlock watches for",
   },
   awareness: {
-    label: "Awareness",
+    label: "Place and context",
     is: "What Echo currently knows about your situation.",
     lands: "Time, place, device, and the sensors you opted into.",
     you: "Check what it is using, and turn off anything you would rather it ignored.",

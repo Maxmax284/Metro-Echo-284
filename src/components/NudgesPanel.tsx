@@ -184,7 +184,7 @@ export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
               size="icon"
               className="h-6 w-6 shrink-0"
               onClick={() => dismiss(n.id)}
-              aria-label="Dismiss"
+              aria-label="Hide"
             >
               <X className="h-3 w-3" />
             </Button>

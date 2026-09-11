@@ -39,7 +39,7 @@ export function NoticedRow({
     whatChanged: signal.title,
     reason: signal.body ?? "Echo raised this from your own records.",
     whyItMatters: "It is a draft observation, not an instruction.",
-    ifIgnored: "It disappears when you dismiss it. Nothing runs from it.",
+    ifIgnored: "Hiding it takes it off Today. Nothing runs from it.",
   });
 
   return (
@@ -66,7 +66,7 @@ export function NoticedRow({
         variant="ghost"
         size="icon"
         className={cn("h-11 w-11 shrink-0 text-muted-foreground", MOTION_PRESS)}
-        aria-label="Dismiss"
+        aria-label="Hide"
         onClick={() => onDismiss(signal.id)}
       >
         <X className="h-3.5 w-3.5" />
