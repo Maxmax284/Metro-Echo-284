@@ -16,11 +16,29 @@ import {
   buildCalendarProposal,
   calendarProposalRisk,
   calendarProposalTitle,
+  isCalendarProposal,
   proposalSummary,
+  refineCalendarProposal,
   type CalendarFieldChange,
 } from "@/lib/calendarProposal";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
+
+/**
+ * One reading of a spoken calendar change, shared by staging and refining so
+ * the two can never drift. An omitted `after` means removal — same as Telegram.
+ */
+function mapCalendarChanges(raw: unknown): CalendarFieldChange[] {
+  return (Array.isArray(raw) ? raw : []).map((c: any) => {
+    const field = normalizeCalendarField(c?.field);
+    return {
+      field,
+      label: calendarFieldLabel(field),
+      before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+      after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
+    };
+  });
+}
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
@@ -86,6 +104,44 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("actions", { action_id: actionId });
           toast.success({ title: vantaSay.actionDrafted(), description: askAftermath("action") });
           onAck?.({ kind: "stage_action", id: actionId, summary: args.title || "Action" });
+        } else if (kind === "refine_calendar_change") {
+          /* Talking a proposal into shape is not a new proposal. The pending one
+             is updated in place and its version moves up, so an approval button
+             the user already saw can never approve something they never read. */
+          const changes = mapCalendarChanges(args?.changes);
+          if (!changes.length) {
+            toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
+            return;
+          }
+          const { data: pending } = await supabase
+            .from("actions")
+            .select("id, payload")
+            .eq("user_id", user.id)
+            .eq("status", "staged")
+            .order("created_at", { ascending: false })
+            .limit(10);
+          const row = ((pending ?? []) as any[]).find((r) => isCalendarProposal(r.payload));
+          if (!row) {
+            toast.warning({
+              title: "Nothing pending to adjust",
+              description: "Tell me the change and I'll show it fresh.",
+            });
+            return;
+          }
+          const refined = refineCalendarProposal(row.payload, changes);
+          await supabase
+            .from("actions")
+            .update({
+              payload: refined,
+              title: calendarProposalTitle(refined),
+              description: proposalSummary(refined),
+              risk: calendarProposalRisk(refined),
+            })
+            .eq("id", row.id)
+            .eq("status", "staged");
+          await audit("actions", { action_id: row.id, as: "calendar_change", refined: true, version: refined.version });
+          toast.success({ title: "Updated the change", description: proposalSummary(refined) });
+          onAck?.({ kind: "stage_action", id: row.id, summary: calendarProposalTitle(refined) });
         } else if (kind === "stage_calendar_change") {
           /* A calendar change is a staged action like any other: it resolves the
              event first, shows exact before/after, and never touches the
@@ -125,17 +181,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             target = resolved.event;
           }
 
-          const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : [])
-            .map((c: any) => {
-              const field = normalizeCalendarField(c?.field);
-              return {
-                field,
-                label: calendarFieldLabel(field),
-                /* An omitted `after` means removal — same reading as Telegram. */
-                before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
-                after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
-              };
-            });
+          const changes: CalendarFieldChange[] = mapCalendarChanges(args.changes);
 
           if (!changes.length) {
             toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
@@ -177,7 +223,10 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("actions", { action_id: actionId, as: "calendar_change" });
           toast.success({
             title: "Calendar change staged",
-            description: "Nothing has changed yet — approve it to hold it.",
+            description:
+              proposal.write_state === "connected"
+                ? "Nothing has changed yet — approve it and it goes to your calendar. Say it differently and I'll adjust this same one."
+                : "Nothing has changed yet — the calendar is read-only, so approval only holds it.",
           });
           onAck?.({ kind: "stage_action", id: actionId, summary: calendarProposalTitle(proposal) });
         } else if (kind === "add_commitment") {

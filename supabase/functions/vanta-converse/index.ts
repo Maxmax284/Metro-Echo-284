@@ -114,6 +114,15 @@ ${VOICE_RULES}
 
 ${STRUCTURE_RULES}`;
 
+/* Calendar changes are conversational here, exactly as they are on Telegram:
+   say it in your own words, see the exact before/after, adjust it by talking,
+   approve once. Nothing reaches the calendar without that approval. */
+const CALENDAR_CHANGE_DIRECTIVE = `Changing the calendar by talking:
+- The user can say it however they like ("push my dentist to Thursday morning", "book me and Dani Tuesday 6pm at One Loudoun", "cancel the Friday call"). Call stage_calendar_change with exact before/after values and their own words in event_reference.
+- When they then adjust what you showed them ("actually 3:30", "make it Old Town instead", "lose the reminder"), call refine_calendar_change with the FULL set of changes after the adjustment. Never stage a second proposal for the same event.
+- Staging changes nothing. Say what would change and that it is waiting on their approval. Never claim the calendar has been updated yourself — the approval does that and leaves a receipt.
+- If you cannot tell which event they mean, ask rather than guess.`;
+
 const tools = [
   {
     type: "function",
@@ -195,6 +204,35 @@ const tools = [
           attendee_count: { type: "number", description: "People the provider would notify. 0 if nobody else is involved." },
           source_kind: { type: "string", description: "Where the justification came from: telegram, email, file, you." },
           source_note: { type: "string", description: "One human phrase for the source, e.g. \"the clinic's Telegram message\"." },
+        },
+        required: ["changes"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "refine_calendar_change",
+      description:
+        "The user is adjusting the calendar change you already showed them (\"actually 3:30\", \"make it the clinic on Sathorn\", \"drop the reminder\"). Updates that same pending proposal in place and re-asks for approval. Never creates a second proposal and never touches the calendar. Use this instead of stage_calendar_change whenever a proposal is already on the table.",
+      parameters: {
+        type: "object",
+        properties: {
+          changes: {
+            type: "array",
+            description: "The full set of fields that would change after the adjustment, not only the newly mentioned one.",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] },
+                before: { type: "string", description: "Current value in plain words, or omit if not set." },
+                after: { type: "string", description: "New value. ISO timestamp for `time`. Omit for a removal or cancellation." },
+              },
+              required: ["field"],
+              additionalProperties: false,
+            },
+          },
         },
         required: ["changes"],
         additionalProperties: false,
@@ -571,7 +609,10 @@ Deno.serve(async (req: Request) => {
         location: r.location ?? null,
         all_day: r.all_day ?? null,
       }));
-      calendarBlock = calendarContextBlock(calEvents, { tz });
+      calendarBlock = [
+        calendarContextBlock(calEvents, { tz }),
+        CALENDAR_CHANGE_DIRECTIVE,
+      ].filter(Boolean).join("\n\n");
     } catch (e) { console.error("ask calendar context", e); }
 
     const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
