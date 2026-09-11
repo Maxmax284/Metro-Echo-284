@@ -244,6 +244,16 @@ export function renderTelegramGuideMarkdown(botUsername?: string | null): string
   for (const c of TELEGRAM_COMMANDS) out.push(`- \`${c.cmd}\` — ${c.does}`);
   out.push("", "## Things you can just say", "");
   for (const p of TELEGRAM_PHRASEBOOK) out.push(`- “${p}”`);
+  out.push("", "## Files, exactly", "");
+  out.push("| What you send | Read here? | How it's handled | Limit |", "| --- | --- | --- | --- |");
+  for (const r of TELEGRAM_FILE_RULES) {
+    out.push(`| ${r.what} | ${r.works === "yes" ? "Yes" : "No"} | ${r.detail} | ${r.limit} |`);
+  }
+  out.push("", "Telegram will not hand a bot any file over 20 MB, so that is the ceiling on every row.");
+  out.push("", "## Read only, always", "");
+  for (const l of TELEGRAM_READ_ONLY) out.push(`- ${l}`);
+  out.push("", "## Finished in the app, not in the chat", "");
+  for (const l of TELEGRAM_APP_ONLY) out.push(`- ${l}`);
   out.push(
     "",
     "## The one rule that never bends",
