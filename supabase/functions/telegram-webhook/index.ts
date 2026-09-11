@@ -1062,6 +1062,68 @@ Deno.serve(async (req) => {
         if (res.ok) await dropButtons();
         return ok();
       }
+
+      /* "Retry write" from the /queue panel. Only touches edits the user already
+         approved — never re-approves anything, never widens risk. */
+      if (action === "calretry") {
+        const { data: act } = await admin.from("actions")
+          .select("id, status, payload, risk, organization_id, title")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!act || !isCalendarProposal(act.payload)) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
+          return ok();
+        }
+        if (act.status !== "approved") {
+          await tg("answerCallbackQuery", {
+            callback_query_id: cbId,
+            text: act.status === "executed" || act.status === "audited" ? "Already written." : "That one still needs your yes.",
+          });
+          return ok();
+        }
+        const proposal = act.payload;
+        const liveWriteState = await calendarWriteStateForUser(cbLink.user_id);
+        if (liveWriteState !== "connected") {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "No Google calendar connected yet." });
+          await tg("sendMessage", { chat_id: cbChatId, text: `${approvalOutcomeLine(liveWriteState)} Connect Google in Metro Echo settings and I'll write it.`, disable_web_page_preview: true });
+          return ok();
+        }
+        if (!telegramMayAutoExecute({ ...proposal, write_state: "connected" })) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "This one has to be confirmed in Metro Echo." });
+          return ok();
+        }
+        let outcomeText: string;
+        try {
+          const result = await executeCalendarProposal(admin, cbLink.user_id, {
+            id: act.id, title: act.title, payload: proposal,
+          });
+          await projectCalendarEvent(admin, cbLink.user_id, proposal, result);
+          await admin.from("actions").update({
+            status: "executed", result, executed_at: new Date().toISOString(),
+          }).eq("id", act.id).eq("user_id", cbLink.user_id).eq("status", "approved");
+          await admin.from("action_events").insert({
+            user_id: cbLink.user_id, action_id: act.id, from_status: "approved", to_status: "executed",
+            actor: "executor", reason: "telegram_retry_write",
+          });
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+            entity_type: "action", entity_id: act.id, event: "execute.success",
+            payload: { source: "telegram_retry", result },
+          });
+          outcomeText = "Done. Google confirmed it, and the receipt is saved.";
+        } catch (retryErr) {
+          const msg = retryErr instanceof Error ? retryErr.message : "execution failed";
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+            entity_type: "action", entity_id: act.id, event: "execute.failed",
+            payload: { source: "telegram_retry", error: msg },
+          });
+          outcomeText = `Google still refused it: ${msg.slice(0, 120)}. It stays approved — try again or open Metro Echo.`;
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: outcomeText.slice(0, 190) });
+        await dropButtons();
+        await tg("sendMessage", { chat_id: cbChatId, text: outcomeText, disable_web_page_preview: true });
+        return ok();
+      }
       /* Yes / No on ONE staged calendar change. This approves the exact
          proposal that was shown — version has to match, so a refinement
          retires the old buttons. It never executes: while the calendar is a
