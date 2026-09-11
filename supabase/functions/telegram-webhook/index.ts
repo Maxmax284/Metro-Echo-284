@@ -89,6 +89,7 @@ async function logTgMessage(admin: any, row: Record<string, unknown>) {
 
 import {
   COMPANION_VOICE,
+  MEDIA_CAPABILITY,
   MEMORY_VOICE,
   AWARENESS_VOICE,
   VANTA_PHRASES,
@@ -163,6 +164,9 @@ You CAN propose a calendar change with stage_calendar_change and, when the user 
 decides right here with Yes / No. A yes approves only that one change, never future ones.
 Say plainly that nothing has changed anywhere until it actually has.
 You still cannot export, send, book or pay anything.
+Pictures and files sent to this chat are seen and read here — see the media rules below. If asked
+whether you can look at a photo or a screenshot, say yes and ask for it. Never claim your tools
+don't let you see images.
 Never write a tidy assistant paragraph.`;
 
 
