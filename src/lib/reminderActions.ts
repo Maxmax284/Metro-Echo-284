@@ -9,6 +9,7 @@ const tokens = (value: string) => value.toLowerCase().split(/[^a-z0-9]+/).filter
 
 export function resolveReminderReference(reference: string, rows: ReminderCandidate[]): ReminderResolution {
   if (!rows.length) return { status: "none" };
+  if (/\b(that|this|it)\b/i.test(reference)) return { status: "one", reminder: rows[0] };
   const wanted = tokens(reference);
   if (!wanted.length) return rows.length === 1 ? { status: "one", reminder: rows[0] } : { status: "many", candidates: rows.slice(0, 4) };
   const scored = rows.map((reminder) => ({ reminder, score: wanted.reduce((n, word) => n + (reminder.summary.toLowerCase().includes(word) ? 1 : 0), 0) }))

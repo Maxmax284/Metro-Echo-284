@@ -25,7 +25,8 @@ describe("reminder follow-ups", () => {
 
   it("resolves one, many, and no private reminders without guessing", () => {
     expect(resolveReminderReference("Dani reminder", rows).status).toBe("one");
-    expect(resolveReminderReference("that reminder", rows).status).toBe("many");
+    expect(resolveReminderReference("that reminder", rows)).toMatchObject({ status: "one", reminder: { id: "dani" } });
+    expect(resolveReminderReference("reminder", rows).status).toBe("many");
     expect(resolveReminderReference("dentist", rows).status).toBe("none");
   });
 

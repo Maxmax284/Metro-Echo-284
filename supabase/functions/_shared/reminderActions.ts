@@ -21,6 +21,7 @@ function tokens(value: string): string[] {
 
 export function resolveReminderReference(reference: string, rows: ReminderCandidate[]): ReminderResolution {
   if (!rows.length) return { status: "none" };
+  if (/\b(that|this|it)\b/i.test(reference)) return { status: "one", reminder: rows[0] };
   const wanted = tokens(reference);
   if (!wanted.length) return rows.length === 1
     ? { status: "one", reminder: rows[0] }
