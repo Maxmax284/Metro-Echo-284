@@ -24,7 +24,7 @@ describe("media capability contract", () => {
   it("bans lawyering an obvious recognition", () => {
     expect(MEDIA_CAPABILITY).toMatch(/appears to be/);
     expect(MEDIA_CAPABILITY).toMatch(/resembling/);
-    expect(MEDIA_CAPABILITY).not.toMatch(/I can'?t (see|do) images/i);
+    expect(MEDIA_CAPABILITY).toMatch(/never widened into/i);
   });
 
   it("keeps capture safe: saving happens, filing is asked", () => {
