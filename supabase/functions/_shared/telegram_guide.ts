@@ -62,6 +62,7 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
       "It won't guess when two sources disagree — it shows you the contradiction first.",
       "Big, messy or high-stakes changes get finished in the app, not from a chat window.",
       "Calendars you added by link are read-only. It'll say so instead of pretending.",
+      "Video isn't read yet, and neither are odd file types. It names the file and says so.",
     ],
   },
   {
