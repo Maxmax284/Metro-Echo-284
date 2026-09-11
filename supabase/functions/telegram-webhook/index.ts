@@ -99,7 +99,7 @@ import {
 import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shared/brandVoice.ts";
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
-import { parseReminderHint } from "../_shared/reminderParse.ts";
+import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
