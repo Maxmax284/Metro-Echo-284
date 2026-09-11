@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readsAsApproval, readsAsRejection } from "../../supabase/functions/_shared/calendarSettle.ts";
+import { readsAsApproval, readsAsRejection } from "../../supabase/functions/_shared/calendarSettleWords.ts";
 
 describe("typed approval words", () => {
   it("reads short affirmatives as approval", () => {
