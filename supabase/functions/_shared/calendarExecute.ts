@@ -24,7 +24,7 @@ import {
   googleCalendarConnection,
   type CalendarConnection,
 } from "./calendarConnection.ts";
-import { normalizeCalendarChanges } from "./calendarChangeNormalize.ts";
+import { calendarCreationMissing, normalizeCalendarChanges } from "./calendarChangeNormalize.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
@@ -232,6 +232,12 @@ export async function executeCalendarProposal(
       evening: "18:00",
     }),
   };
+  if (!executableProposal.event) {
+    const missing = calendarCreationMissing(executableProposal.changes);
+    if (missing) {
+      throw new Error(`This older calendar draft is missing its ${missing}. Send the full request again; nothing was written to Google.`);
+    }
+  }
   const { method, path, body, operation } = buildCalendarRequestBody(executableProposal, tz);
 
   const res = await fetch(`${GATEWAY}/${path}`, {
