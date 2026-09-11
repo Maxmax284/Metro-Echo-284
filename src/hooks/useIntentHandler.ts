@@ -16,11 +16,29 @@ import {
   buildCalendarProposal,
   calendarProposalRisk,
   calendarProposalTitle,
+  isCalendarProposal,
   proposalSummary,
+  refineCalendarProposal,
   type CalendarFieldChange,
 } from "@/lib/calendarProposal";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
+
+/**
+ * One reading of a spoken calendar change, shared by staging and refining so
+ * the two can never drift. An omitted `after` means removal — same as Telegram.
+ */
+function mapCalendarChanges(raw: unknown): CalendarFieldChange[] {
+  return (Array.isArray(raw) ? raw : []).map((c: any) => {
+    const field = normalizeCalendarField(c?.field);
+    return {
+      field,
+      label: calendarFieldLabel(field),
+      before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
+      after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
+    };
+  });
+}
 
 /**
  * Shared intent handler for the Companion + Conversation Log.
