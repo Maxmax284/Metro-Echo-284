@@ -47,10 +47,12 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
   const offsets = [...new Set(reminders.flatMap((change) => parseReminderOffsets(change.after)))]
     .sort((a, b) => b - a);
   const firstReminder = normalized.findIndex((change) => change.field === "reminder");
-  return normalized.filter((change) => change.field !== "reminder").toSpliced(firstReminder, 0, {
+  const withoutReminders = normalized.filter((change) => change.field !== "reminder");
+  withoutReminders.splice(firstReminder, 0, {
     field: "reminder",
     label: calendarFieldLabel("reminder"),
     before: null,
     after: offsets.join(","),
   });
+  return withoutReminders;
 }
