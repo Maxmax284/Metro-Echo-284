@@ -36,7 +36,6 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   // Specialist desks (reachable through Work, Today drill-downs and More)
   { key: "projects", label: "Projects", Icon: FolderKanban },
   { key: "inbox", label: "Inbox", Icon: Inbox },
-  { key: "briefs", label: "Briefs", Icon: FileText },
   { key: "memory", label: "Memory", Icon: Notebook },
   { key: "commitments", label: "Commitments", Icon: CheckSquare },
   { key: "schedule", label: "Schedule", Icon: CalendarClock },
