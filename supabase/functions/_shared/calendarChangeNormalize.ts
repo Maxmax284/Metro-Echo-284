@@ -27,6 +27,15 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
       if (parsed.status === "ok") after = parsed.due_at;
     }
 
+    if (field === "attendee") {
+      /* Guests are emails, nothing else. Keep only real addresses; a change
+         with no valid email must not pretend it invites anyone. */
+      const emails = extractEmails(after ?? before);
+      if (emails.length === 0) return null;
+      before = null;
+      after = emails.join(", ");
+    }
+
     if (field === "reminder") {
       // On a newly described reminder, models sometimes place the requested
       // value in `before` and omit `after`. That is an addition, not a removal.
@@ -40,7 +49,7 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
     }
 
     return { field, label: calendarFieldLabel(field), before, after };
-  });
+  }).filter((change): change is CalendarFieldChange => change !== null);
 
   const existence = normalized.find((change) => change.field === "existence")?.after?.trim() ?? "";
   const hasTitle = normalized.some((change) => change.field === "title" && change.after?.trim());
@@ -61,6 +70,14 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
     after: offsets.join(","),
   });
   return withoutReminders;
+}
+
+/** Pull valid email addresses out of free text; deduped, lowercased. */
+export function extractEmails(raw: unknown): string[] {
+  if (raw == null) return [];
+  const text = Array.isArray(raw) ? raw.join(" ") : String(raw);
+  const matches = text.match(/[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+/g) ?? [];
+  return [...new Set(matches.map((e) => e.toLowerCase()))];
 }
 
 /** A creation must identify both what it is and when it happens. */
