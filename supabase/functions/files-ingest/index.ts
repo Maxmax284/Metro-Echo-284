@@ -57,7 +57,20 @@ async function extractText(blob: Blob, mime: string, filename: string): Promise<
     return { text: await extractDocxText(blob), method: "docx" };
   }
   if (lower.startsWith("image/") || ["png", "jpg", "jpeg", "webp", "gif", "heic"].includes(ext)) {
-    return { text: await ocrImageWithGateway(blob, lower || "image/png"), method: "ocr" };
+    /* A picture is not always a page. Read the words first, because that's what
+       a receipt or a scan is for; when there are barely any words, the picture
+       was the point, so it gets the same look the chat surface gives it. One
+       shared vision path, no second engine. */
+    const mime = lower || "image/png";
+    const scraped = (await ocrImageWithGateway(blob, mime)).trim();
+    if (scraped.replace(/\s+/g, " ").length >= 24) return { text: scraped, method: "ocr" };
+    try {
+      const look = await lookAtImage(blob, mime, "identify");
+      if (look.answer.trim()) return { text: look.answer.trim(), method: "look" };
+    } catch {
+      /* Looking is a bonus here; the OCR result (even empty) still stands. */
+    }
+    return { text: scraped, method: "ocr" };
   }
   if (
     lower.startsWith("text/") ||
