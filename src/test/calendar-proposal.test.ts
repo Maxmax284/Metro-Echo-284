@@ -82,3 +82,32 @@ describe("resolving what the user meant", () => {
     expect(findConflicts("2026-03-02T20:00:00.000Z", null, events, "u1")).toHaveLength(0);
   });
 });
+
+// Talking a proposal into shape must adjust the one on the table, not spawn a
+// second one — the same law Telegram already follows.
+describe("refining by conversation", () => {
+  const base = buildCalendarProposal({
+    event: { feed_id: "f1", uid: "u1", starts_at: "2026-09-15T14:00:00.000Z", ends_at: null, title: "Dentist" },
+    changes: [{ field: "time", label: "Time", before: "Tue 2:00 PM", after: "2026-09-17T14:00:00.000Z" }],
+    attendeeCount: 0,
+    source: null,
+    conflicts: [],
+    writeState: "connected",
+  });
+
+  it("keeps the same event and bumps the version", () => {
+    const refined = refineCalendarProposal(base, [
+      { field: "time", label: "Time", before: "Tue 2:00 PM", after: "2026-09-17T15:30:00.000Z" },
+    ]);
+    expect(refined.version).toBe(base.version + 1);
+    expect(refined.event?.uid).toBe("u1");
+    expect(refined.changes[0].after).toContain("15:30");
+    expect(isCalendarProposal(refined)).toBe(true);
+  });
+
+  it("still stages nothing on the provider", () => {
+    const refined = refineCalendarProposal(base, [{ field: "location", label: "Location", before: null, after: "Old Town" }]);
+    expect(refined.kind).toBe("calendar_change");
+    expect(proposalSummary(refined)).toContain("Old Town");
+  });
+});
