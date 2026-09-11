@@ -74,14 +74,19 @@ const App = () => (
                               <Route path="/projects" element={<ProjectsPage />} />
                               <Route path="/projects/:id" element={<ProjectBriefPage />} />
                               <Route path="/documents" element={<DocumentsPage />} />
+                              {/* One door: /how. Everything explanatory lives behind it. */}
                               <Route path="/how" element={<RoomMapPage />} />
-                              <Route path="/wearables" element={<Navigate to="/wearable-loop" replace />} />
-                              <Route path="/physical-loop" element={<PhysicalLoopPage />} />
-                              <Route path="/wearable-loop" element={<WearableLoopPage />} />
-                              <Route path="/watch" element={<WatchPage />} />
-                              {/* Retired demo route; the body desk is /watch. */}
-                              <Route path="/motion" element={<Navigate to="/watch" replace />} />
-                              <Route path="/glance" element={<GlancePage />} />
+                              <Route path="/how/paper" element={<PhysicalLoopPage />} />
+                              <Route path="/how/watch" element={<WearableLoopPage />} />
+                              <Route path="/how/glance" element={<GlancePage />} />
+                              <Route path="/how/trends" element={<WatchPage />} />
+                              {/* Old standalone doors — kept as redirects so links never break. */}
+                              <Route path="/wearables" element={<Navigate to="/how/watch" replace />} />
+                              <Route path="/wearable-loop" element={<Navigate to="/how/watch" replace />} />
+                              <Route path="/physical-loop" element={<Navigate to="/how/paper" replace />} />
+                              <Route path="/watch" element={<Navigate to="/how/trends" replace />} />
+                              <Route path="/motion" element={<Navigate to="/how/trends" replace />} />
+                              <Route path="/glance" element={<Navigate to="/how/glance" replace />} />
                               <Route path="/awareness/location" element={<LocationSetupPage />} />
 
                               <Route path="/auth" element={<Auth />} />
