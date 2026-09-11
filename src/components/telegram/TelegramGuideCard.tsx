@@ -40,6 +40,7 @@ export function TelegramGuideCard({ botUsername }: { botUsername?: string | null
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[13px] font-medium">
             <BookOpen className="h-3.5 w-3.5 text-primary" /> How to use this chat
+            <WhatIsThis topic="telegram_files" label="What works here?" />
           </div>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
             Same Echo as here — same memory, same calendar, same rules. Ask it{" "}
