@@ -1,6 +1,8 @@
 // Client-side mirror of the VantaSignal contract used by edge functions.
 // Keep in sync with supabase/functions/_shared/vantaVoice.ts.
 
+import { verbLabel } from "@/lib/interactionVerbs";
+
 export type SignalType =
   | "transport" | "infrastructure" | "payments" | "etiquette"
   | "hazards" | "scams" | "connectivity" | "timing"
