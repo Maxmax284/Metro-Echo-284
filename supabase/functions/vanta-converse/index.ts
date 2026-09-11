@@ -204,6 +204,35 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "refine_calendar_change",
+      description:
+        "The user is adjusting the calendar change you already showed them (\"actually 3:30\", \"make it the clinic on Sathorn\", \"drop the reminder\"). Updates that same pending proposal in place and re-asks for approval. Never creates a second proposal and never touches the calendar. Use this instead of stage_calendar_change whenever a proposal is already on the table.",
+      parameters: {
+        type: "object",
+        properties: {
+          changes: {
+            type: "array",
+            description: "The full set of fields that would change after the adjustment, not only the newly mentioned one.",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] },
+                before: { type: "string", description: "Current value in plain words, or omit if not set." },
+                after: { type: "string", description: "New value. ISO timestamp for `time`. Omit for a removal or cancellation." },
+              },
+              required: ["field"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["changes"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "add_commitment",
       description: "Record a commitment the user made.",
       parameters: {
