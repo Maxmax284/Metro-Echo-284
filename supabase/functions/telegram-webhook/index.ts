@@ -37,6 +37,7 @@ import {
   settleCalendarProposal,
 } from "../_shared/calendarSettle.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
+import { normalizeCalendarChanges } from "../_shared/calendarChangeNormalize.ts";
 import {
   answerAfterEvent,
   answerCalendarQuestion,
@@ -124,6 +125,7 @@ import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
+  calendarStrongConfirmationButtons,
   fileUnderButton,
   keyboard,
   markDoneButton,
@@ -483,15 +485,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   if (name === "refine_calendar_change") {
     /* One pending proposal, adjusted. The version moves up so the buttons the
        user already saw can no longer approve something they never read. */
-    const changes: CalendarFieldChange[] = (Array.isArray(args?.changes) ? args.changes : []).map((c: any) => {
-      const field = normalizeCalendarChangeField(c?.field);
-      return {
-        field,
-        label: calendarFieldLabel(field),
-        before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
-        after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
-      };
-    });
+    const changes: CalendarFieldChange[] = normalizeCalendarChanges(args?.changes, defaults);
     if (!changes.length) return { reply: "Tell me what should be different and I'll show it again.", detectedType: "calendar change", routedTo: null, readOnly: true };
 
     const { data: pending } = await sb
@@ -576,15 +570,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       }
     }
 
-    const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : []).map((c: any) => {
-      const field = normalizeCalendarChangeField(c?.field);
-      return {
-        field,
-        label: calendarFieldLabel(field),
-        before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
-        after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
-      };
-    });
+    const changes: CalendarFieldChange[] = normalizeCalendarChanges(args.changes, defaults);
     if (!changes.length) {
       return { reply: "Tell me what should be different and I'll show you before you decide.", detectedType: "calendar change", routedTo: null, readOnly: true };
     }
@@ -638,16 +624,11 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     const ask = risk === "high"
       ? "This one reaches other people. Approve it? Yes / No."
       : "Approve this change? Yes / No.";
-    /* The app link is an escape hatch for depth, not the way to approve. It only
-       shows when there is genuinely more to look at than fits here. */
-    const deep = calendarProposalNeedsDepth(proposal);
     return {
       reply: `${proposalSummary(proposal)}\n\n${ask}`,
       detectedType: "calendar change",
       routedTo: "actions",
-      markup: staged?.id
-        ? keyboard(calendarApprovalButtons(staged.id, proposal.version), ...(deep ? [[openButton("actions")]] : []))
-        : undefined,
+      markup: staged?.id ? keyboard(calendarApprovalButtons(staged.id, proposal.version)) : undefined,
       calendarActionId: (staged?.id as string | undefined) ?? null,
     };
   }
@@ -1240,18 +1221,27 @@ Deno.serve(async (req) => {
          proposal that was shown — version has to match, so a refinement
          retires the old buttons. It never executes: while the calendar is a
          read-only feed, an approval holds the change and says so. */
-      if (action === "calyes" || action === "calno") {
+      if (action === "calyes" || action === "calno" || action === "calconfirm") {
         const version = Number(parts[2] ?? "0");
         /* Same settle path as a typed yes and as an in-app approval: one
            transition, one receipt, one write. */
         const out = await settleCalendarProposal(admin, cbLink.user_id, {
           actionId: commitmentId,
           version,
-          approve: action === "calyes",
+          approve: action !== "calno",
           source: "telegram_callback",
+          strongConfirm: action === "calconfirm",
         });
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
-        await dropButtons();
+        if (out.status === "needs_confirmation") {
+          await tg("editMessageReplyMarkup", {
+            chat_id: cbChatId,
+            message_id: cb.message.message_id,
+            reply_markup: keyboard(calendarStrongConfirmationButtons(commitmentId, version)),
+          });
+        } else {
+          await dropButtons();
+        }
         if (out.actionId) {
           await logTgMessage(admin, {
             user_id: cbLink.user_id, organization_id: null, chat_id: cbChatId,

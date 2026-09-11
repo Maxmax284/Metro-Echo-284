@@ -21,7 +21,7 @@ export { readsAsApproval, readsAsRejection } from "./calendarSettleWords.ts";
 
 
 export type SettleResult = {
-  status: "approved" | "cancelled" | "executed" | "stale" | "not_found" | "already";
+  status: "needs_confirmation" | "approved" | "cancelled" | "executed" | "stale" | "not_found" | "already";
   text: string;
   actionId: string | null;
 };
@@ -39,7 +39,7 @@ export async function pendingCalendarAction(admin: SupabaseClient, userId: strin
 export async function settleCalendarProposal(
   admin: SupabaseClient,
   userId: string,
-  opts: { actionId: string; version?: number | null; approve: boolean; source: string },
+  opts: { actionId: string; version?: number | null; approve: boolean; source: string; strongConfirm?: boolean },
 ): Promise<SettleResult> {
   const { data: act } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title")
@@ -55,6 +55,14 @@ export async function settleCalendarProposal(
     return {
       status: "already",
       text: act.status === "cancelled" ? "Already dropped." : "Already decided.",
+      actionId: act.id,
+    };
+  }
+
+  if (opts.approve && act.risk === "high" && !opts.strongConfirm) {
+    return {
+      status: "needs_confirmation",
+      text: "This reaches other people. Confirm write to Google?",
       actionId: act.id,
     };
   }
@@ -88,7 +96,7 @@ export async function settleCalendarProposal(
   let text = approvalOutcomeLine(liveWriteState);
   let status: SettleResult["status"] = "approved";
 
-  if (liveWriteState === "connected" && telegramMayAutoExecute({ ...proposal, write_state: "connected" })) {
+  if (liveWriteState === "connected" && (opts.strongConfirm || telegramMayAutoExecute({ ...proposal, write_state: "connected" }))) {
     try {
       const result = await executeCalendarProposal(admin, userId, {
         id: act.id, title: act.title, payload: proposal,
