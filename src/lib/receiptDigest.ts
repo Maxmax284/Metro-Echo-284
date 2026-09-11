@@ -42,7 +42,9 @@ export type ReceiptLine = {
 
 const FAILED = /(fail|error|reject|retried|refused)/;
 const HELD = /(held|held_back|suppress|blocked|skipped|deferred|withheld)/;
-const ECHO_DID = /(executed|sent|synced|generated|composed|routed|autolink|linked|ingested)/;
+// Only work Echo actually carried out. Filing, linking and inbound arrivals are
+// not "Echo did it" — they belong to the outside-change line.
+const ECHO_DID = /(executed|sent|generated|composed)/;
 const OUTSIDE = /(calendar|telegram|inbound|external|feed|webhook)/;
 
 function newest<T extends { created_at: string }>(rows: T[]): T | null {
