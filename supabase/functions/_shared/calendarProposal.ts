@@ -26,6 +26,16 @@ const FIELD_LABELS: Record<string, string> = {
   description: "Notes",
   reminder: "Reminder",
   existence: "Event",
+  attendee: "Guest",
+};
+
+/** Model wording varies; the field the proposal carries does not. */
+const FIELD_ALIASES: Record<string, string> = {
+  attendees: "attendee",
+  guest: "attendee",
+  guests: "attendee",
+  invite: "attendee",
+  invitee: "attendee",
 };
 
 /** Human label for a change field, used identically on every surface. */
@@ -34,7 +44,8 @@ export function calendarFieldLabel(field: unknown): string {
 }
 
 export function normalizeCalendarChangeField(field: unknown): CalendarChangeField {
-  const raw = String(field ?? "").trim().toLowerCase();
+  let raw = String(field ?? "").trim().toLowerCase();
+  raw = FIELD_ALIASES[raw] ?? raw;
   return (raw in FIELD_LABELS ? raw : "description") as CalendarChangeField;
 }
 
@@ -44,7 +55,8 @@ export type CalendarChangeField =
   | "location"
   | "description"
   | "reminder"
-  | "existence";
+  | "existence"
+  | "attendee";
 
 export type CalendarExecuteMode = "create" | "update" | "delete";
 
