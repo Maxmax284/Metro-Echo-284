@@ -37,7 +37,7 @@ export function WorkBodyLine() {
         <span className="text-[11px] leading-snug text-muted-foreground">{body.because}</span>
       ) : null}
       <Link
-        to="/watch"
+        to="/how/trends"
         className={cn(
           "ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40",
           MOTION_FOCUS,
