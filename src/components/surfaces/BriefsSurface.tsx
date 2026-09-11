@@ -1,51 +1,50 @@
 import { useState } from "react";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus } from "lucide-react";
-import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
+import { FileText, FolderKanban } from "lucide-react";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
-import { DeskIntro } from "@/components/work/DeskIntro";
 
 /**
- * BriefsSurface — first-class home for briefs & exports.
- * Thin wrapper around the existing composer + exports list.
+ * BriefsSurface — no longer a room of its own.
+ *
+ * A brief is something a project puts out, so composing one lives on the
+ * project page next to the work it summarises. This surface stays reachable by
+ * old links and receipt deep links: it says where the door is now and lists
+ * everything already exported, with receipts.
  */
-export function BriefsSurface() {
-  const [composerOpen, setComposerOpen] = useState(false);
-  /* Teaching stands down once a real brief exists. */
-  const [briefCount, setBriefCount] = useState(0);
+export function BriefsSurface({ onNavigate }: { onNavigate?: (surface: "projects") => void } = {}) {
+  const [count, setCount] = useState(0);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8">
-      <header className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <h1 className="text-lg font-semibold">Briefs</h1>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Turn what's in Metro Echo into a readable document — PDF, operator brief, audio script. Past exports stay here with receipts.
-          </p>
+      <header className="mb-5">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          <h1 className="text-lg font-semibold">What projects put out</h1>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={() => setComposerOpen(true)}>
-          <Plus className="h-4 w-4" /> Create brief
-        </Button>
+        <p className="mt-1 text-sm text-muted-foreground">
+          You make one of these on the project itself — open a project and use “What this project
+          puts out.” Everything already exported is listed here, with its receipt.
+        </p>
       </header>
 
-      <DeskIntro
-        deskKey="briefs"
-        populated={briefCount > 0}
-        onDo={(label) => { if (label === "Compose a brief") setComposerOpen(true); }}
-        className="mb-3"
-      />
+      <Button
+        size="sm"
+        variant="outline"
+        className="mb-4 gap-1.5"
+        onClick={() => (onNavigate ? onNavigate("projects") : undefined)}
+      >
+        <FolderKanban className="h-4 w-4" /> Open projects
+      </Button>
 
-      <BriefExportsList onLoaded={setBriefCount} />
+      <BriefExportsList onLoaded={setCount} />
 
-      <BriefComposerSheet
-        open={composerOpen}
-        onOpenChange={setComposerOpen}
-        defaultScope="system"
-      />
+      {count === 0 ? (
+        <p className="mt-3 text-[11.5px] leading-snug text-muted-foreground">
+          Nothing's been put out yet. Open a project, summarise it, and the PDF or Word file lands
+          here once you export it yourself.
+        </p>
+      ) : null}
 
       <SurfaceAftermath surface="briefs" />
     </div>

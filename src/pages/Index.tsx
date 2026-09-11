@@ -291,7 +291,7 @@ function IndexInner() {
 
             {surface === "inbox" && <InboxSurface />}
             {surface === "projects" && <ProjectsSurface />}
-            {surface === "briefs" && <BriefsSurface />}
+            {surface === "briefs" && <BriefsSurface onNavigate={setSurface as never} />}
             {surface === "receipts" && <AuditSurface focusActionId={focusReceiptActionId} />}
             {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
             {surface === "memory" && <MemorySurface />}

@@ -328,7 +328,6 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <Desk deskKey="sherlock" label="What Echo noticed" Icon={Search} onOpen={() => onNavigate("sherlock")} />
             <Desk deskKey="awareness" label="Place and context" Icon={Compass} onOpen={() => onNavigate("awareness")} />
             <Desk deskKey="memory" label="Find something" Icon={Notebook} onOpen={() => onNavigate("memory")} />
-            <Desk deskKey="briefs" label="Briefs" Icon={FileText} onOpen={() => onNavigate("briefs")} />
           </div>
         </CollapsibleSection>
 

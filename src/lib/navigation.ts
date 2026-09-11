@@ -57,11 +57,14 @@ export const SURFACE_PARENT: Record<SurfaceId, RoomKey> = {
  * `command` (Cockpit) is deliberately absent: it reformats what Today and the
  * other desks already show, so it stays reachable by deep link and legacy URL
  * but is no longer offered as a place to go.
+ *
+ * `briefs` is absent for the same reason: a brief is something a project puts
+ * out, not a room of its own. Composing and reading exports lives on the
+ * project; the surface stays deep-linkable for old links and receipts.
  */
 export const ADVANCED_SURFACES: SurfaceId[] = [
   "projects",
   "inbox",
-  "briefs",
   "memory",
   "commitments",
   "schedule",

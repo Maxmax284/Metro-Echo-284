@@ -218,7 +218,7 @@ export const DESK_TILE_HINT: Record<DeskKey, string> = {
   inbox: "Unsorted arrivals",
   commitments: "Promises with dates",
   actions: "Waiting on your approval",
-  briefs: "Summaries you can send",
+  briefs: "What a project puts out",
   documents: "Contracts and drafts",
   memory: "Search everything",
   schedule: "Your day in order",
