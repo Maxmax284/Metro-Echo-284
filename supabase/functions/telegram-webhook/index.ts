@@ -412,12 +412,12 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   if (name === "cancel_reminder") {
     const { data: reminders } = await sb.from("commitments")
       .select("id, summary, due_at, created_at, organization_id")
-      .eq("user_id", userId).eq("status", "open").eq("metadata->>kind", "reminder")
+      .eq("user_id", userId).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
       .order("created_at", { ascending: false }).limit(12);
     const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), (reminders ?? []) as any[]);
     if (resolved.status === "none") return { reply: "I don't see an open private reminder matching that. Nothing changed.", detectedType: "reminder", routedTo: null, readOnly: true };
     if (resolved.status === "many") return { reply: `Which reminder? ${resolved.candidates.map((r) => r.summary).join(" · ")}. Nothing changed.`, detectedType: "reminder", routedTo: null, readOnly: true };
-    const { error } = await sb.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", userId).eq("status", "open");
+    const { error } = await sb.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", userId).in("status", ["open", "done"]);
     if (error) return { reply: "I couldn't remove that reminder. Nothing changed.", detectedType: "reminder", routedTo: null, readOnly: true };
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "commitment", entity_id: resolved.reminder.id, event: "commitment.cancelled", payload: { source: "telegram", reason: "user_requested_reminder_removal" } });
     return { reply: `Removed the private reminder: ${resolved.reminder.summary}. Your calendar wasn't touched.`, detectedType: "reminder", routedTo: "commitments", readOnly: true };

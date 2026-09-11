@@ -166,11 +166,14 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (reference) {
             const resolved = resolveEventReference(reference, events);
             if (resolved.status === "none") {
-              toast.warning({
-                title: "I couldn't find that one",
-                description: `Nothing on the calendar matches "${reference}". Nothing has changed.`,
-              });
-              return;
+              const creating = (Array.isArray(args.changes) ? args.changes : []).some((c: any) => c?.field === "existence" && c?.after != null && String(c.after).trim());
+              if (!creating) {
+                toast.warning({
+                  title: "I couldn't find that one",
+                  description: `Nothing on the calendar matches "${reference}". Nothing has changed.`,
+                });
+                return;
+              }
             }
             if (resolved.status === "many") {
               toast.warning({
@@ -286,7 +289,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         } else if (kind === "cancel_reminder") {
           const { data: reminders } = await supabase.from("commitments")
             .select("id, summary, due_at, created_at")
-            .eq("user_id", user.id).eq("status", "open").eq("metadata->>kind", "reminder")
+            .eq("user_id", user.id).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
             .order("created_at", { ascending: false }).limit(12);
           const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), reminders ?? []);
           if (resolved.status === "none") {
@@ -297,7 +300,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             toast.warning({ title: "Which reminder?", description: resolved.candidates.map((r) => r.summary).join(" · ") });
             return;
           }
-          const { error } = await supabase.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", user.id).eq("status", "open");
+          const { error } = await supabase.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", user.id).in("status", ["open", "done"]);
           if (error) throw error;
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "commitment", entity_id: resolved.reminder.id, event: "commitment.cancelled", payload: { source: "companion", reason: "user_requested_reminder_removal" } });
           toast.success({ title: "Reminder removed", description: "Your calendar wasn't touched." });
