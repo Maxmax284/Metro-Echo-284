@@ -558,16 +558,16 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       if (resolved.status === "none") {
         const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
         if (!creating) return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
-      }
-      if (resolved.status === "many") {
+      } else if (resolved.status === "many") {
         return {
           reply: `Which one? ${resolved.candidates.map((c) => c.title).join(" · ")}. Nothing has changed.`,
           detectedType: "calendar change",
           routedTo: null,
           readOnly: true,
         };
+      } else {
+        target = resolved.event;
       }
-      target = resolved.event;
     }
 
     const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : []).map((c: any) => {
@@ -917,7 +917,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (wantsReminderCancellation(text) || wantsRecentReminderOnCalendar(text)) {
     const { data: recentReminders } = await sb.from("commitments")
       .select("id, summary, due_at, created_at, metadata")
-      .eq("user_id", userId).eq("metadata->>kind", "reminder")
+      .eq("user_id", userId).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
       .order("created_at", { ascending: false }).limit(8);
     const recent = (recentReminders ?? []) as any[];
     if (wantsReminderCancellation(text)) {
