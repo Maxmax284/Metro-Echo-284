@@ -100,6 +100,7 @@ import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shar
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
+import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
@@ -163,6 +164,12 @@ You CAN propose a calendar change with stage_calendar_change and, when the user 
 ("actually 3:30"), update that same pending proposal with refine_calendar_change. The user
 decides right here with Yes / No. A yes approves only that one change, never future ones.
 Say plainly that nothing has changed anywhere until it actually has.
+A reminder you already saved is a private nudge in Metro Echo — it is NOT on their calendar.
+So never answer "I've already set that one" as a reason to do nothing. If the ask names people,
+a place, or a meeting, or the user asks for it on the calendar, stage_calendar_change (existence +
+time, plus a reminder change for the lead time) even when a reminder for it exists. An existing
+reminder never blocks putting the thing on the calendar.
+/queue shows them where every calendar edit stands and lets them retry a write.
 You still cannot export, send, book or pay anything.
 Pictures and files sent to this chat are seen and read here — see the media rules below. If asked
 whether you can look at a photo or a screenshot, say yes and ask for it. Never claim your tools
@@ -336,7 +343,7 @@ async function calendarBoard(
 
 
 
-async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null) {
+async function applyIntentCore(sb: SupabaseClient, userId: string, name: string, args: any, defaults: UserDefaults, orgId: string | null = null): Promise<any> {
   if (name === "capture_note") {
     const { data } = await sb.from("notes").insert({ user_id: userId, organization_id: orgId, title: args.title ?? null, body: args.body ?? "" }).select("id").single();
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "note", id: data.id } }).catch(() => {});
@@ -370,10 +377,26 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     const appointmentShaped = looksLikeAppointment(String(args.summary ?? ""));
-    const reminderReply = appointmentShaped
-      ? `${VANTA_PHRASES.reminderCreated(parsed.phrasing)}\n\n${VANTA_PHRASES.reminderNotOnCalendar()}`
-      : VANTA_PHRASES.reminderCreated(parsed.phrasing);
-    return { reply: reminderReply, detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
+    if (appointmentShaped) {
+      /* A nudge alone leaves the calendar untouched, and a nudge that already
+         exists must never become a reason to do nothing. Stage the calendar
+         existence too, so the user still gets a real Yes/No right here. */
+      const staged = await applyIntentCore(sb, userId, "stage_calendar_change", {
+        changes: [
+          { field: "existence", after: String(args.summary ?? "") },
+          { field: "time", after: parsed.due_at },
+          ...(args.when ? [{ field: "reminder", after: String(args.when) }] : []),
+        ],
+        source_kind: "you",
+        source_note: "your reminder in this chat",
+      }, defaults, orgId);
+      return {
+        ...staged,
+        reply: `${VANTA_PHRASES.reminderCreated(parsed.phrasing)}\n\n${staged.reply}`,
+        commitmentId: data?.id ?? null,
+      };
+    }
+    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
@@ -1039,6 +1062,68 @@ Deno.serve(async (req) => {
         if (res.ok) await dropButtons();
         return ok();
       }
+
+      /* "Retry write" from the /queue panel. Only touches edits the user already
+         approved — never re-approves anything, never widens risk. */
+      if (action === "calretry") {
+        const { data: act } = await admin.from("actions")
+          .select("id, status, payload, risk, organization_id, title")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!act || !isCalendarProposal(act.payload)) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
+          return ok();
+        }
+        if (act.status !== "approved") {
+          await tg("answerCallbackQuery", {
+            callback_query_id: cbId,
+            text: act.status === "executed" || act.status === "audited" ? "Already written." : "That one still needs your yes.",
+          });
+          return ok();
+        }
+        const proposal = act.payload;
+        const liveWriteState = await calendarWriteStateForUser(cbLink.user_id);
+        if (liveWriteState !== "connected") {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "No Google calendar connected yet." });
+          await tg("sendMessage", { chat_id: cbChatId, text: `${approvalOutcomeLine(liveWriteState)} Connect Google in Metro Echo settings and I'll write it.`, disable_web_page_preview: true });
+          return ok();
+        }
+        if (!telegramMayAutoExecute({ ...proposal, write_state: "connected" })) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "This one has to be confirmed in Metro Echo." });
+          return ok();
+        }
+        let outcomeText: string;
+        try {
+          const result = await executeCalendarProposal(admin, cbLink.user_id, {
+            id: act.id, title: act.title, payload: proposal,
+          });
+          await projectCalendarEvent(admin, cbLink.user_id, proposal, result);
+          await admin.from("actions").update({
+            status: "executed", result, executed_at: new Date().toISOString(),
+          }).eq("id", act.id).eq("user_id", cbLink.user_id).eq("status", "approved");
+          await admin.from("action_events").insert({
+            user_id: cbLink.user_id, action_id: act.id, from_status: "approved", to_status: "executed",
+            actor: "executor", reason: "telegram_retry_write",
+          });
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+            entity_type: "action", entity_id: act.id, event: "execute.success",
+            payload: { source: "telegram_retry", result },
+          });
+          outcomeText = "Done. Google confirmed it, and the receipt is saved.";
+        } catch (retryErr) {
+          const msg = retryErr instanceof Error ? retryErr.message : "execution failed";
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
+            entity_type: "action", entity_id: act.id, event: "execute.failed",
+            payload: { source: "telegram_retry", error: msg },
+          });
+          outcomeText = `Google still refused it: ${msg.slice(0, 120)}. It stays approved — try again or open Metro Echo.`;
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: outcomeText.slice(0, 190) });
+        await dropButtons();
+        await tg("sendMessage", { chat_id: cbChatId, text: outcomeText, disable_web_page_preview: true });
+        return ok();
+      }
       /* Yes / No on ONE staged calendar change. This approves the exact
          proposal that was shown — version has to match, so a refinement
          retires the old buttons. It never executes: while the calendar is a
@@ -1386,6 +1471,30 @@ Deno.serve(async (req) => {
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
+
+    /* /queue — where every calendar edit stands: waiting on a yes, approved but
+       not written to Google, already written. Reading changes nothing; Retry
+       write only pushes edits the user already approved. */
+    if (/^\/(queue|calendar|status)\b/.test(text)) {
+      const { data: rows } = await admin.from("actions")
+        .select("id, title, status, payload, result")
+        .eq("user_id", link.user_id)
+        .in("status", ["staged", "approved", "executed", "audited"])
+        .order("created_at", { ascending: false })
+        .limit(40);
+      const queue = buildCalendarQueue((rows ?? []) as any[]);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: queue.text,
+        reply_markup: keyboard(
+          ...queue.retryIds.slice(0, 3).map((id) => [{ text: "Retry write", callback_data: `calretry:${id}` }]),
+          [openButton("actions", { label: "Open it in Metro Echo" })],
+        ),
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+
 
 
 

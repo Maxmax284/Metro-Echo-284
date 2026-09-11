@@ -17,6 +17,7 @@ export type GuideSection = {
 export const TELEGRAM_COMMANDS: { cmd: string; does: string }[] = [
   { cmd: "/day", does: "Today's board — real calendar events, plus what you owe and anything waiting on your yes." },
   { cmd: "/week", does: "The week ahead, same board, empty days skipped." },
+  { cmd: "/queue", does: "Calendar edits and where each one stands: waiting on your yes, approved but not written to Google yet, already written. Retry the write from here." },
   { cmd: "/help", does: "This rundown." },
   { cmd: "/link", does: "Pair this chat to your account." },
   { cmd: "/unlink", does: "Cut this chat loose. Nothing else is deleted." },
