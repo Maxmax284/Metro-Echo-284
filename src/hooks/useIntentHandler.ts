@@ -223,7 +223,10 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await audit("actions", { action_id: actionId, as: "calendar_change" });
           toast.success({
             title: "Calendar change staged",
-            description: "Nothing has changed yet — approve it to hold it.",
+            description:
+              proposal.write_state === "connected"
+                ? "Nothing has changed yet — approve it and it goes to your calendar. Say it differently and I'll adjust this same one."
+                : "Nothing has changed yet — the calendar is read-only, so approval only holds it.",
           });
           onAck?.({ kind: "stage_action", id: actionId, summary: calendarProposalTitle(proposal) });
         } else if (kind === "add_commitment") {
