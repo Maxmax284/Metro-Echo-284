@@ -1164,6 +1164,18 @@ Deno.serve(async (req) => {
         return ok();
       }
 
+      /* "Stop it" — kill a staged or approved-but-unwritten edit right here.
+         Same actions row the app reads, same receipt trail. */
+      if (action === "calstop") {
+        const out = await stopCalendarProposal(admin, cbLink.user_id, {
+          actionId: commitmentId, source: "telegram_callback",
+        });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
+        if (out.status === "cancelled") await dropButtons();
+        await tg("sendMessage", { chat_id: cbChatId, text: out.text, disable_web_page_preview: true });
+        return ok();
+      }
+
       /* "Retry write" from the /queue panel. Only touches edits the user already
          approved — never re-approves anything, never widens risk. */
       if (action === "calretry") {
