@@ -89,6 +89,7 @@ const App = () => (
                               <Route path="/settings" element={<Settings />} />
                               <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
                               <Route path="/settings/telegram" element={<TelegramSetupPage />} />
+                              <Route path="/guide/telegram" element={<TelegramGuidePage />} />
                               <Route path="/settings/integrations" element={<IntegrationsSettings />} />
                               <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
                               <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
