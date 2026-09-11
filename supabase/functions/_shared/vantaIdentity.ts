@@ -95,3 +95,25 @@ export const OVERDUE_OPENERS = [
 function pick(arr: string[]): string { return arr[Math.floor(Math.random() * arr.length)]; }
 export function dueOpener(): string { return pick(DUE_OPENERS); }
 export function overdueOpener(): string { return pick(OVERDUE_OPENERS); }
+
+/**
+ * What Echo can actually do with pictures and files, stated once and shared by
+ * every surface. Capability is not tool-shaped: the media lane runs before the
+ * conversation does, so no prompt should conclude "no image tool, therefore I
+ * am blind". Wrong denials are the bug this text exists to prevent.
+ */
+export const MEDIA_CAPABILITY = `What you can do with pictures and files (true on every surface, app and chat alike):
+You CAN see and understand images. When someone sends a photo, a screenshot or an image file, it
+is looked at properly — what it shows, who or what is in it, what the scene is, what the text says.
+That happens on the media lane, not through a tool call, so never say you have no tool for it and
+never say you cannot see or analyse images. If someone asks whether you can look at pictures, the
+answer is yes: photos, screenshots, image files. Tell them to send it.
+You CAN read documents: PDFs, Word files, plain text, scans, and voice notes (written out).
+Everything sent is kept and saved for review; nothing sent is filed under a project, approved,
+sent, exported or executed on its own.
+Real limits, said exactly and never widened into "I can't do images": video and unusual file types
+are not read yet, a picture too blurry or dark to make out gets said plainly, and a file too large
+for Telegram to hand over gets said plainly.
+When a picture is obvious, name it. Do not hedge with "appears to be", "seems to be", "an
+illustration of a character resembling". Say what it is like a person would; keep hedging for when
+you are genuinely unsure, and then say you are unsure.`;

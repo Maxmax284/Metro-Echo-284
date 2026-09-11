@@ -89,6 +89,7 @@ async function logTgMessage(admin: any, row: Record<string, unknown>) {
 
 import {
   COMPANION_VOICE,
+  MEDIA_CAPABILITY,
   MEMORY_VOICE,
   AWARENESS_VOICE,
   VANTA_PHRASES,
@@ -104,7 +105,7 @@ import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
-import { intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
+import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
@@ -163,6 +164,9 @@ You CAN propose a calendar change with stage_calendar_change and, when the user 
 decides right here with Yes / No. A yes approves only that one change, never future ones.
 Say plainly that nothing has changed anywhere until it actually has.
 You still cannot export, send, book or pay anything.
+Pictures and files sent to this chat are seen and read here — see the media rules below. If asked
+whether you can look at a photo or a screenshot, say yes and ask for it. Never claim your tools
+don't let you see images.
 Never write a tidy assistant paragraph.`;
 
 
@@ -175,6 +179,8 @@ ${AWARENESS_VOICE}
 ${TELEGRAM_CHANNEL}
 
 You CAN create notes, reminders, commitments, and stage actions for approval.
+
+${MEDIA_CAPABILITY}
 
 ${ROUTING_RULES}
 
@@ -1321,7 +1327,7 @@ Deno.serve(async (req) => {
     if (!text && !page && msg.document) {
       await tg("sendMessage", {
         chat_id: chatId,
-        text: "I can't read that type yet. Photos, PDFs, Word documents and voice notes work — and a plain message always does.",
+        text: `That one I can't open yet — ${docName || "that file type"} isn't a type I read. Photos and screenshots I look at properly; PDFs, Word files, plain text and voice notes I read. A plain message always works.`,
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
@@ -1547,7 +1553,7 @@ Deno.serve(async (req) => {
               "",
               readSummaryLine(words, 900),
               "",
-              "Saved in your Inbox. Nothing filed under a project yet.",
+              "It's in your Inbox — nothing filed under a project yet.",
               nextStepsLine(intent.kind),
             ].join("\n")
           : `${intent.line}\n\n${page.isVoice ? "Couldn't make out the words just now" : "Couldn't read it just now"} — it's saved, and the daily sweep will try again.`;
@@ -1556,8 +1562,8 @@ Deno.serve(async (req) => {
           const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);
           const said = fitToBody(look.answer, "telegram");
           reply = said
-            ? `${said}\n\nSaved in your Inbox. Nothing filed under a project yet.`
-            : "I looked, and I couldn't make anything of it. It's saved in your Inbox.";
+            ? `${said}\n\n${afterLookLine(look.intent)}`
+            : "I looked and couldn't make anything of it — too unclear to call. It's in your Inbox if you want to try another shot.";
           await admin.from("audit_log").insert({
             user_id: link.user_id, organization_id: routeOrgId,
             entity_type: "ingested_file", entity_id: fileRec.id, event: "image.looked",

@@ -30,7 +30,7 @@ export const LOOK_INTENTS: LookIntent[] = [
     label: "What is this?",
     looking: "Echo is looking",
     prompt:
-      "Say plainly what this is, in one or two sentences. Name the thing first. Then add only details that are actually visible. If you cannot tell what it is, say so and say what you can see.",
+      "Say plainly what this is, in one or two sentences, like you're telling a friend. Name it outright if you recognise it — the character, the place, the object, the style — no hedging on something obvious. Then add only details that are actually visible. If you genuinely cannot tell what it is, say so and say what you can see.",
   },
   {
     id: "unusual",
@@ -75,6 +75,24 @@ export const LOOK_STATES = {
   nothing: "Echo could not make anything of it.",
 } as const;
 
+/**
+ * The one line said after a look: where it went, and one offer worth making.
+ * Saving is safe and already done; filing under a project is an offer, never a
+ * silent decision. Never more than one question.
+ */
+export function afterLookLine(intent: LookIntentId): string {
+  switch (intent) {
+    case "text":
+      return "It's in your Inbox. Want it saved as a note?";
+    case "amount":
+      return "It's in your Inbox. Want it filed under a project?";
+    case "promises":
+      return "It's in your Inbox. Want these tracked as promises?";
+    default:
+      return "It's in your Inbox. Want the text pulled out, or filed under a project?";
+  }
+}
+
 /** True when the answer is honest about not knowing. */
 export function isUncertain(answer: string): boolean {
   const a = answer.toLowerCase();
@@ -96,8 +114,12 @@ export function isLookable(rec: { mime_type: string | null; filename: string }):
   return ["png", "jpg", "jpeg", "webp", "heic", "heif", "gif", "avif"].includes(ext);
 }
 
-const VOICE =
-  "You are Echo looking at a picture a person deliberately showed you. Answer in plain English, short. Lead with the answer. Never describe your process, never mention models or providers, never guess past what the picture supports. If you are unsure, say so in the first sentence.";
+const VOICE = [
+  "You are Echo looking at a picture a person deliberately showed you. Answer in plain English, short, the way a sharp friend would — conversational, not a caption for a museum label.",
+  "Lead with the answer. When the thing is obvious, name it outright: \"Yep — that's Piccolo, done up like a Japanese woodblock print.\" Never pad an obvious recognition with \"appears to be\", \"seems to be\", \"an illustration of a character resembling\", \"this image depicts\", or \"the subject of this image\".",
+  "Keep hedging for real doubt. If you genuinely cannot tell, say that in the first sentence and say what you can see.",
+  "Never describe your process, never mention models or providers, never say you cannot see images — you are looking at one right now. Never guess past what the picture supports.",
+].join(" ");
 
 export class LookError extends Error {
   status: number;

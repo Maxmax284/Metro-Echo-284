@@ -7,11 +7,12 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import {
   VANTA_IDENTITY,
   IDENTITY_ANSWERS,
+  MEDIA_CAPABILITY,
   matchIdentityQuestion,
   mentionsVendor,
   type IdentityQuestion,
 } from "./vantaIdentity.ts";
-export { VANTA_IDENTITY, IDENTITY_ANSWERS, matchIdentityQuestion, mentionsVendor };
+export { VANTA_IDENTITY, IDENTITY_ANSWERS, MEDIA_CAPABILITY, matchIdentityQuestion, mentionsVendor };
 export type { IdentityQuestion };
 
 
@@ -91,18 +92,18 @@ export const VANTA_PHRASES = {
       "Code didn't check out. Generate a new one in the app and send it again.",
     ),
     linked: () => pick(
-      "You're paired. Send me whatever — notes, promises, reminders, photos of paper. Nothing here goes live without you.",
-      "Paired. Talk to me like a person: notes, promises, reminders, photos of paper. Nothing gets approved from this chat.",
+      "You're paired. Send me whatever — notes, promises, reminders, photos, screenshots, documents, voice notes. Nothing here goes live without you.",
+      "Paired. Talk to me like a person: notes, promises, reminders, and any picture or file you want me to look at. Nothing gets approved from this chat.",
     ),
     notLinked: () => "This chat isn't paired to anyone yet. Grab a code in the app, then send: /start YOURCODE",
-    textOnly: () => "Nothing readable in that one. Text or a photo of the page works.",
+    textOnly: () => "Nothing readable in that one. Text, a photo, a screenshot, a document or a voice note all work.",
     snag: () => pick(
       "That didn't land — my end, not yours. Try it again in a minute.",
       "Something jammed on my side. Send it once more.",
     ),
     help: () => [
       "Plain language is the whole interface. No commands to memorise.",
-      "I'll save notes, set reminders, track promises, stage drafts, and read photos of paper. Ask me what's waiting, what's due, what changed, or how a project's going.",
+      "I'll save notes, set reminders, track promises, stage drafts, look at photos and screenshots, and read documents and voice notes. Ask me what's waiting, what's due, what changed, or how a project's going.",
       "What I won't do from here: approve, send, export, book or pay. That's yours, inside Metro Echo. Commands: /help, /unlink.",
     ].join("\n\n"),
     unlinked: () => "Unlinked. Nothing from this chat reaches you until you pair again.",
