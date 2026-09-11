@@ -3,27 +3,36 @@
 // Reads the same guide the bot answers with, so the page and the chat can never
 // drift. Nothing here does anything: it explains, and it hands you a copy.
 import { useState } from "react";
-import { BookOpen, ChevronDown, Download } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Download, Lock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  TELEGRAM_APP_ONLY,
   TELEGRAM_COMMANDS,
+  TELEGRAM_FILE_RULES,
   TELEGRAM_GUIDE,
   TELEGRAM_PHRASEBOOK,
+  TELEGRAM_READ_ONLY,
   renderTelegramGuideMarkdown,
+  renderTelegramHelp,
 } from "../../../supabase/functions/_shared/telegram_guide";
+
+function save(text: string, name: string, mime: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function TelegramGuideCard({ botUsername }: { botUsername?: string | null }) {
   const [open, setOpen] = useState(true);
 
-  const download = () => {
-    const blob = new Blob([renderTelegramGuideMarkdown(botUsername)], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "echo-on-telegram.md";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const download = () =>
+    save(renderTelegramGuideMarkdown(botUsername), "echo-on-telegram.md", "text/markdown;charset=utf-8");
+  const downloadHelp = () =>
+    save(renderTelegramHelp(), "echo-on-telegram-help.txt", "text/plain;charset=utf-8");
 
   return (
     <section className="vanta-card p-3">
