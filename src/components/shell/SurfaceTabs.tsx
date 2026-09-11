@@ -11,7 +11,6 @@ import {
   CalendarClock,
   Inbox,
   FolderKanban,
-  FileText,
   Receipt,
   Sun,
   Briefcase,
