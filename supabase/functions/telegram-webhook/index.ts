@@ -376,10 +376,26 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     const appointmentShaped = looksLikeAppointment(String(args.summary ?? ""));
-    const reminderReply = appointmentShaped
-      ? `${VANTA_PHRASES.reminderCreated(parsed.phrasing)}\n\n${VANTA_PHRASES.reminderNotOnCalendar()}`
-      : VANTA_PHRASES.reminderCreated(parsed.phrasing);
-    return { reply: reminderReply, detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
+    if (appointmentShaped) {
+      /* A nudge alone leaves the calendar untouched, and a nudge that already
+         exists must never become a reason to do nothing. Stage the calendar
+         existence too, so the user still gets a real Yes/No right here. */
+      const staged = await applyIntentCore(sb, userId, "stage_calendar_change", {
+        changes: [
+          { field: "existence", after: String(args.summary ?? "") },
+          { field: "time", after: parsed.due_at },
+          ...(args.when ? [{ field: "reminder", after: String(args.when) }] : []),
+        ],
+        source_kind: "you",
+        source_note: "your reminder in this chat",
+      }, defaults, orgId);
+      return {
+        ...staged,
+        reply: `${VANTA_PHRASES.reminderCreated(parsed.phrasing)}\n\n${staged.reply}`,
+        commitmentId: data?.id ?? null,
+      };
+    }
+    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
