@@ -1008,7 +1008,10 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         if ((res as any).readOnly) readOnly = true;
         linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
         commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
-        toolMarkup = ((res as any).markup as TgReplyMarkup | undefined) ?? toolMarkup;
+        /* A staged calendar change owns the buttons. A later tool (a reminder,
+           say) must not replace the Yes/No the person is looking at. */
+        const nextMarkup = (res as any).markup as TgReplyMarkup | undefined;
+        if (!calendarActionId || (res as any).calendarActionId) toolMarkup = nextMarkup ?? toolMarkup;
         calendarActionId = ((res as any).calendarActionId as string | null | undefined) ?? calendarActionId;
       }
     } catch { /* ignore */ }
