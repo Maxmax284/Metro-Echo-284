@@ -1242,106 +1242,27 @@ Deno.serve(async (req) => {
          read-only feed, an approval holds the change and says so. */
       if (action === "calyes" || action === "calno") {
         const version = Number(parts[2] ?? "0");
-        const { data: act } = await admin.from("actions")
-          .select("id, status, payload, risk, organization_id, title")
-          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
-        if (!act || !isCalendarProposal(act.payload)) {
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Not found." });
-          await dropButtons();
-          return ok();
-        }
-        const proposal = act.payload;
-        if (proposal.version !== version) {
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That changed since I asked — use the newest message." });
-          await dropButtons();
-          return ok();
-        }
-        if (act.status !== "staged") {
-          await tg("answerCallbackQuery", {
-            callback_query_id: cbId,
-            text: act.status === "cancelled" ? "Already dropped." : "Already decided.",
-          });
-          await dropButtons();
-          return ok();
-        }
-        const to = action === "calyes" ? "approved" : "cancelled";
-        const patch: Record<string, unknown> = { status: to };
-        if (to === "approved" && act.risk === "high") patch.risk_acknowledged_at = new Date().toISOString();
-        const { error: transErr } = await admin.from("actions").update(patch).eq("id", act.id).eq("user_id", cbLink.user_id).eq("status", "staged");
-        if (transErr) {
-          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Couldn't save that. Open Metro Echo." });
-          return ok();
-        }
-        await admin.from("action_events").insert({
-          user_id: cbLink.user_id, action_id: act.id, from_status: "staged", to_status: to,
-          actor: "user", reason: `telegram ${action === "calyes" ? "yes" : "no"} (v${version})`,
+        /* Same settle path as a typed yes and as an in-app approval: one
+           transition, one receipt, one write. */
+        const out = await settleCalendarProposal(admin, cbLink.user_id, {
+          actionId: commitmentId,
+          version,
+          approve: action === "calyes",
+          source: "telegram_callback",
         });
-        await admin.from("audit_log").insert({
-          user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
-          entity_type: "action", entity_id: act.id, event: `transition:staged->${to}`,
-          payload: {
-            source: "telegram_callback", as: "calendar_change", version,
-            write_state: proposal.write_state, title: act.title ?? null,
-          },
-        });
-
-        // The staged snapshot can be stale — the person may have connected (or
-        // disconnected) their own Google account since the proposal was made.
-        const liveWriteState = to === "approved"
-          ? await calendarWriteStateForUser(cbLink.user_id)
-          : proposal.write_state;
-
-        let outcomeText = to === "approved"
-          ? approvalOutcomeLine(liveWriteState)
-          : "Dropped. Nothing changed.";
-
-        // For connected, non-high-risk calendar changes, Yes also executes now so
-        // Telegram is a first-class Echo surface, not a remote control.
-        if (
-          to === "approved" && liveWriteState === "connected" &&
-          telegramMayAutoExecute({ ...proposal, write_state: "connected" })
-        ) {
-          try {
-            const result = await executeCalendarProposal(admin, cbLink.user_id, {
-              id: act.id,
-              title: act.title,
-              payload: proposal,
-            });
-            await projectCalendarEvent(admin, cbLink.user_id, proposal, result);
-            await admin.from("actions").update({
-              status: "executed", result, executed_at: new Date().toISOString(),
-            }).eq("id", act.id).eq("user_id", cbLink.user_id);
-            await admin.from("action_events").insert({
-              user_id: cbLink.user_id, action_id: act.id, from_status: "approved", to_status: "executed",
-              actor: "executor", reason: "telegram_yes_auto_execute",
-            });
-            await admin.from("audit_log").insert({
-              user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
-              entity_type: "action", entity_id: act.id, event: "execute.success",
-              payload: { source: "telegram_callback", result },
-            });
-            outcomeText = "Done. Google confirmed it, and the receipt is saved.";
-          } catch (execErr) {
-            const msg = execErr instanceof Error ? execErr.message : "execution failed";
-            await admin.from("audit_log").insert({
-              user_id: cbLink.user_id, organization_id: act.organization_id ?? null,
-              entity_type: "action", entity_id: act.id, event: "execute.failed",
-              payload: { source: "telegram_callback", error: msg },
-            });
-            outcomeText = `Approved in Metro Echo, but Google couldn't write it: ${msg.slice(0, 120)}. Open Metro Echo to retry.`;
-          }
-        }
-
-        await tg("answerCallbackQuery", { callback_query_id: cbId, text: outcomeText.slice(0, 190) });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
         await dropButtons();
-        await logTgMessage(admin, {
-          user_id: cbLink.user_id, organization_id: act.organization_id ?? null, chat_id: cbChatId,
-          direction: "out", text: outcomeText, kind: "text", sent_by: "vanta",
-          entity_type: "action", entity_id: act.id,
-        });
-        await tg("sendMessage", { chat_id: cbChatId, text: outcomeText, disable_web_page_preview: true });
+        if (out.actionId) {
+          await logTgMessage(admin, {
+            user_id: cbLink.user_id, organization_id: null, chat_id: cbChatId,
+            direction: "out", text: out.text, kind: "text", sent_by: "vanta",
+            entity_type: "action", entity_id: out.actionId,
+          });
+        }
+        await tg("sendMessage", { chat_id: cbChatId, text: out.text, disable_web_page_preview: true });
         return ok();
       }
+
 
       // Verify the commitment belongs to this user.
       const { data: comm } = await admin.from("commitments")
