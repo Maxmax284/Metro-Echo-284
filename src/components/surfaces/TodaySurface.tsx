@@ -620,173 +620,214 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <>
           <TodayBodyPanel />
 
-          {/* Lane one: what is true as you read this. */}
-          {agenda.ongoing.length > 0 || !quiet ? (
-            <Lane label="Right now" hint="True as you read this">
-          <RunningNow ongoing={agenda.ongoing} />
-          {!quiet && (
-            <Section
-              title="Needs you"
-              hint={sectionNote("today.attention")}
-              sectionKey="today.attention"
-              icon={AlertTriangle}
-              defaultOpen={openSection === "attention"}
-              reading={<RollingNumber value={attention.length} />}
-              summary={
-                attention.length === 1
-                  ? "1 thing is waiting on your yes."
-                  : `${attention.length} things are waiting on your yes.`
-              }
-              action={
-                <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
-                  See all
-                </Button>
-              }
-            >
-              <div className="space-y-1.5">
-                {groups.map((g) => {
-                  const id = g.project ?? "__unassigned";
-                  const open = openGroup === id;
-                  const name = g.project ?? "Not in a project yet";
-                  return (
-                    <div key={id} className="vanta-inset">
-                      <button
-                        onClick={() => setOpenGroup(open ? null : id)}
-                        className={cn("flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left", MOTION_FOCUS)}
-                        aria-expanded={open}
-                      >
-                        <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
-                          {name} has <MachineText>{g.count}</MachineText>{" "}
-                          {g.count === 1 ? "item" : "items"} needing attention
-                        </span>
-                        <ChevronDown
-                          className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
-                        />
-                      </button>
-                      {open ? (
-                        <div className="space-y-1.5 border-t border-border/50 p-2">
-                          {g.items.map((it) => (
-                            <Row
-                              key={it.key}
-                              label={it.label}
-                              meta={it.meta}
-                              tone={it.level === "critical" ? "warn" : "default"}
-                              onClick={() => onNavigate(it.destination)}
+          {/* Shelf one: what just walked in and hasn't been sorted. */}
+          {!loadingBackground && !backgroundError && (arrivalLines.length > 0 || captureCount > 0) ? (
+            <Lane label="Just walked in" hint="New, nobody's sorted it yet">
+              <Section
+                title="Just walked in"
+                hint={sectionNote("today.fresh")}
+                sectionKey="today.fresh"
+                icon={Inbox}
+                reading={<RollingNumber value={captureCount} />}
+                defaultOpen={openSection === "fresh"}
+                summary={summaryLine("capture", captureCount, "not sorted yet", "Nothing new to sort.")}
+                action={
+                  <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
+                    Open inbox
+                  </Button>
+                }
+              >
+                {arrivalLines.length > 0 ? (
+                  <ul className="space-y-2">
+                    {arrivalLines.map((item) => {
+                      const r = readArrival(item.arrival);
+                      return (
+                        <li
+                          key={`${item.arrival.channel}:${item.arrival.id}`}
+                          className="rounded-lg border border-border/50 bg-muted/20 p-2.5"
+                        >
+                          <p className="text-[12px] font-medium leading-snug">{r.read}</p>
+                          <p className="mt-0.5 text-[11.5px] leading-snug text-foreground/85">{r.summary}</p>
+                          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Next: {r.nextStep}</p>
+                        </li>
+                      );
+                    })}
+                    {arrivals.held ? (
+                      <li className="text-[11px] leading-snug text-muted-foreground/80">{arrivals.held}</li>
+                    ) : null}
+                  </ul>
+                ) : (
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
+                    new {captureCount === 1 ? "thing" : "things"} came in today. File them into a project when you're ready.
+                  </p>
+                )}
+              </Section>
+            </Lane>
+          ) : null}
+
+          {/* Shelf two: what's already moving — running now, owed, and on the books. */}
+          {agenda.ongoing.length > 0 ||
+          !quiet ||
+          nextTotal > 0 ||
+          travelEvents.length > 0 ||
+          digest.commitments.length > 0 ? (
+            <Lane label="On the move" hint="Running now and up next">
+              <RunningNow ongoing={agenda.ongoing} />
+
+              {!quiet && (
+                <Section
+                  title="Waiting on your yes"
+                  hint={sectionNote("today.attention")}
+                  sectionKey="today.attention"
+                  icon={AlertTriangle}
+                  defaultOpen={openSection === "attention"}
+                  reading={<RollingNumber value={attention.length} />}
+                  summary={
+                    attention.length === 1
+                      ? "1 thing is waiting on your yes."
+                      : `${attention.length} things are waiting on your yes.`
+                  }
+                  action={
+                    <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
+                      See all
+                    </Button>
+                  }
+                >
+                  <div className="space-y-1.5">
+                    {groups.map((g) => {
+                      const id = g.project ?? "__unassigned";
+                      const open = openGroup === id;
+                      const name = g.project ?? "Not in a project yet";
+                      return (
+                        <div key={id} className="vanta-inset">
+                          <button
+                            onClick={() => setOpenGroup(open ? null : id)}
+                            className={cn("flex w-full min-h-[44px] items-center gap-2 px-3 py-2 text-left", MOTION_FOCUS)}
+                            aria-expanded={open}
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs text-foreground/90">
+                              {name} has <MachineText>{g.count}</MachineText>{" "}
+                              {g.count === 1 ? "item" : "items"} needing attention
+                            </span>
+                            <ChevronDown
+                              className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
                             />
-                          ))}
+                          </button>
+                          {open ? (
+                            <div className="space-y-1.5 border-t border-border/50 p-2">
+                              {g.items.map((it) => (
+                                <Row
+                                  key={it.key}
+                                  label={it.label}
+                                  meta={it.meta}
+                                  tone={it.level === "critical" ? "warn" : "default"}
+                                  onClick={() => onNavigate(it.destination)}
+                                />
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
+                      );
+                    })}
+                    <p className="pt-1 text-[11px] text-muted-foreground">
+                      Nothing runs until you approve it, and you get one more look before it does.
+                    </p>
+                  </div>
+                </Section>
+              )}
+
+              {nextTotal > 0 ? (
+                <Section
+                  title="Up next"
+                  hint={sectionNote("today.next")}
+                  sectionKey="today.next"
+                  icon={CalendarClock}
+                  defaultOpen={openSection === "next"}
+                  reading={<RollingNumber value={nextTotal} />}
+                  summary={summaryLine(
+                    "commitment",
+                    nextTotal,
+                    dueToday.length > 0 ? `${dueToday.length} due today` : nearestLabel,
+                  )}
+                  action={
+                    <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
+                      See all
+                    </Button>
+                  }
+                >
+                  {dueToday.length === 0 && upcoming.length === 0 ? (
+                    <EmptyState
+                      title="Nothing you promised has a date on it."
+                      hint="Tell Echo you'll do something by a day and it shows up here."
+                      flow={["You say it", "Echo dates it", "Commitments"]}
+                    />
+                  ) : (
+                    <div className="space-y-1.5">
+                      {dueToday.length > 0 ? (
+                        <button
+                          onClick={(e) => { markFlipOriginFromEvent(e); setDrill("today"); }}
+                          className={cn(
+                            "min-h-[44px] w-full rounded-[calc(var(--radius)-4px)] border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40",
+                            MOTION_FOCUS,
+                          )}
+                        >
+                          <MachineText>{dueToday.length}</MachineText>{" "}
+                          {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
+                        </button>
                       ) : null}
+                      {[...dueToday, ...upcoming].slice(0, 5).map((c) => (
+                        <Row
+                          key={c.id}
+                          label={c.summary}
+                          object="commitment"
+                          state={
+                            c.due_at
+                              ? isToday(new Date(c.due_at))
+                                ? "due today"
+                                : isTomorrow(new Date(c.due_at))
+                                  ? "due tomorrow"
+                                  : `due in ${formatDistanceToNow(new Date(c.due_at))}`
+                              : "no date yet"
+                          }
+                          meta={
+                            c.due_at
+                              ? isToday(new Date(c.due_at))
+                                ? "today"
+                                : isTomorrow(new Date(c.due_at))
+                                  ? "tomorrow"
+                                  : `in ${formatDistanceToNow(new Date(c.due_at))}`
+                              : "no date"
+                          }
+                          onClick={() => onNavigate("commitments")}
+                        />
+                      ))}
                     </div>
-                  );
-                })}
-                <p className="pt-1 text-[11px] text-muted-foreground">
-                  Nothing runs until you approve it, and you get one more look before it does.
-                </p>
-              </div>
-            </Section>
-          )}
-            </Lane>
-          ) : null}
-
-          {/* Lane two: what is coming. */}
-          {nextTotal > 0 && (
-          <Lane label="Coming up" hint="Promises and meetings ahead">
-          <Section
-            title="What's next"
-            hint={sectionNote("today.next")}
-            sectionKey="today.next"
-            icon={CalendarClock}
-            defaultOpen={openSection === "next"}
-            reading={<RollingNumber value={nextTotal} />}
-            summary={summaryLine(
-              "commitment",
-              nextTotal,
-              dueToday.length > 0 ? `${dueToday.length} due today` : nearestLabel,
-            )}
-            action={
-              <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("next"); }}>
-                See all
-              </Button>
-            }
-          >
-            {dueToday.length === 0 && upcoming.length === 0 ? (
-              <EmptyState
-                title="Nothing you promised has a date on it."
-                hint="Tell Echo you'll do something by a day and it shows up here."
-                flow={["You say it", "Echo dates it", "Commitments"]}
-              />
-            ) : (
-              <div className="space-y-1.5">
-                {dueToday.length > 0 ? (
-                  <button
-                    onClick={(e) => { markFlipOriginFromEvent(e); setDrill("today"); }}
-                    className={cn(
-                      "min-h-[44px] w-full rounded-[calc(var(--radius)-4px)] border border-dashed border-border/60 px-3 py-2 text-left text-[11px] text-muted-foreground transition-colors hover:border-primary/40",
-                      MOTION_FOCUS,
-                    )}
-                  >
-                    <MachineText>{dueToday.length}</MachineText>{" "}
-                    {dueToday.length === 1 ? "promise is" : "promises are"} due today — open the list
-                  </button>
-                ) : null}
-                {[...dueToday, ...upcoming].slice(0, 5).map((c) => (
-                  <Row
-                    key={c.id}
-                    label={c.summary}
-                    object="commitment"
-                    state={
-                      c.due_at
-                        ? isToday(new Date(c.due_at))
-                          ? "due today"
-                          : isTomorrow(new Date(c.due_at))
-                            ? "due tomorrow"
-                            : `due in ${formatDistanceToNow(new Date(c.due_at))}`
-                        : "no date yet"
-                    }
-                    meta={
-                      c.due_at
-                        ? isToday(new Date(c.due_at))
-                          ? "today"
-                          : isTomorrow(new Date(c.due_at))
-                            ? "tomorrow"
-                            : `in ${formatDistanceToNow(new Date(c.due_at))}`
-                        : "no date"
-                    }
-                    onClick={() => onNavigate("commitments")}
+                  )}
+                  {/* The calendar lives here too: what's next is promises and
+                      meetings, one shelf. */}
+                  <AgendaInNext
+                    events={agenda.events}
+                    loading={agenda.loading}
+                    onOpenWeek={() => onNavigate("schedule")}
                   />
-                ))}
-              </div>
-            )}
-            {/* The calendar lives here too: what's next is promises and
-                meetings, one shelf. */}
-            <AgendaInNext
-              events={agenda.events}
-              loading={agenda.loading}
-              onOpenWeek={() => onNavigate("schedule")}
-            />
-          </Section>
-          </Lane>
-          )}
+                </Section>
+              ) : null}
 
-          {/* Lane: the trip itself, read out of the calendar. Absent when there
-              is no travel on the books. */}
-          {travelEvents.length > 0 ? (
-            <Lane label="Travel" hint="Flights and stays on the books">
-              <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
+              {travelEvents.length > 0 ? (
+                <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
+              ) : null}
+
+              {digest.commitments.length > 0 ? (
+                <TasksLane
+                  tasks={digest.commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at }))}
+                  onChanged={() => digest.refresh()}
+                />
+              ) : null}
             </Lane>
           ) : null}
 
-          {/* Lane: promises as a checklist. Same records, same close path. */}
-          {digest.commitments.length > 0 ? (
-            <Lane label="Tasks" hint="Open promises, closable here">
-              <TasksLane
-                tasks={digest.commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at }))}
-                onChanged={() => digest.refresh()}
-              />
-            </Lane>
-          ) : null}
-
-          {/* Background wave: never blocks the two sections above. */}
+          {/* Shelf three: what Echo caught and what it wrote down. */}
           {backgroundError ? (
             <ErrorState
               title="Couldn't check what changed. Try again."
@@ -813,12 +854,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Button>
             </section>
           ) : (
-            /* Lane three: what already happened, and what landed. */
-            <Lane label="History" hint="Recorded, newest first">
-
-
+            <Lane label="Echo caught this" hint="Spotted, and written down">
               <Section
-                title="Security"
+                title="Locks and alerts"
                 hint={sectionNote("today.security")}
                 sectionKey="today.security"
                 icon={ShieldCheck}
@@ -864,7 +902,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Section>
 
               <Section
-                title="Changed"
+                title="What moved"
                 hint={sectionNote("today.changed")}
                 sectionKey="today.changed"
                 icon={Receipt}
@@ -895,8 +933,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                             onClick={() => onNavigate(where.surface as SurfaceKey)}
                             className={cn(
                               "flex w-full min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
-                              /* History settles rather than arriving: this is
-                                 the record, not the event. */
                               MOTION_STAMP,
                               MOTION_ROW,
                               MOTION_FOCUS,
@@ -924,57 +960,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   </ul>
                 )}
               </Section>
-
-              <Section
-                title="Just landed"
-                hint={sectionNote("today.fresh")}
-                sectionKey="today.fresh"
-                icon={Inbox}
-                reading={<RollingNumber value={captureCount} />}
-                defaultOpen={openSection === "fresh"}
-                summary={summaryLine("capture", captureCount, "not sorted yet", "Nothing new to sort.")}
-                action={
-                  <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
-                    Open inbox
-                  </Button>
-                }
-              >
-                {arrivalLines.length === 0 && captureCount === 0 ? (
-                  <EmptyState
-                    title="Nothing new came in."
-                    hint="Text Echo a message, photo or voice note and it shows up here for you to file."
-                    flow={["Telegram", "Email", "Voice", "Inbox"]}
-                  />
-                ) : arrivalLines.length > 0 ? (
-                  <ul className="space-y-2">
-                    {arrivalLines.map((item) => {
-                      const r = readArrival(item.arrival);
-                      return (
-                        <li
-                          key={`${item.arrival.channel}:${item.arrival.id}`}
-                          className="rounded-lg border border-border/50 bg-muted/20 p-2.5"
-                        >
-                          <p className="text-[12px] font-medium leading-snug">{r.read}</p>
-                          <p className="mt-0.5 text-[11.5px] leading-snug text-foreground/85">{r.summary}</p>
-                          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Next: {r.nextStep}</p>
-                        </li>
-                      );
-                    })}
-                    {arrivals.held ? (
-                      <li className="text-[11px] leading-snug text-muted-foreground/80">{arrivals.held}</li>
-                    ) : null}
-                  </ul>
-                ) : (
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
-                    new {captureCount === 1 ? "thing" : "things"} came in today. File them into a project when you're ready.
-                  </p>
-                )}
-              </Section>
             </Lane>
           )}
         </>
       )}
+
 
       {/* One line for everything that is simply empty right now. */}
       {!loadingCritical && !loadingBackground && emptyNames.length > 0 ? (
