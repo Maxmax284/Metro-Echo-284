@@ -42,8 +42,6 @@ import {
   AlertTriangle,
   CalendarClock,
   ChevronDown,
-  ChevronsDownUp,
-  ChevronsUpDown,
   Inbox,
   Receipt,
   ArrowRight,
@@ -67,7 +65,7 @@ import { SectionNote } from "@/components/ui/section-note";
 import { FreshnessLine } from "@/components/ui/freshness";
 import { CardMeta } from "@/components/ui/card-meta";
 import { summaryLine, type VantaObject } from "@/lib/vantaNouns";
-import { CollapsibleSection, setAllPanels } from "@/components/ui/collapsible-section";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
