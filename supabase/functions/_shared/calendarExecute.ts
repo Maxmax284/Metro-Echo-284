@@ -6,6 +6,7 @@
 //
 // Reads stay honest: if the connector isn't present, nothing claims a write.
 import {
+  attendeeAdds,
   calendarProposalRisk,
   isCalendarProposal,
   isCancellation,
@@ -85,12 +86,17 @@ export function buildCalendarRequestBody(
 ): { method: "POST" | "PATCH" | "DELETE"; path: string; body?: Record<string, unknown>; operation: CalendarExecuteMode } {
   const calendarId = encodeURIComponent("primary");
 
+  /* Google emails guests when told to — invites, updates and cancellations
+     reach the people on the event instead of silently changing their day. */
+  const guestAdds = attendeeAdds(proposal);
+  const notifyQuery = guestAdds.length > 0 || proposal.attendee_count > 0 ? "?sendUpdates=all" : "";
+
   // Cancellation path: no body, just delete the provider event.
   if (isCancellation(proposal)) {
     const eventUid = proposal.event?.uid ?? null;
     const eventId = providerEventIdFromUid(eventUid);
     if (!eventId) throw new Error("Cannot cancel: this event did not come from Google Calendar");
-    return { method: "DELETE", path: `calendars/${calendarId}/events/${encodeURIComponent(eventId)}`, operation: "delete" };
+    return { method: "DELETE", path: `calendars/${calendarId}/events/${encodeURIComponent(eventId)}${notifyQuery}`, operation: "delete" };
   }
 
   // Update path: patch only the changed fields on the existing event.
@@ -111,6 +117,15 @@ export function buildCalendarRequestBody(
       case "description":
         body.description = after ?? undefined;
         break;
+      case "attendee": {
+        /* Guests ride Google's attendee list so Google itself emails the
+           invite and tracks the yes/no. On an update, executeCalendarProposal
+           merges this list with whoever is already on the event first, so a
+           PATCH never silently drops an existing guest. */
+        const emails = guestAdds;
+        if (emails.length > 0) body.attendees = emails.map((email) => ({ email }));
+        break;
+      }
       case "reminder": {
         body.reminders = {
           useDefault: false,
@@ -148,7 +163,7 @@ export function buildCalendarRequestBody(
     body.summary = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title")?.after
       ?? proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "existence")?.after
       ?? "New event";
-    return { method: "POST", path: `calendars/${calendarId}/events`, body, operation: "create" };
+    return { method: "POST", path: `calendars/${calendarId}/events${notifyQuery}`, body, operation: "create" };
   }
 
   if (!existingEventId) {
@@ -157,7 +172,7 @@ export function buildCalendarRequestBody(
 
   return {
     method: "PATCH",
-    path: `calendars/${calendarId}/events/${encodeURIComponent(existingEventId)}`,
+    path: `calendars/${calendarId}/events/${encodeURIComponent(existingEventId)}${notifyQuery}`,
     body,
     operation: "update",
   };
