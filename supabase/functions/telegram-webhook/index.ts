@@ -1409,6 +1409,30 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
 
+    /* /queue — where every calendar edit stands: waiting on a yes, approved but
+       not written to Google, already written. Reading changes nothing; Retry
+       write only pushes edits the user already approved. */
+    if (/^\/(queue|calendar|status)\b/.test(text)) {
+      const { data: rows } = await admin.from("actions")
+        .select("id, title, status, payload, result")
+        .eq("user_id", link.user_id)
+        .in("status", ["staged", "approved", "executed", "audited"])
+        .order("created_at", { ascending: false })
+        .limit(40);
+      const queue = buildCalendarQueue((rows ?? []) as any[]);
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: queue.text,
+        reply_markup: keyboard(
+          ...queue.retryIds.slice(0, 3).map((id) => [{ text: "Retry write", callback_data: `calretry:${id}` }]),
+          [openButton("actions", { label: "Open it in Metro Echo" })],
+        ),
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+
+
 
 
     // Rate limit per linked user — same bucket pattern as vanta-converse
