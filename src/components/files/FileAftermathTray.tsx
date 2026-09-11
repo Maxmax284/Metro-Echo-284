@@ -71,7 +71,7 @@ const ACTION_META: Record<string, { label: string; icon: typeof MessageSquare; a
   send_to_canvas:     { label: "Add to canvas",    icon: LayoutGrid },
   mark_reviewed:      { label: "Mark reviewed",    icon: Check },
   archive:            { label: "Archive",          icon: Archive },
-  ignore:             { label: "Ignore",           icon: X },
+  ignore:             { label: "Not now",          icon: X },
 };
 
 // ---------- helpers --------------------------------------------------------
@@ -449,8 +449,8 @@ export function FileAftermathTray({
             type="button"
             onClick={() => { setDismissed(true); onDismiss(); }}
             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-            aria-label="Dismiss"
-            title="Dismiss"
+            aria-label="Hide"
+            title="Hide"
           >
             <X className="h-3.5 w-3.5" />
           </button>
