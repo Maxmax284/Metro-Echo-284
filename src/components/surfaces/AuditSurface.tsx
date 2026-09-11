@@ -213,6 +213,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
           </span>
           {newestAge && <span className="text-muted-foreground/80">last entry {newestAge}</span>}
         </div>
+        {showRecord && (
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
@@ -265,6 +266,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             </button>
           ))}
         </div>
+        )}
       </div>
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
