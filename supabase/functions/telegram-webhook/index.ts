@@ -369,7 +369,11 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data) sb.functions.invoke("embeddings-generate", { body: { mode: "single", kind: "commitment", id: data.id } }).catch(() => {});
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
-    return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
+    const appointmentShaped = looksLikeAppointment(String(args.summary ?? ""));
+    const reminderReply = appointmentShaped
+      ? `${VANTA_PHRASES.reminderCreated(parsed.phrasing)}\n\n${VANTA_PHRASES.reminderNotOnCalendar()}`
+      : VANTA_PHRASES.reminderCreated(parsed.phrasing);
+    return { reply: reminderReply, detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
