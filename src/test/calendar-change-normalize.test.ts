@@ -22,8 +22,7 @@ describe("calendar change normalization", () => {
       { field: "reminder", before: "an hour before" },
     ], defaults);
     expect(changes).toEqual([
-      { field: "reminder", label: "Reminder", before: null, after: "1440" },
-      { field: "reminder", label: "Reminder", before: null, after: "60" },
+      { field: "reminder", label: "Reminder", before: null, after: "1440,60" },
     ]);
   });
 });

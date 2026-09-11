@@ -13,7 +13,7 @@ import { parseReminderHint, type Defaults } from "./reminderParse.ts";
  * before the proposal is shown so approval can never bless an unwritable body.
  */
 export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): CalendarFieldChange[] {
-  return (Array.isArray(raw) ? raw : []).map((candidate: any) => {
+  const normalized = (Array.isArray(raw) ? raw : []).map((candidate: any) => {
     const field = normalizeCalendarChangeField(candidate?.field);
     let before = candidate?.before != null && String(candidate.before).trim()
       ? String(candidate.before).trim()
@@ -40,5 +40,17 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
     }
 
     return { field, label: calendarFieldLabel(field), before, after };
+  });
+
+  const reminders = normalized.filter((change) => change.field === "reminder");
+  if (reminders.length <= 1) return normalized;
+  const offsets = [...new Set(reminders.flatMap((change) => parseReminderOffsets(change.after)))];
+    .sort((a, b) => b - a);
+  const firstReminder = normalized.findIndex((change) => change.field === "reminder");
+  return normalized.filter((change) => change.field !== "reminder").toSpliced(firstReminder, 0, {
+    field: "reminder",
+    label: calendarFieldLabel("reminder"),
+    before: null,
+    after: offsets.join(","),
   });
 }

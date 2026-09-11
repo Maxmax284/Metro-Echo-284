@@ -947,6 +947,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       reply = out.text;
       readOnly = true;
       calendarActionId = pending.id;
+      if (out.status === "needs_confirmation") {
+        toolMarkup = keyboard(calendarStrongConfirmationButtons(pending.id, pending.payload.version));
+      }
     }
   }
 
