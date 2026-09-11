@@ -1327,7 +1327,7 @@ Deno.serve(async (req) => {
     if (!text && !page && msg.document) {
       await tg("sendMessage", {
         chat_id: chatId,
-        text: "I can't read that type yet. Photos, PDFs, Word documents and voice notes work — and a plain message always does.",
+        text: `That one I can't open yet — ${docName || "that file type"} isn't a type I read. Photos and screenshots I look at properly; PDFs, Word files, plain text and voice notes I read. A plain message always works.`,
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
@@ -1562,8 +1562,8 @@ Deno.serve(async (req) => {
           const look = await lookAtImage(new Blob([bytes]), page.mime, wantIntent, caption || null);
           const said = fitToBody(look.answer, "telegram");
           reply = said
-            ? `${said}\n\nSaved in your Inbox. Nothing filed under a project yet.`
-            : "I looked, and I couldn't make anything of it. It's saved in your Inbox.";
+            ? `${said}\n\n${afterLookLine(look.intent)}`
+            : "I looked and couldn't make anything of it — too unclear to call. It's in your Inbox if you want to try another shot.";
           await admin.from("audit_log").insert({
             user_id: link.user_id, organization_id: routeOrgId,
             entity_type: "ingested_file", entity_id: fileRec.id, event: "image.looked",

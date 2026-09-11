@@ -75,6 +75,24 @@ export const LOOK_STATES = {
   nothing: "Echo could not make anything of it.",
 } as const;
 
+/**
+ * The one line said after a look: where it went, and one offer worth making.
+ * Saving is safe and already done; filing under a project is an offer, never a
+ * silent decision. Never more than one question.
+ */
+export function afterLookLine(intent: LookIntentId): string {
+  switch (intent) {
+    case "text":
+      return "It's in your Inbox. Want it saved as a note?";
+    case "amount":
+      return "It's in your Inbox. Want it filed under a project?";
+    case "promises":
+      return "It's in your Inbox. Want these tracked as promises?";
+    default:
+      return "It's in your Inbox. Want the text pulled out, or filed under a project?";
+  }
+}
+
 /** True when the answer is honest about not knowing. */
 export function isUncertain(answer: string): boolean {
   const a = answer.toLowerCase();
