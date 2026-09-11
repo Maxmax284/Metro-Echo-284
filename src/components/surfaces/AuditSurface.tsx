@@ -273,6 +273,26 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
       </div>
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
+        <ReceiptsFront lines={digest} onDrill={drill} />
+        {quiet && (
+          <p className="px-1 text-[11.5px] text-muted-foreground">
+            Nothing to prove yet. Save, approve or run something and it lands here with a time on it.
+          </p>
+        )}
+        <div className="pt-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] text-muted-foreground"
+            onClick={() => setShowRecord((s) => !s)}
+            aria-expanded={showRecord}
+          >
+            {showRecord ? "Hide the record" : "Show the record"}
+          </Button>
+        </div>
+
+        {showRecord && (
+        <>
         <HeldBackPanel />
         <section>
           <SectionRail
@@ -402,6 +422,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             )}
           </div>
         </section>
+        </>
+        )}
       </div>
 
       <AuditDetailDrawer row={drawerRow} open={!!drawerRow} onOpenChange={(o) => !o && setDrawerRow(null)} />
