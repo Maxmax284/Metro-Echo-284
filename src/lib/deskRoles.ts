@@ -203,7 +203,7 @@ export const DESK_VERB: Record<DeskKey, string> = {
   inbox: "File what came in.",
   commitments: "Keep a promise.",
   actions: "Approve a step.",
-  briefs: "Put out something shareable.",
+  briefs: "Build something shareable.",
   documents: "Review and revise files.",
   schedule: "See what time is doing.",
   memory: "Find what Echo already knows.",
