@@ -93,7 +93,7 @@ export function receiptDigest(
       at: newest(echo)?.created_at ?? null,
       drill: "",
       sentence: echo.length
-        ? `Echo carried out ${echo.length} ${plural(echo.length, "thing", "things")} you'd already said yes to.`
+        ? `Echo carried out ${echo.length} ${plural(echo.length, "thing", "things")} for you.`
         : "Echo hasn't run anything.",
     },
     {
