@@ -214,6 +214,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
           {newestAge && <span className="text-muted-foreground/80">last entry {newestAge}</span>}
         </div>
         {showRecord && (
+        <>
+
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
