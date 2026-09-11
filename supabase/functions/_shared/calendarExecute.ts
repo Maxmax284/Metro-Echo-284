@@ -6,17 +6,11 @@
 //
 // Reads stay honest: if the connector isn't present, nothing claims a write.
 import {
-  attendeeAdds,
   calendarProposalRisk,
   isCalendarProposal,
-  isCancellation,
-  isCreation,
   normalizeCalendarChangeField,
-  parseReminderOffsets,
   providerEventIdFromUid,
-  type CalendarEventRef,
   type CalendarExecuteMode,
-  type CalendarFieldChange,
   type CalendarProposal,
 } from "./calendarProposal.ts";
 import type { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
