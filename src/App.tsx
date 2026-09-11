@@ -42,6 +42,7 @@ import WatchPage from "./pages/Watch.tsx";
 import GlancePage from "./pages/Glance.tsx";
 import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import TelegramSetupPage from "./pages/TelegramSetup.tsx";
+import TelegramGuidePage from "./pages/TelegramGuidePage.tsx";
 import LocationSetupPage from "./pages/LocationSetup.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
