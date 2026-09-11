@@ -34,6 +34,84 @@ export const TELEGRAM_PHRASEBOOK: string[] = [
   "show me my week",
 ];
 
+/**
+ * What actually goes through the chat, type by type. Written from the real
+ * intake path — photos and image files get looked at, PDFs/Word/plain text and
+ * voice notes get read, everything else is named and refused honestly.
+ * Telegram itself will not hand a bot a file over 20 MB, so that is the ceiling
+ * on every row.
+ */
+export type FileRule = {
+  what: string;
+  /** "yes" = read here, "no" = not read yet. */
+  works: "yes" | "no";
+  /** Plain-English detail: how it's handled, or why it isn't. */
+  detail: string;
+  limit: string;
+};
+
+export const TELEGRAM_FILE_RULES: FileRule[] = [
+  {
+    what: "Photos and screenshots (jpg, png, webp, heic)",
+    works: "yes",
+    detail: "Looked at properly — what's in the picture, not just the words on it. Add a question as the caption and it steers the look.",
+    limit: "Up to 20 MB. Too blurry or dark to make out gets said plainly.",
+  },
+  {
+    what: "PDF",
+    works: "yes",
+    detail: "Read as text and kept as a file. Scans off your phone count.",
+    limit: "Up to 20 MB. A pure-image PDF is read as a picture, not as text.",
+  },
+  {
+    what: "Word documents (.docx)",
+    works: "yes",
+    detail: "Read as text and kept as a file.",
+    limit: "Up to 20 MB. Older .doc files are not read.",
+  },
+  {
+    what: "Plain text and markdown (.txt, .md)",
+    works: "yes",
+    detail: "Read straight through.",
+    limit: "Up to 20 MB.",
+  },
+  {
+    what: "Voice notes and audio files",
+    works: "yes",
+    detail: "Written out, then treated like anything you typed.",
+    limit: "Up to 20 MB — roughly a long voice note, not an hour of recording.",
+  },
+  {
+    what: "Video and video notes",
+    works: "no",
+    detail: "Not read yet. It gets named and said out loud instead of guessed at.",
+    limit: "Send a screenshot of the moment that matters instead.",
+  },
+  {
+    what: "Spreadsheets, slides, zips, .doc, anything else",
+    works: "no",
+    detail: "Not read yet. The reply names the file and the limitation.",
+    limit: "Export a PDF or paste the part that matters.",
+  },
+];
+
+/** Things that can be read but never written from anywhere, chat included. */
+export const TELEGRAM_READ_ONLY: string[] = [
+  "Calendars added by a secret link (iCal) — read only, always. Echo says so instead of pretending it moved something.",
+  "Anything Echo reads for you — your day, your week, a file, a photo. Reading never stages a change.",
+  "Receipts and past events. They can be read back, never edited.",
+];
+
+/** Things that deliberately finish inside the app, not in a chat window. */
+export const TELEGRAM_APP_ONLY: string[] = [
+  "High-stakes or messy changes — several events at once, anything with money or travel riding on it.",
+  "Deleting things, and undoing something already executed.",
+  "Exports: PDFs, Word files, briefings.",
+  "Sending anything to another person, booking, or paying.",
+  "Connecting a calendar or an account, and every setting.",
+  "Filing at scale — linking a pile of captures to projects.",
+];
+
 export const TELEGRAM_GUIDE: GuideSection[] = [
   {
     title: "What this chat is",
