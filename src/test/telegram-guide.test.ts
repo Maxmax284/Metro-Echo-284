@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  TELEGRAM_APP_ONLY,
   TELEGRAM_COMMANDS,
+  TELEGRAM_FILE_RULES,
+  TELEGRAM_READ_ONLY,
   matchHelpQuestion,
   renderTelegramGuideMarkdown,
   renderTelegramHelp,
