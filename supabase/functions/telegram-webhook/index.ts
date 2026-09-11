@@ -36,7 +36,7 @@ import {
   settleCalendarProposal,
 } from "../_shared/calendarSettle.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
-import { normalizeCalendarChanges } from "../_shared/calendarChangeNormalize.ts";
+import { calendarCreationMissing, normalizeCalendarChanges } from "../_shared/calendarChangeNormalize.ts";
 import {
   answerAfterEvent,
   answerCalendarQuestion,
@@ -572,6 +572,12 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     const changes: CalendarFieldChange[] = normalizeCalendarChanges(args.changes, defaults);
     if (!changes.length) {
       return { reply: "Tell me what should be different and I'll show you before you decide.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    }
+
+    if (!target && createsCalendarEvent(changes)) {
+      const missing = calendarCreationMissing(changes);
+      if (missing === "title") return { reply: "What should I call the event? Nothing's staged yet.", detectedType: "calendar change", routedTo: null, readOnly: true };
+      if (missing === "time") return { reply: "What day and time should it be? Nothing's staged yet.", detectedType: "calendar change", routedTo: null, readOnly: true };
     }
 
     const when = changes.find((c) => c.field === "time" && c.after)?.after ?? null;

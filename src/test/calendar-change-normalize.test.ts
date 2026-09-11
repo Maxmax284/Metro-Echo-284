@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCalendarChanges } from "../../supabase/functions/_shared/calendarChangeNormalize.ts";
+import { calendarCreationMissing, normalizeCalendarChanges } from "../../supabase/functions/_shared/calendarChangeNormalize.ts";
 
 const defaults = {
   timezone: "America/New_York",
@@ -24,5 +24,16 @@ describe("calendar change normalization", () => {
     expect(changes).toEqual([
       { field: "reminder", label: "Reminder", before: null, after: "1440,60" },
     ]);
+  });
+
+  it("does not offer approval for an unnamed or unwritable new event", () => {
+    expect(calendarCreationMissing(normalizeCalendarChanges([
+      { field: "existence", after: "create" },
+      { field: "time", after: "Tuesday 6 PM" },
+    ], defaults))).toBe("title");
+    expect(calendarCreationMissing(normalizeCalendarChanges([
+      { field: "existence", after: "Meet Dani" },
+      { field: "time", after: "Tuesday 6 PM" },
+    ], defaults))).toBeNull();
   });
 });

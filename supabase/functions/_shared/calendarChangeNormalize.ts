@@ -56,3 +56,14 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
   });
   return withoutReminders;
 }
+
+/** A creation must identify both what it is and when it happens. */
+export function calendarCreationMissing(changes: CalendarFieldChange[]): "title" | "time" | null {
+  const existence = changes.find((change) => change.field === "existence")?.after?.trim() ?? "";
+  const title = changes.find((change) => change.field === "title")?.after?.trim() ?? "";
+  const meaningfulExistence = existence && !/^(create|add|new|event)$/i.test(existence);
+  if (!title && !meaningfulExistence) return "title";
+  const time = changes.find((change) => change.field === "time")?.after?.trim() ?? "";
+  if (!time || Number.isNaN(new Date(time).getTime())) return "time";
+  return null;
+}
