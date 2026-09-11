@@ -268,6 +268,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             </button>
           ))}
         </div>
+        </>
         )}
       </div>
 
