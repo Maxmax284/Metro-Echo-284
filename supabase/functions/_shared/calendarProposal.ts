@@ -195,7 +195,10 @@ export function calendarProposalRisk(
 
 /** Short title for the action row. */
 export function calendarProposalTitle(proposal: CalendarProposal): string {
-  const name = proposal.event?.title?.trim() || proposal.changes.find((c) => c.field === "title")?.after?.trim() || "an event";
+  const name = proposal.event?.title?.trim()
+    || proposal.changes.find((c) => c.field === "title")?.after?.trim()
+    || proposal.changes.find((c) => c.field === "existence")?.after?.trim()
+    || "an event";
   if (isCreation(proposal)) return `Add ${name} to your calendar`;
   if (isCancellation(proposal)) return `Cancel ${name}`;
   const fields = proposal.changes.map((c) => c.label.toLowerCase());

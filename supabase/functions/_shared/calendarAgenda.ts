@@ -54,7 +54,7 @@ export type AgendaDay = {
   heading: string;
   ongoing: string[];
   /** One line per event, in order. */
-  lines: { text: string; overlays: AgendaOverlay[] }[];
+  lines: { text: string; overlays: AgendaOverlay[]; uid: string | null; starts_at: string }[];
   /** Overlays that belong to the day but not to one event. */
   dayOverlays: AgendaOverlay[];
 };
@@ -153,6 +153,8 @@ export function buildAgenda(input: AgendaInput): Agenda {
     const lines = dayEvents.map((e) => ({
       text: eventLine(e, tz, offset, nowIso),
       overlays: attachPending(e, pending),
+      uid: e.uid,
+      starts_at: e.starts_at,
     }));
 
     const dayOverlays: AgendaOverlay[] = [];

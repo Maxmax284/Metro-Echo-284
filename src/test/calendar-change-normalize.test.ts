@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calendarCreationMissing, normalizeCalendarChanges } from "../../supabase/functions/_shared/calendarChangeNormalize.ts";
+import { parseReminderHint } from "../../supabase/functions/_shared/reminderParse.ts";
 
 const defaults = {
   timezone: "America/New_York",
@@ -35,5 +36,21 @@ describe("calendar change normalization", () => {
       { field: "existence", after: "Meet Dani" },
       { field: "time", after: "Tuesday 6 PM" },
     ], defaults))).toBeNull();
+  });
+
+  it("carries an existence name into the provider title", () => {
+    const changes = normalizeCalendarChanges([
+      { field: "existence", after: "Evening Meetup with Dani" },
+      { field: "time", after: "Tuesday 6 PM" },
+    ], defaults);
+    expect(changes.find((change) => change.field === "title")?.after).toBe("Evening Meetup with Dani");
+  });
+
+  it("understands an ordinal date this month instead of reading it as an hour", () => {
+    const parsed = parseReminderHint("the 15th of this month at 6 p.m.", defaults);
+    expect(parsed.status).toBe("ok");
+    if (parsed.status === "ok") {
+      expect(parsed.due_at).toMatch(/^\d{4}-\d{2}-15T22:00:00\.000Z$/);
+    }
   });
 });
