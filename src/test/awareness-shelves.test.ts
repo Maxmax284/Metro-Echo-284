@@ -134,17 +134,27 @@ describe("place in the situation read", () => {
     expect(read.placeNote).toBeNull();
   });
 
-  it("adds one clause and changes nothing else", () => {
+  it("does not add a place clause beside an unrelated arrival", () => {
     const withLine = {
       ...empty,
       arrived: [{ id: "a1", label: "A photo", at: iso(60_000), via: "telegram" }],
     };
     const without = readSituation(withLine);
     const withPlace = readSituation({ ...withLine, place: fresh });
-    expect(withPlace.placeNote).toBe("Read from Bangkok.");
+    expect(withPlace.placeNote).toBeNull();
     expect(without.placeNote).toBeNull();
     expect(withPlace.lines.map((l) => l.text)).toEqual(without.lines.map((l) => l.text));
     expect(withPlace.headline).toBe(without.headline);
+  });
+
+  it("adds place only when it changes a near-term meeting answer", () => {
+    const withMeeting = readSituation({
+      ...empty,
+      place: fresh,
+      meetings: [{ id: "m1", title: "Coffee", starts_at: iso(60 * 60 * 1000), location: "Bangkok" }],
+    });
+    expect(withMeeting.lines[0]?.kind).toBe("meeting_soon");
+    expect(withMeeting.placeNote).toBe("Read from Bangkok.");
   });
 });
 

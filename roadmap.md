@@ -42,8 +42,7 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 
 ## This pass (added)
 - [ ] Platform-wide verdict delivered (East Coast tone, no code change).
-- [ ] Dani invite: after the event lands on Google, add Dani as a guest so Google sends
-      the invite and tracks her yes/no — blocked on Dani's email address from Maxwell.
+- [x] Dani invite follow-up dropped from active scope at Maxwell's request.
 - [x] Guest invites on the shared calendar spine: attendee field, email validation,
       Google attendees + sendUpdates=all, existing-guest merge on updates, high-risk
       double-confirm (Google emails a real person). Telegram + Ask tool schemas updated.
@@ -78,6 +77,9 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       ADVANCED_SURFACES; project page section renamed "What this project puts out";
       `/?surface=briefs` still opens (old links, receipts) but reads as a list of what
       projects put out with one door back to Projects.
-- [ ] Next (deeper refactors): location shown only when it changes the answer;
-      route cleanup (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
+- [x] Today location relevance: a place no longer appears merely because Today has
+      unrelated lines or nearby content. It speaks only for a real move, active trip,
+      clock drift, or when place changes a near-term calendar answer.
+- [ ] Next (deeper refactors): route cleanup
+      (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
       Ask <-> widget continuity; Aware 384px prove-it; motion consolidation.

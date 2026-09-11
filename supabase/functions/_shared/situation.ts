@@ -564,12 +564,19 @@ export function readSituation(input: SituationInput): SituationRead {
     if (!hasAny && !had.has(src)) quietSources.push(src);
   }
 
+  /* Location gets a footnote only when it changed the answer: it helped place
+     a near-term meeting, or moved an elsewhere meeting out of the main read.
+     A fresh pin beside an unrelated promise, arrival, or finding says nothing. */
+  const placeChangedAnswer = speaks && (
+    top.some((line) => line.kind === "meeting_soon") || elsewhereMeetings.length > 0
+  );
+
   return {
     lines: top,
     headline: headlineFor(top),
     quietSources,
     unknownSources: unknown,
-    placeNote: speaks ? placeNoteFor(input.place!) : null,
+    placeNote: placeChangedAnswer ? placeNoteFor(input.place!) : null,
     elsewhereMeetings,
   };
 }
