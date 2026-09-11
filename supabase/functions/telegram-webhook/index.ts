@@ -30,7 +30,9 @@ import {
   telegramMayAutoExecute,
 } from "../_shared/calendarExecute.ts";
 import {
+  approvedUnwrittenCalendarAction,
   pendingCalendarAction,
+  stopCalendarProposal,
   readsAsApproval,
   readsAsRejection,
   settleCalendarProposal,
