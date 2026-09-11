@@ -66,7 +66,12 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       context, Memory -> Find something.
 - [x] Cockpit (`command`) removed from `ADVANCED_SURFACES` — still reachable by deep link
       and legacy `?surface=cockpit`, no longer offered as a place to go.
+- [x] Receipts front layer: `src/lib/receiptDigest.ts` (pure, 7 tests) + `ReceiptsFront.tsx`.
+      Receipts now opens with six human lines — what happened / what Echo did / what you
+      approved / what failed / what Echo held back / what changed outside Echo. Filters,
+      action lifecycle, held-back panel and the raw audit rows sit behind "Show the record";
+      a deep link from an action card opens the record directly. Lines drill into the record.
 - [ ] Next (deeper refactors): Today section count down to Current read / Needs you /
-      Coming up / Changed; Receipts front layer in six human lines; Briefs as project
-      outputs; location-only-when-it-changes-the-answer; route cleanup
+      Coming up / Changed; Briefs as project outputs;
+      location-only-when-it-changes-the-answer; route cleanup
       (/watch /motion /glance /wearables /wearable-loop /physical-loop /how).

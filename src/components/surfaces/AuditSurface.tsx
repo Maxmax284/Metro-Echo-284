@@ -22,6 +22,8 @@ import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { ReceiptUnfold, receiptFacts } from "@/components/audit/ReceiptUnfold";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
+import { ReceiptsFront } from "@/components/receipts/ReceiptsFront";
+import { isQuietRecord, receiptDigest, type ReceiptLine } from "@/lib/receiptDigest";
 
 type AuditRow = {
   id: string;
@@ -94,6 +96,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   /* Unfold in place: the receipt opens where it sits. One at a time, because
      evidence is read one item at a time. */
   const [openId, setOpenId] = useState<string | null>(null);
+  /* The room opens with six human lines. The raw record is one tap deeper. */
+  const [showRecord, setShowRecord] = useState(false);
 
   // Deep-link from an action card's "See in Receipts": narrow to that action.
   useEffect(() => {
@@ -168,6 +172,19 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
 
+  const digest = useMemo(() => receiptDigest(audit, events), [audit, events]);
+  const quiet = isQuietRecord(digest);
+
+  /* Deep-linked from an action card: the record is already the point. */
+  useEffect(() => { if (focusActionId) setShowRecord(true); }, [focusActionId]);
+
+  const drill = (line: ReceiptLine) => {
+    setFilter("");
+    setEventClass(line.key === "failed" ? "failed" : "");
+    setQuick(line.drill ?? "");
+    setShowRecord(true);
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Two-row header */}
@@ -196,6 +213,9 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
           </span>
           {newestAge && <span className="text-muted-foreground/80">last entry {newestAge}</span>}
         </div>
+        {showRecord && (
+        <>
+
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
@@ -248,9 +268,31 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             </button>
           ))}
         </div>
+        </>
+        )}
       </div>
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
+        <ReceiptsFront lines={digest} onDrill={drill} />
+        {quiet && (
+          <p className="px-1 text-[11.5px] text-muted-foreground">
+            Nothing to prove yet. Save, approve or run something and it lands here with a time on it.
+          </p>
+        )}
+        <div className="pt-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px] text-muted-foreground"
+            onClick={() => setShowRecord((s) => !s)}
+            aria-expanded={showRecord}
+          >
+            {showRecord ? "Hide the record" : "Show the record"}
+          </Button>
+        </div>
+
+        {showRecord && (
+        <>
         <HeldBackPanel />
         <section>
           <SectionRail
@@ -380,6 +422,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             )}
           </div>
         </section>
+        </>
+        )}
       </div>
 
       <AuditDetailDrawer row={drawerRow} open={!!drawerRow} onOpenChange={(o) => !o && setDrawerRow(null)} />
