@@ -4,7 +4,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // vanta-converse: streams a conversational response from Lovable AI Gateway,
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { COMPANION_VOICE } from "../_shared/vantaVoice.ts";
+import { COMPANION_VOICE, MEDIA_CAPABILITY } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
@@ -100,6 +100,8 @@ You help with capture, planning, awareness, and staging actions. You CAN create
 notes, set reminders, track commitments, stage actions for approval, run
 Sherlock investigations, query awareness, and read the user's schedule — all
 through your tools. If a supported tool fits the request, call it.
+
+${MEDIA_CAPABILITY}
 
 ${ROUTING_RULES}
 
