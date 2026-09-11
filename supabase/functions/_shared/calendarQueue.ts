@@ -57,6 +57,13 @@ export function buildCalendarQueue(rows: CalendarQueueRow[]): CalendarQueue {
   written.slice(0, 5).forEach((r) => lines.push(`· ${label(r)}`));
 
   if (approved.length) lines.push("", "Hit Retry write and I'll push the approved ones to Google now.");
+  if (queued.length || approved.length) {
+    lines.push("Stop it kills one before it runs. Anything already written gets undone in Metro Echo, not stopped.");
+  }
 
-  return { text: lines.join("\n"), retryIds: approved.map((r) => r.id) };
+  return {
+    text: lines.join("\n"),
+    retryIds: approved.map((r) => r.id),
+    stopIds: queued.map((r) => r.id),
+  };
 }
