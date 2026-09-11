@@ -476,24 +476,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             {destination}
           </Badge>
           <FreshnessLine at={digest.checkedAt} className="hidden sm:inline" />
-          <button
-            type="button"
-            aria-label="Expand every panel"
-            title="Expand all"
-            onClick={() => setAllPanels(true)}
-            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
-          >
-            <ChevronsUpDown className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            aria-label="Collapse every panel"
-            title="Collapse all"
-            onClick={() => setAllPanels(false)}
-            className={cn("shrink-0 rounded-[2px] p-1 text-muted-foreground/80 hover:text-foreground", MOTION_FOCUS)}
-          >
-            <ChevronsDownUp className="h-3.5 w-3.5" />
-          </button>
+          {/* No expand-all / collapse-all sweep. If a room needs a master
+              switch for its own panels, the room has too many panels. */}
           {/* The escape hatch: what is this room, answered from written copy. */}
           <ExplainThisButton room="today" className="mr-5" />
         </div>
@@ -509,7 +493,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         >
           {/* The lead line is Echo speaking, so it writes itself on — once per
               wording, never again on a refetch. */}
-          <TypeOnLine text={loadingCritical ? "Reading this space…" : headline} />
+          <TypeOnLine text={loadingCritical ? "One sec — checking your day." : headline} />
         </h1>
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
@@ -633,18 +617,18 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       ) : null}
 
       {loadingCritical ? (
-        <LoadingState rows={2} label="Pulling together your day" />
+        <LoadingState rows={2} label="Checking your day" />
       ) : (
         <>
           <TodayBodyPanel />
 
           {/* Lane one: what is true as you read this. */}
           {agenda.ongoing.length > 0 || !quiet ? (
-            <Lane label="Happening now" hint="True as of this minute">
+            <Lane label="Right now" hint="True as you read this">
           <RunningNow ongoing={agenda.ongoing} />
           {!quiet && (
             <Section
-              title="Needs attention"
+              title="Needs you"
               hint={sectionNote("today.attention")}
               sectionKey="today.attention"
               icon={AlertTriangle}
@@ -652,8 +636,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               reading={<RollingNumber value={attention.length} />}
               summary={
                 attention.length === 1
-                  ? "1 item is waiting on you."
-                  : `${attention.length} items are waiting on you.`
+                  ? "1 thing is waiting on your yes."
+                  : `${attention.length} things are waiting on your yes.`
               }
               action={
                 <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={(e) => { markFlipOriginFromEvent(e); setDrill("now"); }}>
@@ -708,7 +692,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
           {/* Lane two: what is coming. */}
           {nextTotal > 0 && (
-          <Lane label="Next up" hint="Promises and meetings ahead">
+          <Lane label="Coming up" hint="Promises and meetings ahead">
           <Section
             title="What's next"
             hint={sectionNote("today.next")}
@@ -729,8 +713,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           >
             {dueToday.length === 0 && upcoming.length === 0 ? (
               <EmptyState
-                title="No dated promises"
-                hint="When you tell Echo you'll do something by a date, it lands here."
+                title="Nothing you promised has a date on it."
+                hint="Tell Echo you'll do something by a day and it shows up here."
                 flow={["You say it", "Echo dates it", "Commitments"]}
               />
             ) : (
@@ -807,19 +791,19 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           {/* Background wave: never blocks the two sections above. */}
           {backgroundError ? (
             <ErrorState
-              title="Couldn't read recent activity"
+              title="Couldn't check what changed. Try again."
               error={backgroundError}
               doing="reading recent activity"
               onRetry={refresh}
             />
           ) : loadingBackground ? (
-            <LoadingState rows={1} label="Loading recent activity" />
+            <LoadingState rows={1} label="Checking what changed" />
           ) : secondaryQuiet ? (
             /* Quiet state: one calm line instead of three empty cards. */
             <section className="vanta-focus-card vanta-card flex items-center gap-2 border border-transparent px-4 py-3">
               <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" />
               <p className="min-w-0 flex-1 text-[12px] leading-snug text-muted-foreground">
-                Everything important is quiet. Nothing unusual, nothing new to sort.
+                It's quiet. Nothing odd, nothing new to sort.
               </p>
               <Button
                 size="sm"
@@ -882,7 +866,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Section>
 
               <Section
-                title="What changed"
+                title="Changed"
                 hint={sectionNote("today.changed")}
                 sectionKey="today.changed"
                 icon={Receipt}
@@ -897,8 +881,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               >
                 {changedRows.length === 0 ? (
                   <EmptyState
-                    title="Nothing recorded yet"
-                    hint="Every save, approval and run leaves a receipt here."
+                    title="Nothing's happened yet today."
+                    hint="Anything you save, approve or run shows up here after."
                     flow={["Change", "Receipt", "Receipts room"]}
                   />
                 ) : (
@@ -944,7 +928,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Section>
 
               <Section
-                title="Fresh in"
+                title="Just landed"
                 hint={sectionNote("today.fresh")}
                 sectionKey="today.fresh"
                 icon={Inbox}
@@ -959,8 +943,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               >
                 {arrivalLines.length === 0 && captureCount === 0 ? (
                   <EmptyState
-                    title="Nothing new"
-                    hint="Send Echo a message, photo or voice note on Telegram and it lands here, then you sort it into the work it belongs to."
+                    title="Nothing new came in."
+                    hint="Text Echo a message, photo or voice note and it shows up here for you to file."
                     flow={["Telegram", "Email", "Voice", "Inbox"]}
                   />
                 ) : arrivalLines.length > 0 ? (
@@ -985,7 +969,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 ) : (
                   <p className="text-xs leading-snug text-muted-foreground">
                     <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
-                    {captureCount === 1 ? "capture" : "captures"} in the last day. Sort them into a project when you're ready.
+                    new {captureCount === 1 ? "thing" : "things"} came in today. File them into a project when you're ready.
                   </p>
                 )}
               </Section>
