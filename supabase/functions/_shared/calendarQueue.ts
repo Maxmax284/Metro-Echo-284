@@ -20,6 +20,8 @@ export type CalendarQueue = {
   text: string;
   /** Approved rows that have not been written yet — the only retryable ones. */
   retryIds: string[];
+  /** Rows still waiting on a yes — stoppable without touching anything outside. */
+  stopIds: string[];
 };
 
 function label(row: CalendarQueueRow): string {
@@ -39,6 +41,7 @@ export function buildCalendarQueue(rows: CalendarQueueRow[]): CalendarQueue {
     return {
       text: "No calendar edits in flight. Ask me to move or add something and it lands here first, waiting on your yes.",
       retryIds: [],
+      stopIds: [],
     };
   }
 
@@ -54,6 +57,13 @@ export function buildCalendarQueue(rows: CalendarQueueRow[]): CalendarQueue {
   written.slice(0, 5).forEach((r) => lines.push(`· ${label(r)}`));
 
   if (approved.length) lines.push("", "Hit Retry write and I'll push the approved ones to Google now.");
+  if (queued.length || approved.length) {
+    lines.push("Stop it kills one before it runs. Anything already written gets undone in Metro Echo, not stopped.");
+  }
 
-  return { text: lines.join("\n"), retryIds: approved.map((r) => r.id) };
+  return {
+    text: lines.join("\n"),
+    retryIds: approved.map((r) => r.id),
+    stopIds: queued.map((r) => r.id),
+  };
 }

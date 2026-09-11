@@ -30,7 +30,9 @@ import {
   telegramMayAutoExecute,
 } from "../_shared/calendarExecute.ts";
 import {
+  approvedUnwrittenCalendarAction,
   pendingCalendarAction,
+  stopCalendarProposal,
   readsAsApproval,
   readsAsRejection,
   settleCalendarProposal,
@@ -955,6 +957,16 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       if (out.status === "needs_confirmation") {
         toolMarkup = keyboard(calendarStrongConfirmationButtons(pending.id, pending.payload.version));
       }
+    } else if (readsAsRejection(text)) {
+      /* Nothing waiting on a yes, but a yes already given hasn't landed —
+         "stop it" still has to mean stop. */
+      const approved = await approvedUnwrittenCalendarAction(sb, userId);
+      if (approved) {
+        const out = await stopCalendarProposal(sb, userId, { actionId: approved.id, source: "telegram_text" });
+        reply = out.text;
+        readOnly = true;
+        calendarActionId = approved.id;
+      }
     }
   }
 
@@ -1161,6 +1173,18 @@ Deno.serve(async (req) => {
           text: res.ok ? `Filed under ${res.title}.` : "Couldn't file that. Open Metro Echo.",
         });
         if (res.ok) await dropButtons();
+        return ok();
+      }
+
+      /* "Stop it" — kill a staged or approved-but-unwritten edit right here.
+         Same actions row the app reads, same receipt trail. */
+      if (action === "calstop") {
+        const out = await stopCalendarProposal(admin, cbLink.user_id, {
+          actionId: commitmentId, source: "telegram_callback",
+        });
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
+        if (out.status === "cancelled") await dropButtons();
+        await tg("sendMessage", { chat_id: cbChatId, text: out.text, disable_web_page_preview: true });
         return ok();
       }
 
@@ -1518,7 +1542,12 @@ Deno.serve(async (req) => {
         chat_id: chatId,
         text: queue.text,
         reply_markup: keyboard(
-          ...queue.retryIds.slice(0, 3).map((id) => [{ text: "Retry write", callback_data: `calretry:${id}` }]),
+          ...queue.retryIds.slice(0, 3).map((id) => [
+            { text: "Retry write", callback_data: `calretry:${id}` },
+            { text: "Stop it", callback_data: `calstop:${id}` },
+          ]),
+          /* Anything still waiting on a yes can be killed right here. */
+          ...queue.stopIds.slice(0, 3).map((id) => [{ text: "Stop it", callback_data: `calstop:${id}` }]),
           [openButton("actions", { label: "Open it in Metro Echo" })],
         ),
       });

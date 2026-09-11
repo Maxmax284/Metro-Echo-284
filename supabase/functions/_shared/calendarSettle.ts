@@ -129,3 +129,53 @@ export async function settleCalendarProposal(
 
   return { status, text, actionId: act.id };
 }
+
+/** The newest calendar change that said yes but hasn't landed in Google yet. */
+export async function approvedUnwrittenCalendarAction(admin: SupabaseClient, userId: string) {
+  const { data } = await admin.from("actions")
+    .select("id, status, payload, risk, organization_id, title, created_at")
+    .eq("user_id", userId).eq("status", "approved")
+    .order("created_at", { ascending: false }).limit(6);
+  const rows = ((data ?? []) as any[]).filter((r) => isCalendarProposal(r.payload));
+  return rows[0] ?? null;
+}
+
+/**
+ * Stop something before it runs — staged or approved-but-unwritten. Anything
+ * already written to Google is undone, not stopped, so this refuses it and says
+ * so instead of pretending.
+ */
+export async function stopCalendarProposal(
+  admin: SupabaseClient,
+  userId: string,
+  opts: { actionId: string; source: string },
+): Promise<SettleResult> {
+  const { data: act } = await admin.from("actions")
+    .select("id, status, payload, risk, organization_id, title")
+    .eq("id", opts.actionId).eq("user_id", userId).maybeSingle();
+  if (!act) return { status: "not_found", text: "Not found.", actionId: null };
+  if (act.status === "cancelled" || act.status === "rolled_back") {
+    return { status: "already", text: "Already stopped.", actionId: act.id };
+  }
+  if (act.status !== "staged" && act.status !== "proposed" && act.status !== "approved") {
+    return {
+      status: "already",
+      text: "That one already ran. Undo it in Metro Echo — the receipt shows what happened.",
+      actionId: act.id,
+    };
+  }
+  const from = act.status;
+  const { error } = await admin.from("actions").update({ status: "cancelled" })
+    .eq("id", act.id).eq("user_id", userId).eq("status", from);
+  if (error) return { status: "not_found", text: "Couldn't stop that. Open Metro Echo.", actionId: act.id };
+  await admin.from("action_events").insert({
+    user_id: userId, action_id: act.id, from_status: from, to_status: "cancelled",
+    actor: "user", reason: `${opts.source} stop`,
+  });
+  await admin.from("audit_log").insert({
+    user_id: userId, organization_id: act.organization_id ?? null,
+    entity_type: "action", entity_id: act.id, event: `transition:${from}->cancelled`,
+    payload: { source: opts.source, stopped_before_execute: true, title: act.title ?? null },
+  });
+  return { status: "cancelled", text: "Stopped. Nothing ran, and the record stays in Receipts.", actionId: act.id };
+}
