@@ -48,6 +48,15 @@ export type CalendarChangeField =
 
 export type CalendarExecuteMode = "create" | "update" | "delete";
 
+/** Google accepts up to five popup offsets, expressed as minutes before start. */
+export function parseReminderOffsets(value: unknown): number[] {
+  const values = String(value ?? "")
+    .split(/[^0-9]+/)
+    .map(Number)
+    .filter((minutes) => Number.isFinite(minutes) && minutes >= 0);
+  return (values.length ? values : [15]).slice(0, 5);
+}
+
 /** One field moving from one value to another. `before: null` means "not set". */
 export type CalendarFieldChange = {
   field: CalendarChangeField;

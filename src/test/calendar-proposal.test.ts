@@ -7,13 +7,13 @@ import {
   calendarProposalTitle,
   isCalendarProposal,
   normalizeCalendarChangeField,
+  parseReminderOffsets,
   proposalSummary,
   refineCalendarProposal,
   writeCeilingLine,
   type CalendarFieldChange,
 } from "@/lib/calendarProposal";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
-import { buildCalendarRequestBody } from "../../supabase/functions/_shared/calendarExecute";
 
 const move = (after: string): CalendarFieldChange => ({
   field: "time",
@@ -73,9 +73,8 @@ describe("calendar proposals", () => {
       ],
       writeState: "connected",
     });
-    const request = buildCalendarRequestBody(p, "America/New_York");
-    expect(request.operation).toBe("create");
-    expect(request.body?.reminders).toEqual({ useDefault: false, overrides: [{ method: "popup", minutes: 1440 }, { method: "popup", minutes: 60 }] });
+    expect(p.changes[2].after).toBe("1440,60");
+    expect(parseReminderOffsets(p.changes[2].after)).toEqual([1440, 60]);
   });
 });
 

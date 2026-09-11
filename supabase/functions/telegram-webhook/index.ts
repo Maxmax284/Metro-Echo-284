@@ -525,6 +525,30 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
        Approval is per-proposal and, while the feed is read-only, only holds it. */
     const events = (await loadCalendarEvents(sb, userId)) as ResolvableEvent[];
 
+    /* One source reminder owns one calendar proposal. Repeating “put it on my
+       calendar” returns the existing state instead of minting another action. */
+    if (args.source_id) {
+      const { data: existing } = await sb.from("actions")
+        .select("id, status, payload")
+        .eq("user_id", userId)
+        .eq("payload->source->>id", String(args.source_id))
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (existing && isCalendarProposal(existing.payload)) {
+        if (existing.status === "staged") return {
+          reply: `${proposalSummary(existing.payload)}\n\nThis is already waiting on your yes.`,
+          detectedType: "calendar change", routedTo: "actions",
+          markup: keyboard(calendarApprovalButtons(existing.id, existing.payload.version)),
+          calendarActionId: existing.id,
+        };
+        const line = existing.status === "executed" || existing.status === "audited"
+          ? "That calendar event was already written to Google."
+          : existing.status === "approved"
+            ? "That change is approved and waiting to be written to Google."
+            : "That earlier calendar proposal was dropped. Tell me to add it again if you still want it.";
+        return { reply: line, detectedType: "calendar change", routedTo: "actions", readOnly: true };
+      }
+    }
+
 
     const reference = String(args.event_reference ?? "").trim();
     let target: ResolvableEvent | null = null;
@@ -892,7 +916,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (wantsReminderCancellation(text) || wantsRecentReminderOnCalendar(text)) {
     const { data: recentReminders } = await sb.from("commitments")
       .select("id, summary, due_at, created_at, metadata")
-      .eq("user_id", userId).eq("status", "open").eq("metadata->>kind", "reminder")
+      .eq("user_id", userId).eq("metadata->>kind", "reminder")
       .order("created_at", { ascending: false }).limit(8);
     const recent = (recentReminders ?? []) as any[];
     if (wantsReminderCancellation(text)) {
