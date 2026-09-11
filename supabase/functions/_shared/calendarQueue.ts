@@ -20,6 +20,8 @@ export type CalendarQueue = {
   text: string;
   /** Approved rows that have not been written yet — the only retryable ones. */
   retryIds: string[];
+  /** Rows still waiting on a yes — stoppable without touching anything outside. */
+  stopIds: string[];
 };
 
 function label(row: CalendarQueueRow): string {
