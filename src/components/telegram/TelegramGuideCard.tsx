@@ -94,6 +94,59 @@ export function TelegramGuideCard({ botUsername }: { botUsername?: string | null
           </div>
 
           <div>
+            <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Files, exactly
+            </div>
+            <ul className="space-y-1.5">
+              {TELEGRAM_FILE_RULES.map((r) => (
+                <li key={r.what} className="rounded-lg bg-muted/25 p-2">
+                  <div className="flex items-start gap-1.5 text-[12px] font-medium leading-snug">
+                    {r.works === "yes" ? (
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    ) : (
+                      <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span>{r.what}</span>
+                  </div>
+                  <p className="mt-0.5 pl-5 text-[11.5px] leading-snug text-muted-foreground">{r.detail}</p>
+                  <p className="pl-5 text-[11px] leading-snug text-muted-foreground/80">{r.limit}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-muted-foreground/80">
+              Telegram won’t hand a bot a file over 20 MB, so that’s the ceiling on every row.
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              <Lock className="h-3 w-3" /> Read only, always
+            </div>
+            <ul className="space-y-1">
+              {TELEGRAM_READ_ONLY.map((l) => (
+                <li key={l} className="flex gap-1.5 text-[12px] leading-snug">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Finished here in Metro Echo, not in the chat
+            </div>
+            <ul className="space-y-1">
+              {TELEGRAM_APP_ONLY.map((l) => (
+                <li key={l} className="flex gap-1.5 text-[12px] leading-snug">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/60" />
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
             <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">Things you can just say</div>
             <div className="flex flex-wrap gap-1.5">
               {TELEGRAM_PHRASEBOOK.map((p) => (
