@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { BookOpen, Check, ChevronDown, Download, Lock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 import {
   TELEGRAM_APP_ONLY,
   TELEGRAM_COMMANDS,
