@@ -151,7 +151,7 @@ describe("place in the situation read", () => {
     const withMeeting = readSituation({
       ...empty,
       place: fresh,
-      meetings: [{ id: "m1", title: "Coffee", starts_at: iso(60 * 60 * 1000), location: "Bangkok" }],
+      meetings: [{ id: "m1", title: "Coffee", starts_at: new Date(NOW + 60 * 60 * 1000).toISOString(), location: "Bangkok" }],
     });
     expect(withMeeting.lines[0]?.kind).toBe("meeting_soon");
     expect(withMeeting.placeNote).toBe("Read from Bangkok.");
