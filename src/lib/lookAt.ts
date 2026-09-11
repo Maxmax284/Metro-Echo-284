@@ -55,3 +55,21 @@ export function askAboutLook(intentId: LookIntentId, filename: string): string {
       return `About the picture I showed you (${filename}) — tell me more.`;
   }
 }
+
+/**
+ * The one line said after a look: where it went, and one offer worth making.
+ * Mirrors supabase/functions/_shared/lookAt.ts — saving is safe and already
+ * done, filing under a project is an offer, never a silent decision.
+ */
+export function afterLookLine(intentId: LookIntentId): string {
+  switch (intentId) {
+    case "text":
+      return "It's in your Inbox. Want it saved as a note?";
+    case "amount":
+      return "It's in your Inbox. Want it filed under a project?";
+    case "promises":
+      return "It's in your Inbox. Want these tracked as promises?";
+    default:
+      return "It's in your Inbox. Want the text pulled out, or filed under a project?";
+  }
+}
