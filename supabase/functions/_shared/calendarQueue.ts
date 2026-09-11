@@ -41,6 +41,7 @@ export function buildCalendarQueue(rows: CalendarQueueRow[]): CalendarQueue {
     return {
       text: "No calendar edits in flight. Ask me to move or add something and it lands here first, waiting on your yes.",
       retryIds: [],
+      stopIds: [],
     };
   }
 
