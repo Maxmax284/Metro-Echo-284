@@ -47,6 +47,7 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
     title: "What it can do",
     lines: [
       "Read your real calendar: a day, the week, what's next, what collides.",
+      "Look at photos and screenshots properly — what's in them, not just the text on them.",
       "Take anything you throw at it — text, photos, files, voice notes — and file it.",
       "Set reminders and track promises you make out loud.",
       "Draft a calendar change and hold it until you say yes, right here in the chat.",
@@ -66,9 +67,10 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
   {
     title: "What you can send it",
     lines: [
-      "A photo — a receipt, a whiteboard, a sign, a parking spot. It reads what's in it and files it.",
+      "A photo of anything — a receipt, a whiteboard, a sign, a parking spot, a picture you just want read. It says what it's looking at, in plain words.",
+      "A photo with a question on it: \"what is this?\", \"how much?\", \"anything off here?\", \"read what it says\". The question steers the look.",
       "A screenshot of a message or a booking, and it pulls out the date, the name and the ask.",
-      "A document — PDF, Word, a scan straight off your phone. It reads it and keeps the file.",
+      "A document — PDF, Word, plain text, a scan straight off your phone. It reads it and keeps the file.",
       "A voice note. It writes it out and treats it like anything you typed.",
       "A forwarded message from someone else. It'll say what changed before it drafts anything.",
       "A link or an address. It keeps it attached to the right project or place.",

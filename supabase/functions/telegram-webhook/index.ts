@@ -105,7 +105,7 @@ import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
-import { intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
+import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
@@ -1553,7 +1553,7 @@ Deno.serve(async (req) => {
               "",
               readSummaryLine(words, 900),
               "",
-              "Saved in your Inbox. Nothing filed under a project yet.",
+              "It's in your Inbox — nothing filed under a project yet.",
               nextStepsLine(intent.kind),
             ].join("\n")
           : `${intent.line}\n\n${page.isVoice ? "Couldn't make out the words just now" : "Couldn't read it just now"} — it's saved, and the daily sweep will try again.`;
