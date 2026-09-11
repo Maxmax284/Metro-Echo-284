@@ -201,7 +201,7 @@ const tools = [
             items: {
               type: "object",
               properties: {
-                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] },
+                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence", "attendee"] },
                 before: { type: "string", description: "Current value in plain words, or omit if not set." },
                 after: { type: "string", description: "New value. ISO timestamp for `time`. Omit to remove (a cancellation for `existence`)." },
               },
@@ -233,7 +233,7 @@ const tools = [
             items: {
               type: "object",
               properties: {
-                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] },
+                field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence", "attendee"] },
                 before: { type: "string", description: "Current value in plain words, or omit if not set." },
                 after: { type: "string", description: "New value. ISO timestamp for `time`. Omit for a removal or cancellation." },
               },
