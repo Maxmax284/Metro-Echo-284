@@ -100,6 +100,7 @@ import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shar
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
+import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
