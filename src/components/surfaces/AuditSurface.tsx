@@ -22,6 +22,8 @@ import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { ReceiptUnfold, receiptFacts } from "@/components/audit/ReceiptUnfold";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
+import { ReceiptsFront } from "@/components/receipts/ReceiptsFront";
+import { isQuietRecord, receiptDigest, type ReceiptLine } from "@/lib/receiptDigest";
 
 type AuditRow = {
   id: string;
@@ -94,6 +96,8 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   /* Unfold in place: the receipt opens where it sits. One at a time, because
      evidence is read one item at a time. */
   const [openId, setOpenId] = useState<string | null>(null);
+  /* The room opens with six human lines. The raw record is one tap deeper. */
+  const [showRecord, setShowRecord] = useState(false);
 
   // Deep-link from an action card's "See in Receipts": narrow to that action.
   useEffect(() => {
@@ -167,6 +171,19 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
   const newestAge = audit[0] ? formatDistanceToNow(new Date(audit[0].created_at), { addSuffix: true }) : null;
   const activeFilters = (quick ? 1 : 0) + (eventClass ? 1 : 0) + (filter.trim() ? 1 : 0);
   const clearAll = () => { setQuick(""); setEventClass(""); setFilter(""); };
+
+  const digest = useMemo(() => receiptDigest(audit, events), [audit, events]);
+  const quiet = isQuietRecord(digest);
+
+  /* Deep-linked from an action card: the record is already the point. */
+  useEffect(() => { if (focusActionId) setShowRecord(true); }, [focusActionId]);
+
+  const drill = (line: ReceiptLine) => {
+    setFilter("");
+    setEventClass(line.key === "failed" ? "failed" : "");
+    setQuick(line.drill ?? "");
+    setShowRecord(true);
+  };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
