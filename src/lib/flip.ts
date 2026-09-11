@@ -113,18 +113,31 @@ export function flipFrom(el: HTMLElement | null, durationMs = 300): () => void {
   const duration = feelMs(durationMs, { min: 0 });
   if (!duration) return () => {};
 
+  /* The element may already own a transform that positions it — a centred
+     overlay is translate(-50%, -50%). Animating a bare transform would throw
+     that away and leave the panel parked off-screen, so the travel is composed
+     on top of the element's own transform and never outlives the animation. */
+  let base = "";
+  try {
+    const computed = getComputedStyle(el).transform;
+    if (computed && computed !== "none") base = `${computed} `;
+  } catch {
+    base = "";
+  }
+
   let anim: Animation | null = null;
   try {
     anim = el.animate(
       [
-        { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 0.35 },
-        { transform: "translate(0px, 0px) scale(1, 1)", opacity: 1 },
+        { transform: `${base}translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, opacity: 0.35 },
+        { transform: `${base}translate(0px, 0px) scale(1, 1)`, opacity: 1 },
       ],
-      { duration, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" },
+      { duration, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
     );
   } catch {
     return () => {};
   }
+
 
   return () => {
     try {
