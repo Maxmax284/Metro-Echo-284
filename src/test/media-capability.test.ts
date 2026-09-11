@@ -24,9 +24,7 @@ describe("media capability contract", () => {
   it("bans lawyering an obvious recognition", () => {
     expect(MEDIA_CAPABILITY).toMatch(/appears to be/);
     expect(MEDIA_CAPABILITY).toMatch(/resembling/);
-    for (const intent of LOOK_INTENTS) {
-      expect(intent.prompt.length).toBeGreaterThan(20);
-    }
+    expect(MEDIA_CAPABILITY).not.toMatch(/I can'?t (see|do) images/i);
   });
 
   it("keeps capture safe: saving happens, filing is asked", () => {
@@ -57,7 +55,7 @@ describe("help copy tells the truth about media", () => {
     expect(can.toLowerCase()).toContain("look at photos");
   });
 
-  it("keeps the paired and unreadable lines media-honest", () => {
-    expect(VANTA_PHRASES.telegram.textOnly().toLowerCase()).toContain("screenshot");
+  it("names the question a photo can carry", () => {
+    expect(help.toLowerCase()).toContain("what is this");
   });
 });
