@@ -79,6 +79,8 @@ export const WHAT_IS_THIS: Record<string, string> = {
     "Sherlock notices possible connections, risks, and contradictions in your captures. It never acts — it only suggests.",
   project_health:
     "Health is derived from open items, overdue work, and recent activity. It always comes with a one-line reason.",
+  telegram_files:
+    "Photos, screenshots, PDFs, Word files, plain text and voice notes are read in the chat, up to 20 MB each. Video and other file types aren't read yet — the reply names the file and says so. Nothing sent is filed, sent or approved on its own.",
 };
 
 /**
