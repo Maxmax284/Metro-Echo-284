@@ -8,14 +8,9 @@
 import {
   calendarProposalRisk,
   isCalendarProposal,
-  isCancellation,
-  isCreation,
   normalizeCalendarChangeField,
-  parseReminderOffsets,
   providerEventIdFromUid,
-  type CalendarEventRef,
   type CalendarExecuteMode,
-  type CalendarFieldChange,
   type CalendarProposal,
 } from "./calendarProposal.ts";
 import type { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -61,107 +56,8 @@ function authHeaders(conn: CalendarConnection): Record<string, string> {
   return calendarGatewayHeaders(conn);
 }
 
-function parseIso(v: string | null): string | null {
-  if (!v) return null;
-  const d = new Date(v);
-  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
-}
-
-function isAllDayString(v: string | null): boolean {
-  return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v.trim());
-}
-
-function durationMinutes(startIso: string, endIso: string | null): number {
-  const s = new Date(startIso).getTime();
-  const e = endIso ? new Date(endIso).getTime() : 0;
-  if (e > s) return Math.round((e - s) / 60_000);
-  return 60;
-}
-
-/** Build the Google Calendar event body from the proposal and the user's timezone. */
-export function buildCalendarRequestBody(
-  proposal: CalendarProposal,
-  timeZone: string,
-): { method: "POST" | "PATCH" | "DELETE"; path: string; body?: Record<string, unknown>; operation: CalendarExecuteMode } {
-  const calendarId = encodeURIComponent("primary");
-
-  // Cancellation path: no body, just delete the provider event.
-  if (isCancellation(proposal)) {
-    const eventUid = proposal.event?.uid ?? null;
-    const eventId = providerEventIdFromUid(eventUid);
-    if (!eventId) throw new Error("Cannot cancel: this event did not come from Google Calendar");
-    return { method: "DELETE", path: `calendars/${calendarId}/events/${encodeURIComponent(eventId)}`, operation: "delete" };
-  }
-
-  // Update path: patch only the changed fields on the existing event.
-  const existingEventId = proposal.event ? providerEventIdFromUid(proposal.event.uid) : null;
-
-  const body: Record<string, unknown> = {};
-
-  for (const change of proposal.changes) {
-    const field = normalizeCalendarChangeField(change.field);
-    const after = change.after;
-    switch (field) {
-      case "title":
-        body.summary = after;
-        break;
-      case "location":
-        body.location = after ?? undefined;
-        break;
-      case "description":
-        body.description = after ?? undefined;
-        break;
-      case "reminder": {
-        body.reminders = {
-          useDefault: false,
-          overrides: parseReminderOffsets(after).map((minutes) => ({ method: "popup", minutes })),
-        };
-        break;
-      }
-      case "time": {
-        if (isAllDayString(after)) {
-          body.start = { date: after };
-          body.end = { date: after };
-        } else {
-          const iso = parseIso(after);
-          if (!iso) throw new Error(`Could not understand the new time: ${after}`);
-          // Preserve original duration when we know it; default to one hour.
-          const originalStart = proposal.event?.starts_at ? parseIso(proposal.event.starts_at) : null;
-          const originalEnd = (proposal.event as CalendarEventRef | null)?.ends_at
-            ? parseIso((proposal.event as CalendarEventRef).ends_at)
-            : null;
-          const dur = originalStart ? durationMinutes(originalStart, originalEnd) : 60;
-          const endIso = new Date(new Date(iso).getTime() + dur * 60_000).toISOString();
-          body.start = { dateTime: iso, timeZone };
-          body.end = { dateTime: endIso, timeZone };
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  }
-
-  // For a brand-new event, require at least a title and a time.
-  if (isCreation(proposal)) {
-    if (!body.start) throw new Error("New events need a time.");
-    body.summary = proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "title")?.after
-      ?? proposal.changes.find((c) => normalizeCalendarChangeField(c.field) === "existence")?.after
-      ?? "New event";
-    return { method: "POST", path: `calendars/${calendarId}/events`, body, operation: "create" };
-  }
-
-  if (!existingEventId) {
-    throw new Error("Cannot update: this event did not come from Google Calendar");
-  }
-
-  return {
-    method: "PATCH",
-    path: `calendars/${calendarId}/events/${encodeURIComponent(existingEventId)}`,
-    body,
-    operation: "update",
-  };
-}
+export { buildCalendarRequestBody } from "./calendarRequestBody.ts";
+import { buildCalendarRequestBody } from "./calendarRequestBody.ts";
 
 /** Fetch the user's timezone from their profile when no executor config supplies one. */
 async function userTimeZone(sb: SbClient, userId: string): Promise<string> {
@@ -241,6 +137,29 @@ export async function executeCalendarProposal(
     }
   }
   const { method, path, body, operation } = buildCalendarRequestBody(executableProposal, tz);
+
+  /* A PATCH replaces the whole attendee list, so read the current event and
+     merge existing guests with the new ones before writing. */
+  if (method === "PATCH" && Array.isArray(body?.attendees) && proposal.event?.uid) {
+    const eventId = providerEventIdFromUid(proposal.event.uid);
+    if (eventId) {
+      const getRes = await fetch(
+        `${GATEWAY}/calendars/${encodeURIComponent("primary")}/events/${encodeURIComponent(eventId)}`,
+        { headers: authHeaders(conn) },
+      );
+      if (getRes.ok) {
+        const current = await getRes.json().catch(() => ({}));
+        const existing = (Array.isArray(current?.attendees) ? current.attendees : [])
+          .map((a: any) => String(a?.email ?? "").toLowerCase())
+          .filter(Boolean);
+        const merged = [...existing];
+        for (const a of body!.attendees as { email: string }[]) {
+          if (!merged.includes(a.email.toLowerCase())) merged.push(a.email.toLowerCase());
+        }
+        body!.attendees = merged.map((email) => ({ email }));
+      }
+    }
+  }
 
   const res = await fetch(`${GATEWAY}/${path}`, {
     method,

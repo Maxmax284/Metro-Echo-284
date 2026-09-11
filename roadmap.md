@@ -39,3 +39,12 @@ sharing. Trusted contacts / `location_shares` execution. Realtime public-safety 
 scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live location trails.
 
 - [ ] Google Calendar per-user connection (App User Connector) — blocked: workspace Google client card was closed; user to decide connector vs secret iCal link.
+
+## This pass (added)
+- [ ] Platform-wide verdict delivered (East Coast tone, no code change).
+- [ ] Dani invite: after the event lands on Google, add Dani as a guest so Google sends
+      the invite and tracks her yes/no — blocked on Dani's email address from Maxwell.
+- [x] Guest invites on the shared calendar spine: attendee field, email validation,
+      Google attendees + sendUpdates=all, existing-guest merge on updates, high-risk
+      double-confirm (Google emails a real person). Telegram + Ask tool schemas updated.
+      874 tests green. Dani's event still needs her email, then approve in Telegram.

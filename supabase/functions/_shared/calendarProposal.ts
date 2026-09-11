@@ -26,6 +26,16 @@ const FIELD_LABELS: Record<string, string> = {
   description: "Notes",
   reminder: "Reminder",
   existence: "Event",
+  attendee: "Guest",
+};
+
+/** Model wording varies; the field the proposal carries does not. */
+const FIELD_ALIASES: Record<string, string> = {
+  attendees: "attendee",
+  guest: "attendee",
+  guests: "attendee",
+  invite: "attendee",
+  invitee: "attendee",
 };
 
 /** Human label for a change field, used identically on every surface. */
@@ -34,7 +44,8 @@ export function calendarFieldLabel(field: unknown): string {
 }
 
 export function normalizeCalendarChangeField(field: unknown): CalendarChangeField {
-  const raw = String(field ?? "").trim().toLowerCase();
+  let raw = String(field ?? "").trim().toLowerCase();
+  raw = FIELD_ALIASES[raw] ?? raw;
   return (raw in FIELD_LABELS ? raw : "description") as CalendarChangeField;
 }
 
@@ -44,7 +55,8 @@ export type CalendarChangeField =
   | "location"
   | "description"
   | "reminder"
-  | "existence";
+  | "existence"
+  | "attendee";
 
 export type CalendarExecuteMode = "create" | "update" | "delete";
 
@@ -180,14 +192,25 @@ export function createsCalendarEvent(changes: Array<Pick<CalendarFieldChange, "f
   return changes.some((change) => change.field === "existence" && change.after != null && String(change.after).trim().length > 0);
 }
 
+/** Emails a proposal would add as guests. */
+export function attendeeAdds(proposal: CalendarProposal): string[] {
+  return proposal.changes
+    .filter((c) => c.field === "attendee" && c.after)
+    .flatMap((c) => String(c.after).split(/[,\s]+/))
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+}
+
 /**
  * Risk follows consequence, not effort. Anything that makes Google notify other
- * people is never one-tap; cancelling on top of that is the strongest gate.
+ * people is never one-tap; inviting a guest emails a real person, so it always
+ * gets the strongest gate. Cancelling on top of attendees is likewise high.
  */
 export function calendarProposalRisk(
   proposal: CalendarProposal,
 ): "low_reversible" | "standard" | "high" {
   const cancelling = isCancellation(proposal);
+  if (attendeeAdds(proposal).length > 0) return "high";
   if (cancelling && proposal.attendee_count > 0) return "high";
   if (cancelling || proposal.attendee_count > 0) return "standard";
   return "low_reversible";
@@ -235,6 +258,10 @@ export function approvalOutcomeLine(state: CalendarWriteState): string {
 
 /** Consequence sentence shown before a stronger confirmation. */
 export function consequenceLine(proposal: CalendarProposal): string | null {
+  const guests = attendeeAdds(proposal);
+  if (guests.length > 0) {
+    return `Google emails an invite to ${guests.join(", ")}. Their yes/no comes back to your calendar.`;
+  }
   if (proposal.attendee_count <= 0) return null;
   const people = proposal.attendee_count === 1 ? "1 person" : `${proposal.attendee_count} people`;
   return isCancellation(proposal)
