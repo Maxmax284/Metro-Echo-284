@@ -66,8 +66,8 @@ describe("calendar proposals", () => {
   });
 
   it("allows a no-match reference only when the change explicitly creates an event", () => {
-    expect(createsCalendarEvent([{ field: "existence", label: "Event", before: null, after: "Meet Dani" }])).toBe(true);
-    expect(createsCalendarEvent([{ field: "time", label: "Time", before: null, after: "2026-09-15T22:00:00Z" }])).toBe(false);
+    expect(createsCalendarEvent([{ field: "existence", after: "Meet Dani" }])).toBe(true);
+    expect(createsCalendarEvent([{ field: "time", after: "2026-09-15T22:00:00Z" }])).toBe(false);
   });
 
   it("writes every requested reminder offset to a new Google event", () => {
