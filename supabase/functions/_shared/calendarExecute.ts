@@ -110,10 +110,13 @@ export function buildCalendarRequestBody(
         body.description = after ?? undefined;
         break;
       case "reminder": {
-        const minutes = Number(after);
+        const minutes = String(after ?? "")
+          .split(/[^0-9]+/)
+          .map(Number)
+          .filter((value) => Number.isFinite(value) && value >= 0);
         body.reminders = {
           useDefault: false,
-          overrides: [{ method: "popup", minutes: Number.isFinite(minutes) && minutes >= 0 ? minutes : 15 }],
+          overrides: (minutes.length ? minutes : [15]).slice(0, 5).map((value) => ({ method: "popup", minutes: value })),
         };
         break;
       }

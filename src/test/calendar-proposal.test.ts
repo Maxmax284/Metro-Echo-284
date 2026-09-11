@@ -13,6 +13,7 @@ import {
   type CalendarFieldChange,
 } from "@/lib/calendarProposal";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
+import { buildCalendarRequestBody } from "../../supabase/functions/_shared/calendarExecute";
 
 const move = (after: string): CalendarFieldChange => ({
   field: "time",
@@ -61,6 +62,20 @@ describe("calendar proposals", () => {
     expect(isCalendarProposal({ kind: "note" })).toBe(false);
     expect(normalizeCalendarChangeField("LOCATION")).toBe("location");
     expect(normalizeCalendarChangeField("nonsense")).toBe("description");
+  });
+
+  it("writes every requested reminder offset to a new Google event", () => {
+    const p = buildCalendarProposal({
+      changes: [
+        { field: "title", label: "Title", before: null, after: "Meet Dani" },
+        { field: "time", label: "Time", before: null, after: "2026-09-15T22:00:00.000Z" },
+        { field: "reminder", label: "Reminder", before: null, after: "1440,60" },
+      ],
+      writeState: "connected",
+    });
+    const request = buildCalendarRequestBody(p, "America/New_York");
+    expect(request.operation).toBe("create");
+    expect(request.body?.reminders).toEqual({ useDefault: false, overrides: [{ method: "popup", minutes: 1440 }, { method: "popup", minutes: 60 }] });
   });
 });
 

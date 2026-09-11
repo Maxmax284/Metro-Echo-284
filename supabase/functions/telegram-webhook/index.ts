@@ -100,6 +100,13 @@ import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shar
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
+import {
+  reminderLocation,
+  reminderOffsetsMinutes,
+  resolveReminderReference,
+  wantsRecentReminderOnCalendar,
+  wantsReminderCancellation,
+} from "../_shared/reminderActions.ts";
 import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
@@ -196,8 +203,9 @@ ${VOICE_RULES}`;
 const tools = [
   { type: "function", function: { name: "capture_note", description: "Save a note.", parameters: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["body"], additionalProperties: false } } },
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
+  { type: "function", function: { name: "cancel_reminder", description: "Cancel an open private Echo reminder. Use for remove/cancel/delete/drop that reminder. This never changes Google Calendar.", parameters: { type: "object", properties: { reference: { type: "string", description: "The user's words identifying the reminder. Use 'that reminder' for the recent one." } }, required: ["reference"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
-  { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
+  { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_id: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "refine_calendar_change", description: "The user is adjusting the calendar change you already showed them (\"actually 3:30\", \"make it the clinic on Sathorn\"). Updates that same pending proposal and re-asks Yes/No. Never creates a second proposal and never touches the calendar.", parameters: { type: "object", properties: { changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
   // Read-only questions. These never write anything.
@@ -384,10 +392,13 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       const staged = await applyIntentCore(sb, userId, "stage_calendar_change", {
         changes: [
           { field: "existence", after: String(args.summary ?? "") },
+          { field: "title", after: String(args.summary ?? "") },
           { field: "time", after: parsed.due_at },
-          ...(args.when ? [{ field: "reminder", after: String(args.when) }] : []),
+          ...(reminderLocation(String(args.summary ?? "")) ? [{ field: "location", after: reminderLocation(String(args.summary ?? "")) }] : []),
+          ...(reminderOffsetsMinutes(String(args.when ?? "")).length ? [{ field: "reminder", after: reminderOffsetsMinutes(String(args.when ?? "")).join(",") }] : []),
         ],
         source_kind: "you",
+        source_id: data?.id ?? null,
         source_note: "your reminder in this chat",
       }, defaults, orgId);
       return {
@@ -397,6 +408,19 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       };
     }
     return { reply: VANTA_PHRASES.reminderCreated(parsed.phrasing), detectedType: "reminder", routedTo: "commitments", linkKind: "commitments" as VantaLinkKind, commitmentId: data?.id ?? null };
+  }
+  if (name === "cancel_reminder") {
+    const { data: reminders } = await sb.from("commitments")
+      .select("id, summary, due_at, created_at, organization_id")
+      .eq("user_id", userId).eq("status", "open").eq("metadata->>kind", "reminder")
+      .order("created_at", { ascending: false }).limit(12);
+    const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), (reminders ?? []) as any[]);
+    if (resolved.status === "none") return { reply: "I don't see an open private reminder matching that. Nothing changed.", detectedType: "reminder", routedTo: null, readOnly: true };
+    if (resolved.status === "many") return { reply: `Which reminder? ${resolved.candidates.map((r) => r.summary).join(" · ")}. Nothing changed.`, detectedType: "reminder", routedTo: null, readOnly: true };
+    const { error } = await sb.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", userId).eq("status", "open");
+    if (error) return { reply: "I couldn't remove that reminder. Nothing changed.", detectedType: "reminder", routedTo: null, readOnly: true };
+    await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "commitment", entity_id: resolved.reminder.id, event: "commitment.cancelled", payload: { source: "telegram", reason: "user_requested_reminder_removal" } });
+    return { reply: `Removed the private reminder: ${resolved.reminder.summary}. Your calendar wasn't touched.`, detectedType: "reminder", routedTo: "commitments", readOnly: true };
   }
   if (name === "stage_action") {
     const { data } = await sb.from("actions").insert(buildActionRow({ userId, organizationId: orgId, title: args.title, description: args.description ?? null, risk: args.risk, status: "staged", source: "telegram" })).select("id").single();
@@ -507,7 +531,8 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (reference) {
       const resolved = resolveEventReference(reference, events);
       if (resolved.status === "none") {
-        return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
+        const creating = (Array.isArray(args.changes) ? args.changes : []).some((c: any) => c?.field === "existence" && c?.after != null && String(c.after).trim());
+        if (!creating) return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
       }
       if (resolved.status === "many") {
         return {
@@ -551,7 +576,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       } : null,
       changes,
       attendeeCount: Number(args.attendee_count ?? 0),
-      source: args.source_note ? { kind: String(args.source_kind ?? "you"), note: String(args.source_note) } : null,
+      source: args.source_note ? { kind: String(args.source_kind ?? "you"), id: args.source_id ? String(args.source_id) : null, note: String(args.source_note) } : null,
       conflicts,
       writeState: await calendarWriteStateForUser(userId),
     });
@@ -862,6 +887,41 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let calendarActionId: string | null = null;
   let reply = "";
 
+  /* Deterministic rescue for the two follow-ups that caused the live dead end.
+     Clear commands should not depend on the model deciding to use a tool. */
+  if (wantsReminderCancellation(text) || wantsRecentReminderOnCalendar(text)) {
+    const { data: recentReminders } = await sb.from("commitments")
+      .select("id, summary, due_at, created_at, metadata")
+      .eq("user_id", userId).eq("status", "open").eq("metadata->>kind", "reminder")
+      .order("created_at", { ascending: false }).limit(8);
+    const recent = (recentReminders ?? []) as any[];
+    if (wantsReminderCancellation(text)) {
+      const res = await applyIntent(sb, userId, "cancel_reminder", { reference: text }, defaults, orgId);
+      if (res) {
+        intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo; readOnly = true;
+      }
+    } else if (recent[0]) {
+      const reminder = recent[0];
+      const hint = String(reminder.metadata?.when_hint ?? "");
+      const offsets = reminderOffsetsMinutes(hint);
+      const location = reminderLocation(reminder.summary);
+      const res = await applyIntent(sb, userId, "stage_calendar_change", {
+        changes: [
+          { field: "existence", after: reminder.summary },
+          { field: "title", after: reminder.summary },
+          { field: "time", after: reminder.due_at },
+          ...(location ? [{ field: "location", after: location }] : []),
+          ...(offsets.length ? [{ field: "reminder", after: offsets.join(",") }] : []),
+        ],
+        source_kind: "reminder", source_id: reminder.id, source_note: "your private reminder in this chat",
+      }, defaults, orgId);
+      if (res) {
+        intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
+        toolMarkup = res.markup; calendarActionId = res.calendarActionId;
+      }
+    }
+  }
+
   if (matchCapabilityQuestion(text)) {
     const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;
     const [{ count: feedCount }, { count: linkCount }] = await Promise.all([
@@ -879,7 +939,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     readOnly = true;
   }
 
-  const r = readOnly ? null : await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const r = (readOnly || intents.length) ? null : await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
