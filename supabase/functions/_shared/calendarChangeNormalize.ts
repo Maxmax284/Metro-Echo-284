@@ -44,7 +44,7 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
 
   const reminders = normalized.filter((change) => change.field === "reminder");
   if (reminders.length <= 1) return normalized;
-  const offsets = [...new Set(reminders.flatMap((change) => parseReminderOffsets(change.after)))];
+  const offsets = [...new Set(reminders.flatMap((change) => parseReminderOffsets(change.after)))]
     .sort((a, b) => b - a);
   const firstReminder = normalized.findIndex((change) => change.field === "reminder");
   return normalized.filter((change) => change.field !== "reminder").toSpliced(firstReminder, 0, {
