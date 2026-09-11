@@ -24,6 +24,7 @@ import {
   googleCalendarConnection,
   type CalendarConnection,
 } from "./calendarConnection.ts";
+import { calendarCreationMissing, normalizeCalendarChanges } from "./calendarChangeNormalize.ts";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
@@ -222,7 +223,22 @@ export async function executeCalendarProposal(
   }
 
   const tz = await userTimeZone(sb, userId);
-  const { method, path, body, operation } = buildCalendarRequestBody(proposal, tz);
+  const executableProposal: CalendarProposal = {
+    ...proposal,
+    changes: normalizeCalendarChanges(proposal.changes, {
+      timezone: tz,
+      morning: "09:00",
+      afternoon: "14:00",
+      evening: "18:00",
+    }),
+  };
+  if (!executableProposal.event) {
+    const missing = calendarCreationMissing(executableProposal.changes);
+    if (missing) {
+      throw new Error(`This older calendar draft is missing its ${missing}. Send the full request again; nothing was written to Google.`);
+    }
+  }
+  const { method, path, body, operation } = buildCalendarRequestBody(executableProposal, tz);
 
   const res = await fetch(`${GATEWAY}/${path}`, {
     method,

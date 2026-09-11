@@ -114,6 +114,14 @@ export function calendarApprovalButtons(actionId: string, version: number): TgIn
   ];
 }
 
+/** A second, explicit Telegram gate for changes that notify other people. */
+export function calendarStrongConfirmationButtons(actionId: string, version: number): TgInlineButton[] {
+  return [
+    { text: "Confirm write", callback_data: `calconfirm:${actionId}:${version}` },
+    { text: "No", callback_data: `calno:${actionId}:${version}` },
+  ];
+}
+
 /** Assemble rows, dropping anything that couldn't be built (no public URL). */
 export function keyboard(...rows: (TgInlineButton | null)[][]): TgReplyMarkup | undefined {
   const cleaned = rows
