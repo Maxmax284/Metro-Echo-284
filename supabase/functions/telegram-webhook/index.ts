@@ -180,6 +180,8 @@ ${TELEGRAM_CHANNEL}
 
 You CAN create notes, reminders, commitments, and stage actions for approval.
 
+${MEDIA_CAPABILITY}
+
 ${ROUTING_RULES}
 
 ${VOICE_RULES}`;
