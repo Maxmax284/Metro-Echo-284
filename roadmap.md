@@ -71,7 +71,13 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       approved / what failed / what Echo held back / what changed outside Echo. Filters,
       action lifecycle, held-back panel and the raw audit rows sit behind "Show the record";
       a deep link from an action card opens the record directly. Lines drill into the record.
-- [ ] Next (deeper refactors): Today section count down to Current read / Needs you /
-      Coming up / Changed; Briefs as project outputs;
-      location-only-when-it-changes-the-answer; route cleanup
-      (/watch /motion /glance /wearables /wearable-loop /physical-loop /how).
+- [x] Today cut to three shelves: Just walked in / On the move / Echo caught this.
+      Sections retitled in street terms (Waiting on your yes, Up next, Locks and alerts,
+      What moved). Travel + Tasks folded into On the move instead of owning lanes.
+- [x] Briefs are project outputs, not a desk: removed from the desk strip, Work tiles and
+      ADVANCED_SURFACES; project page section renamed "What this project puts out";
+      `/?surface=briefs` still opens (old links, receipts) but reads as a list of what
+      projects put out with one door back to Projects.
+- [ ] Next (deeper refactors): location shown only when it changes the answer;
+      route cleanup (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
+      Ask <-> widget continuity; Aware 384px prove-it; motion consolidation.
