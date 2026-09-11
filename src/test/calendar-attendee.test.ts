@@ -12,7 +12,7 @@ import {
   extractEmails,
   normalizeCalendarChanges,
 } from "../../supabase/functions/_shared/calendarChangeNormalize";
-import { buildCalendarRequestBody } from "../../supabase/functions/_shared/calendarExecute";
+import { buildCalendarRequestBody } from "../../supabase/functions/_shared/calendarRequestBody";
 
 const defaults = { timezone: "America/New_York", morning: "09:00", afternoon: "14:00", evening: "18:00" };
 
@@ -101,7 +101,7 @@ describe("google request body for guests", () => {
   it("cancelling an event with guests still notifies them", () => {
     const p = buildCalendarProposal({
       event,
-      attendee_count: 2,
+      attendeeCount: 2,
       changes: [{ field: "existence", label: "Event", before: "Dinner", after: null }],
     });
     const { method, path } = buildCalendarRequestBody(p as any, "America/New_York");
