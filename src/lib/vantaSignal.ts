@@ -101,11 +101,11 @@ export const ROUTE_LABEL: Record<SignalRoute, string> = {
   refresh_signal:    "Refresh",
   confirm_location:  "Confirm location",
   use_saved_place:   "Use saved place",
-  dismiss:           "Dismiss",
+  dismiss:           verbLabel("hide"),
   mark_wrong:        "Wrong",
   mark_useful:       "Useful",
   mark_outdated:     "Outdated",
   add_field_note:    "Field note",
   flag_source:       "Source bad",
-  do_not_show_again: "Hide",
+  do_not_show_again: verbLabel("not_now"),
 };

@@ -51,7 +51,13 @@ export const SURFACE_PARENT: Record<SurfaceId, RoomKey> = {
   command: "work",
 };
 
-/** Desks that are reachable but no longer compete in the primary nav. */
+/**
+ * Desks that are reachable but no longer compete in the primary nav.
+ *
+ * `command` (Cockpit) is deliberately absent: it reformats what Today and the
+ * other desks already show, so it stays reachable by deep link and legacy URL
+ * but is no longer offered as a place to go.
+ */
 export const ADVANCED_SURFACES: SurfaceId[] = [
   "projects",
   "inbox",
@@ -62,7 +68,6 @@ export const ADVANCED_SURFACES: SurfaceId[] = [
   "actions",
   "sherlock",
   "awareness",
-  "command",
 ];
 
 export function isPrimaryRoom(id: string): id is RoomKey {
