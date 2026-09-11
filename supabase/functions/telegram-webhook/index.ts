@@ -20,7 +20,6 @@ import {
   proposalSummary,
   refineCalendarProposal,
   type CalendarFieldChange,
-  calendarProposalNeedsDepth,
   settledElsewhereLine,
   withTelegramRef,
 } from "../_shared/calendarProposal.ts";
