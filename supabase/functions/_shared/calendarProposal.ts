@@ -48,6 +48,15 @@ export type CalendarChangeField =
 
 export type CalendarExecuteMode = "create" | "update" | "delete";
 
+/** Google accepts up to five popup offsets, expressed as minutes before start. */
+export function parseReminderOffsets(value: unknown): number[] {
+  const values = String(value ?? "")
+    .split(/[^0-9]+/)
+    .map(Number)
+    .filter((minutes) => Number.isFinite(minutes) && minutes >= 0);
+  return (values.length ? values : [15]).slice(0, 5);
+}
+
 /** One field moving from one value to another. `before: null` means "not set". */
 export type CalendarFieldChange = {
   field: CalendarChangeField;
@@ -164,6 +173,11 @@ export function isCancellation(proposal: CalendarProposal): boolean {
 
 export function isCreation(proposal: CalendarProposal): boolean {
   return !proposal.event;
+}
+
+/** A missing calendar match is valid only when the proposal explicitly creates one. */
+export function createsCalendarEvent(changes: Array<Pick<CalendarFieldChange, "field" | "after">>): boolean {
+  return changes.some((change) => change.field === "existence" && change.after != null && String(change.after).trim().length > 0);
 }
 
 /**

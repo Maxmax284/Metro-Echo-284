@@ -5,8 +5,10 @@ import {
   calendarFieldLabel,
   calendarProposalRisk,
   calendarProposalTitle,
+  createsCalendarEvent,
   isCalendarProposal,
   normalizeCalendarChangeField,
+  parseReminderOffsets,
   proposalSummary,
   refineCalendarProposal,
   writeCeilingLine,
@@ -61,6 +63,24 @@ describe("calendar proposals", () => {
     expect(isCalendarProposal({ kind: "note" })).toBe(false);
     expect(normalizeCalendarChangeField("LOCATION")).toBe("location");
     expect(normalizeCalendarChangeField("nonsense")).toBe("description");
+  });
+
+  it("allows a no-match reference only when the change explicitly creates an event", () => {
+    expect(createsCalendarEvent([{ field: "existence", after: "Meet Dani" }])).toBe(true);
+    expect(createsCalendarEvent([{ field: "time", after: "2026-09-15T22:00:00Z" }])).toBe(false);
+  });
+
+  it("writes every requested reminder offset to a new Google event", () => {
+    const p = buildCalendarProposal({
+      changes: [
+        { field: "title", label: "Title", before: null, after: "Meet Dani" },
+        { field: "time", label: "Time", before: null, after: "2026-09-15T22:00:00.000Z" },
+        { field: "reminder", label: "Reminder", before: null, after: "1440,60" },
+      ],
+      writeState: "connected",
+    });
+    expect(p.changes[2].after).toBe("1440,60");
+    expect(parseReminderOffsets(p.changes[2].after)).toEqual([1440, 60]);
   });
 });
 

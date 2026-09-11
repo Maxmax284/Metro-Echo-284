@@ -16,6 +16,7 @@ import {
   buildCalendarProposal,
   calendarProposalRisk,
   calendarProposalTitle,
+  createsCalendarEvent,
   isCalendarProposal,
   proposalSummary,
   refineCalendarProposal,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/calendarProposal";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
+import { resolveReminderReference } from "@/lib/reminderActions";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -165,20 +167,23 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (reference) {
             const resolved = resolveEventReference(reference, events);
             if (resolved.status === "none") {
-              toast.warning({
-                title: "I couldn't find that one",
-                description: `Nothing on the calendar matches "${reference}". Nothing has changed.`,
-              });
-              return;
-            }
-            if (resolved.status === "many") {
+              const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
+              if (!creating) {
+                toast.warning({
+                  title: "I couldn't find that one",
+                  description: `Nothing on the calendar matches "${reference}". Nothing has changed.`,
+                });
+                return;
+              }
+            } else if (resolved.status === "many") {
               toast.warning({
                 title: "Which one do you mean?",
                 description: resolved.candidates.map((c) => c.title).join(" · "),
               });
               return;
+            } else {
+              target = resolved.event;
             }
-            target = resolved.event;
           }
 
           const changes: CalendarFieldChange[] = mapCalendarChanges(args.changes);
@@ -282,6 +287,24 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "companion", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
           toast.success({ title: vantaSay.reminderCreated(parsed.phrasing), description: askAftermath("commitment") });
           onAck?.({ kind: "add_commitment", id: data?.id, summary: args.summary || "Reminder" });
+        } else if (kind === "cancel_reminder") {
+          const { data: reminders } = await supabase.from("commitments")
+            .select("id, summary, due_at, created_at")
+            .eq("user_id", user.id).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
+            .order("created_at", { ascending: false }).limit(12);
+          const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), reminders ?? []);
+          if (resolved.status === "none") {
+            toast.warning({ title: "No matching reminder", description: "Nothing changed." });
+            return;
+          }
+          if (resolved.status === "many") {
+            toast.warning({ title: "Which reminder?", description: resolved.candidates.map((r) => r.summary).join(" · ") });
+            return;
+          }
+          const { error } = await supabase.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", user.id).in("status", ["open", "done"]);
+          if (error) throw error;
+          await supabase.from("audit_log").insert({ user_id: user.id, entity_type: "commitment", entity_id: resolved.reminder.id, event: "commitment.cancelled", payload: { source: "companion", reason: "user_requested_reminder_removal" } });
+          toast.success({ title: "Reminder removed", description: "Your calendar wasn't touched." });
         } else if (kind === "mark_waiting") {
           // Waiting on someone is a promise with a name attached, so it lives
           // where every other promise lives — no parallel table.

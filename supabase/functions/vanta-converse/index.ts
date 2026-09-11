@@ -160,6 +160,14 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "cancel_reminder",
+      description: "Cancel an open private Echo reminder. This does not change Google Calendar.",
+      parameters: { type: "object", properties: { reference: { type: "string" } }, required: ["reference"], additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "stage_action",
       description: "Stage an action for the user to review and approve.",
       parameters: {

@@ -11,6 +11,7 @@ import {
   isCancellation,
   isCreation,
   normalizeCalendarChangeField,
+  parseReminderOffsets,
   providerEventIdFromUid,
   type CalendarEventRef,
   type CalendarExecuteMode,
@@ -110,10 +111,9 @@ export function buildCalendarRequestBody(
         body.description = after ?? undefined;
         break;
       case "reminder": {
-        const minutes = Number(after);
         body.reminders = {
           useDefault: false,
-          overrides: [{ method: "popup", minutes: Number.isFinite(minutes) && minutes >= 0 ? minutes : 15 }],
+          overrides: parseReminderOffsets(after).map((minutes) => ({ method: "popup", minutes })),
         };
         break;
       }
