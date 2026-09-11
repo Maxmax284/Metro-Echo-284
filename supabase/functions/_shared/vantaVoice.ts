@@ -7,11 +7,12 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import {
   VANTA_IDENTITY,
   IDENTITY_ANSWERS,
+  MEDIA_CAPABILITY,
   matchIdentityQuestion,
   mentionsVendor,
   type IdentityQuestion,
 } from "./vantaIdentity.ts";
-export { VANTA_IDENTITY, IDENTITY_ANSWERS, matchIdentityQuestion, mentionsVendor };
+export { VANTA_IDENTITY, IDENTITY_ANSWERS, MEDIA_CAPABILITY, matchIdentityQuestion, mentionsVendor };
 export type { IdentityQuestion };
 
 
