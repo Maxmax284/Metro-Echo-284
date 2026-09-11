@@ -3,27 +3,37 @@
 // Reads the same guide the bot answers with, so the page and the chat can never
 // drift. Nothing here does anything: it explains, and it hands you a copy.
 import { useState } from "react";
-import { BookOpen, ChevronDown, Download } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Download, Lock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WhatIsThis } from "@/components/tutorial/WhatIsThis";
 import {
+  TELEGRAM_APP_ONLY,
   TELEGRAM_COMMANDS,
+  TELEGRAM_FILE_RULES,
   TELEGRAM_GUIDE,
   TELEGRAM_PHRASEBOOK,
+  TELEGRAM_READ_ONLY,
   renderTelegramGuideMarkdown,
+  renderTelegramHelp,
 } from "../../../supabase/functions/_shared/telegram_guide";
+
+function save(text: string, name: string, mime: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function TelegramGuideCard({ botUsername }: { botUsername?: string | null }) {
   const [open, setOpen] = useState(true);
 
-  const download = () => {
-    const blob = new Blob([renderTelegramGuideMarkdown(botUsername)], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "echo-on-telegram.md";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const download = () =>
+    save(renderTelegramGuideMarkdown(botUsername), "echo-on-telegram.md", "text/markdown;charset=utf-8");
+  const downloadHelp = () =>
+    save(renderTelegramHelp(), "echo-on-telegram-help.txt", "text/plain;charset=utf-8");
 
   return (
     <section className="vanta-card p-3">
@@ -31,15 +41,21 @@ export function TelegramGuideCard({ botUsername }: { botUsername?: string | null
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[13px] font-medium">
             <BookOpen className="h-3.5 w-3.5 text-primary" /> How to use this chat
+            <WhatIsThis topic="telegram_files" label="What works here?" />
           </div>
           <p className="mt-0.5 text-[11.5px] leading-snug text-muted-foreground">
             Same Echo as here — same memory, same calendar, same rules. Ask it{" "}
             <span className="text-foreground">“how do I use you”</span> in the chat and it says all of this back.
           </p>
         </div>
-        <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={download}>
-          <Download className="h-3.5 w-3.5" /> Save a copy
-        </Button>
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={download}>
+            <Download className="h-3.5 w-3.5" /> Save the guide
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-1.5 text-[11px]" onClick={downloadHelp}>
+            <Download className="h-3.5 w-3.5" /> Save the /help text
+          </Button>
+        </div>
       </div>
 
       <button
@@ -74,6 +90,59 @@ export function TelegramGuideCard({ botUsername }: { botUsername?: string | null
                 <li key={c.cmd} className="text-[12px] leading-snug">
                   <code className="rounded bg-muted/50 px-1 py-0.5 text-[11px]">{c.cmd}</code>{" "}
                   <span className="text-muted-foreground">{c.does}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Files, exactly
+            </div>
+            <ul className="space-y-1.5">
+              {TELEGRAM_FILE_RULES.map((r) => (
+                <li key={r.what} className="rounded-lg bg-muted/25 p-2">
+                  <div className="flex items-start gap-1.5 text-[12px] font-medium leading-snug">
+                    {r.works === "yes" ? (
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    ) : (
+                      <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span>{r.what}</span>
+                  </div>
+                  <p className="mt-0.5 pl-5 text-[11.5px] leading-snug text-muted-foreground">{r.detail}</p>
+                  <p className="pl-5 text-[11px] leading-snug text-muted-foreground/80">{r.limit}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-[11px] text-muted-foreground/80">
+              Telegram won’t hand a bot a file over 20 MB, so that’s the ceiling on every row.
+            </p>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              <Lock className="h-3 w-3" /> Read only, always
+            </div>
+            <ul className="space-y-1">
+              {TELEGRAM_READ_ONLY.map((l) => (
+                <li key={l} className="flex gap-1.5 text-[12px] leading-snug">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60" />
+                  <span>{l}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <div className="mb-1 text-[10.5px] uppercase tracking-wider text-muted-foreground">
+              Finished here in Metro Echo, not in the chat
+            </div>
+            <ul className="space-y-1">
+              {TELEGRAM_APP_ONLY.map((l) => (
+                <li key={l} className="flex gap-1.5 text-[12px] leading-snug">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary/60" />
+                  <span>{l}</span>
                 </li>
               ))}
             </ul>

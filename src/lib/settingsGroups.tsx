@@ -64,6 +64,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     icon: Rocket,
     render: () => (
       <>
+        <LinkOut
+          to="/guide/telegram"
+          title="What the chat can do"
+          blurb="Every file type and size that works, what's read-only, and what only gets finished here. Same words the chat gives you, saveable as a file."
+        />
         <InstallVantaSection />
         <HowVantaWorksSection />
         <VerdictDownloadCard />
@@ -149,6 +154,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
           to="/settings/telegram"
           title="Telegram"
           blurb="Connect your bot, pair your phone, and watch messages land in the Inbox."
+        />
+        <LinkOut
+          to="/guide/telegram"
+          title="What the chat can do"
+          blurb="File types, sizes, read-only sources, and what only finishes here. Save a copy to hand to someone else."
         />
         <LinkOut
 

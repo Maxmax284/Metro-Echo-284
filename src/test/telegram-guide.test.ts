@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  TELEGRAM_APP_ONLY,
   TELEGRAM_COMMANDS,
+  TELEGRAM_FILE_RULES,
+  TELEGRAM_READ_ONLY,
   matchHelpQuestion,
   renderTelegramGuideMarkdown,
   renderTelegramHelp,
@@ -36,6 +39,23 @@ describe("telegram guide", () => {
     for (const c of TELEGRAM_COMMANDS) expect(help).toContain(c.cmd);
     expect(help).toContain("without your yes");
     expect(help).toContain("Reading never stages");
+  });
+
+  it("spells out file types, sizes, read-only sources and app-only work", () => {
+    const help = renderTelegramHelp();
+    for (const r of TELEGRAM_FILE_RULES) expect(help).toContain(r.what);
+    expect(help).toContain("20 MB");
+    expect(help.toLowerCase()).toContain("read only");
+    expect(help).toContain(TELEGRAM_APP_ONLY[0]);
+    expect(help).toContain(TELEGRAM_READ_ONLY[0]);
+    expect(TELEGRAM_FILE_RULES.some((r) => r.works === "no")).toBe(true);
+  });
+
+  it("puts the same file rules in the saveable copy", () => {
+    const md = renderTelegramGuideMarkdown(null);
+    for (const r of TELEGRAM_FILE_RULES) expect(md).toContain(r.what);
+    expect(md).toContain("## Read only, always");
+    expect(md).toContain("## Finished in the app, not in the chat");
   });
 
   it("writes a saveable copy that names the bot", () => {
