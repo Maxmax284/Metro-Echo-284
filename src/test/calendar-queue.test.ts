@@ -32,4 +32,16 @@ describe("calendar queue panel", () => {
     expect(q.text).toMatch(/Written to Google:/);
     expect(q.text).toMatch(/Retry write/);
   });
+
+  it("offers a stop on edits that have not run, and never on written ones", () => {
+    const q = buildCalendarQueue([
+      { id: "a", status: "staged", payload: proposal("Dentist") },
+      { id: "b", status: "approved", payload: proposal("Dani at One Loudoun") },
+      { id: "c", status: "executed", payload: proposal("Wingate checkout") },
+    ]);
+    expect(q.stopIds).toEqual(["a"]);
+    expect(q.retryIds).toEqual(["b"]);
+    expect(q.stopIds).not.toContain("c");
+    expect(q.text).toMatch(/Stop it kills one before it runs/);
+  });
 });
