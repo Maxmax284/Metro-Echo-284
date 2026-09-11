@@ -11,6 +11,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { ocrImage } from "../_shared/pageRead.ts";
+import { lookAtImage } from "../_shared/lookAt.ts";
 
 import {
   DETECTED_DOC_TYPES,
