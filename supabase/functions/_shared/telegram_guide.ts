@@ -129,6 +129,7 @@ export function renderTelegramHelp(): string {
     "• Guess when two sources disagree — I show you the contradiction first.",
     "• Pretend a calendar you added by link can be edited. It's read-only, and I'll say so.",
     "• Finish big, messy or high-stakes changes from a chat window. Those get done in the app.",
+    "• Read video, or file types I don't handle yet. I'll name the file and say so instead of bluffing.",
     "Reading never stages anything. Looking is just looking.",
     "",
     "Full rundown lives in Settings → Telegram, and you can save a copy there.",
