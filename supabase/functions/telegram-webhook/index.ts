@@ -955,6 +955,16 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       if (out.status === "needs_confirmation") {
         toolMarkup = keyboard(calendarStrongConfirmationButtons(pending.id, pending.payload.version));
       }
+    } else if (readsAsRejection(text)) {
+      /* Nothing waiting on a yes, but a yes already given hasn't landed —
+         "stop it" still has to mean stop. */
+      const approved = await approvedUnwrittenCalendarAction(sb, userId);
+      if (approved) {
+        const out = await stopCalendarProposal(sb, userId, { actionId: approved.id, source: "telegram_text" });
+        reply = out.text;
+        readOnly = true;
+        calendarActionId = approved.id;
+      }
     }
   }
 
