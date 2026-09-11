@@ -411,9 +411,12 @@ export function ActionsSurface() {
                                 </span>
                               ))}
 
-                            {(a.status === "proposed" || a.status === "staged") && (
+                            {/* Anything that hasn't run yet can be stopped here —
+                                approved included. Nothing outside was touched, so
+                                stopping is honest; the receipt still stays. */}
+                            {(a.status === "proposed" || a.status === "staged" || a.status === "approved") && (
                               <Button size="sm" variant="ghost" className={MOTION_FOCUS} disabled={busy === a.id} onClick={() => transition(a, "cancelled")}>
-                                Cancel
+                                {a.status === "approved" ? "Stop it" : "Cancel"}
                               </Button>
                             )}
 
