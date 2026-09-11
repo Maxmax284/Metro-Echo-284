@@ -5,7 +5,7 @@
 // room so a confused user is never sent into Settings to hunt for it.
 import { BRAND_EXPLAINER } from "@/lib/brand";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
 import { ROOM_MAP } from "@/lib/roomCopy";
 import { GlossaryPanel } from "@/components/ui/glossary-panel";
 
@@ -15,6 +15,15 @@ const ICON: Record<string, LucideIcon> = {
   ask: MessageSquare,
   receipts: Receipt,
 };
+
+/* The only entrances to the explanatory pages. They used to be seven separate
+   doors in the URL bar; now they live behind this one. */
+const BEHIND_THE_DOOR = [
+  { to: "/how/paper", title: "Paper and phone", line: "A photo or a message from your pocket, all the way to a receipt." },
+  { to: "/how/watch", title: "The watch loop", line: "What your wrist is allowed to read, and where it shows up." },
+  { to: "/how/glance", title: "Glance", line: "The wrist screen: one thing worth your attention, or nothing." },
+  { to: "/how/trends", title: "Body trends", line: "What your readings have been doing lately. A read, never an approval." },
+];
 
 export default function RoomMapPage() {
   return (
