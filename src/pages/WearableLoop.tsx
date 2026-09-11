@@ -92,7 +92,7 @@ export default function WearableLoopPage() {
       </header>
 
       <Link
-        to="/glance"
+        to="/how/glance"
         className="vanta-card vanta-focus mb-4 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-surface-elevated"
       >
         <span className="min-w-0">
@@ -124,7 +124,7 @@ export default function WearableLoopPage() {
       <section className="vanta-card mb-4 flex flex-wrap items-center gap-2 p-3">
         <MachineLabel className="text-foreground/70">Where it shows up</MachineLabel>
         <Link
-          to="/watch"
+          to="/how/trends"
           className="vanta-focus ml-auto inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40"
         >
           See the trends

@@ -122,7 +122,7 @@ function WatchPriorityLine({
       <div className="flex flex-wrap items-center gap-2">
         <MachineLabel className="text-foreground/70">Right now</MachineLabel>
         <Link
-          to="/glance"
+          to="/how/glance"
           className="vanta-focus ml-auto inline-flex min-h-[28px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] hover:border-primary/40"
         >
           Open Glance
@@ -153,7 +153,7 @@ export default function WatchPage() {
     <div className="mx-auto max-w-2xl px-4 pb-24 pt-6">
       <header className="mb-5 flex items-center gap-3">
         <Link
-          to="/wearable-loop"
+          to="/how/watch"
           aria-label="Back to the watch loop"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
@@ -202,7 +202,7 @@ export default function WatchPage() {
             title="No sense is switched on"
             hint="Heart rate and daily activity are both off, so there is nothing measured to draw. Turn one on in the watch loop and the first reading will appear here."
             actionLabel="Open the watch loop"
-            onAction={() => { window.location.href = "/wearable-loop"; }}
+            onAction={() => { window.location.href = "/how/watch"; }}
           />
         </section>
       ) : !trends.readings.length ? (
@@ -215,7 +215,7 @@ export default function WatchPage() {
                 : "Heart rate is on but daily activity is off, so steps, sleep and workouts are not stored."
             }
             actionLabel="Open the watch loop"
-            onAction={() => { window.location.href = "/wearable-loop"; }}
+            onAction={() => { window.location.href = "/how/watch"; }}
           />
         </section>
       ) : (

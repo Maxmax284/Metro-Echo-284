@@ -211,7 +211,7 @@ export default function GlancePage() {
     <div className="mx-auto max-w-[420px] px-3 pb-24 pt-4">
       <header className="mb-3 flex items-center gap-2">
         <Link
-          to="/wearable-loop"
+          to="/how/watch"
           aria-label="Back to the wearable loop"
           className="vanta-focus inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1 ring-border/60 hover:bg-surface-elevated"
         >
@@ -369,9 +369,9 @@ export default function GlancePage() {
       </div>
 
       <p className={cn("mt-3 text-center font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground")}>
-        <Link to="/watch" className="hover:text-foreground">Watch trends</Link>
+        <Link to="/how/trends" className="hover:text-foreground">Watch trends</Link>
         {" · "}
-        <Link to="/wearable-loop" className="hover:text-foreground">Wearables</Link>
+        <Link to="/how/watch" className="hover:text-foreground">Wearables</Link>
       </p>
     </div>
   );

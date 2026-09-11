@@ -31,7 +31,7 @@ export function TodayBodyPanel() {
       summary={loop.summary || "Your body · nothing switched on yet"}
       action={
         <Link
-          to="/wearable-loop"
+          to="/how/watch"
           className={cn(
             "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2 text-[10.5px] text-foreground/85 hover:border-primary/40",
             MOTION_FOCUS,

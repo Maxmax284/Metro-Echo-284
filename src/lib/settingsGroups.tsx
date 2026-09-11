@@ -114,12 +114,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     render: () => (
       <>
         <LinkOut
-          to="/wearable-loop"
+          to="/how/watch"
           title="The watch loop"
           blurb="Posture, which senses are on, live readings off a watch, the phone hand-off link, and the loop walked step by step."
         />
         <LinkOut
-          to="/physical-loop"
+          to="/how/paper"
           title="Paper and phone"
           blurb="Your Telegram loop, the page read, and one promise walked from message to receipt."
         />

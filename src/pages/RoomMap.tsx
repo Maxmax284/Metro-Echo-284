@@ -5,7 +5,7 @@
 // room so a confused user is never sent into Settings to hunt for it.
 import { BRAND_EXPLAINER } from "@/lib/brand";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Briefcase, MessageSquare, Receipt, Sun, type LucideIcon } from "lucide-react";
 import { ROOM_MAP } from "@/lib/roomCopy";
 import { GlossaryPanel } from "@/components/ui/glossary-panel";
 
@@ -15,6 +15,15 @@ const ICON: Record<string, LucideIcon> = {
   ask: MessageSquare,
   receipts: Receipt,
 };
+
+/* The only entrances to the explanatory pages. They used to be seven separate
+   doors in the URL bar; now they live behind this one. */
+const BEHIND_THE_DOOR = [
+  { to: "/how/paper", title: "Paper and phone", line: "A photo or a message from your pocket, all the way to a receipt." },
+  { to: "/how/watch", title: "The watch loop", line: "What your wrist is allowed to read, and where it shows up." },
+  { to: "/how/glance", title: "Glance", line: "The wrist screen: one thing worth your attention, or nothing." },
+  { to: "/how/trends", title: "Body trends", line: "What your readings have been doing lately. A read, never an approval." },
+];
 
 export default function RoomMapPage() {
   return (
@@ -67,6 +76,31 @@ export default function RoomMapPage() {
           );
         })}
       </ul>
+
+      <section className="vanta-card mt-4 p-4" aria-labelledby="loops-heading">
+        <h2 id="loops-heading" className="text-[14px] font-semibold tracking-tight">
+          How things get in here
+        </h2>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">
+          Four loops. Each one feeds Echo. None of them can approve anything.
+        </p>
+        <ul className="mt-3 space-y-1.5">
+          {BEHIND_THE_DOOR.map((d) => (
+            <li key={d.to}>
+              <Link
+                to={d.to}
+                className="vanta-focus flex items-center justify-between gap-3 rounded-[3px] border border-border/50 px-3 py-2.5 hover:bg-surface-elevated"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-medium tracking-tight">{d.title}</span>
+                  <span className="block text-[11.5px] leading-snug text-muted-foreground">{d.line}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="vanta-card mt-4 p-4" aria-labelledby="glossary-heading">
         <h2 id="glossary-heading" className="text-[14px] font-semibold tracking-tight">

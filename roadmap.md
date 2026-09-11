@@ -80,6 +80,7 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 - [x] Today location relevance: a place no longer appears merely because Today has
       unrelated lines or nearby content. It speaks only for a real move, active trip,
       clock drift, or when place changes a near-term calendar answer.
-- [ ] Next (deeper refactors): route cleanup
+- [x] Route cleanup — the seven side pages now live behind one door (`/how`), old links redirect
+- [ ] Next: Ask ↔ widget continuity (same thread either way)
       (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
       Ask <-> widget continuity; Aware 384px prove-it; motion consolidation.
