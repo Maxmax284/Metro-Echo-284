@@ -1,8 +1,8 @@
 // One Echo, one answer about pictures. These tests exist because the chat once
 // looked at a photo and, one message earlier, claimed it was blind.
 import { describe, expect, it } from "vitest";
-import { MEDIA_CAPABILITY, VANTA_PHRASES } from "../../supabase/functions/_shared/vantaVoice";
-import { afterLookLine, LOOK_INTENTS } from "../../supabase/functions/_shared/lookAt";
+import { MEDIA_CAPABILITY } from "../../supabase/functions/_shared/vantaIdentity";
+import { afterLookLine, LOOK_INTENTS } from "@/lib/lookAt";
 import { renderTelegramHelp, TELEGRAM_GUIDE } from "../../supabase/functions/_shared/telegram_guide";
 
 describe("media capability contract", () => {
