@@ -181,17 +181,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             target = resolved.event;
           }
 
-          const changes: CalendarFieldChange[] = (Array.isArray(args.changes) ? args.changes : [])
-            .map((c: any) => {
-              const field = normalizeCalendarField(c?.field);
-              return {
-                field,
-                label: calendarFieldLabel(field),
-                /* An omitted `after` means removal — same reading as Telegram. */
-                before: c?.before != null && String(c.before).trim() ? String(c.before) : null,
-                after: c?.after != null && String(c.after).trim() ? String(c.after) : null,
-              };
-            });
+          const changes: CalendarFieldChange[] = mapCalendarChanges(args.changes);
 
           if (!changes.length) {
             toast.warning({ title: "Nothing to change", description: "Tell me what should be different." });
