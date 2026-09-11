@@ -30,6 +30,12 @@ import {
   projectCalendarEvent,
   telegramMayAutoExecute,
 } from "../_shared/calendarExecute.ts";
+import {
+  pendingCalendarAction,
+  readsAsApproval,
+  readsAsRejection,
+  settleCalendarProposal,
+} from "../_shared/calendarSettle.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
 import {
   answerAfterEvent,
