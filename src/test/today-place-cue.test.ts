@@ -14,8 +14,9 @@ describe("readPlaceCue", () => {
     expect(readPlaceCue({ ...base, name: "   " }).show).toBe(false);
   });
 
-  it("grounds the read when the board has lines and the fix is fresh", () => {
-    const cue = readPlaceCue(base);
+  it("grounds the read only when place changed the answer", () => {
+    expect(readPlaceCue(base).show).toBe(false);
+    const cue = readPlaceCue({ ...base, explainsRead: true });
     expect(cue.show).toBe(true);
     expect(cue.reason).toBe("grounds");
     expect(cue.where).toBe("Chantilly");
@@ -31,6 +32,11 @@ describe("readPlaceCue", () => {
 
   it("will not lean on a stale fix that explains nothing", () => {
     expect(readPlaceCue({ ...base, stale: true }).show).toBe(false);
+  });
+
+  it("does not announce location just because nearby content exists", () => {
+    expect(readPlaceCue({ ...base, lineCount: 0, boardLines: 8 }).show).toBe(false);
+    expect(readPlaceCue({ ...base, lineCount: 2, boardLines: 8 }).show).toBe(false);
   });
 
   it("flips once on a recorded move, and only a real one", () => {

@@ -5,7 +5,7 @@
 //   - place never gets a module of its own. It is a clause on an existing line
 //     or one light strip above the read, and nothing else.
 //   - the strip appears only when place actually matters: it grounds a line on
-//     the board, a real move just happened, a trip is running, or the clock
+//     the answer, a real move just happened, a trip is running, or the clock
 //     disagrees with the device. A quiet day shows nothing at all.
 //   - an aging fix says how old it is in words. Opacity is not honesty.
 //   - a severe board simplifies. It never gains decoration.
@@ -101,7 +101,7 @@ export type PlaceCueInput = {
   age?: string | null;
   /** True when the fix is old enough that it must not be spoken as "now". */
   stale?: boolean;
-  /** How many lines the situation read put on the board. Place alone is not news. */
+  /** How many lines the situation read put on the board. Kept for compatibility. */
   lineCount: number;
   /** True when a line on the board is explained by where you are standing. */
   explainsRead?: boolean;
@@ -112,9 +112,8 @@ export type PlaceCueInput = {
   /** A trip is running right now. */
   tripActive?: boolean;
   /**
-   * How many recorded lines the place board holds behind the strip: named places
-   * nearby, local changes, entries on your day here. Real content earns the
-   * strip on its own; an empty board never does.
+   * How many recorded lines the place board holds behind the strip. Content can
+   * fill the drawer, but it cannot make location announce itself on Today.
    */
   boardLines?: number;
   /** Severe board. Simplify rather than decorate. */
@@ -132,7 +131,7 @@ export type PlaceCue = {
   /** A real move, for one mechanical flip. Never continuous movement. */
   transition: { from: string; to: string } | null;
   /** Why the strip is on screen at all. */
-  reason: "moved" | "trip" | "clock" | "grounds" | "board" | null;
+  reason: "moved" | "trip" | "clock" | "grounds" | null;
   /** Severe state: the strip carries the place and nothing else. */
   simplified: boolean;
 };
@@ -160,8 +159,9 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
   const transition = movedFrom && movedFrom !== where ? { from: movedFrom, to: where } : null;
 
   /* The reasons place is allowed to speak, in order of consequence. */
-  const grounds = input.lineCount > 0 && (!!input.explainsRead || !stale);
-  const hasBoard = (input.boardLines ?? 0) > 0 && !stale;
+  /* A fresh pin beside an unrelated promise is still irrelevant. Location
+     grounds Today only when the situation reader says it changed the answer. */
+  const grounds = input.lineCount > 0 && !!input.explainsRead;
   const reason: PlaceCue["reason"] = transition
     ? "moved"
     : input.tripActive
@@ -170,9 +170,7 @@ export function readPlaceCue(input: PlaceCueInput): PlaceCue {
         ? "clock"
         : grounds
           ? "grounds"
-          : hasBoard
-            ? "board"
-            : null;
+          : null;
 
   /* Quiet day, quiet strip. Echo does not prove it is running. */
   if (!reason) return HIDDEN;

@@ -103,7 +103,7 @@ describe("place-aware relevance", () => {
     expect(placeNoteFor({ where: "Surat Thani", scope: "exact", at: iso(0) })).toContain("Read from where you are");
   });
 
-  it("still adds no line of its own", () => {
+  it("adds neither a line nor a place footnote beside an unrelated arrival", () => {
     const read = readSituation({
       now: NOW,
       overdue: [],
@@ -115,7 +115,7 @@ describe("place-aware relevance", () => {
       projects: [],
       place: { where: "Surat Thani", scope: "exact", at: iso(60_000), savedPlace: "Lamai" },
     });
-    expect(read.placeNote).toBe("You're at Lamai.");
+    expect(read.placeNote).toBeNull();
     expect(read.lines).toHaveLength(1);
   });
 });
