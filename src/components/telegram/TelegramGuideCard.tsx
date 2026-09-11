@@ -46,9 +46,14 @@ export function TelegramGuideCard({ botUsername }: { botUsername?: string | null
             <span className="text-foreground">“how do I use you”</span> in the chat and it says all of this back.
           </p>
         </div>
-        <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={download}>
-          <Download className="h-3.5 w-3.5" /> Save a copy
-        </Button>
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={download}>
+            <Download className="h-3.5 w-3.5" /> Save the guide
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-1.5 text-[11px]" onClick={downloadHelp}>
+            <Download className="h-3.5 w-3.5" /> Save the /help text
+          </Button>
+        </div>
       </div>
 
       <button
