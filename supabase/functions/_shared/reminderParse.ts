@@ -171,3 +171,16 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
   const phrasing = `${dayPhrase} at ${pad(hh > 12 ? hh - 12 : hh === 0 ? 12 : hh)}:${pad(mm)} ${hh >= 12 ? "PM" : "AM"} ${tz}`;
   return { status: "ok", due_at: iso, remind_at: iso, timezone: tz, phrasing };
 }
+
+/**
+ * A nudge and an appointment are not the same object. If the sentence names
+ * another person or a place, the user almost certainly wants it on the
+ * calendar, not only in Echo's own reminder list.
+ */
+export function looksLikeAppointment(text: string): boolean {
+  const t = (text ?? "").toLowerCase();
+  if (!t.trim()) return false;
+  const withPeople = /\b(with|and)\s+[a-z]{2,}\b/.test(t) || /\b(meet|meeting|meet up|meetup|call with|coffee with|lunch with|dinner with|appointment|appt|interview|viewing|showing)\b/.test(t);
+  const withPlace = /\b(at|@)\s+[a-z0-9]/.test(t) && !/\b(at)\s+\d{1,2}(:\d{2})?\s*(am|pm)?\b/.test(t);
+  return withPeople || withPlace;
+}

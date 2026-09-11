@@ -63,6 +63,9 @@ export const VANTA_PHRASES = {
     `Handled — I'll nudge you ${when}.`,
     `Reminder set for ${when}.`,
   ),
+  /** A nudge is not a calendar entry. Say so before the user goes looking for it. */
+  reminderNotOnCalendar: () =>
+    "That's a nudge from me, not a calendar entry — nothing landed in Google. Want it on the calendar too?",
   reminderNeedsTime: () => pick(
     "I can do that — what time?",
     "Need a time before I can remind you. When?",

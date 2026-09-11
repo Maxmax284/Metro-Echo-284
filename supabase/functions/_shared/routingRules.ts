@@ -5,7 +5,8 @@
 // way, even if some tools (sherlock/awareness/schedule) only execute in-app.
 
 export const ROUTING_RULES = `Tool routing rules (apply identically across channels):
-- "Remind me…" / "Set a reminder…" / "Nudge me…" / "Follow up…" / "Don't let me forget…" → call set_reminder with summary + the user's exact time phrasing in "when".
+- "Remind me…" / "Set a reminder…" / "Nudge me…" / "Follow up…" / "Don't let me forget…" with NO other people, no place and no fixed appointment → call set_reminder with summary + the user's exact time phrasing in "when". A reminder is a private nudge; it does not go on the calendar.
+- If the same request describes a real appointment — another person is named, or a place is named, or it is plainly a meeting/booking at a clock time ("me and Dani are meeting Tuesday 6pm at One Loudoun") — call stage_calendar_change with an existence change to create the event, and put any "remind me a day / an hour before" wording in a reminder change on the same proposal. Do NOT settle for set_reminder there: the user expects it on their calendar. If both a nudge and an event are wanted, stage the event first and say the nudge rides along with it.
 - "Add a note…" / "Save this…" / "Note that…" / "Remember this…" / "File this…" / "Jot down…" → call capture_note.
 - "I promised…" / "I committed to…" / "Track this as a commitment" / "Hold me to…" → call add_commitment.
 - "Draft an action…" / "Stage…" / external action to take → call stage_action.
