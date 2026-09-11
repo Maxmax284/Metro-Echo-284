@@ -114,6 +114,15 @@ ${VOICE_RULES}
 
 ${STRUCTURE_RULES}`;
 
+/* Calendar changes are conversational here, exactly as they are on Telegram:
+   say it in your own words, see the exact before/after, adjust it by talking,
+   approve once. Nothing reaches the calendar without that approval. */
+const CALENDAR_CHANGE_DIRECTIVE = `Changing the calendar by talking:
+- The user can say it however they like ("push my dentist to Thursday morning", "book me and Dani Tuesday 6pm at One Loudoun", "cancel the Friday call"). Call stage_calendar_change with exact before/after values and their own words in event_reference.
+- When they then adjust what you showed them ("actually 3:30", "make it Old Town instead", "lose the reminder"), call refine_calendar_change with the FULL set of changes after the adjustment. Never stage a second proposal for the same event.
+- Staging changes nothing. Say what would change and that it is waiting on their approval. Never claim the calendar has been updated yourself — the approval does that and leaves a receipt.
+- If you cannot tell which event they mean, ask rather than guess.`;
+
 const tools = [
   {
     type: "function",
