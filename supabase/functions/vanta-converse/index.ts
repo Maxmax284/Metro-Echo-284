@@ -600,7 +600,10 @@ Deno.serve(async (req: Request) => {
         location: r.location ?? null,
         all_day: r.all_day ?? null,
       }));
-      calendarBlock = calendarContextBlock(calEvents, { tz });
+      calendarBlock = [
+        calendarContextBlock(calEvents, { tz }),
+        CALENDAR_CHANGE_DIRECTIVE,
+      ].filter(Boolean).join("\n\n");
     } catch (e) { console.error("ask calendar context", e); }
 
     const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
