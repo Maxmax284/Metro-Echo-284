@@ -1518,7 +1518,12 @@ Deno.serve(async (req) => {
         chat_id: chatId,
         text: queue.text,
         reply_markup: keyboard(
-          ...queue.retryIds.slice(0, 3).map((id) => [{ text: "Retry write", callback_data: `calretry:${id}` }]),
+          ...queue.retryIds.slice(0, 3).map((id) => [
+            { text: "Retry write", callback_data: `calretry:${id}` },
+            { text: "Stop it", callback_data: `calstop:${id}` },
+          ]),
+          /* Anything still waiting on a yes can be killed right here. */
+          ...queue.stopIds.slice(0, 3).map((id) => [{ text: "Stop it", callback_data: `calstop:${id}` }]),
           [openButton("actions", { label: "Open it in Metro Echo" })],
         ),
       });
