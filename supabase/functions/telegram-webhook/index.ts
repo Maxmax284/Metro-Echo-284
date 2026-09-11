@@ -947,6 +947,24 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
   }
 
+  /* A typed "yes" is still an approval. Same settle path as the Yes button, so
+     an answer given in words is never lost to conversation. */
+  if (!intents.length && !reply && (readsAsApproval(text) || readsAsRejection(text))) {
+    const pending = await pendingCalendarAction(sb, userId);
+    if (pending) {
+      const out = await settleCalendarProposal(sb, userId, {
+        actionId: pending.id,
+        approve: readsAsApproval(text),
+        source: "telegram_text",
+      });
+      reply = out.text;
+      readOnly = true;
+      calendarActionId = pending.id;
+    }
+  }
+
+
+
   if (matchCapabilityQuestion(text)) {
     const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;
     const [{ count: feedCount }, { count: linkCount }] = await Promise.all([
