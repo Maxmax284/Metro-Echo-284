@@ -16,6 +16,7 @@ import {
   buildCalendarProposal,
   calendarProposalRisk,
   calendarProposalTitle,
+  createsCalendarEvent,
   isCalendarProposal,
   proposalSummary,
   refineCalendarProposal,
@@ -166,7 +167,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           if (reference) {
             const resolved = resolveEventReference(reference, events);
             if (resolved.status === "none") {
-              const creating = (Array.isArray(args.changes) ? args.changes : []).some((c: any) => c?.field === "existence" && c?.after != null && String(c.after).trim());
+              const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
               if (!creating) {
                 toast.warning({
                   title: "I couldn't find that one",
@@ -174,15 +175,15 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
                 });
                 return;
               }
-            }
-            if (resolved.status === "many") {
+            } else if (resolved.status === "many") {
               toast.warning({
                 title: "Which one do you mean?",
                 description: resolved.candidates.map((c) => c.title).join(" · "),
               });
               return;
+            } else {
+              target = resolved.event;
             }
-            target = resolved.event;
           }
 
           const changes: CalendarFieldChange[] = mapCalendarChanges(args.changes);

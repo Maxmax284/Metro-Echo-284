@@ -175,6 +175,11 @@ export function isCreation(proposal: CalendarProposal): boolean {
   return !proposal.event;
 }
 
+/** A missing calendar match is valid only when the proposal explicitly creates one. */
+export function createsCalendarEvent(changes: Array<Pick<CalendarFieldChange, "field" | "after">>): boolean {
+  return changes.some((change) => change.field === "existence" && change.after != null && String(change.after).trim().length > 0);
+}
+
 /**
  * Risk follows consequence, not effort. Anything that makes Google notify other
  * people is never one-tap; cancelling on top of that is the strongest gate.

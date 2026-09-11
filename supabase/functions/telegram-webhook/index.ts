@@ -14,6 +14,7 @@ import {
   calendarFieldLabel,
   calendarProposalRisk,
   calendarProposalTitle,
+  createsCalendarEvent,
   isCalendarProposal,
   normalizeCalendarChangeField,
   proposalSummary,
@@ -555,7 +556,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (reference) {
       const resolved = resolveEventReference(reference, events);
       if (resolved.status === "none") {
-        const creating = (Array.isArray(args.changes) ? args.changes : []).some((c: any) => c?.field === "existence" && c?.after != null && String(c.after).trim());
+        const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
         if (!creating) return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
       }
       if (resolved.status === "many") {
