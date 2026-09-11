@@ -91,18 +91,18 @@ export const VANTA_PHRASES = {
       "Code didn't check out. Generate a new one in the app and send it again.",
     ),
     linked: () => pick(
-      "You're paired. Send me whatever — notes, promises, reminders, photos of paper. Nothing here goes live without you.",
-      "Paired. Talk to me like a person: notes, promises, reminders, photos of paper. Nothing gets approved from this chat.",
+      "You're paired. Send me whatever — notes, promises, reminders, photos, screenshots, documents, voice notes. Nothing here goes live without you.",
+      "Paired. Talk to me like a person: notes, promises, reminders, and any picture or file you want me to look at. Nothing gets approved from this chat.",
     ),
     notLinked: () => "This chat isn't paired to anyone yet. Grab a code in the app, then send: /start YOURCODE",
-    textOnly: () => "Nothing readable in that one. Text or a photo of the page works.",
+    textOnly: () => "Nothing readable in that one. Text, a photo, a screenshot, a document or a voice note all work.",
     snag: () => pick(
       "That didn't land — my end, not yours. Try it again in a minute.",
       "Something jammed on my side. Send it once more.",
     ),
     help: () => [
       "Plain language is the whole interface. No commands to memorise.",
-      "I'll save notes, set reminders, track promises, stage drafts, and read photos of paper. Ask me what's waiting, what's due, what changed, or how a project's going.",
+      "I'll save notes, set reminders, track promises, stage drafts, look at photos and screenshots, and read documents and voice notes. Ask me what's waiting, what's due, what changed, or how a project's going.",
       "What I won't do from here: approve, send, export, book or pay. That's yours, inside Metro Echo. Commands: /help, /unlink.",
     ].join("\n\n"),
     unlinked: () => "Unlinked. Nothing from this chat reaches you until you pair again.",
@@ -180,6 +180,28 @@ Lead with what matters. One or two plain sentences in "short_summary".
 "what_to_do_next" is one concrete next step the user can actually take right now.
 If location data looks weak or sources are off, say that out loud — don't fake confidence.
 Never use markdown, bullets, asterisks, or emoji inside any string field.`;
+
+/**
+ * What Echo can actually do with pictures and files, stated once and shared by
+ * every surface. Capability is not tool-shaped: the media lane runs before the
+ * conversation does, so no prompt should conclude "no image tool, therefore I
+ * am blind". Wrong denials are the bug this text exists to prevent.
+ */
+export const MEDIA_CAPABILITY = `What you can do with pictures and files (true on every surface, app and chat alike):
+You CAN see and understand images. When someone sends a photo, a screenshot or an image file, it
+is looked at properly — what it shows, who or what is in it, what the scene is, what the text says.
+That happens on the media lane, not through a tool call, so never say you have no tool for it and
+never say you cannot see or analyse images. If someone asks whether you can look at pictures, the
+answer is yes: photos, screenshots, image files. Tell them to send it.
+You CAN read documents: PDFs, Word files, plain text, scans, and voice notes (written out).
+Everything sent is kept and saved for review; nothing sent is filed under a project, approved,
+sent, exported or executed on its own.
+Real limits, said exactly and never widened into "I can't do images": video and unusual file types
+are not read yet, a picture too blurry or dark to make out gets said plainly, and a file too large
+for Telegram to hand over gets said plainly.
+When a picture is obvious, name it. Do not hedge with "appears to be", "seems to be", "an
+illustration of a character resembling". Say what it is like a person would; keep hedging for when
+you are genuinely unsure, and then say you are unsure.`;
 
 // Surface variants — same voice family, different accent. Reserved for Stage 4.
 export const COMPANION_VOICE = `${VANTA_CORE_VOICE}\nCompanion voice: conversational, helpful, direct, grounded.`;
