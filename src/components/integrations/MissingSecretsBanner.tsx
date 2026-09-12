@@ -28,38 +28,24 @@ export function MissingSecretsBanner() {
   if (missing.length === 0) return null;
 
   return (
-    <section className="mx-3 mb-2 rounded-xl bg-destructive/10 p-3 ring-1 ring-destructive/30 md:mx-4">
+    <section className="mx-3 mb-2 rounded-md bg-destructive/10 px-3 py-2 ring-1 ring-destructive/30 md:mx-4">
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[12.5px] font-medium">
+            <div className="text-[12px] font-medium">
               {missing.length === 1
-                ? "1 integration needs a secret"
-                : `${missing.length} integrations need secrets`}
+                ? "1 connection needs setup"
+                : `${missing.length} connections need setup`}
             </div>
             <Link
               to="/settings/integrations"
               className="inline-flex items-center gap-1 rounded-md bg-background/60 px-2 py-1 text-[11px] font-medium ring-1 ring-border/60 hover:ring-primary/50"
             >
-              Open Integrations <ArrowRight className="h-3 w-3" />
+              Fix in Settings <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <ul className="mt-2 space-y-1">
-            {missing.map(({ def }) => (
-              <li key={def.key} className="flex flex-wrap items-center gap-2 text-[11.5px]">
-                <Link
-                  to={`/settings/integrations#integration-${def.key}`}
-                  className="font-medium underline-offset-2 hover:underline"
-                >
-                  {def.name} inbound connection
-                </Link>
-                <span className="text-muted-foreground">needs setup</span>
-              </li>
-            ))}
-          </ul>
-
         </div>
       </div>
     </section>

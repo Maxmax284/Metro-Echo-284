@@ -1,26 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   MessageSquare,
-  Notebook,
-  ListChecks,
-  Compass,
-  CheckSquare,
-  Search,
-  LayoutDashboard,
-  MoreHorizontal,
-  CalendarClock,
-  Inbox,
-  FolderKanban,
   Receipt,
   Sun,
   Briefcase,
   Sparkles,
-  Settings as SettingsIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
 import { setRoom, throwFrom } from "@/lib/skins";
 
@@ -32,16 +20,6 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   { key: "work", label: "Work", Icon: Briefcase },
   { key: "ask", label: "Ask", Icon: Sparkles },
   { key: "receipts", label: "Receipts", Icon: Receipt },
-  // Specialist desks (reachable through Work, Today drill-downs and More)
-  { key: "projects", label: "Projects", Icon: FolderKanban },
-  { key: "inbox", label: "Inbox", Icon: Inbox },
-  { key: "memory", label: "Memory", Icon: Notebook },
-  { key: "commitments", label: "Commitments", Icon: CheckSquare },
-  { key: "schedule", label: "Schedule", Icon: CalendarClock },
-  { key: "actions", label: "Actions", Icon: ListChecks },
-  { key: "sherlock", label: "Sherlock", Icon: Search },
-  { key: "awareness", label: "Aware", Icon: Compass },
-  { key: "command", label: "Cockpit", Icon: LayoutDashboard },
 ];
 
 export function SurfaceTabs({
@@ -53,12 +31,8 @@ export function SurfaceTabs({
   onChange: (k: SurfaceKey) => void;
   variant?: "rail" | "bottom";
 }) {
-  const [moreOpen, setMoreOpen] = useState(false);
-
-  const primaryItems = PRIMARY_ROOMS.map((k) => items.find((i) => i.key === k)!).filter(Boolean);
-  const overflowItems = items.filter((i) => !(PRIMARY_ROOMS as string[]).includes(i.key));
+  const primaryItems = PRIMARY_ROOMS.map((k) => items.find((i) => i.key === k)).filter((i): i is (typeof items)[number] => Boolean(i));
   const activeRoom = roomForSurface(active);
-  const activeInOverflow = overflowItems.some((i) => i.key === active);
 
   // The world has four corners: tell the backdrop which room we are in so the
   // ambient wash moves with navigation instead of being swapped out.
@@ -74,79 +48,6 @@ export function SurfaceTabs({
     onChange(key);
   };
 
-  const MoreSheet = (
-    <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-      <SheetTrigger asChild>
-        <button
-          className={cn(
-            variant === "bottom"
-              ? "flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-[11px]"
-              : "group relative flex h-11 w-11 items-center justify-center rounded-xl",
-            MOTION_ROW,
-            MOTION_FOCUS,
-            activeInOverflow
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated"
-          )}
-
-          aria-label="More tools"
-          title="More tools"
-        >
-          <MoreHorizontal
-            className={cn("h-5 w-5", activeInOverflow && "drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]")}
-          />
-          {variant === "bottom" && <span className="tracking-wide">More</span>}
-        </button>
-      </SheetTrigger>
-      <SheetContent side={variant === "bottom" ? "bottom" : "left"} className={variant === "bottom" ? "rounded-t-2xl pb-8" : "w-[300px]"}>
-        <SheetHeader>
-          <SheetTitle className="text-sm">Specialist desks</SheetTitle>
-          <SheetDescription className="text-xs">
-            These all live inside Work or open from Today. Come here when you want one on its own.
-          </SheetDescription>
-        </SheetHeader>
-        <a
-          href="/settings"
-          className={cn(
-            "mt-3 flex min-h-[44px] items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary",
-            MOTION_ROW,
-            MOTION_FOCUS,
-          )}
-        >
-          <SettingsIcon className="h-4 w-4" />
-          Settings — Control Room
-        </a>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-
-          {overflowItems.map(({ key, label, Icon }) => {
-            const isActive = key === active;
-            return (
-              <button
-                key={key}
-                onClick={(e) => {
-                  go(key, e);
-                  setMoreOpen(false);
-                }}
-                className={cn(
-                  "flex min-h-[44px] items-center gap-2 rounded-xl border border-border/60 px-3 py-3 text-left text-sm",
-                  MOTION_ROW,
-                  MOTION_FOCUS,
-                  isActive
-                    ? "bg-primary/15 text-primary border-primary/30"
-                    : "bg-surface-elevated text-foreground/90 hover:text-foreground"
-                )}
-
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-
   if (variant === "bottom") {
     return (
       <nav
@@ -154,7 +55,7 @@ export function SurfaceTabs({
         className="glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 px-2 pt-1.5 md:hidden"
       >
         {primaryItems.map(({ key, label, Icon }) => {
-          const isActive = activeRoom === key && !activeInOverflow;
+          const isActive = activeRoom === key;
           /* Ask is the intelligence room, so it marks in accent purple. The
              operational rooms stay cyan. Colour keeps meaning that way. */
           const tone = key === "ask" ? "accent" : "primary";
@@ -200,20 +101,6 @@ export function SurfaceTabs({
             </button>
           );
         })}
-
-        <a
-          href="/settings"
-          aria-label="Settings"
-          className={cn(
-            "flex min-h-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px] text-muted-foreground hover:text-foreground",
-            MOTION_ROW,
-          )}
-        >
-          <SettingsIcon className="h-5 w-5" />
-          <span className="tracking-[0.02em]">Settings</span>
-        </a>
-
-        {MoreSheet}
       </nav>
     );
   }
@@ -221,7 +108,7 @@ export function SurfaceTabs({
   return (
     <nav aria-label="Primary" className="hidden md:flex md:w-16 md:flex-col md:items-center md:gap-2 md:py-4">
       {primaryItems.map(({ key, label, Icon }) => {
-        const isActive = activeRoom === key && !activeInOverflow;
+        const isActive = activeRoom === key;
         const accent = key === "ask";
         return (
           <button
@@ -256,22 +143,6 @@ export function SurfaceTabs({
           </button>
         );
       })}
-
-      <div className="mt-1">{MoreSheet}</div>
-
-      <a
-        href="/settings"
-        title="Settings"
-        aria-label="Settings"
-        className={cn(
-          "group mt-auto flex h-11 w-11 flex-col items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-elevated hover:text-foreground",
-          MOTION_MICRO,
-          MOTION_FOCUS,
-        )}
-      >
-        <SettingsIcon className="h-5 w-5" />
-        <span className="text-[9px] leading-tight tracking-[0.02em]">Settings</span>
-      </a>
     </nav>
   );
 }

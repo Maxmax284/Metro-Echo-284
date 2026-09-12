@@ -187,15 +187,11 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Two-row header */}
       <div className="space-y-2 border-b border-border/40 px-3 py-2.5 md:px-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <ScrollText className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-medium">Receipts</h2>
-            <span className="rounded-full bg-muted/30 px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              every change, who did it, and when
-            </span>
           </div>
           <div className="flex items-center gap-1">
             <ExplainThisButton room="receipts" />
@@ -204,15 +200,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
             </Button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-            <StatusDot tone="primary" /> {audit.length} event{audit.length === 1 ? "" : "s"}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/20 px-2 py-0.5 ring-1 ring-border/50">
-            <StatusDot tone="accent" /> {events.length} transition{events.length === 1 ? "" : "s"}
-          </span>
-          {newestAge && <span className="text-muted-foreground/80">last entry {newestAge}</span>}
-        </div>
+        {newestAge && <p className="text-[10.5px] text-muted-foreground">Last change {newestAge}</p>}
         {showRecord && (
         <>
 
@@ -297,7 +285,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         <section>
           <SectionRail
             className="mb-2"
-            label="Action lifecycle"
+            label="What happened after approval"
             reading={events.length > 0 ? String(events.length) : undefined}
           />
           <SectionNote className="mb-2 mt-0" sectionKey="receipts.lifecycle">
@@ -306,7 +294,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
           <div className="space-y-1">
             {events.length === 0 && (
               <p className="rounded-md border border-dashed border-border/50 py-4 text-center text-[11px] text-muted-foreground">
-                No action events yet. Approvals and status changes will appear here.
+                No approvals have moved yet.
               </p>
             )}
             {events.map((ev) => (
@@ -332,7 +320,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         <section>
           <SectionRail
             className="mb-2"
-            label="Audit log"
+            label="Full record"
             reading={
               <>
                 {auditFiltered.length}

@@ -19,7 +19,6 @@ import { useScope } from "@/hooks/useScope";
 import { listProjects, type Project } from "@/lib/projects";
 import { useAuth } from "@/lib/auth";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
-import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { WeekAgenda } from "@/components/work/WeekAgenda";
 import { formatDistanceToNow } from "date-fns";
 import { SectionNote } from "@/components/ui/section-note";
@@ -47,17 +46,13 @@ import { DESK_ROLES, DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskR
 import { DeskInfo } from "@/components/work/DeskInfo";
 import { DeskStartHere } from "@/components/work/DeskStartHere";
 import { DeskQuickActions } from "@/components/work/DeskQuickActions";
-import { WorkFlowDemo } from "@/components/work/WorkFlowDemo";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { PlayCircle } from "lucide-react";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
-import { PhysicalLoopPanel } from "@/components/work/PhysicalLoopPanel";
-import { WorkBodyLine } from "@/components/work/WorkBodyLine";
 
 
 
@@ -144,8 +139,6 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  /* Storyboard only. It writes nothing, so it can be replayed at any time. */
-  const [demoOpen, setDemoOpen] = useState(false);
   const hasIntake = projects.length > 0 || counts.inbox > 0 || counts.commitments > 0;
   /* Read-only: a live finding forces the reading shelf open, so nothing real
      is ever hidden behind a fold. */
@@ -160,132 +153,58 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           <MachineLabel className="text-foreground/70">Work</MachineLabel>
           <span className="ml-auto flex flex-wrap items-center gap-2">
             <GotSomethingChooser onFiled={() => void refresh()} />
-            <button
-              type="button"
-              onClick={() => setDemoOpen(true)}
-              className={cn(
-                "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2",
-                "text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground",
-                MOTION_FOCUS,
-              )}
-            >
-              <PlayCircle className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-              See how Work flows
-            </button>
             <SyncStamp at={lastRead} timezone={timezone} />
             <ExplainThisButton room="work" />
           </span>
         </header>
 
-        <WorkFlowDemo open={demoOpen} onOpenChange={setDemoOpen} />
-
-
-        {/* The state of work comes before any directory of desks. The briefing
-            panel labels itself, so this level adds no second heading. */}
-
-        <WorkBodyLine />
-
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
-
-        <ResumeWorkSection onNavigate={onNavigate} />
-
-        <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
-
-
-
-        {error ? (
-          <ErrorState error={error} doing="pulling your work together" onRetry={refresh} />
-        ) : loading ? (
-          <LoadingState label="Pulling your work together…" />
-        ) : (
-          <section className="vanta-card p-3" aria-label="Recent projects">
-            <SectionRail
-              label="Recent projects"
-              icon={<FolderKanban className="h-3.5 w-3.5" />}
-              reading={projects.length > 0 ? <RollingNumber value={projects.length} /> : undefined}
-              action={
-                <button
-                  onClick={() => onNavigate("projects")}
-                  className={cn("min-h-[36px] text-xs text-primary hover:underline", MOTION_FOCUS)}
-                >
-                  All projects
-                </button>
-              }
-            />
-            <SectionNote sectionKey="work.projects">{sectionNote("work.projects")}</SectionNote>
-            {projects.length === 0 ? (
-              <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
-                No projects yet. Start one in the Projects desk and anything you capture can be attached to it.
-              </p>
-            ) : (
-              <ul className="mt-2.5 space-y-1.5">
-                {projects.map((p) => {
-                  const st = projectStatus({
-                    status: (p as { status?: string | null }).status ?? null,
-                    updatedAt: p.updated_at,
-                  });
-                  return (
-                    <li key={p.id}>
-                      <a
-                        href={`/projects/${p.id}`}
-                        onClick={() => void trace({ step: `opened ${p.title}`, label: p.title, surface: "projects", projectId: p.id })}
-
-                        className={cn(
-                          "flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2 text-left hover:bg-surface-elevated/70",
-                          MOTION_ROW,
-                          MOTION_HOVER_LIFT,
-                          MOTION_FOCUS,
-                          /* The leading rail carries the status colour, so the
-                             row reads at a glance before you read a word. */
-                          LEAD_BAR,
-                          PROJECT_STATUS_TONE[st],
-                        )}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-medium text-foreground">{p.title}</span>
-                          <MachineText className="block truncate text-[10px] text-muted-foreground">
-                            {projectTimeLabel({ updatedAt: p.updated_at })}
-                          </MachineText>
-                        </span>
-                        <span className={cn("vanta-machine-label shrink-0", PROJECT_STATUS_TONE[st])}>
-                          {PROJECT_STATUS_LABEL[st]}
-                        </span>
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        )}
 
         {/* Three stable shelves instead of ten equal choices: what is coming
             in, what is in motion, and what Echo noticed. Presentation only —
             every route is unchanged. A shelf with nothing in it names itself
             in one quiet line rather than showing a wall of empty tiles. */}
-        <ShelfHeading title="Coming in" line="What arrived and what the calendar says." />
-        <section className="vanta-card p-3" aria-label="Coming in">
-          <SectionNote sectionKey="work.lands">{sectionNote("work.lands")}</SectionNote>
-          <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+        <ShelfHeading title="Coming in" line="What arrived and what is on the calendar." />
+        <section className="space-y-2" aria-label="Coming in">
+          <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
             {counts.inbox > 0 ? (
               <Desk deskKey="inbox" label="Just arrived" Icon={Inbox} count={counts.inbox} recommended={recommendedStep("inbox", counts, projects.length)} onOpen={() => onNavigate("inbox")} />
             ) : null}
             <Desk deskKey="schedule" label="Schedule" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
             {counts.inbox === 0 ? (
-              <QuietShelfLine
-                line="Nothing new to sort."
-                cta="Open where things land"
-                onOpen={() => onNavigate("inbox")}
-              />
+              <QuietShelfLine line="Nothing new to sort." />
             ) : null}
           </div>
+          <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
         </section>
 
         <ShelfHeading title="In motion" line="Jobs, promises and anything waiting on your yes." />
-        <section className="vanta-card p-3" aria-label="In motion">
+        <section className="space-y-2" aria-label="In motion">
+          {error ? (
+            <ErrorState error={error} doing="pulling your work together" onRetry={refresh} />
+          ) : loading ? (
+            <LoadingState label="Pulling your work together…" />
+          ) : projects.length > 0 ? (
+            <div className="vanta-card p-3">
+              <div className="flex items-center gap-2">
+                <FolderKanban className="h-3.5 w-3.5 text-primary" />
+                <h3 className="text-xs font-medium">Projects in motion</h3>
+                <button onClick={() => onNavigate("projects")} className="ml-auto min-h-[36px] text-xs text-primary hover:underline">All projects</button>
+              </div>
+              <ul className="mt-2 space-y-1.5">
+                {projects.map((p) => {
+                  const st = projectStatus({ status: (p as { status?: string | null }).status ?? null, updatedAt: p.updated_at });
+                  return <li key={p.id}><a href={`/projects/${p.id}`} onClick={() => void trace({ step: `opened ${p.title}`, label: p.title, surface: "projects", projectId: p.id })} className={cn("flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2", MOTION_ROW, MOTION_HOVER_LIFT, MOTION_FOCUS, LEAD_BAR, PROJECT_STATUS_TONE[st])}>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{p.title}</span><MachineText className="block text-[10px] text-muted-foreground">{projectTimeLabel({ updatedAt: p.updated_at })}</MachineText></span>
+                    <span className={cn("vanta-machine-label shrink-0", PROJECT_STATUS_TONE[st])}>{PROJECT_STATUS_LABEL[st]}</span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </a></li>;
+                })}
+              </ul>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-            <Desk deskKey="projects" label="Projects" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} />
+            {projects.length === 0 ? <Desk deskKey="projects" label="Start a project" Icon={FolderKanban} recommended={recommendedStep("projects", counts, projects.length)} onOpen={() => onNavigate("projects")} /> : null}
             {counts.actions > 0 ? (
               <Desk deskKey="actions" label="Waiting on you" Icon={ListChecks} count={counts.actions} recommended={recommendedStep("actions", counts, projects.length)} onOpen={() => onNavigate("actions")} />
             ) : null}
@@ -294,11 +213,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             ) : null}
             <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
             {counts.actions === 0 && counts.commitments === 0 ? (
-              <QuietShelfLine
-                line="Nothing waiting on your yes, nothing promised."
-                cta="See what waiting looks like"
-                onOpen={() => onNavigate("actions")}
-              />
+              <QuietShelfLine line="Nothing waiting on you, nothing promised." />
             ) : null}
           </div>
         </section>
@@ -320,19 +235,12 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           }
           className="border-dashed"
         >
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            These read what you already captured and suggest. Nothing here acts on its own.
-          </p>
-          <SectionNote sectionKey="work.looks">{sectionNote("work.looks")}</SectionNote>
           <div className="mt-2.5 grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-            <Desk deskKey="sherlock" label="What Echo noticed" Icon={Search} onOpen={() => onNavigate("sherlock")} />
+            {hasFindings ? <Desk deskKey="sherlock" label="What Echo noticed" Icon={Search} onOpen={() => onNavigate("sherlock")} /> : null}
             <Desk deskKey="awareness" label="Place and context" Icon={Compass} onOpen={() => onNavigate("awareness")} />
-            <Desk deskKey="memory" label="Find something" Icon={Notebook} onOpen={() => onNavigate("memory")} />
+            <QuietShelfLine line="Need something older?" cta="Find it" onOpen={() => onNavigate("memory")} />
           </div>
         </CollapsibleSection>
-
-        {/* Paper and phone: the physical loop, proved from real records. */}
-        <PhysicalLoopPanel />
 
 
 
@@ -358,17 +266,17 @@ function ShelfHeading({ title, line }: { title: string; line?: string }) {
  * What an empty shelf says. One quiet line and one way in — never a grid of
  * zeroed tiles competing with the shelf that actually has work in it.
  */
-function QuietShelfLine({ line, cta, onOpen }: { line: string; cta: string; onOpen: () => void }) {
+function QuietShelfLine({ line, cta, onOpen }: { line: string; cta?: string; onOpen?: () => void }) {
   return (
     <p className="min-[420px]:col-span-2 px-1 text-[11.5px] leading-snug text-muted-foreground">
       {line}{" "}
-      <button
+      {cta && onOpen ? <button
         type="button"
         onClick={onOpen}
         className={cn("text-primary hover:underline", MOTION_FOCUS)}
       >
         {cta}
-      </button>
+      </button> : null}
     </p>
   );
 }

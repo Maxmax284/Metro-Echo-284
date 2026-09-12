@@ -131,6 +131,10 @@ export function humanizeEvent(event: string): string {
     "action.rejected": "Action rejected",
     "commitment.completed": "Commitment completed",
     "commitment.snoozed": "Commitment snoozed",
+    "calendar_event.updated": "Your appointment moved",
+    "calendar.event.updated": "Your appointment moved",
+    "calendar_event.failed": "That calendar change didn't go through",
+    "action.failed": "That didn't go through",
     "note.created": "Note saved",
     "note.updated": "Note edited",
     "project_items.inserted": "Added to a project",
@@ -173,7 +177,7 @@ export function humanizeEvent(event: string): string {
   const verbMap: Record<string, string> = {
     created: "created", updated: "updated", deleted: "removed",
     executed: "ran", approved: "approved", rejected: "rejected",
-    completed: "completed", snoozed: "snoozed", failed: "failed",
+    completed: "completed", snoozed: "moved to later", failed: "didn't go through",
     routed: "organized", linked: "connected", generated: "generated",
     exported: "exported", viewed: "opened",
   };
