@@ -3811,6 +3811,69 @@ export type Database = {
         }
         Relationships: []
       }
+      watches: {
+        Row: {
+          attempts: number
+          cadence_minutes: number
+          created_at: string
+          goal: string
+          id: string
+          kind: string
+          last_check_at: string | null
+          max_attempts: number
+          next_check_at: string
+          organization_id: string | null
+          outcome: string | null
+          source: string
+          state: string
+          stop_at: string | null
+          subject_id: string | null
+          success_when: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          cadence_minutes?: number
+          created_at?: string
+          goal: string
+          id?: string
+          kind: string
+          last_check_at?: string | null
+          max_attempts?: number
+          next_check_at?: string
+          organization_id?: string | null
+          outcome?: string | null
+          source?: string
+          state?: string
+          stop_at?: string | null
+          subject_id?: string | null
+          success_when?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          cadence_minutes?: number
+          created_at?: string
+          goal?: string
+          id?: string
+          kind?: string
+          last_check_at?: string | null
+          max_attempts?: number
+          next_check_at?: string
+          organization_id?: string | null
+          outcome?: string | null
+          source?: string
+          state?: string
+          stop_at?: string | null
+          subject_id?: string | null
+          success_when?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       wearable_readings: {
         Row: {
           created_at: string
