@@ -124,4 +124,31 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 
 ## Watch primitive (Phase 5, 2026-09-12)
 - Live: watches table, watch-sweep, Work > In motion shelf, "Keep an eye on it" on approved actions, receipts via audit_log.
-- Open: no cron schedule yet (sweep runs on open/Check now); no Ask/Telegram entry point; calendar-entry watches have no UI creator.
+- [x] Real clock: pg_cron job `vanta-watch-sweep` every 10 minutes (drizzle/migrations/0016).
+      The sweep claims each due row by writing a 5-minute lease into `next_check_at`
+      (`leaseUntil`), so two overlapping runs can never check the same watch twice; the
+      real next check time is written when the check finishes. Read-only by construction:
+      it reads `actions` / `calendar_events` and writes only the watch row and an audit
+      event. Terminal states (done / couldn't finish / needs you) always emit
+      `watch.<state>` through `writeAuditEvent`.
+- [x] Fingerprint is change-shaped, not feed-shaped: title (trimmed, case-folded) plus
+      start and end at minute precision. Seconds churn and casing are not news.
+- [x] Ask + Telegram speak it: `keep_an_eye_on` / `stop_watching` / `whats_being_watched`
+      on both tool lists, both landing in the shared `_shared/watchApply.ts` (mirrored to
+      the client as `src/lib/watchApply.ts`). Same watch row, same Work > In motion shelf,
+      same receipts. Subject resolution reuses `calendarResolve`; one clarifying question
+      when several entries tie; saying it twice does not start a second watch.
+- [x] Calendar watch creation in the app: an eye button on `AgendaRow` ("Tell me if this
+      moves") wherever the row is already actionable. No calendar-monitoring page.
+- Open: nothing on the watch object itself.
+
+## Echo's reach, phases 4-9 — status after the watch clock
+- Phase 4/6 (CampStay account linking + approved write-back): blocked outside this repo.
+  CampStay/CampCore/Fenrir currently expose signed inbound webhooks only — no authorize,
+  token, refresh or write endpoint to call. Metro Echo's side needs their contract first,
+  so nothing is stubbed as "connected".
+- Phase 6 (Google Gmail/Drive/Contacts/Tasks): the one-account shell and scope display are
+  in place; enabling any of them needs the workspace Google connector to actually grant
+  those scopes. Until then they stay honestly marked "Not built yet".
+- Phases 7-9 (cross-source reasoning, legacy removal, logged-in browser work) wait on real
+  second sources landing from 4 and 6.
