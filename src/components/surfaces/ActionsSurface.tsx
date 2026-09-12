@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2, ScrollText } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldAlert, Shield, RotateCcw, Check, History, Boxes, FileCode2, ScrollText, Eye } from "lucide-react";
+import { startWatch } from "@/lib/watch";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { provenanceText } from "@/components/ui/provenance";
@@ -379,6 +380,31 @@ export function ActionsSurface() {
                                 )}
                                 <Button size="sm" disabled={busy === a.id} onClick={(e) => { markFlipOriginFromEvent(e); setExecuteTarget(a); }} className={cn("gap-1", MOTION_FOCUS)}>
                                   <Check className="h-3.5 w-3.5" /> Execute
+                                </Button>
+                                {/* Long-running: Echo keeps checking this one until it settles. */}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className={cn("gap-1", MOTION_FOCUS)}
+                                  disabled={busy === a.id}
+                                  onClick={async () => {
+                                    if (!session?.user) return;
+                                    try {
+                                      await startWatch({
+                                        userId: session.user.id,
+                                        organizationId: scope.organizationId ?? null,
+                                        goal: `Keep an eye on: ${a.title}`,
+                                        kind: "action_settled",
+                                        subjectId: a.id,
+                                        source: "actions",
+                                      });
+                                      toast.success("Echo will keep an eye on it. It shows up in Work, under In motion.");
+                                    } catch {
+                                      toast.error("Could not start watching that.");
+                                    }
+                                  }}
+                                >
+                                  <Eye className="h-3.5 w-3.5" /> Keep an eye on it
                                 </Button>
                               </>
                             )}

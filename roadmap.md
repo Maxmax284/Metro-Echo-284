@@ -121,3 +121,7 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       rendering. Not started; deliberately not half-built.
 - [ ] Echo's reach, phases 6-9 — CampStay write-back, cross-source reasoning, legacy
       removal, logged-in browser work. All wait on 4 and 5.
+
+## Watch primitive (Phase 5, 2026-09-12)
+- Live: watches table, watch-sweep, Work > In motion shelf, "Keep an eye on it" on approved actions, receipts via audit_log.
+- Open: no cron schedule yet (sweep runs on open/Check now); no Ask/Telegram entry point; calendar-entry watches have no UI creator.

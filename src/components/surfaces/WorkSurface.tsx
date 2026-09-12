@@ -48,6 +48,7 @@ import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
+import { WatchShelf } from "@/components/work/WatchShelf";
 
 
 
@@ -175,6 +176,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
         <ShelfHeading title="In motion" line="Jobs, promises and anything waiting on your yes." />
         <section className="space-y-2" aria-label="In motion">
+          <WatchShelf />
           {error ? (
             <ErrorState error={error} doing="pulling your work together" onRetry={refresh} />
           ) : loading ? (
