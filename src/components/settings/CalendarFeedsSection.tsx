@@ -19,7 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { feedStateLine, syncSummary, type FeedSyncResult } from "@/lib/calendarSync";
-import { GoogleCalendarConnectCard } from "./GoogleCalendarConnectCard";
+import { GoogleAccountSection } from "./GoogleAccountSection";
 
 type Feed = {
   id: string;
@@ -190,7 +190,7 @@ export function CalendarFeedsSection() {
         </Button>
       </div>
 
-      <GoogleCalendarConnectCard onChanged={() => void load()} />
+      <GoogleAccountSection onChanged={() => void load()} />
 
       <details className="mt-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
         <summary className="vanta-focus cursor-pointer list-none text-[12px] font-medium">
