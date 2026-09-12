@@ -173,13 +173,10 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
             <span
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
-                STATUS_TONE[status],
+                REACH_TONE[reach],
               )}
             >
-              {STATUS_LABEL[status]}
-            </span>
-            <span className="rounded-full bg-background/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/40">
-              {DIRECTION_LABEL[def.direction]}
+              {REACH_LABEL[reach]}
             </span>
           </div>
           <p className="mt-0.5 text-[12px] text-muted-foreground">{def.role}</p>
@@ -194,8 +191,25 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
         )}
       </div>
 
-      <div className="mt-3 rounded-lg bg-background/40 p-2.5 text-[11.5px] text-muted-foreground ring-1 ring-border/40">
-        {def.approvalRule}
+      {/* What Echo can do here, in the same six words on every connection. */}
+      <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
+        <p className="text-[11.5px] text-foreground/85">{contractSummary(contract)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{def.approvalRule}</p>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {contractSteps(contract).map((s) => (
+            <span
+              key={s.key}
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] ring-1",
+                s.on
+                  ? "bg-primary/12 text-primary ring-primary/25"
+                  : "bg-muted/30 text-muted-foreground/70 ring-border/40 line-through",
+              )}
+            >
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {def.setupPath && (
