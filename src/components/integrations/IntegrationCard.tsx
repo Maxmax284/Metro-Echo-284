@@ -23,7 +23,11 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
-import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
+import { computeStatus, type RuntimeSignals } from "@/lib/integrations/status";
+import {
+  contractFor, contractSteps, contractSummary, needsYou, reachFromStatus,
+  REACH_LABEL, REACH_TONE, type ReachState,
+} from "@/lib/reach";
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
 import { vantaToast as toast } from "@/lib/vantaVoice";
@@ -94,6 +98,23 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const webhookUrl = def.webhookFunction
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${def.webhookFunction}`
     : null;
+
+  const killableSwitch = !!def.killSwitchKey;
+  const switchedOn = killableSwitch && controls
+    ? !!controls[def.killSwitchKey as keyof SystemControls]
+    : null;
+  const connectedNow = status === "live" || status === "partial" || status === "configured";
+  const missingSecrets = def.expectedSecrets.filter((name) => secretStatus[name]?.present === false);
+  const reach: ReachState = needsYou({
+    def,
+    switchedOn,
+    inUse: connectedNow,
+    missingSecrets,
+    failing: connectedNow && diagnostic?.last_health_status === "error",
+  })
+    ? "needs_you"
+    : reachFromStatus(status);
+  const contract = contractFor(def, { connected: connectedNow, watching: connectedNow });
 
   useEffect(() => {
     if (!session || !def.auditPrefix) return;
