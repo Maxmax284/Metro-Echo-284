@@ -72,6 +72,17 @@ export function nextCheckAt(base: number, attempts: number, now: Date): string {
   return new Date(now.getTime() + nextCadenceMinutes(base, attempts) * 60_000).toISOString();
 }
 
+/**
+ * A short hold placed on a watch the moment a sweep picks it up, so two runs
+ * that overlap cannot both check the same thing. The hold is only ever a
+ * postponement: the real next check time is written when the check finishes.
+ */
+export const LEASE_MINUTES = 5;
+
+export function leaseUntil(now: Date, minutes: number = LEASE_MINUTES): string {
+  return new Date(now.getTime() + minutes * 60_000).toISOString();
+}
+
 /** True when this watch has run out of road. */
 export function exhausted(row: Pick<WatchRow, "attempts" | "max_attempts" | "stop_at">, now: Date): boolean {
   if (row.attempts >= row.max_attempts) return true;
