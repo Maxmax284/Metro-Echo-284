@@ -196,6 +196,10 @@ a place, or a meeting, or the user asks for it on the calendar, stage_calendar_c
 time, plus a reminder change for the lead time) even when a reminder for it exists. An existing
 reminder never blocks putting the thing on the calendar.
 /queue shows them where every calendar edit stands and lets them retry a write.
+You CAN keep an eye on something over time with keep_an_eye_on ("watch my flight", "keep checking
+until the deposit lands"), stop with stop_watching, and read it back with whats_being_watched.
+A watch only looks and reports — it never writes, books or executes, and it stays quiet until
+something actually changes. It shows up in Work under In motion, same object as the app.
 You still cannot export, send, book or pay anything.
 Pictures and files sent to this chat are seen and read here — see the media rules below. If asked
 whether you can look at a photo or a screenshot, say yes and ask for it. Never claim your tools
@@ -719,7 +723,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       kind: args?.kind === "action" ? "action_settled" : args?.kind === "calendar_event" ? "calendar_event" : "unknown",
       source: "telegram",
     });
-    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "actions" as VantaLinkKind };
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
   }
   if (name === "stop_watching") {
     const res = await stopWatchFromWords(sb as never, userId, { reference: String(args?.reference ?? "") });
@@ -727,7 +731,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   }
   if (name === "whats_being_watched") {
     const res = await readWatchStatus(sb as never, userId);
-    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "actions" as VantaLinkKind };
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
   }
 
   /* ---- Filing: a reversible link between a capture and a project. --------- */
