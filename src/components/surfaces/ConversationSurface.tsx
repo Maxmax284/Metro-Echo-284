@@ -37,7 +37,8 @@ import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
   beginAskStream, endAskStream, stopAskStream,
-  type AskSession,
+  type AskSession,,
+  adoptAskSession
 } from "@/lib/askSession";
 
 
@@ -207,6 +208,9 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     if (!session) return;
     const threadId = convId ?? (await ensureThread());
     if (!threadId) return;
+    // The line was typed before this thread existed. Carry it over so the
+    // quick panel and the Ask room are looking at the same session.
+    if (!convId) adoptAskSession("_none", threadId);
     const firstTurn = msgs.length === 0;
     const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never, { hydrated: true });
     write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);

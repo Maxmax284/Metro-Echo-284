@@ -119,6 +119,37 @@ export function clearAskSession(threadId: string) {
   listeners.delete(threadId);
 }
 
+/**
+ * Move volatile state from a placeholder key onto the real thread.
+ *
+ * Before the first turn there is no thread yet, so a half-typed line lives
+ * under a placeholder ("_none"). The moment a thread exists, that line — and
+ * anything already on screen — has to belong to it, or opening Ask from the
+ * quick panel would lose what you were writing. Never overwrites real content
+ * already on the target thread.
+ */
+export function adoptAskSession(from: string, to: string): AskSession {
+  if (from === to) return getAskSession(to);
+  const src = sessions.get(from);
+  if (!src) return getAskSession(to);
+  const dst = getAskSession(to);
+  const next: AskSession = {
+    threadId: to,
+    messages: dst.messages.length ? dst.messages : src.messages,
+    hydrated: dst.hydrated || src.hydrated,
+    draft: dst.draft || src.draft,
+    streaming: dst.streaming || src.streaming,
+    abort: dst.abort ?? src.abort,
+  };
+  sessions.set(to, next);
+  if (!src.streaming) {
+    sessions.delete(from);
+    emit(from);
+  }
+  emit(to);
+  return next;
+}
+
 /** Tests only. */
 export function __resetAskSessions() {
   sessions.clear();
