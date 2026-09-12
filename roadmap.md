@@ -93,3 +93,31 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       one tap per destination. Empty Awareness shelves stay hidden; deeper place tools sit
       behind one reveal. Ask, Receipts, setup warnings and navigation use plain language.
       Four-room navigation is the only primary navigation on phone and desktop.
+- [x] Echo's reach, phase 1 — three connection words. `src/lib/reach.ts` collapses every
+      connection state into Connected / Available / Needs you; red belongs to Needs you
+      alone. `needsYou()` only fires when a source is switched on or already in use and
+      something it needs is missing (or the last attempt failed), so an optional
+      integration nobody ever turned on no longer shows up as a failure on Today.
+      Connection plumbing (webhook address, keys, signature diagnostics, test) now sits
+      behind one "Wiring and keys" door on each card.
+- [x] Echo's reach, phase 2 — universal capability contract. `contractFor()` reads
+      See / Understand / Prepare / Act / Watch / Report off the registry entry each source
+      already has, with Authority (see -> prepare -> act) and Presence (when I ask /
+      keep an eye on it) underneath and plain-English copy on top. Read-only and
+      inbound-only sources can never gain Act. CampStay (LMT Camp State) is represented
+      through this contract with its signed inbound path, dedupe, diagnostics, judgment,
+      approvals and receipts untouched; no old setup path has been retired.
+- [x] Echo's reach, phase 3 — Google is one account. `src/lib/googleEcosystem.ts` +
+      `GoogleAccountSection` present a single Google account container with each service
+      as its own explicit permission. Calendar is the only wired capability and keeps its
+      exact current behaviour and scopes; Gmail / Drive / Contacts / Tasks are listed as
+      "Not built yet" with the honest reason and the scope they would need. Signing in
+      grants nothing on its own. No reconnect required for the connected account.
+- [ ] Echo's reach, phase 4 — first-party account linking (CampStay/CampCore/Fenrir).
+      Blocked outside this repo: those products expose signed webhooks only, no
+      per-user sign-in or token endpoint to link against.
+- [ ] Echo's reach, phase 5 — durable watch object ("keep checking until the deposit lands").
+      Genuinely new primitive: needs a table, a cadence runner and Work -> In motion
+      rendering. Not started; deliberately not half-built.
+- [ ] Echo's reach, phases 6-9 — CampStay write-back, cross-source reasoning, legacy
+      removal, logged-in browser work. All wait on 4 and 5.

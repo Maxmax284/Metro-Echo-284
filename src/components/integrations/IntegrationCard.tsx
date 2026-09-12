@@ -23,7 +23,11 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useSystemControls, type SystemControls } from "@/hooks/useSystemControls";
 import type { IntegrationDef } from "@/lib/integrations/registry";
-import { computeStatus, DIRECTION_LABEL, STATUS_LABEL, STATUS_TONE, type RuntimeSignals } from "@/lib/integrations/status";
+import { computeStatus, type RuntimeSignals } from "@/lib/integrations/status";
+import {
+  contractFor, contractSteps, contractSummary, needsYou, reachFromStatus,
+  REACH_LABEL, REACH_TONE, type ReachState,
+} from "@/lib/reach";
 import type { SecretStatus } from "@/hooks/useSecretsStatus";
 import type { ExternalPlatformDiagnostic } from "@/hooks/useExternalPlatformDiagnostics";
 import { vantaToast as toast } from "@/lib/vantaVoice";
@@ -45,6 +49,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
   const [count7d, setCount7d] = useState<number>(0);
   const [open, setOpen] = useState(false);
+  const [wiring, setWiring] = useState(false);
   const [pasteFor, setPasteFor] = useState<string | null>(null);
   const [secretValue, setSecretValue] = useState("");
   const [savingSecret, setSavingSecret] = useState(false);
@@ -94,6 +99,23 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const webhookUrl = def.webhookFunction
     ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${def.webhookFunction}`
     : null;
+
+  const killableSwitch = !!def.killSwitchKey;
+  const switchedOn = killableSwitch && controls
+    ? !!controls[def.killSwitchKey as keyof SystemControls]
+    : null;
+  const connectedNow = status === "live" || status === "partial" || status === "configured";
+  const missingSecrets = def.expectedSecrets.filter((name) => secretStatus[name]?.present === false);
+  const reach: ReachState = needsYou({
+    def,
+    switchedOn,
+    inUse: connectedNow,
+    missingSecrets,
+    failing: connectedNow && diagnostic?.last_health_status === "error",
+  })
+    ? "needs_you"
+    : reachFromStatus(status);
+  const contract = contractFor(def, { connected: connectedNow, watching: connectedNow });
 
   useEffect(() => {
     if (!session || !def.auditPrefix) return;
@@ -173,13 +195,10 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
             <span
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
-                STATUS_TONE[status],
+                REACH_TONE[reach],
               )}
             >
-              {STATUS_LABEL[status]}
-            </span>
-            <span className="rounded-full bg-background/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/40">
-              {DIRECTION_LABEL[def.direction]}
+              {REACH_LABEL[reach]}
             </span>
           </div>
           <p className="mt-0.5 text-[12px] text-muted-foreground">{def.role}</p>
@@ -194,8 +213,25 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
         )}
       </div>
 
-      <div className="mt-3 rounded-lg bg-background/40 p-2.5 text-[11.5px] text-muted-foreground ring-1 ring-border/40">
-        {def.approvalRule}
+      {/* What Echo can do here, in the same six words on every connection. */}
+      <div className="mt-3 rounded-lg bg-background/40 p-2.5 ring-1 ring-border/40">
+        <p className="text-[11.5px] text-foreground/85">{contractSummary(contract)}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{def.approvalRule}</p>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {contractSteps(contract).map((s) => (
+            <span
+              key={s.key}
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] ring-1",
+                s.on
+                  ? "bg-primary/12 text-primary ring-primary/25"
+                  : "bg-muted/30 text-muted-foreground/70 ring-border/40 line-through",
+              )}
+            >
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {def.setupPath && (
@@ -207,6 +243,16 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
         </Link>
       )}
 
+      {/* Plumbing lives behind one door: addresses, keys and signature checks
+          only matter when you are wiring the other side up. */}
+      <Collapsible open={wiring} onOpenChange={setWiring} className="mt-3">
+        <CollapsibleTrigger asChild>
+          <button className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+            <ChevronDown className={cn("h-3 w-3 transition-transform", wiring && "rotate-180")} />
+            Wiring and keys
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-0">
       {webhookUrl && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-muted-foreground">Webhook URL</span>
@@ -358,6 +404,10 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
           )}
         </div>
       )}
+        </CollapsibleContent>
+      </Collapsible>
+
+
 
       <Collapsible open={open} onOpenChange={setOpen} className="mt-3">
         <CollapsibleTrigger asChild>

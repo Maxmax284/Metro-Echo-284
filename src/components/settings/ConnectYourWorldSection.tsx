@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SensorKey } from "@/lib/awareness";
 import {
-  CONN_LABEL, CONN_LAMP, CONN_TONE, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
+  CONN_LAMP, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
   telegramCard, wearableCard, type ConnectionCard,
 } from "@/lib/connections";
+import { reachFromConn, REACH_LABEL, REACH_TONE } from "@/lib/reach";
 import { LoadingState } from "@/components/ui/state-views";
 
 type Reading = {
@@ -48,14 +49,17 @@ const EMPTY: Reading = {
 };
 
 function StateChip({ card }: { card: ConnectionCard }) {
+  /* Three words only: Connected, Available, Needs you. The detailed state still
+     drives the proof line and the fix line underneath. */
+  const reach = reachFromConn(card.state);
   return (
     <span
       className={cn(
         "shrink-0 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wider ring-1",
-        CONN_TONE[card.state],
+        REACH_TONE[reach],
       )}
     >
-      {CONN_LABEL[card.state]}
+      {REACH_LABEL[reach]}
     </span>
   );
 }
