@@ -6,6 +6,7 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { firstPassIntake } from "../_shared/fileIntake.ts";
+import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "../_shared/watchApply.ts";
 import { replyWhyLine } from "../_shared/telegramWhy.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
 import {
@@ -709,6 +710,24 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   if (name === "project_status") {
     const { text } = await projectStatus(sb, scope, String(args?.project ?? ""));
     return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind };
+  }
+
+  /* ---- Keeping an eye on things: the same watch object as the app. -------- */
+  if (name === "keep_an_eye_on") {
+    const res = await startWatchFromWords(sb as never, userId, orgId, {
+      reference: String(args?.reference ?? ""),
+      kind: args?.kind === "action" ? "action_settled" : args?.kind === "calendar_event" ? "calendar_event" : "unknown",
+      source: "telegram",
+    });
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "actions" as VantaLinkKind };
+  }
+  if (name === "stop_watching") {
+    const res = await stopWatchFromWords(sb as never, userId, { reference: String(args?.reference ?? "") });
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true };
+  }
+  if (name === "whats_being_watched") {
+    const res = await readWatchStatus(sb as never, userId);
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "actions" as VantaLinkKind };
   }
 
   /* ---- Filing: a reversible link between a capture and a project. --------- */
