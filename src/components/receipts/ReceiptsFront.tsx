@@ -23,8 +23,8 @@ export function ReceiptsFront({
   className?: string;
 }) {
   return (
-    <ul className={cn("vanta-card divide-y divide-border/40 p-0", className)}>
-      {lines.map((line) => {
+    <ul className={cn("divide-y divide-border/40", className)}>
+      {lines.filter((line) => line.count > 0).map((line) => {
         const drillable = line.count > 0 && Boolean(onDrill);
         const body = (
           <>

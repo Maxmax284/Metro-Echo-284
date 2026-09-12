@@ -38,7 +38,7 @@ const LINE: Record<AftermathSurfaceKey, string> = {
     "Calendars are read-only here · changes show as a diff, and Echo never writes back",
   briefs:
     "A brief is built from your own records · exports appear in Receipts with what went into them",
-  audit: "This is the evidence layer · nothing here can be edited, only read and annotated",
+  audit: "This is the record · nothing here can be changed or run again",
   awareness:
     "A notice is a draft observation · acting on one opens the real desk, it never executes here",
   sherlock:

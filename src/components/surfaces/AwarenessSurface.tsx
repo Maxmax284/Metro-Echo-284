@@ -360,9 +360,9 @@ export function AwarenessSurface() {
   return (
     <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
       <div className="px-4 pt-3 pb-2 min-w-0">
-        <h2 className="text-lg font-semibold tracking-tight">Awareness</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Place and context</h2>
         <p className="text-xs text-muted-foreground break-words">
-          What Echo can tell about where you are. It reads only when you ask it to, and it says how sure it is.
+          What matters around you, with the map and deeper detail when you want it.
         </p>
       </div>
 
@@ -510,19 +510,22 @@ export function AwarenessSurface() {
                 {acc ? ` · accurate to about ${acc < 1000 ? `${Math.round(acc)}m` : `${Math.round(acc / 1000)}km`}` : ""}
               </p>
               <p className="text-[13.5px] leading-relaxed text-foreground/90">{shelvesRead.paragraph}</p>
-              {tier.tier !== "unknown" && (
-                <p className="text-[11px] text-muted-foreground">
-                  Placed as {tier.display}. Nothing here is safety, legal, or medical advice.
-                </p>
-              )}
+              {tier.tier !== "unknown" ? null : null}
               <AwarenessShelves shelves={shelvesRead.shelves} onOpenSection={openSection} />
               {never && <p className="text-[11px] leading-snug text-muted-foreground/80">{never}</p>}
             </div>
           );
         })()}
 
-        {/* The map sits under the words, never over them. */}
-        <ArrivalsLane />
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="w-full rounded-xl border border-border/60 bg-surface-elevated/20 px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground"
+        >
+          {showMore ? "Show less" : "Saved places, nearby spots and past trips"}
+        </button>
+
+        {/* The map is the useful center of the deeper place view. */}
 
         <AwarenessMapPanel
           places={places as any}
@@ -566,7 +569,8 @@ export function AwarenessSurface() {
           }}
         />
 
-        {/* Seed a place by hand — address, category, your notes. */}
+        {showMore ? <>
+        <ArrivalsLane />
         <AddPlaceForm onSaved={loadList} />
 
         {/* The place desk proper: your pins, the named ground around the fix,
@@ -640,6 +644,7 @@ export function AwarenessSurface() {
         <FieldSessionCard variant="aware" />
 
         <TripHistoryPanel />
+        </> : null}
 
         {/* L5 — Tier-aware Scan button. Explicit, never auto-fires. */}
         {place && (() => {
@@ -665,17 +670,8 @@ export function AwarenessSurface() {
           );
         })()}
 
-        <button
-          type="button"
-          onClick={() => setShowMore((v) => !v)}
-          className="w-full rounded-xl border border-border/60 bg-surface-elevated/20 px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground"
-        >
-          {showMore ? "Hide the workings" : "Show the workings — radar, layers and saved places"}
-        </button>
-
-        <WhatVantaSees className="mt-4" />
-
         {showMore && (<div className="space-y-4">
+        <WhatVantaSees className="mt-4" />
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
           <div className="relative">

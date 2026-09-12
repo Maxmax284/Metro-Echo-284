@@ -57,14 +57,14 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-conver
 
 
 const SURFACE_HINTS: Record<string, string> = {
-  awareness: "I can read your radar, explain a layer, or stage a draft from a signal.",
-  actions: "I can walk you through a draft before approval, or propose a new one.",
-  commitments: "I can stage a commitment from this thread or surface what's due.",
+  awareness: "I can explain what is around you or prepare a next step.",
+  actions: "I can talk through something waiting on you or prepare a new step.",
+  commitments: "I can help with a promise or tell you what is due.",
   memory: "I can capture a note, find related items, or translate something.",
   sherlock: "I can open a scoped investigation or summarize what's on screen.",
-  audit: "I can explain the latest draft or summarize recent events.",
-  command: "I can read your current place, summarize the view, or draft an action.",
-  conversation: "Type, attach, or hit / for tools. Drafts only — nothing executes.",
+  audit: "I can explain what happened or sum up recent changes.",
+  command: "I can read your current place, sum up the view, or prepare a next step.",
+  conversation: "Ask naturally. Add a file, photo, or voice note when it helps.",
 };
 
 const SUGGESTIONS_BY_SURFACE: Record<string, string[]> = {
@@ -94,8 +94,8 @@ const SUGGESTIONS_BY_KIND: Record<string, string[]> = {
 };
 
 const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
-  stage_action: { label: "Drafted action", icon: ListPlus, surface: "actions" },
-  add_commitment: { label: "Commitment staged", icon: CheckSquare, surface: "commitments" },
+  stage_action: { label: "Ready for your review", icon: ListPlus, surface: "actions" },
+  add_commitment: { label: "Promise ready for review", icon: CheckSquare, surface: "commitments" },
   capture_note: { label: "Saved to memory", icon: BookmarkPlus, surface: "memory" },
   mark_waiting: { label: "Marked as waiting", icon: CheckSquare, surface: "commitments" },
   record_decision: { label: "Decision logged", icon: BookmarkPlus, surface: "memory" },
@@ -462,12 +462,10 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
           Drop to attach to this thread
         </div>
       )}
-      {/* What this thread is bound to — scope, kind, object. Always visible. */}
+      {/* What this thread is about stays visible without exposing machinery. */}
       <AskContextStrip />
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
-        <span className="font-medium text-foreground/80">Capture Log.</span>{" "}
-        Capture only — nothing here executes. Approvals live in Actions.
-        <AskDestinationsNote className="mt-1" />
+        Echo can prepare the work here. You still approve anything that acts.
       </div>
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
@@ -513,9 +511,6 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                   })}
                 </div>
               )}
-              <p className="text-center text-[11px] text-muted-foreground/70">
-                Type <span className="text-foreground/70">/</span> for tools · paperclip to attach · mic to speak
-              </p>
             </div>
           )}
           {msgs.map((m, i) => {

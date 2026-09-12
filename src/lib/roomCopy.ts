@@ -10,9 +10,9 @@ export type RoomKey = "today" | "work" | "ask" | "receipts" | "settings";
 /** One line per room, shown on first contact and behind "What is this?". */
 export const ROOM_INTRO: Record<RoomKey, string> = {
   today: "The short version of what matters now.",
-  work: "Projects live here. Desks organize everything else.",
+  work: "What came in, what is moving, and what Echo noticed.",
   ask: "Ask naturally. Add a file, photo, or voice note when needed.",
-  receipts: "Every recorded state change lands here.",
+  receipts: "What happened, what worked, and what did not.",
   settings: "How Echo behaves, remembers, and reaches you.",
 };
 
@@ -23,13 +23,13 @@ export const ROOM_INTRO: Record<RoomKey, string> = {
 export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
   today: [
     "Today is the short version of what matters now.",
-    "Needs attention is what is waiting on you. What's next is dated promises. What changed is the last few things Echo recorded. Fresh in is new captures nobody has sorted yet.",
-    "Tapping a row opens the place that owns it. Nothing runs on its own.",
+    "Current read tells you what matters. Needs you holds decisions. Coming up holds your day. Changed shows what just moved.",
+    "Open a line for the detail. Nothing runs on its own.",
   ],
   work: [
-    "Work opens with where things stand, then the desks.",
-    "Start here promotes the single strongest next tap. Needs you, Arrived, Due and Drifting summarize the rest.",
-    "Where work lands holds Projects, Inbox, Commitments, Actions, Briefs, Documents and Schedule. Where Echo looks holds Memory, Sherlock and Awareness.",
+    "Work opens with the strongest next move.",
+    "Coming in holds arrivals and the calendar. In motion holds projects, promises, and work waiting on you.",
+    "Echo noticed keeps deeper readings and place context out of the way until they matter.",
   ],
 
   ask: [
@@ -38,9 +38,9 @@ export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
     "You can attach a photo, a file, or a voice note. Echo reads and drafts — it never executes from here.",
   ],
   receipts: [
-    "Receipts is the evidence room.",
-    "Every state change writes a line: what happened, who did it, when, and where it came from.",
-    "Tap a receipt to unfold what changed, before and after, and whether it was reversed.",
+    "Receipts shows what happened and what did not go through.",
+    "The short read comes first. The full record keeps who, when, and where it came from.",
+    "Open the record when you need the proof.",
   ],
   settings: [
     "Settings is the back of house.",
