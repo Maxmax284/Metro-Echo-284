@@ -56,6 +56,50 @@ async function recentActions(sb: Sb, userId: string) {
   return (data ?? []) as { id: string; title: string | null; status: string }[];
 }
 
+/** Already-in-hand entry → one watch row. Used by the in-app affordance. */
+export async function startCalendarWatch(
+  sb: Sb,
+  userId: string,
+  organizationId: string | null,
+  event: { id: string; title: string | null; starts_at: string; ends_at?: string | null },
+  source = "app",
+): Promise<WatchApplyResult> {
+  const label = event.title?.trim() || "that entry";
+  const goal = watchGoal(label, "calendar_event");
+
+  const { data: existing } = await sb
+    .from("watches")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("kind", "calendar_event")
+    .eq("subject_id", event.id)
+    .in("state", ["on_it", "watching", "waiting", "needs_you"])
+    .limit(1);
+  if (existing && existing.length > 0) {
+    return { reply: `Already keeping an eye on ${label}.`, watchId: existing[0].id, readOnly: true };
+  }
+
+  const now = new Date();
+  const { data, error } = await sb
+    .from("watches")
+    .insert({
+      user_id: userId,
+      organization_id: organizationId,
+      goal,
+      kind: "calendar_event",
+      subject_id: event.id,
+      source,
+      cadence_minutes: 30,
+      next_check_at: new Date(now.getTime() + 30 * 60_000).toISOString(),
+      stop_at: watchStopAt(now, ""),
+      success_when: { fingerprint: calendarFingerprint(event) },
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { reply: "I couldn't start that one. Nothing is being watched.", readOnly: true };
+  return { reply: watchStartedReply(goal, 30), watchId: data.id };
+}
+
 /** "Keep an eye on this" → one watch row, or one clarifying question. */
 export async function startWatchFromWords(
   sb: Sb,
