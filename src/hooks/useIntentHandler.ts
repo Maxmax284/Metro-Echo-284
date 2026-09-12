@@ -25,6 +25,7 @@ import {
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/lib/calendarResolve";
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
 import { resolveReminderReference } from "@/lib/reminderActions";
+import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -408,6 +409,21 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           toast.success(vantaSay.awarenessAnswered(place?.label));
+        } else if (kind === "keep_an_eye_on") {
+          const res = await startWatchFromWords(supabase as never, user.id, scope.organizationId, {
+            reference: String(args.reference ?? ""),
+            kind: args.kind === "action" ? "action_settled" : args.kind === "calendar_event" ? "calendar_event" : "unknown",
+            source: "ask",
+          });
+          toast.success({ title: res.reply });
+        } else if (kind === "stop_watching") {
+          const res = await stopWatchFromWords(supabase as never, user.id, {
+            reference: String(args.reference ?? ""),
+          });
+          toast.success({ title: res.reply });
+        } else if (kind === "whats_being_watched") {
+          const res = await readWatchStatus(supabase as never, user.id);
+          toast.success({ title: res.reply });
         } else if (kind === "query_schedule") {
           const window = String(args.window ?? "today");
           // Resolve tz: stored profile timezone falls back to browser
