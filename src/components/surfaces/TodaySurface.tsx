@@ -2,35 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
-import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
-import { EveningReadCard } from "@/components/today/EveningReadCard";
-import { ResumeWorkSection } from "@/components/today/ResumeWorkSection";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
-import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { NoticedRow } from "@/components/today/NoticedRow";
-import { QuickModes } from "@/components/today/QuickModes";
-import { JumpStrip } from "@/components/today/JumpStrip";
-import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
-import { FirstLapCard } from "@/components/today/FirstLapCard";
 import { TimeSourceLine } from "@/components/context/ContextSourceLine";
 import { TimezoneFollowPrompt } from "@/components/context/TimezoneFollowPrompt";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { CrossDeviceResume } from "@/components/today/CrossDeviceResume";
-import { TodayDigestLine } from "@/components/today/TodayDigestLine";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { TravelLane } from "@/components/today/TravelLane";
-import { TasksLane } from "@/components/today/TasksLane";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
-import { SourceHealthStrip } from "@/components/today/SourceHealthStrip";
-import { useSourceHealth } from "@/hooks/useSourceHealth";
 
 import { useLiveFeed } from "@/hooks/useLiveFeed";
 import { eventWhere, humanizeEvent } from "@/lib/plainLabels";
@@ -318,7 +305,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   /* One situational read, built from the same authoritative state Today already
      fetched plus the cadence Echo learned. Read-only. */
   const situation = useSituation(digest);
-  const health = useSourceHealth();
   /* One calendar read for the whole surface: what is running now goes in the
      first lane, what is coming goes in the second. Two hooks would mean two
      queries for the same truth. */
@@ -411,13 +397,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           : events.length > 0
             ? "changed"
             : null;
-  /* Sections with nothing in them do not get a header, a note, an empty card
-     and a zero count. They get named once, together, at the bottom. */
-  const emptyNames = [
-    nextTotal === 0 ? "Commitments" : null,
-    events.length === 0 ? "Receipts" : null,
-    captureCount === 0 && arrivalLines.length === 0 ? "Inbox" : null,
-  ].filter(Boolean) as string[];
   /* Quiet means: nothing waiting, nothing unusual, nothing fresh. Then the
      secondary feeds collapse to one line instead of three empty cards. */
   const secondaryQuiet =
@@ -547,137 +526,24 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         </div>
       </header>
 
-      {/* Proof of life sits with the answer: sources with nothing to say are
-          named once, right where the read ends. */}
-      <SourceHealthStrip sources={health.sources} loading={health.loading} />
-
-      {/* The door in is small and sits after the answer. The day's question
-          comes first; asking comes second. */}
-      <AskVantaBar />
-
-      {/* Registration marks — structural punctuation between hero and feed.
-          They shift one notch when the change count genuinely moves. */}
       <TickRow live={changeSignal} />
-
-      {/* A lap you can resume, quiet unless the hand-off is useful. */}
-      <CrossDeviceResume onNavigate={onNavigate} />
-
-      {/* A trip you started is still running: field context before desk work. */}
-      <FieldSessionCard variant="today" />
-
-      {/* The rest of today, on a tap: calendar plus the forecast window. */}
-      <EveningReadCard />
-
-      {/* Work already open elsewhere comes back before anything new. */}
-      <ResumeWorkSection onNavigate={onNavigate} />
-
-      {/* One proactive voice at a time, folded under the read instead of
-          competing with it. */}
-      <NoticedRow
-        signal={noticed}
-        onNavigate={onNavigate}
-        onDismiss={dismissNoticed}
-        onFollow={followNoticed}
-      />
-
-      {/* Supporting moves come after the answer: parking something, finding a
-          desk, the one-time first lap. Nothing here outranks the read. */}
-      {!secondaryQuiet ? (
-        <>
-          <div className="flex flex-wrap items-center gap-2 px-1">
-            <GotSomethingChooser />
-            <span className="text-[10.5px] leading-snug text-muted-foreground">
-              Park it, promise it, or have a step prepared — Echo files it, never runs it.
-            </span>
-          </div>
-
-          <FirstLapCard onNavigate={onNavigate} />
-
-          {/* One navigation pattern: desks, the week's read, and the switches
-              worth flipping — one strip, not three separate rails. */}
-          <Section
-            title="Find it fast"
-            sectionKey="today.find"
-            icon={Sun}
-            defaultOpen={false}
-            summary="Desks, your week, and the switches."
-          >
-            <div className="space-y-3">
-              <JumpStrip
-                onNavigate={onNavigate}
-                counts={{ inbox: captureCount, commitments: digest.commitments.length, actions: digest.actions.length }}
-              />
-              <TodayDigestLine onNavigate={onNavigate as never} />
-              <QuickModes />
-            </div>
-          </Section>
-        </>
-      ) : null}
 
       {loadingCritical ? (
         <LoadingState rows={2} label="Checking your day" />
       ) : (
         <>
-          <TodayBodyPanel />
-
-          {/* Shelf one: what just walked in and hasn't been sorted. */}
-          {!loadingBackground && !backgroundError && (arrivalLines.length > 0 || captureCount > 0) ? (
-            <Lane label="Just walked in" hint="New, nobody's sorted it yet">
-              <Section
-                title="Just walked in"
-                hint={sectionNote("today.fresh")}
-                sectionKey="today.fresh"
-                icon={Inbox}
-                reading={<RollingNumber value={captureCount} />}
-                defaultOpen={openSection === "fresh"}
-                summary={summaryLine("capture", captureCount, "not sorted yet", "Nothing new to sort.")}
-                action={
-                  <Button size="sm" variant="ghost" className={cn("h-9 text-xs", MOTION_FOCUS)} onClick={() => onNavigate("inbox")}>
-                    Open inbox
-                  </Button>
-                }
-              >
-                {arrivalLines.length > 0 ? (
-                  <ul className="space-y-2">
-                    {arrivalLines.map((item) => {
-                      const r = readArrival(item.arrival);
-                      return (
-                        <li
-                          key={`${item.arrival.channel}:${item.arrival.id}`}
-                          className="rounded-lg border border-border/50 bg-muted/20 p-2.5"
-                        >
-                          <p className="text-[12px] font-medium leading-snug">{r.read}</p>
-                          <p className="mt-0.5 text-[11.5px] leading-snug text-foreground/85">{r.summary}</p>
-                          <p className="mt-1 text-[11px] leading-snug text-muted-foreground">Next: {r.nextStep}</p>
-                        </li>
-                      );
-                    })}
-                    {arrivals.held ? (
-                      <li className="text-[11px] leading-snug text-muted-foreground/80">{arrivals.held}</li>
-                    ) : null}
-                  </ul>
-                ) : (
-                  <p className="text-xs leading-snug text-muted-foreground">
-                    <MachineText className="text-foreground/90">{captureCount}</MachineText>{" "}
-                    new {captureCount === 1 ? "thing" : "things"} came in today. File them into a project when you're ready.
-                  </p>
-                )}
-              </Section>
-            </Lane>
-          ) : null}
-
-          {/* Shelf two: what's already moving — running now, owed, and on the books. */}
-          {agenda.ongoing.length > 0 ||
-          !quiet ||
-          nextTotal > 0 ||
-          travelEvents.length > 0 ||
-          digest.commitments.length > 0 ? (
-            <Lane label="On the move" hint="Running now and up next">
-              <RunningNow ongoing={agenda.ongoing} />
-
-              {!quiet && (
+          {/* Needs you only exists when a decision is actually waiting. */}
+          {!quiet || noticed ? (
+            <Lane label="Needs you" hint="A decision, not another status report">
+              <NoticedRow
+                signal={noticed}
+                onNavigate={onNavigate}
+                onDismiss={dismissNoticed}
+                onFollow={followNoticed}
+              />
+              {!quiet ? (
                 <Section
-                  title="Waiting on your yes"
+                  title={attention.length === 1 ? "1 thing is waiting on you" : `${attention.length} things are waiting on you`}
                   hint={sectionNote("today.attention")}
                   sectionKey="today.attention"
                   icon={AlertTriangle}
@@ -731,15 +597,22 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                       );
                     })}
                     <p className="pt-1 text-[11px] text-muted-foreground">
-                      Nothing runs until you approve it, and you get one more look before it does.
+                      Nothing runs until you approve it.
                     </p>
                   </div>
                 </Section>
-              )}
+              ) : null}
+            </Lane>
+          ) : null}
 
-              {nextTotal > 0 ? (
+          {/* Coming up combines the calendar, promises and travel without
+              repeating the same promise again as a second checklist. */}
+          {agenda.ongoing.length > 0 || nextTotal > 0 || travelEvents.length > 0 ? (
+            <Lane label="Coming up" hint="What is running now and what comes next">
+              <RunningNow ongoing={agenda.ongoing} />
+              {nextTotal > 0 || agenda.events.length > 0 ? (
                 <Section
-                  title="Up next"
+                  title="Next on your day"
                   hint={sectionNote("today.next")}
                   sectionKey="today.next"
                   icon={CalendarClock}
@@ -756,13 +629,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                     </Button>
                   }
                 >
-                  {dueToday.length === 0 && upcoming.length === 0 ? (
-                    <EmptyState
-                      title="Nothing you promised has a date on it."
-                      hint="Tell Echo you'll do something by a day and it shows up here."
-                      flow={["You say it", "Echo dates it", "Commitments"]}
-                    />
-                  ) : (
+                  {nextTotal > 0 ? (
                     <div className="space-y-1.5">
                       {dueToday.length > 0 ? (
                         <button
@@ -803,7 +670,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                         />
                       ))}
                     </div>
-                  )}
+                  ) : null}
                   {/* The calendar lives here too: what's next is promises and
                       meetings, one shelf. */}
                   <AgendaInNext
@@ -818,16 +685,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
               ) : null}
 
-              {digest.commitments.length > 0 ? (
-                <TasksLane
-                  tasks={digest.commitments.map((c) => ({ id: c.id, summary: c.summary, due_at: c.due_at }))}
-                  onChanged={() => digest.refresh()}
-                />
-              ) : null}
             </Lane>
           ) : null}
 
-          {/* Shelf three: what Echo caught and what it wrote down. */}
+          {/* Changed holds arrivals, alerts and receipts once each. */}
           {backgroundError ? (
             <ErrorState
               title="Couldn't check what changed. Try again."
@@ -854,9 +715,31 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Button>
             </section>
           ) : (
-            <Lane label="Echo caught this" hint="Spotted, and written down">
+            <Lane label="Changed" hint="New arrivals and recorded changes">
+              {arrivalLines.length > 0 || captureCount > 0 ? (
+                <Section
+                  title="Just arrived"
+                  icon={Inbox}
+                  reading={captureCount > 0 ? <RollingNumber value={captureCount} /> : undefined}
+                  defaultOpen={openSection === "fresh"}
+                  action={<Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("inbox")}>Open</Button>}
+                >
+                  {arrivalLines.length > 0 ? (
+                    <ul className="space-y-2">
+                      {arrivalLines.map((item) => {
+                        const r = readArrival(item.arrival);
+                        return <li key={`${item.arrival.channel}:${item.arrival.id}`} className="vanta-inset px-3 py-2">
+                          <p className="text-[12px] font-medium leading-snug">{r.read}</p>
+                          <p className="mt-0.5 text-[11.5px] leading-snug text-foreground/85">{r.summary}</p>
+                        </li>;
+                      })}
+                      {arrivals.held ? <li className="text-[11px] text-muted-foreground">{arrivals.held}</li> : null}
+                    </ul>
+                  ) : <p className="text-xs text-muted-foreground">{captureCount} new {captureCount === 1 ? "thing" : "things"} came in.</p>}
+                </Section>
+              ) : null}
               <Section
-                title="Locks and alerts"
+                 title="Safety check"
                 hint={sectionNote("today.security")}
                 sectionKey="today.security"
                 icon={ShieldCheck}
@@ -902,7 +785,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
               </Section>
 
               <Section
-                title="What moved"
+                 title="What changed"
                 hint={sectionNote("today.changed")}
                 sectionKey="today.changed"
                 icon={Receipt}
@@ -966,14 +849,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       )}
 
 
-      {/* One line for everything that is simply empty right now. */}
-      {!loadingCritical && !loadingBackground && emptyNames.length > 0 ? (
-        <p className="px-1 text-[11.5px] text-muted-foreground/80">
-          Nothing here yet: {emptyNames.join(", ")}.
-        </p>
-      ) : null}
-
-      <SurfaceAftermath surface="today" />
+      <FieldSessionCard variant="today" />
 
       <TodaySectionSheet
         section={drill}
