@@ -229,7 +229,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
       className={cn(
         "relative overflow-hidden border-border/60 bg-surface-elevated/70 p-4 space-y-3",
         "shadow-[0_1px_0_0_hsl(var(--border)/0.4),0_8px_24px_-12px_hsl(var(--background)/0.6)]",
-        "motion-safe:animate-fade-in",
+        "motion-fade",
       )}
       aria-label="Operations briefing"
     >
@@ -291,7 +291,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
         <div className="relative space-y-3">
 
           {/* Verdict (doctrine: lead with meaning, never counts) */}
-          <div className="space-y-1.5 motion-safe:animate-fade-in">
+          <div className="space-y-1.5 motion-fade">
             <div className="text-[15px] font-medium leading-snug text-foreground">
               {briefing.verdict || briefing.headline || (quiet ? "Everything is calm." : "Here's the shift.")}
             </div>
@@ -320,7 +320,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
 
           {/* Useful connections (Sherlock, plain English, no jargon) */}
           {briefing.useful_connections && briefing.useful_connections.length > 0 && (
-            <div className="space-y-1 rounded-md border border-primary/20 bg-primary/5 p-2 motion-safe:animate-fade-in">
+            <div className="space-y-1 rounded-md border border-primary/20 bg-primary/5 p-2 motion-fade">
               <div className="flex items-center justify-between gap-2 text-[9.5px] uppercase tracking-wider text-muted-foreground">
                 <span>Heads-ups worth a look</span>
                 <span className="font-normal normal-case text-[10px] text-muted-foreground/70">Spotted by Echo</span>
@@ -349,7 +349,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
 
           {/* Source-grounding chips — receipts, smaller and below verdict */}
           {chips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 motion-safe:animate-fade-in">
+            <div className="flex flex-wrap gap-1.5 motion-fade">
               <span className="self-center text-[9.5px] uppercase tracking-wider text-muted-foreground">
                 Based on
               </span>
@@ -358,7 +358,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
                   key={chip.key}
                   style={{ animationDelay: `${Math.min(i * 40, 240)}ms` }}
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] motion-safe:animate-fade-in",
+                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] motion-fade",
                     chipTone(chip.tone),
                   )}
                 >
@@ -373,7 +373,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           {/* Actions */}
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             <Button
-              size="sm" className="h-8 gap-1 text-[11.5px] motion-safe:animate-fade-in"
+              size="sm" className="h-8 gap-1 text-[11.5px] motion-fade"
               onClick={() => onNavigate(routeForBestMove(briefing))}
             >
               {labelForBestMove(briefing)} <ArrowRight className="h-3 w-3" />
@@ -397,7 +397,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
 
           {/* Source trail */}
           {showSources && (
-            <div className="motion-safe:animate-fade-in">
+            <div className="motion-fade">
               {briefing.items.length > 0 ? (
                 <ul className="space-y-1.5 rounded-md border border-border/50 bg-background/30 p-2 text-[12px]">
                   {briefing.items.slice(0, 8).map((i) => {
@@ -433,7 +433,7 @@ export function OperationsBriefingPanel({ onNavigate }: { onNavigate: (k: Surfac
           )}
 
           {showFull && (
-            <div className="motion-safe:animate-fade-in rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] leading-relaxed text-muted-foreground">
+            <div className="motion-fade rounded-md border border-border/50 bg-background/30 p-2 text-[11.5px] leading-relaxed text-muted-foreground">
               {fullBreakdown(briefing.counts)}
             </div>
           )}
