@@ -43,6 +43,7 @@ import { archiveRecord, restoreRecord } from "@/lib/archive";
 import { AddPlaceForm } from "@/components/awareness/AddPlaceForm";
 import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
+import { placeDisplayLabel } from "@/lib/placeLabels";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -396,7 +397,7 @@ export function AwarenessSurface() {
                     it in shorthand. */}
                 <div className="flex items-center gap-1.5 min-w-0">
                   <MapPin className="h-3.5 w-3.5 text-primary/80 shrink-0" />
-                  <span className="font-medium text-[12px] text-foreground/90 truncate">{place.label}</span>
+                  <span className="font-medium text-[12px] text-foreground/90 truncate">{placeDisplayLabel(place.label)}</span>
                 </div>
 
                 {/* Only speak up here when the pin can't be used at all. */}

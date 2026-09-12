@@ -14,7 +14,6 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { SituationRead } from "@/components/today/SituationRead";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
-import { TravelLane } from "@/components/today/TravelLane";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
@@ -309,11 +308,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      first lane, what is coming goes in the second. Two hooks would mean two
      queries for the same truth. */
   const agenda = useAgenda({ days: 2 });
-  /* Travel needs a longer look than the next two days: a flight three weeks out
-     is still the plan. Read-only, same table. */
-  const travelAgenda = useAgenda({ days: 21 });
   /* Walking in after a while is a good moment to re-read the calendar once. */
-  useCalendarOpenRefresh(() => { void agenda.refresh(); void travelAgenda.refresh(); });
+  useCalendarOpenRefresh(() => { void agenda.refresh(); });
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [securityOpen, setSecurityOpen] = useState(false);
   const [drill, setDrill] = useState<TodaySectionKey | null>(null);
@@ -376,9 +372,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   });
 
   const nextTotal = dueToday.length + upcoming.length;
-  /* Travel is read out of the same calendar rows Today already holds — running
-     stays included, so a hotel you are in does not vanish after day one. */
-  const travelEvents = [...travelAgenda.ongoing, ...travelAgenda.events];
   const nearest = dueToday[0] ?? upcoming.find((c) => c.due_at) ?? null;
   const nearestLabel = nearest?.due_at
     ? isToday(new Date(nearest.due_at))
@@ -607,7 +600,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
           {/* Coming up combines the calendar, promises and travel without
               repeating the same promise again as a second checklist. */}
-          {agenda.ongoing.length > 0 || nextTotal > 0 || travelEvents.length > 0 ? (
+          {agenda.ongoing.length > 0 || nextTotal > 0 || agenda.events.length > 0 ? (
             <Lane label="Coming up" hint="What is running now and what comes next">
               <RunningNow ongoing={agenda.ongoing} />
               {nextTotal > 0 || agenda.events.length > 0 ? (
@@ -679,10 +672,6 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                     onOpenWeek={() => onNavigate("schedule")}
                   />
                 </Section>
-              ) : null}
-
-              {travelEvents.length > 0 ? (
-                <TravelLane events={travelEvents} onOpenMap={() => onNavigate("awareness")} />
               ) : null}
 
             </Lane>
