@@ -49,6 +49,7 @@ export function AddPlaceForm({
   const [picked, setPicked] = useState<PlaceSearchHit | null>(null);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const runSearch = async () => {
     if (!query.trim()) return;
@@ -107,15 +108,23 @@ export function AddPlaceForm({
 
   return (
     <section className={cn("vanta-card rounded-xl p-3", className)} aria-label="Add a place">
-      <div className="flex items-center gap-1.5">
+      {/* Phone-width law: the desk doesn't open with an empty form in the way.
+          The door says what's behind it; the fields arrive when you ask. */}
+      <button
+        type="button"
+        onClick={() => setFormOpen((v) => !v)}
+        aria-expanded={formOpen}
+        className="flex w-full items-center gap-1.5 text-left"
+      >
         <MapPinPlus className="h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />
         <MachineLabel className="text-foreground/70">Add a place</MachineLabel>
-      </div>
+        <span className="ml-auto text-[11px] text-muted-foreground">{formOpen ? "Close" : "Open"}</span>
+      </button>
       <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
         Type an address, pick the match, and it joins your places with its category and your notes.
       </p>
 
-      <div className="mt-2 space-y-2">
+      <div className={cn("mt-2 space-y-2", !formOpen && "hidden")}>
         <div className="flex gap-2">
           <Input
             value={query}

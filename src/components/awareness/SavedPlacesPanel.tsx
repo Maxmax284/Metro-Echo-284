@@ -10,6 +10,7 @@ import { MachineLabel } from "@/components/ui/instrument";
 import { EmptyState } from "@/components/ui/state-views";
 import { formatDistance } from "@/lib/trips";
 import { driveLabel } from "@/hooks/useTravelTimes";
+import { placeDisplayLabel } from "@/lib/placeLabels";
 import { cn } from "@/lib/utils";
 
 export type SavedPlaceRow = {
@@ -124,7 +125,7 @@ export function SavedPlacesPanel({
                     disabled={isActive}
                     className="block max-w-full truncate text-left text-[13px] font-medium text-foreground hover:text-primary disabled:cursor-default"
                   >
-                    {p.label}
+                    {placeDisplayLabel(p.label)}
                     {p.category ? (
                       <span className="ml-1.5 align-middle text-[10px] uppercase tracking-wider text-muted-foreground">
                         {p.category}
@@ -201,7 +202,7 @@ export function SavedPlacesPanel({
               return (
                 <li key={p.id} className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground/80">
-                    {p.label}
+                    {placeDisplayLabel(p.label)}
                     {where ? <span className="text-muted-foreground"> · {where}</span> : null}
                   </span>
                   {onRestore ? (
