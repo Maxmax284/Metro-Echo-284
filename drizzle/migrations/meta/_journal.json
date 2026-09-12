@@ -113,6 +113,13 @@
       "when": 1789222797246,
       "tag": "0015_create_watches_table",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789235823341,
+      "tag": "0016_schedule_watch_sweep",
+      "breakpoints": true
     }
   ]
 }
