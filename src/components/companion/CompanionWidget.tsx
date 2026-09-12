@@ -52,6 +52,11 @@ export function CompanionWidget() {
   }, [active?.id]);
 
   const inAskRoom = context.surface === "ask";
+  // One Ask on screen at a time. Walking into the Ask room means the quick
+  // panel steps aside — same thread, same half-typed line, bigger room.
+  useEffect(() => {
+    if (inAskRoom && panelMode !== "closed") close();
+  }, [inAskRoom, panelMode, close]);
   const producedSummary = outputSummary(active?.outputs);
   const suggestPromotion = shouldSuggestPromotion({
     messageCount: active ? 1 : 0,

@@ -103,6 +103,14 @@ export const MOTION_BOOT = "vanta-boot";
  */
 export const MOTION_SHEET = "motion-sheet-in";
 
+/**
+ * The one fade. Content that appears because a panel opened, an answer landed
+ * or a page mounted — not because new data arrived (that arrives) and not
+ * because something was recorded (that stamps). Replaces the old raw
+ * `animate-fade-in`, which ignored both the Feel knob and reduced motion.
+ */
+export const MOTION_FADE = "motion-fade";
+
 /** One slow scan pass. Empty surfaces only: says watching, not broken. */
 export const MOTION_SCAN = "vanta-scan";
 

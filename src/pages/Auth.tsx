@@ -65,7 +65,7 @@ export default function Auth() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8 animate-fade-in">
+      <div className="w-full max-w-sm space-y-8 motion-fade">
         <div className="space-y-2 text-center">
           <ProductMark className="text-2xl" />
           <p className="text-sm text-muted-foreground">Your operational companion.</p>

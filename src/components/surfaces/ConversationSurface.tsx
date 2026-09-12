@@ -36,7 +36,7 @@ import { useAskSuggestions } from "@/hooks/useAskSuggestions";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
-  beginAskStream, endAskStream, stopAskStream,
+  beginAskStream, endAskStream, stopAskStream, adoptAskSession,
   type AskSession,
 } from "@/lib/askSession";
 
@@ -207,6 +207,9 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     if (!session) return;
     const threadId = convId ?? (await ensureThread());
     if (!threadId) return;
+    // The line was typed before this thread existed. Carry it over so the
+    // quick panel and the Ask room are looking at the same session.
+    if (!convId) adoptAskSession("_none", threadId);
     const firstTurn = msgs.length === 0;
     const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never, { hydrated: true });
     write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
@@ -469,7 +472,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
-            <div className="mt-10 space-y-4 animate-fade-in">
+            <div className="mt-10 space-y-4 motion-fade">
               <p className="text-balance text-center text-sm text-muted-foreground">
                 {activeThread?.context_label
                   ? <>About <span className="font-medium text-foreground/85">{activeThread.context_label}</span>. {surfaceHint}</>
@@ -520,7 +523,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
               const meta = RECEIPT_META[m.receipt.kind];
               const Icon = meta.icon;
               return (
-                <div key={i} className="flex animate-fade-in">
+                <div key={i} className="flex motion-fade">
                   <div className="mr-auto flex max-w-[88%] items-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[12px] text-foreground/90">
                     <Icon className="h-3.5 w-3.5 text-primary" />
                     <span className="font-medium">{meta.label}:</span>
@@ -538,7 +541,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
             }
             return (
               <div key={i} className="group/msg flex flex-col items-end gap-0.5">
-                <div className="flex w-full items-start gap-1.5 animate-fade-in">
+                <div className="flex w-full items-start gap-1.5 motion-fade">
                   <div
                     className={cn(
                       "max-w-[88%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",

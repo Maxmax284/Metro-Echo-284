@@ -81,6 +81,14 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       unrelated lines or nearby content. It speaks only for a real move, active trip,
       clock drift, or when place changes a near-term calendar answer.
 - [x] Route cleanup — the seven side pages now live behind one door (`/how`), old links redirect
-- [ ] Next: Ask ↔ widget continuity (same thread either way)
+- [x] Ask <-> widget continuity: half-typed drafts and live streams follow you from the
+      quick panel into the Ask room (`adoptAskSession`); the panel closes itself in Ask.
+- [x] Aware at 384px: no page overflow; add-a-place form now opens on request instead of
+      sitting empty at the top; machine-stamped pins read "Spot - Aug 29, 4:47 AM"
+      (`src/lib/placeLabels.ts`) instead of truncating into nonsense.
+- [x] Motion consolidation: one fade (`MOTION_FADE` / `.motion-fade`, Feel-aware and
+      reduced-motion aware) replaces Tailwind's `animate-fade-in`, which is deleted from
+      the config. Guard test blocks raw `duration-*` and `animate-fade-in` in app code.
+- [ ] Next: nothing open on the simplification list.
       (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
       Ask <-> widget continuity; Aware 384px prove-it; motion consolidation.
