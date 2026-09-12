@@ -149,7 +149,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return jsonResponse({ ok: true, checked, settled });
+    return jsonResponse({ ok: true, checked, settled, skipped });
   } catch (e) {
     console.error("[watch-sweep]", e);
     return new Response(
