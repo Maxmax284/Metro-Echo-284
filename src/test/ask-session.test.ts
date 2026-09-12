@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   getAskSession, setAskMessages, setAskDraft, subscribeAskSession,
   beginAskStream, endAskStream, stopAskStream, streamingThreadIds,
-  clearAskSession, __resetAskSessions,
+  clearAskSession, adoptAskSession, __resetAskSessions,
 } from "@/lib/askSession";
 
 beforeEach(() => __resetAskSessions());
@@ -54,5 +54,40 @@ describe("ask session — one live state per thread", () => {
     endAskStream("t1");
     clearAskSession("t1");
     expect(getAskSession("t1").messages).toEqual([]);
+  });
+});
+
+describe("ask session — handing a pre-thread draft to the real thread", () => {
+  it("carries the half-typed line onto the new thread", () => {
+    setAskDraft("_none", "book the flight");
+    adoptAskSession("_none", "t9");
+    expect(getAskSession("t9").draft).toBe("book the flight");
+    expect(getAskSession("_none").draft).toBe("");
+  });
+
+  it("never overwrites what the target thread already has", () => {
+    setAskDraft("_none", "stale");
+    setAskDraft("t9", "real");
+    setAskMessages("t9", [{ role: "user", content: "already here" }], { hydrated: true });
+    adoptAskSession("_none", "t9");
+    expect(getAskSession("t9").draft).toBe("real");
+    expect(getAskSession("t9").messages).toHaveLength(1);
+  });
+
+  it("carries turns and a live stream across", () => {
+    setAskMessages("_none", [{ role: "user", content: "hi" }], { hydrated: true });
+    beginAskStream("_none", new AbortController());
+    adoptAskSession("_none", "t9");
+    const s = getAskSession("t9");
+    expect(s.messages).toHaveLength(1);
+    expect(s.hydrated).toBe(true);
+    expect(s.streaming).toBe(true);
+  });
+
+  it("is a no-op when there is nothing to adopt", () => {
+    setAskDraft("t9", "keep me");
+    adoptAskSession("_none", "t9");
+    adoptAskSession("t9", "t9");
+    expect(getAskSession("t9").draft).toBe("keep me");
   });
 });
