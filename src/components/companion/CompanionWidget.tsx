@@ -108,34 +108,8 @@ export function CompanionWidget() {
                 ))}
               </PopoverContent>
             </Popover>
-            <span className="rounded-full bg-surface-elevated px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground ring-1 ring-border/60">
-              Drafts only
-            </span>
           </div>
-          {/* Row 2 — situation */}
-          <div className="hidden flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground sm:flex">
-            <span className="rounded-full bg-surface-elevated/60 px-1.5 py-0.5 ring-1 ring-border/40">
-              on <span className="text-foreground/80">{context.surface}</span>
-            </span>
-            {awareness.place ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-surface-elevated/60 px-1.5 py-0.5 ring-1 ring-border/40">
-                <span className={cn("h-1.5 w-1.5 rounded-full", FRESHNESS_DOT[awareness.freshness] ?? FRESHNESS_DOT.missing)} />
-                <span className="text-foreground/80">{awareness.place.label}</span>
-                <span className="uppercase tracking-wider text-muted-foreground/80">
-                  {awareness.freshness}{awareness.confidence ? ` · ${awareness.confidence}` : ""}
-                </span>
-              </span>
-            ) : (
-              <span className="rounded-full bg-surface-elevated/60 px-1.5 py-0.5 ring-1 ring-border/40">
-                no place set
-              </span>
-            )}
-            {awareness.freshness === "stale" && (
-              <span className="rounded-full bg-destructive/15 px-1.5 py-0.5 text-destructive ring-1 ring-destructive/40">
-                stale
-              </span>
-            )}
-          </div>
+          <p className="hidden text-[10px] text-muted-foreground sm:block">Same Echo, same thread. Anything that acts still waits for you.</p>
         </div>
         <div className="flex items-center gap-1">
           {!inAskRoom && (

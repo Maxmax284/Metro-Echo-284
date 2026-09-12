@@ -18,17 +18,17 @@ import { MOTION_FLIP, MOTION_ROW, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const OPEN_LABEL: Record<SituationLine["kind"], string> = {
-  overdue: "Open commitment",
-  waiting_on_you: "Review changes",
-  meeting_soon: "Open schedule",
-  happening_now: "Open schedule",
+  overdue: "Open",
+  waiting_on_you: "Review",
+  meeting_soon: "Open",
+  happening_now: "Open",
 
-  due_soon: "Open commitment",
-  noticed: "See what Echo noticed",
-  went_unusually_quiet: "Open project",
-  matter_open: "Review the reading",
-  matter_proposed: "Read them together",
-  arrived: "Open inbox",
+  due_soon: "Open",
+  noticed: "Take a look",
+  went_unusually_quiet: "Open",
+  matter_open: "Review",
+  matter_proposed: "Review",
+  arrived: "Open",
 };
 
 function Line({
@@ -107,10 +107,10 @@ export function SituationRead({
   const unknown = unknownLine(read.unknownSources);
 
   return (
-    <section className={cn("space-y-2", className)} aria-label="What matters right now">
+    <section className={cn("space-y-2", className)} aria-label="Current read">
       <div className="flex items-center gap-1.5">
         <Radio className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-        <MachineLabel className="text-foreground/70">What matters right now</MachineLabel>
+        <MachineLabel className="text-foreground/70">Current read</MachineLabel>
       </div>
 
       <p className="text-[15px] font-medium leading-snug text-foreground">{read.headline}</p>

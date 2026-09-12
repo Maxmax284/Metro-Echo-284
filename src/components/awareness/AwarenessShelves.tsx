@@ -13,24 +13,24 @@ type Props = {
  * every word was decided in awarenessShelves.
  */
 export function AwarenessShelves({ shelves, onOpenSection, className }: Props) {
+  const active = shelves.filter((shelf) => shelf.lines.length > 0);
+  if (active.length === 0) {
+    return <p className={cn("text-[12px] leading-snug text-muted-foreground", className)}>Nothing nearby needs your attention.</p>;
+  }
   return (
     <div className={cn("space-y-3", className)}>
-      {shelves.map((shelf) => (
+      {active.map((shelf) => (
         <section key={shelf.key} className="vanta-card rounded-xl p-3">
           <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
             {shelf.label}
           </div>
-          {shelf.lines.length === 0 ? (
-            <p className="text-[12px] leading-snug text-muted-foreground">{shelf.quiet}</p>
-          ) : (
-            <ul className="space-y-1.5">
-              {shelf.lines.map((line) => (
-                <li key={line.key}>
-                  <Line line={line} onOpenSection={onOpenSection} />
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="space-y-1.5">
+            {shelf.lines.map((line) => (
+              <li key={line.key}>
+                <Line line={line} onOpenSection={onOpenSection} />
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
     </div>
