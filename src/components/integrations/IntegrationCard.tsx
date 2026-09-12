@@ -49,6 +49,7 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
   const [lastEventAt, setLastEventAt] = useState<string | null>(null);
   const [count7d, setCount7d] = useState<number>(0);
   const [open, setOpen] = useState(false);
+  const [wiring, setWiring] = useState(false);
   const [pasteFor, setPasteFor] = useState<string | null>(null);
   const [secretValue, setSecretValue] = useState("");
   const [savingSecret, setSavingSecret] = useState(false);
