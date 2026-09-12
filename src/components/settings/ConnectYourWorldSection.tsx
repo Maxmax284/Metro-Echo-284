@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SensorKey } from "@/lib/awareness";
 import {
-  CONN_LABEL, CONN_LAMP, CONN_TONE, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
+  CONN_LAMP, DEVICE_FAMILIES, calendarCard, emailCard, platformCard,
   telegramCard, wearableCard, type ConnectionCard,
 } from "@/lib/connections";
+import { reachFromConn, REACH_LABEL, REACH_TONE } from "@/lib/reach";
 import { LoadingState } from "@/components/ui/state-views";
 
 type Reading = {
