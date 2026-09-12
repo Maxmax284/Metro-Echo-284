@@ -36,9 +36,8 @@ import { useAskSuggestions } from "@/hooks/useAskSuggestions";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import {
   getAskSession, subscribeAskSession, setAskMessages, setAskDraft,
-  beginAskStream, endAskStream, stopAskStream,
-  type AskSession,,
-  adoptAskSession
+  beginAskStream, endAskStream, stopAskStream, adoptAskSession,
+  type AskSession,
 } from "@/lib/askSession";
 
 
