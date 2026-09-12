@@ -242,6 +242,16 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
         </Link>
       )}
 
+      {/* Plumbing lives behind one door: addresses, keys and signature checks
+          only matter when you are wiring the other side up. */}
+      <Collapsible open={wiring} onOpenChange={setWiring} className="mt-3">
+        <CollapsibleTrigger asChild>
+          <button className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+            <ChevronDown className={cn("h-3 w-3 transition-transform", wiring && "rotate-180")} />
+            Wiring and keys
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-0">
       {webhookUrl && (
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
           <span className="text-muted-foreground">Webhook URL</span>
@@ -393,6 +403,10 @@ export function IntegrationCard({ def, signals, secretStatus, diagnostic, onSecr
           )}
         </div>
       )}
+        </CollapsibleContent>
+      </Collapsible>
+
+
 
       <Collapsible open={open} onOpenChange={setOpen} className="mt-3">
         <CollapsibleTrigger asChild>
