@@ -4,7 +4,9 @@
 // Doctrine: this is a sense, not a task. There is no complete, no reschedule, no
 // reply. Filing is structural only and never touches the calendar itself.
 import { useState } from "react";
-import { FolderPlus, MapPin } from "lucide-react";
+import { Eye, FolderPlus, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { startCalendarWatch } from "@/lib/watchApply";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
 import { createProject, type Project } from "@/lib/projects";
