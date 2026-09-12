@@ -29,9 +29,8 @@
 - [x] F. High-stakes groundwork: router recognition, simplified options, device dialer link,
       prepared-not-sent handoff. No sharing, no contacts, no execution.
 - [x] G. Proactive field delivery through the existing awareness pipeline only, one sender.
-- [ ] Remaining roadmap (not this pass): Today hierarchy pass; Aware 384px prove-it; motion
-      consolidation; Ask <-> widget continuity; route consolidation (/watch /motion /glance
-      /wearables /wearable-loop /physical-loop /how).
+- [x] Today hierarchy, Aware 384px proof, motion consolidation, Ask/widget continuity,
+      and legacy route consolidation are complete.
 
 ## Parked deliberately
 Background/always-on location. Geofencing. Autonomous SOS or emergency calling. Silent location
@@ -89,6 +88,8 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 - [x] Motion consolidation: one fade (`MOTION_FADE` / `.motion-fade`, Feel-aware and
       reduced-motion aware) replaces Tailwind's `animate-fade-in`, which is deleted from
       the config. Guard test blocks raw `duration-*` and `animate-fade-in` in app code.
-- [ ] Next: nothing open on the simplification list.
-      (/watch /motion /glance /wearables /wearable-loop /physical-loop /how);
-      Ask <-> widget continuity; Aware 384px prove-it; motion consolidation.
+- [x] Simplification pass 2: Today now reads Current read / Needs you / Coming up / Changed;
+      duplicate travel/checklist presentations are removed. Work exposes three shelves with
+      one tap per destination. Empty Awareness shelves stay hidden; deeper place tools sit
+      behind one reveal. Ask, Receipts, setup warnings and navigation use plain language.
+      Four-room navigation is the only primary navigation on phone and desktop.

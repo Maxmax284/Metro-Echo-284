@@ -97,7 +97,7 @@ export function ProvenanceStrip({
 
   return (
     <span className={cn("vanta-machine inline-flex items-center gap-1 text-[10px] tracking-[0.08em] text-muted-foreground/80", className)}>
-      {label ? <span className="truncate">From {label}</span> : null}
+      {label ? <span className="truncate">{label}</span> : null}
       {label && when ? <span aria-hidden>·</span> : null}
       {when ? <span>{when}</span> : null}
     </span>

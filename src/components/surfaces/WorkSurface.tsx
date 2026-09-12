@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLongPress } from "@/hooks/useLongPress";
 import {
   FolderKanban,
   Inbox,
@@ -25,7 +24,6 @@ import { SectionNote } from "@/components/ui/section-note";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { sectionNote } from "@/lib/roomCopy";
 import { cn } from "@/lib/utils";
-import { markFlipOriginFromEvent } from "@/lib/flip";
 import { LEAD_BAR, MOTION_BOOT, MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import {
   MachineLabel,
@@ -42,10 +40,7 @@ import {
   projectTimeLabel,
 } from "@/lib/workLabels";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
-import { DESK_ROLES, DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
-import { DeskInfo } from "@/components/work/DeskInfo";
-import { DeskStartHere } from "@/components/work/DeskStartHere";
-import { DeskQuickActions } from "@/components/work/DeskQuickActions";
+import { DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
 import { useWorkBriefing } from "@/hooks/useWorkBriefing";
 import { useHandoffTrace } from "@/hooks/useHandoffTrace";
@@ -299,13 +294,6 @@ function Desk({
   /** Truthful next step, derived from counts this room already loaded. */
   recommended?: string | null;
 }) {
-  /* Long press on touch reveals the desk's explanation. It never navigates and
-     never executes — and the tap that ends the hold is swallowed so the tile
-     does not also open the desk underneath the panel. */
-  const [infoOpen, setInfoOpen] = useState(false);
-  const longPress = useLongPress(() => setInfoOpen(true));
-
-  const role = DESK_ROLES[deskKey];
   /* When a desk is countable and currently empty, the tile says why it is
      empty instead of showing a bare zero. Nothing here reads new data. */
   const isEmpty = typeof count === "number" && count === 0;
@@ -332,7 +320,7 @@ function Desk({
         {/* One hint, not four. "Use when" and the full job description live in
             the "?" panel and on the desk itself, so a tile stays a tile. */}
         <span className="block text-[11px] leading-snug text-muted-foreground">
-          {isEmpty ? role.emptyWhy : DESK_TILE_HINT[deskKey]}
+          {DESK_TILE_HINT[deskKey]}
         </span>
       </span>
       {typeof count === "number" && count > 0 && (
@@ -345,61 +333,30 @@ function Desk({
   const className = cn(
     "flex min-h-[44px] w-full items-start gap-2 vanta-inset vanta-cut px-3 py-2 text-left hover:bg-surface-elevated/70",
     /* A hold must not also select the label text on touch. */
-    "select-none touch-manipulation",
+    "touch-manipulation",
     MOTION_ROW,
     MOTION_HOVER_LIFT,
     MOTION_FOCUS,
   );
 
   return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <div className="flex min-w-0 items-start gap-1">
+    <div className="min-w-0">
         {href ? (
           <a
             href={href}
             className={className}
-            title={role.useWhen}
-            aria-describedby={undefined}
-            {...longPress.handlers}
-            onClick={(e) => {
-              if (longPress.shouldSuppressClick()) {
-                e.preventDefault();
-                return;
-              }
-              markFlipOriginFromEvent(e);
-            }}
+            onClick={() => undefined}
           >
             {body}
           </a>
         ) : (
           <button
             className={className}
-            title={role.useWhen}
-            {...longPress.handlers}
-            onClick={(e) => {
-              if (longPress.shouldSuppressClick()) {
-                e.preventDefault();
-                return;
-              }
-              markFlipOriginFromEvent(e);
-              onOpen?.();
-            }}
+            onClick={onOpen}
           >
             {body}
           </button>
         )}
-        <div className="flex shrink-0 flex-col items-center">
-          <DeskStartHere deskKey={deskKey} />
-          <DeskInfo
-            deskKey={deskKey}
-            open={infoOpen}
-            onOpenChange={setInfoOpen}
-            recommended={recommended}
-          />
-        </div>
-      </div>
-      {/* Do this: verb-first taps that only open the desk. */}
-      <DeskQuickActions deskKey={deskKey} count={count} onOpen={open} className="pl-1" />
     </div>
   );
 
