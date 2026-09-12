@@ -11,7 +11,9 @@ import {
   calendarFingerprint,
   exhausted,
   isDue,
+  leaseUntil,
   nextCheckAt,
+  OPEN_STATES,
   settleFromAction,
   settleFromCalendar,
   type CheckResult,
@@ -58,8 +60,25 @@ Deno.serve(async (req: Request) => {
     let checked = 0;
     let settled = 0;
 
+    let skipped = 0;
+
     for (const row of rows) {
       if (!isDue(row, now)) continue;
+
+      /* Claim the row before checking it. Two overlapping sweeps cannot both
+         win this update, so the same watch is never checked twice at once. */
+      const { data: claimed } = await admin
+        .from("watches")
+        .update({ next_check_at: leaseUntil(now), updated_at: now.toISOString() })
+        .eq("id", row.id)
+        .eq("next_check_at", row.next_check_at)
+        .in("state", OPEN_STATES)
+        .select("id");
+      if (!claimed || claimed.length === 0) {
+        skipped += 1;
+        continue;
+      }
+
       checked += 1;
       const attempts = row.attempts + 1;
 
@@ -130,7 +149,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return jsonResponse({ ok: true, checked, settled });
+    return jsonResponse({ ok: true, checked, settled, skipped });
   } catch (e) {
     console.error("[watch-sweep]", e);
     return new Response(

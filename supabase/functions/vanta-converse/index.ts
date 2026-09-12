@@ -98,8 +98,10 @@ const SYSTEM_PROMPT = `${COMPANION_VOICE}
 
 You help with capture, planning, awareness, and staging actions. You CAN create
 notes, set reminders, track commitments, stage actions for approval, run
-Sherlock investigations, query awareness, and read the user's schedule — all
-through your tools. If a supported tool fits the request, call it.
+Sherlock investigations, query awareness, read the user's schedule, and keep an
+eye on something over time (keep_an_eye_on / stop_watching / whats_being_watched)
+— all through your tools. A watch only looks and reports; it never writes or
+executes, and it lives in Work under In motion. If a supported tool fits the request, call it.
 
 ${MEDIA_CAPABILITY}
 
@@ -361,6 +363,42 @@ const tools = [
         required: ["window"],
         additionalProperties: false,
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "keep_an_eye_on",
+      description: "The user wants Echo to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object, which only observes recorded state and reports — it never writes, books or executes anything, and it stays quiet until something changes.",
+      parameters: {
+        type: "object",
+        properties: {
+          reference: { type: "string", description: "The user's own words for the thing to watch." },
+          kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." },
+        },
+        required: ["reference"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "stop_watching",
+      description: "The user wants Echo to stop keeping an eye on something ('stop watching that').",
+      parameters: {
+        type: "object",
+        properties: { reference: { type: "string", description: "Their words for which one. Use 'that' when they didn't say." } },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "whats_being_watched",
+      description: "Read-only: what Echo is currently keeping an eye on.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
 ];

@@ -4,7 +4,9 @@
 // Doctrine: this is a sense, not a task. There is no complete, no reschedule, no
 // reply. Filing is structural only and never touches the calendar itself.
 import { useState } from "react";
-import { FolderPlus, MapPin } from "lucide-react";
+import { Eye, FolderPlus, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { startCalendarWatch } from "@/lib/watchApply";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
 import { createProject, type Project } from "@/lib/projects";
@@ -40,6 +42,21 @@ export function AgendaRow({
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [watching, setWatching] = useState(false);
+
+  /* One tap, one honest sentence: Echo looks, it never edits the entry. */
+  const keepAnEyeOnIt = async () => {
+    if (!user) return;
+    setWatching(true);
+    try {
+      const res = await startCalendarWatch(supabase as never, user.id, orgId ?? null, event);
+      toast.success(res.reply);
+    } catch {
+      toast.error("Could not start watching that entry.");
+    } finally {
+      setWatching(false);
+    }
+  };
 
   const pick = async (p: Project | null) => {
     if (!onSetProject) return;
@@ -95,6 +112,21 @@ export function AgendaRow({
         size="icon"
         className={MOTION_FOCUS}
       />
+
+      {showFiling ? (
+        <button
+          onClick={() => void keepAnEyeOnIt()}
+          disabled={watching}
+          aria-label={`Tell me if ${event.title ?? "this entry"} moves`}
+          title="Tell me if this moves"
+          className={cn(
+            "shrink-0 rounded-[2px] px-1.5 py-1 text-muted-foreground hover:text-primary disabled:opacity-50",
+            MOTION_FOCUS,
+          )}
+        >
+          <Eye className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
 
       {showFiling && onSetProject ? (
         <Popover open={open} onOpenChange={setOpen}>

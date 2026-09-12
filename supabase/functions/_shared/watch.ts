@@ -72,6 +72,17 @@ export function nextCheckAt(base: number, attempts: number, now: Date): string {
   return new Date(now.getTime() + nextCadenceMinutes(base, attempts) * 60_000).toISOString();
 }
 
+/**
+ * A short hold placed on a watch the moment a sweep picks it up, so two runs
+ * that overlap cannot both check the same thing. The hold is only ever a
+ * postponement: the real next check time is written when the check finishes.
+ */
+export const LEASE_MINUTES = 5;
+
+export function leaseUntil(now: Date, minutes: number = LEASE_MINUTES): string {
+  return new Date(now.getTime() + minutes * 60_000).toISOString();
+}
+
 /** True when this watch has run out of road. */
 export function exhausted(row: Pick<WatchRow, "attempts" | "max_attempts" | "stop_at">, now: Date): boolean {
   if (row.attempts >= row.max_attempts) return true;
@@ -106,10 +117,22 @@ export type CalendarShape = {
   ends_at?: string | null;
 };
 
-/** A stable string for "has this entry changed?". */
+/** Minute precision: a feed rewriting seconds is not news. */
+function toMinute(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return String(iso);
+  return new Date(Math.floor(t.getTime() / 60_000) * 60_000).toISOString();
+}
+
+/**
+ * A stable string for "has this entry changed?". Only the three things a person
+ * would call a change count: what it is called, when it starts, when it ends.
+ * Descriptions, sync tokens and other feed churn are deliberately ignored.
+ */
 export function calendarFingerprint(ev: CalendarShape | null): string {
   if (!ev) return "";
-  return [ev.title ?? "", ev.starts_at ?? "", ev.ends_at ?? ""].join("|");
+  return [(ev.title ?? "").trim().toLowerCase(), toMinute(ev.starts_at), toMinute(ev.ends_at)].join("|");
 }
 
 export function settleFromCalendar(expected: string, current: CalendarShape | null): CheckResult {

@@ -6,6 +6,7 @@
 //   then the assistant reply is sent back to Telegram.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { firstPassIntake } from "../_shared/fileIntake.ts";
+import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "../_shared/watchApply.ts";
 import { replyWhyLine } from "../_shared/telegramWhy.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
 import {
@@ -195,6 +196,10 @@ a place, or a meeting, or the user asks for it on the calendar, stage_calendar_c
 time, plus a reminder change for the lead time) even when a reminder for it exists. An existing
 reminder never blocks putting the thing on the calendar.
 /queue shows them where every calendar edit stands and lets them retry a write.
+You CAN keep an eye on something over time with keep_an_eye_on ("watch my flight", "keep checking
+until the deposit lands"), stop with stop_watching, and read it back with whats_being_watched.
+A watch only looks and reports — it never writes, books or executes, and it stays quiet until
+something actually changes. It shows up in Work under In motion, same object as the app.
 You still cannot export, send, book or pay anything.
 Pictures and files sent to this chat are seen and read here — see the media rules below. If asked
 whether you can look at a photo or a screenshot, say yes and ask for it. Never claim your tools
@@ -234,6 +239,10 @@ const tools = [
   { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
   { type: "function", function: { name: "whats_changed", description: "Read-only: what moved recently across captures, promises, drafts and flagged items.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
   { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
+  // Long-running attention. These never write anywhere — they only keep looking.
+  { type: "function", function: { name: "keep_an_eye_on", description: "The user wants you to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object — it only observes and reports, never writes or executes. Pass the user's own words as reference.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their own words for the thing to watch, e.g. 'my flight Friday' or 'the deposit'." }, kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." } }, required: ["reference"], additionalProperties: false } } },
+  { type: "function", function: { name: "stop_watching", description: "The user wants you to stop keeping an eye on something: 'stop watching that', 'drop that watch'.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their words for which one. Use 'that' when they didn't say." } }, additionalProperties: false } } },
+  { type: "function", function: { name: "whats_being_watched", description: "Read-only: what Echo is currently keeping an eye on. Use for 'what are you watching', 'anything you're still checking'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
 ];
 
 type UserDefaults = { timezone: string; morning: string; afternoon: string; evening: string };
@@ -705,6 +714,24 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   if (name === "project_status") {
     const { text } = await projectStatus(sb, scope, String(args?.project ?? ""));
     return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind };
+  }
+
+  /* ---- Keeping an eye on things: the same watch object as the app. -------- */
+  if (name === "keep_an_eye_on") {
+    const res = await startWatchFromWords(sb as never, userId, orgId, {
+      reference: String(args?.reference ?? ""),
+      kind: args?.kind === "action" ? "action_settled" : args?.kind === "calendar_event" ? "calendar_event" : "unknown",
+      source: "telegram",
+    });
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
+  }
+  if (name === "stop_watching") {
+    const res = await stopWatchFromWords(sb as never, userId, { reference: String(args?.reference ?? "") });
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true };
+  }
+  if (name === "whats_being_watched") {
+    const res = await readWatchStatus(sb as never, userId);
+    return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
   }
 
   /* ---- Filing: a reversible link between a capture and a project. --------- */
