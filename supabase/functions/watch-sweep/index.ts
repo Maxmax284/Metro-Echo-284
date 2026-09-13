@@ -62,6 +62,16 @@ Deno.serve(async (req: Request) => {
 
     let skipped = 0;
 
+    /* One timezone lookup per person, so the outcome reads in their own clock. */
+    const zones = new Map<string, string | null>();
+    const zoneFor = async (userId: string): Promise<string | null> => {
+      if (zones.has(userId)) return zones.get(userId) ?? null;
+      const { data } = await admin.from("profiles").select("timezone").eq("id", userId).maybeSingle();
+      const tz = (data as { timezone?: string | null } | null)?.timezone ?? null;
+      zones.set(userId, tz);
+      return tz;
+    };
+
     for (const row of rows) {
       if (!isDue(row, now)) continue;
 
