@@ -49,6 +49,8 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { WatchShelf } from "@/components/work/WatchShelf";
+import { MailShelf } from "@/components/work/MailShelf";
+import { DriveFindPanel } from "@/components/work/DriveFindPanel";
 
 
 
@@ -171,6 +173,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
               <QuietShelfLine line="Nothing new to sort." />
             ) : null}
           </div>
+          <MailShelf />
           <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
         </section>
 
@@ -236,6 +239,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             {hasFindings ? <Desk deskKey="sherlock" label="What Echo noticed" Icon={Search} onOpen={() => onNavigate("sherlock")} /> : null}
             <Desk deskKey="awareness" label="Place and context" Icon={Compass} onOpen={() => onNavigate("awareness")} />
             <QuietShelfLine line="Need something older?" cta="Find it" onOpen={() => onNavigate("memory")} />
+          </div>
+          <div className="mt-2.5">
+            <DriveFindPanel />
           </div>
         </CollapsibleSection>
 

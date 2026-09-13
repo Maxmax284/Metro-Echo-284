@@ -1,27 +1,49 @@
-// app-user-oauth-complete — turn the one-time code into this person's stored key.
+// app-user-oauth-complete — turn the one-time code into this person's stored key
+// for the ONE Google service they just granted.
 //
-// Then it does the useful thing immediately: makes sure they have a Google
-// calendar feed and pulls it in, so Today has real entries before they look.
+// For calendar it also does the useful thing immediately: makes sure they have a
+// Google calendar feed so Today has real entries before they look. Mail and
+// files store the grant and nothing else — no background sweep starts itself.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, jsonResponse, preflight, readJson } from "../_shared/http.ts";
 import { resolveUser } from "../_shared/authContext.ts";
 import { callAsAppUser, exchangeAppUserOAuthCode } from "../_shared/appUserConnector.ts";
 import { adminClient, saveConnectionKeyForUser } from "../_shared/appUserConnections.ts";
-import { GOOGLE_CALENDAR_CONNECTOR_ID } from "../_shared/appUserScopes.ts";
+import {
+  GOOGLE_CALENDAR_CONNECTOR_ID,
+  GOOGLE_DRIVE_CONNECTOR_ID,
+  GOOGLE_MAIL_CONNECTOR_ID,
+  isGoogleConnector,
+  type GoogleConnectorId,
+} from "../_shared/appUserScopes.ts";
 import { GATEWAY_BASE_URL } from "../_shared/calendarConnection.ts";
+import { writeAuditEvent } from "../_shared/auditEvent.ts";
 
 /** Which Google account this is, in the person's own words: their address. */
-async function primaryAccountLabel(connectionAPIKey: string): Promise<string | null> {
+async function accountLabel(
+  connectionAPIKey: string,
+  connectorId: GoogleConnectorId,
+): Promise<string | null> {
+  const path = connectorId === GOOGLE_CALENDAR_CONNECTOR_ID
+    ? "/calendar/v3/calendars/primary"
+    : connectorId === GOOGLE_MAIL_CONNECTOR_ID
+    ? "/gmail/v1/users/me/profile"
+    : "/drive/v3/about?fields=user(emailAddress,displayName)";
   try {
     const res = await callAsAppUser({
       gatewayBaseUrl: GATEWAY_BASE_URL,
       connectionAPIKey,
-      connectorId: GOOGLE_CALENDAR_CONNECTOR_ID,
-      path: "/calendar/v3/calendars/primary",
+      connectorId,
+      path,
     });
     if (!res.ok) return null;
-    const body = (await res.json()) as { id?: string; summary?: string };
-    return body.id ?? body.summary ?? null;
+    const body = (await res.json()) as {
+      id?: string;
+      summary?: string;
+      emailAddress?: string;
+      user?: { emailAddress?: string };
+    };
+    return body.emailAddress ?? body.user?.emailAddress ?? body.id ?? body.summary ?? null;
   } catch {
     return null;
   }
@@ -45,17 +67,33 @@ Deno.serve(async (req: Request) => {
     if (!code || code.length > 4096) return jsonResponse({ error: "missing code" }, 400);
 
     const { connectionAPIKey, connectorId } = await exchangeAppUserOAuthCode(GATEWAY_BASE_URL, code);
-    if (connectorId !== GOOGLE_CALENDAR_CONNECTOR_ID) {
+    if (!isGoogleConnector(connectorId)) {
       return jsonResponse({ error: "that sign-in was for a different service" }, 400);
     }
 
-    const label = await primaryAccountLabel(connectionAPIKey);
+    const label = await accountLabel(connectionAPIKey, connectorId);
     await saveConnectionKeyForUser(user.id, connectorId, connectionAPIKey, label);
+
+    const admin = adminClient();
+    const orgId = typeof body?.organization_id === "string" ? body.organization_id : null;
+
+    await writeAuditEvent(admin as never, {
+      actor: user.id,
+      organizationId: orgId,
+      entityType: "connection",
+      entityId: null,
+      event: "google.service.granted",
+      source: "settings",
+      success: true,
+      metadata: { service: connectorId, account: label },
+    });
+
+    if (connectorId === GOOGLE_MAIL_CONNECTOR_ID || connectorId === GOOGLE_DRIVE_CONNECTOR_ID) {
+      return jsonResponse({ ok: true, service: connectorId, account: label });
+    }
 
     // One Google feed per person and room. It carries provider identity, so
     // Telegram and Today read exactly what Google holds.
-    const admin = adminClient();
-    const orgId = typeof body?.organization_id === "string" ? body.organization_id : null;
     let feedQuery = admin
       .from("calendar_feeds")
       .select("id")
@@ -87,7 +125,7 @@ Deno.serve(async (req: Request) => {
         .eq("id", feedId);
     }
 
-    return jsonResponse({ ok: true, account: label, feed_id: feedId });
+    return jsonResponse({ ok: true, service: connectorId, account: label, feed_id: feedId });
   } catch (e) {
     console.error("[app-user-oauth-complete]", e);
     return new Response(

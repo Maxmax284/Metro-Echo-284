@@ -25,6 +25,7 @@ import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import Index from "./pages/Index.tsx";
 import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
+import GoogleReturn from "./pages/oauth/GoogleReturn";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
 import SettingsGroup from "./pages/SettingsGroup.tsx";
@@ -91,6 +92,7 @@ const App = () => (
 
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
+                              <Route path="/oauth/google/return" element={<GoogleReturn />} />
                               <Route path="/settings" element={<Settings />} />
                               <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
                               <Route path="/settings/telegram" element={<TelegramSetupPage />} />
