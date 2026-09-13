@@ -96,7 +96,7 @@ export function useAgenda(
       const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
       const nowIso = new Date().toISOString();
       const columns =
-        "id,title,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)";
+        "id,title,uid,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)";
       const [{ data, error: err }, running, projs] = await Promise.all([
         applyScope(supabase.from("calendar_events").select(columns))
           .gte("starts_at", from)
@@ -126,6 +126,7 @@ export function useAgenda(
         all_day: r.all_day,
         location: r.location,
         feed_id: r.feed_id,
+        uid: r.uid ?? null,
         project_id: r.project_id ?? null,
         feedLabel: r.calendar_feeds?.label ?? "Calendar",
         projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
