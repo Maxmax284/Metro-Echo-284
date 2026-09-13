@@ -35,8 +35,6 @@ Deno.serve(async (req: Request) => {
       .from("app_user_connections")
       .select("connector_id, account_label, last_error")
       .eq("user_id", user.id);
-    type Row = { connector_id: string; account_label: string | null; last_error: string | null };
-    const mine = new Map<string, Row>(((rows ?? []) as Row[]).map((r) => [r.connector_id, r]));
 
     /* Calendar keeps its own recorded sync failure. Mail and files record theirs
        on their own connection row, so one refused service never reddens another. */
@@ -49,26 +47,12 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const calendarError = (feed as { last_error?: string | null } | null)?.last_error ?? null;
 
-    const services: GoogleServiceStatus[] = GOOGLE_CONNECTOR_IDS.map((service) => {
-      const row = mine.get(service);
-      const connected = !!row;
-      const problem = service === "google_calendar"
-        ? (row?.last_error ?? null) || calendarError
-        : row?.last_error ?? null;
-      const failing = connected && !!problem;
-      return {
-        service,
-        connected,
-        offerable: !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
-        account: row?.account_label ?? null,
-        failing,
-        detail: failing
-          ? (service === "google_calendar"
-            ? "Google stopped answering for your calendar."
-            : "Google stopped answering for this one. Switch it on again.")
-          : null,
-      };
+    const services: GoogleServiceStatus[] = googleServiceStatuses({
+      rows: (rows ?? []) as ConnectionRow[],
+      offerable: (service) => !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
+      calendarSyncError: calendarError,
     });
+
 
 
     const account = services.find((s) => s.connected && s.account)?.account ?? null;
