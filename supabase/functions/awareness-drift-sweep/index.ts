@@ -31,8 +31,6 @@ import {
   type CalendarChangeRow,
   calendarSignals,
   type CalendarEventRow,
-  appointmentReminderSignals,
-  eventKey,
 
   captureRouteToSignal,
   sherlockFindingToSignal,
@@ -53,6 +51,7 @@ import {
   sensorAllowed,
   postureHolds,
 } from "../_shared/awareness/index.ts";
+import { appointmentReminderSignals, eventKey } from "../_shared/awareness/reminders.ts";
 
 type ScopeTarget = { organizationId: string | null };
 type SweepOutcome = "none" | "shadow" | "proposed";
