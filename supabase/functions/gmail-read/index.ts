@@ -13,6 +13,8 @@ import { callGoogle } from "../_shared/googleService.ts";
 import { GOOGLE_MAIL_CONNECTOR_ID } from "../_shared/appUserScopes.ts";
 import {
   MAIL_QUERY,
+  mailSearchQuery,
+  mailAnswer,
   headerValue,
   mailConclusion,
   plainTextFromPayload,
@@ -35,7 +37,8 @@ Deno.serve(async (req: Request) => {
     const user = await resolveUser(req, sb as never);
     if (!user) return jsonResponse({ error: "sign in required" }, 401);
 
-    const body = (await readJson(req)) as { message_id?: string } | null;
+    const body = (await readJson(req)) as { message_id?: string; question?: string } | null;
+    const question = String(body?.question ?? "").trim().slice(0, 200);
     const messageId = String(body?.message_id ?? "").trim();
 
     /* One message, opened on purpose: this is the only path that reads a body. */
@@ -64,10 +67,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    /* A question narrows the search to the words a person said. No question
+       means "what is waiting on me", never "hand over the mailbox". */
+    const q = question ? mailSearchQuery(question) : MAIL_QUERY;
     const list = await callGoogle(
       user.id,
       GOOGLE_MAIL_CONNECTOR_ID,
-      `/gmail/v1/users/me/messages?maxResults=${MAX_LIST}&q=${encodeURIComponent(MAIL_QUERY)}`,
+      `/gmail/v1/users/me/messages?maxResults=${MAX_LIST}&q=${encodeURIComponent(q)}`,
     );
     if (!list.ok) {
       return jsonResponse({
@@ -99,7 +105,7 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({
       connected: true,
       items,
-      conclusion: mailConclusion(items),
+      conclusion: question ? mailAnswer(items) : mailConclusion(items),
     });
   } catch (e) {
     console.error("[gmail-read]", e);
