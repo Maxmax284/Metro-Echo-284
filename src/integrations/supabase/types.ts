@@ -290,6 +290,9 @@ export type Database = {
           connector_id: string
           created_at: string
           id: string
+          last_error: string | null
+          last_error_at: string | null
+          last_ok_at: string | null
           updated_at: string
           user_id: string
         }
@@ -299,6 +302,9 @@ export type Database = {
           connector_id: string
           created_at?: string
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_ok_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -308,6 +314,9 @@ export type Database = {
           connector_id?: string
           created_at?: string
           id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_ok_at?: string | null
           updated_at?: string
           user_id?: string
         }
