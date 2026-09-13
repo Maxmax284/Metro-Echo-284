@@ -1,0 +1,1 @@
+ALTER TYPE public.executor_kind ADD VALUE IF NOT EXISTS 'gmail';

@@ -116,7 +116,9 @@ export function MailShelf() {
     }
   };
 
-  const send = async () => {
+  /* Nothing is sent from here. The words become one approval in Work, and the
+     send only happens when a person approves it there — with a receipt. */
+  const lineUp = async () => {
     if (!open || !reply.trim()) return;
     setBusy("send");
     try {
@@ -125,6 +127,7 @@ export function MailShelf() {
           intent: "send",
           confirmed: true,
           to: open.from,
+          their_name: open.fromName,
           subject: open.subject,
           text: reply,
           thread_id: open.threadId,
@@ -134,14 +137,14 @@ export function MailShelf() {
         },
       });
       if (error) throw error;
-      if (!(data as { ok?: boolean } | null)?.ok) throw new Error("not sent");
-      toast.success(`Sent to ${open.fromName}. It is on your receipts.`);
+      if (!(data as { staged?: boolean } | null)?.staged) throw new Error("not staged");
+      toast.success(
+        `Ready for your approval in Work. Nothing has gone to ${open.fromName} yet.`,
+      );
       setOpen(null);
       await load();
     } catch {
-      toast.error(
-        "That did not send. Nothing left your account — you may need to allow sending on the Google card.",
-      );
+      toast.error("Could not line that up. Nothing left your account.");
     } finally {
       setBusy(null);
     }
@@ -221,10 +224,10 @@ export function MailShelf() {
                   size="sm"
                   className="vanta-focus h-9 text-[11.5px]"
                   disabled={!reply.trim() || busy === "send"}
-                  onClick={() => void send()}
+                  onClick={() => void lineUp()}
                 >
                   <Send className="mr-1.5 h-3.5 w-3.5" />
-                  {busy === "send" ? "Sending…" : "Send it"}
+                  {busy === "send" ? "Lining it up…" : "Send it, with my approval"}
                 </Button>
               </div>
             </>

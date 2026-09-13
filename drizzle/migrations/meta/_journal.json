@@ -141,6 +141,13 @@
       "when": 1789308944213,
       "tag": "0019_app_user_connection_health",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789314112933,
+      "tag": "0020_add_gmail_executor_kind",
+      "breakpoints": true
     }
   ]
 }

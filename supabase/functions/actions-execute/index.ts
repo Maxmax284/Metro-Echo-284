@@ -10,6 +10,8 @@ import {
   calendarWriteStateForUser,
 } from "../_shared/calendarExecute.ts";
 import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+import { isMailProposal } from "../_shared/mailProposal.ts";
+import { ensureGmailExecutor, executeMailProposal } from "../_shared/mailExecute.ts";
 import { isWriteOperation, performFirstPartyWrite } from "../_shared/firstPartyWrite.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
@@ -217,6 +219,17 @@ Deno.serve(async (req: Request) => {
       targetId = await ensureGoogleCalendarExecutor(supabase, user.id);
     }
 
+    /* A written reply routes to this person's own Gmail. Nothing borrowed. */
+    if (!targetId && isMailProposal(action.payload)) {
+      targetId = await ensureGmailExecutor(supabase, user.id);
+      if (!targetId) {
+        return new Response(JSON.stringify({ error: "Gmail is not switched on for this account" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
     if (!targetId) return new Response(JSON.stringify({ error: "no executor specified" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { data: executor, error: eErr } = await supabase.from("action_executors").select("*").eq("id", targetId).maybeSingle();
@@ -230,6 +243,7 @@ Deno.serve(async (req: Request) => {
       else if (executor.kind === "telegram") result = await runTelegram(supabase, user.id, executor.config, action);
       else if (executor.kind === "email") result = await runEmail(executor.config, action);
       else if (executor.kind === "first_party") result = await runFirstParty(executor.config, action);
+      else if (executor.kind === "gmail") result = await executeMailProposal(user.id, action);
       else if (executor.kind === "google_calendar" || executor.kind === "calendar") {
         if (isCalendarProposal(action.payload)) {
           result = await executeCalendarProposal(supabase, user.id, action);
