@@ -167,8 +167,24 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
   expose signed inbound webhooks only — no authorize, token, refresh or `/me` endpoint. The
   three endpoints they must expose are written down in the contract doc. Waiting on:
   `GTH_WRITE_URL`, `GTH_WRITE_SECRET`, optional `GTH_WRITE_TOKEN`.
-- Phase 6 (Google Gmail/Drive/Contacts/Tasks): the one-account shell and scope display are
-  in place; enabling any of them needs the workspace Google connector to actually grant
-  those scopes. Until then they stay honestly marked "Not built yet".
+- [x] Phase 6 (Google, one account with real services): Gmail and Drive are wired for real
+      per-user consent, not shelf display. `_shared/appUserScopes.ts` keeps each consent to one
+      product plus who you are — granting mail never touches calendar, and permission to send
+      mail is a separate grant from reading it. `app-user-oauth-start` /
+      `app-user-oauth-complete` now take a connector id, and every connection key is stored
+      encrypted per person (`app_user_connections`). `google-account-status` reports each
+      service on its own; a workspace connection may keep calendar reads working but never
+      renders as "you are connected". `google-disconnect` revokes one service and leaves the
+      others alone.
+      Mail: `gmail-read` returns one conclusion ("Dani is waiting on a reply"), never a card per
+      message; `gmail-draft` saves a draft freely, and a send needs an explicit confirmed yes
+      plus the send grant, with a receipt either way. Echo can offer a starting point only when
+      a person taps for one, and the words on screen are the words that go out.
+      Drive: `drive-find` lists names and dates (browsing, not reading); `drive-read` reads one
+      named file per yes and records it. No write scope is ever requested.
+      Contacts was dropped rather than shown as a button that cannot work. Tasks stays honestly
+      marked "Not built yet".
+- Open on Google: Tasks. Gmail/Drive need the workspace App User Connector client to allow those
+  products; until an owner does, the card says an owner has to allow it instead of failing.
 - Phases 7-9 (cross-source reasoning, legacy removal, logged-in browser work) wait on real
   second sources landing from 4 and 6.
