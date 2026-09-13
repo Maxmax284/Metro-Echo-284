@@ -41,17 +41,13 @@ Deno.serve(async (req: Request) => {
     const admin = adminClient();
     const { data: rows } = await admin
       .from("app_user_connections")
-      .select("connector_id, account_label")
+      .select("connector_id, account_label, last_error")
       .eq("user_id", user.id);
-    const mine = new Map<string, string | null>(
-      ((rows ?? []) as { connector_id: string; account_label: string | null }[]).map((r) => [
-        r.connector_id,
-        r.account_label,
-      ]),
-    );
+    type Row = { connector_id: string; account_label: string | null; last_error: string | null };
+    const mine = new Map<string, Row>(((rows ?? []) as Row[]).map((r) => [r.connector_id, r]));
 
-    /* A recorded calendar failure is the one "was working, now needs you" signal
-       we already keep. Mail and files have no sweep, so they cannot go stale. */
+    /* Calendar keeps its own recorded sync failure. Mail and files record theirs
+       on their own connection row, so one refused service never reddens another. */
     const { data: feed } = await admin
       .from("calendar_feeds")
       .select("last_error")
@@ -62,17 +58,26 @@ Deno.serve(async (req: Request) => {
     const calendarError = (feed as { last_error?: string | null } | null)?.last_error ?? null;
 
     const services: GoogleServiceStatus[] = GOOGLE_CONNECTOR_IDS.map((service) => {
-      const connected = mine.has(service);
-      const failing = connected && service === "google_calendar" && !!calendarError;
+      const row = mine.get(service);
+      const connected = !!row;
+      const problem = service === "google_calendar"
+        ? (row?.last_error ?? null) || calendarError
+        : row?.last_error ?? null;
+      const failing = connected && !!problem;
       return {
         service,
         connected,
         offerable: !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
-        account: mine.get(service) ?? null,
+        account: row?.account_label ?? null,
         failing,
-        detail: failing ? "Google stopped answering for your calendar." : null,
+        detail: failing
+          ? (service === "google_calendar"
+            ? "Google stopped answering for your calendar."
+            : "Google stopped answering for this one. Switch it on again.")
+          : null,
       };
     });
+
 
     const account = services.find((s) => s.connected && s.account)?.account ?? null;
 
