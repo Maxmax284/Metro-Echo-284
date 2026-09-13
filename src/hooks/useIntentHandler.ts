@@ -430,7 +430,58 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           const res = await readWatchStatus(supabase as never, user.id);
           toast.success({ title: res.reply });
           onAck?.({ kind: "keep_an_eye_on", summary: res.reply });
+        } else if (kind === "search_mail" || kind === "find_file") {
+          // Your own Google, read only. Not switched on is said plainly — Echo
+          // never guesses what a message or a file said.
+          const mail = kind === "search_mail";
+          const question = String(mail ? args.question ?? "" : args.query ?? "").trim();
+          const { data: res } = await supabase.functions.invoke(
+            mail ? "gmail-read" : "drive-find",
+            { body: mail ? { question } : { query: question } },
+          );
+          const payload = (res ?? {}) as {
+            connected?: boolean;
+            conclusion?: string | null;
+            items?: { fromName?: string; subject?: string; name?: string; webViewLink?: string }[];
+          };
+          let composed: string;
+          if (payload.connected === false) {
+            composed = mail
+              ? "Gmail is not switched on for your account. You can turn it on in Settings, under Google."
+              : "Drive is not switched on for your account. You can turn it on in Settings, under Google.";
+          } else {
+            const rows = (payload.items ?? []).slice(0, 5);
+            if (rows.length === 0) {
+              composed = mail
+                ? "Nothing in your mail matches that."
+                : "No file in your Drive matches that name.";
+            } else {
+              const lines = rows.map((r) =>
+                mail
+                  ? `• **${r.subject ?? "(no subject)"}** — ${r.fromName ?? "someone"}`
+                  : `• [${r.name ?? "file"}](${r.webViewLink ?? "#"})`,
+              );
+              composed = [payload.conclusion ?? null, lines.join("\n")].filter(Boolean).join("\n\n");
+            }
+          }
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (conv?.id) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: conv.id,
+              role: "assistant",
+              content: composed,
+              metadata: { source: mail ? "gmail" : "drive", provenance: "google", question },
+            });
+          }
+          toast.success({ title: mail ? "Checked your mail." : "Looked in your Drive." });
         } else if (kind === "query_schedule") {
+
           const window = String(args.window ?? "today");
           // Resolve tz: stored profile timezone falls back to browser
           let tz = "UTC";
