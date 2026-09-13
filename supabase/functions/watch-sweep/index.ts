@@ -115,16 +115,35 @@ Deno.serve(async (req: Request) => {
           ev = (byId as never) ?? null;
         }
         const expected = String(row.success_when?.fingerprint ?? "");
-        result = settleFromCalendar(
-          expected || calendarFingerprint(ev as never),
-          (ev as never) ?? null,
-        );
-        /* First check with no baseline: record what "unchanged" means. */
-        if (!expected && ev) {
+        const misses = Number(row.success_when?.misses ?? 0);
+
+        if (!ev && misses < 2) {
+          /* A sync in progress can briefly leave no row. One empty look is not
+             news: wait, count it, and only call it gone if it stays gone. */
+          result = { state: "watching", outcome: null };
           await admin
             .from("watches")
-            .update({ success_when: { ...row.success_when, fingerprint: calendarFingerprint(ev as never) } })
+            .update({ success_when: { ...row.success_when, misses: misses + 1 } })
             .eq("id", row.id);
+        } else {
+          result = settleFromCalendar(
+            expected || calendarFingerprint(ev as never),
+            (ev as never) ?? null,
+          );
+          /* First check with no baseline: record what "unchanged" means. Also
+             clear a miss streak the moment the entry is back. */
+          if (ev) {
+            await admin
+              .from("watches")
+              .update({
+                success_when: {
+                  ...row.success_when,
+                  fingerprint: expected || calendarFingerprint(ev as never),
+                  misses: 0,
+                },
+              })
+              .eq("id", row.id);
+          }
         }
       } else {
         result = { state: "couldnt_finish", outcome: "There is nothing left to watch." };
