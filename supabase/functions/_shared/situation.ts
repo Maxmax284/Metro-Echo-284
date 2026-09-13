@@ -153,7 +153,12 @@ export type SituationInput = {
     read?: string | null;
     why?: WhySurfaced | null;
   }>;
-  noticed: Array<{ id: string; title: string; reason: string; at: string }> ;
+  /**
+   * `source` names where the notice was read from — a calendar heads-up did not
+   * come from the pattern desk and must not claim it did. Defaults to the
+   * pattern desk, which is where most notices are born.
+   */
+  noticed: Array<{ id: string; title: string; reason: string; at: string; source?: SituationSource }>;
   /**
    * `distanceM` is set only when the caller could measure it from two recorded
    * fixes. It is never estimated, and travel time is never invented from it.
@@ -420,7 +425,7 @@ export function readSituation(input: SituationInput): SituationRead {
     const first = input.noticed[0];
     push({
       kind: "noticed",
-      source: "sherlock",
+      source: first.source ?? "sherlock",
       text: first.title,
       reason: first.reason,
       at: first.at,
