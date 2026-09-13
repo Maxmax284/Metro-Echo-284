@@ -24,10 +24,14 @@ export async function saveConnectionKeyForUser(
       connector_id: connectorId,
       connection_key_ciphertext: await encryptConnectionKey(connectionAPIKey),
       account_label: accountLabel ?? null,
+      /* A fresh grant clears the old complaint for this one service only. */
+      last_error: null,
+      last_error_at: null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,connector_id" },
   );
+
   if (error) throw error;
 }
 

@@ -7,23 +7,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, jsonResponse, preflight } from "../_shared/http.ts";
 import { resolveUser } from "../_shared/authContext.ts";
 import { adminClient } from "../_shared/appUserConnections.ts";
+import { GOOGLE_CLIENT_KEY_ENV } from "../_shared/appUserScopes.ts";
 import {
-  GOOGLE_CLIENT_KEY_ENV,
-  GOOGLE_CONNECTOR_IDS,
-  type GoogleConnectorId,
-} from "../_shared/appUserScopes.ts";
+  googleServiceStatuses,
+  type ConnectionRow,
+  type GoogleServiceStatus,
+} from "../_shared/googleHealth.ts";
 
-export type GoogleServiceStatus = {
-  service: GoogleConnectorId;
-  /** This person granted it. */
-  connected: boolean;
-  /** It can be granted right now: the app has the wiring for it. */
-  offerable: boolean;
-  account: string | null;
-  /** Something that was working has stopped. */
-  failing: boolean;
-  detail: string | null;
-};
+export type { GoogleServiceStatus };
+
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -41,17 +33,11 @@ Deno.serve(async (req: Request) => {
     const admin = adminClient();
     const { data: rows } = await admin
       .from("app_user_connections")
-      .select("connector_id, account_label")
+      .select("connector_id, account_label, last_error")
       .eq("user_id", user.id);
-    const mine = new Map<string, string | null>(
-      ((rows ?? []) as { connector_id: string; account_label: string | null }[]).map((r) => [
-        r.connector_id,
-        r.account_label,
-      ]),
-    );
 
-    /* A recorded calendar failure is the one "was working, now needs you" signal
-       we already keep. Mail and files have no sweep, so they cannot go stale. */
+    /* Calendar keeps its own recorded sync failure. Mail and files record theirs
+       on their own connection row, so one refused service never reddens another. */
     const { data: feed } = await admin
       .from("calendar_feeds")
       .select("last_error")
@@ -61,18 +47,13 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const calendarError = (feed as { last_error?: string | null } | null)?.last_error ?? null;
 
-    const services: GoogleServiceStatus[] = GOOGLE_CONNECTOR_IDS.map((service) => {
-      const connected = mine.has(service);
-      const failing = connected && service === "google_calendar" && !!calendarError;
-      return {
-        service,
-        connected,
-        offerable: !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
-        account: mine.get(service) ?? null,
-        failing,
-        detail: failing ? "Google stopped answering for your calendar." : null,
-      };
+    const services: GoogleServiceStatus[] = googleServiceStatuses({
+      rows: (rows ?? []) as ConnectionRow[],
+      offerable: (service) => !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
+      calendarSyncError: calendarError,
     });
+
+
 
     const account = services.find((s) => s.connected && s.account)?.account ?? null;
 

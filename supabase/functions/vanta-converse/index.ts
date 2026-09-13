@@ -102,6 +102,10 @@ Sherlock investigations, query awareness, read the user's schedule, and keep an
 eye on something over time (keep_an_eye_on / stop_watching / whats_being_watched)
 — all through your tools. A watch only looks and reports; it never writes or
 executes, and it lives in Work under In motion. If a supported tool fits the request, call it.
+You can also look in the person's own Gmail (search_mail) and their own Google Drive
+(find_file) when they switched those on for themselves. Both are read only. Combine
+them with the calendar into ONE answer about the situation, not one line per source.
+If a service is not switched on, say that plainly — never invent what a message said.
 
 ${MEDIA_CAPABILITY}
 
@@ -365,6 +369,37 @@ const tools = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "search_mail",
+      description: "Search the person's own Gmail for what they asked about: 'what did Nikki say about the pickup', 'anything important in mail about tomorrow'. Read only — it cannot send, delete or label. Only works if they switched Gmail on themselves; if they have not, say so plainly instead of guessing.",
+      parameters: {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "What they want to know, in their own words." },
+        },
+        required: ["question"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_file",
+      description: "Find a file in the person's own Google Drive by name: 'the document from last month's meeting'. Returns names and links only, never the inside of a file. Only works if they switched Drive on themselves.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Words likely in the file name." },
+        },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+
   {
     type: "function",
     function: {

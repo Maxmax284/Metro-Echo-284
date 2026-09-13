@@ -76,6 +76,39 @@ export function mailConclusion(items: MailItem[]): string | null {
 /** The Gmail search Echo uses. Deliberately narrow: not "everything unread". */
 export const MAIL_QUERY = "is:unread -in:chats -category:promotions -category:social";
 
+/**
+ * A question turned into a narrow Gmail search. Never "give me the inbox":
+ * words a person actually said, recent mail only, no bulk categories.
+ */
+export function mailSearchQuery(question: string): string {
+  const words = question
+    .toLowerCase()
+    .replace(/[^a-z0-9@._\s-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !MAIL_STOPWORDS.has(w))
+    .slice(0, 6);
+  const base = "-in:chats -category:promotions -category:social newer_than:60d";
+  if (words.length === 0) return `${MAIL_QUERY} ${base.replace("-in:chats ", "")}`.trim();
+  return `${base} (${words.map((w) => (w.includes("@") ? `from:${w}` : w)).join(" OR ")})`;
+}
+
+const MAIL_STOPWORDS = new Set([
+  "the", "and", "about", "what", "did", "say", "said", "anything", "important",
+  "mail", "email", "from", "for", "with", "that", "this", "any", "was", "were",
+  "have", "has", "does", "there", "where", "when", "who", "regarding", "please",
+  "find", "search", "look", "check", "tell", "know", "you", "your", "echo",
+]);
+
+/** One line of an answer to a mail question, or nothing when there is nothing. */
+export function mailAnswer(items: MailItem[]): string | null {
+  if (items.length === 0) return null;
+  const first = items[0];
+  const rest = items.length - 1;
+  const tail = rest > 0 ? ` ${rest} other${rest === 1 ? "" : "s"} touch on it.` : "";
+  return `${first.fromName} wrote "${first.subject}".${tail}`;
+}
+
+
 /** Plain text out of a Gmail payload, preferring text/plain over HTML. */
 export function plainTextFromPayload(payload: unknown): string {
   const seen: string[] = [];
