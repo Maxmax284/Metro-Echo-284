@@ -127,6 +127,13 @@
       "when": 1789302336027,
       "tag": "0017_grant_watches_access",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789303350120,
+      "tag": "0018_executor_kind_first_party",
+      "breakpoints": true
     }
   ]
 }
