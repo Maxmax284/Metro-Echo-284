@@ -88,46 +88,48 @@ Deno.serve(async (req: Request) => {
     const admin = adminClient();
     const orgId = typeof body?.organization_id === "string" ? body.organization_id : null;
 
+    /* A send is never performed here. It becomes one approval in Work, carrying
+       the exact words, and actions-execute is the only thing that can post it. */
     if (intent === "send") {
-      const res = await callGoogle(user.id, GOOGLE_MAIL_CONNECTOR_ID, "/gmail/v1/users/me/messages/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(threadId ? { raw, threadId } : { raw }),
+      const proposal = buildMailProposal({
+        to,
+        toName: body?.their_name ?? null,
+        subject,
+        body: text,
+        threadId,
+        inReplyTo: body?.in_reply_to ?? null,
+        references: body?.references ?? null,
       });
-      if (!res.ok) {
-        await writeAuditEvent(admin as never, {
-          actor: user.id,
-          organizationId: orgId,
-          entityType: "message",
-          event: "gmail.send.failed",
-          source: "app",
-          success: false,
-          metadata: { to, subject, reason: res.reason, detail: res.detail },
-        });
-        /* A missing send permission is a question, not a failure. */
-        const needsPermission = res.reason === "needs_you";
-        return jsonResponse(
-          {
-            error: needsPermission
-              ? "Google has not been given permission to send as you yet."
-              : "That did not send. Nothing left your account.",
-            needs_send_permission: needsPermission,
-          },
-          needsPermission ? 403 : 502,
-        );
+      const row = buildActionRow({
+        userId: user.id,
+        organizationId: orgId,
+        title: mailProposalTitle(proposal),
+        description: mailProposalDescription(proposal),
+        risk: "high",
+        status: "staged",
+        source: "mail",
+        payload: proposal as unknown as Record<string, unknown>,
+      });
+      const { data: staged, error: stageErr } = await admin
+        .from("actions")
+        .insert(row as never)
+        .select("id")
+        .single();
+      if (stageErr || !staged) {
+        console.error("[gmail-draft] could not stage the reply:", stageErr?.message);
+        return jsonResponse({ error: "Could not line that up for approval. Nothing was sent." }, 502);
       }
-      const sent = res.body as { id?: string };
       await writeAuditEvent(admin as never, {
         actor: user.id,
         organizationId: orgId,
-        entityType: "message",
-        entityId: null,
-        event: "gmail.send.executed",
+        entityType: "action",
+        entityId: staged.id,
+        event: "gmail.send.staged",
         source: "app",
         success: true,
-        metadata: { to, subject, provider_id: sent.id ?? null },
+        metadata: { to, subject, thread_id: threadId },
       });
-      return jsonResponse({ ok: true, sent: true, provider_id: sent.id ?? null });
+      return jsonResponse({ ok: true, sent: false, staged: true, action_id: staged.id });
     }
 
     const res = await callGoogle(user.id, GOOGLE_MAIL_CONNECTOR_ID, "/gmail/v1/users/me/drafts", {
