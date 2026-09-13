@@ -408,8 +408,14 @@ async function sweepScope(
   // it, and never for something already speaking because it moved.
   if (senses.calendar) {
     const events = (calendarRows ?? []) as (CalendarEventRow & { uid?: string | null })[];
+    // Only a fresh change speaks for itself. Old feed churn must never silence
+    // an appointment for good.
+    const FRESH_CHANGE_MS = 3 * 60 * 60 * 1000;
     const changedTitles = new Set(
-      changes.map((c) => (c.title ?? "").trim().toLowerCase()).filter(Boolean),
+      changes
+        .filter((c) => nowMs - new Date(c.detected_at).getTime() <= FRESH_CHANGE_MS)
+        .map((c) => (c.title ?? "").trim().toLowerCase())
+        .filter(Boolean),
     );
     const changedUids = events
       .filter((e) => changedTitles.has((e.title ?? "").trim().toLowerCase()))
