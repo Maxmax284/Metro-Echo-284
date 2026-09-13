@@ -140,6 +140,16 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
       when several entries tie; saying it twice does not start a second watch.
 - [x] Calendar watch creation in the app: an eye button on `AgendaRow` ("Tell me if this
       moves") wherever the row is already actionable. No calendar-monitoring page.
+- [x] Proven live end to end (2026-09-13): a watch started from Ask, a scheduled sweep that
+      stayed silent when nothing changed, a real time move detected on the next sweep, a
+      `watch.done` receipt, and the outcome reading on Work at 384px.
+- [x] Identity is the feed's own `uid`, not the database row id: calendar sync replaces rows,
+      and a replaced row must never be reported as "gone". A single empty look is a miss, not
+      news — the sweep waits two consecutive misses before saying an entry disappeared.
+- [x] Outcome lines speak human time in the person's own zone (`humanWhen`), never an ISO stamp.
+- [x] A finished watch stays on the shelf for a day with what it found ("It moved: … now runs
+      Mon, Sep 14, 7:00 PM"), with Clear settled to put it away. Clearing removes the card,
+      never the receipt.
 - Open: nothing on the watch object itself.
 
 ## Echo's reach, phases 4-9 — status after the watch clock
