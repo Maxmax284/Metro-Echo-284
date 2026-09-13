@@ -425,7 +425,7 @@ export function readSituation(input: SituationInput): SituationRead {
     const first = input.noticed[0];
     push({
       kind: "noticed",
-      source: "sherlock",
+      source: first.source ?? "sherlock",
       text: first.title,
       reason: first.reason,
       at: first.at,
