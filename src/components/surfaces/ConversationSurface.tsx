@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationDock } from "@/components/shell/ConversationDock";
-import { CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight } from "lucide-react";
+import { CheckSquare, ListPlus, BookmarkPlus, ArrowUpRight, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { AnalyzeButton } from "@/components/sherlock/AnalyzeButton";
@@ -100,6 +100,7 @@ const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof Chec
   mark_waiting: { label: "Marked as waiting", icon: CheckSquare, surface: "commitments" },
   record_decision: { label: "Decision logged", icon: BookmarkPlus, surface: "memory" },
   save_artifact: { label: "Artifact saved", icon: BookmarkPlus, surface: "memory" },
+  keep_an_eye_on: { label: "Echo is keeping an eye on it", icon: Eye, surface: "work" },
 };
 
 export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }) {
@@ -152,7 +153,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     const meta = RECEIPT_META[ack.kind];
     if (!meta) return;
     // Threads remember their aftermath, so the spine can say what came of them.
-    if (convId) {
+    if (convId && ack.kind !== "keep_an_eye_on") {
       const outKind = ack.kind === "stage_action" ? "draft" : ack.kind === "add_commitment" ? "commitment" : "note";
       void recordOutput(convId, outKind);
     }
@@ -308,10 +309,17 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
 
       /* A turn that only prepares a draft still has to be readable tomorrow:
          say what was drafted, and say plainly that nothing ran. */
+      /* Not every turn that ends without words is a draft. Keeping an eye on
+         something approves nothing and runs nothing, so it must not be
+         described as waiting for approval. */
+      const WATCH_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched"]);
       const stagedLine = staged.length
         ? staged.map((s) => {
             const a = (s.args ?? {}) as Record<string, unknown>;
-            const what = String(a.title ?? a.summary ?? a.text ?? "").trim();
+            const what = String(a.title ?? a.summary ?? a.text ?? a.reference ?? "").trim();
+            /* The watch itself answers in its own receipt line, truthfully,
+               including when it could not start. Nothing to add here. */
+            if (WATCH_INTENTS.has(s.name)) return "";
             return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
           }).join("\n")
         : "";

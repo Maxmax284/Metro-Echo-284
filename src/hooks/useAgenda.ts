@@ -21,6 +21,8 @@ export type AgendaEvent = {
   all_day: boolean;
   location: string | null;
   feed_id: string;
+  /** The feed's own id for this entry — stable across a resync, unlike the row. */
+  uid: string | null;
   project_id: string | null;
   /** Which calendar it came from, e.g. "LMT Camp State". */
   feedLabel: string;

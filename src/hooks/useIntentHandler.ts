@@ -54,7 +54,10 @@ export type IntentAck =
   | { kind: "capture_note"; id?: string; summary: string }
   | { kind: "mark_waiting"; id?: string; summary: string }
   | { kind: "record_decision"; id?: string; summary: string }
-  | { kind: "save_artifact"; id?: string; summary: string };
+  | { kind: "save_artifact"; id?: string; summary: string }
+  /* A watch approves nothing and runs nothing, but the thread still has to say
+     truthfully what came of the sentence — including "I couldn't". */
+  | { kind: "keep_an_eye_on"; id?: string; summary: string };
 
 export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
   const { user } = useAuth();
@@ -416,14 +419,17 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             source: "ask",
           });
           toast.success({ title: res.reply });
+          onAck?.({ kind: "keep_an_eye_on", id: res.watchId ?? undefined, summary: res.reply });
         } else if (kind === "stop_watching") {
           const res = await stopWatchFromWords(supabase as never, user.id, {
             reference: String(args.reference ?? ""),
           });
           toast.success({ title: res.reply });
+          onAck?.({ kind: "keep_an_eye_on", id: res.watchId ?? undefined, summary: res.reply });
         } else if (kind === "whats_being_watched") {
           const res = await readWatchStatus(supabase as never, user.id);
           toast.success({ title: res.reply });
+          onAck?.({ kind: "keep_an_eye_on", summary: res.reply });
         } else if (kind === "query_schedule") {
           const window = String(args.window ?? "today");
           // Resolve tz: stored profile timezone falls back to browser

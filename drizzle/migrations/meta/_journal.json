@@ -120,6 +120,13 @@
       "when": 1789235823341,
       "tag": "0016_schedule_watch_sweep",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789302336027,
+      "tag": "0017_grant_watches_access",
+      "breakpoints": true
     }
   ]
 }

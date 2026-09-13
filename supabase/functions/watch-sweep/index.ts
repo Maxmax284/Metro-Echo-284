@@ -92,11 +92,28 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
         result = settleFromAction((action as { status?: string } | null)?.status ?? null);
       } else if (row.kind === "calendar_event" && row.subject_id) {
-        const { data: ev } = await admin
-          .from("calendar_events")
-          .select("title, starts_at, ends_at")
-          .eq("id", row.subject_id)
-          .maybeSingle();
+        /* Identity is the feed's own uid, not the database row: sync replaces
+           rows, and a replaced row must never be reported as "gone". */
+        const uid = String(row.success_when?.uid ?? "");
+        let ev: { title: string | null; starts_at: string; ends_at: string | null } | null = null;
+        if (uid) {
+          const { data: byUid } = await admin
+            .from("calendar_events")
+            .select("title, starts_at, ends_at")
+            .eq("user_id", row.user_id)
+            .eq("uid", uid)
+            .order("starts_at", { ascending: true })
+            .limit(1);
+          ev = (byUid?.[0] as never) ?? null;
+        }
+        if (!ev) {
+          const { data: byId } = await admin
+            .from("calendar_events")
+            .select("title, starts_at, ends_at")
+            .eq("id", row.subject_id)
+            .maybeSingle();
+          ev = (byId as never) ?? null;
+        }
         const expected = String(row.success_when?.fingerprint ?? "");
         result = settleFromCalendar(
           expected || calendarFingerprint(ev as never),
