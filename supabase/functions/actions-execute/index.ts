@@ -10,6 +10,8 @@ import {
   calendarWriteStateForUser,
 } from "../_shared/calendarExecute.ts";
 import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+import { isMailProposal } from "../_shared/mailProposal.ts";
+import { ensureGmailExecutor, executeMailProposal } from "../_shared/mailExecute.ts";
 import { isWriteOperation, performFirstPartyWrite } from "../_shared/firstPartyWrite.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
