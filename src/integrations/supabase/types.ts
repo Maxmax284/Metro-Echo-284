@@ -4069,7 +4069,12 @@ export type Database = {
         | "drafted"
         | "approved"
       document_version_source: "upload" | "extraction" | "draft" | "revision"
-      executor_kind: "webhook" | "telegram" | "google_calendar" | "email"
+      executor_kind:
+        | "webhook"
+        | "telegram"
+        | "google_calendar"
+        | "email"
+        | "first_party"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
       nudge_status: "pending" | "seen" | "dismissed" | "acted"
@@ -4241,7 +4246,13 @@ export const Constants = {
         "approved",
       ],
       document_version_source: ["upload", "extraction", "draft", "revision"],
-      executor_kind: ["webhook", "telegram", "google_calendar", "email"],
+      executor_kind: [
+        "webhook",
+        "telegram",
+        "google_calendar",
+        "email",
+        "first_party",
+      ],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
       nudge_status: ["pending", "seen", "dismissed", "acted"],

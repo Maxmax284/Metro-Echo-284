@@ -84,8 +84,24 @@ export function resolveEventReference(
   if (!scored.length) return { status: "none" };
   const top = scored[0].score;
   const tied = scored.filter((s) => s.score === top);
-  if (tied.length === 1) return { status: "one", event: tied[0].event };
-  return { status: "many", candidates: tied.slice(0, 4).map((s) => s.event) };
+
+  /* Two feeds carrying the same entry is not a choice. Same title, same start,
+     same end means the same thing in the world, so asking "which one?" would be
+     nonsense. Collapse those before deciding whether there is real ambiguity. */
+  const seen = new Set<string>();
+  const distinct = tied.filter((s) => {
+    const k = [
+      s.event.title.trim().toLowerCase(),
+      String(s.event.starts_at ?? ""),
+      String(s.event.ends_at ?? ""),
+    ].join("|");
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  if (distinct.length === 1) return { status: "one", event: distinct[0].event };
+  return { status: "many", candidates: distinct.slice(0, 4).map((s) => s.event) };
 }
 
 /** Plain lines for what a proposed time would collide with. */

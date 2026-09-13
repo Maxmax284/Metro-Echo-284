@@ -10,6 +10,7 @@ import {
   calendarWriteStateForUser,
 } from "../_shared/calendarExecute.ts";
 import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+import { isWriteOperation, performFirstPartyWrite } from "../_shared/firstPartyWrite.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -119,6 +120,30 @@ async function runGoogleCalendar(config: any, action: any) {
   return { provider: "google_calendar", event_id: data?.id, html_link: data?.htmlLink, calendar_id: config?.calendar_id ?? "primary" };
 }
 
+/**
+ * A first-party product (Camp State / CampCore / Fenrir) making one approved
+ * change. The write only counts when the provider confirms it with its own id;
+ * anything else throws and lands as a failed receipt.
+ */
+async function runFirstParty(config: any, action: any) {
+  const provider = String(config?.provider ?? "").trim();
+  if (!provider) throw new Error("first-party executor is missing which product it points at");
+  const write = (action.payload ?? {}).write ?? {};
+  const operation = write.operation ?? config?.operation;
+  if (!isWriteOperation(operation)) {
+    throw new Error("that change is not something Echo is allowed to ask that product to do");
+  }
+  const confirmation = await performFirstPartyWrite({
+    provider,
+    operation,
+    subjectId: write.subject_id ?? null,
+    fields: (write.fields ?? {}) as Record<string, unknown>,
+    idempotencyKey: `action:${action.id}`,
+    actionId: action.id,
+  });
+  return confirmation;
+}
+
 async function runTelegram(admin: any, userId: string, config: any, action: any) {
   const chat_id = config?.chat_id;
   if (!chat_id) throw new Error("telegram executor missing config.chat_id");
@@ -204,6 +229,7 @@ Deno.serve(async (req: Request) => {
       if (executor.kind === "webhook") result = await runWebhook(executor.config, action);
       else if (executor.kind === "telegram") result = await runTelegram(supabase, user.id, executor.config, action);
       else if (executor.kind === "email") result = await runEmail(executor.config, action);
+      else if (executor.kind === "first_party") result = await runFirstParty(executor.config, action);
       else if (executor.kind === "google_calendar" || executor.kind === "calendar") {
         if (isCalendarProposal(action.payload)) {
           result = await executeCalendarProposal(supabase, user.id, action);

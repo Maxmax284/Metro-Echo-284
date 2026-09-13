@@ -62,6 +62,16 @@ Deno.serve(async (req: Request) => {
 
     let skipped = 0;
 
+    /* One timezone lookup per person, so the outcome reads in their own clock. */
+    const zones = new Map<string, string | null>();
+    const zoneFor = async (userId: string): Promise<string | null> => {
+      if (zones.has(userId)) return zones.get(userId) ?? null;
+      const { data } = await admin.from("profiles").select("timezone").eq("id", userId).maybeSingle();
+      const tz = (data as { timezone?: string | null } | null)?.timezone ?? null;
+      zones.set(userId, tz);
+      return tz;
+    };
+
     for (const row of rows) {
       if (!isDue(row, now)) continue;
 
@@ -92,22 +102,59 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
         result = settleFromAction((action as { status?: string } | null)?.status ?? null);
       } else if (row.kind === "calendar_event" && row.subject_id) {
-        const { data: ev } = await admin
-          .from("calendar_events")
-          .select("title, starts_at, ends_at")
-          .eq("id", row.subject_id)
-          .maybeSingle();
+        /* Identity is the feed's own uid, not the database row: sync replaces
+           rows, and a replaced row must never be reported as "gone". */
+        const uid = String(row.success_when?.uid ?? "");
+        let ev: { title: string | null; starts_at: string; ends_at: string | null } | null = null;
+        if (uid) {
+          const { data: byUid } = await admin
+            .from("calendar_events")
+            .select("title, starts_at, ends_at")
+            .eq("user_id", row.user_id)
+            .eq("uid", uid)
+            .order("starts_at", { ascending: true })
+            .limit(1);
+          ev = (byUid?.[0] as never) ?? null;
+        }
+        if (!ev) {
+          const { data: byId } = await admin
+            .from("calendar_events")
+            .select("title, starts_at, ends_at")
+            .eq("id", row.subject_id)
+            .maybeSingle();
+          ev = (byId as never) ?? null;
+        }
         const expected = String(row.success_when?.fingerprint ?? "");
-        result = settleFromCalendar(
-          expected || calendarFingerprint(ev as never),
-          (ev as never) ?? null,
-        );
-        /* First check with no baseline: record what "unchanged" means. */
-        if (!expected && ev) {
+        const misses = Number(row.success_when?.misses ?? 0);
+
+        if (!ev && misses < 2) {
+          /* A sync in progress can briefly leave no row. One empty look is not
+             news: wait, count it, and only call it gone if it stays gone. */
+          result = { state: "watching", outcome: null };
           await admin
             .from("watches")
-            .update({ success_when: { ...row.success_when, fingerprint: calendarFingerprint(ev as never) } })
+            .update({ success_when: { ...row.success_when, misses: misses + 1 } })
             .eq("id", row.id);
+        } else {
+          result = settleFromCalendar(
+            expected || calendarFingerprint(ev as never),
+            (ev as never) ?? null,
+            await zoneFor(row.user_id),
+          );
+          /* First check with no baseline: record what "unchanged" means. Also
+             clear a miss streak the moment the entry is back. */
+          if (ev) {
+            await admin
+              .from("watches")
+              .update({
+                success_when: {
+                  ...row.success_when,
+                  fingerprint: expected || calendarFingerprint(ev as never),
+                  misses: 0,
+                },
+              })
+              .eq("id", row.id);
+          }
         }
       } else {
         result = { state: "couldnt_finish", outcome: "There is nothing left to watch." };

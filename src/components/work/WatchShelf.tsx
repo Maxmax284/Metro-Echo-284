@@ -2,17 +2,35 @@
 //
 // No separate room, no automation centre. Six words of state, one honest line
 // underneath from recorded checks only, and one way out: Stop.
+//
+// A finished watch is the whole point of a watch, so it stays here for a day
+// with what it found. Clearing it is the user's move, not Echo's.
 import { Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useWatches } from "@/hooks/useWatches";
-import { WATCH_LABEL, WATCH_TONE, stopWatch, watchLine } from "@/lib/watch";
+import { WATCH_LABEL, WATCH_TONE, OPEN_WATCH_STATES, stopWatch, watchLine, type Watch } from "@/lib/watch";
 import { supabase } from "@/integrations/supabase/client";
 
-export function WatchShelf() {
-  const { items, loading, refresh } = useWatches();
+const RECENT_MS = 24 * 3_600_000;
 
-  if (loading || items.length === 0) return null;
+function isOpen(w: Watch): boolean {
+  return (OPEN_WATCH_STATES as string[]).includes(w.state);
+}
+
+/** Open, plus anything that ended recently enough to still be news. */
+function worthShowing(w: Watch): boolean {
+  if (isOpen(w)) return true;
+  const at = new Date(w.updated_at ?? w.created_at).getTime();
+  return Number.isFinite(at) && Date.now() - at < RECENT_MS;
+}
+
+export function WatchShelf() {
+  const { items, loading, refresh } = useWatches({ openOnly: false, limit: 30 });
+  const shown = items.filter(worthShowing);
+  const settled = shown.filter((w) => !isOpen(w));
+
+  if (loading || shown.length === 0) return null;
 
   const stop = async (id: string) => {
     try {
@@ -29,6 +47,15 @@ export function WatchShelf() {
     refresh();
   };
 
+  /* Clearing removes the card, never the receipt: the audit row stays. */
+  const clearSettled = async () => {
+    const ids = settled.map((w) => w.id);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("watches").delete().in("id", ids);
+    if (error) toast.error("Could not clear those.");
+    refresh();
+  };
+
   return (
     <div className="vanta-card p-3">
       <div className="flex items-center gap-2">
@@ -42,7 +69,7 @@ export function WatchShelf() {
         </button>
       </div>
       <ul className="mt-2 space-y-1.5">
-        {items.map((w) => (
+        {shown.map((w) => (
           <li key={w.id} className="vanta-inset px-3 py-2">
             <div className="flex items-start gap-2">
               <span className="min-w-0 flex-1">
@@ -60,15 +87,25 @@ export function WatchShelf() {
                 {WATCH_LABEL[w.state]}
               </span>
             </div>
-            <button
-              onClick={() => void stop(w.id)}
-              className="mt-1.5 min-h-[36px] text-[11px] text-muted-foreground hover:text-foreground"
-            >
-              Stop
-            </button>
+            {isOpen(w) ? (
+              <button
+                onClick={() => void stop(w.id)}
+                className="mt-1.5 min-h-[36px] text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Stop
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
+      {settled.length > 0 ? (
+        <button
+          onClick={() => void clearSettled()}
+          className="mt-2 min-h-[36px] text-[11px] text-muted-foreground hover:text-foreground"
+        >
+          Clear settled
+        </button>
+      ) : null}
     </div>
   );
 }

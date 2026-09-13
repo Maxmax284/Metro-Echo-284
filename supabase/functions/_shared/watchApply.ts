@@ -56,27 +56,47 @@ async function recentActions(sb: Sb, userId: string) {
   return (data ?? []) as { id: string; title: string | null; status: string }[];
 }
 
+/**
+ * One watch per real entry, not per database row. Calendar sync rewrites rows,
+ * so the row id is not a stable identity — the feed's own `uid` is. Saying it
+ * twice must never start a second watch just because the row was replaced.
+ */
+async function findOpenCalendarWatch(
+  sb: Sb,
+  userId: string,
+  eventId: string | null,
+  uid: string | null,
+): Promise<string | null> {
+  const { data } = await sb
+    .from("watches")
+    .select("id, subject_id, success_when")
+    .eq("user_id", userId)
+    .eq("kind", "calendar_event")
+    .in("state", ["on_it", "watching", "waiting", "needs_you"])
+    .limit(50);
+  const rows = (data ?? []) as { id: string; subject_id: string | null; success_when: Record<string, unknown> | null }[];
+  const hit = rows.find(
+    (r) =>
+      (uid && String(r.success_when?.uid ?? "") === uid) ||
+      (!!eventId && r.subject_id === eventId),
+  );
+  return hit?.id ?? null;
+}
+
 /** Already-in-hand entry → one watch row. Used by the in-app affordance. */
 export async function startCalendarWatch(
   sb: Sb,
   userId: string,
   organizationId: string | null,
-  event: { id: string; title: string | null; starts_at: string; ends_at?: string | null },
+  event: { id: string; title: string | null; starts_at: string; ends_at?: string | null; uid?: string | null; feed_id?: string | null },
   source = "app",
 ): Promise<WatchApplyResult> {
   const label = event.title?.trim() || "that entry";
   const goal = watchGoal(label, "calendar_event");
 
-  const { data: existing } = await sb
-    .from("watches")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("kind", "calendar_event")
-    .eq("subject_id", event.id)
-    .in("state", ["on_it", "watching", "waiting", "needs_you"])
-    .limit(1);
-  if (existing && existing.length > 0) {
-    return { reply: `Already keeping an eye on ${label}.`, watchId: existing[0].id, readOnly: true };
+  const dup = await findOpenCalendarWatch(sb, userId, event.id, event.uid ?? null);
+  if (dup) {
+    return { reply: `Already keeping an eye on ${label}.`, watchId: dup, readOnly: true };
   }
 
   const now = new Date();
@@ -92,7 +112,11 @@ export async function startCalendarWatch(
       cadence_minutes: 30,
       next_check_at: new Date(now.getTime() + 30 * 60_000).toISOString(),
       stop_at: watchStopAt(now, ""),
-      success_when: { fingerprint: calendarFingerprint(event) },
+      success_when: {
+        fingerprint: calendarFingerprint(event),
+        uid: event.uid ?? null,
+        feed_id: event.feed_id ?? null,
+      },
     })
     .select("id")
     .single();
@@ -142,22 +166,31 @@ export async function startWatchFromWords(
     kind = "calendar_event";
     subjectId = match.id;
     subjectLabel = match.title;
-    successWhen = { fingerprint: calendarFingerprint(match) };
+    successWhen = {
+      fingerprint: calendarFingerprint(match),
+      uid: match.uid ?? null,
+      feed_id: match.feed_id ?? null,
+    };
   }
 
   const goal = watchGoal(subjectLabel, kind);
 
   /* One watch per thing: saying it twice must not start a second one. */
-  const { data: existing } = await sb
-    .from("watches")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("kind", kind)
-    .eq("subject_id", subjectId)
-    .in("state", ["on_it", "watching", "waiting", "needs_you"])
-    .limit(1);
-  if (existing && existing.length > 0) {
-    return { reply: `Already on it — ${goal}`, watchId: existing[0].id, readOnly: true };
+  if (kind === "calendar_event") {
+    const dup = await findOpenCalendarWatch(sb, userId, subjectId, String(successWhen.uid ?? "") || null);
+    if (dup) return { reply: `Already on it — ${goal}`, watchId: dup, readOnly: true };
+  } else {
+    const { data: existing } = await sb
+      .from("watches")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("kind", kind)
+      .eq("subject_id", subjectId)
+      .in("state", ["on_it", "watching", "waiting", "needs_you"])
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return { reply: `Already on it — ${goal}`, watchId: existing[0].id, readOnly: true };
+    }
   }
 
   const { data, error } = await sb
