@@ -219,6 +219,17 @@ Deno.serve(async (req: Request) => {
       targetId = await ensureGoogleCalendarExecutor(supabase, user.id);
     }
 
+    /* A written reply routes to this person's own Gmail. Nothing borrowed. */
+    if (!targetId && isMailProposal(action.payload)) {
+      targetId = await ensureGmailExecutor(supabase, user.id);
+      if (!targetId) {
+        return new Response(JSON.stringify({ error: "Gmail is not switched on for this account" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+
     if (!targetId) return new Response(JSON.stringify({ error: "no executor specified" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { data: executor, error: eErr } = await supabase.from("action_executors").select("*").eq("id", targetId).maybeSingle();
