@@ -302,11 +302,17 @@ export function TimeRemindersSection() {
           </label>
           <div className="mt-1.5 flex items-start justify-between gap-3 py-2">
             <div className="min-w-0">
-              <div className="text-xs font-medium">Let Echo mention drift</div>
+              <div className="text-xs font-medium">Let Echo speak up on its own</div>
               <div className="text-[11px] text-muted-foreground">
                 Off by default. When on, Echo raises at most one quiet note in Today when a project goes silent, a
-                promise keeps slipping, or a flagged risk sits unread. It stays a draft — nothing is staged, approved or
-                run for you, and nothing arrives during quiet hours.
+                promise keeps slipping, a flagged risk sits unread, or a real appointment is coming.
+                It stays a draft — nothing is staged, approved or run for you, and nothing arrives during quiet hours.
+              </div>
+              <div className="mt-1.5 text-[11px] text-muted-foreground">
+                Appointments: one calm heads-up the evening before, one a few hours out on the day, plus anything that
+                moves or collides. Holds, busy blocks and birthdays stay silent unless you asked Echo to keep an eye on
+                one. This is Echo's own read of your calendar, not a copy of Google's alarms — those keep firing on their
+                own.
               </div>
             </div>
             <Switch

@@ -38,6 +38,14 @@ export function isCriticalCondition(signal: AwarenessSignal): boolean {
   return signal.type === "security_event" && m.blocked === false && m.severity === "critical";
 }
 
+/**
+ * Signals whose whole point is a moment the person has to be somewhere. Set by
+ * the adapter, never inferred from a score.
+ */
+export function isClockBound(signal: AwarenessSignal): boolean {
+  return (signal.metadata ?? {}).clock_bound === true;
+}
+
 export function classifyUrgency(
   signal: AwarenessSignal,
   relevance: RelevanceResult,
@@ -48,6 +56,12 @@ export function classifyUrgency(
   // Time-sensitive requires the clock to actually be against the user — a high
   // score alone is not enough.
   if (relevance.score >= 0.6 && relevance.factors.timeSensitivity >= 0.9) return "time_sensitive";
+
+  // A narrow, deterministic exception: something the person has to physically
+  // be at, on the clock, today. Nothing else may use this door.
+  if (isClockBound(signal) && relevance.score >= 0.45 && relevance.factors.timeSensitivity >= 0.9) {
+    return "time_sensitive";
+  }
   if (relevance.score >= 0.45) return "attention";
   if (relevance.score >= 0.25) return "useful";
   return "background";
