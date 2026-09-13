@@ -153,10 +153,20 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 - Open: nothing on the watch object itself.
 
 ## Echo's reach, phases 4-9 — status after the watch clock
-- Phase 4/6 (CampStay account linking + approved write-back): blocked outside this repo.
-  CampStay/CampCore/Fenrir currently expose signed inbound webhooks only — no authorize,
-  token, refresh or write endpoint to call. Metro Echo's side needs their contract first,
-  so nothing is stubbed as "connected".
+- [x] Phase 6 (approved write-back), Metro Echo's side is built and provider-agnostic:
+      `_shared/firstPartyWrite.ts` + executor kind `first_party` (migration 0018). Flow is the
+      existing spine — propose, stage, approve, write, provider confirms, receipt. A write only
+      counts when the provider answers with `ok: true` and its own id; a vague 200, a missing
+      id, an error status or an unreachable host all become a failed receipt and nothing is
+      marked done. Every attempt carries `Idempotency-Key: action:<uuid>`, so a retry after a
+      timeout cannot double-book, double-charge or double-cancel. Unwired provider =
+      "can receive updates but cannot make changes yet", never a fake connection.
+      CampCore and Fenrir plug into the identical contract via `CAMPCORE_WRITE_*` /
+      `FENRIR_WRITE_*`. Contract for the other side: `.lovable/campstay-outbound-contract.md`.
+- Phase 4 (per-user account linking) still blocked outside this repo: CampStay/CampCore/Fenrir
+  expose signed inbound webhooks only — no authorize, token, refresh or `/me` endpoint. The
+  three endpoints they must expose are written down in the contract doc. Waiting on:
+  `GTH_WRITE_URL`, `GTH_WRITE_SECRET`, optional `GTH_WRITE_TOKEN`.
 - Phase 6 (Google Gmail/Drive/Contacts/Tasks): the one-account shell and scope display are
   in place; enabling any of them needs the workspace Google connector to actually grant
   those scopes. Until then they stay honestly marked "Not built yet".
