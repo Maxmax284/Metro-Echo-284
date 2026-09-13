@@ -10,6 +10,7 @@ import {
   calendarWriteStateForUser,
 } from "../_shared/calendarExecute.ts";
 import { isCalendarProposal, settledElsewhereLine } from "../_shared/calendarProposal.ts";
+import { isWriteOperation, performFirstPartyWrite } from "../_shared/firstPartyWrite.ts";
 // actions-execute: dispatch an approved action via a configured executor (webhook, telegram, email, Google Calendar).
 // Transitions: approved -> executed (on success) and writes audit_log with result.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
