@@ -243,6 +243,7 @@ Deno.serve(async (req: Request) => {
       else if (executor.kind === "telegram") result = await runTelegram(supabase, user.id, executor.config, action);
       else if (executor.kind === "email") result = await runEmail(executor.config, action);
       else if (executor.kind === "first_party") result = await runFirstParty(executor.config, action);
+      else if (executor.kind === "gmail") result = await executeMailProposal(user.id, action);
       else if (executor.kind === "google_calendar" || executor.kind === "calendar") {
         if (isCalendarProposal(action.payload)) {
           result = await executeCalendarProposal(supabase, user.id, action);
