@@ -62,6 +62,12 @@ export type AwarenessSignal = {
   resolved?: boolean;
 
   metadata?: Record<string, unknown>;
+
+  /**
+   * Situation identity, when the record id is the wrong anchor — two calendar
+   * feeds carrying the same appointment are one situation, not two.
+   */
+  dedupeKey?: string;
 };
 
 /**
@@ -85,6 +91,7 @@ export function isGrounded(signal: AwarenessSignal): boolean {
  * two distinct situations; the same situation across runs stays one.
  */
 export function signalDedupeKey(signal: AwarenessSignal): string {
+  if (signal.dedupeKey) return signal.dedupeKey;
   const org = signal.scope.organizationId ?? "personal";
   const anchor = signal.entityId ?? signal.projectId ?? signal.id;
   return `aw:${signal.type}:${anchor}:${org}`;

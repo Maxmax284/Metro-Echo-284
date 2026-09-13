@@ -74,6 +74,14 @@ const ADDED_HORIZON_DAYS = 7;
 export function diffWindow(prior: PriorRow[], events: ParsedEvent[], now: number): CalendarChange[] {
   if (prior.length === 0) return [];
 
+  // The stored copy and the freshly parsed copy write the same instant
+  // differently ("2026-09-14 20:00:00+00" vs "2026-09-14T20:00:00.000Z").
+  // Compare instants, never strings, or every sync invents a move.
+  const at = (v: string) => {
+    const ms = new Date(v).getTime();
+    return Number.isFinite(ms) ? String(ms) : v;
+  };
+
   const before = new Map<string, PriorRow[]>();
   for (const r of prior) {
     const list = before.get(r.uid) ?? [];
@@ -93,16 +101,17 @@ export function diffWindow(prior: PriorRow[], events: ParsedEvent[], now: number
   for (const uid of new Set([...before.keys(), ...after.keys()])) {
     const wasList = before.get(uid) ?? [];
     const isList = after.get(uid) ?? [];
-    const isStarts = new Set(isList.map((e) => e.startsAt));
-    const wasStarts = new Set(wasList.map((r) => r.starts_at));
+    const isStarts = new Set(isList.map((e) => at(e.startsAt)));
+    const wasStarts = new Set(wasList.map((r) => at(r.starts_at)));
 
-    const gone = wasList.filter((r) => !isStarts.has(r.starts_at)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-    const fresh = isList.filter((e) => !wasStarts.has(e.startsAt)).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    const gone = wasList.filter((r) => !isStarts.has(at(r.starts_at))).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    const fresh = isList.filter((e) => !wasStarts.has(at(e.startsAt))).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
     const wasFiled = wasList.some((r) => !!r.project_id);
     const title = isList[0]?.title ?? wasList[0]?.title ?? null;
 
     const paired = Math.min(gone.length, fresh.length);
     for (let i = 0; i < paired; i++) {
+      if (at(gone[i].starts_at) === at(fresh[i].startsAt)) continue;
       out.push({ uid, title, change: "moved", oldStartsAt: gone[i].starts_at, newStartsAt: fresh[i].startsAt, wasFiled });
     }
     for (const r of gone.slice(paired)) {

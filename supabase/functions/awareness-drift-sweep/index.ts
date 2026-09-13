@@ -51,6 +51,7 @@ import {
   sensorAllowed,
   postureHolds,
 } from "../_shared/awareness/index.ts";
+import { appointmentReminderSignals, eventKey } from "../_shared/awareness/reminders.ts";
 
 type ScopeTarget = { organizationId: string | null };
 type SweepOutcome = "none" | "shadow" | "proposed";
@@ -216,7 +217,7 @@ async function sweepScope(
   shadowMode: boolean,
   deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
   /** Consent + posture, resolved once per user by the caller. */
-  senses: { calendar: boolean; postureHold: boolean } = { calendar: true, postureHold: false },
+  senses: { calendar: boolean; postureHold: boolean; timezone?: string } = { calendar: true, postureHold: false },
 
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
@@ -365,7 +366,7 @@ async function sweepScope(
   // The calendar sense: what starts soon, and which promise lands mid-meeting.
   // Read-only, scope-filtered, and it only ever supplies facts.
   const { data: calendarRows } = senses.calendar ? await scoped(
-    sb.from("calendar_events").select("id, title, location, starts_at, ends_at, all_day, feed_id"),
+    sb.from("calendar_events").select("id, uid, title, location, starts_at, ends_at, all_day, feed_id"),
     userId,
     orgId,
   )
@@ -401,6 +402,47 @@ async function sweepScope(
       .update({ signaled_at: new Date(nowMs).toISOString() })
       .in("id", changes.map((c) => c.id));
   }
+
+  // A calm heads-up for an appointment that is genuinely coming: the evening
+  // before, and once on the day. One per appointment, whichever feed carries
+  // it, and never for something already speaking because it moved.
+  if (senses.calendar) {
+    const events = (calendarRows ?? []) as (CalendarEventRow & { uid?: string | null })[];
+    // Only a fresh change speaks for itself. Old feed churn must never silence
+    // an appointment for good.
+    const FRESH_CHANGE_MS = 3 * 60 * 60 * 1000;
+    const changedTitles = new Set(
+      changes
+        .filter((c) => nowMs - new Date(c.detected_at).getTime() <= FRESH_CHANGE_MS)
+        .map((c) => (c.title ?? "").trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const changedUids = events
+      .filter((e) => changedTitles.has((e.title ?? "").trim().toLowerCase()))
+      .map((e) => eventKey(e));
+
+    // Anything the person explicitly asked Echo to keep an eye on outranks the
+    // quiet default. Watches carry the feed's own uid as their subject.
+    const { data: watchRows } = await scoped(
+      sb.from("watches").select("subject_id, kind, state"),
+      userId,
+      orgId,
+    )
+      .eq("kind", "calendar_event")
+      .in("state", ["on_it", "watching", "waiting"])
+      .limit(100);
+    const explicitUids = ((watchRows ?? []) as any[])
+      .map((w) => (w.subject_id ?? "") as string)
+      .filter(Boolean);
+
+    for (const s of appointmentReminderSignals(events, scope, nowMs, senses.timezone || "UTC", {
+      explicitUids,
+      changedUids,
+    })) {
+      signals.push(s);
+    }
+  }
+
 
 
 
@@ -741,6 +783,7 @@ Deno.serve(async (req: Request) => {
           // Adding a feed IS consent for the calendar sense; the toggle can
           // withdraw it without deleting the feed.
           calendar: sensorAllowed(prefs, "calendar") || calendarFeedCount > 0,
+          timezone: tz,
           postureHold: postureHolds(prefs, "attention", now.getTime()),
         });
         if (outcome === "proposed") proposed++;
