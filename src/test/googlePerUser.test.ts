@@ -50,7 +50,10 @@ describe("scopes asked for per service", () => {
   });
 
   it("files are read only — no write, move or delete scope", () => {
-    const drive = scopesForConnector("google_drive");
+    const drive = scopesForConnector("google_drive").filter(
+      (s) => !GOOGLE_IDENTITY_SCOPES.includes(s),
+    );
+    expect(drive.length).toBeGreaterThan(0);
     expect(drive.every((s) => s.includes("readonly"))).toBe(true);
   });
 
