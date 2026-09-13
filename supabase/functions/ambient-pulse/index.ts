@@ -207,7 +207,9 @@ Deno.serve(async (req: Request) => {
             ? `Closest known place is ${nearest.label} (~${nearest.km.toFixed(1)} km away). Capture this spot for a briefing.`
             : "Capture this location to get an awareness briefing.",
           priority: 60,
-          dedupe_key: scopedKey(`arrival:${here.lat.toFixed(2)},${here.lon.toFixed(2)}`),
+          // Being somewhere new is one situation per day, not one per mile of
+          // road. Keying on coordinates turned a drive into five notices.
+          dedupe_key: scopedKey("arrival"),
           expires_at: todayEnd.toISOString(),
         });
       } else if (nearest.km <= FAR_KM) {

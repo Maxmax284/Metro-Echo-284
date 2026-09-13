@@ -17,8 +17,20 @@ export {
   type DriftSignal,
 } from "../../supabase/functions/_shared/drift";
 
-/** Nudge kinds produced by drift detection — used to style the Today row. */
-export const DRIFT_KINDS = ["project_went_silent", "commitment_drifting", "risk_unread"] as const;
+/**
+ * Notice kinds Echo raises on its own — used to style the Today row.
+ * Calendar notices belong here too: an appointment heads-up is the same kind of
+ * quiet note as a drifting promise, and Today is the only place it lands.
+ */
+export const DRIFT_KINDS = [
+  "project_went_silent",
+  "commitment_drifting",
+  "risk_unread",
+  "appointment_ahead",
+  "meeting_starting_soon",
+  "meeting_changed",
+  "commitment_collides_with_meeting",
+] as const;
 
 export function isDriftKind(kind: string): boolean {
   return (DRIFT_KINDS as readonly string[]).includes(kind);

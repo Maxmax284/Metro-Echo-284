@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffWindow } from "../../supabase/functions/calendar-sync/index.ts";
+import { diffWindow } from "../../supabase/functions/_shared/calendarWindowDiff";
 
 const NOW = Date.parse("2026-09-13T23:00:00Z");
 
