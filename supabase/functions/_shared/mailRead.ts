@@ -100,7 +100,7 @@ const MAIL_STOPWORDS = new Set([
 ]);
 
 /** One line of an answer to a mail question, or nothing when there is nothing. */
-export function mailAnswer(question: string, items: MailItem[]): string | null {
+export function mailAnswer(items: MailItem[]): string | null {
   if (items.length === 0) return null;
   const first = items[0];
   const rest = items.length - 1;
