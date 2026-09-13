@@ -135,9 +135,38 @@ export function calendarFingerprint(ev: CalendarShape | null): string {
   return [(ev.title ?? "").trim().toLowerCase(), toMinute(ev.starts_at), toMinute(ev.ends_at)].join("|");
 }
 
-export function settleFromCalendar(expected: string, current: CalendarShape | null): CheckResult {
+/**
+ * A time a person can read, in their own zone. Machine timestamps never reach
+ * the glass: the outcome line is the sentence Echo says out loud.
+ */
+export function humanWhen(iso: string | null | undefined, timezone?: string | null): string {
+  if (!iso) return "an unstated time";
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return "an unstated time";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: timezone || "UTC",
+    }).format(t);
+  } catch {
+    return t.toISOString();
+  }
+}
+
+export function settleFromCalendar(
+  expected: string,
+  current: CalendarShape | null,
+  timezone?: string | null,
+): CheckResult {
   if (!current) return { state: "done", outcome: "That entry is gone from the calendar." };
   const now = calendarFingerprint(current);
   if (!expected || now === expected) return { state: "watching", outcome: null };
-  return { state: "done", outcome: `It moved: ${current.title ?? "the entry"} now runs ${current.starts_at ?? "at an unstated time"}.` };
+  return {
+    state: "done",
+    outcome: `It moved: ${current.title ?? "the entry"} now runs ${humanWhen(current.starts_at, timezone)}.`,
+  };
 }
