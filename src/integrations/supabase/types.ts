@@ -4084,6 +4084,7 @@ export type Database = {
         | "google_calendar"
         | "email"
         | "first_party"
+        | "gmail"
       investigation_status: "pending" | "running" | "complete" | "failed"
       message_role: "user" | "assistant" | "system" | "tool"
       nudge_status: "pending" | "seen" | "dismissed" | "acted"
@@ -4261,6 +4262,7 @@ export const Constants = {
         "google_calendar",
         "email",
         "first_party",
+        "gmail",
       ],
       investigation_status: ["pending", "running", "complete", "failed"],
       message_role: ["user", "assistant", "system", "tool"],
