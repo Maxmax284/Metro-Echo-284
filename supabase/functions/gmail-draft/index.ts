@@ -13,6 +13,8 @@ import { callGoogle } from "../_shared/googleService.ts";
 import { adminClient } from "../_shared/appUserConnections.ts";
 import { GOOGLE_MAIL_CONNECTOR_ID } from "../_shared/appUserScopes.ts";
 import { buildRawReply, replySubject } from "../_shared/mailRead.ts";
+import { buildMailProposal, mailProposalDescription, mailProposalTitle } from "../_shared/mailProposal.ts";
+import { buildActionRow } from "../_shared/actionStaging.ts";
 import { writeAuditEvent } from "../_shared/auditEvent.ts";
 import { chatText, MODELS } from "../_shared/aiGateway.ts";
 
