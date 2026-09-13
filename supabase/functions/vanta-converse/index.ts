@@ -368,6 +368,37 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "search_mail",
+      description: "Search the person's own Gmail for what they asked about: 'what did Nikki say about the pickup', 'anything important in mail about tomorrow'. Read only — it cannot send, delete or label. Only works if they switched Gmail on themselves; if they have not, say so plainly instead of guessing.",
+      parameters: {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "What they want to know, in their own words." },
+        },
+        required: ["question"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_file",
+      description: "Find a file in the person's own Google Drive by name: 'the document from last month's meeting'. Returns names and links only, never the inside of a file. Only works if they switched Drive on themselves.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Words likely in the file name." },
+        },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+
+  {
+    type: "function",
+    function: {
       name: "keep_an_eye_on",
       description: "The user wants Echo to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object, which only observes recorded state and reports — it never writes, books or executes anything, and it stays quiet until something changes.",
       parameters: {
