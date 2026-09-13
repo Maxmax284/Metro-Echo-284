@@ -335,6 +335,11 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
               title: digest.noticed.title,
               reason: digest.noticed.body ?? "Echo flagged this from what it already had on record.",
               at: new Date().toISOString(),
+              // A calendar heads-up says calendar. It never borrows the pattern
+              // desk's name for work it did not do.
+              source: /appointment|meeting/.test((digest.noticed as { kind?: string }).kind ?? "")
+                ? ("calendar" as const)
+                : undefined,
             }]
           : [],
         meetings,
