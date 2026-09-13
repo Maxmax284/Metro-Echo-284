@@ -98,6 +98,13 @@ export async function attemptUndo(args: {
     if (executorKind === "google_calendar" || executorKind === "calendar") {
       return await undoGoogleCalendar(result, config);
     }
+    if (executorKind === "gmail") {
+      return {
+        undone: false,
+        mode: "unsupported",
+        detail: "An email cannot be unsent. Write a follow-up if it needs correcting.",
+      };
+    }
     if (!executorKind) {
       return { undone: false, mode: "none", detail: "Ran without an executor — nothing external to reverse." };
     }
