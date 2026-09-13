@@ -62,18 +62,19 @@ export async function callGoogle(
     const detail = await res.text().catch(() => "");
     console.error(`[google:${connectorId}] ${path} -> ${res.status}: ${detail.slice(0, 400)}`);
     if (await appUserReconnectRequired(res)) {
+      await noteGoogleHealth(userId, connectorId, "Google needs you to sign in again.");
       return { ok: false, reason: "needs_you", detail: "Google needs you to sign in again.", status: res.status };
     }
     if (res.status === 401 || res.status === 403) {
-      return {
-        ok: false,
-        reason: "needs_you",
-        detail: "Google refused that with the permission you granted.",
-        status: res.status,
-      };
+      const said = "Google refused that with the permission you granted.";
+      await noteGoogleHealth(userId, connectorId, said);
+      return { ok: false, reason: "needs_you", detail: said, status: res.status };
     }
+    /* A one-off wobble is not a broken permission. It leaves no red mark. */
     return { ok: false, reason: "failed", detail: detail.slice(0, 400) || res.statusText, status: res.status };
   }
+
+  await noteGoogleHealth(userId, connectorId, null);
 
   const text = await res.text();
   try {
@@ -82,3 +83,29 @@ export async function callGoogle(
     return { ok: true, body: text };
   }
 }
+
+/**
+ * Health lives on the one service that had the problem. A refused Gmail call
+ * can never make Calendar or Drive look broken.
+ */
+export async function noteGoogleHealth(
+  userId: string,
+  connectorId: GoogleConnectorId,
+  problem: string | null,
+): Promise<void> {
+  try {
+    const now = new Date().toISOString();
+    await adminClient()
+      .from("app_user_connections")
+      .update(
+        problem
+          ? { last_error: problem, last_error_at: now }
+          : { last_error: null, last_error_at: null, last_ok_at: now },
+      )
+      .eq("user_id", userId)
+      .eq("connector_id", connectorId);
+  } catch {
+    /* Health is a courtesy. It never breaks the call it describes. */
+  }
+}
+
