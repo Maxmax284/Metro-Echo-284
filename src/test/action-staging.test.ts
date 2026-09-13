@@ -58,7 +58,10 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
 /** The one place allowed to insert an action row on the client. */
 const CLIENT_INSERT_OWNER = "src/hooks/useStageAction.ts";
 /** The one place allowed to insert an action row on the server. */
-const SERVER_INSERT_OWNERS = ["supabase/functions/telegram-webhook/index.ts"];
+const SERVER_INSERT_OWNERS = [
+  "supabase/functions/telegram-webhook/index.ts",
+  "supabase/functions/gmail-draft/index.ts",
+];
 
 describe("no second action path", () => {
   it("only the factory inserts into actions", () => {
