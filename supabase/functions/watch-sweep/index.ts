@@ -139,6 +139,7 @@ Deno.serve(async (req: Request) => {
           result = settleFromCalendar(
             expected || calendarFingerprint(ev as never),
             (ev as never) ?? null,
+            await zoneFor(row.user_id),
           );
           /* First check with no baseline: record what "unchanged" means. Also
              clear a miss streak the moment the entry is back. */
