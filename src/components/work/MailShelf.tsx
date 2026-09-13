@@ -224,10 +224,10 @@ export function MailShelf() {
                   size="sm"
                   className="vanta-focus h-9 text-[11.5px]"
                   disabled={!reply.trim() || busy === "send"}
-                  onClick={() => void send()}
+                  onClick={() => void lineUp()}
                 >
                   <Send className="mr-1.5 h-3.5 w-3.5" />
-                  {busy === "send" ? "Sending…" : "Send it"}
+                  {busy === "send" ? "Lining it up…" : "Send it, with my approval"}
                 </Button>
               </div>
             </>
