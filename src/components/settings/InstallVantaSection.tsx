@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Download, Smartphone, Apple, Monitor, CheckCircle2, Info } from "lucide-react";
+import { Download, Smartphone, Apple, Monitor, CheckCircle2, Info, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { HOME_ADDRESS, installBlockedHere, isEmbeddedWindow } from "@/lib/pwaInstall";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 export function InstallVantaSection() {
