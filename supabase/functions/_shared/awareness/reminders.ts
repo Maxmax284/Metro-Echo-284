@@ -214,8 +214,8 @@ export function reminderToSignal(
   const filed = project ? ` Filed under ${project}.` : "";
   const why =
     (cls === "next_day"
-      ? `"${label}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
-      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky + filed;
+      ? `"${spoken}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
+      : `"${spoken}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky + filed;
 
 
   return {
