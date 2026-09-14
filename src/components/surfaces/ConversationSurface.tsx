@@ -41,19 +41,9 @@ import {
 } from "@/lib/askSession";
 
 
+import { useAskTurn, type AskMsg as Msg } from "@/hooks/useAskTurn";
+import { RECEIPT_META } from "@/lib/askReceipts";
 
-type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
-type Msg = {
-  id?: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  receipt?: Receipt;
-  metadata?: { source?: string; detected_type?: string; routed_to?: string; needs_review?: boolean } | null;
-};
-
-import { detectDeviceClass } from "@/lib/deviceClass";
-
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 
 
 const SURFACE_HINTS: Record<string, string> = {
