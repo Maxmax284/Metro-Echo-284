@@ -472,14 +472,16 @@ Deno.serve(async (req: Request) => {
     if (invErr || !inv) throw invErr ?? new Error("could not create investigation");
 
     const q = question.slice(0, 200);
-    const [notesRes, commsRes, actsRes, briefsRes] = await Promise.all([
+    const [notesRes, commsRes, actsRes, briefsRes, ground] = await Promise.all([
       supabase.from("notes").select("id, title, body, tags, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("commitments").select("id, summary, due_at, status, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("actions").select("id, title, description, status, risk, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("awareness_briefings").select("id, section, content, confidence, generated_at").order("generated_at", { ascending: false }).limit(20),
+      groundContext(supabase, user.id, orgId, { backDays: 7, forwardDays: 30 }),
     ]);
 
     const ctxBlocks: string[] = [];
+    for (const line of ground.lines) ctxBlocks.push(line);
     for (const n of notesRes.data ?? []) ctxBlocks.push(`(note:${n.id}) ${n.title ? n.title + "\n" : ""}${String(n.body ?? "").slice(0, 800)}`);
     for (const c of commsRes.data ?? []) ctxBlocks.push(`(commitment:${c.id}) ${c.summary} (status:${c.status}${c.due_at ? `, due:${c.due_at}` : ""})`);
     for (const a of actsRes.data ?? []) ctxBlocks.push(`(action:${a.id}) ${a.title}${a.description ? " — " + a.description.slice(0, 400) : ""} (status:${a.status}, risk:${a.risk})`);
