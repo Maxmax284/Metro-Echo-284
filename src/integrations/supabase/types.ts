@@ -630,7 +630,7 @@ export type Database = {
           change: string
           detected_at: string
           event_uid: string
-          feed_id: string
+          feed_id: string | null
           id: string
           new_starts_at: string | null
           old_starts_at: string | null
@@ -644,7 +644,7 @@ export type Database = {
           change: string
           detected_at?: string
           event_uid: string
-          feed_id: string
+          feed_id?: string | null
           id?: string
           new_starts_at?: string | null
           old_starts_at?: string | null
@@ -658,7 +658,7 @@ export type Database = {
           change?: string
           detected_at?: string
           event_uid?: string
-          feed_id?: string
+          feed_id?: string | null
           id?: string
           new_starts_at?: string | null
           old_starts_at?: string | null
