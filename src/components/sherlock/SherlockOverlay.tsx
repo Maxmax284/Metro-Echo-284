@@ -226,6 +226,14 @@ export function SherlockOverlay() {
             </div>
           )}
 
+          {!hasSubject && !findings && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nothing to look at yet. Open this from a capture, note or file and Sherlock reads that.
+            </p>
+          )}
+
+
+
           {/* Single-op result panels (observe / extract / relate / suggest) */}
           {!loading && findings && isSingleOp && (
             <div className="rounded-lg border border-border/60 bg-surface-elevated/30 p-3 space-y-2">
