@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { Download, Smartphone, Apple, Monitor, CheckCircle2, Info } from "lucide-react";
+import { Download, Smartphone, Apple, Monitor, CheckCircle2, Info, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { HOME_ADDRESS, installBlockedHere, isEmbeddedWindow } from "@/lib/pwaInstall";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 export function InstallVantaSection() {
   const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
   const [busy, setBusy] = useState(false);
+  // No prompt can appear in an embedded window or on a throwaway link.
+  const blocked = installBlockedHere();
 
   // Doctrine: hide install CTA when already running standalone — no point yelling at a closed door.
   const standalone = typeof window !== "undefined" &&
@@ -41,6 +44,9 @@ export function InstallVantaSection() {
       <div className="mt-4">
         {installed ? (
           <InstalledCard />
+        ) : blocked ? (
+          /* No browser offers an install here, so offer the door that works. */
+          <OpenRealAddressCard embedded={isEmbeddedWindow()} />
         ) : platform === "android-chromium" ? (
           <AndroidChromiumCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
         ) : platform === "android-other" ? (
@@ -62,13 +68,13 @@ export function InstallVantaSection() {
         )}
       </div>
 
-      <AddressCard />
+      {/* One warning is enough — the blocked card already says where to go. */}
+      {!blocked && <AddressCard />}
       <CapabilitiesCard />
     </section>
   );
 }
 
-const HOME_ADDRESS = "metroecho.lovable.app";
 
 /**
  * Installing from a temporary preview link is how people end up with an app
@@ -119,17 +125,53 @@ function InstalledCard() {
 }
 
 function AndroidChromiumCard({ canPrompt, busy, onInstall }: { canPrompt: boolean; busy: boolean; onInstall: () => void }) {
+  /* A greyed-out button reads as broken. When Chrome hasn't offered the prompt,
+     show the menu route instead — it always works. */
+  if (!canPrompt) {
+    return (
+      <div className="rounded-lg bg-background/40 p-3 ring-1 ring-border/60">
+        <div className="flex items-center gap-2">
+          <Smartphone className="h-4 w-4 text-foreground/70" />
+          <div className="text-xs font-medium">Add it from the Chrome menu</div>
+        </div>
+        <ol className="mt-2 space-y-1 pl-5 text-[12px] text-muted-foreground list-decimal">
+          <li>Tap the three dots at the top right of Chrome.</li>
+          <li>Choose <span className="text-foreground">Add to Home screen</span>.</li>
+          <li>Tap <span className="text-foreground">Install</span> or <span className="text-foreground">Add</span>.</li>
+        </ol>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Chrome hasn't offered its own one-tap button yet. This route does the same thing.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={busy}>
+      <Download className="h-4 w-4" />
+      Install Metro Echo
+    </Button>
+  );
+}
+
+/**
+ * The honest door. Inside an embedded window or on a throwaway link no browser
+ * will ever offer an install, so the card stops pretending and opens the real
+ * address in its own tab, where installing works.
+ */
+function OpenRealAddressCard({ embedded }: { embedded: boolean }) {
   return (
     <div className="space-y-2">
-      <Button size="lg" className="w-full gap-2" onClick={onInstall} disabled={!canPrompt || busy}>
-        <Download className="h-4 w-4" />
-        Install Metro Echo
+      <Button size="lg" className="w-full gap-2" asChild>
+        <a href={`https://${HOME_ADDRESS}/?surface=settings`} target="_blank" rel="noreferrer">
+          <ExternalLink className="h-4 w-4" />
+          Open {HOME_ADDRESS}
+        </a>
       </Button>
-      {!canPrompt && (
-        <p className="text-[11px] text-muted-foreground">
-          Your browser hasn't offered the install prompt yet. Use Metro Echo for a moment, then check back here.
-        </p>
-      )}
+      <p className="text-[11px] text-muted-foreground">
+        {embedded
+          ? "You're looking at Metro Echo inside another app's window, so your phone can't install it from here. Open the real address in your browser, then install from there."
+          : "This is a temporary link, so your phone won't install from it. Open the real address, then install from there."}
+      </p>
     </div>
   );
 }

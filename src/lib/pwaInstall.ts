@@ -36,3 +36,30 @@ export function detectInstallPlatform(): InstallPlatform {
 export function isMobilePlatform(p: InstallPlatform): boolean {
   return p === "android-chromium" || p === "android-other" || p === "ios-safari" || p === "ios-other";
 }
+
+/** The one permanent address. An icon added anywhere else breaks later. */
+export const HOME_ADDRESS = "metroecho.lovable.app";
+
+/**
+ * A browser will never offer to install from inside an embedded window or from
+ * a throwaway link. Knowing that up front is the difference between a dead
+ * button and an honest "open the real address" door.
+ */
+export function isEmbeddedWindow(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+export function onHomeAddress(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname === HOME_ADDRESS;
+}
+
+/** True when no install prompt can ever appear here, whatever the person taps. */
+export function installBlockedHere(): boolean {
+  return isEmbeddedWindow() || !onHomeAddress();
+}
