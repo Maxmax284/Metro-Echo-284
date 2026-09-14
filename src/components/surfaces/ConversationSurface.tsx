@@ -142,30 +142,21 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
   };
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // send() runs before the staged-upload hook is declared below, so it reads
-  // the live upload controller through this mirror.
-  const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
 
-
-
-  // Internal intent handler — emits inline receipt cards on successful drafts.
-  const internalIntent = useIntentHandler((ack) => {
-    const meta = RECEIPT_META[ack.kind];
-    if (!meta) return;
-    // Threads remember their aftermath, so the spine can say what came of them.
-    if (convId && ack.kind !== "keep_an_eye_on") {
-      const outKind = ack.kind === "stage_action" ? "draft" : ack.kind === "add_commitment" ? "commitment" : "note";
-      void recordOutput(convId, outKind);
-    }
-    setMsgs((prev) => [
-      ...prev,
-      {
-        role: "system",
-        content: ack.summary,
-        receipt: { kind: ack.kind, summary: ack.summary, surface: meta.surface },
-      },
-    ]);
+  // Staged file flow — capture is deliberate. No auto AI on attach.
+  const [trays, setTrays] = useState<string[]>([]);
+  const stagedUpload = useStagedUpload({
+    source: "conversation",
+    onSaved: (s) => {
+      if (s.ingestedFileId) {
+        setTrays((prev) => (prev.includes(s.ingestedFileId!) ? prev : [s.ingestedFileId!, ...prev]).slice(0, 3));
+      }
+    },
   });
+
+  // One turn engine for every Ask body, including the inline heads-up reply.
+  const { send } = useAskTurn({ attachments: stagedUpload });
+
 
   // Thread selection lives in the shared engine; this surface only loads turns.
   useEffect(() => {
