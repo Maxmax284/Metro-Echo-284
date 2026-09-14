@@ -255,7 +255,8 @@ export function appointmentReminderSignals(
     // Google owns the day-of alarm unless the person asked Echo for this one.
     if (deferToGoogle && cls === "same_day" && !explicit) continue;
     seen.add(key);
-    out.push(reminderToSignal(e, cls, scope, now, timezone, { explicit }));
+    const weather = ctx.weatherFor ? ctx.weatherFor(e) : null;
+    out.push(reminderToSignal(e, cls, scope, now, timezone, { explicit, weather }));
   }
   return out;
 }
