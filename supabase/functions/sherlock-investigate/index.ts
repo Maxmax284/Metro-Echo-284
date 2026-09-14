@@ -28,7 +28,7 @@ const FULL_SCHEMA = {
         properties: {
           claim: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
-          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "inference"] },
+          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "inference"] },
           source_id: { type: "string" },
           source_excerpt: { type: "string" },
         },
