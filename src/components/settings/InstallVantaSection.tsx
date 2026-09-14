@@ -68,7 +68,8 @@ export function InstallVantaSection() {
         )}
       </div>
 
-      <AddressCard />
+      {/* One warning is enough — the blocked card already says where to go. */}
+      {!blocked && <AddressCard />}
       <CapabilitiesCard />
     </section>
   );
