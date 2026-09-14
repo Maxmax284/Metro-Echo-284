@@ -62,8 +62,47 @@ export function InstallVantaSection() {
         )}
       </div>
 
+      <AddressCard />
       <CapabilitiesCard />
     </section>
+  );
+}
+
+const HOME_ADDRESS = "metroecho.lovable.app";
+
+/**
+ * Installing from a temporary preview link is how people end up with an app
+ * icon pointing at an address that stops working. Say where the real one is.
+ */
+function AddressCard() {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const onHome = host === HOME_ADDRESS;
+  if (onHome) {
+    return (
+      <div className="mt-4 rounded-lg bg-background/30 p-3 ring-1 ring-border/40">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Address</div>
+        <p className="mt-1 text-[12px] text-muted-foreground">
+          You're on <span className="text-foreground">{HOME_ADDRESS}</span> — the permanent one. Install from here.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-4 rounded-lg bg-amber-500/10 p-3 ring-1 ring-amber-500/30">
+      <div className="text-[11px] uppercase tracking-wider text-amber-300">Install from the real address</div>
+      <p className="mt-1 text-[12px] text-muted-foreground">
+        This window is a temporary link, so an icon added from here will break later. Open{" "}
+        <a
+          href={`https://${HOME_ADDRESS}/?surface=settings`}
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground underline"
+        >
+          {HOME_ADDRESS}
+        </a>{" "}
+        and install from there instead. If you already added an old icon, delete it and add this one.
+      </p>
+    </div>
   );
 }
 

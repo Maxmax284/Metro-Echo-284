@@ -33,8 +33,50 @@ async function fetchVapidPublicKey(): Promise<string | null> {
   return (data as any)?.public_key ?? null;
 }
 
+/**
+ * The worker belongs to the real published address only. In a preview frame or
+ * a dev host it would bind Metro Echo to a throwaway origin — which is exactly
+ * how an installed shortcut ends up pointing at the wrong address. In those
+ * contexts we refuse and clear anything already registered. `?sw=off` is the
+ * manual kill switch.
+ */
+export function swAllowedHere(): boolean {
+  if (typeof window === "undefined") return false;
+  if (!import.meta.env.PROD) return false;
+  try {
+    if (window.self !== window.top) return false;
+  } catch {
+    return false;
+  }
+  if (new URLSearchParams(window.location.search).has("sw")) return false;
+  const h = window.location.hostname;
+  if (h.startsWith("id-preview--") || h.startsWith("preview--")) return false;
+  if (h === "lovableproject.com" || h.endsWith(".lovableproject.com")) return false;
+  if (h === "lovableproject-dev.com" || h.endsWith(".lovableproject-dev.com")) return false;
+  if (h === "beta.lovable.dev" || h.endsWith(".beta.lovable.dev")) return false;
+  return true;
+}
+
+async function unregisterHere(): Promise<void> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.allSettled(
+      regs
+        .filter((r) => (r.active?.scriptURL || r.installing?.scriptURL || "").endsWith("/sw.js"))
+        .map((r) => r.unregister()),
+    );
+  } catch {
+    // nothing to clean up
+  }
+}
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!pushSupported()) return null;
+  if (!swAllowedHere()) {
+    await unregisterHere();
+    return null;
+  }
   try {
     return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
   } catch {
