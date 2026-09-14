@@ -629,15 +629,12 @@ async function reachMessaging(
 ): Promise<void> {
   if (!Deno.env.get("TELEGRAM_API_KEY")) return;
 
-  const { data: link } = await sb
-    .from("telegram_chat_links")
-    .select("chat_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const chatId = (link as { chat_id?: number } | null)?.chat_id;
+  /* One reader for "which chat is this person on" — telegram_chat_links records
+     linked_at, not created_at, and ordering by a column that does not exist made
+     this whole reach fail silently. */
+  const chatId = await chatIdForUser(sb, userId);
   if (!chatId) return;
+
 
   const { data: voiceProfile } = await sb
     .from("profiles")
