@@ -1,8 +1,8 @@
 // CalendarOnlyView — the calendar, and nothing but the calendar.
 //
 // Doctrine:
-//   - Read-only. These rows came from subscribed calendars; nothing here writes
-//     back to any calendar, ever. No filing, no completing, no rescheduling.
+//   - Feed rows are sense: read-only, replaced on every sync. Echo's own entries
+//     are the person's, and only those can be written here.
 //   - The only voice on this page is Echo's own heads-up. Google's alarms are
 //     Google's and never appear here. Telegram is not a surface on this page.
 //   - Silence is a valid read: an empty day says so plainly.
@@ -14,7 +14,13 @@ import { useAgenda } from "@/hooks/useAgenda";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { Card } from "@/components/ui/card";
-import { CalendarClock, MapPin, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
+import { getGoogleMirrorOn, setGoogleMirrorOn } from "@/lib/echoCalendar";
+import { vantaToast as toast } from "@/lib/vantaVoice";
+import { CalendarClock, MapPin, Megaphone, Pencil, Plus } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
 import { freshenDayWords } from "@/lib/dayWords";
@@ -37,11 +43,40 @@ type CalendarNudge = {
 };
 
 export function CalendarOnlyView() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { applyScope, key: scopeKey } = useScope();
   const { timezone } = useUserTimezone();
-  const { events, loading } = useAgenda({ days: 14 });
+  const { events, loading, refresh } = useAgenda({ days: 14 });
   const [notes, setNotes] = useState<CalendarNudge[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<AgendaEvent | null>(null);
+  const [mirrorOn, setMirrorOn] = useState(true);
+  const [mirrorBusy, setMirrorBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    void getGoogleMirrorOn(user.id).then(setMirrorOn).catch(() => {});
+  }, [user?.id]);
+
+  /* One switch, said once: the entry stays here either way. */
+  const toggleMirror = async (on: boolean) => {
+    if (!user) return;
+    setMirrorBusy(true);
+    try {
+      await setGoogleMirrorOn(user.id, on);
+      setMirrorOn(on);
+      toast.success(
+        on
+          ? "New entries will land in Google too, and changes there come back here."
+          : "Echo keeps your entries to itself. What Google already holds stays there.",
+      );
+    } catch {
+      toast.error("That switch would not save.");
+    } finally {
+      setMirrorBusy(false);
+    }
+  };
+
 
   const loadNotes = async () => {
     const { data } = await applyScope(
@@ -75,6 +110,38 @@ export function CalendarOnlyView() {
 
   return (
     <div className="space-y-3">
+      <Card className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Your own entries</div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              Entries you add here are yours to edit or delete. Subscribed calendars stay read-only.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="min-h-[44px] shrink-0"
+            onClick={() => {
+              setEditing(null);
+              setSheetOpen(true);
+            }}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" /> New
+          </Button>
+        </div>
+        <div className="mt-2.5 flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+          <Label htmlFor="echo-google-mirror" className="text-[11.5px] leading-relaxed">
+            Keep these in Google too
+          </Label>
+          <Switch
+            id="echo-google-mirror"
+            checked={mirrorOn}
+            disabled={mirrorBusy}
+            onCheckedChange={(on) => void toggleMirror(on)}
+          />
+        </div>
+      </Card>
+
       <Card className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
         <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Megaphone className="h-3 w-3" /> What Echo said about your calendar
@@ -133,8 +200,25 @@ export function CalendarOnlyView() {
                           <MapPin className="h-2.5 w-2.5" /> {e.location}
                         </span>
                       )}
+                      {/* Only ever what the row recorded about the mirror. */}
+                      {e.origin === "echo" && e.sync_state === "error" && (
+                        <span className="text-destructive">Google would not take this one</span>
+                      )}
+                      {e.origin === "echo" && e.sync_state === "synced" && <span>In Google too</span>}
                     </div>
                   </div>
+                  {e.origin === "echo" ? (
+                    <button
+                      aria-label={`Edit ${e.title ?? "this entry"}`}
+                      className="min-h-[44px] shrink-0 px-2 text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setEditing(e);
+                        setSheetOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -143,9 +227,16 @@ export function CalendarOnlyView() {
       )}
 
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Read-only on purpose. Echo never writes to your calendar, and nothing on this page can be completed, moved or
-        sent anywhere.
+        Subscribed calendars are read-only on purpose — Echo only writes the entries you add here, and nothing on this
+        page can be completed or sent anywhere.
       </p>
+
+      <EchoEventSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        event={editing}
+        onSaved={() => void refresh()}
+      />
     </div>
   );
 }

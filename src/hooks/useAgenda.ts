@@ -24,6 +24,12 @@ export type AgendaEvent = {
   /** The feed's own id for this entry — stable across a resync, unlike the row. */
   uid: string | null;
   project_id: string | null;
+  /** "feed" rows are read-only sense; "echo" rows are the person's own entries. */
+  origin: "feed" | "echo";
+  description: string | null;
+  /** Where the Google mirror stands for an Echo row. */
+  sync_state: "local" | "synced" | "error" | "off" | null;
+  sync_error: string | null;
   /** Which calendar it came from, e.g. "LMT Camp State". */
   feedLabel: string;
   /** Project title when filed, else null. */
@@ -96,7 +102,7 @@ export function useAgenda(
       const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
       const nowIso = new Date().toISOString();
       const columns =
-        "id,title,uid,starts_at,ends_at,all_day,location,feed_id,project_id,calendar_feeds(label)";
+        "id,title,uid,starts_at,ends_at,all_day,location,feed_id,project_id,origin,description,sync_state,sync_error,calendar_feeds(label)";
       const [{ data, error: err }, running, projs] = await Promise.all([
         applyScope(supabase.from("calendar_events").select(columns))
           .gte("starts_at", from)
@@ -128,7 +134,12 @@ export function useAgenda(
         feed_id: r.feed_id,
         uid: r.uid ?? null,
         project_id: r.project_id ?? null,
-        feedLabel: r.calendar_feeds?.label ?? "Calendar",
+        origin: r.origin === "echo" ? "echo" : "feed",
+        description: r.description ?? null,
+        sync_state: r.sync_state ?? null,
+        sync_error: r.sync_error ?? null,
+        /* Echo's own entries say so instead of borrowing a feed's name. */
+        feedLabel: r.origin === "echo" ? "Echo" : (r.calendar_feeds?.label ?? "Calendar"),
         projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
       });
       /* The same calendar can arrive twice — signed in to Google and subscribed

@@ -35,7 +35,7 @@ const LINE: Record<AftermathSurfaceKey, string> = {
   projects:
     "A project collects the notes, promises and actions you attach · its brief reads off them",
   schedule:
-    "Calendars are read-only here · changes show as a diff, and Echo never writes back",
+    "Your own entries are yours to edit · subscribed calendars stay read-only and show changes as a diff",
   briefs:
     "A brief is built from your own records · exports appear in Receipts with what went into them",
   audit: "This is the record · nothing here can be changed or run again",
