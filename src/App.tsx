@@ -18,6 +18,7 @@ import { EntityDetailSheet } from "@/components/entities/EntityDetailSheet";
 import { CanvasProvider } from "@/components/entities/CanvasContext";
 import { CommandCanvas } from "@/components/entities/CommandCanvas";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
+import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { FirstRunWalkthrough } from "@/components/tutorial/FirstRunWalkthrough";
 import { ActivityProvider } from "@/components/workstatus/ActivityStore";
 import { ActivityTray } from "@/components/workstatus/ActivityTray";
