@@ -26,6 +26,7 @@ import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/li
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
 import { resolveReminderReference } from "@/lib/reminderActions";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
+import { travelAnswer } from "@/lib/travelAnswer";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -480,7 +481,118 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           toast.success({ title: mail ? "Checked your mail." : "Looked in your Drive." });
+        } else if (kind === "travel_time") {
+          /* How long the road takes to something already on the calendar.
+             Recorded ground truth only: the fix Echo is using, the address on
+             the entry, and a real road route. Anything missing is said plainly
+             rather than estimated. */
+          const reference = String(args.reference ?? "").trim();
+          let tz = "UTC";
+          try {
+            const { data: prof } = await supabase.from("profiles").select("timezone").eq("id", user.id).maybeSingle();
+            tz = prof?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+          } catch { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+
+          const nowMs = Date.now();
+          const { data: eventRows } = await supabase
+            .from("calendar_events")
+            .select("id, uid, feed_id, title, location, starts_at, ends_at")
+            .gte("starts_at", new Date(nowMs - 60 * 60 * 1000).toISOString())
+            .lte("starts_at", new Date(nowMs + 14 * 24 * 3600 * 1000).toISOString())
+            .order("starts_at", { ascending: true })
+            .limit(200);
+          const events = ((eventRows ?? []) as any[]).map((e) => ({
+            feed_id: e.feed_id ?? null,
+            uid: e.uid ?? null,
+            starts_at: e.starts_at,
+            ends_at: e.ends_at ?? null,
+            title: e.title ?? "",
+            location: e.location ?? null,
+          }));
+
+          let composed: string;
+          const resolution = reference
+            ? resolveEventReference(reference, events as ResolvableEvent[])
+            : events.length
+              ? ({ status: "one", event: events[0] } as const)
+              : ({ status: "none" } as const);
+
+          if (resolution.status === "none") {
+            composed = reference
+              ? `Nothing on your calendar matches “${reference}”, so there is no drive to work out.`
+              : "There is nothing coming up on your calendar to drive to.";
+          } else if (resolution.status === "many") {
+            composed = [
+              "More than one thing matches that. Which one?",
+              ...resolution.candidates.map(
+                (c) => `• ${c.title} — ${formatInTimeZone(new Date(c.starts_at), tz, "EEE h:mm a")}`,
+              ),
+            ].join("\n");
+          } else {
+            const picked = events.find(
+              (e) => e.title === resolution.event.title && e.starts_at === resolution.event.starts_at,
+            ) ?? { ...resolution.event, location: null as string | null };
+
+            const { data: placeRow } = await supabase
+              .from("awareness_places")
+              .select("label, geo")
+              .is("archived_at", null)
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const geo = (placeRow?.geo ?? null) as { lat?: number; lon?: number } | null;
+            const fromLat = Number(geo?.lat);
+            const fromLon = Number(geo?.lon);
+
+            if (!Number.isFinite(fromLat) || !Number.isFinite(fromLon)) {
+              composed =
+                "I do not know where you are standing right now, so I cannot work out the drive. Set your place in Aware and ask me again.";
+            } else if (!picked.location?.trim()) {
+              composed = travelAnswer(
+                { title: picked.title, starts_at: picked.starts_at, location: null },
+                { durationS: null, distanceM: null },
+                tz,
+                nowMs,
+              );
+            } else {
+              const { data: legRes } = await supabase.functions.invoke("awareness-travel-times", {
+                body: {
+                  from: { lat: fromLat, lon: fromLon },
+                  to: [{ id: "target", query: picked.location.trim() }],
+                },
+              });
+              const leg = (((legRes as any)?.legs ?? []) as any[])[0] ?? null;
+              composed = travelAnswer(
+                { title: picked.title, starts_at: picked.starts_at, location: picked.location },
+                {
+                  durationS: Number.isFinite(Number(leg?.duration_s)) ? Number(leg.duration_s) : null,
+                  distanceM: Number.isFinite(Number(leg?.distance_m)) ? Number(leg.distance_m) : null,
+                },
+                tz,
+                nowMs,
+              );
+              if (placeRow?.label) composed += `\n\n_from ${placeRow.label}_`;
+            }
+          }
+
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (conv?.id) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: conv.id,
+              role: "assistant",
+              content: composed,
+              metadata: { source: "travel_time", provenance: "calendar+map", reference: reference || null },
+            });
+          }
+          toast.success({ title: "Worked out the drive." });
         } else if (kind === "query_schedule") {
+
 
           const window = String(args.window ?? "today");
           // Resolve tz: stored profile timezone falls back to browser

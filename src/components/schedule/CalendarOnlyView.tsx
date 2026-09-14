@@ -47,7 +47,7 @@ export function CalendarOnlyView() {
   const { session, user } = useAuth();
   const { applyScope, key: scopeKey } = useScope();
   const { timezone } = useUserTimezone();
-  const { events, loading, refresh } = useAgenda({ days: 14 });
+  const { events, projects, loading, refresh } = useAgenda({ days: 14 });
   const [notes, setNotes] = useState<CalendarNudge[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<AgendaEvent | null>(null);
@@ -207,6 +207,12 @@ export function CalendarOnlyView() {
                           <MapPin className="h-2.5 w-2.5" /> {e.location}
                         </span>
                       )}
+                      {/* The person's own filing, shown where they filed it. */}
+                      {e.projectTitle && (
+                        <span className="rounded-[2px] bg-primary/10 px-1.5 py-0.5 text-primary ring-1 ring-primary/25">
+                          {e.projectTitle}
+                        </span>
+                      )}
                       {/* Only ever what the row recorded about the mirror. */}
                       {e.origin === "echo" && e.sync_state === "error" && (
                         <span className="text-destructive">Google would not take this one</span>
@@ -242,6 +248,7 @@ export function CalendarOnlyView() {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         event={editing}
+        projects={projects}
         onSaved={() => void refresh()}
       />
     </div>

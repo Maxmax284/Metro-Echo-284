@@ -429,7 +429,7 @@ async function sweepScope(
   // The calendar sense: what starts soon, and which promise lands mid-meeting.
   // Read-only, scope-filtered, and it only ever supplies facts.
   const { data: calendarRows } = senses.calendar ? await scoped(
-    sb.from("calendar_events").select("id, uid, title, location, starts_at, ends_at, all_day, feed_id"),
+    sb.from("calendar_events").select("id, uid, title, location, starts_at, ends_at, all_day, feed_id, project_id"),
     userId,
     orgId,
   )
@@ -507,6 +507,13 @@ async function sweepScope(
       // The sky around the appointment, folded into the same sentence.
       weatherFor: (e) =>
         appointmentWeather(e.starts_at, senses.forecast ?? null, senses.timezone || "UTC", nowMs),
+      // The person's own filing rides along, by recorded name only.
+      projectFor: (e) => {
+        const pid = (e as { project_id?: string | null }).project_id ?? null;
+        if (!pid) return null;
+        const hit = (projectRows ?? []).find((p: any) => p.id === pid);
+        return (hit?.title as string | undefined)?.trim() || null;
+      },
     })) {
       signals.push(s);
     }
