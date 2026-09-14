@@ -175,7 +175,7 @@ export function reminderToSignal(
   scope: ScopeIdentity,
   now: number,
   timezone: string,
-  opts: { explicit?: boolean } = {},
+  opts: { explicit?: boolean; weather?: AppointmentWeather | null } = {},
 ): AwarenessSignal {
   const key = eventKey(e);
   const label = (e.title ?? "").trim() || "An untitled calendar entry";
@@ -184,10 +184,15 @@ export function reminderToSignal(
   const at = whenWords(start, timezone);
   const org = scope.organizationId ?? "personal";
 
+  const weather = opts.weather ?? null;
+  /* The sky rides on the sentence the appointment already earned — it never
+     becomes a second note. */
+  const sky = weather ? ` Expect ${weather.clause}.` : "";
   const why =
-    cls === "next_day"
+    (cls === "next_day"
       ? `"${label}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
-      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`;
+      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky;
+
 
   return {
     id: `appointment_ahead:${key}:${cls}`,
