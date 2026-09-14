@@ -42,8 +42,14 @@ export function SherlockOverlay() {
   const operation = scope?.operation;
   const isSingleOp = !!operation && SINGLE_OPS.has(operation);
 
+  // The subject Sherlock reads: the passed text, else the title. Empty strings don't count.
+  const subjectText = (scope?.text?.trim() || scope?.title?.trim() || "");
+  const subjectId = scope?.entity_id ?? null;
+  const hasSubject = !!subjectText || !!subjectId;
+
   useEffect(() => {
     if (!open || !scope || findings) return;
+    if (!hasSubject) return; // nothing to look at — never call with an empty scope
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -56,8 +62,8 @@ export function SherlockOverlay() {
             organization_id: orgId,
             scope: {
               entity_type: scope.entity_type,
-              entity_id: scope.entity_id ?? null,
-              text: scope.text ?? scope.title ?? "",
+              entity_id: subjectId,
+              text: subjectText,
             },
           },
         });
