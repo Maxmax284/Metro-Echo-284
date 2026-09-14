@@ -8,6 +8,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { SHERLOCK_VOICE } from "../_shared/vantaVoice.ts";
 import { groundContext, nowLine } from "../_shared/sherlockGround.ts";
+import { outsideGround } from "../_shared/sherlockGoogle.ts";
 
 
 const FULL_SYSTEM = `${SHERLOCK_VOICE}
@@ -21,6 +22,11 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+CONTEXT may also include mail headers (mail:<id>) — sender, subject, date — and
+Drive files (file:<id>) — name, kind, when it changed. Those are headers and
+names only: never claim to know what an email or a file says inside. Lines
+beginning "(source)" say a source could not be read; when one appears, say that
+plainly instead of answering as though that source were empty.
 `;
 
 const FULL_SCHEMA = {
@@ -34,7 +40,7 @@ const FULL_SCHEMA = {
         properties: {
           claim: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
-          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "inference"] },
+          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "mail", "file", "inference"] },
           source_id: { type: "string" },
           source_excerpt: { type: "string" },
         },
