@@ -24,6 +24,7 @@ import { CalendarClock, MapPin, Megaphone, Pencil, Plus } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
 import { freshenDayWords } from "@/lib/dayWords";
+import { HeadsUpReply } from "@/components/ask/HeadsUpReply";
 import type { AgendaEvent } from "@/hooks/useAgenda";
 
 /** Kinds Echo raises off the calendar alone. Nothing else shows here. */
