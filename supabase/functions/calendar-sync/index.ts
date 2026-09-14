@@ -96,6 +96,23 @@ async function syncFeed(sb: ReturnType<typeof createClient>, feed: FeedRow, now:
     events = parseIcs(text, { fromMs, toMs }).slice(0, MAX_EVENTS_PER_FEED);
   }
 
+  /* Entries Echo owns and mirrored into Google come back through the feed. The
+     Echo row is the real one, so the mirrored copy is dropped here rather than
+     doubling the day. */
+  const { data: mirrored } = await sb
+    .from("calendar_events")
+    .select("google_event_id")
+    .eq("user_id", feed.user_id)
+    .eq("origin", "echo")
+    .not("google_event_id", "is", null);
+  if (mirrored?.length) {
+    const mine = new Set(
+      (mirrored as { google_event_id: string }[]).flatMap((r) => [r.google_event_id, googleUid(r.google_event_id)]),
+    );
+    events = events.filter((e) => !mine.has(e.uid));
+  }
+
+
 
   // Project links are the user's own structural work, not the calendar's. The
   // feed is the source of truth for *what* is on the day, never for how the
