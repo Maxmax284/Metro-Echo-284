@@ -175,6 +175,19 @@ function IndexInner() {
         onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1.5">
+            {/* The gear leads the cluster: Control Room must never scroll out
+                of reach on a phone. Bordered and labelled so it reads as the
+                door to settings, not decoration. */}
+            <Button
+              variant="ghost"
+              className="h-8 gap-1.5 rounded-md px-2 ring-1 ring-border/70 hover:ring-primary/50"
+              aria-label="Settings — Control Room"
+              title="Settings — Control Room"
+              onClick={() => { window.location.href = "/settings"; }}
+            >
+              <SettingsIcon className="h-4 w-4" />
+              <span className="text-[10px] uppercase tracking-wider">Settings</span>
+            </Button>
             <WorkspaceSwitcher />
             <ModeBadge />
             <Button
