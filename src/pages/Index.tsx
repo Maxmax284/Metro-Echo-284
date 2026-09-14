@@ -178,16 +178,62 @@ function IndexInner() {
             {/* The gear leads the cluster: Control Room must never scroll out
                 of reach on a phone. Bordered and labelled so it reads as the
                 door to settings, not decoration. */}
-            <Button
-              variant="ghost"
-              className="h-8 gap-1.5 rounded-md px-2 ring-1 ring-border/70 hover:ring-primary/50"
-              aria-label="Settings — Control Room"
-              title="Settings — Control Room"
-              onClick={() => { window.location.href = "/settings"; }}
-            >
-              <SettingsIcon className="h-4 w-4" />
-              <span className="text-[10px] uppercase tracking-wider">Settings</span>
-            </Button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-8 gap-1.5 rounded-md px-2 ring-1 ring-border/70 hover:ring-primary/50"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  <span className="text-[10px] uppercase tracking-wider">Settings</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[360px] max-w-full">
+                <SheetHeader><SheetTitle>Settings</SheetTitle></SheetHeader>
+                <div className="mt-4 space-y-6 overflow-y-auto pr-1" style={{ maxHeight: "calc(100dvh - 80px)" }}>
+                  <a
+                    href="/settings"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Control Room</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">owner</span>
+                  </a>
+                  <a
+                    href="/settings/connected-accounts"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Connected accounts</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">your channels</span>
+                  </a>
+                  <a
+                    href="/documents"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Documents</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drafts &amp; reviews</span>
+                  </a>
+                  <a
+                    href="/settings/workspaces"
+                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                  >
+                    <span className="font-medium">Workspaces</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">members &amp; roles</span>
+                  </a>
+
+                  <TelegramLinkCard />
+                  <Separator />
+                  <VoiceCaptureCard />
+                  <Separator />
+                  <FileUploadCard />
+                  <Separator />
+                  <EmailInboxCard />
+                  <Separator />
+                  <ExecutorsCard />
+                </div>
+              </SheetContent>
+            </Sheet>
             <WorkspaceSwitcher />
             <ModeBadge />
             <Button
