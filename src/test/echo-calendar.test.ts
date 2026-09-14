@@ -6,7 +6,7 @@ import {
   normalizeEchoEvent,
   remoteChanges,
   type EchoEventRow,
-} from "../../supabase/functions/_shared/echoCalendar";
+} from "../../supabase/functions/_shared/echoCalendarShape";
 
 const row = (over: Partial<EchoEventRow> = {}): EchoEventRow => ({
   id: "e1",
