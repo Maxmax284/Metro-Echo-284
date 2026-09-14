@@ -72,7 +72,7 @@ async function unregisterHere(): Promise<void> {
 }
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!pushSupported()) return null;
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
   if (!swAllowedHere()) {
     await unregisterHere();
     return null;
