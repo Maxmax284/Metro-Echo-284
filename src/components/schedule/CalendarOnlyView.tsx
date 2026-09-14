@@ -43,11 +43,40 @@ type CalendarNudge = {
 };
 
 export function CalendarOnlyView() {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { applyScope, key: scopeKey } = useScope();
   const { timezone } = useUserTimezone();
-  const { events, loading } = useAgenda({ days: 14 });
+  const { events, loading, refresh } = useAgenda({ days: 14 });
   const [notes, setNotes] = useState<CalendarNudge[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<AgendaEvent | null>(null);
+  const [mirrorOn, setMirrorOn] = useState(true);
+  const [mirrorBusy, setMirrorBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    void getGoogleMirrorOn(user.id).then(setMirrorOn).catch(() => {});
+  }, [user?.id]);
+
+  /* One switch, said once: the entry stays here either way. */
+  const toggleMirror = async (on: boolean) => {
+    if (!user) return;
+    setMirrorBusy(true);
+    try {
+      await setGoogleMirrorOn(user.id, on);
+      setMirrorOn(on);
+      toast.success(
+        on
+          ? "New entries will land in Google too, and changes there come back here."
+          : "Echo keeps your entries to itself. What Google already holds stays there.",
+      );
+    } catch {
+      toast.error("That switch would not save.");
+    } finally {
+      setMirrorBusy(false);
+    }
+  };
+
 
   const loadNotes = async () => {
     const { data } = await applyScope(
