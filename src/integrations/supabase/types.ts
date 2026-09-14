@@ -689,13 +689,20 @@ export type Database = {
         Row: {
           all_day: boolean
           created_at: string
+          description: string | null
           ends_at: string | null
-          feed_id: string
+          feed_id: string | null
+          google_calendar_id: string | null
+          google_event_id: string | null
           id: string
           location: string | null
           organization_id: string | null
+          origin: string
           project_id: string | null
           starts_at: string
+          sync_error: string | null
+          sync_state: string
+          synced_at: string | null
           title: string | null
           uid: string
           updated_at: string
@@ -704,13 +711,20 @@ export type Database = {
         Insert: {
           all_day?: boolean
           created_at?: string
+          description?: string | null
           ends_at?: string | null
-          feed_id: string
+          feed_id?: string | null
+          google_calendar_id?: string | null
+          google_event_id?: string | null
           id?: string
           location?: string | null
           organization_id?: string | null
+          origin?: string
           project_id?: string | null
           starts_at: string
+          sync_error?: string | null
+          sync_state?: string
+          synced_at?: string | null
           title?: string | null
           uid: string
           updated_at?: string
@@ -719,13 +733,20 @@ export type Database = {
         Update: {
           all_day?: boolean
           created_at?: string
+          description?: string | null
           ends_at?: string | null
-          feed_id?: string
+          feed_id?: string | null
+          google_calendar_id?: string | null
+          google_event_id?: string | null
           id?: string
           location?: string | null
           organization_id?: string | null
+          origin?: string
           project_id?: string | null
           starts_at?: string
+          sync_error?: string | null
+          sync_state?: string
+          synced_at?: string | null
           title?: string | null
           uid?: string
           updated_at?: string
