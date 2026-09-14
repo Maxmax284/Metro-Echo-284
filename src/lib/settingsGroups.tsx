@@ -5,7 +5,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 import { HowVantaWorksSection } from "@/components/settings/HowVantaWorksSection";
 import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
