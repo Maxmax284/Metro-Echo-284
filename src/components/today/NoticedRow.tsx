@@ -33,11 +33,14 @@ export function NoticedRow({
 }) {
   if (!signal) return null;
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
+  /* Written last night, read this morning: "tomorrow" must re-read as "today". */
+  const title = freshenDayWords({ text: signal.title, createdAt: signal.created_at, timezone });
+  const body = signal.body ? freshenDayWords({ text: signal.body, createdAt: signal.created_at, timezone }) : null;
   /* The same seven answers as everywhere else, from what the nudge recorded. */
   const why = whyFor({
     source: "What Echo noticed",
-    whatChanged: signal.title,
-    reason: signal.body ?? "Echo raised this from your own records.",
+    whatChanged: title,
+    reason: body ?? "Echo raised this from your own records.",
     whyItMatters: "It is a draft observation, not an instruction.",
     ifIgnored: "Hiding it takes it off Today. Nothing runs from it.",
   });
