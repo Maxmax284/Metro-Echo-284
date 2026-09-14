@@ -267,56 +267,6 @@ function IndexInner() {
               <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
             </Button>
 
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
-                  <SettingsIcon className="h-3.5 w-3.5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[360px] max-w-full">
-                <SheetHeader><SheetTitle>Settings</SheetTitle></SheetHeader>
-                <div className="mt-4 space-y-6 overflow-y-auto pr-1" style={{ maxHeight: "calc(100dvh - 80px)" }}>
-                  <a
-                    href="/settings"
-                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
-                  >
-                    <span className="font-medium">Control Room</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">owner</span>
-                  </a>
-                  <a
-                    href="/settings/connected-accounts"
-                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
-                  >
-                    <span className="font-medium">Connected accounts</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">your channels</span>
-                  </a>
-                  <a
-                    href="/documents"
-                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
-                  >
-                    <span className="font-medium">Documents</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">drafts &amp; reviews</span>
-                  </a>
-                  <a
-                    href="/settings/workspaces"
-                    className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
-                  >
-                    <span className="font-medium">Workspaces</span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">members &amp; roles</span>
-                  </a>
-
-                  <TelegramLinkCard />
-                  <Separator />
-                  <VoiceCaptureCard />
-                  <Separator />
-                  <FileUploadCard />
-                  <Separator />
-                  <EmailInboxCard />
-                  <Separator />
-                  <ExecutorsCard />
-                </div>
-              </SheetContent>
-            </Sheet>
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </Button>
