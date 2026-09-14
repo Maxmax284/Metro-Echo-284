@@ -834,6 +834,12 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", p.id)
         .eq("status", "active");
 
+      /* One forecast read per person, only when the calendar sense is live —
+         weather has no voice of its own here. */
+      const forecast = calendarFeedCount > 0 || sensorAllowed(prefs, "calendar")
+        ? await forecastForUser(sb, p.id)
+        : null;
+
       const targets = driftScopeTargets(
         ((memberships ?? []) as any[]).map((m) => m.organization_id as string),
       );
