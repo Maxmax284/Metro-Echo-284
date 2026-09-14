@@ -18,6 +18,7 @@ import type { AwarenessSignal, ScopeIdentity } from "./signal.ts";
 import { registerSignalKind } from "./registry.ts";
 import type { CalendarEventRow } from "./adapters-calendar.ts";
 import { SOON_MINUTES } from "./adapters-calendar.ts";
+import type { AppointmentWeather } from "../appointmentWeather.ts";
 
 registerSignalKind({
   kind: "appointment_ahead",
