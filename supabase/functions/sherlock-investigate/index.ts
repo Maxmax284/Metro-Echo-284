@@ -7,7 +7,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // - default mode: full investigation question over the user's memory (persisted to investigations).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { SHERLOCK_VOICE } from "../_shared/vantaVoice.ts";
-import { groundContext } from "../_shared/sherlockGround.ts";
+import { groundContext, nowLine } from "../_shared/sherlockGround.ts";
 
 
 const FULL_SYSTEM = `${SHERLOCK_VOICE}
