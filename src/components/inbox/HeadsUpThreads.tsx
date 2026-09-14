@@ -7,7 +7,7 @@ import { Eye, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAskThreads } from "@/providers/AskThreadProvider";
 import { useCompanion } from "@/components/companion/CompanionContext";
-import { EmptyView, LoadingView } from "@/components/ui/state-views";
+import { EmptyState, LoadingState } from "@/components/ui/state-views";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -39,13 +39,14 @@ export function HeadsUpThreads() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heads.map((t) => t.id).join(",")]);
 
-  if (loading) return <LoadingView label="Reading your heads-ups" />;
+  if (loading) return <LoadingState label="Reading your heads-ups" />;
   if (!heads.length) {
     return (
-      <EmptyView
-        icon={Eye}
+      <EmptyState
+        icon={<Eye className="h-4 w-4 text-accent" />}
         title="No heads-up conversations yet"
-        description="When Echo raises something on Today, reply to it right on the card. The whole back-and-forth lands here."
+        hint="When Echo raises something on Today, reply to it right on the card. The whole back-and-forth lands here."
+        flow={["Echo notices", "You reply", "Heads-ups"]}
       />
     );
   }
