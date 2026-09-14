@@ -227,9 +227,16 @@ export function CalendarOnlyView() {
       )}
 
       <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-        Read-only on purpose. Echo never writes to your calendar, and nothing on this page can be completed, moved or
-        sent anywhere.
+        Subscribed calendars are read-only on purpose — Echo only writes the entries you add here, and nothing on this
+        page can be completed or sent anywhere.
       </p>
+
+      <EchoEventSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        event={editing}
+        onSaved={() => void refresh()}
+      />
     </div>
   );
 }
