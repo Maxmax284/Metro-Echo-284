@@ -59,6 +59,9 @@ const EVENT_PHRASE: Record<string, { one: string; many: string }> = {
   "booking.created": { one: "new booking", many: "new bookings" },
   "booking.cancelled": { one: "cancelled booking", many: "cancelled bookings" },
   "guest.message_received": { one: "guest message", many: "guest messages" },
+  "guest_message.received": { one: "guest message", many: "guest messages" },
+  "guest_message.sent": { one: "guest reply", many: "guest replies" },
+
   "payment.received": { one: "payment", many: "payments" },
   "payment.failed": { one: "failed payment", many: "failed payments" },
   "waiver.signed": { one: "signed waiver", many: "signed waivers" },
