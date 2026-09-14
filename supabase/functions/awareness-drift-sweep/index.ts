@@ -52,6 +52,62 @@ import {
   postureHolds,
 } from "../_shared/awareness/index.ts";
 import { appointmentReminderSignals, eventKey } from "../_shared/awareness/reminders.ts";
+import { appointmentWeather, type ForecastHour } from "../_shared/appointmentWeather.ts";
+
+/**
+ * The hours of forecast for where this person is, or nothing at all.
+ * Weather only ever rides on an appointment heads-up, so a failure here is
+ * silence, not an error.
+ */
+async function forecastForUser(sb: SupabaseClient, userId: string): Promise<ForecastHour[] | null> {
+  try {
+    const { data } = await sb
+      .from("awareness_places")
+      .select("geo, updated_at")
+      .eq("user_id", userId)
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(5);
+    const geo = ((data ?? []) as { geo?: { lat?: number; lon?: number } | null }[])
+      .map((r) => r.geo)
+      .find((g) => g && typeof g.lat === "number" && typeof g.lon === "number");
+    if (!geo) return null;
+    const url =
+      `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}` +
+      `&hourly=temperature_2m,weather_code,precipitation_probability&forecast_days=3&timezone=UTC`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const j = (await res.json()) as {
+      hourly?: { time?: string[]; temperature_2m?: number[]; weather_code?: number[]; precipitation_probability?: number[] };
+    };
+    const times = j.hourly?.time ?? [];
+    if (!times.length) return null;
+    return times.map((t, i) => ({
+      at: t.endsWith("Z") ? t : `${t}:00Z`.replace(/:00:00Z$/, ":00:00Z"),
+      tempC: j.hourly?.temperature_2m?.[i] ?? null,
+      condition: weatherCodeLabel(j.hourly?.weather_code?.[i]),
+      rainChance: j.hourly?.precipitation_probability?.[i] ?? null,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/** Only what the provider actually reported, in plain words. */
+function weatherCodeLabel(code: number | undefined): string | null {
+  if (typeof code !== "number") return null;
+  if (code === 0) return "clear";
+  if (code <= 3) return "cloudy";
+  if (code === 45 || code === 48) return "fog";
+  if (code >= 51 && code <= 57) return "drizzle";
+  if (code >= 61 && code <= 65) return "rain";
+  if (code === 66 || code === 67) return "freezing rain";
+  if (code >= 71 && code <= 77) return "snow";
+  if (code >= 80 && code <= 82) return "showers";
+  if (code === 85 || code === 86) return "snow";
+  if (code >= 95) return "thunderstorm";
+  return null;
+}
 
 type ScopeTarget = { organizationId: string | null };
 type SweepOutcome = "none" | "shadow" | "proposed";
