@@ -346,8 +346,11 @@ Deno.serve(async (req: Request) => {
           supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
           groundContext(supabase, user.id, orgId),
         ]);
+        /* Mail headers and file names, read as the same ground as the calendar. */
+        const outside = await outsideGround(user.id, text, ground.timezone);
         const ctx = [
           ...ground.lines,
+          ...outside.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
           ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
@@ -431,8 +434,10 @@ Deno.serve(async (req: Request) => {
         supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(15),
         groundContext(supabase, user.id, orgId),
       ]);
+      const outside = await outsideGround(user.id, text, ground.timezone);
       const ctx = [
         ...ground.lines,
+        ...outside.lines,
         ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 240)}`),
         ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}/${a.risk}]`),
         ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
