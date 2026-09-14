@@ -504,6 +504,9 @@ async function sweepScope(
       // Google already alarms on the day. When the person leaves that to
       // Google, Echo only keeps the part Google never says: tomorrow's shape.
       deferToGoogle: senses.deferToGoogle === true,
+      // The sky around the appointment, folded into the same sentence.
+      weatherFor: (e) =>
+        appointmentWeather(e.starts_at, senses.forecast ?? null, senses.timezone || "UTC", nowMs),
     })) {
       signals.push(s);
     }
