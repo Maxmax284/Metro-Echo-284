@@ -13,7 +13,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
-import { sendTelegram } from "../_shared/telegramApi.ts";
+import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
 import {
@@ -629,15 +629,12 @@ async function reachMessaging(
 ): Promise<void> {
   if (!Deno.env.get("TELEGRAM_API_KEY")) return;
 
-  const { data: link } = await sb
-    .from("telegram_chat_links")
-    .select("chat_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const chatId = (link as { chat_id?: number } | null)?.chat_id;
+  /* One reader for "which chat is this person on" — telegram_chat_links records
+     linked_at, not created_at, and ordering by a column that does not exist made
+     this whole reach fail silently. */
+  const chatId = await chatIdForUser(sb, userId);
   if (!chatId) return;
+
 
   const { data: voiceProfile } = await sb
     .from("profiles")
