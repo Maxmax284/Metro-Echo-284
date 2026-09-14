@@ -200,8 +200,25 @@ export function CalendarOnlyView() {
                           <MapPin className="h-2.5 w-2.5" /> {e.location}
                         </span>
                       )}
+                      {/* Only ever what the row recorded about the mirror. */}
+                      {e.origin === "echo" && e.sync_state === "error" && (
+                        <span className="text-destructive">Google would not take this one</span>
+                      )}
+                      {e.origin === "echo" && e.sync_state === "synced" && <span>In Google too</span>}
                     </div>
                   </div>
+                  {e.origin === "echo" ? (
+                    <button
+                      aria-label={`Edit ${e.title ?? "this entry"}`}
+                      className="min-h-[44px] shrink-0 px-2 text-muted-foreground hover:text-primary"
+                      onClick={() => {
+                        setEditing(e);
+                        setSheetOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>
