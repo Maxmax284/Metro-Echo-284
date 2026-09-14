@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
+import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 import { TelegramQuickConnect } from "@/components/settings/TelegramQuickConnect";
 import { CalendarQuickConnect } from "@/components/settings/CalendarQuickConnect";
 import { setRoom } from "@/lib/skins";
@@ -88,6 +89,10 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* The install door lives at the top of the control room so it isn't
+          buried three taps deep. It vanishes once the app is installed. */}
+      <InstallVantaSection />
 
       {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />

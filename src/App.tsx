@@ -23,6 +23,7 @@ import { ActivityProvider } from "@/components/workstatus/ActivityStore";
 import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
+import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import Index from "./pages/Index.tsx";
 import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
 import GoogleReturn from "./pages/oauth/GoogleReturn";
@@ -50,80 +51,84 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AmbientBackdrop />
-      <AmbientInteractions />
-      <BrowserRouter>
-        <AuthProvider>
-          <SherlockProvider>
-            <EntityProvider>
-              <CanvasProvider>
-                <CurrentContextProvider>
-                 <VantaContextProvider>
-                  <AwarenessProvider>
-                    <WorkspaceProvider>
-                     <AskThreadProvider>
-                      <CompanionProvider>
-                        <ActivityProvider>
-                          <TutorialProvider>
-                            <Routes>
-                              <Route path="/" element={<Index />} />
-                              <Route path="/projects" element={<ProjectsPage />} />
-                              <Route path="/projects/:id" element={<ProjectBriefPage />} />
-                              <Route path="/documents" element={<DocumentsPage />} />
-                              {/* One door: /how. Everything explanatory lives behind it. */}
-                              <Route path="/how" element={<RoomMapPage />} />
-                              <Route path="/how/paper" element={<PhysicalLoopPage />} />
-                              <Route path="/how/watch" element={<WearableLoopPage />} />
-                              <Route path="/how/glance" element={<GlancePage />} />
-                              <Route path="/how/trends" element={<WatchPage />} />
-                              {/* Old standalone doors — kept as redirects so links never break. */}
-                              <Route path="/wearables" element={<Navigate to="/how/watch" replace />} />
-                              <Route path="/wearable-loop" element={<Navigate to="/how/watch" replace />} />
-                              <Route path="/physical-loop" element={<Navigate to="/how/paper" replace />} />
-                              <Route path="/watch" element={<Navigate to="/how/trends" replace />} />
-                              <Route path="/motion" element={<Navigate to="/how/trends" replace />} />
-                              <Route path="/glance" element={<Navigate to="/how/glance" replace />} />
-                              <Route path="/awareness/location" element={<LocationSetupPage />} />
+const App = () => {
+  useRegisterServiceWorker();
 
-                              <Route path="/auth" element={<Auth />} />
-                              <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
-                              <Route path="/oauth/google/return" element={<GoogleReturn />} />
-                              <Route path="/settings" element={<Settings />} />
-                              <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
-                              <Route path="/settings/telegram" element={<TelegramSetupPage />} />
-                              <Route path="/guide/telegram" element={<TelegramGuidePage />} />
-                              <Route path="/settings/integrations" element={<IntegrationsSettings />} />
-                              <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
-                              <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
-                              <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
-                              <Route path="*" element={<NotFound />} />
-                            </Routes>
-                            <CompanionWidget />
-                            <SherlockOverlay />
-                            <EntityDetailSheet />
-                            <CommandCanvas />
-                            <FirstRunWalkthrough />
-                            <ActivityTray />
-                          </TutorialProvider>
-                        </ActivityProvider>
-                      </CompanionProvider>
-                     </AskThreadProvider>
-                    </WorkspaceProvider>
-                  </AwarenessProvider>
-                 </VantaContextProvider>
-                </CurrentContextProvider>
-              </CanvasProvider>
-            </EntityProvider>
-          </SherlockProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AmbientBackdrop />
+        <AmbientInteractions />
+        <BrowserRouter>
+          <AuthProvider>
+            <SherlockProvider>
+              <EntityProvider>
+                <CanvasProvider>
+                  <CurrentContextProvider>
+                   <VantaContextProvider>
+                    <AwarenessProvider>
+                      <WorkspaceProvider>
+                       <AskThreadProvider>
+                        <CompanionProvider>
+                          <ActivityProvider>
+                            <TutorialProvider>
+                              <Routes>
+                                <Route path="/" element={<Index />} />
+                                <Route path="/projects" element={<ProjectsPage />} />
+                                <Route path="/projects/:id" element={<ProjectBriefPage />} />
+                                <Route path="/documents" element={<DocumentsPage />} />
+                                {/* One door: /how. Everything explanatory lives behind it. */}
+                                <Route path="/how" element={<RoomMapPage />} />
+                                <Route path="/how/paper" element={<PhysicalLoopPage />} />
+                                <Route path="/how/watch" element={<WearableLoopPage />} />
+                                <Route path="/how/glance" element={<GlancePage />} />
+                                <Route path="/how/trends" element={<WatchPage />} />
+                                {/* Old standalone doors — kept as redirects so links never break. */}
+                                <Route path="/wearables" element={<Navigate to="/how/watch" replace />} />
+                                <Route path="/wearable-loop" element={<Navigate to="/how/watch" replace />} />
+                                <Route path="/physical-loop" element={<Navigate to="/how/paper" replace />} />
+                                <Route path="/watch" element={<Navigate to="/how/trends" replace />} />
+                                <Route path="/motion" element={<Navigate to="/how/trends" replace />} />
+                                <Route path="/glance" element={<Navigate to="/how/glance" replace />} />
+                                <Route path="/awareness/location" element={<LocationSetupPage />} />
+
+                                <Route path="/auth" element={<Auth />} />
+                                <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
+                                <Route path="/oauth/google/return" element={<GoogleReturn />} />
+                                <Route path="/settings" element={<Settings />} />
+                                <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
+                                <Route path="/settings/telegram" element={<TelegramSetupPage />} />
+                                <Route path="/guide/telegram" element={<TelegramGuidePage />} />
+                                <Route path="/settings/integrations" element={<IntegrationsSettings />} />
+                                <Route path="/settings/integrations/reconciliation" element={<ReconciliationView />} />
+                                <Route path="/settings/connected-accounts" element={<ConnectedAccounts />} />
+                                <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
+                                <Route path="*" element={<NotFound />} />
+                              </Routes>
+                              <CompanionWidget />
+                              <SherlockOverlay />
+                              <EntityDetailSheet />
+                              <CommandCanvas />
+                              <FirstRunWalkthrough />
+                              <ActivityTray />
+                            </TutorialProvider>
+                          </ActivityProvider>
+                        </CompanionProvider>
+                       </AskThreadProvider>
+                      </WorkspaceProvider>
+                    </AwarenessProvider>
+                   </VantaContextProvider>
+                  </CurrentContextProvider>
+                </CanvasProvider>
+              </EntityProvider>
+            </SherlockProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
