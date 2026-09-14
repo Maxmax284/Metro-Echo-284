@@ -322,7 +322,7 @@ Deno.serve(async (req: Request) => {
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
           ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
         ].join("\n");
-        userMsg = `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
+        userMsg = `NOW: ${nowLine(ground.timezone)}\n\nTARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
       }
 
 
