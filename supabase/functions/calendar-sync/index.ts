@@ -277,5 +277,10 @@ Deno.serve(async (req: Request) => {
   for (const uid of users) pulled.push(await pullEchoEvents(sb, uid, now));
 
 
-  return jsonResponse({ ok: true, synced: results.length, results });
+  return jsonResponse({
+    ok: true,
+    synced: results.length,
+    results,
+    echo_pulled: pulled.reduce((n, p) => n + p.changed, 0),
+  });
 });
