@@ -859,6 +859,7 @@ Deno.serve(async (req: Request) => {
           // Default is to stay out of Google's lane: Google covers the same-day
           // alarm, Echo covers tomorrow, moves and collisions.
           deferToGoogle: prefs.calendar_defer_to_google !== false,
+          forecast,
           postureHold: postureHolds(prefs, "attention", now.getTime()),
         });
         if (outcome === "proposed") proposed++;
