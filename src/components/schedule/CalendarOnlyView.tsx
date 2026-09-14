@@ -111,6 +111,38 @@ export function CalendarOnlyView() {
   return (
     <div className="space-y-3">
       <Card className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Your own entries</div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+              Entries you add here are yours to edit or delete. Subscribed calendars stay read-only.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="min-h-[44px] shrink-0"
+            onClick={() => {
+              setEditing(null);
+              setSheetOpen(true);
+            }}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" /> New
+          </Button>
+        </div>
+        <div className="mt-2.5 flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+          <Label htmlFor="echo-google-mirror" className="text-[11.5px] leading-relaxed">
+            Keep these in Google too
+          </Label>
+          <Switch
+            id="echo-google-mirror"
+            checked={mirrorOn}
+            disabled={mirrorBusy}
+            onCheckedChange={(on) => void toggleMirror(on)}
+          />
+        </div>
+      </Card>
+
+      <Card className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
         <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
           <Megaphone className="h-3 w-3" /> What Echo said about your calendar
         </div>
