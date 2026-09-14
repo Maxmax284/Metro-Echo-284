@@ -152,11 +152,12 @@ export function LinkChips({
               </span>
             );
           })
-        ) : (
+        ) : compact ? null : (
           <span className="text-[11px] italic text-muted-foreground">
             Not connected yet. Attach this so Echo knows where it belongs.
           </span>
         )}
+
 
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>

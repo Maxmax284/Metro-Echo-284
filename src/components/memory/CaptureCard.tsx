@@ -9,6 +9,9 @@ import { bridgeReviewLabel } from "@/lib/vantaNouns";
 import { WhyThis } from "@/components/ui/why-this";
 import { cn } from "@/lib/utils";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { CardMoreMenu } from "@/components/ui/CardMoreMenu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 import {
   dispositionChipClass, dispositionLabel, type OperationalEvent,
 } from "@/lib/campEvents";
@@ -167,21 +170,39 @@ export function CaptureCard({
           )}
         </div>
       </div>
-      {actions && actions.length > 0 && (
-        <div className="-mx-1 flex snap-x snap-mandatory gap-1.5 overflow-x-auto px-1 pb-0.5 sm:flex-wrap sm:overflow-visible">
-          {actions.map((a, i) => (
-            <Button
-              key={i}
-              size="sm"
-              variant={a.primary ? "default" : "outline"}
-              className={cn("h-7 shrink-0 snap-start whitespace-nowrap px-2 text-[11px]")}
-              onClick={a.onClick}
-            >
-              {a.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {actions && actions.length > 0 && (() => {
+        /* Doctrine: a card offers a decision, not a menu. Up to three moves on
+           the face (the primary one first), everything else behind "•••" — nine
+           buttons scrolling off the edge of a phone is not a choice. */
+        const ordered = [...actions].sort((a, b) => Number(!!b.primary) - Number(!!a.primary));
+        const face = ordered.slice(0, 3);
+        const rest = ordered.slice(3);
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {face.map((a, i) => (
+              <Button
+                key={i}
+                size="sm"
+                variant={a.primary ? "default" : "outline"}
+                className="h-7 shrink-0 whitespace-nowrap px-2 text-[11px]"
+                onClick={a.onClick}
+              >
+                {a.label}
+              </Button>
+            ))}
+            {rest.length > 0 && (
+              <CardMoreMenu label="More moves">
+                {rest.map((a, i) => (
+                  <DropdownMenuItem key={i} onClick={() => void a.onClick()} className="text-[12px]">
+                    {a.label}
+                  </DropdownMenuItem>
+                ))}
+              </CardMoreMenu>
+            )}
+          </div>
+        );
+      })()}
+
       {footer}
       {aftermath === false ? null : (
         <AftermathHint

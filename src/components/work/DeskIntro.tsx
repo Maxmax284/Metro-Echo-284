@@ -60,20 +60,31 @@ export function DeskIntro({
     if (saved !== null) return saved === "1";
     return !populated;
   });
+  /* Counts land a beat after first paint, so `populated` starts false even on a
+     busy desk. Fold once the records show up — but never argue with a user who
+     opened or closed it themselves. */
+  const [touched, setTouched] = useState(false);
+  useEffect(() => {
+    if (touched || !populated) return;
+    if (typeof window !== "undefined" && window.localStorage.getItem(storageKey) !== null) return;
+    setOpen(false);
+  }, [populated, touched, storageKey]);
 
   useEffect(() => {
+    if (!touched) return;
     try {
       window.localStorage.setItem(storageKey, open ? "1" : "0");
     } catch {
       /* private mode — the fold is a nicety */
     }
-  }, [storageKey, open]);
+  }, [storageKey, open, touched]);
+
 
   return (
     <section className={cn("rounded-xl border border-border/60 bg-surface-elevated/40 p-3", className)}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setTouched(true); setOpen((o) => !o); }}
         aria-expanded={open}
         className={cn("flex w-full items-start gap-2 text-left", MOTION_FOCUS)}
       >

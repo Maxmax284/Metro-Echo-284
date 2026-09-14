@@ -48,9 +48,34 @@ export function groupCaptures(items: IntakeRow[]): CaptureUnit[] {
   return units;
 }
 
-function plural(n: number, word: string) {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
+/**
+ * Plain-English names for grouped bridge events. Machine names pluralized
+ * naively produced "16 guest message receiveds" — a headline nobody would
+ * write. Known kinds get real English; anything unknown pluralizes the noun at
+ * the front of the phrase, never the verb at the end.
+ */
+const EVENT_PHRASE: Record<string, { one: string; many: string }> = {
+  "booking.state_changed": { one: "booking update", many: "booking updates" },
+  "booking.created": { one: "new booking", many: "new bookings" },
+  "booking.cancelled": { one: "cancelled booking", many: "cancelled bookings" },
+  "guest.message_received": { one: "guest message", many: "guest messages" },
+  "guest_message.received": { one: "guest message", many: "guest messages" },
+  "guest_message.sent": { one: "guest reply", many: "guest replies" },
+
+  "payment.received": { one: "payment", many: "payments" },
+  "payment.failed": { one: "failed payment", many: "failed payments" },
+  "waiver.signed": { one: "signed waiver", many: "signed waivers" },
+};
+
+export function eventPhrase(eventType: string, n: number) {
+  const known = EVENT_PHRASE[eventType];
+  if (known) return `${n} ${n === 1 ? known.one : known.many}`;
+  const words = eventType.replace(/[._]/g, " ").split(" ").filter(Boolean);
+  if (words.length === 0) return `${n} updates`;
+  const head = n === 1 ? words[0] : `${words[0]}s`;
+  return `${n} ${[head, ...words.slice(1)].join(" ")}`;
 }
+
 
 export function CaptureEventGroup({
   label,
@@ -67,7 +92,7 @@ export function CaptureEventGroup({
     (acc, i) => (WEIGHT[i.event!.disposition] > WEIGHT[acc] ? i.event!.disposition : acc),
     "synced",
   );
-  const headline = `${plural(items.length, first.eventType.replace(/[._]/g, " "))}`;
+  const headline = eventPhrase(first.eventType, items.length);
 
   return (
     <div className="rounded-lg border border-border/60 bg-surface-elevated/40">

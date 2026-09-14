@@ -56,21 +56,11 @@ export function LinkedChipsBar({
     }
   };
 
-  if (rows === null) {
-    return (
-      <div className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" /> Reading links…
-      </div>
-    );
-  }
-  if (rows.length === 0) {
-    return (
-      <div className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border/50 bg-background/30 px-2 py-1 text-[10.5px] text-muted-foreground">
-        <Link2 className="h-3 w-3" />
-        Not connected yet — tap <span className="text-foreground/90">Attach</span> so Echo knows where it belongs.
-      </div>
-    );
-  }
+  /* Nothing to show is not news. An unlinked item says nothing here — the
+     Attach control on the same card already teaches the move, and printing a
+     second "not connected yet" line made every capture read twice as loud. */
+  if (rows === null || rows.length === 0) return null;
+
 
   return (
     <div className={cn("flex flex-wrap items-center gap-1", compact && "text-[11px]")}>
