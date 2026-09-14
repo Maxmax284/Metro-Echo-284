@@ -270,5 +270,12 @@ Deno.serve(async (req: Request) => {
   const results = [];
   for (const f of feeds) results.push(await syncFeed(sb, f, now));
 
+  /* The other direction: an Echo entry moved inside Google comes home. Only
+     entries Echo owns and mirrored are read this way — feed rows are untouched. */
+  const users = [...new Set(feeds.map((f) => f.user_id))];
+  const pulled = [];
+  for (const uid of users) pulled.push(await pullEchoEvents(sb, uid, now));
+
+
   return jsonResponse({ ok: true, synced: results.length, results });
 });
