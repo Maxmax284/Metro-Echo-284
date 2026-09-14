@@ -300,7 +300,7 @@ Deno.serve(async (req: Request) => {
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
         ].join("\n");
-        userMsg = `CAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
+        userMsg = `NOW: ${nowLine(ground.timezone)}\n\nCAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
       } else if (mode === "observe") {
         system = OBSERVE_SYSTEM;
         schema = OBSERVE_SCHEMA;
