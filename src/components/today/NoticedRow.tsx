@@ -33,6 +33,7 @@ export function NoticedRow({
   onDismiss: (id: string) => void;
   onFollow: (signal: NoticedSignal) => void;
 }) {
+  const { timezone } = useUserTimezone();
   if (!signal) return null;
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
   /* Written last night, read this morning: "tomorrow" must re-read as "today". */
@@ -52,7 +53,7 @@ export function NoticedRow({
       <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <MachineLabel className="text-accent/80">Echo noticed</MachineLabel>
-        <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{signal.title}</p>
+        <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{title}</p>
         {/* One shared reveal, rendering only what was recorded. */}
         <WhySurfaced why={why} className="mt-1" />
         <Button
