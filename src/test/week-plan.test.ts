@@ -64,3 +64,18 @@ describe("weekPlan", () => {
     expect(projectNamesForDay(["Health", null, "Health", " ", "Thailand"])).toEqual(["Health", "Thailand"]);
   });
 });
+
+describe("dropEchoedPromises", () => {
+  it("drops a promise that only repeats an appointment on the same day", async () => {
+    const { dropEchoedPromises } = await import("@/lib/weekPlan");
+    const rows = [{ s: "Get the keys to my storage unit" }, { s: "Call the landlord" }];
+    const out = dropEchoedPromises(rows, ["Get the keys to my storage unit to get books"], (r) => r.s);
+    expect(out.map((r) => r.s)).toEqual(["Call the landlord"]);
+  });
+
+  it("keeps every promise when the day has no appointments", async () => {
+    const { dropEchoedPromises } = await import("@/lib/weekPlan");
+    const rows = [{ s: "Call the landlord" }];
+    expect(dropEchoedPromises(rows, [], (r) => r.s)).toHaveLength(1);
+  });
+});

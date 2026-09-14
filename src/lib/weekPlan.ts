@@ -99,3 +99,23 @@ export function projectNamesForDay(names: (string | null | undefined)[]): string
   }
   return out;
 }
+
+/**
+ * A promise written off an appointment repeats the appointment's own words. Show
+ * it once: the calendar entry carries the hour, so the echo of it is dropped.
+ */
+export function dropEchoedPromises<T>(
+  promises: T[],
+  eventTitles: (string | null | undefined)[],
+  summary: (row: T) => string,
+): T[] {
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[.\s]+$/, "");
+  const titles = new Set(eventTitles.map((t) => norm(t ?? "")).filter(Boolean));
+  if (titles.size === 0) return promises;
+  return promises.filter((p) => {
+    const s = norm(summary(p));
+    if (!s) return true;
+    for (const t of titles) if (t === s || t.startsWith(s) || s.startsWith(t)) return false;
+    return true;
+  });
+}
