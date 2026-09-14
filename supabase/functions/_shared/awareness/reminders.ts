@@ -111,6 +111,8 @@ export type ReminderContext = {
    * person is was actually recorded. Never invented, never its own note.
    */
   weatherFor?: (event: ReminderEventRow) => AppointmentWeather | null;
+  /** The project the entry is filed under, when it is. Recorded names only. */
+  projectFor?: (event: ReminderEventRow) => string | null;
 };
 
 /** The identity of the appointment itself, not of a feed row. */
