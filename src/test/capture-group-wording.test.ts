@@ -4,6 +4,9 @@ import { eventPhrase } from "@/components/memory/CaptureEventGroup";
 describe("eventPhrase", () => {
   it("names known bridge events in plain English", () => {
     expect(eventPhrase("guest.message_received", 16)).toBe("16 guest messages");
+    // The bridge actually sends this spelling; both must read the same.
+    expect(eventPhrase("guest_message.received", 16)).toBe("16 guest messages");
+
     expect(eventPhrase("guest.message_received", 1)).toBe("1 guest message");
     expect(eventPhrase("booking.state_changed", 2)).toBe("2 booking updates");
   });
