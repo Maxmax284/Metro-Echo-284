@@ -222,6 +222,7 @@ export function reminderToSignal(
       event_key: key,
       location: where ?? null,
       starts_at: e.starts_at,
+      weather: weather ? { kind: weather.kind, clause: weather.clause, warning: weather.warning, temp_c: weather.tempC } : null,
     },
   };
 }
