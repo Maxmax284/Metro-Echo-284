@@ -187,7 +187,7 @@ const RELATE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file"] },
+          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file", "event", "project"] },
           id: { type: "string" },
           why: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
