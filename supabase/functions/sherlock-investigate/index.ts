@@ -521,8 +521,12 @@ Deno.serve(async (req: Request) => {
       groundContext(supabase, user.id, orgId, { backDays: 7, forwardDays: 30 }),
     ]);
 
+    /* The question also goes to the mailbox and the drive — headers and names. */
+    const outside = await outsideGround(user.id, q, ground.timezone);
+
     const ctxBlocks: string[] = [];
     for (const line of ground.lines) ctxBlocks.push(line);
+    for (const line of outside.lines) ctxBlocks.push(line);
     for (const n of notesRes.data ?? []) ctxBlocks.push(`(note:${n.id}) ${n.title ? n.title + "\n" : ""}${String(n.body ?? "").slice(0, 800)}`);
     for (const c of commsRes.data ?? []) ctxBlocks.push(`(commitment:${c.id}) ${c.summary} (status:${c.status}${c.due_at ? `, due:${c.due_at}` : ""})`);
     for (const a of actsRes.data ?? []) ctxBlocks.push(`(action:${a.id}) ${a.title}${a.description ? " — " + a.description.slice(0, 400) : ""} (status:${a.status}, risk:${a.risk})`);
