@@ -188,10 +188,14 @@ export function reminderToSignal(
   /* The sky rides on the sentence the appointment already earned — it never
      becomes a second note. */
   const sky = weather ? ` Expect ${weather.clause}.` : "";
+  /* The person's own filing, said in their words. Only ever a name that was
+     actually recorded on the entry. */
+  const project = (opts.project ?? "").trim();
+  const filed = project ? ` Filed under ${project}.` : "";
   const why =
     (cls === "next_day"
       ? `"${label}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
-      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky;
+      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky + filed;
 
 
   return {
