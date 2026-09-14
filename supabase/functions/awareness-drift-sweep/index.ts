@@ -429,7 +429,7 @@ async function sweepScope(
   // The calendar sense: what starts soon, and which promise lands mid-meeting.
   // Read-only, scope-filtered, and it only ever supplies facts.
   const { data: calendarRows } = senses.calendar ? await scoped(
-    sb.from("calendar_events").select("id, uid, title, location, starts_at, ends_at, all_day, feed_id"),
+    sb.from("calendar_events").select("id, uid, title, location, starts_at, ends_at, all_day, feed_id, project_id"),
     userId,
     orgId,
   )
