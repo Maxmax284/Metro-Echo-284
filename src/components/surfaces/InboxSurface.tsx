@@ -4,18 +4,20 @@ import { Inbox as InboxIcon } from "lucide-react";
 import { CapturesView } from "@/components/memory/CapturesView";
 import { MemoryFilesView } from "@/components/memory/MemoryFilesView";
 import { InboxNotesList } from "@/components/inbox/InboxNotesList";
+import { HeadsUpThreads } from "@/components/inbox/HeadsUpThreads";
 import { cn } from "@/lib/utils";
 import { DeskIntro } from "@/components/work/DeskIntro";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useAuth } from "@/lib/auth";
 
-type Tab = "captures" | "notes" | "files";
+type Tab = "captures" | "notes" | "files" | "headsups";
 
 const TABS: { id: Tab; label: string; hint: string }[] = [
   { id: "captures", label: "Captures", hint: "Telegram, email, voice, screenshots" },
   { id: "notes", label: "Notes", hint: "Things you typed in" },
   { id: "files", label: "Files", hint: "Uploads and attachments" },
+  { id: "headsups", label: "Heads-ups", hint: "What Echo raised, and what you told it" },
 ];
 
 /**
@@ -35,6 +37,7 @@ export function InboxSurface() {
     captures: null,
     notes: null,
     files: null,
+    headsups: null,
   });
 
   const load = useCallback(async () => {
@@ -45,11 +48,12 @@ export function InboxSurface() {
         applyScope(supabase.from("notes").select("id", { count: "exact", head: true })).is("source", null),
         applyScope(supabase.from("ingested_files").select("id", { count: "exact", head: true })),
       ]);
-      setCounts({
+      setCounts((prev) => ({
+        ...prev,
         captures: (captures as { count?: number | null })?.count ?? 0,
         notes: (notes as { count?: number | null })?.count ?? 0,
         files: (files as { count?: number | null })?.count ?? 0,
-      });
+      }));
     } catch {
       /* A missing count is not worth an error state — the tabs still work. */
     }
@@ -113,6 +117,7 @@ export function InboxSurface() {
         {tab === "captures" && <CapturesView />}
         {tab === "notes" && <InboxNotesList />}
         {tab === "files" && <MemoryFilesView />}
+        {tab === "headsups" && <HeadsUpThreads />}
       </div>
 
       <SurfaceAftermath surface="inbox" />

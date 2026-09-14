@@ -41,19 +41,9 @@ import {
 } from "@/lib/askSession";
 
 
+import { useAskTurn, type AskMsg as Msg } from "@/hooks/useAskTurn";
+import { RECEIPT_META } from "@/lib/askReceipts";
 
-type Receipt = { kind: IntentAck["kind"]; summary: string; surface: string };
-type Msg = {
-  id?: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  receipt?: Receipt;
-  metadata?: { source?: string; detected_type?: string; routed_to?: string; needs_review?: boolean } | null;
-};
-
-import { detectDeviceClass } from "@/lib/deviceClass";
-
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanta-converse`;
 
 
 const SURFACE_HINTS: Record<string, string> = {
@@ -93,15 +83,6 @@ const SUGGESTIONS_BY_KIND: Record<string, string[]> = {
   mail: ["summarize-page", "save-memory", "related"],
 };
 
-const RECEIPT_META: Record<IntentAck["kind"], { label: string; icon: typeof CheckSquare; surface: string }> = {
-  stage_action: { label: "Ready for your review", icon: ListPlus, surface: "actions" },
-  add_commitment: { label: "Promise ready for review", icon: CheckSquare, surface: "commitments" },
-  capture_note: { label: "Saved to memory", icon: BookmarkPlus, surface: "memory" },
-  mark_waiting: { label: "Marked as waiting", icon: CheckSquare, surface: "commitments" },
-  record_decision: { label: "Decision logged", icon: BookmarkPlus, surface: "memory" },
-  save_artifact: { label: "Artifact saved", icon: BookmarkPlus, surface: "memory" },
-  keep_an_eye_on: { label: "Echo is keeping an eye on it", icon: Eye, surface: "work" },
-};
 
 export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }) {
   const { session } = useAuth();
@@ -142,30 +123,21 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
   };
   const [researchOpen, setResearchOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // send() runs before the staged-upload hook is declared below, so it reads
-  // the live upload controller through this mirror.
-  const stagedUploadRef = useRef<ReturnType<typeof useStagedUpload> | null>(null);
 
-
-
-  // Internal intent handler — emits inline receipt cards on successful drafts.
-  const internalIntent = useIntentHandler((ack) => {
-    const meta = RECEIPT_META[ack.kind];
-    if (!meta) return;
-    // Threads remember their aftermath, so the spine can say what came of them.
-    if (convId && ack.kind !== "keep_an_eye_on") {
-      const outKind = ack.kind === "stage_action" ? "draft" : ack.kind === "add_commitment" ? "commitment" : "note";
-      void recordOutput(convId, outKind);
-    }
-    setMsgs((prev) => [
-      ...prev,
-      {
-        role: "system",
-        content: ack.summary,
-        receipt: { kind: ack.kind, summary: ack.summary, surface: meta.surface },
-      },
-    ]);
+  // Staged file flow — capture is deliberate. No auto AI on attach.
+  const [trays, setTrays] = useState<string[]>([]);
+  const stagedUpload = useStagedUpload({
+    source: "conversation",
+    onSaved: (s) => {
+      if (s.ingestedFileId) {
+        setTrays((prev) => (prev.includes(s.ingestedFileId!) ? prev : [s.ingestedFileId!, ...prev]).slice(0, 3));
+      }
+    },
   });
+
+  // One turn engine for every Ask body, including the inline heads-up reply.
+  const { send } = useAskTurn({ attachments: stagedUpload });
+
 
   // Thread selection lives in the shared engine; this surface only loads turns.
   useEffect(() => {
@@ -204,183 +176,13 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, streaming]);
 
-  const send = async (text: string) => {
-    if (!session) return;
-    const threadId = convId ?? (await ensureThread());
-    if (!threadId) return;
-    // The line was typed before this thread existed. Carry it over so the
-    // quick panel and the Ask room are looking at the same session.
-    if (!convId) adoptAskSession("_none", threadId);
-    const firstTurn = msgs.length === 0;
-    const write = (u: (prev: Msg[]) => Msg[]) => setAskMessages(threadId, u as never, { hydrated: true });
-    write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
-
-    const ctrl = new AbortController();
-    beginAskStream(threadId, ctrl);
-    let aborted = false;
-    let assistantSoFar = "";
-    const staged: { name: string; args?: Record<string, unknown> }[] = [];
-
-    let hints: AttachmentHint[] = [];
-    try {
-      // Wave 3 — anything staged travels with this turn. Files are ingested
-      // first (bytes go through the file pipeline), then Ask is told what it
-      // is looking at: kind, name, and whether it can be read at all.
-
-      if (stagedUploadRef.current?.staged.length) {
-        const settled = await stagedUploadRef.current.commitAll();
-        hints = attachmentHints(
-          settled
-            .filter((s) => s.status === "saved" || s.status === "reading")
-            .map((s) => ({ name: s.file.name, type: s.file.type, ingestedFileId: s.ingestedFileId })),
-        );
-      }
-
-      const resp = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          conversation_id: threadId,
-          message: text,
-          scope: { type: scope.type, organization_id: scope.organizationId },
-          // One Echo, many bodies — the server decides how much to say from this.
-          device: detectDeviceClass(),
-          ...(hints.length ? { attachments: hints } : {}),
-        }),
-        signal: ctrl.signal,
-      });
-
-
-      if (resp.status === 429) throw new Error("Rate limited — please slow down a moment.");
-      if (resp.status === 402) throw new Error("Workspace AI credits exhausted.");
-      if (!resp.ok || !resp.body) throw new Error("Conversation failed.");
-
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let done = false;
-      while (!done) {
-        const { done: d, value } = await reader.read();
-        if (d) break;
-        buf += decoder.decode(value, { stream: true });
-        let i: number;
-        while ((i = buf.indexOf("\n")) !== -1) {
-          let line = buf.slice(0, i);
-          buf = buf.slice(i + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (!line.startsWith("data: ")) continue;
-          const json = line.slice(6).trim();
-          /* "[DONE]" ends the words, not the turn: the draft Echo prepared
-             arrives after it. Keep reading until the stream itself closes,
-             otherwise a turn that only stages something is thrown away. */
-          if (json === "[DONE]") continue;
-          try {
-            const p = JSON.parse(json);
-            const delta = p.choices?.[0]?.delta?.content as string | undefined;
-            if (delta) {
-              assistantSoFar += delta;
-              write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)));
-            }
-            if (p.intent) {
-              /* One staging path only. Anything else double-writes the draft:
-                 the surface owns it, hosts just render. */
-              staged.push(p.intent);
-              void internalIntent(p.intent.name, p.intent.args, {
-                surface: "ask",
-                conversation_id: threadId,
-                asked_at: new Date().toISOString(),
-                question: text.slice(0, 300),
-                ...(activeThread?.context_kind ? { context_kind: activeThread.context_kind } : {}),
-                ...(activeThread?.context_id ? { context_id: activeThread.context_id } : {}),
-                ...(activeThread?.context_label ? { context_label: activeThread.context_label } : {}),
-                ...(p.intent.grounding?.sources?.length
-                  ? { sources: p.intent.grounding.sources }
-                  : hints.length
-                    ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingested_file_id ?? null })) }
-                    : {}),
-              });
-            }
-          } catch { /* partial */ }
-        }
-      }
-
-      /* A turn that only prepares a draft still has to be readable tomorrow:
-         say what was drafted, and say plainly that nothing ran. */
-      /* Not every turn that ends without words is a draft. Keeping an eye on
-         something approves nothing and runs nothing, so it must not be
-         described as waiting for approval. */
-      const WATCH_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched"]);
-      const stagedLine = staged.length
-        ? staged.map((s) => {
-            const a = (s.args ?? {}) as Record<string, unknown>;
-            const what = String(a.title ?? a.summary ?? a.text ?? a.reference ?? "").trim();
-            /* The watch itself answers in its own receipt line, truthfully,
-               including when it could not start. Nothing to add here. */
-            if (WATCH_INTENTS.has(s.name)) return "";
-            return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
-          }).join("\n")
-        : "";
-      const finalContent = aborted && assistantSoFar
-        ? `${assistantSoFar}\n\n_Stopped._`
-        : (assistantSoFar || stagedLine);
-      if (aborted || (!assistantSoFar && stagedLine)) {
-        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
-      }
-
-
-      if (finalContent) {
-        const { data: inserted } = await supabase.from("messages").insert([
-          { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
-          { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
-        ]).select("id");
-        if (inserted) {
-          const { generateEmbedding } = await import("@/lib/embeddings");
-          inserted.forEach((m) => generateEmbedding("message", m.id));
-        }
-        await noteActivity(threadId, firstTurn ? text : undefined);
-      }
-    } catch (e: any) {
-      if (e?.name === "AbortError") {
-        aborted = true;
-        const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
-        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
-        try {
-          await supabase.from("messages").insert([
-            { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
-            { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
-          ]);
-        } catch { /* noop */ }
-      } else {
-        toast.fromError(e);
-      }
-    } finally {
-      endAskStream(threadId);
-      // Attachments that made it into this turn stop being "pending"; their
-      // aftermath tray is where they live on.
-      if (hints.length) stagedUploadRef.current?.clearCompleted();
-    }
-
-  };
 
   const handleStop = () => {
     if (convId) stopAskStream(convId);
   };
 
-  // Staged file flow — capture is deliberate. No auto AI on attach.
-  const [trays, setTrays] = useState<string[]>([]);
   const [dropping, setDropping] = useState(false);
-  const stagedUpload = useStagedUpload({
-    source: "conversation",
-    onSaved: (s) => {
-      if (s.ingestedFileId) {
-        setTrays((prev) => (prev.includes(s.ingestedFileId!) ? prev : [s.ingestedFileId!, ...prev]).slice(0, 3));
-      }
-    },
-  });
-  stagedUploadRef.current = stagedUpload;
+
 
 
 

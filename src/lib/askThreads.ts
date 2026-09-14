@@ -4,7 +4,7 @@
 
 export type ThreadContextKind =
   | "project" | "document" | "commitment" | "action"
-  | "receipt" | "sherlock" | "note" | "today" | "calendar" | "mail";
+  | "receipt" | "sherlock" | "note" | "today" | "calendar" | "mail" | "nudge";
 
 export type AskThread = {
   id: string;

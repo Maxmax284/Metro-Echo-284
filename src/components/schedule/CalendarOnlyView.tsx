@@ -24,6 +24,7 @@ import { CalendarClock, MapPin, Megaphone, Pencil, Plus } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
 import { freshenDayWords } from "@/lib/dayWords";
+import { HeadsUpReply } from "@/components/ask/HeadsUpReply";
 import type { AgendaEvent } from "@/hooks/useAgenda";
 
 /** Kinds Echo raises off the calendar alone. Nothing else shows here. */
@@ -167,6 +168,12 @@ export function CalendarOnlyView() {
                 <div className="mt-0.5 text-[10.5px] text-muted-foreground/70">
                   From Calendar · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                 </div>
+                {/* Reply to what Echo said. Same thread you'd get in Ask. */}
+                <HeadsUpReply
+                  nudgeId={n.id}
+                  label={freshenDayWords({ text: n.title, createdAt: n.created_at, timezone })}
+                />
+
               </li>
             ))}
           </ul>

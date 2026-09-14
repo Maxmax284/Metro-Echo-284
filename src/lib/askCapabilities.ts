@@ -127,6 +127,12 @@ const BY_KIND: Record<ThreadContextKind, AskSuggestion[]> = {
     { id: "read", label: "Read", question: "Read this and tell me what matters." },
     { id: "route", label: "Where does it go?", question: "Which project does this belong to?" },
   ],
+  nudge: [
+    { id: "why", label: "Why this?", question: "Why did you bring this up?" },
+    { id: "prepare", label: "Prepare next step", question: "Prepare the next step for this." },
+    { id: "watch", label: "Keep an eye on it", question: "Keep an eye on this for me." },
+    { id: "quiet", label: "Not important", question: "This isn't important — stay quiet about it." },
+  ],
 };
 
 const NO_CONTEXT: AskSuggestion[] = [
@@ -166,6 +172,7 @@ const KIND_LABEL: Record<ThreadContextKind, string> = {
   today: "Signal",
   calendar: "Meeting",
   mail: "Mail",
+  nudge: "Heads-up",
 };
 
 export function contextKindLabel(kind: ThreadContextKind | null | undefined): string | null {
@@ -196,6 +203,8 @@ export function contextHref(kind: ThreadContextKind | null | undefined, id: stri
       return "/?surface=schedule";
     case "mail":
       return "/?surface=inbox";
+    case "nudge":
+      return "/?surface=today";
     default:
       return null;
   }
