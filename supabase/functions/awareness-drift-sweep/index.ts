@@ -273,7 +273,14 @@ async function sweepScope(
   shadowMode: boolean,
   deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
   /** Consent + posture, resolved once per user by the caller. */
-  senses: { calendar: boolean; postureHold: boolean; timezone?: string; deferToGoogle?: boolean } = { calendar: true, postureHold: false },
+  senses: {
+    calendar: boolean;
+    postureHold: boolean;
+    timezone?: string;
+    deferToGoogle?: boolean;
+    /** Recorded hours for where this person is, when a fix exists. */
+    forecast?: ForecastHour[] | null;
+  } = { calendar: true, postureHold: false },
 
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
