@@ -415,7 +415,7 @@ Deno.serve(async (req: Request) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: OVERLAY_SYSTEM },
-            { role: "user", content: `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}` },
+            { role: "user", content: `NOW: ${nowLine(ground.timezone)}\n\nTARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}` },
           ],
           tools: [{ type: "function", function: { name: "analyze", description: "Return structured analysis.", parameters: OVERLAY_SCHEMA } }],
           tool_choice: { type: "function", function: { name: "analyze" } },
