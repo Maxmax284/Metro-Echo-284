@@ -106,6 +106,11 @@ export type ReminderContext = {
    * look-ahead. Anything explicitly watched still speaks either way.
    */
   deferToGoogle?: boolean;
+  /**
+   * What the sky is doing around one appointment, when a forecast for where the
+   * person is was actually recorded. Never invented, never its own note.
+   */
+  weatherFor?: (event: ReminderEventRow) => AppointmentWeather | null;
 };
 
 /** The identity of the appointment itself, not of a feed row. */
