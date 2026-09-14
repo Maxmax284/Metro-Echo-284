@@ -89,7 +89,7 @@ export function CaptureEventGroup({
     (acc, i) => (WEIGHT[i.event!.disposition] > WEIGHT[acc] ? i.event!.disposition : acc),
     "synced",
   );
-  const headline = `${plural(items.length, first.eventType.replace(/[._]/g, " "))}`;
+  const headline = eventPhrase(first.eventType, items.length);
 
   return (
     <div className="rounded-lg border border-border/60 bg-surface-elevated/40">
