@@ -42,8 +42,14 @@ export function SherlockOverlay() {
   const operation = scope?.operation;
   const isSingleOp = !!operation && SINGLE_OPS.has(operation);
 
+  // The subject Sherlock reads: the passed text, else the title. Empty strings don't count.
+  const subjectText = (scope?.text?.trim() || scope?.title?.trim() || "");
+  const subjectId = scope?.entity_id ?? null;
+  const hasSubject = !!subjectText || !!subjectId;
+
   useEffect(() => {
     if (!open || !scope || findings) return;
+    if (!hasSubject) return; // nothing to look at — never call with an empty scope
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -56,8 +62,8 @@ export function SherlockOverlay() {
             organization_id: orgId,
             scope: {
               entity_type: scope.entity_type,
-              entity_id: scope.entity_id ?? null,
-              text: scope.text ?? scope.title ?? "",
+              entity_id: subjectId,
+              text: subjectText,
             },
           },
         });
@@ -75,7 +81,7 @@ export function SherlockOverlay() {
     return () => {
       cancelled = true;
     };
-  }, [open, scope, findings, setFindings, setLoading, isSingleOp, operation]);
+  }, [open, scope, findings, setFindings, setLoading, isSingleOp, operation, hasSubject, subjectText, subjectId, orgId]);
 
   const writeAudit = async (event: "approved" | "dismissed") => {
     if (!user || !scope) return;
@@ -219,6 +225,14 @@ export function SherlockOverlay() {
               <span className="text-sm">Investigating…</span>
             </div>
           )}
+
+          {!hasSubject && !findings && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nothing to look at yet. Open this from a capture, note or file and Sherlock reads that.
+            </p>
+          )}
+
+
 
           {/* Single-op result panels (observe / extract / relate / suggest) */}
           {!loading && findings && isSingleOp && (
