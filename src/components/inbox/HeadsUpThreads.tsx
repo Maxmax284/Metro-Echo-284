@@ -27,6 +27,8 @@ export function HeadsUpThreads() {
         .select("conversation_id, content, created_at, role")
         .in("conversation_id", heads.map((t) => t.id))
         .order("created_at", { ascending: false })
+        // Ties go to Echo: the preview should read as the answer, not the question.
+        .order("role", { ascending: true })
         .limit(200);
       if (cancelled || !data) return;
       const map: Record<string, string> = {};
