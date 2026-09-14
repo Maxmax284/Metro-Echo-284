@@ -111,27 +111,8 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
     return t >= startToday.getTime() && t <= endToday.getTime();
   });
 
-  const dayName = (iso: string) => formatInTimeZone(new Date(iso), timezone, "EEE MMM d");
+  // The week is its own planner now — see WeekPlanner.
 
-  const byDay: Record<string, Commitment[]> = {};
-  for (const c of [...todayList, ...upcoming]) {
-    const d = dueDate(c)!;
-    (byDay[dayName(d)] ||= []).push(c);
-  }
-
-  // Week view: meetings and dated promises on the same day, in one order.
-  const eventsByDay: Record<string, typeof agendaEvents> = {};
-  for (const e of agendaEvents) (eventsByDay[dayName(e.starts_at)] ||= []).push(e);
-
-  const weekDays = useMemo(() => {
-    const keys = new Set([...Object.keys(byDay), ...Object.keys(eventsByDay)]);
-    const at = (k: string) => {
-      const first = eventsByDay[k]?.[0]?.starts_at ?? (byDay[k]?.[0] ? dueDate(byDay[k][0]) : null);
-      return first ? new Date(first).getTime() : Number.MAX_SAFE_INTEGER;
-    };
-    return [...keys].sort((a, b) => at(a) - at(b));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commits, agendaEvents, timezone]);
 
 
 
