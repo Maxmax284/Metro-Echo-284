@@ -1,12 +1,14 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+// Metro Echo. The shell loads the published address, never a preview host —
+// a preview URL is temporary and leaves an installed app pointing nowhere.
 const config: CapacitorConfig = {
   appId: "app.lovable.07be8715ced142beb03b9019c21f3975",
-  appName: "Vanta",
+  appName: "Metro Echo",
   webDir: "dist",
   server: {
-    url: "https://07be8715-ced1-42be-b03b-9019c21f3975.lovableproject.com?forceHideBadge=true",
-    cleartext: true,
+    url: "https://metroecho.lovable.app",
+    cleartext: false,
   },
   plugins: {
     PushNotifications: { presentationOptions: ["badge", "sound", "alert"] },
