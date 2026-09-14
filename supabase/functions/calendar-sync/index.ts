@@ -240,6 +240,82 @@ async function ensureGoogleFeed(sb: ReturnType<typeof createClient>, userId: str
   } as never);
 }
 
+/**
+ * Read Echo's own mirrored entries back from Google.
+ *
+ * Two-way means two-way: a time changed in Google lands on the Echo row, and an
+ * entry deleted in Google stops being mirrored here rather than silently
+ * reappearing on the next push. The entry itself stays — Echo owns it.
+ */
+async function pullEchoEvents(
+  sb: ReturnType<typeof createClient>,
+  userId: string,
+  now: number,
+): Promise<{ user: string; checked: number; changed: number }> {
+  const fromIso = new Date(now - WINDOW_BACK_DAYS * DAY_MS).toISOString();
+  const toIso = new Date(now + WINDOW_FORWARD_DAYS * DAY_MS).toISOString();
+  const { data } = await sb
+    .from("calendar_events")
+    .select("id, title, starts_at, ends_at, all_day, location, description, google_event_id, google_calendar_id, organization_id")
+    .eq("user_id", userId)
+    .eq("origin", "echo")
+    .not("google_event_id", "is", null)
+    .gte("starts_at", fromIso)
+    .lte("starts_at", toIso)
+    .limit(100);
+  const rows = (data ?? []) as (EchoEventRow & { organization_id: string | null })[];
+  if (rows.length === 0) return { user: userId, checked: 0, changed: 0 };
+
+  const conn = await googleCalendarConnection(userId);
+  if (!conn) return { user: userId, checked: 0, changed: 0 };
+
+  let changed = 0;
+  for (const row of rows) {
+    const remote = await readEchoEventFromGoogle(
+      conn,
+      row.google_event_id as string,
+      row.google_calendar_id ?? "primary",
+    );
+    if (!remote) continue;
+
+    if (remote.deleted) {
+      await sb
+        .from("calendar_events")
+        .update({ google_event_id: null, sync_state: "local", sync_error: "Removed in Google.", synced_at: new Date(now).toISOString() })
+        .eq("id", row.id);
+      changed++;
+      continue;
+    }
+
+    const diff = remoteChanges(row, remote);
+    if (Object.keys(diff).length === 0) continue;
+
+    await sb
+      .from("calendar_events")
+      .update({ ...diff, sync_state: "synced", sync_error: null, synced_at: new Date(now).toISOString() })
+      .eq("id", row.id);
+    changed++;
+
+    // A moved time is news, so it goes through the same change record every
+    // other calendar move uses. Judgment stays central.
+    if (diff.starts_at) {
+      await sb.from("calendar_changes").insert({
+        user_id: userId,
+        organization_id: row.organization_id ?? null,
+        feed_id: null,
+        event_uid: row.google_event_id,
+        title: remote.title ?? row.title,
+        change: "moved",
+        old_starts_at: row.starts_at,
+        new_starts_at: diff.starts_at,
+        was_filed: true,
+      });
+    }
+  }
+  return { user: userId, checked: rows.length, changed };
+}
+
+
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
