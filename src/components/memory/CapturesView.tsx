@@ -406,28 +406,23 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
                 hint: "Pick what this file becomes — nothing is filed yet.",
               };
             }
-            if (item.needsReview) {
+            /* "Pick a lane" used to scroll the card to itself while the Recognize
+               panel sat right below it — a footer telling you to look where you
+               already are. Say it once, on the card, not twice. */
+            if (item.needsReview && !showRecognize) {
               return {
                 label: "Pick a lane",
                 onClick: () => {
-                  // Scrolls the inline RecognizePanel into view; no execution.
                   document.getElementById(`capture-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                 },
                 hint: item.why ?? "Tell Echo what this is so it stops asking.",
               };
             }
-            if (item.routedTo) {
-              return {
-                label: `Open in ${item.routedTo}`,
-                onClick: () => {
-                  // No-op nav: stays on Memory. Audit keeps the receipt.
-                  toast.info?.({ title: `Routed to ${item.routedTo}`, description: item.why ?? "Filed away." });
-                },
-                hint: `Already ${item.routedTo.toLowerCase()}.`,
-              };
-            }
+            /* Already filed: the AftermathHint at the bottom of the card already
+               names where it went. A second no-op button was theatre. */
             return null;
           })();
+
           const footer = (
             <div id={`capture-${item.id}`} className="space-y-1.5">
               {isMessage && !item.routedTo && (
