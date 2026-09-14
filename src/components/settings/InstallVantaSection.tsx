@@ -42,6 +42,9 @@ export function InstallVantaSection() {
       <div className="mt-4">
         {installed ? (
           <InstalledCard />
+        ) : blocked ? (
+          /* No browser offers an install here, so offer the door that works. */
+          <OpenRealAddressCard embedded={isEmbeddedWindow()} />
         ) : platform === "android-chromium" ? (
           <AndroidChromiumCard canPrompt={canPrompt} busy={busy} onInstall={handleInstall} />
         ) : platform === "android-other" ? (
