@@ -261,7 +261,8 @@ export function appointmentReminderSignals(
     if (deferToGoogle && cls === "same_day" && !explicit) continue;
     seen.add(key);
     const weather = ctx.weatherFor ? ctx.weatherFor(e) : null;
-    out.push(reminderToSignal(e, cls, scope, now, timezone, { explicit, weather }));
+    const project = ctx.projectFor ? ctx.projectFor(e) : null;
+    out.push(reminderToSignal(e, cls, scope, now, timezone, { explicit, weather, project }));
   }
   return out;
 }
