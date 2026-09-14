@@ -11,7 +11,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, jsonResponse, preflight, readJson } from "../_shared/http.ts";
 import { normalizeCalendarUrl, parseIcs, type IcsEvent } from "../_shared/ics.ts";
 import { googleCalendarConnection } from "../_shared/calendarConnection.ts";
-import { fetchGoogleEvents } from "./google.ts";
+import { fetchGoogleEvents, googleUid } from "./google.ts";
+import {
+  readEchoEventFromGoogle,
+  remoteChanges,
+  type EchoEventRow,
+} from "../_shared/echoCalendar.ts";
 import { diffWindow, type PriorRow } from "../_shared/calendarWindowDiff.ts";
 
 const DAY_MS = 86_400_000;
