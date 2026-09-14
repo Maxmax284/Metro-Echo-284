@@ -69,7 +69,6 @@ export function InstallVantaSection() {
   );
 }
 
-const HOME_ADDRESS = "metroecho.lovable.app";
 
 /**
  * Installing from a temporary preview link is how people end up with an app
