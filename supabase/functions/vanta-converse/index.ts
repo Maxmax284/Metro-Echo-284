@@ -372,6 +372,25 @@ const tools = [
   {
     type: "function",
     function: {
+      name: "travel_time",
+      description:
+        "How long it takes to drive to something on the person's calendar, and when they should leave: 'how long to drive to my ADHD appointment', 'how far is the meeting tomorrow', 'when should I leave for the clinic'. Uses the place Echo is currently using and the address recorded on the entry. Never estimates: if there is no address or no road route, it says so.",
+      parameters: {
+        type: "object",
+        properties: {
+          reference: {
+            type: "string",
+            description: "The event in their own words, e.g. 'my ADHD appointment' or 'the meeting tomorrow'.",
+          },
+        },
+        required: ["reference"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "search_mail",
       description: "Search the person's own Gmail for what they asked about: 'what did Nikki say about the pickup', 'anything important in mail about tomorrow'. Read only — it cannot send, delete or label. Only works if they switched Gmail on themselves; if they have not, say so plainly instead of guessing.",
       parameters: {

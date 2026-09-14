@@ -16,6 +16,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { createEchoEvent, deleteEchoEvent, updateEchoEvent } from "@/lib/echoCalendar";
 import { useScope } from "@/hooks/useScope";
 import type { AgendaEvent } from "@/hooks/useAgenda";
+import type { Project } from "@/lib/projects";
 
 /** A datetime-local value for the browser field, from an instant. */
 function toLocalInput(iso: string | null): string {
@@ -30,12 +31,15 @@ export function EchoEventSheet({
   open,
   onOpenChange,
   event,
+  projects = [],
   onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** An Echo row to edit, or null to write a new one. */
   event?: AgendaEvent | null;
+  /** Projects in the room the person is standing in. Filing is optional. */
+  projects?: Project[];
   onSaved: () => void;
 }) {
   const { orgId } = useScope();
@@ -45,6 +49,7 @@ export function EchoEventSheet({
   const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [projectId, setProjectId] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -55,6 +60,7 @@ export function EchoEventSheet({
     setAllDay(event?.all_day ?? false);
     setLocation(event?.location ?? "");
     setDescription(event?.description ?? "");
+    setProjectId(event?.project_id ?? "");
   }, [open, event]);
 
   const save = async () => {
@@ -76,6 +82,9 @@ export function EchoEventSheet({
         all_day: allDay,
         location: location.trim() || null,
         description: description.trim() || null,
+        /* Filing is the person's own structure: it travels to Schedule and to
+           anything Echo says about the entry later. */
+        project_id: projectId || null,
         organization_id: orgId ?? null,
       };
       const res = event ? await updateEchoEvent(event.id, draft) : await createEchoEvent(draft);
@@ -144,6 +153,23 @@ export function EchoEventSheet({
             <Label className="text-[11px]" htmlFor="echo-event-notes">Notes (optional)</Label>
             <Textarea id="echo-event-notes" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </div>
+          {projects.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px]" htmlFor="echo-event-project">Part of a project (optional)</Label>
+              <select
+                id="echo-event-project"
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="min-h-[44px] w-full rounded-md border border-border/60 bg-background px-3 text-[12.5px]"
+              >
+                <option value="">Not filed</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
 
           <div className="flex gap-2 pt-1">
             <Button className="min-h-[44px] flex-1" disabled={busy} onClick={() => void save()}>
