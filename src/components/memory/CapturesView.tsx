@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Inbox, RefreshCw, Clock, CheckCircle2, Link2, X, CheckSquare } from "lucide-react";
+import { Inbox, RefreshCw, Clock, CheckCircle2, Link2, X, CheckSquare, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
