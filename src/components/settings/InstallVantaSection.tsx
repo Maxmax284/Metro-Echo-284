@@ -8,6 +8,8 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 export function InstallVantaSection() {
   const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
   const [busy, setBusy] = useState(false);
+  // No prompt can appear in an embedded window or on a throwaway link.
+  const blocked = installBlockedHere();
 
   // Doctrine: hide install CTA when already running standalone — no point yelling at a closed door.
   const standalone = typeof window !== "undefined" &&
