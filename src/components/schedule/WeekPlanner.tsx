@@ -41,7 +41,9 @@ import {
   dayKeyLocal,
   daySummary,
   endOfWeek,
+  dropEchoedPromises,
   projectNamesForDay,
+
   shiftWeeks,
   startOfWeek,
   weekDates,
@@ -250,7 +252,10 @@ export function WeekPlanner() {
         dates.map((d) => {
           const k = dayKeyLocal(d);
           const dayEvents = lanes.appointments ? (eventsByDay[k] ?? []) : [];
-          const dayPromises = lanes.promises ? (promisesByDay[k] ?? []) : [];
+          const dayPromises = lanes.promises
+            ? dropEchoedPromises(promisesByDay[k] ?? [], dayEvents.map((e) => e.title), (p) => p.summary)
+            : [];
+
           const dayNotes = lanes.notes ? (notesByDay[k] ?? []) : [];
           const tags = projectNamesForDay([
             ...dayEvents.map((e) => e.projectTitle),
