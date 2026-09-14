@@ -29,7 +29,7 @@ registerSignalKind({
 
 export type ReminderClass = "next_day" | "same_day";
 
-export type ReminderEventRow = CalendarEventRow & { uid?: string | null };
+export type ReminderEventRow = CalendarEventRow & { uid?: string | null; project_id?: string | null };
 
 const MIN = 60_000;
 const DAY_MS = 24 * 60 * MIN;
