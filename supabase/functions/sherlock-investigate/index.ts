@@ -308,12 +308,14 @@ Deno.serve(async (req: Request) => {
         system = RELATE_SYSTEM;
         schema = RELATE_SCHEMA;
         fnName = "relate";
-        const [notesRes, commsRes, actsRes] = await Promise.all([
+        const [notesRes, commsRes, actsRes, ground] = await Promise.all([
           supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(20),
           supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(20),
           supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
+          groundContext(supabase, user.id, orgId),
         ]);
         const ctx = [
+          ...ground.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
           ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
