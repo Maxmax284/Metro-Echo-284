@@ -14,6 +14,7 @@ import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import type { NoticedSignal } from "@/hooks/useTodayDigest";
+import { HeadsUpReply } from "@/components/ask/HeadsUpReply";
 
 const DESTINATION: Record<string, SurfaceKey> = {
   project: "projects",
@@ -56,17 +57,21 @@ export function NoticedRow({
         <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{title}</p>
         {/* One shared reveal, rendering only what was recorded. */}
         <WhySurfaced why={why} className="mt-1" />
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn("mt-1.5 h-8 px-2 text-[11.5px] text-accent", MOTION_PRESS)}
-          onClick={() => {
-            onFollow(signal);
-            onNavigate(target);
-          }}
-        >
-          Take a look
-        </Button>
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 px-2 text-[11.5px] text-accent", MOTION_PRESS)}
+            onClick={() => {
+              onFollow(signal);
+              onNavigate(target);
+            }}
+          >
+            Take a look
+          </Button>
+          {/* Answer it here. The reply becomes a real turn Echo acts on. */}
+          <HeadsUpReply nudgeId={signal.id} label={title} onReplied={() => onFollow(signal)} />
+        </div>
       </div>
       <Button
         variant="ghost"
