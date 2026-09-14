@@ -217,7 +217,7 @@ async function sweepScope(
   shadowMode: boolean,
   deliveryCtx: { pushOptIn: boolean; pushSubscribed: boolean },
   /** Consent + posture, resolved once per user by the caller. */
-  senses: { calendar: boolean; postureHold: boolean; timezone?: string } = { calendar: true, postureHold: false },
+  senses: { calendar: boolean; postureHold: boolean; timezone?: string; deferToGoogle?: boolean } = { calendar: true, postureHold: false },
 
 ): Promise<SweepOutcome> {
   const orgId = target.organizationId;
@@ -438,6 +438,9 @@ async function sweepScope(
     for (const s of appointmentReminderSignals(events, scope, nowMs, senses.timezone || "UTC", {
       explicitUids,
       changedUids,
+      // Google already alarms on the day. When the person leaves that to
+      // Google, Echo only keeps the part Google never says: tomorrow's shape.
+      deferToGoogle: senses.deferToGoogle === true,
     })) {
       signals.push(s);
     }
@@ -781,6 +784,9 @@ Deno.serve(async (req: Request) => {
           // withdraw it without deleting the feed.
           calendar: sensorAllowed(prefs, "calendar") || calendarFeedCount > 0,
           timezone: tz,
+          // Default is to stay out of Google's lane: Google covers the same-day
+          // alarm, Echo covers tomorrow, moves and collisions.
+          deferToGoogle: prefs.calendar_defer_to_google !== false,
           postureHold: postureHolds(prefs, "attention", now.getTime()),
         });
         if (outcome === "proposed") proposed++;
