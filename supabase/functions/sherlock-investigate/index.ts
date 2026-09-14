@@ -68,6 +68,9 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+Mail headers (mail:<id>) and Drive files (file:<id>) are headers and names only —
+never claim to know what is inside one. A "(source)" line means that source
+could not be read; say so instead of treating it as empty.
 `;
 
 const OVERLAY_SCHEMA = {
@@ -201,6 +204,9 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+Mail headers (mail:<id>) and Drive files (file:<id>) are headers and names only —
+never claim to know what is inside one. A "(source)" line means that source
+could not be read; say so instead of treating it as empty.
 `;
 
 const RELATE_SCHEMA = {
