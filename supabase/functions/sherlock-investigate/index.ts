@@ -390,13 +390,15 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Light recent context
-      const [notesRes, actsRes, commsRes] = await Promise.all([
+      // Light recent context, on top of the real calendar and projects
+      const [notesRes, actsRes, commsRes, ground] = await Promise.all([
         supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(15),
         supabase.from("actions").select("id, title, description, status, risk").order("updated_at", { ascending: false }).limit(15),
         supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(15),
+        groundContext(supabase, user.id, orgId),
       ]);
       const ctx = [
+        ...ground.lines,
         ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 240)}`),
         ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}/${a.risk}]`),
         ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
