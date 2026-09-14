@@ -1,4 +1,6 @@
 {
+  "id": "/",
+  "lang": "en",
   "name": "Metro Echo — situational companion",
   "short_name": "Metro Echo",
   "description": "Metro Echo is a situational companion for real life: place, movement, messages and documents read in context, with nothing acting on its own.",
