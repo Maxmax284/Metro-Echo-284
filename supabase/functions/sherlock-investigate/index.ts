@@ -7,6 +7,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // - default mode: full investigation question over the user's memory (persisted to investigations).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { SHERLOCK_VOICE } from "../_shared/vantaVoice.ts";
+import { groundContext, nowLine } from "../_shared/sherlockGround.ts";
 
 
 const FULL_SYSTEM = `${SHERLOCK_VOICE}
@@ -14,7 +15,13 @@ const FULL_SYSTEM = `${SHERLOCK_VOICE}
 You answer the user's question by reasoning across their own captured memory:
 notes, commitments, actions, and awareness briefings provided in CONTEXT.
 Be precise. Cite which item supports each claim using its kind+id like (note:abc123).
-Do not invent facts. If evidence is thin, say so. Output strict JSON only.`;
+Do not invent facts. If evidence is thin, say so. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const FULL_SCHEMA = {
   type: "object",
@@ -27,7 +34,7 @@ const FULL_SCHEMA = {
         properties: {
           claim: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
-          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "inference"] },
+          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "inference"] },
           source_id: { type: "string" },
           source_excerpt: { type: "string" },
         },
@@ -49,7 +56,13 @@ Given a focused TARGET (a note, message, action, commitment, briefing, file, or 
 and recent CONTEXT from the user's memory, surface what a sharp operator would notice
 that the user might miss. Be specific, not generic. No fluff. No moralizing.
 Each item must be a single concrete observation, not a category restatement.
-If a section has nothing real, return an empty array. Output strict JSON only.`;
+If a section has nothing real, return an empty array. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const OVERLAY_SCHEMA = {
   type: "object",
@@ -176,7 +189,13 @@ const RELATE_SYSTEM = `${SHERLOCK_VOICE}
 Given a TARGET and recent CONTEXT, find items in the user's memory that are
 genuinely related — same person, same project, same place, follow-up to,
 contradicts, etc. Be specific about why. Don't pad. If nothing connects,
-return related=[]. Output strict JSON only.`;
+return related=[]. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const RELATE_SCHEMA = {
   type: "object",
@@ -186,7 +205,7 @@ const RELATE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file"] },
+          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file", "event", "project"] },
           id: { type: "string" },
           why: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
@@ -289,15 +308,17 @@ Deno.serve(async (req: Request) => {
         system = SUGGEST_SYSTEM;
         schema = SUGGEST_SCHEMA;
         fnName = "suggest";
-        const [notesRes, commsRes] = await Promise.all([
+        const [notesRes, commsRes, ground] = await Promise.all([
           supabase.from("notes").select("id, title").order("updated_at", { ascending: false }).limit(8),
           supabase.from("commitments").select("id, summary, due_at, status").eq("status", "open").order("updated_at", { ascending: false }).limit(8),
+          groundContext(supabase, user.id, orgId, { forwardDays: 14, eventLimit: 15, projectLimit: 10 }),
         ]);
         const ctx = [
+          ...ground.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
         ].join("\n");
-        userMsg = `CAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
+        userMsg = `NOW: ${nowLine(ground.timezone)}\n\nCAPTURE (${entity_type}):\n${text}\n\nRECENT CONTEXT:\n${ctx || "(none)"}`;
       } else if (mode === "observe") {
         system = OBSERVE_SYSTEM;
         schema = OBSERVE_SCHEMA;
@@ -307,17 +328,19 @@ Deno.serve(async (req: Request) => {
         system = RELATE_SYSTEM;
         schema = RELATE_SCHEMA;
         fnName = "relate";
-        const [notesRes, commsRes, actsRes] = await Promise.all([
+        const [notesRes, commsRes, actsRes, ground] = await Promise.all([
           supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(20),
           supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(20),
           supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
+          groundContext(supabase, user.id, orgId),
         ]);
         const ctx = [
+          ...ground.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
           ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
         ].join("\n");
-        userMsg = `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
+        userMsg = `NOW: ${nowLine(ground.timezone)}\n\nTARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}`;
       }
 
 
@@ -389,13 +412,15 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Light recent context
-      const [notesRes, actsRes, commsRes] = await Promise.all([
+      // Light recent context, on top of the real calendar and projects
+      const [notesRes, actsRes, commsRes, ground] = await Promise.all([
         supabase.from("notes").select("id, title, body").order("updated_at", { ascending: false }).limit(15),
         supabase.from("actions").select("id, title, description, status, risk").order("updated_at", { ascending: false }).limit(15),
         supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(15),
+        groundContext(supabase, user.id, orgId),
       ]);
       const ctx = [
+        ...ground.lines,
         ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 240)}`),
         ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}/${a.risk}]`),
         ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
@@ -408,7 +433,7 @@ Deno.serve(async (req: Request) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: OVERLAY_SYSTEM },
-            { role: "user", content: `TARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}` },
+            { role: "user", content: `NOW: ${nowLine(ground.timezone)}\n\nTARGET (${entity_type}${entity_id ? `:${entity_id}` : ""}):\n${text}\n\nCONTEXT:\n${ctx || "(none)"}` },
           ],
           tools: [{ type: "function", function: { name: "analyze", description: "Return structured analysis.", parameters: OVERLAY_SCHEMA } }],
           tool_choice: { type: "function", function: { name: "analyze" } },
@@ -471,14 +496,16 @@ Deno.serve(async (req: Request) => {
     if (invErr || !inv) throw invErr ?? new Error("could not create investigation");
 
     const q = question.slice(0, 200);
-    const [notesRes, commsRes, actsRes, briefsRes] = await Promise.all([
+    const [notesRes, commsRes, actsRes, briefsRes, ground] = await Promise.all([
       supabase.from("notes").select("id, title, body, tags, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("commitments").select("id, summary, due_at, status, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("actions").select("id, title, description, status, risk, updated_at").order("updated_at", { ascending: false }).limit(40),
       supabase.from("awareness_briefings").select("id, section, content, confidence, generated_at").order("generated_at", { ascending: false }).limit(20),
+      groundContext(supabase, user.id, orgId, { backDays: 7, forwardDays: 30 }),
     ]);
 
     const ctxBlocks: string[] = [];
+    for (const line of ground.lines) ctxBlocks.push(line);
     for (const n of notesRes.data ?? []) ctxBlocks.push(`(note:${n.id}) ${n.title ? n.title + "\n" : ""}${String(n.body ?? "").slice(0, 800)}`);
     for (const c of commsRes.data ?? []) ctxBlocks.push(`(commitment:${c.id}) ${c.summary} (status:${c.status}${c.due_at ? `, due:${c.due_at}` : ""})`);
     for (const a of actsRes.data ?? []) ctxBlocks.push(`(action:${a.id}) ${a.title}${a.description ? " — " + a.description.slice(0, 400) : ""} (status:${a.status}, risk:${a.risk})`);
@@ -491,7 +518,7 @@ Deno.serve(async (req: Request) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: FULL_SYSTEM },
-          { role: "user", content: `QUESTION:\n${q}\n\nCONTEXT:\n${ctxBlocks.join("\n---\n") || "(no context yet)"}` },
+          { role: "user", content: `NOW: ${nowLine(ground.timezone)}\n\nQUESTION:\n${q}\n\nCONTEXT:\n${ctxBlocks.join("\n---\n") || "(no context yet)"}` },
         ],
         tools: [{ type: "function", function: { name: "report", description: "Return investigation report.", parameters: FULL_SCHEMA } }],
         tool_choice: { type: "function", function: { name: "report" } },
