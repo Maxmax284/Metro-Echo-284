@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
 import { whyFor } from "@/lib/whySurfaced";
+import { freshenDayWords } from "@/lib/dayWords";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
@@ -31,13 +33,17 @@ export function NoticedRow({
   onDismiss: (id: string) => void;
   onFollow: (signal: NoticedSignal) => void;
 }) {
+  const { timezone } = useUserTimezone();
   if (!signal) return null;
   const target = DESTINATION[signal.related_entity_type ?? ""] ?? "work";
+  /* Written last night, read this morning: "tomorrow" must re-read as "today". */
+  const title = freshenDayWords({ text: signal.title, createdAt: signal.created_at, timezone });
+  const body = signal.body ? freshenDayWords({ text: signal.body, createdAt: signal.created_at, timezone }) : null;
   /* The same seven answers as everywhere else, from what the nudge recorded. */
   const why = whyFor({
     source: "What Echo noticed",
-    whatChanged: signal.title,
-    reason: signal.body ?? "Echo raised this from your own records.",
+    whatChanged: title,
+    reason: body ?? "Echo raised this from your own records.",
     whyItMatters: "It is a draft observation, not an instruction.",
     ifIgnored: "Hiding it takes it off Today. Nothing runs from it.",
   });
@@ -47,7 +53,7 @@ export function NoticedRow({
       <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <MachineLabel className="text-accent/80">Echo noticed</MachineLabel>
-        <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{signal.title}</p>
+        <p className="mt-0.5 text-[13px] font-medium leading-snug text-foreground">{title}</p>
         {/* One shared reveal, rendering only what was recorded. */}
         <WhySurfaced why={why} className="mt-1" />
         <Button

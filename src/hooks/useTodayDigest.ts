@@ -28,6 +28,8 @@ export type NoticedSignal = {
   body: string | null;
   related_entity_type: string | null;
   related_entity_id: string | null;
+  /** When the note was written — day words are re-read against it. */
+  created_at?: string | null;
 };
 
 export type TodayDigest = {
@@ -114,7 +116,7 @@ export function useTodayDigest(): TodayDigest {
       const { data: nudgeRows } = await applyScope(
         supabase
           .from("nudges")
-          .select("id, kind, title, body, related_entity_type, related_entity_id, priority, status"),
+          .select("id, kind, title, body, related_entity_type, related_entity_id, priority, status, created_at"),
       )
         .eq("status", "pending")
         .order("priority", { ascending: false })

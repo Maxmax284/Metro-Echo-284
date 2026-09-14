@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { CalendarClock, MapPin, Megaphone } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
+import { freshenDayWords } from "@/lib/dayWords";
 import type { AgendaEvent } from "@/hooks/useAgenda";
 
 /** Kinds Echo raises off the calendar alone. Nothing else shows here. */
@@ -88,8 +89,14 @@ export function CalendarOnlyView() {
           <ul className="space-y-2">
             {notes.map((n) => (
               <li key={n.id} className="text-[12.5px]">
-                <div className="font-medium">{n.title}</div>
-                {n.body && <div className="text-[11.5px] leading-relaxed text-muted-foreground">{n.body}</div>}
+                <div className="font-medium">
+                  {freshenDayWords({ text: n.title, createdAt: n.created_at, timezone })}
+                </div>
+                {n.body && (
+                  <div className="text-[11.5px] leading-relaxed text-muted-foreground">
+                    {freshenDayWords({ text: n.body, createdAt: n.created_at, timezone })}
+                  </div>
+                )}
                 <div className="mt-0.5 text-[10.5px] text-muted-foreground/70">
                   From Calendar · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                 </div>
