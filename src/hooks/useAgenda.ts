@@ -24,6 +24,12 @@ export type AgendaEvent = {
   /** The feed's own id for this entry — stable across a resync, unlike the row. */
   uid: string | null;
   project_id: string | null;
+  /** "feed" rows are read-only sense; "echo" rows are the person's own entries. */
+  origin: "feed" | "echo";
+  description: string | null;
+  /** Where the Google mirror stands for an Echo row. */
+  sync_state: "local" | "synced" | "error" | "off" | null;
+  sync_error: string | null;
   /** Which calendar it came from, e.g. "LMT Camp State". */
   feedLabel: string;
   /** Project title when filed, else null. */
