@@ -500,7 +500,7 @@ Deno.serve(async (req: Request) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: FULL_SYSTEM },
-          { role: "user", content: `QUESTION:\n${q}\n\nCONTEXT:\n${ctxBlocks.join("\n---\n") || "(no context yet)"}` },
+          { role: "user", content: `NOW: ${nowLine(ground.timezone)}\n\nQUESTION:\n${q}\n\nCONTEXT:\n${ctxBlocks.join("\n---\n") || "(no context yet)"}` },
         ],
         tools: [{ type: "function", function: { name: "report", description: "Return investigation report.", parameters: FULL_SCHEMA } }],
         tool_choice: { type: "function", function: { name: "report" } },
