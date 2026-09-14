@@ -8,6 +8,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { SHERLOCK_VOICE } from "../_shared/vantaVoice.ts";
 import { groundContext, nowLine } from "../_shared/sherlockGround.ts";
+import { outsideGround } from "../_shared/sherlockGoogle.ts";
 
 
 const FULL_SYSTEM = `${SHERLOCK_VOICE}
@@ -21,6 +22,11 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+CONTEXT may also include mail headers (mail:<id>) — sender, subject, date — and
+Drive files (file:<id>) — name, kind, when it changed. Those are headers and
+names only: never claim to know what an email or a file says inside. Lines
+beginning "(source)" say a source could not be read; when one appears, say that
+plainly instead of answering as though that source were empty.
 `;
 
 const FULL_SCHEMA = {
@@ -34,7 +40,7 @@ const FULL_SCHEMA = {
         properties: {
           claim: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
-          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "inference"] },
+          source_kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "event", "project", "mail", "file", "inference"] },
           source_id: { type: "string" },
           source_excerpt: { type: "string" },
         },
@@ -62,6 +68,9 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+Mail headers (mail:<id>) and Drive files (file:<id>) are headers and names only —
+never claim to know what is inside one. A "(source)" line means that source
+could not be read; say so instead of treating it as empty.
 `;
 
 const OVERLAY_SCHEMA = {
@@ -195,6 +204,9 @@ actual dates and times in their own timezone, and their projects (project:<id>).
 When an item lines up with one of those, say the real day, time, place and
 project name instead of repeating the title. Never invent a date or a name; if
 the record does not carry one, say it is not recorded.
+Mail headers (mail:<id>) and Drive files (file:<id>) are headers and names only —
+never claim to know what is inside one. A "(source)" line means that source
+could not be read; say so instead of treating it as empty.
 `;
 
 const RELATE_SCHEMA = {
@@ -205,7 +217,7 @@ const RELATE_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file", "event", "project"] },
+          kind: { type: "string", enum: ["note", "commitment", "action", "briefing", "file", "mail", "event", "project"] },
           id: { type: "string" },
           why: { type: "string" },
           confidence: { type: "string", enum: ["low", "medium", "high"] },
@@ -334,8 +346,11 @@ Deno.serve(async (req: Request) => {
           supabase.from("actions").select("id, title, status").order("updated_at", { ascending: false }).limit(20),
           groundContext(supabase, user.id, orgId),
         ]);
+        /* Mail headers and file names, read as the same ground as the calendar. */
+        const outside = await outsideGround(user.id, text, ground.timezone);
         const ctx = [
           ...ground.lines,
+          ...outside.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 160)}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
           ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}]`),
@@ -419,8 +434,10 @@ Deno.serve(async (req: Request) => {
         supabase.from("commitments").select("id, summary, status, due_at").order("updated_at", { ascending: false }).limit(15),
         groundContext(supabase, user.id, orgId),
       ]);
+      const outside = await outsideGround(user.id, text, ground.timezone);
       const ctx = [
         ...ground.lines,
+        ...outside.lines,
         ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""} ${String(n.body ?? "").slice(0, 240)}`),
         ...(actsRes.data ?? []).map((a: any) => `(action:${a.id}) ${a.title} [${a.status}/${a.risk}]`),
         ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary} [${c.status}${c.due_at ? `, due ${c.due_at}` : ""}]`),
@@ -504,8 +521,12 @@ Deno.serve(async (req: Request) => {
       groundContext(supabase, user.id, orgId, { backDays: 7, forwardDays: 30 }),
     ]);
 
+    /* The question also goes to the mailbox and the drive — headers and names. */
+    const outside = await outsideGround(user.id, q, ground.timezone);
+
     const ctxBlocks: string[] = [];
     for (const line of ground.lines) ctxBlocks.push(line);
+    for (const line of outside.lines) ctxBlocks.push(line);
     for (const n of notesRes.data ?? []) ctxBlocks.push(`(note:${n.id}) ${n.title ? n.title + "\n" : ""}${String(n.body ?? "").slice(0, 800)}`);
     for (const c of commsRes.data ?? []) ctxBlocks.push(`(commitment:${c.id}) ${c.summary} (status:${c.status}${c.due_at ? `, due:${c.due_at}` : ""})`);
     for (const a of actsRes.data ?? []) ctxBlocks.push(`(action:${a.id}) ${a.title}${a.description ? " — " + a.description.slice(0, 400) : ""} (status:${a.status}, risk:${a.risk})`);
