@@ -696,8 +696,44 @@ Deno.serve(async (req: Request) => {
       ].filter(Boolean).join("\n\n");
     } catch (e) { console.error("ask calendar context", e); }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
+    /* A reply typed on a heads-up card arrives with no words of its own about
+       what it answers ("not important", "move it to Friday"). The thread is
+       bound to that heads-up, so Echo reads the recorded nudge itself — never
+       an inferred subject. */
+    let headsUpBlock = "";
+    try {
+      const { data: thread } = await supabase
+        .from("conversations")
+        .select("context_kind, context_id, context_label")
+        .eq("id", conversation_id)
+        .maybeSingle();
+      if (thread?.context_kind === "nudge" && thread.context_id) {
+        const { data: nudge } = await supabase
+          .from("nudges")
+          .select("kind, title, body, status, created_at, related_entity_type, related_entity_id")
+          .eq("id", thread.context_id)
+          .maybeSingle();
+        if (nudge) {
+          headsUpBlock = [
+            "This turn answers a heads-up Echo raised. Treat it as the subject; the person is replying to it, not opening a new topic:",
+            `- raised: ${nudge.created_at} (${nudge.kind})`,
+            `- said: ${nudge.title}`,
+            nudge.body ? `- detail: ${nudge.body}` : "",
+            nudge.related_entity_type
+              ? `- about: ${nudge.related_entity_type}${nudge.related_entity_id ? ` ${nudge.related_entity_id}` : ""}`
+              : "",
+            "- If the reply says it does not matter, say plainly that you will leave it alone. Do not stage anything.",
+            "- If the reply asks for something to happen, prepare it for approval and say nothing has run.",
+          ].filter(Boolean).join("\n");
+        }
+      } else if (thread?.context_kind && thread.context_label) {
+        headsUpBlock = `This thread is about ${thread.context_kind}: ${thread.context_label}. Answer against that record.`;
+      }
+    } catch (e) { console.error("ask thread context", e); }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
+
 
 
 
