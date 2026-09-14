@@ -1,8 +1,8 @@
 // CalendarOnlyView — the calendar, and nothing but the calendar.
 //
 // Doctrine:
-//   - Read-only. These rows came from subscribed calendars; nothing here writes
-//     back to any calendar, ever. No filing, no completing, no rescheduling.
+//   - Feed rows are sense: read-only, replaced on every sync. Echo's own entries
+//     are the person's, and only those can be written here.
 //   - The only voice on this page is Echo's own heads-up. Google's alarms are
 //     Google's and never appear here. Telegram is not a surface on this page.
 //   - Silence is a valid read: an empty day says so plainly.
@@ -14,7 +14,13 @@ import { useAgenda } from "@/hooks/useAgenda";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { Card } from "@/components/ui/card";
-import { CalendarClock, MapPin, Megaphone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
+import { getGoogleMirrorOn, setGoogleMirrorOn } from "@/lib/echoCalendar";
+import { vantaToast as toast } from "@/lib/vantaVoice";
+import { CalendarClock, MapPin, Megaphone, Pencil, Plus } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
 import { freshenDayWords } from "@/lib/dayWords";
