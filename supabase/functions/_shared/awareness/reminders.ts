@@ -197,6 +197,8 @@ export function reminderToSignal(
 ): AwarenessSignal {
   const key = eventKey(e);
   const label = (e.title ?? "").trim() || "An untitled calendar entry";
+  // The card gets the first clause; the record below keeps the full title.
+  const spoken = spokenLabel(label);
   const where = e.location?.trim();
   const start = ms(e.starts_at);
   const at = whenWords(start, timezone);
