@@ -167,6 +167,12 @@ export function CalendarOnlyView() {
                 <div className="mt-0.5 text-[10.5px] text-muted-foreground/70">
                   From Calendar · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                 </div>
+                {/* Reply to what Echo said. Same thread you'd get in Ask. */}
+                <HeadsUpReply
+                  nudgeId={n.id}
+                  label={freshenDayWords({ text: n.title, createdAt: n.created_at, timezone })}
+                />
+
               </li>
             ))}
           </ul>
