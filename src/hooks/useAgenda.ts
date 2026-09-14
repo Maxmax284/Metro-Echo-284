@@ -134,7 +134,12 @@ export function useAgenda(
         feed_id: r.feed_id,
         uid: r.uid ?? null,
         project_id: r.project_id ?? null,
-        feedLabel: r.calendar_feeds?.label ?? "Calendar",
+        origin: r.origin === "echo" ? "echo" : "feed",
+        description: r.description ?? null,
+        sync_state: r.sync_state ?? null,
+        sync_error: r.sync_error ?? null,
+        /* Echo's own entries say so instead of borrowing a feed's name. */
+        feedLabel: r.origin === "echo" ? "Echo" : (r.calendar_feeds?.label ?? "Calendar"),
         projectTitle: r.project_id ? (byId.get(r.project_id) ?? null) : null,
       });
       /* The same calendar can arrive twice — signed in to Google and subscribed
