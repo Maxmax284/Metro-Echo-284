@@ -140,3 +140,8 @@ export async function groundContext(
 
   return { lines, timezone, events, projects };
 }
+
+/** The person's own clock, so a read can say "today" and mean it. */
+export function nowLine(timezone: string): string {
+  return `${whenLine(new Date().toISOString(), timezone)} (${timezone || "UTC"})`;
+}
