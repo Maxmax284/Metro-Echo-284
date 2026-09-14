@@ -170,6 +170,22 @@ function whenWords(startMs: number, timezone: string): string {
   }
 }
 
+/**
+ * A calendar title people actually write can be a paragraph. The record keeps
+ * every word; the sentence Echo speaks takes the first clause, and never more
+ * than one line. Nothing is invented — only cut.
+ */
+export function spokenLabel(raw: string): string {
+  const title = raw.replace(/\s+/g, " ").trim();
+  if (!title) return "An untitled calendar entry";
+  const cut = title.search(/[:.!?](\s|$)|\s—\s/);
+  const head = cut > 6 ? title.slice(0, cut).trim() : title;
+  if (head.length <= 60) return head;
+  const words = head.slice(0, 60);
+  const space = words.lastIndexOf(" ");
+  return `${(space > 20 ? words.slice(0, space) : words).trim()}…`;
+}
+
 /** One signal for one appointment. Callers never build these by hand. */
 export function reminderToSignal(
   e: ReminderEventRow,
@@ -181,6 +197,8 @@ export function reminderToSignal(
 ): AwarenessSignal {
   const key = eventKey(e);
   const label = (e.title ?? "").trim() || "An untitled calendar entry";
+  // The card gets the first clause; the record below keeps the full title.
+  const spoken = spokenLabel(label);
   const where = e.location?.trim();
   const start = ms(e.starts_at);
   const at = whenWords(start, timezone);
@@ -196,8 +214,8 @@ export function reminderToSignal(
   const filed = project ? ` Filed under ${project}.` : "";
   const why =
     (cls === "next_day"
-      ? `"${label}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
-      : `"${label}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky + filed;
+      ? `"${spoken}" is on tomorrow at ${at}${where ? ` — ${where}` : ""}.`
+      : `"${spoken}" is today at ${at}${where ? ` — ${where}` : ""}.`) + sky + filed;
 
 
   return {
