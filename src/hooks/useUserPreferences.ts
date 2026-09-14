@@ -19,6 +19,11 @@ export type UserPreferences = {
   awareness_shadow_mode?: boolean;
   /** Let time-sensitive awareness notes reach the linked Telegram chat. */
   telegram_awareness_enabled?: boolean;
+  /**
+   * On (default): Google keeps the day-of alarm, Echo only says what Google
+   * never says — tomorrow's shape, a moved time, a collision.
+   */
+  calendar_defer_to_google?: boolean;
   /** Tone applied to everything Echo says out loud. */
   brand_voice?: "neutral" | "east_coast";
   brand_voice_intensity?: 1 | 2 | 3;
@@ -42,6 +47,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   proactive_awareness_enabled: false,
   awareness_shadow_mode: true,
   telegram_awareness_enabled: false,
+  calendar_defer_to_google: true,
   brand_voice: "neutral",
   brand_voice_intensity: 2,
   brand_voice_no_jargon: true,

@@ -1,0 +1,144 @@
+// CalendarOnlyView — the calendar, and nothing but the calendar.
+//
+// Doctrine:
+//   - Read-only. These rows came from subscribed calendars; nothing here writes
+//     back to any calendar, ever. No filing, no completing, no rescheduling.
+//   - The only voice on this page is Echo's own heads-up. Google's alarms are
+//     Google's and never appear here. Telegram is not a surface on this page.
+//   - Silence is a valid read: an empty day says so plainly.
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
+import { useAgenda } from "@/hooks/useAgenda";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
+import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
+import { Card } from "@/components/ui/card";
+import { CalendarClock, MapPin, Megaphone } from "lucide-react";
+import { formatInTimeZone } from "date-fns-tz";
+import { formatDistanceToNow } from "date-fns";
+import type { AgendaEvent } from "@/hooks/useAgenda";
+
+/** Kinds Echo raises off the calendar alone. Nothing else shows here. */
+const CALENDAR_KINDS = [
+  "appointment_ahead",
+  "meeting_starting_soon",
+  "meeting_changed",
+  "commitment_collides_with_meeting",
+] as const;
+
+type CalendarNudge = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  created_at: string;
+};
+
+export function CalendarOnlyView() {
+  const { session } = useAuth();
+  const { applyScope, key: scopeKey } = useScope();
+  const { timezone } = useUserTimezone();
+  const { events, loading } = useAgenda({ days: 14 });
+  const [notes, setNotes] = useState<CalendarNudge[]>([]);
+
+  const loadNotes = async () => {
+    const { data } = await applyScope(
+      supabase.from("nudges").select("id, kind, title, body, created_at"),
+    )
+      .in("status", ["pending", "seen"])
+      .in("kind", CALENDAR_KINDS as unknown as string[])
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setNotes((data ?? []) as CalendarNudge[]);
+  };
+
+  useEffect(() => {
+    if (session) void loadNotes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, scopeKey]);
+
+  useCalendarOpenRefresh(() => { void loadNotes(); });
+
+  const dayLabel = (iso: string) => formatInTimeZone(new Date(iso), timezone, "EEEE MMM d");
+  /* Always the person's own zone — never whatever clock this browser is on. */
+  const timeLabel = (e: AgendaEvent) => {
+    if (e.all_day) return "all day";
+    const start = formatInTimeZone(new Date(e.starts_at), timezone, "h:mm a");
+    if (!e.ends_at) return start;
+    return `${start}–${formatInTimeZone(new Date(e.ends_at), timezone, "h:mm a")}`;
+  };
+  const byDay: Record<string, typeof events> = {};
+  for (const e of events) (byDay[dayLabel(e.starts_at)] ||= []).push(e);
+  const days = Object.keys(byDay);
+
+  return (
+    <div className="space-y-3">
+      <Card className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
+        <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <Megaphone className="h-3 w-3" /> What Echo said about your calendar
+        </div>
+        {notes.length === 0 ? (
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            Nothing to say right now. Echo speaks once the evening before a real appointment, when a time moves, or when
+            something collides — and it stays on this page and Today. Google's own alarms are separate and keep firing
+            on their own.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {notes.map((n) => (
+              <li key={n.id} className="text-[12.5px]">
+                <div className="font-medium">{n.title}</div>
+                {n.body && <div className="text-[11.5px] leading-relaxed text-muted-foreground">{n.body}</div>}
+                <div className="mt-0.5 text-[10.5px] text-muted-foreground/70">
+                  From Calendar · {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {loading ? (
+        <div className="py-10 text-center text-[12px] text-muted-foreground">Reading the calendars…</div>
+      ) : days.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border/60 py-10 text-center text-[12px] text-muted-foreground">
+          Nothing on the next two weeks that Echo can see. Linked calendars live in Settings under “Your calendar”.
+        </div>
+      ) : (
+        days.map((day) => (
+          <Card key={day} className="vanta-card border-border/60 bg-surface-elevated/40 p-3">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <CalendarClock className="h-3 w-3" /> {day}
+            </div>
+            <ul className="space-y-1.5">
+              {byDay[day].map((e) => (
+                <li key={e.id} className="flex items-start gap-2 text-[12.5px]">
+                  <span className="mt-[3px] w-[76px] shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    {eventTimeLabel(e)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate">{e.title ?? "Untitled entry"}</div>
+                    <div className="flex flex-wrap items-center gap-x-2 text-[10.5px] text-muted-foreground">
+                      <span>{e.feedLabel}</span>
+                      {e.location && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-2.5 w-2.5" /> {e.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))
+      )}
+
+      <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+        Read-only on purpose. Echo never writes to your calendar, and nothing on this page can be completed, moved or
+        sent anywhere.
+      </p>
+    </div>
+  );
+}

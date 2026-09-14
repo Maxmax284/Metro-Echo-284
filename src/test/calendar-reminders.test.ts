@@ -185,3 +185,28 @@ describe("how far a heads-up may reach", () => {
     expect(verdict.suppressed).toBe(false);
   });
 });
+
+describe("staying out of Google's lane", () => {
+  it("drops the same-day heads-up when Google keeps the day-of alarm", () => {
+    const out = appointmentReminderSignals([adhd], scope, MORNING_OF, TZ, { deferToGoogle: true });
+    expect(out).toHaveLength(0);
+  });
+  it("still gives the evening look-ahead Google never speaks", () => {
+    const out = appointmentReminderSignals([adhd], scope, EVENING, TZ, { deferToGoogle: true });
+    expect(out).toHaveLength(1);
+    expect(out[0].metadata?.reminder_class).toBe("next_day");
+  });
+  it("honours an explicit watch even when deferring to Google", () => {
+    const out = appointmentReminderSignals([adhd], scope, MORNING_OF, TZ, {
+      deferToGoogle: true,
+      explicitUids: [eventKey(adhd)],
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].metadata?.reminder_class).toBe("same_day");
+  });
+  it("keeps the same-day heads-up when the person turns deferral off", () => {
+    const out = appointmentReminderSignals([adhd, adhdMirror], scope, MORNING_OF, TZ, { deferToGoogle: false });
+    expect(out).toHaveLength(1);
+    expect(out[0].metadata?.reminder_class).toBe("same_day");
+  });
+});

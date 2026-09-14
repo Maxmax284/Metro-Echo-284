@@ -12,13 +12,14 @@ import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DailyBriefingCard } from "@/components/schedule/DailyBriefingCard";
 import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
 import { CalendarSyncPanel } from "@/components/schedule/CalendarSyncPanel";
+import { CalendarOnlyView } from "@/components/schedule/CalendarOnlyView";
 import { MonthGrid } from "@/components/schedule/MonthGrid";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
-type TabKey = "today" | "upcoming" | "week" | "month";
+type TabKey = "today" | "upcoming" | "week" | "month" | "calendar";
 
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
@@ -147,6 +148,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             { id: "upcoming", label: "Upcoming" },
             { id: "week", label: "Week" },
             { id: "month", label: "Month" },
+            { id: "calendar", label: "Calendar only" },
           ] as const).map((t) => (
 
             <button
@@ -162,7 +164,9 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           ))}
         </div>
 
-        {loading ? (
+        {tab === "calendar" ? (
+          <CalendarOnlyView />
+        ) : loading ? (
           <div className="py-10 text-center text-[12px] text-muted-foreground">Looking at the runway…</div>
         ) : tab === "today" ? (
           <div className="space-y-3">

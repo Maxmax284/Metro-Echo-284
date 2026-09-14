@@ -341,6 +341,26 @@ export function TimeRemindersSection() {
               />
             </div>
           )}
+          {prefs.proactive_awareness_enabled && (
+            <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
+              <div className="min-w-0">
+                <div className="text-xs font-medium">Let Google keep the day-of alarm</div>
+                <div className="text-[11px] text-muted-foreground">
+                  On by default. Google already buzzes you before an appointment starts, so Echo stays out of that lane
+                  and only says what Google never says: what tomorrow looks like, a time that moved, a collision.
+                  Turn it off if you want Echo's own heads-up on the day too. Anything you asked Echo to keep an eye on
+                  always speaks, either way.
+                </div>
+              </div>
+              <Switch
+                checked={prefs.calendar_defer_to_google !== false}
+                onCheckedChange={(v) => {
+                  update({ calendar_defer_to_google: v });
+                  audit("preferences.updated", { field: "calendar_defer_to_google", value: v });
+                }}
+              />
+            </div>
+          )}
           {prefs.proactive_awareness_enabled && !prefs.awareness_shadow_mode && (
             <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
               <div className="min-w-0">

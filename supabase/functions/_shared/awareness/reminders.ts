@@ -99,6 +99,12 @@ export type ReminderContext = {
   explicitUids?: Iterable<string>;
   /** Feed uids that already changed and are speaking for a stronger reason. */
   changedUids?: Iterable<string>;
+  /**
+   * Google already fires its own alarm on the day. When this is on, Echo drops
+   * the same-day heads-up and keeps only what Google never says: the evening
+   * look-ahead. Anything explicitly watched still speaks either way.
+   */
+  deferToGoogle?: boolean;
 };
 
 /** The identity of the appointment itself, not of a feed row. */
@@ -223,6 +229,7 @@ export function appointmentReminderSignals(
 ): AwarenessSignal[] {
   const explicitUids = new Set(ctx.explicitUids ?? []);
   const changedUids = new Set(ctx.changedUids ?? []);
+  const deferToGoogle = ctx.deferToGoogle === true;
   const seen = new Set<string>();
   const out: AwarenessSignal[] = [];
 
@@ -233,6 +240,8 @@ export function appointmentReminderSignals(
     const explicit = explicitUids.has(key);
     const cls = reminderClass(e, now, timezone, { explicit });
     if (!cls) continue;
+    // Google owns the day-of alarm unless the person asked Echo for this one.
+    if (deferToGoogle && cls === "same_day" && !explicit) continue;
     seen.add(key);
     out.push(reminderToSignal(e, cls, scope, now, timezone, { explicit }));
   }
