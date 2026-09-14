@@ -290,11 +290,13 @@ Deno.serve(async (req: Request) => {
         system = SUGGEST_SYSTEM;
         schema = SUGGEST_SCHEMA;
         fnName = "suggest";
-        const [notesRes, commsRes] = await Promise.all([
+        const [notesRes, commsRes, ground] = await Promise.all([
           supabase.from("notes").select("id, title").order("updated_at", { ascending: false }).limit(8),
           supabase.from("commitments").select("id, summary, due_at, status").eq("status", "open").order("updated_at", { ascending: false }).limit(8),
+          groundContext(supabase, user.id, orgId, { forwardDays: 14, eventLimit: 15, projectLimit: 10 }),
         ]);
         const ctx = [
+          ...ground.lines,
           ...(notesRes.data ?? []).map((n: any) => `(note:${n.id}) ${n.title ?? ""}`),
           ...(commsRes.data ?? []).map((c: any) => `(commitment:${c.id}) ${c.summary}${c.due_at ? ` [due ${c.due_at}]` : ""}`),
         ].join("\n");
