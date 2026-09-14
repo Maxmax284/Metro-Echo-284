@@ -59,7 +59,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: "start",
     title: "Getting started",
-    blurb: "Install Metro Echo on this device, replay the walkthrough, read the map.",
+    blurb: "Replay the walkthrough, read the map, download your data.",
     icon: Rocket,
     render: () => (
       <>
@@ -68,7 +68,6 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
           title="What the chat can do"
           blurb="Every file type and size that works, what's read-only, and what only gets finished here. Same words the chat gives you, saveable as a file."
         />
-        <InstallVantaSection />
         <HowVantaWorksSection />
         <VerdictDownloadCard />
       </>
