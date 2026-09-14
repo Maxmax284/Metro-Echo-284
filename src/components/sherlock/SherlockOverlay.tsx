@@ -81,7 +81,7 @@ export function SherlockOverlay() {
     return () => {
       cancelled = true;
     };
-  }, [open, scope, findings, setFindings, setLoading, isSingleOp, operation]);
+  }, [open, scope, findings, setFindings, setLoading, isSingleOp, operation, hasSubject, subjectText, subjectId, orgId]);
 
   const writeAudit = async (event: "approved" | "dismissed") => {
     if (!user || !scope) return;
