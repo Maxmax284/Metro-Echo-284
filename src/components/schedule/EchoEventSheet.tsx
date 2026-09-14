@@ -31,6 +31,7 @@ export function EchoEventSheet({
   open,
   onOpenChange,
   event,
+  defaultStart,
   projects = [],
   onSaved,
 }: {
@@ -38,6 +39,8 @@ export function EchoEventSheet({
   onOpenChange: (open: boolean) => void;
   /** An Echo row to edit, or null to write a new one. */
   event?: AgendaEvent | null;
+  /** The day a new entry should land on, when opened from a planned day. */
+  defaultStart?: Date | null;
   /** Projects in the room the person is standing in. Filing is optional. */
   projects?: Project[];
   onSaved: () => void;
@@ -55,13 +58,26 @@ export function EchoEventSheet({
   useEffect(() => {
     if (!open) return;
     setTitle(event?.title ?? "");
-    setStart(toLocalInput(event?.starts_at ?? new Date(Date.now() + 3_600_000).toISOString()));
+    /* A new entry opened on a chosen day starts at 9am on that day, not now. */
+    const fresh = defaultStart
+      ? new Date(
+          defaultStart.getFullYear(),
+          defaultStart.getMonth(),
+          defaultStart.getDate(),
+          9,
+          0,
+          0,
+          0,
+        ).toISOString()
+      : new Date(Date.now() + 3_600_000).toISOString();
+    setStart(toLocalInput(event?.starts_at ?? fresh));
     setEnd(toLocalInput(event?.ends_at ?? null));
     setAllDay(event?.all_day ?? false);
     setLocation(event?.location ?? "");
     setDescription(event?.description ?? "");
     setProjectId(event?.project_id ?? "");
-  }, [open, event]);
+  }, [open, event, defaultStart]);
+
 
   const save = async () => {
     if (!title.trim()) {

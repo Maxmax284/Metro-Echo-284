@@ -14,6 +14,8 @@ import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
 import { CalendarSyncPanel } from "@/components/schedule/CalendarSyncPanel";
 import { CalendarOnlyView } from "@/components/schedule/CalendarOnlyView";
 import { MonthGrid } from "@/components/schedule/MonthGrid";
+import { WeekPlanner } from "@/components/schedule/WeekPlanner";
+
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
@@ -227,31 +229,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           </div>
         ) : (
           <div className="space-y-3">
-            {weekDays.length === 0 ? (
-              <Empty>Nothing on the next seven days — no meetings, no dated promises.</Empty>
-            ) : (
-              weekDays.map((day) => (
-                <Section key={day} title={day} Icon={Calendar} empty="">
-                  {[
-                    ...(eventsByDay[day] ?? []).map((e) => (
-                      <li key={e.id}>
-                        <AgendaRow event={e} onSetProject={(ev, p) => setProject(ev.id, p)} />
-                      </li>
-                    )),
-                    ...(byDay[day] ?? []).map((c) => (
-                      <CommitmentRow key={c.id} c={c} tz={timezone} dense onChanged={load} />
-                    )),
-                  ]}
-                </Section>
-              ))
-            )}
-            <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-              Meetings are read from your calendars — Echo never writes back. Filing one under a project is your own
-              structure and survives every re-sync.
-            </p>
+            <WeekPlanner />
             <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
           </div>
         )}
+
 
         <SurfaceAftermath surface="schedule" />
       </div>
