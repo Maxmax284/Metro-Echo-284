@@ -175,43 +175,19 @@ function IndexInner() {
         onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1.5">
-            <WorkspaceSwitcher />
-            <ModeBadge />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Analyze with Sherlock"
-              onClick={() => openSherlock({ entity_type: "freeform", title: "Ad-hoc analysis", text: "" })}
-              title="Analyze with Sherlock"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Projects"
-              onClick={() => setSurface("projects")}
-              title="Projects — Living Briefs"
-            >
-              <FolderKanban className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Documents"
-              title="Documents — drafts & reviews"
-            >
-              <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
-            </Button>
-
+            {/* The gear leads the cluster: Control Room must never scroll out
+                of reach on a phone. Bordered and labelled so it reads as the
+                door to settings, not decoration. */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Settings">
-                  <SettingsIcon className="h-3.5 w-3.5" />
+                <Button
+                  variant="ghost"
+                  className="h-8 gap-1.5 rounded-md px-2 ring-1 ring-border/70 hover:ring-primary/50"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                  <span className="text-[10px] uppercase tracking-wider">Settings</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[360px] max-w-full">
@@ -258,6 +234,39 @@ function IndexInner() {
                 </div>
               </SheetContent>
             </Sheet>
+            <WorkspaceSwitcher />
+            <ModeBadge />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Analyze with Sherlock"
+              onClick={() => openSherlock({ entity_type: "freeform", title: "Ad-hoc analysis", text: "" })}
+              title="Analyze with Sherlock"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Projects"
+              onClick={() => setSurface("projects")}
+              title="Projects — Living Briefs"
+            >
+              <FolderKanban className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Documents"
+              title="Documents — drafts & reviews"
+            >
+              <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
+            </Button>
+
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </Button>
