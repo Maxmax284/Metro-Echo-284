@@ -115,7 +115,7 @@ export function CalendarOnlyView() {
               {byDay[day].map((e) => (
                 <li key={e.id} className="flex items-start gap-2 text-[12.5px]">
                   <span className="mt-[3px] w-[76px] shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                    {eventTimeLabel(e)}
+                    {timeLabel(e)}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate">{e.title ?? "Untitled entry"}</div>
