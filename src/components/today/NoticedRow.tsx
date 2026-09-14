@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
 import { whyFor } from "@/lib/whySurfaced";
+import { freshenDayWords } from "@/lib/dayWords";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { MOTION_PRESS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
