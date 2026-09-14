@@ -175,7 +175,7 @@ export function reminderToSignal(
   scope: ScopeIdentity,
   now: number,
   timezone: string,
-  opts: { explicit?: boolean; weather?: AppointmentWeather | null } = {},
+  opts: { explicit?: boolean; weather?: AppointmentWeather | null; project?: string | null } = {},
 ): AwarenessSignal {
   const key = eventKey(e);
   const label = (e.title ?? "").trim() || "An untitled calendar entry";
