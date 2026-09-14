@@ -580,66 +580,104 @@ export function CapturesView({ ambiguousOnly = false }: { ambiguousOnly?: boolea
         </div>
       )}
 
+      {/* One control row. The Inbox had three stacked bars — a filter strip, a
+          select bar and a dismissed toggle — before a single item appeared.
+          Filtering is a rare move, so it lives behind a menu that names the
+          current view; selecting many is the only tap that earns the surface. */}
       {!ambiguousOnly && (
-        <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1.5 overflow-x-auto px-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={cn(
-                "shrink-0 snap-start rounded-full border px-2.5 py-1 text-[11px] transition-colors",
-                filter === f.id
-                  ? "border-primary/40 bg-primary/15 text-primary"
-                  : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 text-[11px]">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+                  filter === "all" && !showDismissed
+                    ? "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground"
+                    : "border-primary/40 bg-primary/15 text-primary",
+                )}
+              >
+                <SlidersHorizontal className="h-3 w-3" />
+                {showDismissed
+                  ? "Dismissed"
+                  : (FILTERS.find((f) => f.id === filter)?.label ?? "All")}
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              {FILTERS.map((f) => (
+                <DropdownMenuItem
+                  key={f.id}
+                  onClick={() => { setFilter(f.id); setShowDismissed(false); }}
+                  className="text-[12px]"
+                >
+                  {f.label}
+                  {filter === f.id && !showDismissed && <Check className="ml-auto h-3 w-3 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowDismissed((s) => !s)} className="text-[12px]">
+                {`Dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
+                {showDismissed && <Check className="ml-auto h-3 w-3 text-primary" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={refresh} className="text-[12px]">
+                Check again
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <button
-            onClick={refresh}
-            className="ml-auto shrink-0 rounded-md p-1.5 text-muted-foreground hover:text-foreground"
-            title="Refresh"
-            aria-label="Refresh"
+            type="button"
+            onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+              selectMode
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+            )}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <CheckSquare className="h-3 w-3" />
+            {selectMode ? "Done" : "Select"}
+          </button>
+          {selectMode && selectedIds.size > 0 && (
+            <span className="text-muted-foreground">{selectedIds.size} picked</span>
+          )}
+        </div>
+      )}
+
+      {ambiguousOnly && (
+        <div className="flex items-center gap-2 text-[11px]">
+          <button
+            type="button"
+            onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+              selectMode
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <CheckSquare className="h-3 w-3" />
+            {selectMode ? "Done" : "Select"}
+          </button>
+          {selectMode && selectedIds.size > 0 && (
+            <span className="text-muted-foreground">{selectedIds.size} picked</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowDismissed((s) => !s)}
+            className={cn(
+              "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
+              showDismissed
+                ? "border-primary/40 bg-primary/15 text-primary"
+                : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
           </button>
         </div>
       )}
 
-      {/* Bulk-select toolbar — available in both lanes. Lets the user
-          connect many captures to one place in a single tap. */}
-      <div className="flex items-center justify-between gap-2 text-[11px]">
-        <button
-          type="button"
-          onClick={() => { setSelectMode((s) => !s); setSelectedIds(new Set()); }}
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
-            selectMode
-              ? "border-primary/40 bg-primary/15 text-primary"
-              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <CheckSquare className="h-3 w-3" />
-          {selectMode ? "Done selecting" : "Select multiple"}
-        </button>
-        {selectMode && selectedIds.size > 0 && (
-          <span className="text-muted-foreground">{selectedIds.size} picked</span>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDismissed((s) => !s)}
-          className={cn(
-            "ml-auto inline-flex items-center gap-1 rounded-full border px-2.5 py-1 transition-colors",
-            showDismissed
-              ? "border-primary/40 bg-primary/15 text-primary"
-              : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-          )}
-          title="Toggle dismissed items"
-        >
-          {showDismissed ? "Showing dismissed" : `Show dismissed${dismissed.size ? ` (${dismissed.size})` : ""}`}
-        </button>
-      </div>
 
       {loading && (
         <div className="rounded-md border border-dashed border-border/60 py-6 text-center text-[12px] text-muted-foreground">
