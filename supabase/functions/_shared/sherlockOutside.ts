@@ -24,6 +24,8 @@ const STOPWORDS = new Set([
   "there", "where", "when", "who", "how", "why", "regarding", "please", "find",
   "search", "look", "check", "tell", "know", "you", "your", "echo", "sherlock",
   "have", "into", "over", "some", "show", "give", "get", "got", "his", "her",
+  "anyone", "anybody", "someone", "somebody", "everyone", "everybody", "sent",
+  "send", "read", "reply", "replied", "answer", "anything", "something",
 ]);
 
 /** The words worth searching a Drive by name for. Empty means "recent files". */
