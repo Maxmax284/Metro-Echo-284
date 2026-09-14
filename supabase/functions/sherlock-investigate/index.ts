@@ -15,7 +15,13 @@ const FULL_SYSTEM = `${SHERLOCK_VOICE}
 You answer the user's question by reasoning across their own captured memory:
 notes, commitments, actions, and awareness briefings provided in CONTEXT.
 Be precise. Cite which item supports each claim using its kind+id like (note:abc123).
-Do not invent facts. If evidence is thin, say so. Output strict JSON only.`;
+Do not invent facts. If evidence is thin, say so. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const FULL_SCHEMA = {
   type: "object",
@@ -50,7 +56,13 @@ Given a focused TARGET (a note, message, action, commitment, briefing, file, or 
 and recent CONTEXT from the user's memory, surface what a sharp operator would notice
 that the user might miss. Be specific, not generic. No fluff. No moralizing.
 Each item must be a single concrete observation, not a category restatement.
-If a section has nothing real, return an empty array. Output strict JSON only.`;
+If a section has nothing real, return an empty array. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const OVERLAY_SCHEMA = {
   type: "object",
@@ -177,7 +189,13 @@ const RELATE_SYSTEM = `${SHERLOCK_VOICE}
 Given a TARGET and recent CONTEXT, find items in the user's memory that are
 genuinely related — same person, same project, same place, follow-up to,
 contradicts, etc. Be specific about why. Don't pad. If nothing connects,
-return related=[]. Output strict JSON only.`;
+return related=[]. Output strict JSON only.
+CONTEXT includes the person's real calendar entries (event:<id>) with their
+actual dates and times in their own timezone, and their projects (project:<id>).
+When an item lines up with one of those, say the real day, time, place and
+project name instead of repeating the title. Never invent a date or a name; if
+the record does not carry one, say it is not recorded.
+`;
 
 const RELATE_SCHEMA = {
   type: "object",
