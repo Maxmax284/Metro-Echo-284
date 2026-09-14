@@ -90,6 +90,10 @@ export default function Settings() {
         </div>
       )}
 
+      {/* The install door lives at the top of the control room so it isn't
+          buried three taps deep. It vanishes once the app is installed. */}
+      <InstallVantaSection />
+
       {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />
 
