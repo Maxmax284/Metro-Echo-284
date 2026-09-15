@@ -6,6 +6,7 @@ import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { ThreadRail, ThreadBar } from "@/components/ask/ThreadSpine";
+import { AskRoom } from "@/components/ask/AskRoom";
 import { MemorySurface } from "@/components/surfaces/MemorySurface";
 import { CommitmentsSurface } from "@/components/surfaces/CommitmentsSurface";
 import { ActionsSurface } from "@/components/surfaces/ActionsSurface";
@@ -312,7 +313,7 @@ function IndexInner() {
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
             {surface === "work" && <WorkSurface onNavigate={setSurface} />}
             {surface === "ask" && (
-              <div className="flex min-h-0 flex-1">
+              <AskRoom>
                 <ThreadRail />
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <ThreadBar />
@@ -320,7 +321,7 @@ function IndexInner() {
                     <ConversationSurface />
                   </div>
                 </div>
-              </div>
+              </AskRoom>
             )}
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
 
