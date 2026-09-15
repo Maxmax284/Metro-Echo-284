@@ -25,9 +25,8 @@ export type CalReadEvent = {
 export function dedupeEvents(events: CalReadEvent[]): CalReadEvent[] {
   const seen = new Set<string>();
   return (events ?? []).filter((e) => {
-    const key = e.uid
-      ? `uid:${e.uid}`
-      : `${(e.title ?? "").trim().toLowerCase()}|${e.starts_at}|${e.ends_at ?? ""}`;
+    const who = e.uid ? `uid:${e.uid}` : (e.title ?? "").trim().toLowerCase();
+    const key = `${who}|${e.starts_at}|${e.ends_at ?? ""}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
