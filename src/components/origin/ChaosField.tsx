@@ -65,7 +65,10 @@ export function ChaosField() {
           <div className="relative h-[46vh] sm:h-[44vh]">
             {FRAGMENTS.map((f, i) => {
               const restY = 6 + i * 11;
-              const x = f.x + (48 - f.x) * p * 0.92;
+              /* Cards are 62% wide, so 38 is the furthest left edge that keeps
+                 one fully on a 384px screen. Chaos never costs readability. */
+              const startX = Math.min(f.x, 36);
+              const x = startX + (6 - startX) * p;
               const y = f.y + (restY - f.y) * p;
               return (
                 <div
@@ -77,8 +80,8 @@ export function ChaosField() {
                   style={{
                     left: `${x}%`,
                     top: `${y}%`,
-                    transform: `translateY(${still ? 0 : Math.sin((Date.now() / 2600 + f.d) * 0) }px) scale(${1 - p * 0.12})`,
-                    transition: still ? "none" : "opacity 500ms var(--ease-out)",
+                    transform: `scale(${1 - p * 0.12})`,
+                    transition: still ? "none" : "opacity var(--motion-slow) var(--ease-out)",
                   }}
                 >
                   <p className="text-[9.5px] font-semibold uppercase tracking-[0.18em] text-primary/80">{f.kind}</p>
