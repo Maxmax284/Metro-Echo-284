@@ -227,7 +227,14 @@ export function useAskTurn(opts?: {
       if (finalContent) {
         const { data: inserted } = await supabase.from("messages").insert([
           { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
-          { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
+          {
+            user_id: session.user.id,
+            conversation_id: threadId,
+            role: "assistant",
+            content: finalContent,
+            /* Only recorded reads travel with the answer. No reads, no claim. */
+            ...(readLines.length ? { metadata: { reads: readLines } } : {}),
+          },
         ]).select("id");
         if (inserted) {
           const { generateEmbedding } = await import("@/lib/embeddings");
