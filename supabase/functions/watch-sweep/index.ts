@@ -19,6 +19,8 @@ import {
   type CheckResult,
   type WatchRow,
 } from "../_shared/watch.ts";
+import { fetchPage } from "../_shared/webFetch.ts";
+import { checkPage } from "../_shared/webLook.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -154,6 +156,65 @@ Deno.serve(async (req: Request) => {
                 },
               })
               .eq("id", row.id);
+          }
+        }
+      } else if (row.kind === "web_page") {
+        /* One public page, read the same way every time. Silence when nothing
+           moved; one plain sentence when it did. Echo never signs in, so a page
+           that turns into a login wall ends the watch honestly. */
+        const url = String(row.success_when?.url ?? "");
+        if (!url) {
+          result = { state: "couldnt_finish", outcome: "That watch has no page address on it." };
+        } else {
+          const got = await fetchPage(url);
+          if (!got.ok) {
+            const misses = Number(row.success_when?.misses ?? 0) + 1;
+            if (misses >= 3) {
+              result = { state: "couldnt_finish", outcome: got.line };
+            } else {
+              result = { state: "watching", outcome: null };
+              await admin
+                .from("watches")
+                .update({ success_when: { ...row.success_when, misses } })
+                .eq("id", row.id);
+            }
+          } else {
+            const checked = checkPage(
+              { url, fingerprint: (row.success_when?.fingerprint as string | null) ?? null },
+              got.read,
+            );
+            if ("failed" in checked) {
+              result = { state: "couldnt_finish", outcome: checked.outcome };
+            } else if (checked.changed) {
+              result = { state: "needs_you", outcome: checked.outcome };
+              /* Today already reads nudges, so a real change lands where the
+                 person already looks — one row, deduped per page per day. */
+              await admin.from("nudges").upsert({
+                user_id: row.user_id,
+                organization_id: row.organization_id ?? null,
+                kind: "web_page_changed",
+                title: checked.outcome,
+                body: `${row.goal}. Echo read the page, nothing else. Open it to see what moved.`,
+                priority: 65,
+                related_entity_type: "watch",
+                related_entity_id: row.id,
+                dedupe_key: `web.page.changed:${row.id}:${now.toISOString().slice(0, 10)}`,
+                status: "pending",
+                expires_at: new Date(now.getTime() + 3 * 86400_000).toISOString(),
+              }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+              await admin
+                .from("watches")
+                .update({ success_when: { ...row.success_when, fingerprint: checked.fingerprint, misses: 0 } })
+                .eq("id", row.id);
+            } else {
+              result = { state: "watching", outcome: null };
+              await admin
+                .from("watches")
+                .update({
+                  success_when: { ...row.success_when, fingerprint: checked.fingerprint, misses: 0 },
+                })
+                .eq("id", row.id);
+            }
           }
         }
       } else {

@@ -19,7 +19,6 @@ import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 import { fetchPage } from "../_shared/webFetch.ts";
 import {
   BLOCK_LINE,
-  readPage,
   safeUrl,
   sourceLine,
   webWatchGoal,
