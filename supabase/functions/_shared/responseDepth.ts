@@ -84,6 +84,8 @@ export const BODY_DEPTH: Record<VantaBody, DepthSpec> = {
 export function bodyForDevice(device?: string | null): VantaBody {
   switch (device) {
     case "wearable":
+    /* Glasses-class bodies get a glance, never a paragraph in your eyeline. */
+    case "ambient":
       return "wrist";
     case "earbuds":
     case "vehicle":
