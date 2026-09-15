@@ -1222,13 +1222,19 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   }
 
   /* The same "why this" the screen shows, one line, from recorded outcomes
-     only. Field replies already carry theirs; this covers everything else. */
+     only. Chat is a conversation: a plain read of the person's own desks does
+     NOT earn a provenance line — they asked, Echo answered. The line is kept
+     for the cases where the source genuinely matters: a document, a file, an
+     image, a note Echo leaned on, or something filed that still needs review. */
+  const evidenceBacked = /document|file|image|photo|attachment|note|transcript/i.test(
+    String(detectedType ?? ""),
+  ) || linkKind === "documents";
   const whyLine = replyWhyLine({
     routedTo,
     detectedType,
     readOnly,
     needsReview: userMeta.needs_review === true,
-    usedRecords: readOnly ? ["your own records in Metro Echo"] : [],
+    usedRecords: readOnly && evidenceBacked ? ["your own records in Metro Echo"] : [],
     at: new Date().toISOString(),
   });
   if (whyLine) reply = `${reply}\n\n${whyLine}`;

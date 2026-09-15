@@ -11,6 +11,7 @@
 import {
   clockLabel,
   dayKey,
+  dedupeEvents,
   eventsOnDay,
   ongoingAt,
   overlapsOnDay,
