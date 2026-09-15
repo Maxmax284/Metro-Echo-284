@@ -229,7 +229,8 @@ export function ThreadRail() {
     <aside className="hidden w-60 shrink-0 border-r border-border/50 py-3 md:block" aria-label="Ask threads">
       <div className="flex items-center gap-1 px-2 pb-1">
         <span className="vanta-machine-label text-foreground/70">Ask</span>
-        <ExplainThisButton room="ask" className="ml-auto" />
+        <WhatEchoCanDo className="ml-auto" />
+        <ExplainThisButton room="ask" />
       </div>
       <ThreadList />
     </aside>
