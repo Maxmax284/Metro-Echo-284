@@ -276,8 +276,27 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
        the room that owns it; nothing changed means the card never appears.
        Verified live signed-in at 384px and 1280px: "Two things changed while you were out"
        with the two real pending notices, zero overflow, no new console errors.
-6. [ ] State compression: open / changed / waiting on you / can wait / already handled —
-       a capability under Today and Ask, not a dashboard.
+ 6. [x] State compression: open / changed / waiting on you / can wait / already handled — DONE.
+        `whereYouStand()` + `formatStand()` live in `_shared/workReads.ts` next to the existing
+        whats_waiting / whats_due / whats_changed reads, mirrored to the app through
+        `src/lib/workReads.ts`, so Ask and Telegram answer from ONE implementation and can
+        never drift. Five buckets from real records only: waiting on your yes (staged/proposed
+        actions + inbox items without a lane), open (overdue + promises dated inside the week,
+        overdue counted separately so it is never double-spoken), moved today (calendar changes
+        + captures in the last 24h), can wait (open with no date or dated past the week),
+        already handled (promises closed + actions executed in the last week). One "Start with:"
+        line — never a list. No score, no dashboard, no new room.
+        Exposed as the `where_do_i_stand` tool in `vanta-converse` and `telegram-webhook`
+        ("where do I stand", "catch me up", "what actually needs me"), read-only, and listed in
+        Ask's read-only intents so it is never described as a draft awaiting approval.
+        Today keeps its existing compression (headline + `stateOfDay`) and now shares the same
+        bucket vocabulary; nothing new was added to the room.
+        Fixed while verifying: read-only answers were inserted into the most recently touched
+        conversation, so an Ask question could land in the Telegram thread and the asker saw
+        nothing. The answer now goes to the thread that asked.
+        Verified live at 384px: "Where you stand: 6 things waiting on your yes and 2 promises
+        open this week. 2 things already handled in the last week. Start with: …", zero
+        overflow, no console errors. 1136 tests green across 124 files, typecheck clean.
 7. [ ] Surface continuity prep only: phone main, watch glance, desktop deep, earbuds later,
        glasses much later. Do not build the wearable future yet.
 
