@@ -16,10 +16,9 @@ import { unauthorized } from "../_shared/errors.ts";
 import { jsonResponse, preflight } from "../_shared/http.ts";
 import { adminClient, runGuarded } from "../_shared/apiGuard.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
+import { fetchPage } from "../_shared/webFetch.ts";
 import {
   BLOCK_LINE,
-  fetchFailLine,
-  hostLabel,
   readPage,
   safeUrl,
   sourceLine,
@@ -37,45 +36,6 @@ const Body = z.object({
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY") ?? "";
-const FETCH_TIMEOUT_MS = 12_000;
-const MAX_BYTES = 1_500_000;
-
-/** Fetch one public page as a browser-ish reader. Never follows a login. */
-export async function fetchPage(url: string): Promise<
-  { ok: true; read: PageRead } | { ok: false; line: string }
-> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-  try {
-    const r = await fetch(url, {
-      redirect: "follow",
-      signal: ctrl.signal,
-      headers: {
-        "User-Agent": "MetroEcho/1.0 (+https://metroecho.lovable.app)",
-        Accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
-    if (!r.ok) return { ok: false, line: fetchFailLine(r.status, hostLabel(url)) };
-    const type = (r.headers.get("content-type") ?? "").toLowerCase();
-    if (!type.includes("html") && !type.includes("text") && !type.includes("json")) {
-      return { ok: false, line: `${hostLabel(url)} answered with a file Echo cannot read as a page.` };
-    }
-    const body = (await r.text()).slice(0, MAX_BYTES);
-    return { ok: true, read: readPage(r.url || url, body) };
-  } catch (e) {
-    const aborted = e instanceof Error && e.name === "AbortError";
-    return {
-      ok: false,
-      line: aborted
-        ? `${hostLabel(url)} took too long to answer.`
-        : `Echo could not reach ${hostLabel(url)}.`,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function answerFrom(question: string, read: PageRead): Promise<string> {
   if (!LOVABLE_API_KEY) return read.text.slice(0, 1200);
   const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
