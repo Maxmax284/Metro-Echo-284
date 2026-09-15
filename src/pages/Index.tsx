@@ -312,7 +312,7 @@ function IndexInner() {
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
             {surface === "work" && <WorkSurface onNavigate={setSurface} />}
             {surface === "ask" && (
-              <div className="flex min-h-0 flex-1">
+              <AskRoom>
                 <ThreadRail />
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <ThreadBar />
@@ -320,7 +320,7 @@ function IndexInner() {
                     <ConversationSurface />
                   </div>
                 </div>
-              </div>
+              </AskRoom>
             )}
             {surface === "command" && <CommandCenterSurface onNavigate={setSurface} />}
 
