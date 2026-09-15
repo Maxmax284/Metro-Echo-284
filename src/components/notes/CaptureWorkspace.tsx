@@ -69,7 +69,7 @@ export function CaptureWorkspace() {
   const { user } = useAuth();
   const { scopeFields } = useScope();
   const { record: recordRoute } = useCaptureRoute();
-  const { stage } = useStageAction();
+  const stage = useStageAction();
   const { active: activeThread } = useAskThreads();
 
   const [mode, setMode] = useState<CaptureMode>("typed");
@@ -201,15 +201,19 @@ export function CaptureWorkspace() {
 
   /** A proposal only ever becomes a STAGED item awaiting the normal approval. */
   const addFollowUp = async (p: FollowUpProposal) => {
-    const res = await stage({
-      title: p.text.slice(0, 120),
-      kind: p.destination === "action" ? "task" : "commitment",
-      summary: `From a captured conversation${savedNoteId ? "" : " (unsaved)"}.`,
-      payload: { from_capture: savedNoteId, layer: p.from },
-    } as never);
-    if (res !== false) {
+    try {
+      await stage({
+        title: p.text.slice(0, 120),
+        description: `Pulled out of a captured conversation. Nothing has run.`,
+        risk: "low_reversible",
+        status: "proposed",
+        source: savedNoteId ? `note:${savedNoteId}` : "capture",
+        payload: { from_capture: savedNoteId, layer: p.from, destination: p.destination },
+      });
       setStaged((prev) => [...prev, p.id]);
       toast.success({ title: "Waiting on your yes in Work", description: "Nothing has happened yet." });
+    } catch (e) {
+      toast.fromError(e);
     }
   };
 
