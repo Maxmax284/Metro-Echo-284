@@ -28,6 +28,7 @@ import { resolveReminderReference } from "@/lib/reminderActions";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
 import { travelAnswer } from "@/lib/travelAnswer";
 import { crossSourceReply, type AnchorRow } from "@/lib/crossSourceAnswer";
+import { whereYouStand } from "@/lib/workReads";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -456,7 +457,6 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           toast.success({ title: "Here's where you stand." });
-          onAck?.({ kind: "where_do_i_stand", summary: text.split("\n")[0] });
         } else if (kind === "search_mail" || kind === "find_file") {
           // Your own Google, read only. Not switched on is said plainly — Echo
           // never guesses what a message or a file said.
