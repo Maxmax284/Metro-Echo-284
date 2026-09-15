@@ -139,9 +139,14 @@ export function mergeContext(base: VantaContext, update: VantaContext): VantaCon
   return out;
 }
 
-/** Moving to another body keeps the thread and remembers where we came from. */
+/**
+ * Moving to another body keeps the thread and remembers where we came from.
+ * A body arriving with no idea what it was before must not erase the body the
+ * hand-off actually came from — "unknown" is the last resort, not the default.
+ */
 export function handoff(ctx: VantaContext, to: DeviceClass): VantaContext {
-  return mergeContext(ctx, { lastDeviceClass: ctx.deviceClass ?? "unknown", deviceClass: to });
+  const from = ctx.deviceClass ?? ctx.lastDeviceClass ?? "unknown";
+  return mergeContext(ctx, { lastDeviceClass: from, deviceClass: to });
 }
 
 /**
