@@ -17,6 +17,7 @@ import { useScope } from "@/hooks/useScope";
 import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
+import { WhatEchoCanDo } from "@/components/ask/WhatEchoCanDo";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
 
