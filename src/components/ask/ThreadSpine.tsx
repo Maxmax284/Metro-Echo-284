@@ -265,6 +265,7 @@ export function ThreadBar() {
           </span>
         </span>
       </button>
+      <WhatEchoCanDo />
       <ExplainThisButton room="ask" />
       {streaming && active && (
         <Button
