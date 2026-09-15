@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/ui/state-views";
 import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
+import { RemindMeButton } from "@/components/schedule/RemindMeButton";
+import { loadRemindedSubjects, watchSubjectFor } from "@/lib/remindMe";
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { getGoogleMirrorOn, setGoogleMirrorOn } from "@/lib/echoCalendar";
 import { vantaToast as toast } from "@/lib/vantaVoice";
@@ -165,6 +167,21 @@ export function WeekPlanner() {
   };
 
   const eventsByDay = useMemo(() => bucketByDay(events, (e) => e.starts_at), [events]);
+
+  /* Entries the person asked about themselves. Their word outranks inference. */
+  const [reminded, setReminded] = useState<Set<string>>(new Set());
+  const loadReminded = async () => {
+    if (events.length === 0) return setReminded(new Set());
+    try {
+      setReminded(await loadRemindedSubjects(events.map((e) => watchSubjectFor(e))));
+    } catch {
+      /* No badge beats a wrong badge. */
+    }
+  };
+  useEffect(() => {
+    void loadReminded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.length]);
   const promisesByDay = useMemo(
     () => bucketByDay(promises, (p) => p.due_at ?? p.remind_at),
     [promises],
@@ -335,6 +352,14 @@ export function WeekPlanner() {
                           {e.origin === "echo" && e.sync_state === "synced" && <span>In Google too</span>}
                         </div>
                       </div>
+                      {/* Their own ask about one entry, louder than Echo's judgement. */}
+                      {!e.all_day && (
+                        <RemindMeButton
+                          event={e}
+                          reminded={reminded.has(watchSubjectFor(e))}
+                          onChanged={() => void loadReminded()}
+                        />
+                      )}
                       {e.origin === "echo" ? (
                         <button
                           aria-label={`Edit ${e.title ?? "this entry"}`}
