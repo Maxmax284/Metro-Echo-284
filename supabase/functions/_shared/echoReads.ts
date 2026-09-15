@@ -22,6 +22,7 @@ import {
   whereYouStand,
   type ScopeArgs,
 } from "./workReads.ts";
+import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
@@ -30,6 +31,8 @@ export const ECHO_READ_NAMES = [
   "whats_changed",
   "project_status",
   "where_do_i_stand",
+  "find_note",
+  "what_was_decided",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -45,6 +48,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   whats_changed: "what moved recently",
   project_status: "one project's record",
   where_do_i_stand: "the whole board",
+  find_note: "your captured notes",
+  what_was_decided: "what your captures recorded as mattering",
 };
 
 /**
@@ -96,6 +101,36 @@ export const ECHO_READ_TOOLS = [
         type: "object",
         properties: { project: { type: "string" } },
         required: ["project"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_note",
+      description:
+        "Read-only: find the user's own captured notes by keyword. Use for 'find the note where we discussed X', 'did I write anything about Y'.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string", description: "Words to look for in the note." } },
+        required: ["query"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "what_was_decided",
+      description:
+        "Read-only: what recent captures recorded as decisions, follow-ups and open questions. Use for 'what did we decide', 'pull out the follow-ups'. Reports only what was already recorded on the capture.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Optional subject to narrow to." },
+          want: { type: "string", enum: ["decisions", "followUps", "all"] },
+        },
         additionalProperties: false,
       },
     },
@@ -158,6 +193,18 @@ export async function runEchoRead(
     }
     case "where_do_i_stand": {
       const { text } = await whereYouStand(sb, scope);
+      return { name, text, source };
+    }
+    case "find_note": {
+      const query = String(a.query ?? "");
+      const hits = await findNotes(sb, scope, query);
+      return { name, text: formatNoteHits(hits, query), source };
+    }
+    case "what_was_decided": {
+      const text = await whatWasDecided(sb, scope, {
+        query: a.query ? String(a.query) : undefined,
+        want: (a.want as "decisions" | "followUps" | "all" | undefined) ?? "all",
+      });
       return { name, text, source };
     }
   }

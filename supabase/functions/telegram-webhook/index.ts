@@ -8,6 +8,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { firstPassIntake } from "../_shared/fileIntake.ts";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "../_shared/watchApply.ts";
 import { replyWhyLine } from "../_shared/telegramWhy.ts";
+import { routeInbound, routeReceipt, type ThreadRoute } from "../_shared/threadRouting.ts";
 import { buildActionRow } from "../_shared/actionStaging.ts";
 import {
   approvalOutcomeLine,
@@ -780,11 +781,12 @@ async function telegramConversation(
   userId: string,
   orgId: string | null,
   chatId: string | number,
-): Promise<{ id: string; state: Record<string, unknown> } | null> {
+  text = "",
+): Promise<{ id: string; state: Record<string, unknown>; route: ThreadRoute } | null> {
   const key = String(chatId);
   const { data: found } = await sb
     .from("conversations")
-    .select("id, state")
+    .select("id, state, scope, last_message_at, updated_at")
     .eq("user_id", userId)
     .eq("state->>channel", "telegram")
     .eq("state->>chat_id", key)
@@ -792,11 +794,27 @@ async function telegramConversation(
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (found?.id) {
+
+  /* Where this message belongs is decided by the shared router, so Telegram
+     cannot drift from Ask: a warm situation continues, a cold one starts fresh,
+     an unanswered draft keeps the floor, and scope is never crossed. */
+  const lastAt = (found?.last_message_at ?? found?.updated_at) as string | null | undefined;
+  const route = routeInbound({
+    text,
+    msSinceLastMessage: lastAt ? Date.now() - Date.parse(lastAt) : null,
+    scope: orgId ? "organization" : "personal",
+    openThreadScope: (found?.scope as "personal" | "organization" | null) ?? null,
+    hasOpenThread: !!found?.id,
+    openThreadAwaitingAnswer: !!activeCalendarDraft(
+      (found?.state as Record<string, unknown> | null)?.calendar_draft,
+    ),
+  });
+
+  if (found?.id && route.decision !== "fresh") {
     await sb.from("conversations")
       .update({ ...(orgId ? { organization_id: orgId } : {}), last_message_at: new Date().toISOString() })
       .eq("id", found.id);
-    return { id: found.id, state: (found.state as Record<string, unknown>) ?? {} };
+    return { id: found.id, state: (found.state as Record<string, unknown>) ?? {}, route };
   }
   const { data: made, error } = await sb
     .from("conversations")
@@ -816,8 +834,9 @@ async function telegramConversation(
     console.error("telegram conversation create failed", error.message);
     return null;
   }
-  return made ? { id: made.id, state: (made.state as Record<string, unknown>) ?? {} } : null;
+  return made ? { id: made.id, state: (made.state as Record<string, unknown>) ?? {}, route } : null;
 }
+
 
 async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId: string | null = null, chatId: string | number | null = null) {
   /* "How do I use you?" is fixed copy from the shared guide — the same words the
@@ -853,7 +872,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   const plan = routeRequest({ text, scope: orgId ? "organization" : "personal", organization_id: orgId, verbosity: "brief" });
 
   // Telegram's own thread — same memory, same scope, just the pocket form of it.
-  const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId);
+  const conv = chatId == null ? null : await telegramConversation(sb, userId, orgId, chatId, text);
   const calendarDraft = activeCalendarDraft(conv?.state?.calendar_draft);
 
   if (plan.field) {
@@ -1167,6 +1186,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     userMeta.conversation_only = true;
   }
   let userMsgId: string | null = null;
+  if (conv?.route) {
+    // Why this message landed where it did, in the transcript itself.
+    userMeta.thread_route = conv.route.decision;
+    userMeta.thread_route_reason = routeReceipt(conv.route);
+  }
   if (conv?.id) {
     const { data: ins } = await sb.from("messages").insert([
       { user_id: userId, organization_id: orgId, conversation_id: conv.id, role: "user", content: text, metadata: userMeta },
