@@ -2,6 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildSignalDetail, signalQuality, type SignalDetail } from "./awareness/inbound.ts";
 import { reachInboundSignal } from "./awareness/inboundReach.ts";
+import {
+  INBOUND_NOTICE_KIND,
+  noticeBody,
+  noticeDedupeKey,
+  noticePriority,
+  noticeTitle,
+  shouldRaiseNotice,
+} from "./awareness/inboundNotice.ts";
 
 /** Threads holding inbound bridge captures — hidden from every Ask surface. */
 export const CAPTURE_SPOOL_KIND = "capture_bridge";
@@ -488,7 +496,7 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
 
   // Immediate reach. The capture already landed, so a delivery problem must
   // never fail the webhook — worst case the signal waits for Today.
-  let reach = { reached: false, reason: "not_attempted" as string };
+  let reach = { reached: false, reason: "not_attempted" as string, urgency: "attention" as string };
   try {
     reach = await reachInboundSignal(admin, {
       ownerId,
@@ -501,7 +509,44 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     });
   } catch (e) {
     console.warn("inbound reach failed", e instanceof Error ? e.message : e);
-    reach = { reached: false, reason: "send_failed" };
+    reach = { reached: false, reason: "send_failed", urgency: "attention" };
+  }
+
+  /*
+   * The on-screen half of the same reach. A signal loud enough for messaging is
+   * loud enough for Today, and someone with Telegram off must not be the only
+   * person who never hears about a failed payment. One dedupe identity across
+   * both surfaces, so this is one notice seen twice, never two notices.
+   * Best effort: the capture already landed and a notice problem must never
+   * fail the webhook.
+   */
+  let noticed = false;
+  try {
+    if (shouldRaiseNotice(reach.urgency as never)) {
+      const { error: noticeErr } = await admin.from("nudges").upsert(
+        {
+          user_id: ownerId,
+          organization_id: null,
+          kind: INBOUND_NOTICE_KIND,
+          title: noticeTitle(detail),
+          body: noticeBody(detail, {
+            displayName: config.displayName,
+            alsoSentToMessaging: reach.reached,
+          }),
+          related_entity_type: "capture",
+          related_entity_id: ins.id,
+          priority: noticePriority(reach.urgency as never),
+          status: "pending",
+          dedupe_key: noticeDedupeKey(idempotencyKey),
+          expires_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        },
+        { onConflict: "user_id,dedupe_key", ignoreDuplicates: true },
+      );
+      if (noticeErr) console.error("inbound notice failed", noticeErr.message);
+      else noticed = true;
+    }
+  } catch (e) {
+    console.warn("inbound notice failed", e instanceof Error ? e.message : e);
   }
 
   return json({
@@ -511,5 +556,6 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
     capture_id: ins.id,
     reached: reach.reached,
     reach_reason: reach.reason,
+    noticed,
   });
 }
