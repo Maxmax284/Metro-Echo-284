@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { useStageAction } from "@/hooks/useStageAction";
 import { useAuth } from "@/lib/auth";
-import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle, HelpCircle } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Search, Link2, Check, Inbox, AlertTriangle, HelpCircle, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
