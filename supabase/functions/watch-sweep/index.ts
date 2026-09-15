@@ -103,7 +103,7 @@ Deno.serve(async (req: Request) => {
           .eq("id", row.subject_id)
           .maybeSingle();
         result = settleFromAction((action as { status?: string } | null)?.status ?? null);
-      } else if (row.kind === "calendar_event" && row.subject_id) {
+      } else if (row.kind === "calendar_event" && (row.subject_id || row.success_when?.uid)) {
         /* Identity is the feed's own uid, not the database row: sync replaces
            rows, and a replaced row must never be reported as "gone". */
         const uid = String(row.success_when?.uid ?? "");
