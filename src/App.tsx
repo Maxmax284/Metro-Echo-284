@@ -46,6 +46,7 @@ import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
 import TelegramSetupPage from "./pages/TelegramSetup.tsx";
 import TelegramGuidePage from "./pages/TelegramGuidePage.tsx";
 import LocationSetupPage from "./pages/LocationSetup.tsx";
+import WhatIsMetroEcho from "./pages/WhatIsMetroEcho.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 
@@ -95,6 +96,7 @@ const App = () => {
                                 <Route path="/awareness/location" element={<LocationSetupPage />} />
 
                                 <Route path="/auth" element={<Auth />} />
+                                <Route path="/what-is-metro-echo" element={<WhatIsMetroEcho />} />
                                 <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
                                 <Route path="/oauth/google/return" element={<GoogleReturn />} />
                                 <Route path="/settings" element={<Settings />} />
