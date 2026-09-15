@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
             .limit(1);
           ev = (byUid?.[0] as never) ?? null;
         }
-        if (!ev) {
+        if (!ev && row.subject_id) {
           const { data: byId } = await admin
             .from("calendar_events")
             .select("title, starts_at, ends_at")
