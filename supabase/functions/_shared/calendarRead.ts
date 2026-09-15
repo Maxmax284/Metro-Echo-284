@@ -204,11 +204,13 @@ export type CalendarAnswer = {
 /** The one answer builder. Same words on every surface. */
 export function answerCalendarQuestion(
   query: CalendarQuery,
-  events: CalReadEvent[],
+  rawEvents: CalReadEvent[],
   ctx: { now?: string; tz?: string },
 ): CalendarAnswer {
   const nowIso = ctx.now ?? new Date().toISOString();
   const tz = ctx.tz || "UTC";
+  // One appointment, one line — two feeds carrying the same event say it once.
+  const events = dedupeEvents(rawEvents);
 
   if (query.kind === "conflicts") {
     const when = dayLabel(query.dayOffset, nowIso, tz);
