@@ -22,7 +22,7 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { WhyThis } from "@/components/ask/WhyThis";
-import { ThreadNav, JumpToLatest } from "@/components/ask/ThreadNav";
+import { ThreadNav, ThreadJump } from "@/components/ask/ThreadNav";
 
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
@@ -282,7 +282,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       </div>
       <ThreadNav msgs={msgs} scrollRef={scrollRef} />
       <div className="relative flex min-h-0 flex-1 flex-col">
-      <JumpToLatest scrollRef={scrollRef} deps={msgs.length} />
+      <ThreadJump scrollRef={scrollRef} deps={msgs.length} />
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
