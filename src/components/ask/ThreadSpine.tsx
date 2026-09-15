@@ -316,6 +316,40 @@ export function ThreadRail() {
         >
           {threads.length}
         </span>
+        {unread > 0 && (
+          <span
+            className="rounded-full bg-primary/15 px-1.5 font-mono text-[10px] text-primary"
+            title={`${unread} thread${unread === 1 ? "" : "s"} moved since you looked`}
+          >
+            {unread}
+          </span>
+        )}
+        {/* Pinned threads stay reachable while the rail is shut — two letters
+            each, so the strip stays a strip. */}
+        {pinned.length > 0 && (
+          <div className="mt-2 flex flex-col items-center gap-1 border-t border-border/40 pt-2">
+            {pinned.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { openThread(t.id); markSeen(t.id); setSeen(readSeen()); }}
+                title={threadLabel(t)}
+                aria-label={`Open ${threadLabel(t)}`}
+                className={cn(
+                  "vanta-focus relative flex h-8 w-8 items-center justify-center rounded-md font-mono text-[10px] transition-colors",
+                  t.id === activeId
+                    ? "bg-surface-elevated text-foreground ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:bg-surface-elevated/60 hover:text-foreground",
+                )}
+              >
+                {threadInitials(t)}
+                {isUnread(t, seen) && (
+                  <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
     );
   }
