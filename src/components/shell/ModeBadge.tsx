@@ -37,7 +37,9 @@ export function ModeBadge() {
           )}
         >
           <Icon className="h-3 w-3" />
-          <span>{MODE_LABEL[mode]}</span>
+          {/* On a phone the icon carries it: the word pushed the cluster past
+              384px. The label lives in aria-label, the title and the popover. */}
+          <span className="hidden sm:inline">{MODE_LABEL[mode]}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-1">
