@@ -162,6 +162,7 @@ import {
   whatsWaiting,
   whereYouStand,
 } from "../_shared/workReads.ts";
+import { ECHO_READ_TOOLS } from "../_shared/echoReads.ts";
 
 
 
@@ -237,11 +238,10 @@ const tools = [
   // Read-only questions. These never write anything.
   { type: "function", function: { name: "whats_on_calendar", description: "Read-only: read the user's real ingested calendar. Use for 'what's on my calendar', 'what do I have tomorrow', 'anything conflicting', 'what comes after my appointment'. Pass their exact wording in `when`; pass `event_reference` only when they asked what follows a specific event.", parameters: { type: "object", properties: { when: { type: "string", description: "Their own time wording: 'right now', 'tomorrow', 'Friday', 'anything conflicting tomorrow'." }, event_reference: { type: "string", description: "Their words for one event, when asking what comes after it." } }, additionalProperties: false } } },
   { type: "function", function: { name: "show_calendar_view", description: "Read-only: show a laid-out board of the real calendar for a day or the week ahead, with Echo's read over it (promises due, changes waiting on a yes, collisions). Use for 'show me my day', 'what does my week look like', 'walk me through Friday'. Never writes and never stages.", parameters: { type: "object", properties: { when: { type: "string", description: "Their own wording: 'today', 'tomorrow', 'this week'." }, span: { type: "string", enum: ["day", "week"] } }, additionalProperties: false } } },
-  { type: "function", function: { name: "whats_waiting", description: "Read-only: what is waiting on the user right now (drafts awaiting approval, overdue promises, Inbox items needing a lane). Use for 'what's waiting', 'what do I owe', 'anything on me'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
-  { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
-  { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
-  { type: "function", function: { name: "whats_changed", description: "Read-only: what moved recently across captures, promises, drafts and flagged items.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
-  { type: "function", function: { name: "where_do_i_stand", description: "Read-only: one compact read of where everything stands — what is waiting on them, what is open, what moved, what can wait, what is already handled. Use for 'where do I stand', 'give me the state of things', 'what actually needs me', 'catch me up'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
+  /* The desk reads come from the shared catalog, not a copy: Ask and Telegram
+     described the same read in slightly different words, which is how one Echo
+     starts sounding like two. One definition, both surfaces. */
+  ...ECHO_READ_TOOLS,
   { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
   // Long-running attention. These never write anywhere — they only keep looking.
   { type: "function", function: { name: "keep_an_eye_on", description: "The user wants you to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object — it only observes and reports, never writes or executes. Pass the user's own words as reference.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their own words for the thing to watch, e.g. 'my flight Friday' or 'the deposit'." }, kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." } }, required: ["reference"], additionalProperties: false } } },

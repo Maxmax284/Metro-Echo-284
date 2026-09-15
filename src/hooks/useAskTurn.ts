@@ -113,6 +113,8 @@ export function useAskTurn(opts?: {
     let aborted = false;
     let assistantSoFar = "";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
+    /* Plain-English provenance for the reads the server ran this turn. */
+    const readLines: string[] = [];
     let hints: AttachmentHint[] = [];
 
     const bound = o?.context ?? (active && active.id === threadId
@@ -176,6 +178,10 @@ export function useAskTurn(opts?: {
                 prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)),
               );
             }
+            /* The reads Echo performed before it wrote a word. These arrive
+               ahead of the text and are kept with the answer so "Why this?"
+               names real lookups instead of guessing at them. */
+            if (Array.isArray(p.reads)) readLines.push(...p.reads.map(String));
             if (p.intent) {
               /* One staging path only. Anything else double-writes the draft. */
               staged.push(p.intent);
@@ -221,7 +227,14 @@ export function useAskTurn(opts?: {
       if (finalContent) {
         const { data: inserted } = await supabase.from("messages").insert([
           { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
-          { user_id: session.user.id, conversation_id: threadId, role: "assistant", content: finalContent },
+          {
+            user_id: session.user.id,
+            conversation_id: threadId,
+            role: "assistant",
+            content: finalContent,
+            /* Only recorded reads travel with the answer. No reads, no claim. */
+            ...(readLines.length ? { metadata: { reads: readLines } } : {}),
+          },
         ]).select("id");
         if (inserted) {
           const { generateEmbedding } = await import("@/lib/embeddings");

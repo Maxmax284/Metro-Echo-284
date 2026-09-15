@@ -11,6 +11,14 @@ import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingR
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
 import {
+  ECHO_READ_TOOLS,
+  isEchoRead,
+  readProvenance,
+  readsBlock,
+  runEchoRead,
+  type EchoReadResult,
+} from "../_shared/echoReads.ts";
+import {
   routeRequest,
   sanitizeQuery,
   safeResearchLog,
@@ -796,15 +804,68 @@ Deno.serve(async (req: Request) => {
       }
     } catch (e) { console.error("ask thread context", e); }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, fileContextBlock, researchBlock]
+    /* Read before speaking.
+       Ask used to hand a read back to the browser, which pasted a canned
+       paragraph the model had never seen — so the answer and the numbers came
+       from two different places and a follow-up ("which first?") had nothing to
+       stand on. Now the reads run here, on the same shared code Telegram calls,
+       and their results go into the prompt as recorded fact. Reads only: this
+       pre-pass cannot capture, stage, approve or execute anything, so nothing
+       here touches the approval loop. */
+    const priorTurns = (history ?? []).filter((m: any) => m.role === "user" || m.role === "assistant");
+    const reads: EchoReadResult[] = [];
+    try {
+      const prepassKey = Deno.env.get("LOVABLE_API_KEY");
+      if (prepassKey) {
+        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${prepassKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              {
+                role: "system",
+                content: [
+                  "You decide which read-only lookups are needed to answer the last message. You do not answer it.",
+                  "Call every read that the answer genuinely depends on, and none that it does not.",
+                  "Most messages need no read at all — greetings, chat, questions about the calendar (already provided), and anything answerable from the conversation itself. In that case call nothing.",
+                ].join("\n"),
+              },
+              ...priorTurns.slice(-4),
+              { role: "user", content: message },
+            ],
+            tools: ECHO_READ_TOOLS,
+          }),
+        });
+        if (r.ok) {
+          const j = await r.json();
+          const calls = j?.choices?.[0]?.message?.tool_calls ?? [];
+          for (const c of calls.slice(0, 3)) {
+            let args: Record<string, unknown> = {};
+            try { args = JSON.parse(c?.function?.arguments || "{}"); } catch { args = {}; }
+            const got = await runEchoRead(supabase as never, String(c?.function?.name ?? ""), args, {
+              userId: user.id,
+              orgId: scopeOrgId,
+              tz,
+            });
+            if (got) reads.push(got);
+          }
+        } else {
+          console.error("[vanta] read pre-pass", r.status);
+        }
+      }
+    } catch (e) {
+      /* A failed read must never cost the person their answer — Echo simply
+         answers without it rather than claiming a read it did not perform. */
+      console.error("read pre-pass failed", e);
+    }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
-
-
-
 
     const messages = [
       { role: "system", content: sysWithCorrections },
-      ...(history ?? []).filter((m: any) => m.role === "user" || m.role === "assistant"),
+      ...priorTurns,
       { role: "user", content: message },
     ];
 
@@ -818,7 +879,10 @@ Deno.serve(async (req: Request) => {
         model: "google/gemini-2.5-flash",
         messages,
         stream: true,
-        tools,
+        /* Any read the pre-pass now owns is withheld from the answering model,
+           so the browser can never be asked to paste a second answer beside
+           the one being streamed. Write and staging tools are untouched. */
+        tools: tools.filter((t: any) => !isEchoRead(String(t?.function?.name ?? ""))),
       }),
     });
 
@@ -842,6 +906,14 @@ Deno.serve(async (req: Request) => {
         const reader = upstream.body!.getReader();
         let buf = "";
         const toolBuf = new Map<number, { name: string; args: string }>();
+
+        /* Provenance, up front: the reads that shaped this answer, in plain
+           English, so "Why this?" names real lookups instead of guessing. */
+        if (reads.length) {
+          controller.enqueue(
+            enc.encode(`data: ${JSON.stringify({ reads: readProvenance(reads) })}\n\n`),
+          );
+        }
 
         const flushTools = () => {
           for (const [, t] of toolBuf) {
