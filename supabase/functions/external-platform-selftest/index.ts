@@ -81,14 +81,23 @@ Deno.serve(async (req) => {
 
   const eventId = crypto.randomUUID();
   const timestamp = Math.floor(Date.now() / 1000);
+  /* Owner may name a real event shape to rehearse (a failed payment, an urgent
+     guest request) instead of only the background test ping. Still signed, still
+     the same inbound path, still lands as a capture for review. */
+  const requestedEvent = String(body?.event_type ?? "integration.test");
+  const eventType = config.allowedEvents.includes(requestedEvent) ? requestedEvent : "integration.test";
+  const requestedPayload =
+    body?.payload && typeof body.payload === "object" && !Array.isArray(body.payload)
+      ? (body.payload as Record<string, unknown>)
+      : null;
   const envelope = {
     source_platform: sourcePlatform,
-    event_type: "integration.test",
+    event_type: eventType,
     event_id: eventId,
     user_id: ownerId,
     identity_strategy: "vanta_owner",
     timestamp,
-    payload: {
+    payload: requestedPayload ?? {
       test: true,
       sent_from: "vanta_selftest",
       note: "Self-test signal — should land as draft review.",
