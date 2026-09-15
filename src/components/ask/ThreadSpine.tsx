@@ -405,8 +405,10 @@ export function ThreadBar() {
           </span>
           <span className="block truncate text-[10px] text-muted-foreground">
             {streaming
-              ? "answering now · tap to switch"
-              : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap to switch`}
+              ? "answering now · tap or swipe in to switch"
+              : unread > 0
+                ? `${unread} moved since you looked · tap or swipe in to switch`
+                : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap or swipe in to switch`}
           </span>
         </span>
       </button>
