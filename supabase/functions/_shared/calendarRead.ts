@@ -263,9 +263,10 @@ export function answerAfterEvent(
 }
 
 /** Compact block for a model's context, so Ask reads the same rows Telegram does. */
-export function calendarContextBlock(events: CalReadEvent[], ctx: { now?: string; tz?: string }): string {
+export function calendarContextBlock(rawEvents: CalReadEvent[], ctx: { now?: string; tz?: string }): string {
   const nowIso = ctx.now ?? new Date().toISOString();
   const tz = ctx.tz || "UTC";
+  const events = dedupeEvents(rawEvents);
   if (!events.length) return "";
   const running = ongoingAt(events, nowIso);
   const next = upcomingFrom(events, nowIso, 8);
