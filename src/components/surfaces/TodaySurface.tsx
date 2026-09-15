@@ -12,6 +12,7 @@ import { TimeSourceLine } from "@/components/context/ContextSourceLine";
 import { TimezoneFollowPrompt } from "@/components/context/TimezoneFollowPrompt";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { SituationRead } from "@/components/today/SituationRead";
+import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
