@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { remindGoal, remindStopAt, watchSubjectFor } from "@/lib/remindMe";
+import { remindGoal, remindStopAt, remindSubjectRow, watchSubjectFor } from "@/lib/remindMe";
 
 describe("remind me", () => {
   it("watches the appointment's own identity, not the feed row", () => {
