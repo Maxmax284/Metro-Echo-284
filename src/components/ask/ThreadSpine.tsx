@@ -383,6 +383,11 @@ export function ThreadBar() {
   const [open, setOpen] = useState(false);
   const { active, threads } = useAskThreads();
   const streaming = useAskStreaming(active?.id);
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const unread = unreadCount(threads, seen);
+  // Pull in from the left edge to reach the threads, the way a phone expects.
+  useEdgeSwipe(useCallback(() => setOpen(true), []));
   return (
     <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2 md:hidden">
       <button
