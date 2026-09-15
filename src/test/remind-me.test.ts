@@ -23,3 +23,12 @@ describe("remind me", () => {
     expect(new Date(remindStopAt("not a date")).getTime()).toBeGreaterThan(Date.now());
   });
 });
+
+describe("watch identity", () => {
+  it("keeps a feed uid out of subject_id and only stores rows Echo owns", () => {
+    expect(remindSubjectRow("abc123@google.com")).toBeNull();
+    expect(remindSubjectRow("3f6c1b2a-9d4e-4f1a-8b2c-77d9e1a4c501")).toBe(
+      "3f6c1b2a-9d4e-4f1a-8b2c-77d9e1a4c501",
+    );
+  });
+});
