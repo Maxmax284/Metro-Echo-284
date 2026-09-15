@@ -19,6 +19,7 @@ import { readMessageLane, surfacedArrivals, type Arrival } from "@/lib/messageLa
 import { readArrival } from "@/lib/arrivalRead";
 import { displayPlatform } from "@/lib/plainEnglish";
 import { distMeters } from "@/lib/locationSanity";
+import { readCrossSituations, type CrossFact, type CrossSituation } from "@/lib/crossSource";
 
 const HOURS_12 = 12 * 60 * 60 * 1000;
 
@@ -260,6 +261,45 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
       proposal = proposeReading(pool);
     }
 
+    /* Cross-source: things Echo already has on file, read against what is on
+       the board. Recorded rows only — nothing here calls a provider, so Today
+       never spends a mail or Drive read just to load. */
+    let crossSource: CrossSituation[] = [];
+    {
+      const anchors: CrossFact[] = [
+        ...meetings.map((m) => ({
+          id: m.id,
+          kind: "calendar" as const,
+          title: m.title,
+          at: m.starts_at,
+          location: m.location,
+        })),
+        ...ongoing.map((o) => ({
+          id: o.id,
+          kind: "calendar" as const,
+          title: o.title,
+          at: o.starts_at,
+          location: o.location ?? null,
+        })),
+        ...[...digest.overdue, ...digest.dueToday, ...digest.upcoming].map((c) => ({
+          id: c.id,
+          kind: "commitment" as const,
+          title: c.summary,
+          at: c.due_at ?? null,
+        })),
+      ];
+      const supporting: CrossFact[] = (readables.data ?? []).map((f) => ({
+        id: f.id,
+        kind: "file" as const,
+        title: f.filename ?? "Untitled",
+        at: f.created_at ?? null,
+      }));
+      if (anchors.length > 0 && supporting.length > 0) {
+        crossSource = readCrossSituations({ anchors, supporting });
+      }
+    }
+
+
     /* Where the read is being made from. The active place is simply the most
        recently touched one — the same rule the Aware room uses, so both rooms
        are standing in the same spot. Place only changes wording. */
@@ -352,6 +392,7 @@ export function useSituation(digest: TodayDigest): { read: SituationRead | null;
           : null,
         unknownSources,
         place,
+        crossSource,
         /* Weather rides on the lines it affects instead of taking a card. */
         forecast: (snapshot?.compact?.weather?.hourly ?? []).map((h) => ({
           at: h.at,

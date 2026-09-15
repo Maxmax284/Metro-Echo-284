@@ -201,9 +201,14 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
 - [x] Gmail, Drive and Calendar connected overall on the per-user Google rail.
 
 ## Next active priorities (in order — do not reorder, do not replace)
-1. [ ] Cross-source reasoning: email + calendar + file → one conclusion. New facts modify an
-       existing situation before creating another. Conclusion first, provenance behind
-       "Why this?". Awareness decides what surfaces; Today gets consequence, not plumbing.
+1. [x] Cross-source reasoning: `_shared/crossSource.ts` reads recorded facts (calendar,
+       commitment, mail header, file, change) into one situation — strongest recorded link
+       wins, at most three clauses, conclusion first, provenance behind "Why this?". A new
+       fact is absorbed into the existing situation instead of starting a second pile; thin
+       reads never surface unasked. Ask composes one answer for mail/Drive searches via
+       `src/lib/crossSourceAnswer.ts` instead of a per-source dump. Today rewords the line it
+       already has (no new lane) and the "On now" lane deduplicates a stay carried by two
+       feeds. Recorded rows only — Today never spends a provider read to load.
 2. [ ] Browser / website work: native connected source → secure logged-in browser work →
        public web search. Browser is a hand, never a room. If no external runtime, build the
        internal seam and document the exact dependency.
