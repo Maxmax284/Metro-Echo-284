@@ -34,6 +34,7 @@ const KIND_LABEL: Record<string, string> = {
   sherlock_watch_heat: "Pattern",
   sherlock_watch_pairing: "Pairing",
   sherlock_watch_quiet: "Quiet",
+  web_page_changed: "Page changed",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
