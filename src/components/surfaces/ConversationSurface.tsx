@@ -180,6 +180,18 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, streaming]);
 
+  // Reading a thread is what clears its unread mark. Nothing else does.
+  useEffect(() => {
+    if (convId && msgs.length) markSeen(convId);
+  }, [convId, msgs.length]);
+
+  // A situation that has been quiet long enough deserves a deliberate choice
+  // rather than an accidental continuation.
+  const cold = useMemo(
+    () => (msgs.length ? coldOffer(activeThread?.last_message_at) : null),
+    [msgs.length, activeThread?.last_message_at],
+  );
+
 
   const handleStop = () => {
     if (convId) stopAskStream(convId);
