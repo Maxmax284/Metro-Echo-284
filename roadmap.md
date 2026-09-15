@@ -411,3 +411,21 @@ or Safety room.
 - Verified signed in at 384px: Capture desk renders, scrollWidth 384 (no sideways overflow), no new
   console errors. 1,202 tests green across 132 files; typecheck clean. Deployed telegram-webhook
   and vanta-converse.
+
+## Polish + proof pass — closed out
+
+- [x] 18. Telegram routing edge cases proved, not assumed (`src/test/thread-routing-edges.test.ts`,
+      16 tests): a continuation stops stretching once it is 4× past cold; an open thread with no
+      last-message time counts as cold; unknown open-thread scope is assumed to match; workspace
+      stays inside the workspace; scope wins over both a named record thread and an unanswered
+      draft; a reply attaches even when nothing is open on the channel; a replied-to notice beats
+      the record's own thread; resets read through spacing and capitals but "news", "starting",
+      "different from", "I forget" are not resets; empty and emoji-only messages never read as a
+      reset; a bare "yes" to an open draft stays in the draft however stale; a fresh verdict never
+      carries a thread id; the router is pure across repeated calls.
+- [x] 19. On-device sweep. Ask and the Capture desk checked signed in at 384 × 1800 and
+      1440 × 1200: scrollWidth equals clientWidth at both sizes (no sideways overflow), no broken
+      glyphs, thread rail and thread-nav row (Start / Newest / Points / Find) both usable, no new
+      console errors (only the pre-existing React ref warnings from the app shell providers).
+      The Memory tab row clips on purpose — it is a snap-scrolling row, not a layout break.
+- Full suite: 1,239 tests across 135 files, green. Typecheck clean.
