@@ -22,6 +22,7 @@ export const KNOWN_SIGNAL_SOURCES = [
   "captures",
   "sherlock",
   "watch",
+  "reach",
 ] as const;
 
 export type KnownSignalSource = (typeof KNOWN_SIGNAL_SOURCES)[number];
@@ -42,6 +43,7 @@ export const KNOWN_SIGNAL_KINDS = [
   "capture_unrouted",
   "sherlock_finding_pending",
   "web_page_changed",
+  "inbound_needs_you",
 ] as const;
 
 export type KnownSignalKind = (typeof KNOWN_SIGNAL_KINDS)[number];
@@ -82,6 +84,8 @@ seed("continuity_changed", "continuity", 0.35);
 seed("capture_unrouted", "captures", 0.3);
 /* A watched page moved because the person asked for that page to be watched. */
 seed("web_page_changed", "watch", 0.5);
+/* A signed signal from a first-party system that already earns an interruption. */
+seed("inbound_needs_you", "reach", 0.7);
 
 /**
  * Register a signal kind from a new adapter. Idempotent: re-registering the

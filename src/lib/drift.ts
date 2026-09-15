@@ -32,6 +32,8 @@ export const DRIFT_KINDS = [
   "commitment_collides_with_meeting",
   /* A page the person asked Echo to watch actually moved. Same quiet note. */
   "web_page_changed",
+  /* An urgent signal from a connected system: one line, in the same lane. */
+  "inbound_needs_you",
 ] as const;
 
 export function isDriftKind(kind: string): boolean {
