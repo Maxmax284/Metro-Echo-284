@@ -28,6 +28,7 @@ import { resolveReminderReference } from "@/lib/reminderActions";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
 import { travelAnswer } from "@/lib/travelAnswer";
 import { crossSourceReply, type AnchorRow } from "@/lib/crossSourceAnswer";
+import { whereYouStand } from "@/lib/workReads";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -432,6 +433,38 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           const res = await readWatchStatus(supabase as never, user.id);
           toast.success({ title: res.reply });
           onAck?.({ kind: "keep_an_eye_on", summary: res.reply });
+        } else if (kind === "where_do_i_stand") {
+          /* State compression: one compact read of the whole board — waiting on
+             you, open, moved, can wait, already handled. Same code Telegram
+             calls, so the two answers can never drift. Reads only. */
+          const { text } = await whereYouStand(supabase as never, {
+            userId: user.id,
+            orgId: scope.organizationId,
+          });
+          /* The answer belongs in the thread that asked. Falling back to the
+             most recently touched conversation dropped it into whichever thread
+             spoke last — usually Telegram — so the person who asked in Ask saw
+             nothing come back. */
+          let threadId = typeof provenance?.conversation_id === "string" ? provenance.conversation_id : null;
+          if (!threadId) {
+            const { data: conv } = await supabase
+              .from("conversations")
+              .select("id")
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            threadId = conv?.id ?? null;
+          }
+          if (threadId) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: threadId,
+              role: "assistant",
+              content: text,
+              metadata: { source: "companion_query", intent: kind },
+            });
+          }
+          toast.success({ title: "Here's where you stand." });
         } else if (kind === "search_mail" || kind === "find_file") {
           // Your own Google, read only. Not switched on is said plainly — Echo
           // never guesses what a message or a file said.

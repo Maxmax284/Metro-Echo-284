@@ -107,6 +107,9 @@ You can also look in the person's own Gmail (search_mail) and their own Google D
 them with the calendar into ONE answer about the situation, not one line per source.
 If a service is not switched on, say that plainly — never invent what a message said.
 When the answer lives outside all of that, you have two last resorts, in this order:
+where_do_i_stand answers "where do I stand", "catch me up", "what actually needs me today" as
+ONE compact read — waiting on you, open, moved, can wait, already handled — never a list per source.
+When the answer lives outside all of that, you have two last resorts, in this order:
 check_page for a page the person points at (a portal, a booking, a confirmation) and
 look_up for a public fact with no page attached. Both only read. You cannot sign in,
 submit a form, book, cancel or pay anywhere on the web — if a page needs a login, say
@@ -457,6 +460,14 @@ const tools = [
     function: {
       name: "whats_being_watched",
       description: "Read-only: what Echo is currently keeping an eye on.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "where_do_i_stand",
+      description: "Read-only: one compact read of where everything stands — what is waiting on them, what is open, what moved, what can wait, what is already handled. Use for 'where do I stand', 'catch me up', 'what actually needs me today', 'state of things'.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
