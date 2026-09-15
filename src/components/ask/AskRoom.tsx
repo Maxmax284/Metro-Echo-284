@@ -31,10 +31,17 @@ export function AskRoom({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Once measured the room stops growing: `flex-none` keeps flex from
+  // stretching it back out to the height of its own content, which is exactly
+  // what defeated the inner scroller before.
   return (
     <div
       ref={ref}
-      className="flex min-h-0 flex-1 overflow-hidden"
+      className={
+        top === null
+          ? "flex min-h-0 flex-1 overflow-hidden"
+          : "flex min-h-0 flex-none overflow-hidden"
+      }
       style={top === null ? undefined : { height: `calc(100dvh - ${top}px)` }}
     >
       {children}
