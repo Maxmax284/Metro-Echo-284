@@ -31,6 +31,7 @@ import {
 } from "@/lib/glance";
 import { useGlance } from "@/hooks/useGlance";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { useHandoffTrace } from "@/hooks/useHandoffTrace";
 import { autoSendHealth, autoSendProof, bodyStrip } from "@/lib/wearableAutoSend";
 
 function Proof({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,8 @@ export default function GlancePage() {
 
   const card = decision.card;
   const device = useMemo(() => detectDeviceClass(), []);
+  /* A wrist step is still a step: leave a pointer, never an approval. */
+  const trace = useHandoffTrace();
 
   const forms = useMemo(
     () =>
@@ -138,6 +141,17 @@ export default function GlancePage() {
           .eq("id", card.entity.id);
       }
 
+      await trace({
+        step:
+          action === "noted"
+            ? "noted a heads-up on your watch"
+            : action === "later"
+              ? "deferred a heads-up on your watch"
+              : "closed a heads-up on your watch",
+        label: card.title,
+        surface: "today",
+      });
+
       vantaToast.success({
         title:
           action === "noted"
@@ -191,6 +205,8 @@ export default function GlancePage() {
         auditEvent: "capture.wrist_saved",
         payload: { device_class: device, looks_like_commitment: promise, length: t.length },
       });
+
+      await trace({ step: "captured a note on your watch", label: t.slice(0, 60), surface: "today" });
 
       vantaToast.success({
         title: "Captured",
