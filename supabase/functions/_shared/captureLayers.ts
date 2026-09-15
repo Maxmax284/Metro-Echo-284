@@ -289,3 +289,136 @@ export const MODE_WORDS: Record<CaptureMode, { label: string; help: string }> = 
   dictated: { label: "Dictate", help: "You talk, Echo writes it down. It does not answer." },
   conversation: { label: "Capture conversation", help: "Echo stays quiet and records. It structures it after you stop." },
 };
+
+/* ------------------------------------------------------------------ *
+ * Transcript segments — timestamps, bookmarks, and the evidence tether
+ *
+ * A capture keeps its words in ordered, stamped pieces. Interpretation is
+ * always tethered BACK to one of these pieces: a decision Echo pulled out can
+ * always be traced to the moment it was said. Nothing here invents a speaker.
+ * ------------------------------------------------------------------ */
+
+export type TranscriptSegment = {
+  /** Seconds from the start of the recording. */
+  t: number;
+  text: string;
+  /** Only set when the surface genuinely knows who spoke. Usually null. */
+  speaker?: string | null;
+  /** The person marked this moment while recording. */
+  bookmark?: boolean;
+};
+
+/**
+ * Honest limitation, stated in the interface rather than guessed around.
+ * On-device transcription gives words and timing, not voice identity.
+ */
+export const DIARIZATION_NOTE =
+  "Speakers aren't separated. On-device transcription hears words and timing, not who is talking — label a speaker yourself if it matters.";
+
+/** mm:ss stamp for a segment. Seconds only; a capture is not a calendar. */
+export function stampAt(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** Append a stamped piece of transcript. Existing pieces are never rewritten. */
+export function pushSegment(
+  segments: TranscriptSegment[],
+  seg: TranscriptSegment,
+): TranscriptSegment[] {
+  const text = seg.text.replace(/\s+/g, " ").trim();
+  if (!text) return segments;
+  return [...segments, { ...seg, t: Math.max(0, Math.floor(seg.t)), text }];
+}
+
+/** Flip a bookmark on one moment. Words are untouched either way. */
+export function toggleBookmark(segments: TranscriptSegment[], index: number): TranscriptSegment[] {
+  if (index < 0 || index >= segments.length) return segments;
+  return segments.map((s, i) => (i === index ? { ...s, bookmark: !s.bookmark } : s));
+}
+
+export function bookmarkedMoments(segments: TranscriptSegment[]): { index: number; segment: TranscriptSegment }[] {
+  return segments.map((segment, index) => ({ index, segment })).filter((x) => !!x.segment.bookmark);
+}
+
+/** Words of the whole transcript, in order, from its stamped pieces. */
+export function segmentsText(segments: TranscriptSegment[]): string {
+  return segments.map((s) => s.text).join(" ").replace(/\s+/g, " ").trim();
+}
+
+function normalise(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Find the transcript moment an extracted line came from. Containment first,
+ * then the piece sharing the most words. Returns null when the transcript
+ * cannot honestly account for the line — a card must then say so, not point
+ * at an unrelated moment.
+ */
+export function locateEvidence(
+  segments: TranscriptSegment[],
+  line: string,
+): { index: number; t: number } | null {
+  const needle = normalise(line);
+  if (!needle || !segments.length) return null;
+  for (let i = 0; i < segments.length; i++) {
+    const hay = normalise(segments[i].text);
+    if (hay.includes(needle) || needle.includes(hay)) return { index: i, t: segments[i].t };
+  }
+  const words = needle.split(" ").filter((w) => w.length > 3);
+  if (!words.length) return null;
+  let best = -1;
+  let bestScore = 0;
+  segments.forEach((s, i) => {
+    const hay = normalise(s.text);
+    const score = words.filter((w) => hay.includes(w)).length;
+    if (score > bestScore) { bestScore = score; best = i; }
+  });
+  if (best < 0 || bestScore < Math.max(2, Math.ceil(words.length / 2))) return null;
+  return { index: best, t: segments[best].t };
+}
+
+/** Search inside one transcript. Every word must appear, in any order. */
+export function searchSegments(segments: TranscriptSegment[], query: string): number[] {
+  const words = normalise(query).split(" ").filter(Boolean);
+  if (!words.length) return [];
+  const out: number[] = [];
+  segments.forEach((s, i) => {
+    const hay = normalise(s.text);
+    if (words.every((w) => hay.includes(w))) out.push(i);
+  });
+  return out;
+}
+
+/** The views inside a saved capture. Sections of a note — never new rooms. */
+export const CAPTURE_SECTIONS = [
+  "summary", "transcript", "decisions", "followups", "unresolved", "connections",
+] as const;
+export type CaptureSection = (typeof CAPTURE_SECTIONS)[number];
+
+export const SECTION_WORDS: Record<CaptureSection, string> = {
+  summary: "Summary",
+  transcript: "Transcript",
+  decisions: "Decisions",
+  followups: "Follow-ups",
+  unresolved: "Unresolved",
+  connections: "Connections",
+};
+
+/** Title suggestions from the capture's own words. Never locked in. */
+export function titleSuggestions(text: string, mode: CaptureMode, limit = 3): string[] {
+  const out: string[] = [];
+  for (const s of sentences(text)) {
+    const t = s.replace(/\s+/g, " ").replace(/[.?!]+$/, "").trim();
+    if (t.length < 8) continue;
+    const short = t.length > 56 ? `${t.slice(0, 55).trimEnd()}…` : t;
+    if (!out.includes(short)) out.push(short);
+    if (out.length >= limit) break;
+  }
+  if (!out.length) out.push(captureTitle(text, mode));
+  return out;
+}
+
+export const RECORDING_NOTICE =
+  "Recording rules vary by where you are and who is in the room. Capture is yours to use responsibly — Echo records only while you can see it recording, and never listens on its own.";
