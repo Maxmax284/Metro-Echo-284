@@ -372,3 +372,42 @@ or Safety room.
 - Verified signed in at 384px: panel opens, one honest summary line, scrollWidth 384, no new
   console errors. 1,159 tests green across 127 files; typecheck clean.
 
+
+## Ask workspace + capture workspace pass — done
+- [x] 11. Long-thread navigation (`src/components/ask/ThreadNav.tsx`). Four affordances and no
+      outline tree: Start, Newest, Points, Find. "Points" is the person's own asks (the real
+      pivots in a situation) — never an invented chapter heading. In-thread search matches every
+      word in any order with n/m position and Enter / Shift-Enter stepping. A floating
+      "Jump to latest" appears only when the newest turn is more than 240px off screen. The bar
+      itself only appears once a thread is 8 turns long. 7 tests.
+- [x] 12. Telegram → Ask thread routing (`_shared/threadRouting.ts` + client mirror). One inbound
+      message decides continue / attach / fresh: a bound reply attaches, a scope mismatch always
+      starts fresh, an open draft awaiting an answer owns the floor, an explicit "start fresh"
+      is obeyed, a cold situation (>6h) reopens only when the wording reads as continuation and
+      it is still inside 4× idle. The webhook records the decision and its reason on the user
+      message, so the transcript says why a message landed where it did. Telegram keeps no
+      separate logic fork and no separate UI. 10 tests.
+- [x] 13. Capture layers (`_shared/captureLayers.ts` + client mirror). Four layers per capture:
+      RAW (immutable), CLEAN, WHAT MATTERED, CONNECTIONS. `mergeLayers` cannot overwrite raw.
+      Interpretation is stored beside the evidence in `notes.metadata.layers`, never on top of it.
+      16 tests, including the raw-preservation invariant.
+- [x] 14. Capture desk (`src/components/notes/CaptureWorkspace.tsx`, Memory → Capture). Three
+      modes with the difference stated in the interface: Type (Echo stays out of the way),
+      Dictate (Echo writes it down and says nothing back), Capture conversation (Echo stays quiet,
+      then structures it AFTER you stop). Paper/tape/margin-rule look, machine stamps, waveform
+      only while actually recording. Verdict is honest: "Saved. Nothing needs follow-up." when
+      nothing was found.
+- [x] 15. Extraction is not execution. A found follow-up becomes a `proposed` action through the
+      normal `useStageAction` path and reads "waiting on your yes in Work". Nothing is created,
+      sent or scheduled from a capture.
+- [x] 16. Notes retrieval in the shared read catalog (`_shared/noteReads.ts`): `find_note` and
+      `what_was_decided`. Both are read-only, scope-bound (personal reads exclude workspace rows
+      and vice versa), and report only what a capture actually recorded — a note with no recorded
+      interpretation returns "no recorded decisions", never a fresh guess. Ask and Telegram share
+      the same two reads with the same provenance line. 7 tests.
+- [x] 17. Deleting a disposable chat keeps the receipts: threads soft-delete, the deletion emits
+      its own audit event, and no message / action / commitment / note / audit row is ever removed.
+      3 source-invariant tests.
+- Verified signed in at 384px: Capture desk renders, scrollWidth 384 (no sideways overflow), no new
+  console errors. 1,202 tests green across 132 files; typecheck clean. Deployed telegram-webhook
+  and vanta-converse.

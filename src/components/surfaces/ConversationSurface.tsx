@@ -22,6 +22,7 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { WhyThis } from "@/components/ask/WhyThis";
+import { ThreadNav, JumpToLatest } from "@/components/ask/ThreadNav";
 
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
@@ -279,6 +280,9 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
         Echo can prepare the work here. You still approve anything that acts.
       </div>
+      <ThreadNav msgs={msgs} scrollRef={scrollRef} />
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <JumpToLatest scrollRef={scrollRef} deps={msgs.length} />
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
           {msgs.length === 0 && (
@@ -330,7 +334,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
               const meta = RECEIPT_META[m.receipt.kind];
               const Icon = meta.icon;
               return (
-                <div key={i} className="flex motion-fade">
+                <div key={i} id={`ask-msg-${i}`} className="flex motion-fade">
                   <div className="mr-auto flex max-w-[88%] items-center gap-2 rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-[12px] text-foreground/90">
                     <Icon className="h-3.5 w-3.5 text-primary" />
                     <span className="font-medium">{meta.label}:</span>
@@ -348,7 +352,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
             }
             const isEcho = m.role === "assistant";
             return (
-              <div key={i} className="group/msg flex flex-col gap-0.5">
+              <div key={i} id={`ask-msg-${i}`} className="group/msg flex flex-col gap-0.5">
                 <div className="flex w-full items-start gap-1.5 motion-fade">
                   {/* Echo does not speak in a bubble. It speaks off a painted
                       left edge — the wall, not a chat app. The user's own words
@@ -416,6 +420,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
 
           })}
         </div>
+      </div>
       </div>
       {readOnly ? (
         <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
