@@ -21,6 +21,8 @@ import { useIntentHandler, type IntentAck } from "@/hooks/useIntentHandler";
 import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { LookAtSheet } from "@/components/ask/LookAtSheet";
+import { WhyThis } from "@/components/ask/WhyThis";
+
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
 
@@ -344,18 +346,25 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                 </div>
               );
             }
+            const isEcho = m.role === "assistant";
             return (
-              <div key={i} className="group/msg flex flex-col items-end gap-0.5">
+              <div key={i} className="group/msg flex flex-col gap-0.5">
                 <div className="flex w-full items-start gap-1.5 motion-fade">
+                  {/* Echo does not speak in a bubble. It speaks off a painted
+                      left edge — the wall, not a chat app. The user's own words
+                      stay a bubble on the right so the two are never confused. */}
                   <div
                     className={cn(
-                      "max-w-[88%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed",
-                      m.role === "user"
-                        ? "ml-auto whitespace-pre-wrap bg-primary/10 text-foreground ring-1 ring-primary/20"
-                        : "mr-auto surface-elevated text-foreground/95 ring-1 ring-border/60"
+                      "text-[15px] leading-relaxed",
+                      isEcho
+                        ? "mr-auto max-w-[92%] border-l-2 border-primary/45 pl-3 text-foreground/95"
+                        : "ml-auto max-w-[88%] whitespace-pre-wrap rounded-2xl bg-primary/10 px-3.5 py-2 text-foreground ring-1 ring-primary/20"
                     )}
                   >
-                    {m.role === "assistant"
+                    {isEcho && (
+                      <span className="vanta-machine-label mb-1 block text-primary/70">Echo</span>
+                    )}
+                    {isEcho
                       ? (m.content
                           ? <StructuredResponse text={m.content} />
                           : (streaming && i === msgs.length - 1 ? <ProcessingLine phase="reading" label={readingLabel} /> : ""))
@@ -363,11 +372,13 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                     {/* Writing caret: a mono block that sits at the end of the
                         answer while tokens are still arriving, then vanishes.
                         The only tell that the text is not final yet. */}
-                    {m.role === "assistant" && m.content && streaming && i === msgs.length - 1 && (
+                    {isEcho && m.content && streaming && i === msgs.length - 1 && (
                       <span aria-hidden className="vanta-caret ml-0.5 align-[-1px] motion-reduce:animate-none" />
                     )}
-
-
+                    {/* What Echo read before it wrote. Recorded reads only. */}
+                    {isEcho && m.content && !(streaming && i === msgs.length - 1) && (
+                      <WhyThis reads={m.metadata?.reads} />
+                    )}
                   </div>
 
                   {m.content && m.role !== "system" && (
@@ -402,6 +413,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                 )}
               </div>
             );
+
           })}
         </div>
       </div>

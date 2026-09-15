@@ -347,3 +347,14 @@ context as observation only, never diagnosis. Unfamiliar-place help, local pract
 non-emergency support with deliberate user-controlled escalation. Housing / everyday money /
 travel context. All of it lands in Today / Work / Ask / Receipts — no Health, Travel, Finance
 or Safety room.
+
+## Ask visual + provenance pass
+- [x] 9. Ask room redesign: Echo no longer speaks in a chat bubble. Answers read off a painted
+      left edge with a small ECHO machine-label; the user's own words stay a right-hand bubble,
+      so the two voices can never be confused. Streaming caret and reading line unchanged.
+- [x] 9a. "Why this?" surfaced in the interface (`src/components/ask/WhyThis.tsx`). It renders
+      ONLY `metadata.reads` — the plain-English lookups the server actually ran this turn. No
+      reads, no button; the component has no other input, so it cannot invent a source.
+      Older turns (and Telegram-era transcript rows) correctly show nothing.
+- Verified signed in at 384px: no horizontal overflow, no console errors. 1,152 tests green.
+- Still queued: cross-source refinement, browser/website refinement, capability discovery.
