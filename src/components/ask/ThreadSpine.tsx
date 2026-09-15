@@ -38,7 +38,9 @@ function LiveDot({ label }: { label: string }) {
   );
 }
 
-function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
+function ThreadRow({
+  t, onPicked, unread, onSeen,
+}: { t: AskThread; onPicked?: () => void; unread?: boolean; onSeen?: (id: string) => void }) {
   const { activeId, openThread, rename, togglePin, archive, remove } = useAskThreads();
   const active = t.id === activeId;
   const archived = !!t.archived_at;
