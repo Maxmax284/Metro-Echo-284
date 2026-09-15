@@ -297,8 +297,21 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
         Verified live at 384px: "Where you stand: 6 things waiting on your yes and 2 promises
         open this week. 2 things already handled in the last week. Start with: …", zero
         overflow, no console errors. 1136 tests green across 124 files, typecheck clean.
-7. [ ] Surface continuity prep only: phone main, watch glance, desktop deep, earbuds later,
-       glasses much later. Do not build the wearable future yet.
+7. [x] Surface continuity prep only: phone main, watch glance, desktop deep, earbuds later,
+       glasses much later. Hygiene pass, no wearable future built.
+       Three real seams were leaking. `handoff()` stamped the arriving body as coming from
+       "unknown" whenever that body had no idea what it was before, quietly erasing the body the
+       hand-off actually came from — it now keeps `lastDeviceClass` and only falls back to
+       "unknown" as a last resort. `bodyForDevice()` sent the ambient (glasses-class) body to desk
+       depth, i.e. a paragraph in your eyeline; ambient now reads at wrist depth. The wrist left
+       no trace at all: noting, deferring, closing or capturing on the watch now writes a
+       hand-off pointer (step + label + surface, via useHandoffTrace), so the phone can say
+       "you were on X on your watch". Pointer only — approval still never travels.
+       New invariants locked in src/test/surface-continuity.test.ts: every device class maps to a
+       real depth, small bodies glance / spoken bodies speak, arriving bodies never erase the
+       previous one, device-local facts never persist, and resume never crosses scope.
+       Deployed vanta-converse, telegram-webhook, briefing-compose. 1143 tests green across
+       125 files, typecheck clean, Today + /glance checked at 384px and 1280px with zero overflow.
 
 ## Pinned (direction preserved, not being built now)
 Insomniac-style ambient companion feel (situational flow, not a command centre). Body/wearable
