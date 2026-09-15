@@ -273,7 +273,11 @@ function readRailCollapsed(): boolean {
  */
 export function ThreadRail() {
   const [collapsed, setCollapsed] = useState(readRailCollapsed);
-  const { threads, newThread } = useAskThreads();
+  const { threads, newThread, openThread, activeId } = useAskThreads();
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const pinned = threads.filter((t) => t.pinned).slice(0, 6);
+  const unread = unreadCount(threads, seen);
 
   const set = (v: boolean) => {
     setCollapsed(v);
