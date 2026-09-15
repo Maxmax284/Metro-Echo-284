@@ -18,6 +18,22 @@ export type CalReadEvent = {
   all_day?: boolean | null;
 };
 
+/**
+ * The same appointment can arrive twice — signed in to Google AND subscribed by
+ * link. One entry per title-and-window, so no read ever says it twice.
+ */
+export function dedupeEvents(events: CalReadEvent[]): CalReadEvent[] {
+  const seen = new Set<string>();
+  return (events ?? []).filter((e) => {
+    const key = e.uid
+      ? `uid:${e.uid}`
+      : `${(e.title ?? "").trim().toLowerCase()}|${e.starts_at}|${e.ends_at ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export type CalendarReadKind = "now" | "day" | "conflicts" | "after";
 
 export type CalendarQuery = {
