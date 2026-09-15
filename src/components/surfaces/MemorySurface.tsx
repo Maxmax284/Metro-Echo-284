@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CaptureWorkspace } from "@/components/notes/CaptureWorkspace";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
@@ -70,7 +71,7 @@ export function MemorySurface() {
   const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState({ title: "", body: "" });
   const [aiBusy, setAiBusy] = useState(false);
-  const [view, setView] = useState<"inbox" | "notes" | "captures" | "files" | "corrections">("inbox");
+  const [view, setView] = useState<"inbox" | "capture" | "notes" | "captures" | "files" | "corrections">("inbox");
 
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -334,6 +335,7 @@ export function MemorySurface() {
         <div className="-mx-1 flex snap-x snap-mandatory items-center gap-1 overflow-x-auto px-1">
           {([
             { id: "inbox", label: "Inbox", Icon: HelpCircle },
+            { id: "capture", label: "Capture", Icon: Mic },
             { id: "notes", label: "Notes", Icon: Inbox },
             { id: "captures", label: "Captures", Icon: Inbox },
             { id: "files", label: "Files", Icon: Inbox },
@@ -360,7 +362,11 @@ export function MemorySurface() {
         </div>
       </div>
 
-      {view === "corrections" ? (
+      {view === "capture" ? (
+        <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
+          <CaptureWorkspace />
+        </div>
+      ) : view === "corrections" ? (
         <div className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-24">
           <CorrectionsCenter />
         </div>
