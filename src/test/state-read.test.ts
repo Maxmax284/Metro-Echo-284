@@ -19,7 +19,7 @@ describe("state compression — where you stand", () => {
   it("leads with the decision that is blocked on the person", () => {
     const text = formatStand({ ...base, waitingOnYou: 2, open: 3, overdue: 1, changed: 1 });
     expect(text.split("\n")[0]).toBe(
-      "Where you stand: 2 things waiting on your yes, one promise past its date and 2 promises open this week.",
+      "Where you stand: 2 things waiting on your yes, one promise past its date, 2 promises open this week and 1 thing moved today.",
     );
     expect(text).toContain("moved today");
   });
