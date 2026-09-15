@@ -152,6 +152,8 @@ import {
   matchCapabilityQuestion,
   type SenseRow,
 } from "../_shared/capabilityStatus.ts";
+import { abilityAnswer, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
+import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
 import {
   attachToProject,
   findProject,
