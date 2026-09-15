@@ -14,7 +14,7 @@ const STEPS = [
 ];
 
 export function CapabilitySequence() {
-  const { ref, shown } = useReveal(0.3);
+  const { ref, shown } = useReveal<HTMLOListElement>(0.3);
   const [n, setN] = useState(prefersReducedMotion() ? STEPS.length : 0);
 
   useEffect(() => {
