@@ -22,7 +22,8 @@ export function safeUrl(raw: string): { ok: true; url: string } | { ok: false; r
   if (text.length > 2000) return { ok: false, reason: "too_long" };
   let u: URL;
   try {
-    u = new URL(text.startsWith("http") ? text : `https://${text}`);
+    const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(text);
+    u = new URL(hasScheme ? text : `https://${text}`);
   } catch {
     return { ok: false, reason: "bad_url" };
   }
