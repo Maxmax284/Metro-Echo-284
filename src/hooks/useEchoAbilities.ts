@@ -19,7 +19,7 @@ export function useEchoAbilities(): { abilities: Ability[]; loading: boolean; re
     if (!uid) return;
     setLoading(true);
     try {
-      const [google, tg, watches, secrets] = await Promise.all([
+      const [google, tg, watches] = await Promise.all([
         supabase.functions.invoke("google-account-status").then((r) => r.data as
           | { services?: Array<{ service: string; connected?: boolean; working?: boolean }> }
           | null)
@@ -30,7 +30,6 @@ export function useEchoAbilities(): { abilities: Ability[]; loading: boolean; re
           .select("id", { count: "exact", head: true })
           .eq("user_id", uid)
           .eq("state", "active"),
-        supabase.functions.invoke("secrets-status").then((r) => r.data as Record<string, unknown> | null).catch(() => null),
       ]);
 
       const svc = (name: string) => {
@@ -40,11 +39,13 @@ export function useEchoAbilities(): { abilities: Ability[]; loading: boolean; re
 
       setAbilities(
         echoAbilities({
-          calendar: svc("calendar"),
-          mail: svc("gmail"),
-          files: svc("drive"),
+          calendar: svc("google_calendar"),
+          mail: svc("google_mail"),
+          files: svc("google_drive"),
           telegram: (tg.data ?? []).length > 0,
-          web_search: Boolean((secrets as { serpapi?: boolean } | null)?.serpapi ?? false),
+          /* Search keys live on the server; the panel does not probe them, so
+             the row states the shape of the ability and Ask states the key. */
+          web_search: true,
           watching: watches.count ?? 0,
         }),
       );
