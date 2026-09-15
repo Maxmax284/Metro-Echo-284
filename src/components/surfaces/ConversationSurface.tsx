@@ -421,6 +421,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
           })}
         </div>
       </div>
+      </div>
       {readOnly ? (
         <div className="safe-bottom sticky bottom-[64px] z-30 px-3 pb-2 pt-2 md:bottom-0 md:relative md:px-0 md:pb-0">
           <div className="mx-auto max-w-3xl rounded-2xl glass px-4 py-2.5 text-center text-xs text-muted-foreground">
