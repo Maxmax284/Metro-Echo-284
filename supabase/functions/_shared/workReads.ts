@@ -234,3 +234,99 @@ export async function attachToProject(
   });
   return { ok: true, title: (project as any).title };
 }
+
+/* --------------------------- state compression ---------------------------- */
+//
+// One compact read of where a life stands: what is waiting on you, what is
+// open, what moved, what can wait, what is already handled. Counts of real
+// records only — no score, no dashboard, no adjectives. This is a capability
+// under Today and Ask, not another room.
+
+export type StandState = {
+  /** A decision is genuinely blocked on the person. */
+  waitingOnYou: number;
+  /** Open promises with a date inside the next week, plus anything overdue. */
+  open: number;
+  /** Records that moved in the last day. */
+  changed: number;
+  /** Open, but dated past the week or carrying no date at all. */
+  canWait: number;
+  /** Closed or executed in the last week. */
+  handled: number;
+  /** The single most useful next move, when there is one. */
+  topWaiting: string | null;
+  overdue: number;
+};
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** "a", "a and b", "a, b and c" — no Oxford comma, same as Today. */
+function joinClauses(parts: string[]): string {
+  if (parts.length <= 1) return parts[0] ?? "";
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+export function formatStand(s: StandState): string {
+  const front: string[] = [];
+  if (s.waitingOnYou > 0) front.push(`${plural(s.waitingOnYou, "thing", "things")} waiting on your yes`);
+  if (s.overdue > 0) front.push(`${plural(s.overdue, "promise", "promises")} past its date`.replace("promises past its date", `${s.overdue} promises past their date`));
+  const openNotOverdue = Math.max(0, s.open - s.overdue);
+  if (openNotOverdue > 0) front.push(`${plural(openNotOverdue, "promise", "promises")} open this week`);
+  if (s.changed > 0) front.push(`${plural(s.changed, "thing", "things")} moved today`);
+
+  const lines: string[] = [];
+  lines.push(front.length ? `Where you stand: ${joinClauses(front)}.` : "Where you stand: nothing is pressing.");
+  if (s.canWait > 0) {
+    lines.push(`${plural(s.canWait, "thing", "things")} can wait — no date, or further out than this week.`);
+  }
+  if (s.handled > 0) {
+    lines.push(`${plural(s.handled, "thing", "things")} already handled in the last week.`);
+  }
+  if (s.topWaiting) lines.push(`Start with: ${s.topWaiting}.`);
+  return lines.join("\n");
+}
+
+export async function whereYouStand(
+  sb: SupabaseClient,
+  scope: ScopeArgs,
+): Promise<{ state: StandState; text: string }> {
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+  const weekAhead = new Date(now + 7 * 86400_000).toISOString();
+  const dayAgo = new Date(now - 86400_000).toISOString();
+  const weekAgo = new Date(now - 7 * 86400_000).toISOString();
+
+  const [staged, files, commitments, changedCal, changedCaptures, closed, executed] = await Promise.all([
+    scoped(sb.from("actions").select("title, updated_at").order("updated_at", { ascending: false }).limit(20), scope)
+      .in("status", ["staged", "proposed"]),
+    scoped(sb.from("ingested_files").select("id", { count: "exact", head: true }), scope)
+      .in("review_status", ["new", "needs_review", "suggested"]),
+    scoped(sb.from("commitments").select("summary, due_at").order("due_at", { ascending: true, nullsFirst: false }).limit(200), scope)
+      .eq("status", "open"),
+    scoped(sb.from("calendar_changes").select("id", { count: "exact", head: true }), scope).gte("detected_at", dayAgo),
+    scoped(sb.from("ingested_files").select("id", { count: "exact", head: true }), scope).gte("created_at", dayAgo),
+    scoped(sb.from("commitments").select("id", { count: "exact", head: true }), scope)
+      .eq("status", "done").gte("updated_at", weekAgo),
+    scoped(sb.from("actions").select("id", { count: "exact", head: true }), scope)
+      .eq("status", "executed").gte("updated_at", weekAgo),
+  ]);
+
+  const stagedRows = ((staged as any).data ?? []) as { title: string }[];
+  const promises = (((commitments as any).data ?? []) as { summary: string; due_at: string | null }[]);
+  const overdue = promises.filter((p) => p.due_at && new Date(p.due_at).getTime() < now);
+  const thisWeek = promises.filter((p) => p.due_at && p.due_at <= weekAhead && p.due_at >= nowIso);
+  const later = promises.length - overdue.length - thisWeek.length;
+
+  const state: StandState = {
+    waitingOnYou: stagedRows.length + ((files as any).count ?? 0),
+    open: overdue.length + thisWeek.length,
+    overdue: overdue.length,
+    changed: ((changedCal as any).count ?? 0) + ((changedCaptures as any).count ?? 0),
+    canWait: Math.max(0, later),
+    handled: ((closed as any).count ?? 0) + ((executed as any).count ?? 0),
+    topWaiting: overdue[0]?.summary ?? stagedRows[0]?.title ?? thisWeek[0]?.summary ?? null,
+  };
+
+  return { state, text: formatStand(state) };
+}
