@@ -231,45 +231,71 @@ function IndexInner() {
                   <EmailInboxCard />
                   <Separator />
                   <ExecutorsCard />
+
+                  {/* The phone header no longer carries these, so the sheet does. */}
+                  <Separator />
+                  <div className="space-y-2 sm:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setSurface("projects")}
+                      className="flex w-full items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                    >
+                      <span className="font-medium">Projects</span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">living briefs</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      className="flex w-full items-center gap-2 rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      <span className="font-medium">Sign out</span>
+                    </button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
             <WorkspaceSwitcher />
             <ModeBadge />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Analyze with Sherlock"
-              onClick={() => openSherlock({ entity_type: "freeform", title: "Ad-hoc analysis", text: "" })}
-              title="Analyze with Sherlock"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Projects"
-              onClick={() => setSurface("projects")}
-              title="Projects — Living Briefs"
-            >
-              <FolderKanban className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Documents"
-              title="Documents — drafts & reviews"
-            >
-              <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
-            </Button>
+            {/* Secondary doors stand down on a phone: at 384px seven controls
+                clipped the cluster off the right edge. Every one of them is
+                reachable from the Settings sheet or the room rail instead. */}
+            <div className="hidden items-center gap-1.5 sm:flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Analyze with Sherlock"
+                onClick={() => openSherlock({ entity_type: "freeform", title: "Ad-hoc analysis", text: "" })}
+                title="Analyze with Sherlock"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Projects"
+                onClick={() => setSurface("projects")}
+                title="Projects — Living Briefs"
+              >
+                <FolderKanban className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Documents"
+                title="Documents — drafts & reviews"
+              >
+                <a href="/documents"><FileText className="h-3.5 w-3.5" /></a>
+              </Button>
 
-            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
-              <LogOut className="h-3.5 w-3.5" /> Sign out
-            </Button>
+              <Button variant="ghost" size="sm" onClick={signOut} className="gap-1 text-xs">
+                <LogOut className="h-3.5 w-3.5" /> Sign out
+              </Button>
+            </div>
           </div>
         }
       />
