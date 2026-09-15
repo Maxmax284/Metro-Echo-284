@@ -113,6 +113,8 @@ export function useAskTurn(opts?: {
     let aborted = false;
     let assistantSoFar = "";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
+    /* Plain-English provenance for the reads the server ran this turn. */
+    const readLines: string[] = [];
     let hints: AttachmentHint[] = [];
 
     const bound = o?.context ?? (active && active.id === threadId
