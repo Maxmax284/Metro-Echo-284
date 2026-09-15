@@ -4,6 +4,7 @@
 import { useState } from "react";
 import {
   Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare, Square,
+  PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -224,16 +225,84 @@ function GroupLabel({ children }: { children: string }) {
   );
 }
 
-/** Desktop rail. Hidden on small screens. */
+const RAIL_KEY = "vanta.ask.rail.collapsed";
+
+function readRailCollapsed(): boolean {
+  try { return window.localStorage.getItem(RAIL_KEY) === "1"; } catch { return false; }
+}
+
+/**
+ * Desktop rail. Collapsible, because a long situation deserves the full width
+ * and the list should not be the price of reading it. Collapsed it keeps a
+ * narrow strip — a way back, a New thread button, and how many threads are
+ * waiting — so the list is never more than one tap away. The choice is
+ * remembered per device.
+ */
 export function ThreadRail() {
+  const [collapsed, setCollapsed] = useState(readRailCollapsed);
+  const { threads, newThread } = useAskThreads();
+
+  const set = (v: boolean) => {
+    setCollapsed(v);
+    try { window.localStorage.setItem(RAIL_KEY, v ? "1" : "0"); } catch { /* private mode */ }
+  };
+
+  if (collapsed) {
+    return (
+      <aside
+        className="hidden w-12 shrink-0 flex-col items-center gap-1 border-r border-border/50 py-3 md:flex"
+        aria-label="Ask threads, collapsed"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => set(false)}
+          aria-label="Show threads"
+          title="Show threads"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => void newThread()}
+          aria-label="New thread"
+          title="New thread"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <span
+          className="mt-0.5 font-mono text-[10px] text-muted-foreground"
+          title={`${threads.length} thread${threads.length === 1 ? "" : "s"} in this room`}
+        >
+          {threads.length}
+        </span>
+      </aside>
+    );
+  }
+
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-border/50 py-3 md:block" aria-label="Ask threads">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 py-3 md:flex" aria-label="Ask threads">
       <div className="flex items-center gap-1 px-2 pb-1">
         <span className="vanta-machine-label text-foreground/70">Ask</span>
         <WhatEchoCanDo className="ml-auto" />
         <ExplainThisButton room="ask" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => set(true)}
+          aria-label="Hide threads"
+          title="Hide threads"
+        >
+          <PanelLeftClose className="h-3.5 w-3.5" />
+        </Button>
       </div>
-      <ThreadList />
+      <div className="min-h-0 flex-1">
+        <ThreadList />
+      </div>
     </aside>
   );
 }
