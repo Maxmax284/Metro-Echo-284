@@ -176,6 +176,10 @@ export function useAskTurn(opts?: {
                 prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)),
               );
             }
+            /* The reads Echo performed before it wrote a word. These arrive
+               ahead of the text and are kept with the answer so "Why this?"
+               names real lookups instead of guessing at them. */
+            if (Array.isArray(p.reads)) readLines.push(...p.reads.map(String));
             if (p.intent) {
               /* One staging path only. Anything else double-writes the draft. */
               staged.push(p.intent);
