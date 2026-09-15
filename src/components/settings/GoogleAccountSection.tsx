@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { REACH_LABEL, REACH_TONE } from "@/lib/reach";
 import {
   EMPTY_GOOGLE_STATE, GOOGLE_CAPABILITIES, accountLine, accountReach, capabilityReach,
-  googleStateFrom, isGranted, notOfferableLine, statusFor,
+  googleStateFrom, isGranted, isSharedGrant, notOfferableLine, sharedGrantLine, statusFor,
   type GoogleAccountState, type GoogleCapability,
 } from "@/lib/googleEcosystem";
 import {
@@ -105,6 +105,7 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
           const granted = isGranted(cap, state);
           const offerable = !!statusFor(cap, state)?.offerable;
           const blocked = notOfferableLine(cap, state);
+          const shared = sharedGrantLine(cap, state);
           return (
             <li key={cap.key} className="rounded-md bg-muted/20 p-2 ring-1 ring-border/30">
               <div className="flex items-start justify-between gap-2">
@@ -121,6 +122,9 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
               <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{cap.what}</p>
               {!cap.wired && cap.blocker ? (
                 <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground/80">{cap.blocker}</p>
+              ) : null}
+              {shared ? (
+                <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground/80">{shared}</p>
               ) : null}
               {blocked ? (
                 <p className="mt-0.5 text-[10.5px] leading-snug text-muted-foreground/80">{blocked}</p>
@@ -145,6 +149,8 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
                     </>
                   ) : busy === cap.key ? (
                     "Opening Google…"
+                  ) : isSharedGrant(cap, state) ? (
+                    "Use my own Google"
                   ) : (
                     `Connect ${cap.label}`
                   )}
