@@ -27,6 +27,7 @@ import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "
 import { resolveReminderReference } from "@/lib/reminderActions";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
 import { travelAnswer } from "@/lib/travelAnswer";
+import { crossSourceReply, type AnchorRow } from "@/lib/crossSourceAnswer";
 
 /**
  * One reading of a spoken calendar change, shared by staging and refining so
@@ -434,6 +435,11 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
         } else if (kind === "search_mail" || kind === "find_file") {
           // Your own Google, read only. Not switched on is said plainly — Echo
           // never guesses what a message or a file said.
+          //
+          // What comes back is not reported source by source. It is read
+          // against what is already on the board — the calendar entries and
+          // promises you have — so an email about an appointment lands as one
+          // conclusion about that appointment instead of a second pile.
           const mail = kind === "search_mail";
           const question = String(mail ? args.question ?? "" : args.query ?? "").trim();
           const { data: res } = await supabase.functions.invoke(
@@ -443,7 +449,8 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           const payload = (res ?? {}) as {
             connected?: boolean;
             conclusion?: string | null;
-            items?: { fromName?: string; subject?: string; name?: string; webViewLink?: string }[];
+            items?: { id?: string; fromName?: string; subject?: string; date?: string; snippet?: string }[];
+            files?: { id?: string; name?: string; webViewLink?: string; link?: string; modifiedAt?: string }[];
           };
           let composed: string;
           if (payload.connected === false) {
@@ -451,18 +458,75 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
               ? "Gmail is not switched on for your account. You can turn it on in Settings, under Google."
               : "Drive is not switched on for your account. You can turn it on in Settings, under Google.";
           } else {
-            const rows = (payload.items ?? []).slice(0, 5);
-            if (rows.length === 0) {
+            const mailRows = mail ? (payload.items ?? []).slice(0, 5) : [];
+            /* drive-find answers with `files`; older shapes used `items`. */
+            const fileRows = mail ? [] : (payload.files ?? []).slice(0, 5);
+            const found = mail ? mailRows.length : (fileRows ?? []).length;
+            if (found === 0) {
               composed = mail
                 ? "Nothing in your mail matches that."
                 : "No file in your Drive matches that name.";
             } else {
-              const lines = rows.map((r) =>
-                mail
-                  ? `• **${r.subject ?? "(no subject)"}** — ${r.fromName ?? "someone"}`
-                  : `• [${r.name ?? "file"}](${r.webViewLink ?? "#"})`,
-              );
-              composed = [payload.conclusion ?? null, lines.join("\n")].filter(Boolean).join("\n\n");
+              const lines = mail
+                ? mailRows.map((r) => `• **${r.subject ?? "(no subject)"}** — ${r.fromName ?? "someone"}`)
+                : (fileRows ?? []).map((r) => `• [${r.name ?? "file"}](${r.webViewLink ?? r.link ?? "#"})`);
+              const fallback = [payload.conclusion ?? null, lines.join("\n")].filter(Boolean).join("\n\n");
+
+              /* What is already on the board, so a new fact can modify a
+                 situation instead of starting one. Recorded rows only. */
+              const anchors: AnchorRow[] = [];
+              const horizon = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+              const { data: eventAnchors } = await supabase
+                .from("calendar_events")
+                .select("id, title, location, starts_at")
+                .gte("starts_at", new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString())
+                .lte("starts_at", horizon)
+                .order("starts_at", { ascending: true })
+                .limit(30);
+              for (const e of eventAnchors ?? []) {
+                anchors.push({
+                  id: String(e.id),
+                  kind: "calendar",
+                  title: String(e.title ?? ""),
+                  at: e.starts_at ?? null,
+                  location: e.location ?? null,
+                });
+              }
+              const { data: openPromises } = await supabase
+                .from("commitments")
+                .select("id, summary, due_at")
+                .eq("status", "open")
+                .limit(30);
+              for (const c of openPromises ?? []) {
+                anchors.push({
+                  id: String(c.id),
+                  kind: "commitment",
+                  title: String(c.summary ?? ""),
+                  at: c.due_at ?? null,
+                });
+              }
+
+              composed = crossSourceReply({
+                anchors,
+                mail: mail
+                  ? mailRows.map((r) => ({
+                      id: String(r.id ?? r.subject ?? Math.random()),
+                      subject: r.subject ?? null,
+                      fromName: r.fromName ?? null,
+                      date: r.date ?? null,
+                      snippet: r.snippet ?? null,
+                    }))
+                  : [],
+                files: mail
+                  ? []
+                  : (fileRows ?? []).map((r) => ({
+                      id: String(r.id ?? r.name ?? Math.random()),
+                      name: r.name ?? null,
+                      modifiedAt: r.modifiedAt ?? null,
+                      link: r.webViewLink ?? r.link ?? null,
+                    })),
+                fallback,
+              }).text;
             }
           }
           const { data: conv } = await supabase

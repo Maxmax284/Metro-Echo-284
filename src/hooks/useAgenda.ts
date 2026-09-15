@@ -153,8 +153,19 @@ export function useAgenda(
       });
       const windowIds = new Set(windowRows.map((r) => r.id));
       setEvents(windowRows);
+      /* The running lane needs the same one-row rule. A stay carried by two
+         feeds used to read twice in "On now" — same words, stacked. */
+      const seenRunning = new Set<string>();
       setOngoing(
-        (((running as any)?.data ?? []) as any[]).map(shape).filter((r) => !windowIds.has(r.id)),
+        (((running as any)?.data ?? []) as any[])
+          .map(shape)
+          .filter((r) => !windowIds.has(r.id))
+          .filter((r) => {
+            const k = `${(r.title ?? "").trim().toLowerCase()}|${r.starts_at}|${r.ends_at ?? ""}`;
+            if (seenRunning.has(k)) return false;
+            seenRunning.add(k);
+            return true;
+          }),
       );
 
 

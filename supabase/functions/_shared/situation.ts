@@ -12,6 +12,7 @@
 import { gapPhrase, unusual, worthSurfacing, type BaselineRead, type Cadence } from "./baseline.ts";
 import { whyFor, type WhySurfaced } from "./whySurfaced.ts";
 import { meetingContextClause, type ContextForecastHour } from "./todayContext.ts";
+import { worthSaying, type CrossSituation } from "./crossSource.ts";
 
 export type SituationSource =
   | "commitments"
@@ -222,6 +223,12 @@ export type SituationInput = {
    * cannot add a line, remove one, or change a due time.
    */
   place?: SituationPlace | null;
+  /**
+   * Situations already read across sources by `crossSource`. They never add a
+   * line — they only let a line that is already here say the whole thing, with
+   * every source named behind it.
+   */
+  crossSource?: CrossSituation[];
 };
 
 const HOUR = 60 * 60 * 1000;
@@ -247,7 +254,7 @@ export type OngoingEntry = {
  * is still on, so it stays out.
  */
 export function onNow(entries: OngoingEntry[], now: number): OngoingEntry[] {
-  return entries
+  const running = entries
     .filter((e) => {
       const s = new Date(e.starts_at).getTime();
       const end = e.ends_at ? new Date(e.ends_at).getTime() : NaN;
@@ -255,6 +262,16 @@ export function onNow(entries: OngoingEntry[], now: number): OngoingEntry[] {
       return s <= now && end > now;
     })
     .sort((a, b) => new Date(a.ends_at!).getTime() - new Date(b.ends_at!).getTime());
+
+  /* The same stay arriving from two feeds is one stay. Echo counts the thing,
+     not the number of places it was recorded. */
+  const seen = new Set<string>();
+  return running.filter((e) => {
+    const key = `${e.title.trim().toLowerCase()}|${e.starts_at}|${e.ends_at ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** "until 4:30 pm" / "until Friday" / "until Sep 24". Recorded end only. */
@@ -535,6 +552,25 @@ export function readSituation(input: SituationInput): SituationRead {
     if (Number.isFinite(landed) && now - landed <= 60 * 60 * 1000) {
       const line = lines[lines.length - 1];
       if (line) line.weight = 3.5;
+    }
+  }
+
+  /* Cross-source reads never take a line of their own. When other sources have
+     something to say about a line that is already on the board, the line itself
+     says more — and the reveal names every source behind it. A thin read is not
+     allowed to reword anything. */
+  for (const line of lines) {
+    const id = line.entity?.id;
+    if (!id) continue;
+    const crossed = (input.crossSource ?? []).find((s) => s.anchor.id === id && worthSaying(s));
+    if (!crossed) continue;
+    line.text = crossed.conclusion;
+    if (line.why) {
+      line.why = {
+        ...line.why,
+        whatChanged: crossed.conclusion,
+        reason: crossed.provenance.slice(1).join(" "),
+      };
     }
   }
 
