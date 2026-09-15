@@ -18,6 +18,21 @@ export type CalReadEvent = {
   all_day?: boolean | null;
 };
 
+/**
+ * The same appointment can arrive twice — signed in to Google AND subscribed by
+ * link. One entry per title-and-window, so no read ever says it twice.
+ */
+export function dedupeEvents(events: CalReadEvent[]): CalReadEvent[] {
+  const seen = new Set<string>();
+  return (events ?? []).filter((e) => {
+    const who = e.uid ? `uid:${e.uid}` : (e.title ?? "").trim().toLowerCase();
+    const key = `${who}|${e.starts_at}|${e.ends_at ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export type CalendarReadKind = "now" | "day" | "conflicts" | "after";
 
 export type CalendarQuery = {
@@ -189,11 +204,13 @@ export type CalendarAnswer = {
 /** The one answer builder. Same words on every surface. */
 export function answerCalendarQuestion(
   query: CalendarQuery,
-  events: CalReadEvent[],
+  rawEvents: CalReadEvent[],
   ctx: { now?: string; tz?: string },
 ): CalendarAnswer {
   const nowIso = ctx.now ?? new Date().toISOString();
   const tz = ctx.tz || "UTC";
+  // One appointment, one line — two feeds carrying the same event say it once.
+  const events = dedupeEvents(rawEvents);
 
   if (query.kind === "conflicts") {
     const when = dayLabel(query.dayOffset, nowIso, tz);
@@ -246,9 +263,10 @@ export function answerAfterEvent(
 }
 
 /** Compact block for a model's context, so Ask reads the same rows Telegram does. */
-export function calendarContextBlock(events: CalReadEvent[], ctx: { now?: string; tz?: string }): string {
+export function calendarContextBlock(rawEvents: CalReadEvent[], ctx: { now?: string; tz?: string }): string {
   const nowIso = ctx.now ?? new Date().toISOString();
   const tz = ctx.tz || "UTC";
+  const events = dedupeEvents(rawEvents);
   if (!events.length) return "";
   const running = ongoingAt(events, nowIso);
   const next = upcomingFrom(events, nowIso, 8);

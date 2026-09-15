@@ -11,6 +11,7 @@
 import {
   clockLabel,
   dayKey,
+  dedupeEvents,
   eventsOnDay,
   ongoingAt,
   overlapsOnDay,
@@ -126,14 +127,8 @@ export function buildAgenda(input: AgendaInput): Agenda {
   const span = Math.max(1, Math.min(14, input.days ?? 1));
   const start = input.startOffset ?? 0;
   /* The same calendar can arrive twice — signed in to Google and subscribed by
-     link. One entry per title-and-start, so a board never says it twice. */
-  const seen = new Set<string>();
-  const events = (input.events ?? []).filter((e) => {
-    const k = `${(e.title ?? "").trim().toLowerCase()}|${e.starts_at}|${e.ends_at ?? ""}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
+     link. One shared rule, so every surface collapses it the same way. */
+  const events = dedupeEvents(input.events ?? []);
   const commitments = input.commitments ?? [];
   const pending = input.pending ?? [];
 
@@ -144,13 +139,14 @@ export function buildAgenda(input: AgendaInput): Agenda {
     const dayEvents = eventsOnDay(events, offset, nowIso, tz);
     const target = dayKey(new Date(new Date(nowIso).getTime() + offset * DAY).toISOString(), tz);
 
-    const ongoing = offset === 0
-      ? ongoingAt(events, nowIso).map(
-        (e) => `${e.title} — running until ${e.all_day ? "end of day" : clockLabel(new Date(endOf(e)).toISOString(), tz)}`,
-      )
-      : [];
+    const running = offset === 0 ? ongoingAt(events, nowIso) : [];
+    const ongoing = running.map(
+      (e) => `${e.title} — running until ${e.all_day ? "end of day" : clockLabel(new Date(endOf(e)).toISOString(), tz)}`,
+    );
 
-    const lines = dayEvents.map((e) => ({
+    /* Something already named as running is not listed again below it. A stay
+       that has been on for eleven days is one line, not two. */
+    const lines = dayEvents.filter((e) => !running.includes(e)).map((e) => ({
       text: eventLine(e, tz, offset, nowIso),
       overlays: attachPending(e, pending),
       uid: e.uid,
