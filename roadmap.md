@@ -188,3 +188,38 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
   products; until an owner does, the card says an owner has to allow it instead of failing.
 - Phases 7-9 (cross-source reasoning, legacy removal, logged-in browser work) wait on real
   second sources landing from 4 and 6.
+
+## Explanation page + reach status (2026-09-15)
+- [x] Public origin page at `/what-is-metro-echo`, linked from Sign in / Create account
+      ("What is Metro Echo?"). Not a hero page: chaos → understanding → calm.
+      Sections: chaos field, why it exists (founder line, city/timezone nodes), what it is
+      (five questions + one-Echo promise), live cross-source weave, "not another chatbot",
+      See→Understand→Prepare→Act→Watch→Report, silence, surfaces, day simulator,
+      everyday-life + safety framing, honest future list, "what it is not", closing.
+      Future capabilities are labelled (`planned` / "Where Echo is going") — no fake claims.
+      Reduced-motion honoured, 384px verified, no horizontal overflow.
+- [x] Gmail, Drive and Calendar connected overall on the per-user Google rail.
+
+## Next active priorities (in order — do not reorder, do not replace)
+1. [ ] Cross-source reasoning: email + calendar + file → one conclusion. New facts modify an
+       existing situation before creating another. Conclusion first, provenance behind
+       "Why this?". Awareness decides what surfaces; Today gets consequence, not plumbing.
+2. [ ] Browser / website work: native connected source → secure logged-in browser work →
+       public web search. Browser is a hand, never a room. If no external runtime, build the
+       internal seam and document the exact dependency.
+3. [ ] Connection / reach polish: CampStay, CampCore, Fenrir and existing first-party sources
+       under the same See→Understand→Prepare→Act→Watch→Report model. No Integrations centre.
+4. [ ] Reminder / awareness polish: keep the REMINDER LAW findings; no duplicate spam; explicit
+       "remind me" outranks inference; Telegram stays a fallback surface.
+5. [ ] Continuity: "Three things changed while you were out", never "27 unread".
+6. [ ] State compression: open / changed / waiting on you / can wait / already handled —
+       a capability under Today and Ask, not a dashboard.
+7. [ ] Surface continuity prep only: phone main, watch glance, desktop deep, earbuds later,
+       glasses much later. Do not build the wearable future yet.
+
+## Pinned (direction preserved, not being built now)
+Insomniac-style ambient companion feel (situational flow, not a command centre). Body/wearable
+context as observation only, never diagnosis. Unfamiliar-place help, local practical options,
+non-emergency support with deliberate user-controlled escalation. Housing / everyday money /
+travel context. All of it lands in Today / Work / Ask / Receipts — no Health, Travel, Finance
+or Safety room.
