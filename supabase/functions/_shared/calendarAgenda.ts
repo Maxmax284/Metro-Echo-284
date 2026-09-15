@@ -139,13 +139,14 @@ export function buildAgenda(input: AgendaInput): Agenda {
     const dayEvents = eventsOnDay(events, offset, nowIso, tz);
     const target = dayKey(new Date(new Date(nowIso).getTime() + offset * DAY).toISOString(), tz);
 
-    const ongoing = offset === 0
-      ? ongoingAt(events, nowIso).map(
-        (e) => `${e.title} — running until ${e.all_day ? "end of day" : clockLabel(new Date(endOf(e)).toISOString(), tz)}`,
-      )
-      : [];
+    const running = offset === 0 ? ongoingAt(events, nowIso) : [];
+    const ongoing = running.map(
+      (e) => `${e.title} — running until ${e.all_day ? "end of day" : clockLabel(new Date(endOf(e)).toISOString(), tz)}`,
+    );
 
-    const lines = dayEvents.map((e) => ({
+    /* Something already named as running is not listed again below it. A stay
+       that has been on for eleven days is one line, not two. */
+    const lines = dayEvents.filter((e) => !running.includes(e)).map((e) => ({
       text: eventLine(e, tz, offset, nowIso),
       overlays: attachPending(e, pending),
       uid: e.uid,
