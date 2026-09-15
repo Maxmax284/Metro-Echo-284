@@ -217,15 +217,19 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
         {pinned.length > 0 && (
           <>
             <GroupLabel>Pinned</GroupLabel>
-            {pinned.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+            {pinned.map((t) => (
+              <ThreadRow key={t.id} t={t} onPicked={onPicked} unread={isUnread(t, seen)} onSeen={noteSeen} />
+            ))}
           </>
         )}
-        {recent.length > 0 && (
-          <>
-            <GroupLabel>Recent</GroupLabel>
-            {recent.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
-          </>
-        )}
+        {days.map((group) => (
+          <div key={group.label}>
+            <GroupLabel>{group.label}</GroupLabel>
+            {group.threads.map((t) => (
+              <ThreadRow key={t.id} t={t} onPicked={onPicked} unread={isUnread(t, seen)} onSeen={noteSeen} />
+            ))}
+          </div>
+        ))}
         {archivedHits.length > 0 && (
           <div className="pt-2">
             <button
