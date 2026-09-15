@@ -169,7 +169,7 @@ export function CalendarOnlyView() {
           <p className="text-[12px] leading-relaxed text-muted-foreground">
             Nothing to say right now. Echo speaks once the evening before a real appointment, when a time moves, or when
             something collides — and it stays on this page and Today. Google's own alarms are separate and keep firing
-            on their own.
+            on their own. Tap the bell on any entry and Echo speaks about that one either way.
           </p>
         ) : (
           <ul className="space-y-2">
