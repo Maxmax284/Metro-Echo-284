@@ -17,6 +17,7 @@ import { useScope } from "@/hooks/useScope";
 import { SectionNote } from "@/components/ui/section-note";
 import { sectionNote } from "@/lib/roomCopy";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
+import { WhatEchoCanDo } from "@/components/ask/WhatEchoCanDo";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
 
@@ -229,7 +230,8 @@ export function ThreadRail() {
     <aside className="hidden w-60 shrink-0 border-r border-border/50 py-3 md:block" aria-label="Ask threads">
       <div className="flex items-center gap-1 px-2 pb-1">
         <span className="vanta-machine-label text-foreground/70">Ask</span>
-        <ExplainThisButton room="ask" className="ml-auto" />
+        <WhatEchoCanDo className="ml-auto" />
+        <ExplainThisButton room="ask" />
       </div>
       <ThreadList />
     </aside>
@@ -263,6 +265,7 @@ export function ThreadBar() {
           </span>
         </span>
       </button>
+      <WhatEchoCanDo />
       <ExplainThisButton room="ask" />
       {streaming && active && (
         <Button

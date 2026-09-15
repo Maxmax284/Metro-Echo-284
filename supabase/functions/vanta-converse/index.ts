@@ -10,6 +10,8 @@ import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
+import { abilitiesBlock, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
+import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
 import {
   ECHO_READ_TOOLS,
   isEchoRead,
@@ -860,7 +862,19 @@ Deno.serve(async (req: Request) => {
       console.error("read pre-pass failed", e);
     }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), fileContextBlock, researchBlock]
+    /* "What can you do?" is answered from recorded connections, never from the
+       model's imagination. The facts go in as a block so Echo answers in its own
+       voice while staying unable to advertise a power it does not have. */
+    let abilitiesFacts = "";
+    if (matchAbilityQuestion(message)) {
+      try {
+        abilitiesFacts = abilitiesBlock(echoAbilities(await readAbilityFacts(admin as never, user.id)));
+      } catch (e) {
+        console.error("ability facts failed", e);
+      }
+    }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [

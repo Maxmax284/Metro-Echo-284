@@ -357,4 +357,18 @@ or Safety room.
       reads, no button; the component has no other input, so it cannot invent a source.
       Older turns (and Telegram-era transcript rows) correctly show nothing.
 - Verified signed in at 384px: no horizontal overflow, no console errors. 1,152 tests green.
-- Still queued: cross-source refinement, browser/website refinement, capability discovery.
+
+## Capability discovery — done
+- [x] 10. One catalog of reach: `supabase/functions/_shared/echoAbilities.ts` (pure) plus
+      `_shared/echoAbilityFacts.ts` (recorded connection rows only) and the client mirror
+      `src/lib/echoAbilities.ts`. Every row is live / needs connecting / not yet, with the reason
+      and the law that limits it. Signing into a portal to book, pay or submit is stated as
+      "not yet" rather than implied.
+- [x] 10a. "What can Echo do?" panel in the Ask header (`src/components/ask/WhatEchoCanDo.tsx`,
+      facts from `useEchoAbilities`). No power is shown without a record behind it.
+- [x] 10b. Same answer in Ask and Telegram: `vanta-converse` injects the recorded ability block
+      when the question is about reach; `telegram-webhook` answers from the same catalog, ahead
+      of the older senses answer. Reach and senses stay two different questions.
+- Verified signed in at 384px: panel opens, one honest summary line, scrollWidth 384, no new
+  console errors. 1,159 tests green across 127 files; typecheck clean.
+
