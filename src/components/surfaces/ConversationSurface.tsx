@@ -293,6 +293,21 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
         Echo can prepare the work here. You still approve anything that acts.
       </div>
+      {cold && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/15 px-4 py-2 text-[11.5px] text-muted-foreground">
+          <span className="min-w-0">
+            This situation has been quiet for {cold.quietFor}.
+          </span>
+          <button
+            type="button"
+            onClick={() => void newThread()}
+            className="vanta-focus rounded-full border border-border/60 px-2.5 py-1 text-[11px] text-foreground/85 hover:bg-surface-elevated"
+          >
+            Start fresh
+          </button>
+          <span className="text-muted-foreground/70">or keep writing to continue it.</span>
+        </div>
+      )}
       <ThreadNav msgs={msgs} scrollRef={scrollRef} />
       <div className="relative flex min-h-0 flex-1 flex-col">
       <ThreadJump scrollRef={scrollRef} deps={msgs.length} />
