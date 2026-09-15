@@ -6,6 +6,7 @@ import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { ThreadRail, ThreadBar } from "@/components/ask/ThreadSpine";
+import { AskRoom } from "@/components/ask/AskRoom";
 import { MemorySurface } from "@/components/surfaces/MemorySurface";
 import { CommitmentsSurface } from "@/components/surfaces/CommitmentsSurface";
 import { ActionsSurface } from "@/components/surfaces/ActionsSurface";
