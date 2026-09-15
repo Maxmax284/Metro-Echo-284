@@ -158,6 +158,14 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
   const recent = live.filter((t) => !t.pinned);
   const archivedHits = archived.filter((t) => matchesQuery(t, q));
   const searching = q.trim().length > 0;
+  // Unread marks live on the device, not the record: they say what this device
+  // has already looked at, and reading a thread is what clears them.
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const noteSeen = useCallback((id: string) => setSeen((p) => ({ ...p, [id]: new Date().toISOString() })), []);
+  // Unpinned threads shelve by the day they last moved, so the list reads as
+  // days rather than one endless log.
+  const days = useMemo(() => groupByDay(recent), [recent]);
 
 
   return (
