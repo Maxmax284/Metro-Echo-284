@@ -23,7 +23,9 @@ export function modeAllows(mode: AppMode, intent: string): boolean {
   if (mode === "locked") return false;
   if (mode === "observer") {
     // travel_time only reads: the calendar, the current place, and a road route.
-    return intent === "capture_note" || intent === "run_sherlock" || intent === "query_awareness" || intent === "set_reminder" || intent === "cancel_reminder" || intent === "travel_time";
+    // look_up reads the public web; check_page reads one page you point at.
+    // Neither can sign in, submit anything or execute — so both are read-only.
+    return intent === "capture_note" || intent === "run_sherlock" || intent === "query_awareness" || intent === "set_reminder" || intent === "cancel_reminder" || intent === "travel_time" || intent === "look_up" || intent === "check_page";
   }
   // advisor + operator: all draft-only intents allowed
   return true;
