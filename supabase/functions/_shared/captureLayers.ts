@@ -31,6 +31,8 @@ export type RawCapture = {
   recording_ref?: string | null;
   /** True when the words came off the device, not a server. */
   transcribed_locally?: boolean;
+  /** Ordered, stamped pieces of the transcript. Written once, never rewritten. */
+  segments?: TranscriptSegment[];
 };
 
 export type CleanNote = {
