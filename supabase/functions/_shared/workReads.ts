@@ -270,7 +270,11 @@ function joinClauses(parts: string[]): string {
 export function formatStand(s: StandState): string {
   const front: string[] = [];
   if (s.waitingOnYou > 0) front.push(`${plural(s.waitingOnYou, "thing", "things")} waiting on your yes`);
-  if (s.overdue > 0) front.push(`${plural(s.overdue, "promise", "promises")} past its date`.replace("promises past its date", `${s.overdue} promises past their date`));
+  if (s.overdue > 0) {
+    front.push(
+      s.overdue === 1 ? "one promise past its date" : `${s.overdue} promises past their date`,
+    );
+  }
   const openNotOverdue = Math.max(0, s.open - s.overdue);
   if (openNotOverdue > 0) front.push(`${plural(openNotOverdue, "promise", "promises")} open this week`);
   if (s.changed > 0) front.push(`${plural(s.changed, "thing", "things")} moved today`);
