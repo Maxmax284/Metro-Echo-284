@@ -10,6 +10,8 @@ import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
+import { abilitiesBlock, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
+import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
 import {
   ECHO_READ_TOOLS,
   isEchoRead,
