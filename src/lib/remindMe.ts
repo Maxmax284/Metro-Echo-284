@@ -32,17 +32,34 @@ export function remindStopAt(startsAt: string): string {
   return new Date(base + 86_400_000).toISOString();
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * subject_id is a real database key, and a subscribed feed's uid is not one
+ * ("abc123@google.com"). Identity therefore lives in success_when.uid — where
+ * the sweeper already reads it — and subject_id only carries a row we own.
+ */
+export function remindSubjectRow(subject: string): string | null {
+  return UUID.test(subject) ? subject : null;
+}
+
 /** Which of these appointments the person has already asked about. */
 export async function loadRemindedSubjects(subjectIds: string[]): Promise<Set<string>> {
   const ids = subjectIds.filter(Boolean);
   if (ids.length === 0) return new Set();
   const { data } = await supabase
     .from("watches")
-    .select("subject_id")
+    .select("subject_id, success_when")
     .eq("kind", "calendar_event")
     .in("state", OPEN_WATCH_STATES)
-    .in("subject_id", ids.slice(0, 200));
-  return new Set(((data ?? []) as { subject_id: string | null }[]).map((r) => r.subject_id ?? ""));
+    .limit(200);
+  const wanted = new Set(ids);
+  const open = new Set<string>();
+  for (const r of (data ?? []) as { subject_id: string | null; success_when: { uid?: string } | null }[]) {
+    const key = (r.success_when?.uid ?? "").trim() || r.subject_id || "";
+    if (key && wanted.has(key)) open.add(key);
+  }
+  return open;
 }
 
 export async function startReminder(input: {
@@ -56,23 +73,31 @@ export async function startReminder(input: {
     organization_id: input.organizationId,
     goal: remindGoal(input.event.title),
     kind: "calendar_event",
-    subject_id: subject,
+    subject_id: remindSubjectRow(subject),
     source: "asked",
     /* The reminder engine decides when to speak; the watch just says "this one counts". */
     cadence_minutes: 180,
     stop_at: remindStopAt(input.event.starts_at),
-    success_when: {} as never,
+    success_when: { uid: subject } as never,
   });
   if (error) throw error;
 }
 
 /** Taking it back is closing the watch, never deleting the receipt. */
 export async function stopReminder(subjectId: string): Promise<void> {
+  const { data } = await supabase
+    .from("watches")
+    .select("id, subject_id, success_when")
+    .eq("kind", "calendar_event")
+    .in("state", OPEN_WATCH_STATES)
+    .limit(200);
+  const ids = ((data ?? []) as { id: string; subject_id: string | null; success_when: { uid?: string } | null }[])
+    .filter((r) => ((r.success_when?.uid ?? "").trim() || r.subject_id || "") === subjectId)
+    .map((r) => r.id);
+  if (ids.length === 0) return;
   const { error } = await supabase
     .from("watches")
     .update({ state: "done", outcome: "You asked Echo to stop watching this one." })
-    .eq("kind", "calendar_event")
-    .eq("subject_id", subjectId)
-    .in("state", OPEN_WATCH_STATES);
+    .in("id", ids);
   if (error) throw error;
 }
