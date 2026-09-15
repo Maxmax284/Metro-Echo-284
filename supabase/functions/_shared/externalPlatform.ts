@@ -522,7 +522,8 @@ export async function handleExternalPlatformWebhook(req: Request, forcedSource?:
    */
   let noticed = false;
   try {
-    if (shouldRaiseNotice(reach.urgency as never)) {
+    /* Shadow mode means Echo watches and says nothing. That holds here too. */
+    if (reach.reason !== "shadow_mode" && shouldRaiseNotice(reach.urgency as never)) {
       const { error: noticeErr } = await admin.from("nudges").upsert(
         {
           user_id: ownerId,
