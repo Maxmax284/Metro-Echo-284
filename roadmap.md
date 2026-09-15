@@ -209,9 +209,27 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
        `src/lib/crossSourceAnswer.ts` instead of a per-source dump. Today rewords the line it
        already has (no new lane) and the "On now" lane deduplicates a stay carried by two
        feeds. Recorded rows only — Today never spends a provider read to load.
-2. [ ] Browser / website work: native connected source → secure logged-in browser work →
-       public web search. Browser is a hand, never a room. If no external runtime, build the
-       internal seam and document the exact dependency.
+2. [x] Browser / website work (2026-09-15): reading only, and it is a hand, not a room.
+       `_shared/webLook.ts` (pure: public-address guard that refuses localhost / LAN /
+       non-http, HTML→text, word-level fingerprint that ignores whitespace and tracking
+       junk, login-wall detection, diff wording, source line) + `_shared/webFetch.ts`
+       (the one outbound page read: 12s timeout, 1.5MB cap, no cookies, no forms, no
+       POST) + `web-look` edge function with three modes — read one page the person
+       pointed at (answered against their question, conclusion first), search the public
+       web through the existing SerpApi leash, or watch a page. Every call runs through
+       `apiGuard` (`web-page` provider mapped to the external-APIs kill switch, cached
+       reads, per-task caps, usage logged). Ask gained `check_page` and `look_up`, ordered
+       after the person's own calendar / mail / files, allowed in observer mode because
+       both only read. `watches.kind` now allows `web_page`; `watch-sweep` re-reads the
+       page, stays silent when nothing moved, and on a real change reports one plain
+       sentence as a `web_page_changed` nudge (deduped per page per day) into Today plus a
+       `needs_you` watch state and a receipt. Three unreachable checks retire the watch; a
+       page that turns into a sign-in wall ends it honestly.
+       Dependency documented: there is NO headless browser runtime and no logged-in
+       browser work. Echo cannot sign into a portal, submit a form, book, cancel or pay on
+       the web. That step needs a real browser-automation provider (or Firecrawl-class
+       fetch with session support) plus an approval gate before it is anything but a
+       promise. Not faked in the meantime.
 3. [ ] Connection / reach polish: CampStay, CampCore, Fenrir and existing first-party sources
        under the same See→Understand→Prepare→Act→Watch→Report model. No Integrations centre.
 4. [ ] Reminder / awareness polish: keep the REMINDER LAW findings; no duplicate spam; explicit
