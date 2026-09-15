@@ -1,7 +1,7 @@
 // ThreadSpine — restrained thread navigation for Ask.
 // Desktop: a narrow left rail inside the Ask room.
 // Mobile: the same list inside a sheet, opened from the thread bar.
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare, Square,
   PanelLeftClose, PanelLeftOpen,
@@ -21,6 +21,10 @@ import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { WhatEchoCanDo } from "@/components/ask/WhatEchoCanDo";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
+import {
+  groupByDay, isUnread, markSeen, readSeen, threadInitials, unreadCount,
+} from "@/lib/threadShelf";
+import { useEdgeSwipe } from "@/hooks/useEdgeSwipe";
 
 
 function LiveDot({ label }: { label: string }) {
