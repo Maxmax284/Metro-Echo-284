@@ -313,6 +313,34 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
        Deployed vanta-converse, telegram-webhook, briefing-compose. 1143 tests green across
        125 files, typecheck clean, Today + /glance checked at 384px and 1280px with zero overflow.
 
+8. [x] Ask + Telegram conversational intelligence — one brain, both mouths. DONE.
+       The real defect: Telegram ran its reads server-side and could hold a follow-up, while
+       Ask emitted a tool intent to the browser, which pasted a canned paragraph the model
+       itself had never seen. Same question, two answers, and "which one first?" had nothing
+       to stand on. Ask's reads now run on the server BEFORE Echo writes a word.
+       `_shared/echoReads.ts` (new, pure catalog + one executor over the existing
+       `workReads` helpers, mirrored to the app as `src/lib/echoReads.ts`): whats_waiting,
+       whats_due, whats_changed, project_status, where_do_i_stand — declared once, described
+       once, so a surface can never reword a read. Telegram now spreads that same catalog
+       instead of carrying its own copy of the five declarations.
+       `vanta-converse` gained a read pre-pass (gemini-2.5-flash-lite, at most three reads,
+       no read at all for chat or calendar questions the prompt already answers). Results go
+       into the prompt as recorded fact with hard rules: one conclusion in Echo's own words,
+       never a read pasted back verbatim, never a count the read does not contain, empty is
+       a real answer. A failed read costs the answer nothing and is never claimed.
+       Reads only by construction — nothing in the pre-pass can capture, stage, approve or
+       execute, so the approval loop is untouched. Any read the server now owns is filtered
+       out of the answering model's tool list, so the browser can never be asked to paste a
+       second answer beside the streamed one.
+       Provenance: the reads are streamed ahead of the text as plain English ("Read the whole
+       board") and stored on the assistant message, so "Why this?" names real lookups.
+       Verified live signed-in at 390px: "where do I stand?" now streams ONE grounded answer
+       naming the actual pending calendar change and the two open promises, in Echo's voice,
+       with no pasted block and no console errors. 1152 tests green across 126 files,
+       typecheck clean. Deployed vanta-converse + telegram-webhook.
+       Still queued from this pass: Ask visual / motion redesign, cross-source refinement,
+       browser refinement, capability discovery / "Why this?" surfacing in the UI.
+
 ## Pinned (direction preserved, not being built now)
 Insomniac-style ambient companion feel (situational flow, not a command centre). Body/wearable
 context as observation only, never diagnosis. Unfamiliar-place help, local practical options,
