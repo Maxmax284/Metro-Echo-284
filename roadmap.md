@@ -429,3 +429,20 @@ or Safety room.
       console errors (only the pre-existing React ref warnings from the app shell providers).
       The Memory tab row clips on purpose — it is a snap-scrolling row, not a layout break.
 - Full suite: 1,239 tests across 135 files, green. Typecheck clean.
+
+## Ask shelf pass — closed out
+- [x] 20. Unread-since marks. Device-local seen map (`vanta.ask.seen`), dot + bold title +
+      "new since you looked" on a thread that moved after this device last read it; reading the
+      thread clears it. A thread with no recorded activity never shouts. Count shown on the
+      mobile bar and on the collapsed rail.
+- [x] 21. Swipe-right threads. Left-edge pull (≤28px start, ≥56px right, mostly horizontal)
+      opens the mobile thread sheet; the judgement lives in `threadShelf.edgeSwipeOpens`.
+- [x] 22. Pinned initials. Collapsed desktop rail renders up to six pinned threads as two-letter
+      tiles with their own unread dot, active thread ringed.
+- [x] 23. Continue vs start fresh. Once a situation passes the same idle line the inbound router
+      uses (6h), Ask offers "Start fresh" above the nav with "or keep writing to continue it."
+- [x] 24. Day-grouped threads. Unpinned threads shelve as Today / Yesterday / Earlier this week /
+      Earlier this month / Older; empty shelves never render. Pinned stays its own shelf, archived
+      unchanged.
+- New: `src/lib/threadShelf.ts`, `src/hooks/useEdgeSwipe.ts`, `src/test/thread-shelf.test.ts` (15).
+- Full suite: 1,258 tests across 137 files, green. Typecheck clean. Verified live at 384 and 1440.

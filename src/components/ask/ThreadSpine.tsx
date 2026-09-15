@@ -1,7 +1,7 @@
 // ThreadSpine — restrained thread navigation for Ask.
 // Desktop: a narrow left rail inside the Ask room.
 // Mobile: the same list inside a sheet, opened from the thread bar.
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive, ArchiveRestore, MoreHorizontal, Pencil, Pin, PinOff, Plus, Trash2, Link2, MessageSquare, Square,
   PanelLeftClose, PanelLeftOpen,
@@ -21,6 +21,10 @@ import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { WhatEchoCanDo } from "@/components/ask/WhatEchoCanDo";
 import { useAskStreaming } from "@/hooks/useAskStreaming";
 import { stopAskStream } from "@/lib/askSession";
+import {
+  groupByDay, isUnread, markSeen, readSeen, threadInitials, unreadCount,
+} from "@/lib/threadShelf";
+import { useEdgeSwipe } from "@/hooks/useEdgeSwipe";
 
 
 function LiveDot({ label }: { label: string }) {
@@ -34,7 +38,9 @@ function LiveDot({ label }: { label: string }) {
   );
 }
 
-function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
+function ThreadRow({
+  t, onPicked, unread, onSeen,
+}: { t: AskThread; onPicked?: () => void; unread?: boolean; onSeen?: (id: string) => void }) {
   const { activeId, openThread, rename, togglePin, archive, remove } = useAskThreads();
   const active = t.id === activeId;
   const archived = !!t.archived_at;
@@ -55,18 +61,33 @@ function ThreadRow({ t, onPicked }: { t: AskThread; onPicked?: () => void }) {
     >
       <button
         type="button"
-        onClick={() => { openThread(t.id); onPicked?.(); }}
+        onClick={() => { openThread(t.id); markSeen(t.id); onSeen?.(t.id); onPicked?.(); }}
         className="vanta-focus min-h-[44px] min-w-0 flex-1 text-left"
       >
         <span className="flex items-center gap-1.5">
           {t.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
-          <span className="truncate text-[13px] text-foreground/90">{threadLabel(t)}</span>
+          {unread && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+              title="Moved since you last read it"
+              aria-label="Moved since you last read it"
+            />
+          )}
+          <span
+            className={cn(
+              "truncate text-[13px]",
+              unread ? "font-medium text-foreground" : "text-foreground/90",
+            )}
+          >
+            {threadLabel(t)}
+          </span>
           {streaming && <LiveDot label="Answering now" />}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
           <span className="font-mono">
             {streaming ? "answering now" : relTime(t.last_message_at ?? t.updated_at)}
           </span>
+          {unread && !streaming && <span className="text-primary/85">new since you looked</span>}
 
           <span className="rounded-full bg-surface-elevated/70 px-1.5 py-0.5 uppercase tracking-wider ring-1 ring-border/40">
             {t.scope === "organization" ? "Workspace" : "Personal"}
@@ -137,6 +158,14 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
   const recent = live.filter((t) => !t.pinned);
   const archivedHits = archived.filter((t) => matchesQuery(t, q));
   const searching = q.trim().length > 0;
+  // Unread marks live on the device, not the record: they say what this device
+  // has already looked at, and reading a thread is what clears them.
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const noteSeen = useCallback((id: string) => setSeen((p) => ({ ...p, [id]: new Date().toISOString() })), []);
+  // Unpinned threads shelve by the day they last moved, so the list reads as
+  // days rather than one endless log.
+  const days = useMemo(() => groupByDay(recent), [recent]);
 
 
   return (
@@ -188,15 +217,19 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
         {pinned.length > 0 && (
           <>
             <GroupLabel>Pinned</GroupLabel>
-            {pinned.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
+            {pinned.map((t) => (
+              <ThreadRow key={t.id} t={t} onPicked={onPicked} unread={isUnread(t, seen)} onSeen={noteSeen} />
+            ))}
           </>
         )}
-        {recent.length > 0 && (
-          <>
-            <GroupLabel>Recent</GroupLabel>
-            {recent.map((t) => <ThreadRow key={t.id} t={t} onPicked={onPicked} />)}
-          </>
-        )}
+        {days.map((group) => (
+          <div key={group.label}>
+            <GroupLabel>{group.label}</GroupLabel>
+            {group.threads.map((t) => (
+              <ThreadRow key={t.id} t={t} onPicked={onPicked} unread={isUnread(t, seen)} onSeen={noteSeen} />
+            ))}
+          </div>
+        ))}
         {archivedHits.length > 0 && (
           <div className="pt-2">
             <button
@@ -240,7 +273,11 @@ function readRailCollapsed(): boolean {
  */
 export function ThreadRail() {
   const [collapsed, setCollapsed] = useState(readRailCollapsed);
-  const { threads, newThread } = useAskThreads();
+  const { threads, newThread, openThread, activeId } = useAskThreads();
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const pinned = threads.filter((t) => t.pinned).slice(0, 6);
+  const unread = unreadCount(threads, seen);
 
   const set = (v: boolean) => {
     setCollapsed(v);
@@ -279,6 +316,40 @@ export function ThreadRail() {
         >
           {threads.length}
         </span>
+        {unread > 0 && (
+          <span
+            className="rounded-full bg-primary/15 px-1.5 font-mono text-[10px] text-primary"
+            title={`${unread} thread${unread === 1 ? "" : "s"} moved since you looked`}
+          >
+            {unread}
+          </span>
+        )}
+        {/* Pinned threads stay reachable while the rail is shut — two letters
+            each, so the strip stays a strip. */}
+        {pinned.length > 0 && (
+          <div className="mt-2 flex flex-col items-center gap-1 border-t border-border/40 pt-2">
+            {pinned.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { openThread(t.id); markSeen(t.id); setSeen(readSeen()); }}
+                title={threadLabel(t)}
+                aria-label={`Open ${threadLabel(t)}`}
+                className={cn(
+                  "vanta-focus relative flex h-8 w-8 items-center justify-center rounded-md font-mono text-[10px] transition-colors",
+                  t.id === activeId
+                    ? "bg-surface-elevated text-foreground ring-1 ring-primary/30"
+                    : "text-muted-foreground hover:bg-surface-elevated/60 hover:text-foreground",
+                )}
+              >
+                {threadInitials(t)}
+                {isUnread(t, seen) && (
+                  <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
     );
   }
@@ -312,6 +383,11 @@ export function ThreadBar() {
   const [open, setOpen] = useState(false);
   const { active, threads } = useAskThreads();
   const streaming = useAskStreaming(active?.id);
+  const [seen, setSeen] = useState(readSeen);
+  useEffect(() => { setSeen(readSeen()); }, [threads]);
+  const unread = unreadCount(threads, seen);
+  // Pull in from the left edge to reach the threads, the way a phone expects.
+  useEdgeSwipe(useCallback(() => setOpen(true), []));
   return (
     <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2 md:hidden">
       <button
@@ -329,8 +405,10 @@ export function ThreadBar() {
           </span>
           <span className="block truncate text-[10px] text-muted-foreground">
             {streaming
-              ? "answering now · tap to switch"
-              : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap to switch`}
+              ? "answering now · tap or swipe in to switch"
+              : unread > 0
+                ? `${unread} moved since you looked · tap or swipe in to switch`
+                : `${threads.length} thread${threads.length === 1 ? "" : "s"} in this room · tap or swipe in to switch`}
           </span>
         </span>
       </button>
