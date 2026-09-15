@@ -20,7 +20,7 @@ function fakeSb(rows: Record<string, unknown>[]) {
 
 function noteRow(overrides: Record<string, unknown> = {}) {
   const layers = mergeLayers(
-    newLayers({ text: "we decided to move the visa call. I will email Dani tomorrow.", mode: "conversation" }),
+    newLayers({ text: "we decided to move the visa call. I will email Dani tomorrow.", mode: "conversation", captured_at: "2026-09-10T12:00:00.000Z" }),
     { mattered: extractSignals("we decided to move the visa call. I will email Dani tomorrow.") },
   );
   return {
