@@ -189,7 +189,7 @@ Deno.serve(async (req: Request) => {
               result = { state: "needs_you", outcome: checked.outcome };
               /* Today already reads nudges, so a real change lands where the
                  person already looks — one row, deduped per page per day. */
-              await admin.from("nudges").upsert({
+              const { error: nudgeError } = await admin.from("nudges").upsert({
                 user_id: row.user_id,
                 organization_id: row.organization_id ?? null,
                 kind: "web_page_changed",
@@ -201,7 +201,8 @@ Deno.serve(async (req: Request) => {
                 dedupe_key: `web.page.changed:${row.id}:${now.toISOString().slice(0, 10)}`,
                 status: "pending",
                 expires_at: new Date(now.getTime() + 3 * 86400_000).toISOString(),
-              }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+              }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+              if (nudgeError) console.error("[watch-sweep] page nudge", nudgeError.message);
               await admin
                 .from("watches")
                 .update({ success_when: { ...row.success_when, fingerprint: checked.fingerprint, misses: 0 } })
