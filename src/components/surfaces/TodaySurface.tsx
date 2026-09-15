@@ -521,6 +521,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
 
       <TickRow live={changeSignal} />
 
+      {/* Coming back after a real gap: three lines of consequence, never a
+          count of unread anything. Quiet when nothing moved. */}
+      <WhileYouWereOut onNavigate={onNavigate} />
+
       {loadingCritical ? (
         <LoadingState rows={2} label="Checking your day" />
       ) : (
