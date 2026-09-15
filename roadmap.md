@@ -260,7 +260,22 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
        Verified live at 384px and desktop: bells render, one tap flips to "Stop reminding", the watch
        row persists, zero overflow, no console errors. Test watch cleaned up afterwards.
        No duplicate spam, no new room, Telegram still only the fallback pipe.
-5. [ ] Continuity: "Three things changed while you were out", never "27 unread".
+5. [x] Continuity: "Three things changed while you were out", never "27 unread". DONE.
+       `src/lib/whileYouWereOut.ts` (pure, 8 tests): a gap only counts between 4 hours and
+       14 days, changes rank by consequence (meeting changed > needs you > waiting on your yes
+       > arrived > already handled) then recency, three spoken lines maximum and the rest is
+       counted ("2 more changes are on the record"). Gap words read against the hour you came
+       back, so an 8-hour night says "overnight" and a morning-to-evening day says "while you
+       were out". Captures and completed work are counted, never listed.
+       `useWhileYouWereOut` keeps a per-scope presence heartbeat in localStorage (written every
+       minute while the tab is visible, and on hide), freezes the value read at mount so the
+       heartbeat cannot erase the gap it is describing, and reads calendar_changes, pending
+       nudges, staged actions, new notes and audit receipts since that moment — all scope
+       filtered. "Caught up" acknowledges that one gap and does not return on refresh.
+       `WhileYouWereOut` renders one card at the top of Today's body; each line is a door into
+       the room that owns it; nothing changed means the card never appears.
+       Verified live signed-in at 384px and 1280px: "Two things changed while you were out"
+       with the two real pending notices, zero overflow, no new console errors.
 6. [ ] State compression: open / changed / waiting on you / can wait / already handled —
        a capability under Today and Ask, not a dashboard.
 7. [ ] Surface continuity prep only: phone main, watch glance, desktop deep, earbuds later,
