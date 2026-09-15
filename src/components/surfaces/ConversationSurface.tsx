@@ -23,6 +23,7 @@ import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { WhyThis } from "@/components/ask/WhyThis";
 import { ThreadNav, ThreadJump } from "@/components/ask/ThreadNav";
+import { coldOffer, markSeen } from "@/lib/threadShelf";
 
 import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/askCapabilities";
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
@@ -96,7 +97,7 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
   const isOwner = useIsOwner();
   const { controls } = useSystemControls();
   const { openSherlock } = useSherlock();
-  const { activeId: convId, active: activeThread, ensureThread, noteActivity, recordOutput } = useAskThreads();
+  const { activeId: convId, active: activeThread, ensureThread, noteActivity, recordOutput, newThread } = useAskThreads();
   // A thread leaves a pointer, not a permission: the next device can offer to
   // reopen where the thinking stopped. Nothing about approval travels with it.
   const trace = useHandoffTrace();
