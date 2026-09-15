@@ -165,27 +165,68 @@ export function ThreadNav({
   );
 }
 
-/** The "jump to latest" pill — only while the newest turn is off screen. */
-export function JumpToLatest({ scrollRef, deps }: { scrollRef: React.RefObject<HTMLDivElement>; deps: unknown }) {
-  const [away, setAway] = useState(false);
+/**
+ * Which floating controls a scroll position deserves. Pure so the rule can be
+ * tested instead of eyeballed: the newest turn off screen earns "jump to
+ * latest"; only a genuinely long way down earns a route back to the start.
+ * At the bottom of a thread, nothing floats at all.
+ */
+export const AWAY_FROM_BOTTOM = 240;
+export const DEEP_FROM_TOP = 1200;
+
+export function jumpState(m: { scrollTop: number; scrollHeight: number; clientHeight: number }): {
+  showLatest: boolean;
+  showTop: boolean;
+} {
+  const fromBottom = m.scrollHeight - m.scrollTop - m.clientHeight;
+  const showLatest = fromBottom > AWAY_FROM_BOTTOM;
+  return { showLatest, showTop: showLatest && m.scrollTop > DEEP_FROM_TOP };
+}
+
+/**
+ * The floating cluster. It follows the person down a long thread so the thread
+ * tools are never a scroll away, and it disappears the moment they are back at
+ * the newest turn. Sits above the composer and clear of the gesture area.
+ */
+export function ThreadJump({ scrollRef, deps }: { scrollRef: React.RefObject<HTMLDivElement>; deps: unknown }) {
+  const [state, setState] = useState({ showLatest: false, showTop: false });
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const check = () => setAway(el.scrollHeight - el.scrollTop - el.clientHeight > 240);
+    const check = () => setState(jumpState(el));
     check();
     el.addEventListener("scroll", check, { passive: true });
     return () => el.removeEventListener("scroll", check);
   }, [scrollRef, deps]);
 
-  if (!away) return null;
+  if (!state.showLatest) return null;
+  const to = (top: number) => scrollRef.current?.scrollTo({ top, behavior: "smooth" });
+
   return (
-    <button
-      type="button"
-      onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
-      className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full border border-primary/40 bg-background/95 px-3 py-1.5 text-[11.5px] text-foreground shadow-sm backdrop-blur md:bottom-20"
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-1.5 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+6rem))] md:pb-24"
+      aria-live="polite"
     >
-      Jump to latest
-    </button>
+      {state.showTop && (
+        <button
+          type="button"
+          onClick={() => to(0)}
+          className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/95 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+        >
+          <ArrowUp className="h-3 w-3" /> Start of this situation
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => to(scrollRef.current?.scrollHeight ?? 0)}
+        className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-background/95 px-3 py-1.5 text-[11.5px] text-foreground shadow-sm backdrop-blur"
+      >
+        <ArrowDown className="h-3.5 w-3.5 text-primary" /> Jump to latest
+      </button>
+    </div>
   );
 }
+
+/** Older name kept so nothing imports a moved button. */
+export const JumpToLatest = ThreadJump;
