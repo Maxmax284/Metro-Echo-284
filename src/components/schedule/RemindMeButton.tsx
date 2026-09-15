@@ -17,7 +17,7 @@ type Props = {
 
 export function RemindMeButton({ event, reminded, onChanged }: Props) {
   const { user } = useAuth();
-  const { organizationId } = useScope();
+  const { orgId } = useScope();
   const [busy, setBusy] = useState(false);
   const name = event.title?.trim() || "this entry";
 
@@ -29,7 +29,7 @@ export function RemindMeButton({ event, reminded, onChanged }: Props) {
         await stopReminder(watchSubjectFor(event));
         toast.success("Echo will leave that one alone.");
       } else {
-        await startReminder({ userId: user.id, organizationId: organizationId ?? null, event });
+        await startReminder({ userId: user.id, organizationId: orgId || null, event });
         toast.success("Echo will say something the evening before, and again on the day.");
       }
       onChanged();
