@@ -202,7 +202,7 @@ export function useAskTurn(opts?: {
       /* A turn that only prepares a draft still has to be readable tomorrow.
          Keeping an eye on something approves nothing and runs nothing, so it
          must not be described as waiting for approval. */
-      const WATCH_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched"]);
+      const WATCH_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched", "where_do_i_stand"]);
       const stagedLine = staged.length
         ? staged.map((s) => {
             const a = (s.args ?? {}) as Record<string, unknown>;
