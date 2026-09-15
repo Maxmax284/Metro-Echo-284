@@ -12,6 +12,10 @@ import { GOOGLE_CONNECTOR_IDS, type GoogleConnectorId } from "./appUserScopes.ts
 export type GoogleServiceStatus = {
   service: GoogleConnectorId;
   connected: boolean;
+  /** True when this service is genuinely working, however it was granted. */
+  working: boolean;
+  /** Who the grant belongs to: this person, or the app's own shared link. */
+  via: "you" | "app" | null;
   offerable: boolean;
   account: string | null;
   failing: boolean;
@@ -39,19 +43,26 @@ export function googleServiceStatuses(input: {
   rows: ConnectionRow[];
   offerable: (service: GoogleConnectorId) => boolean;
   calendarSyncError?: string | null;
+  /** An active Google calendar feed reads even without this person's own grant. */
+  calendarFeedActive?: boolean;
 }): GoogleServiceStatus[] {
   const mine = new Map(input.rows.map((r) => [r.connector_id, r]));
   return GOOGLE_CONNECTOR_IDS.map((service) => {
     const row = mine.get(service);
     const connected = !!row;
+    const sharedCalendar = service === "google_calendar" && !connected
+      && input.calendarFeedActive === true;
+    const working = connected || sharedCalendar;
     const own = row?.last_error ?? null;
     const problem = service === "google_calendar"
       ? own || (input.calendarSyncError ?? null)
       : own;
-    const failing = connected && !!problem;
+    const failing = working && !!problem;
     return {
       service,
       connected,
+      working,
+      via: connected ? "you" : sharedCalendar ? "app" : null,
       offerable: input.offerable(service),
       account: row?.account_label ?? null,
       failing,

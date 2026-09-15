@@ -40,17 +40,19 @@ Deno.serve(async (req: Request) => {
        on their own connection row, so one refused service never reddens another. */
     const { data: feed } = await admin
       .from("calendar_feeds")
-      .select("last_error")
+      .select("last_error, active")
       .eq("user_id", user.id)
       .eq("provider", "google")
       .limit(1)
       .maybeSingle();
-    const calendarError = (feed as { last_error?: string | null } | null)?.last_error ?? null;
+    const calFeed = feed as { last_error?: string | null; active?: boolean | null } | null;
+    const calendarError = calFeed?.last_error ?? null;
 
     const services: GoogleServiceStatus[] = googleServiceStatuses({
       rows: (rows ?? []) as ConnectionRow[],
       offerable: (service) => !!Deno.env.get(GOOGLE_CLIENT_KEY_ENV[service]),
       calendarSyncError: calendarError,
+      calendarFeedActive: calFeed?.active === true,
     });
 
 

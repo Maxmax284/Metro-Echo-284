@@ -11,6 +11,10 @@ export type GoogleConnectorId = (typeof GOOGLE_CONNECTORS)[number];
 export type GoogleServiceStatus = {
   service: GoogleConnectorId;
   connected: boolean;
+  /** Working right now, however it was granted. */
+  working?: boolean;
+  /** "you" = your own sign-in, "app" = this app's shared Google link. */
+  via?: "you" | "app" | null;
   offerable: boolean;
   account: string | null;
   failing: boolean;
@@ -26,6 +30,8 @@ export type GoogleAccountStatus = {
 const EMPTY_SERVICES: GoogleServiceStatus[] = GOOGLE_CONNECTORS.map((service) => ({
   service,
   connected: false,
+  working: false,
+  via: null,
   offerable: false,
   account: null,
   failing: false,

@@ -108,24 +108,42 @@ export function isGranted(cap: GoogleCapability, state: GoogleAccountState): boo
   return !!statusFor(cap, state)?.connected;
 }
 
+/** True when Echo can genuinely use this service now, however it was granted. */
+export function isWorking(cap: GoogleCapability, state: GoogleAccountState): boolean {
+  const status = statusFor(cap, state);
+  return !!(status?.working ?? status?.connected);
+}
+
+/** True when the service works through this app's shared Google link, not your sign-in. */
+export function isSharedGrant(cap: GoogleCapability, state: GoogleAccountState): boolean {
+  const status = statusFor(cap, state);
+  return status?.via === "app";
+}
+
 /** One word for a single Google service. */
 export function capabilityReach(cap: GoogleCapability, state: GoogleAccountState): ReachState {
   const status = statusFor(cap, state);
   if (status?.failing) return "needs_you";
-  if (status?.connected) return "connected";
+  if (isWorking(cap, state)) return "connected";
   return "available";
+}
+
+/** Why a service reads without this person having signed in for it. */
+export function sharedGrantLine(cap: GoogleCapability, state: GoogleAccountState): string | null {
+  if (!isSharedGrant(cap, state)) return null;
+  return `Echo already reads your ${cap.label.toLowerCase()} through this app's own Google link. Sign in yourself to put it on your account.`;
 }
 
 /** One word for the whole Google account container. */
 export function accountReach(state: GoogleAccountState): ReachState {
   const all = Object.values(state.services).filter(Boolean) as GoogleServiceStatus[];
   if (all.some((s) => s.failing)) return "needs_you";
-  return all.some((s) => s.connected) ? "connected" : "available";
+  return all.some((s) => s.working ?? s.connected) ? "connected" : "available";
 }
 
 /** The honest headline under the account name. Never promises unbuilt services. */
 export function accountLine(state: GoogleAccountState): string {
-  const on = GOOGLE_CAPABILITIES.filter((c) => isGranted(c, state)).map((c) => c.label);
+  const on = GOOGLE_CAPABILITIES.filter((c) => isWorking(c, state)).map((c) => c.label);
   if (on.length === 0) {
     return "Sign in once and pick what Echo may touch. Signing in on its own gives Echo nothing.";
   }
