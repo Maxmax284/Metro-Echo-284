@@ -61,18 +61,33 @@ function ThreadRow({
     >
       <button
         type="button"
-        onClick={() => { openThread(t.id); onPicked?.(); }}
+        onClick={() => { openThread(t.id); markSeen(t.id); onSeen?.(t.id); onPicked?.(); }}
         className="vanta-focus min-h-[44px] min-w-0 flex-1 text-left"
       >
         <span className="flex items-center gap-1.5">
           {t.pinned && <Pin className="h-3 w-3 shrink-0 text-primary" />}
-          <span className="truncate text-[13px] text-foreground/90">{threadLabel(t)}</span>
+          {unread && (
+            <span
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+              title="Moved since you last read it"
+              aria-label="Moved since you last read it"
+            />
+          )}
+          <span
+            className={cn(
+              "truncate text-[13px]",
+              unread ? "font-medium text-foreground" : "text-foreground/90",
+            )}
+          >
+            {threadLabel(t)}
+          </span>
           {streaming && <LiveDot label="Answering now" />}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
           <span className="font-mono">
             {streaming ? "answering now" : relTime(t.last_message_at ?? t.updated_at)}
           </span>
+          {unread && !streaming && <span className="text-primary/85">new since you looked</span>}
 
           <span className="rounded-full bg-surface-elevated/70 px-1.5 py-0.5 uppercase tracking-wider ring-1 ring-border/40">
             {t.scope === "organization" ? "Workspace" : "Personal"}
