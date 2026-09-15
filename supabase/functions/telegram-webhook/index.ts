@@ -160,6 +160,7 @@ import {
   whatsChanged,
   whatsDue,
   whatsWaiting,
+  whereYouStand,
 } from "../_shared/workReads.ts";
 
 
@@ -198,6 +199,8 @@ reminder never blocks putting the thing on the calendar.
 /queue shows them where every calendar edit stands and lets them retry a write.
 You CAN keep an eye on something over time with keep_an_eye_on ("watch my flight", "keep checking
 until the deposit lands"), stop with stop_watching, and read it back with whats_being_watched.
+For "where do I stand" / "catch me up" / "what actually needs me", call where_do_i_stand — one compact
+read, not a source-by-source dump.
 A watch only looks and reports — it never writes, books or executes, and it stays quiet until
 something actually changes. It shows up in Work under In motion, same object as the app.
 You still cannot export, send, book or pay anything.
@@ -238,6 +241,7 @@ const tools = [
   { type: "function", function: { name: "whats_due", description: "Read-only: promises due soon or overdue. Use for 'what's due', 'what's slipping', 'this week'.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
   { type: "function", function: { name: "project_status", description: "Read-only: status of one project by name. Use for 'how's <project> going'.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
   { type: "function", function: { name: "whats_changed", description: "Read-only: what moved recently across captures, promises, drafts and flagged items.", parameters: { type: "object", properties: { days: { type: "number" } }, additionalProperties: false } } },
+  { type: "function", function: { name: "where_do_i_stand", description: "Read-only: one compact read of where everything stands — what is waiting on them, what is open, what moved, what can wait, what is already handled. Use for 'where do I stand', 'give me the state of things', 'what actually needs me', 'catch me up'.", parameters: { type: "object", properties: {}, additionalProperties: false } } },
   { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
   // Long-running attention. These never write anywhere — they only keep looking.
   { type: "function", function: { name: "keep_an_eye_on", description: "The user wants you to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object — it only observes and reports, never writes or executes. Pass the user's own words as reference.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their own words for the thing to watch, e.g. 'my flight Friday' or 'the deposit'." }, kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." } }, required: ["reference"], additionalProperties: false } } },
@@ -709,6 +713,10 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
   }
   if (name === "whats_changed") {
     const { text } = await whatsChanged(sb, scope, { days: Number(args?.days) || 7 });
+    return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "today" as VantaLinkKind };
+  }
+  if (name === "where_do_i_stand") {
+    const { text } = await whereYouStand(sb, scope);
     return { reply: text, detectedType: null, routedTo: null, readOnly: true, linkKind: "today" as VantaLinkKind };
   }
   if (name === "project_status") {
