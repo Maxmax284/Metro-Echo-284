@@ -1079,7 +1079,12 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 
 
 
-  if (matchCapabilityQuestion(text)) {
+  /* Reach and senses are two different questions. "What can you do?" answers
+     from the same catalog the app shows, so the two surfaces cannot disagree. */
+  if (matchAbilityQuestion(text)) {
+    reply = abilityAnswer(echoAbilities(await readAbilityFacts(sb as never, userId)));
+    readOnly = true;
+  } else if (matchCapabilityQuestion(text)) {
     const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;
     const [{ count: feedCount }, { count: linkCount }] = await Promise.all([
       sb.from("calendar_feeds").select("id", { count: "exact", head: true }).eq("user_id", userId),
