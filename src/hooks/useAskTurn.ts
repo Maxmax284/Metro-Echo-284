@@ -32,7 +32,10 @@ export type AskMsg = {
     detected_type?: string;
     routed_to?: string;
     needs_review?: boolean;
+    /** Plain-English lookups Echo ran before writing this answer. */
+    reads?: string[];
   } | null;
+
 };
 
 /** Staged attachments, when the host surface offers them. */
