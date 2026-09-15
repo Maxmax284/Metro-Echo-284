@@ -441,16 +441,24 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             userId: user.id,
             orgId: scope.organizationId,
           });
-          const { data: conv } = await supabase
-            .from("conversations")
-            .select("id")
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (conv?.id) {
+          /* The answer belongs in the thread that asked. Falling back to the
+             most recently touched conversation dropped it into whichever thread
+             spoke last — usually Telegram — so the person who asked in Ask saw
+             nothing come back. */
+          let threadId = typeof provenance?.conversation_id === "string" ? provenance.conversation_id : null;
+          if (!threadId) {
+            const { data: conv } = await supabase
+              .from("conversations")
+              .select("id")
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            threadId = conv?.id ?? null;
+          }
+          if (threadId) {
             await supabase.from("messages").insert({
               user_id: user.id,
-              conversation_id: conv.id,
+              conversation_id: threadId,
               role: "assistant",
               content: text,
               metadata: { source: "companion_query", intent: kind },
