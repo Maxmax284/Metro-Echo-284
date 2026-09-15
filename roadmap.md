@@ -230,8 +230,22 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
        the web. That step needs a real browser-automation provider (or Firecrawl-class
        fetch with session support) plus an approval gate before it is anything but a
        promise. Not faked in the meantime.
-3. [ ] Connection / reach polish: CampStay, CampCore, Fenrir and existing first-party sources
-       under the same See→Understand→Prepare→Act→Watch→Report model. No Integrations centre.
+ 3. [x] Connection / reach polish: CampStay, CampCore, Fenrir and existing first-party sources
+        under the same See→Understand→Prepare→Act→Watch→Report model. No Integrations centre.
+        Done: an inbound signal at time-sensitive or above now raises ONE notice on Today
+        (kind inbound_needs_you, priority 70, critical 85) alongside the Telegram reach it
+        already had. Identity is the sender's idempotency key, so app + Telegram are one
+        notice on two surfaces and a retried webhook cannot stack. Boring signals stay
+        silent (below threshold), shadow mode stays silent, and a notice failure can never
+        fail the webhook — the capture has already landed. Notice body carries only the
+        facts the payload sent, plus "Nothing was actioned."
+        Owner self-test can now rehearse a real event shape (payment.failed, urgent guest
+        message), not just the background test ping.
+        Verified live end to end on LMT Camp State: payment.failed → noticed true, one row,
+        renders in Today's "Needs you" lane at 384px and desktop, zero overflow;
+        integration.test → noticed false.
+        Still waiting outside this repo: CampCore and Fenrir have no webhook secret stored
+        yet, and none of the three expose per-user sign-in (see phase 4 below).
 4. [ ] Reminder / awareness polish: keep the REMINDER LAW findings; no duplicate spam; explicit
        "remind me" outranks inference; Telegram stays a fallback surface.
 5. [ ] Continuity: "Three things changed while you were out", never "27 unread".
