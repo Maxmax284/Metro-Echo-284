@@ -25,6 +25,8 @@ import { formatInTimeZone } from "date-fns-tz";
 import { formatDistanceToNow } from "date-fns";
 import { freshenDayWords } from "@/lib/dayWords";
 import { HeadsUpReply } from "@/components/ask/HeadsUpReply";
+import { RemindMeButton } from "@/components/schedule/RemindMeButton";
+import { loadRemindedSubjects, watchSubjectFor } from "@/lib/remindMe";
 import type { AgendaEvent } from "@/hooks/useAgenda";
 
 /** Kinds Echo raises off the calendar alone. Nothing else shows here. */
@@ -53,6 +55,22 @@ export function CalendarOnlyView() {
   const [editing, setEditing] = useState<AgendaEvent | null>(null);
   const [mirrorOn, setMirrorOn] = useState(true);
   const [mirrorBusy, setMirrorBusy] = useState(false);
+  /* Which entries the person asked about themselves. Their word beats inference. */
+  const [reminded, setReminded] = useState<Set<string>>(new Set());
+
+  const loadReminded = async () => {
+    if (events.length === 0) return setReminded(new Set());
+    try {
+      setReminded(await loadRemindedSubjects(events.map((e) => watchSubjectFor(e))));
+    } catch {
+      /* A failed read means no badges, never a wrong badge. */
+    }
+  };
+
+  useEffect(() => {
+    if (session) void loadReminded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, scopeKey, events.length]);
 
   useEffect(() => {
     if (!user) return;
@@ -151,7 +169,7 @@ export function CalendarOnlyView() {
           <p className="text-[12px] leading-relaxed text-muted-foreground">
             Nothing to say right now. Echo speaks once the evening before a real appointment, when a time moves, or when
             something collides — and it stays on this page and Today. Google's own alarms are separate and keep firing
-            on their own.
+            on their own. Tap the bell on any entry and Echo speaks about that one either way.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -220,6 +238,14 @@ export function CalendarOnlyView() {
                       {e.origin === "echo" && e.sync_state === "synced" && <span>In Google too</span>}
                     </div>
                   </div>
+                  {/* The person's own ask, on any entry, feed or Echo's own. */}
+                  {!e.all_day && (
+                    <RemindMeButton
+                      event={e}
+                      reminded={reminded.has(watchSubjectFor(e))}
+                      onChanged={() => void loadReminded()}
+                    />
+                  )}
                   {e.origin === "echo" ? (
                     <button
                       aria-label={`Edit ${e.title ?? "this entry"}`}

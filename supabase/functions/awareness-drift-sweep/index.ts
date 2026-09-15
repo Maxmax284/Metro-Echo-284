@@ -487,7 +487,7 @@ async function sweepScope(
     // Anything the person explicitly asked Echo to keep an eye on outranks the
     // quiet default. Watches carry the feed's own uid as their subject.
     const { data: watchRows } = await scoped(
-      sb.from("watches").select("subject_id, kind, state"),
+      sb.from("watches").select("subject_id, kind, state, success_when"),
       userId,
       orgId,
     )
@@ -495,7 +495,9 @@ async function sweepScope(
       .in("state", ["on_it", "watching", "waiting"])
       .limit(100);
     const explicitUids = ((watchRows ?? []) as any[])
-      .map((w) => (w.subject_id ?? "") as string)
+      /* A subscribed feed's uid is not a database key, so identity lives in
+         success_when.uid; subject_id only when Echo owns the row. */
+      .map((w) => String(w?.success_when?.uid ?? "").trim() || ((w.subject_id ?? "") as string))
       .filter(Boolean);
 
     for (const s of appointmentReminderSignals(events, scope, nowMs, senses.timezone || "UTC", {

@@ -246,8 +246,20 @@ scoring. Always-on listening, voice-in-ear. A fifth room or new dashboard. Live 
         integration.test → noticed false.
         Still waiting outside this repo: CampCore and Fenrir have no webhook secret stored
         yet, and none of the three expose per-user sign-in (see phase 4 below).
-4. [ ] Reminder / awareness polish: keep the REMINDER LAW findings; no duplicate spam; explicit
-       "remind me" outranks inference; Telegram stays a fallback surface.
+4. [x] Reminder / awareness polish — DONE. The engine already treated a calendar_event watch as
+       explicit intent (speaks evening + day-of even for a boring title, even when Google keeps the
+       day-of alarm), but nothing in the interface could create one. Added a per-entry bell:
+       `src/lib/remindMe.ts` (subject = uid ?? id, matching eventKey(); goal "Remind me about X";
+       stop_at = start + 1 day so no watch leaks) and `RemindMeButton.tsx`, wired into
+       CalendarOnlyView and WeekPlanner on every timed entry, feed or Echo's own. Taking it back
+       closes the watch with an outcome line, never deletes the receipt.
+       Fixed while verifying: subject_id is a uuid column, so a subscribed feed's uid
+       ("...@google.com") could never be stored — identity now lives in success_when.uid (where
+       watch-sweep already read it) and subject_id only carries rows Echo owns. awareness-drift-sweep
+       and watch-sweep read the same identity; both deployed.
+       Verified live at 384px and desktop: bells render, one tap flips to "Stop reminding", the watch
+       row persists, zero overflow, no console errors. Test watch cleaned up afterwards.
+       No duplicate spam, no new room, Telegram still only the fallback pipe.
 5. [ ] Continuity: "Three things changed while you were out", never "27 unread".
 6. [ ] State compression: open / changed / waiting on you / can wait / already handled —
        a capability under Today and Ask, not a dashboard.
