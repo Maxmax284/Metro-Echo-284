@@ -20,7 +20,7 @@ export function Section({
       id={id}
       ref={ref}
       className={cn(
-        "mx-auto w-full max-w-2xl px-5 py-16 transition-all duration-700 ease-out sm:py-24",
+        "mx-auto w-full max-w-2xl px-5 py-16 transition-all duration-[var(--motion-slow)] ease-out sm:py-24",
         shown ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0",
         className,
       )}

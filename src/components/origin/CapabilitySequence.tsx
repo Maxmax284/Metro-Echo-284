@@ -34,7 +34,7 @@ export function CapabilitySequence() {
         <li
           key={s.k}
           className={cn(
-            "flex gap-3 rounded-lg border border-border/60 bg-card/70 p-3 transition-all duration-500",
+            "flex gap-3 rounded-lg border border-border/60 bg-card/70 p-3 transition-all duration-[var(--motion-slow)]",
             i < n ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
           )}
         >

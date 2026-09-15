@@ -50,7 +50,7 @@ export function SourceWeave() {
 
       <div
         className={cn(
-          "rounded-xl border p-4 transition-all duration-500",
+          "rounded-xl border p-4 transition-all duration-[var(--motion-slow)]",
           all ? "border-primary/50 bg-primary/10 opacity-100" : "border-dashed border-border/60 opacity-60",
         )}
       >

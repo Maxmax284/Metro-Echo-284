@@ -93,7 +93,7 @@ export function ChaosField() {
               Your life does not happen in one app.
             </h1>
             <p
-              className="text-[15px] leading-relaxed text-muted-foreground transition-opacity duration-700"
+              className="text-[15px] leading-relaxed text-muted-foreground transition-opacity duration-[var(--motion-slow)]"
               style={{ opacity: settled ? 1 : 0.25 }}
             >
               {settled
