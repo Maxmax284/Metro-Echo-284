@@ -545,6 +545,74 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             });
           }
           toast.success({ title: mail ? "Checked your mail." : "Looked in your Drive." });
+        } else if (kind === "check_page" || kind === "look_up") {
+          /* The last resort, in order: your own sources first, then a page you
+             point at, then the open web. Reading only — Echo does not sign in,
+             submit anything, book, cancel or pay. Where it came from is always
+             said out loud. */
+          const page = kind === "check_page";
+          const wantsWatch = page && args.watch === true;
+          const url = String(args.url ?? "").trim();
+          const asked = String(args.question ?? "").trim();
+
+          const { data: res } = await supabase.functions.invoke("web-look", {
+            body: page
+              ? { mode: wantsWatch ? "watch" : "read", url, question: asked, why: asked || null }
+              : { mode: "search", question: asked },
+          });
+          const payload = (res ?? {}) as {
+            ok?: boolean;
+            answer?: string | null;
+            source?: string | null;
+            behind_login?: boolean;
+            hits?: { title?: string; url?: string; snippet?: string }[];
+          };
+
+          let composed: string;
+          if (page) {
+            composed = [payload.answer ?? "Echo could not read that page.", payload.source ? `_${payload.source}_` : null]
+              .filter(Boolean)
+              .join("\n\n");
+          } else if (payload.hits?.length) {
+            composed = [
+              `Here is what the web says about “${asked}”. Echo only read it, nothing more.`,
+              ...payload.hits.slice(0, 5).map((h) => `• ${h.title ?? h.url} — ${h.snippet ?? ""}\n  ${h.url ?? ""}`),
+            ].join("\n");
+          } else {
+            composed = payload.answer ?? "Nothing useful came back from the web on that one.";
+          }
+
+          const { data: conv } = await supabase
+            .from("conversations")
+            .select("id")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (conv?.id) {
+            await supabase.from("messages").insert({
+              user_id: user.id,
+              conversation_id: conv.id,
+              role: "assistant",
+              content: composed,
+              metadata: {
+                source: page ? "web_page" : "web_search",
+                provenance: "web",
+                url: page ? url : null,
+                question: asked || null,
+                watching: wantsWatch,
+              },
+            });
+          }
+          if (wantsWatch && payload.ok) {
+            onAck?.({ kind: "keep_an_eye_on", summary: payload.answer ?? "Echo is watching that page." });
+          }
+          toast.success({
+            title: page
+              ? wantsWatch
+                ? "Echo is watching that page."
+                : "Read that page."
+              : "Looked it up.",
+          });
         } else if (kind === "travel_time") {
           /* How long the road takes to something already on the calendar.
              Recorded ground truth only: the fix Echo is using, the address on

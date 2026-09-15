@@ -11,7 +11,8 @@ export type GuardProvider =
   | "google-calendar"
   | "lovable-ai"
   | "reddit-serpapi"   // Community: Reddit via SerpApi engine (primary)
-  | "reddit-public";   // Community: public reddit.com JSON (fallback)
+  | "reddit-public"    // Community: public reddit.com JSON (fallback)
+  | "web-page";        // Reading one public web page Echo was pointed at
 
 export type GuardInput = {
   owner_id: string;
@@ -47,6 +48,7 @@ const PROVIDER_KILL_KEY: Record<GuardProvider, keyof SystemControls> = {
   "lovable-ai": "gemini_enabled",
   "reddit-serpapi": "community_reddit_enabled",
   "reddit-public": "community_public_fallback_enabled",
+  "web-page": "external_apis_enabled",
 };
 
 type SystemControls = {

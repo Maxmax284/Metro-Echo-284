@@ -106,6 +106,11 @@ You can also look in the person's own Gmail (search_mail) and their own Google D
 (find_file) when they switched those on for themselves. Both are read only. Combine
 them with the calendar into ONE answer about the situation, not one line per source.
 If a service is not switched on, say that plainly — never invent what a message said.
+When the answer lives outside all of that, you have two last resorts, in this order:
+check_page for a page the person points at (a portal, a booking, a confirmation) and
+look_up for a public fact with no page attached. Both only read. You cannot sign in,
+submit a form, book, cancel or pay anywhere on the web — if a page needs a login, say
+so and hand it back. Always say where an outside answer came from.
 
 ${MEDIA_CAPABILITY}
 
@@ -453,6 +458,36 @@ const tools = [
       name: "whats_being_watched",
       description: "Read-only: what Echo is currently keeping an eye on.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_page",
+      description: "The person points at a public web page and wants it read: 'check this page', 'does my booking still say Sept 20', 'what does this say about the deposit', 'keep an eye on this page'. Reading only — Echo cannot sign in, submit anything, book, cancel or pay. Use this only when the answer is not already in their calendar, mail or files. Set watch true when they ask Echo to keep checking it.",
+      parameters: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "The page address they gave." },
+          question: { type: "string", description: "What they want to know from that page." },
+          watch: { type: "boolean", description: "True when they want Echo to keep checking the page for changes." },
+        },
+        required: ["url"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "look_up",
+      description: "A public fact that is not in their own calendar, mail or files and has no page to point at: 'what's the number for the pharmacy on King Street', 'is that clinic open Saturday', 'compare current prices'. Public web lookup, read only. Always prefer their own connected sources first.",
+      parameters: {
+        type: "object",
+        properties: { question: { type: "string", description: "What to look up, in plain words." } },
+        required: ["question"],
+        additionalProperties: false,
+      },
     },
   },
 ];
