@@ -89,7 +89,7 @@ async function watchForUser(sb: SupabaseClient, userId: string): Promise<number>
       dedupe_key: dedupe,
       status: "pending",
       expires_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
-    }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+    }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
     if (!error) drafted++;
   };
   for (const id of heatIds) await stampHeat(id);
@@ -109,7 +109,7 @@ async function watchForUser(sb: SupabaseClient, userId: string): Promise<number>
       dedupe_key: dedupe,
       status: "pending",
       expires_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
-    }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+    }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
     if (!error) drafted++;
   };
   for (const p of pairs.slice(0, 10)) await stampPair(p);
@@ -158,7 +158,7 @@ async function watchForUser(sb: SupabaseClient, userId: string): Promise<number>
         dedupe_key: dedupe,
         status: "pending",
         expires_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
-      }, { onConflict: "dedupe_key", ignoreDuplicates: true });
+      }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
       if (!error) drafted++;
     }
   }
