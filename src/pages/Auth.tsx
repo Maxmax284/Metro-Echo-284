@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,13 @@ export default function Auth() {
       <div className="w-full max-w-sm space-y-8 motion-fade">
         <div className="space-y-2 text-center">
           <ProductMark className="text-2xl" />
-          <p className="text-sm text-muted-foreground">Your operational companion.</p>
+          <p className="text-sm text-muted-foreground">A situational companion for everyday life.</p>
+          <Link
+            to="/what-is-metro-echo"
+            className="inline-block text-[12.5px] text-primary underline-offset-4 hover:underline"
+          >
+            What is Metro Echo?
+          </Link>
         </div>
 
         <form onSubmit={onEmail} className="space-y-3 rounded-2xl glass p-5 shadow-md">
