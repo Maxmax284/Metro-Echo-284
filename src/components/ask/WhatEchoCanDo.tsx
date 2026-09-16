@@ -6,7 +6,9 @@
 import { Zap } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEchoAbilities } from "@/hooks/useEchoAbilities";
+import { useLifeDomains } from "@/hooks/useLifeDomains";
 import { abilityLine, type AbilityState } from "@/lib/echoAbilities";
+import { lifeLine } from "@/lib/streetSmart";
 import { MOTION_FOCUS, MOTION_MICRO } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
