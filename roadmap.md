@@ -666,3 +666,32 @@ or Safety room.
   word says so, time left, next gate, the layover math.
 - 27 new checks in `src/test/journey.test.ts`. 1,422 tests green, typecheck clean,
   Flights QA'd at 384px.
+
+## Pass 18 — the flight number has one obvious door, and Telegram uses it
+
+- **A real address.** `/flights` (and `/flight`) land straight on the flight desk
+  via `?surface=schedule&tab=flights`; every Schedule desk is now linkable by
+  `?tab=`. Today carries a standing "Add a flight — number and a day" row so the
+  thing you type standing in a boarding line is one tap, not three.
+- **Same rules from a chat box.** `_shared/flightChat.ts` (pure) reads a typed
+  line deterministically: `readDay` takes a written date, today/tonight,
+  tomorrow/tmrw, "sep 20"/"20 september", 9/20, or the next weekday, rolls a
+  month already gone into next year, and names no day when none was named.
+  `readFlightAsk` files a number with a day, asks one question when the day is
+  missing, drops on cancel/drop/scratch, and ignores a bare code buried in a long
+  sentence that never says flight. No model decides any of this.
+- **One filing path.** `_shared/flightFile.ts` — `fileFlightByNumber` dedupes by
+  number+day inside scope (a second attempt hands back the existing card), writes
+  a prepared card with a receipt, then takes one counted reading and leaves the
+  card exactly as bare as the provider left it. `dropFlightByNumber` drops from
+  either side and says plainly that nothing was booked, so nothing was cancelled
+  with an airline. `_shared/flightProvider.ts` holds the single provider read plus
+  the shared 40-a-day ceiling (`countedRead`), so a Telegram-filed flight cannot
+  outspend the sweep — over budget it says so instead of guessing.
+- **Telegram, hybrid as asked.** A deterministic block ahead of the model: file,
+  ask-the-day (remembered on `profiles.preferences.flight_day_question` for 30
+  minutes so a bare "friday" completes it), or drop. Filing is capture; confirming
+  a flight onto the Board still only happens inside the platform. Every reply ends
+  on the terminal caveat.
+- 13 new checks in `src/test/flight-chat.test.ts`. 1,435 tests green, typecheck
+  clean, `/flights` QA'd at 384px. `telegram-webhook` deployed.
