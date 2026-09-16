@@ -2367,6 +2367,62 @@ export type Database = {
         }
         Relationships: []
       }
+      medications: {
+        Row: {
+          active: boolean
+          created_at: string
+          dose: string
+          ends_on: string | null
+          id: string
+          name: string
+          notes: string
+          organization_id: string | null
+          rhythm: string
+          starts_on: string | null
+          times_local: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          dose?: string
+          ends_on?: string | null
+          id?: string
+          name: string
+          notes?: string
+          organization_id?: string | null
+          rhythm?: string
+          starts_on?: string | null
+          times_local?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          dose?: string
+          ends_on?: string | null
+          id?: string
+          name?: string
+          notes?: string
+          organization_id?: string | null
+          rhythm?: string
+          starts_on?: string | null
+          times_local?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

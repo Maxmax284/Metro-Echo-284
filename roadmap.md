@@ -479,7 +479,30 @@ or Safety room.
 - Full suite: 1,302 tests across 140 files, green. Typecheck clean.
   Deployed: vanta-converse, telegram-webhook, echo-calendar.
 
+## Pass 12 — the body desk
+- [x] 30. Body log as a desk, not a room. `Schedule → Body`: weight, a cuff reading typed the way a
+      cuff shows it ("128/82", pulse optional), temperature with its own unit, and medication
+      courses with local clock times. `medications` table (migration 0025) follows the notes RLS
+      pattern, so a workspace body log belongs to that room only. Readings land in
+      `wearable_readings` as typed rows beside watch rows — one store, no second engine.
+- [x] 31. Numbers reported, never read. `BODY_DISCLAIMER` stands on the page; every line says the
+      number with its unit and nothing else. Movement is only ever the difference between two
+      recorded readings. Blood pressure stores as its two parts and pairs back by the minute; a lone
+      half says which half it is rather than being completed with a guess.
+- [x] 32. A dose is a reminder, never an action. `DOSE_LAW`: Echo says a dose is due; marking it
+      taken stays with the person. Doses show on the day inside the Board's selected day and in
+      today's list on the desk. Paused, as-needed, and out-of-course days produce silence.
+- [x] 33. One brain answers about it. `bodyRead` now carries today's medication and the next dose
+      due, so Ask and Telegram say the same thing from the same read — read-only, scope-bound.
+- New: `_shared/bodyLog.ts` + client mirror, `drizzle/migrations/0025_create_medications.sql`,
+  `src/hooks/useBody.ts`, `src/components/schedule/BodyDesk.tsx`,
+  `src/test/body-log.test.ts` (13). Changed: `bodyRead.ts`, `AgendaBoard.tsx`, `ScheduleSurface.tsx`.
+- Full suite: 1,315 tests across 141 files, green. Typecheck clean.
+  Deployed: vanta-converse, telegram-webhook.
+
 ## Still pinned (no credentials yet)
-- Banking / Plaid — needs a Plaid client id and secret.
-- Flight depth — needs a flight-data provider key.
+- Banking / Plaid — needs a Plaid client id and secret. Balances, transactions and a spend plan stay
+  an honest seam; nothing is shown until a real link exists.
+- Flight depth — needs a flight-data provider key. Departure and arrival times can be read and put
+  on the board once there is a key; booking stays out — Echo records and prepares, it never buys.
 - WhatsApp — needs a WhatsApp Business number with API access.
