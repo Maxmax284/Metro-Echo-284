@@ -1,89 +1,121 @@
-# Audit: why Google reminded you and Echo stayed quiet
+# Metro Echo — Everyday Life Expansion (plan only)
 
-Forensic only. No code, data, migrations or deploys touched. The Gmail/Drive per-user connector work is still the next thing after this — see the last section.
+Audited against the live repo after the review PDF. Nothing here starts without your approval, and each phase gets its own approval before the next begins.
 
-## 1. What happened
+## What the audit found already live (so we don't rebuild it)
 
-The event is in Echo. Twice.
+- **Currency**: live rates, parsing ("120 usd to thb"), formatting, cross-rates. Live.
+- **Local emergency numbers**: hand-kept per place. Live.
+- **Country notes**: hand-written transport / money / watch-out lines, each stamped with the day it was checked, "no notes" when a country isn't written up. Live (TH, JP, others).
+- **Travel**: flight filing by number + day, provider status reads with a hard daily ceiling, journeys with legs, derived position ("you're in Tokyo"), layover math with terminal-change and immigration subtraction, airport food/water/SIM/pharmacy/rest/ATM listings with a 7-day cache and last-read stamps, arrival reads, Telegram parity, drop/cancel. Live.
+- **Care directory**: hospitals, clinics, pharmacies with expanding-radius search. Live.
+- **Weather**: already used as situational context around appointments and the evening read. No dashboard. Live.
+- **Capture**: timer, pause/resume, waveform while recording, mark-a-moment, timestamped segments, evidence jump, cross-note search, structured view, three mic modes. Live. Speaker fields exist but are never claimed as separation.
+- **Money rail**: bank linking, balances and transactions built end to end, sandbox keys only, zero accounts linked.
+- **Body**: medication and dose scheduling live, one watch reporting, read-only.
 
-Live records for your account, "ADHD appointment":
-- Runs `2026-09-14 20:00Z` to `21:00Z` — that is 4–5 PM Eastern tomorrow. Exactly what your phone said.
-- Google UID `6gqjcc9o…@google.com`, synced clean at `23:00Z` tonight, no sync error.
-- Stored twice, once per feed, because you have two feeds pointed at the same Google calendar:
-  - `Google Calendar` (provider `google`, added Sep 10 18:56)
-  - `Echo` (provider `ical`, the private .ics link for the same Gmail address, added Sep 10 11:42)
-- Both feeds report 5 events, both last synced at the same minute.
+**Genuinely missing**: measurement and unit sense, sizing, plugs/voltage, driving side, date and clock formats, phone codes, tipping and tax-included pricing as first-class facts, phrases, transit-payment norms; friction reasoning; the street-smart trouble lane; housing cost synthesis; capture import/export/audio keeping; WhatsApp; deeper ambient surfaces.
 
-So: ingestion is fine. Nothing was missed, dropped, or mistimed. Timezone is correct.
+## Order (revised from your draft)
 
-What Echo does **not** store: Google's own reminder settings. The sync reads title, place, start, end, all-day and UID. That's it. Google's notification on your phone came straight from Google to your phone and has zero connection to anything in Echo — separate pipe, separate decision, separate clock.
+Your A–H order holds, with two changes justified by the repo: **street-smart help moves ahead of travel refinement** (travel is the most finished lane, street-smart is the emptiest and highest value), and **housing lands before body** because the money phase feeds it directly.
 
-## 2. Why nothing came from Echo or Telegram
+```text
+A World context      → B Street-smart + friction + culture → C Travel polish
+D Read-only money    → E Housing / real cost               → F Body
+G WhatsApp           → H Ambient depth
+```
 
-Three separate reasons, each on its own enough.
+---
 
-**a) There is no next-day calendar reminder in the product at all.**
-The calendar sense only produces two signals: something starts soon, and a promise landing inside a booked block. "Soon" is hard-coded at **45 minutes** (`SOON_MINUTES` in `_shared/awareness/adapters-calendar.ts`). An appointment 21 hours out produces no signal, by design. A T-24h heads-up for a plain appointment was never built.
+## Phase A — World context and international practical sense
+**Size: medium.**
 
-**b) Proactive awareness is switched off on your account.**
-The hourly sweep (`awareness-drift-sweep`, cron `0 * * * *`) filters to profiles where `proactive_awareness_enabled === true`. Your preferences blob contains only `context` — no awareness flag, no push flag, no Telegram awareness flag, no quiet-hours values. So the sweep skips you entirely before it ever reads your calendar.
+Adds one shared "how things work here" layer under Ask and Today: measurement conversion with meaning, temperature, distance, weight, volume, area, clothing and shoe sizing where genuinely reliable, date and clock format, phone codes, plugs and voltage, driving side, fuel units with a comparable per-unit price, SIM and eSIM context, transit payment norms, tipping and whether tax is already in the price, and a small phrase set.
 
-**c) Even if it had run, nothing could have reached you.**
-- Push: needs `push_reminders_enabled` on. Not set. (You do have 1 registered device, so the device isn't the problem — the switch is.)
-- Telegram: needs `telegram_awareness_enabled` on. Not set. (Your chat is linked, so again — the switch, not the wiring.)
-- Default quiet hours are 22:00–07:00 local, and 6:57 AM falls inside that window. Under today's defaults, that hour is silent anyway.
+The point is context, not arithmetic: "42 m² is about 452 ft² — small by US suburban standards, normal for a city apartment." The judgement half only appears when a kept fact supports it. Silence beats a guess.
 
-**One more thing worth flagging:** the T-24h reminder that *does* exist (`commitment-reminders`, hourly) only looks at **commitments** — promises you made — not calendar events. Your three open commitments are the storage unit, the visa copy, and Dani. There is no ADHD commitment row. So even that job had nothing to fire on, and it's also gated behind `telegram_reminders_enabled` / `push_reminders_enabled`, both unset.
+- **Reuses**: currency, country notes, local help, the place spine, the capability router, Ask, Telegram.
+- **New sources**: none required. Sizing, plugs, driving side and formats are kept facts with a checked-on date, same discipline as country notes.
+- **Visible**: answers in Ask and Telegram, and a one-line "what Echo knows about here" in the Ask suggestions. No tools menu, no converter page.
+- **Proof**: pure-module tests for every unit family and every kept-fact table, plus refusal tests — unwritten country returns nothing.
 
-## 3. Verdict on classification
+**Approval checkpoint before B.**
 
-Not a bug. Two things stacked:
+## Phase B — Street-smart everyday help, friction, and local sense
+**Size: large.** The main lane.
 
-- **Missing product behavior** — no next-day calendar reminder exists. That's the real gap.
-- **Configuration** — every proactive channel you own is switched off, so today's rules were guaranteed silence regardless.
+Lost wallet, dead phone, missed train, ATM ate the card, card declined abroad, hotel or taxi problem, locked out, missing package, outage, flat tyre, broken appliance, doctor vs clinic vs pharmacy, printing/notary/mail, government offices, lost passport, baggage and refunds, "is this fee normal", "am I being tourist-priced", "what's the least stupid option right now".
 
-Should Telegram have fired under today's rules? **No.** Correctly, not sadly. Telegram only carries proactive awareness when the switch is on, the ladder asks for reach, and it's outside quiet hours. None of those held.
+Answers come back as real tradeoffs — cheapest, fastest, least hassle — and only when current facts support them. Friction counts: distance, transfers, closing times, your own schedule. "The bus saves $4 but adds 55 minutes and two transfers. The taxi is the practical move." The tradeoff is always shown; the recommendation is never dressed up as objective.
 
-## 4. Code and jobs involved
+- **Reuses**: care directory, local help, country notes, Phase A, public web look/read, the watch seam, Ask, Telegram.
+- **New sources**: none mandatory. Official and local authoritative pages before broad web.
+- **Not built**: no calling anyone for you, no cancelling a card, no filing a claim, no emergency escalation. Echo prepares; you act.
+- **Proof**: scenario tests per situation, friction-math tests, "no supportable answer" tests.
 
-- `calendar-sync` — cron `*/5 * * * *`, ran fine, ingested the event twice (two feeds).
-- `_shared/awareness/adapters-calendar.ts` — 45-minute horizon, the reason no signal exists.
-- `awareness-drift-sweep` — hourly, opt-in gate, quiet-hours gate, push/messaging gates, Telegram send path.
-- `ambient-pulse` — same calendar signals, but only on app open, not scheduled.
-- `commitment-reminders` — hourly, the only real T-24h path, commitments only.
-- `_shared/awareness/{urgency,deliver,suppress}.ts` — ladder and channel choice.
+**Approval checkpoint before C.**
 
-## 5. Where the UI oversells it
+## Phase C — Travel polish (only what's missing)
+**Size: small.**
 
-`src/components/settings/TimeRemindersSection.tsx` offers "proactive awareness" and Telegram reminders in one block, next to a timezone note that says "pick one so reminders fire correctly." Nothing there tells you that calendar appointments are only spoken about inside 45 minutes, or that a next-day heads-up only applies to promises, not calendar entries. Someone reading that screen reasonably concludes Echo watches their calendar for them. Today it doesn't.
+Gate and terminal change notices where the source carries them, leave-time reasoning that uses live traffic-free route timing already in place, time-zone transition handling, weather impact on a leg, "what changed while you were in the air" on landing, public baggage and rebooking information, and trip documents pulled from mail and files you already connected.
 
-Plain expectation to set instead: *Echo speaks up when something on your calendar starts soon, when one moves, or when a promise lands mid-meeting. It is not a second alarm clock for every appointment — your calendar app already does that.*
+- **Reuses**: journey, airport intel, flight status budget, calendar sense, mail and file reading, watches.
+- **Not built**: airline login, check-in, seat selection, buying, holding.
 
-## 6. Recommended rule (not implemented)
+## Phase D — Read-only money
+**Size: medium.** Blocked externally until real bank credentials exist; sandbox proves the shape.
 
-Simplest thing that fits the doctrine without becoming spam:
+Balances, transactions, recurring expenses, deposits and income, subscriptions, known bills, spending patterns, a normal baseline, simple cash-flow context. "Did that deposit land?" "What changed?" "Can I realistically afford this?" "What can wait?"
 
-1. **Evening look-ahead, once.** One line, once a day, at a time you choose, covering tomorrow's timed appointments — the shape of the day, not one notice per event. Silent if tomorrow is empty.
-2. **Keep the 45-minute "starts soon"** as is.
-3. **Keep changed-event and conflict signals** as is — those already earn their interruption.
-4. **Telegram as fallback** only when push is unavailable, never both.
-5. **Departure/travel timing:** later, and only for appointments with a place.
-6. **Fix the duplicate feed** so tomorrow's appointment isn't two rows — otherwise any new reminder speaks twice.
+- **Permission model**: per-account consent, read scopes only, tokens never leave the server rail, money data never joins a public-web answer, revoke wipes derived context.
+- **Not built**: transfers, payments, investing, trading, autonomous anything. Not a Finance Room.
+- **Proof**: never sum across currencies, never treat a missing balance as zero, pending excluded, descriptive language only.
 
-Over-notifying risk is real: two feeds × per-event notices × two channels is four buzzes for one doctor's appointment. That's how a companion becomes noise. One daily look-ahead, deduped by Google UID, single channel.
+**Approval checkpoint before E.**
 
-## 7. Test coverage
+## Phase E — Housing and what living somewhere really costs
+**Size: large.**
 
-Covered today: calendar sense signals, sync reporting/diffs, change normalization, agenda, quiet-hours logic, Telegram reply/panel behavior, the glance gate, reminder phrasing and appointment shape.
+One question: what does living here actually cost per month? Rent, deposit, utilities, internet, commute, fuel or transit, furnishing, move-in fees, taxes, parking, HOA, laundry, maintenance, contract length, penalties, inclusions, grocery and gym and clinic access, noise, flood or weather exposure where sourceable, internet reliability, lease clauses, address and registration implications. Landlord responsiveness comes from your own evidence only — never an invented reputation.
 
-Missing: any next-day calendar reminder test (nothing to test yet), scheduled Telegram proactive delivery end-to-end, duplicate suppression across two feeds holding the same Google UID, and a timezone test proving "tomorrow 4 PM Eastern" is judged from the user's zone rather than UTC.
+- **Reuses**: Phase A, care directory, route timing, notes and documents, money context when connected.
+- **Visible**: a comparison answer with a per-line source, in Ask. No housing dashboard.
 
-## 8. Bottom line
+## Phase F — Body context
+**Size: medium.** Fenced.
 
-Echo did nothing wrong — it did nothing at all, and that was the design. Google reminded you because Google owns a reminder feature; Echo has an awareness pipeline and a 45-minute window, and 21 hours out isn't in it. On top of that, every proactive switch on your account is off, so even a perfect pipeline would have stayed quiet.
+Sleep, training, recovery, caffeine, hydration, activity, nutrition, wearable signals — observation only. "You slept less, trained harder, and had more caffeine than usual." No diagnosis, no invented biomarkers, no scores.
 
-The honest gap: a meaningful appointment tomorrow should not vanish into silence. One evening look-ahead fixes it without turning Echo into another buzzing app.
+## Phase G — WhatsApp
+**Size: medium.** Blocked on a Business number and API access.
 
-## Continuation point
+Another door to the same Echo. Same rules, same approvals, same receipts, no WhatsApp brain, no assumption of full personal message history.
 
-Unchanged: after this reminder behavior is settled, we go straight back to the **per-user Google Gmail/Drive connection work** — the blocker there is still workspace-level App User Connector clients for Gmail and Drive.
+## Phase H — Ambient depth
+**Size: large, last.**
+
+Phone stays primary, desktop for deep work, watch for glance / ack / defer / capture, earbuds for short spoken exchanges later, glasses much later and deliberately — never always-watching. No command-centre fantasy.
+
+---
+
+## Capture (runs alongside, small pieces)
+
+Core is built. Only these, and only honestly: audio and video and file import, keeping the original audio if storage stays clean, export and share, richer bookmarks, transcript search improvements, evidence-linked summaries, Ask and Telegram retrieval of past captures, and linking a captured decision to a situation or to Work as a proposal. Real speaker separation and better live transcription only if a provider can actually do it — otherwise they stay unbuilt and Echo keeps saying so.
+
+## Laws that hold across every phase
+
+Private connected sources first. Official and local authoritative sources before broad web. Disagreement between sources shown, not smoothed. No fake certainty. No silent or always-on location. No automatic emergency escalation. No money movement. No health diagnosis. Consequential actions need your yes. Every real action leaves a receipt. Capture first, interpret second, never rewrite the original. Extraction is not execution.
+
+## How people find any of this
+
+By asking. Contextual suggestions in Ask, "what can Echo do?" answering honestly including what it can't, one line of guidance right after a connection lands, "why this?" on anything inferred, and Today only when there's a consequence. No tools menu. No new rooms — Today, Work, Ask, Receipts stay the whole map, and anything new lands as a desk under one of them.
+
+## Risks
+
+Kept facts going stale (every line carries its checked-on day), quota burn on new providers (same ceiling discipline as flights), sounding confident about culture (source or stay quiet), and scope creep into eight half-built lanes. One front at a time.
+
+## External blockers
+
+Real bank credentials for D. A WhatsApp Business number and API approval for G. A trustworthy diarization provider for that one capture item. Everything else needs nothing from anybody.
