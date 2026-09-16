@@ -183,6 +183,13 @@
       "when": 1789554882214,
       "tag": "0025_create_medications",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789555776062,
+      "tag": "0026_create_bank_links",
+      "breakpoints": true
     }
   ]
 }
