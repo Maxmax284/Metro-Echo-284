@@ -209,6 +209,9 @@ export function canConfirm(plan: FlightPlan, optionId: string | null): { ok: boo
   if (!plan.options.length) return { ok: false, reason: "There is nothing to confirm until an option carries a time." };
   const chosen = plan.options.find((o) => o.id === optionId);
   if (!chosen) return { ok: false, reason: "Pick which flight you mean first." };
+  if (!chosen.depart_at) {
+    return { ok: false, reason: "No departure time is on record for this one yet, so there is nothing to put on a day." };
+  }
   if (!Number.isFinite(new Date(chosen.depart_at).getTime())) {
     return { ok: false, reason: "That option has no real departure time." };
   }
