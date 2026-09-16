@@ -559,3 +559,40 @@ or Safety room.
 ### Still pinned
 - Live flight status, gates and delays — needs a flight-data provider key.
 - WhatsApp — needs a WhatsApp Business number and signing secret.
+
+## Pass 15 — a flight Echo recognises, and where that flight actually is
+
+- Migration 0029: `flight_plans` gains `origin_kind` (desk | recognised),
+  `ownership` (unknown | mine | mine_too | theirs | not_mine), `traveller_name`,
+  `booking_ref`, `noticed_from`, `live_status`, `live_checked_at`; new
+  `flight_senders` table remembers the answer against the sender.
+- `_shared/flightRecognize.ts` (+ client mirror): a deterministic pattern pass —
+  flight code, named or ISO date, times, route, booking reference, ticket-style
+  names. No model, no cost. A slash date is refused, because 03/10 is two days
+  in two countries. A code with no date anywhere is handed back unread.
+- `relationEvidence` states why a booking might concern you as recorded lines
+  only: your name on it, your address on it, a sender you already answered for,
+  a destination already on record, dates touching your own board. A destination
+  or a date raises confidence; it never decides ownership.
+- `_shared/flightNotice.ts`: recognition files one draft per leg with its
+  evidence, an audit receipt (`flight.noticed`, `bought: false`), and — only when
+  ownership cannot be read — one nudge that asks. Same flight, same day, one
+  draft. Nothing reaches the board without the person's answer and confirmation.
+- Wired in where Echo already reads: `email-inbound` runs the pass on the stored
+  mail, `telegram-webhook` runs it before the router (a plain question about a
+  flight never lands there, since a code and a date are required). Both reply
+  with the question, never with a booking.
+- Schedule → Flights: "Echo noticed a flight" with evidence and four answers
+  (Mine / I'm on this too / Theirs, keep an eye on it / Not mine), asked once and
+  remembered against the sender; "Read a booking" paste box; a watched shelf for
+  someone else's flights, kept off the board.
+- `flight-status` edge function on AviationStack (`AVIATIONSTACK_API_KEY`, with
+  `FLIGHT_API_KEY` as fallback): a reading with the time of the reading on it,
+  cached five minutes, receipted. Nothing on record is reported as nothing, never
+  as "on time". `statusDiff` reports a change or stays silent.
+- Echo signs into nothing, buys nothing, holds nothing, checks nobody in.
+- Tests: `src/test/flight-recognition.test.ts` (17). Suite: 1,373 green.
+
+### Still pinned
+- WhatsApp — needs a WhatsApp Business number and signing secret.
+- Plaid stays on sandbox credentials until development keys exist.
