@@ -1,0 +1,79 @@
+// bodyRead — how your body is holding up, from recorded readings only.
+//
+// Doctrine:
+//   - Reports what a watch recorded. It never infers a condition, never advises,
+//     never diagnoses.
+//   - Silence is a valid read: no readings means it says so instead of guessing.
+//   - Read-only, scope-bound like every other read.
+type SupabaseClient = { from: (table: string) => any };
+
+export type Reading = { kind: string; value: number; unit: string | null; measured_at: string };
+
+const LABEL: Record<string, string> = {
+  heart_rate: "resting heart rate",
+  hr: "heart rate",
+  hrv: "heart-rate variability",
+  steps: "steps",
+  sleep_minutes: "sleep",
+  sleep: "sleep",
+  spo2: "blood oxygen",
+  temperature: "skin temperature",
+  weight: "weight",
+  stress: "stress score",
+};
+
+function scoped(q: any, userId: string, orgId: string | null) {
+  const u = q.eq("user_id", userId);
+  return orgId ? u.eq("organization_id", orgId) : u.is("organization_id", null);
+}
+
+/** Newest reading per kind inside the window. */
+export function latestPerKind(rows: Reading[]): Reading[] {
+  const best = new Map<string, Reading>();
+  for (const r of rows) {
+    const prev = best.get(r.kind);
+    if (!prev || new Date(r.measured_at) > new Date(prev.measured_at)) best.set(r.kind, r);
+  }
+  return [...best.values()].sort((a, b) => a.kind.localeCompare(b.kind));
+}
+
+export function readingLine(r: Reading): string {
+  const label = LABEL[r.kind] ?? r.kind.replace(/_/g, " ");
+  if (r.kind === "sleep_minutes" || r.kind === "sleep") {
+    const h = Math.floor(r.value / 60);
+    const m = Math.round(r.value % 60);
+    return `${label} ${h}h ${String(m).padStart(2, "0")}m`;
+  }
+  const unit = r.unit ? ` ${r.unit}` : "";
+  return `${label} ${Number(r.value)}${unit}`;
+}
+
+export function formatBody(rows: Reading[], days: number): string {
+  const latest = latestPerKind(rows);
+  if (latest.length === 0) {
+    return `No readings from a watch in the last ${days} days, so there is nothing here to report.`;
+  }
+  const when = latest
+    .map((r) => new Date(r.measured_at).getTime())
+    .reduce((a, b) => Math.max(a, b), 0);
+  const ago = Math.round((Date.now() - when) / 3_600_000);
+  const stamp = ago < 1 ? "just now" : ago < 48 ? `${ago}h ago` : `${Math.round(ago / 24)} days ago`;
+  return `${latest.map(readingLine).join(", ")}. Last reading ${stamp}. Recorded numbers only — not a health opinion.`;
+}
+
+export async function bodyRead(
+  sb: SupabaseClient,
+  { userId, orgId }: { userId: string; orgId: string | null },
+  { days = 7 }: { days?: number } = {},
+): Promise<string> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data } = await scoped(
+    sb.from("wearable_readings").select("kind, value, unit, measured_at"),
+    userId,
+    orgId,
+  )
+    .gte("measured_at", since)
+    .order("measured_at", { ascending: false })
+    .limit(200);
+  return formatBody((data ?? []) as Reading[], days);
+}
