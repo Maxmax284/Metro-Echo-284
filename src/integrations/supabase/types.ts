@@ -543,6 +543,56 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_links: {
+        Row: {
+          access_token: string
+          accounts: Json
+          active: boolean
+          created_at: string
+          id: string
+          institution_name: string | null
+          item_id: string
+          last_read_at: string | null
+          organization_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          accounts?: Json
+          active?: boolean
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          item_id: string
+          last_read_at?: string | null
+          organization_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          accounts?: Json
+          active?: boolean
+          created_at?: string
+          id?: string
+          institution_name?: string | null
+          item_id?: string
+          last_read_at?: string | null
+          organization_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_links_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brief_exports: {
         Row: {
           approved_at: string | null

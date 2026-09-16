@@ -506,3 +506,25 @@ or Safety room.
 - Flight depth — needs a flight-data provider key. Departure and arrival times can be read and put
   on the board once there is a key; booking stays out — Echo records and prepares, it never buys.
 - WhatsApp — needs a WhatsApp Business number with API access.
+
+## Pass 13 — Money desk (banking, read-only)
+
+- `bank_links` (migration 0026) holds one row per linked bank; `access_token`
+  is withheld from `authenticated` by column grant and read only server-side.
+- `plaid-bank` edge function: link_token / exchange / read / unlink. One bank
+  refusing the read never erases the others — it is named as blocked.
+- `_shared/bankPlan.ts` (+ client mirror): money per currency, never summed
+  across them; pending entries stay out of arithmetic; a plan is arithmetic
+  from what happened, never advice. `MONEY_LAW` says Echo never moves money.
+- Schedule → Money: on-hand totals, the plan from the last 30 days, last
+  entries, linked banks with unlink. Agenda board shows what a day cost.
+- `money_read` in `_shared/echoReads.ts` so Ask and Telegram answer from the
+  same read, with `bankRead` fetching link rows over REST with the service key.
+- Tests: `src/test/bank-plan.test.ts` (9).
+- Needs the user's own Plaid client id, secret and environment. Until those
+  exist, `lifeFacts` keeps `money_bank` at "needs connecting".
+
+### Still pinned
+- Flight depth — needs a flight-data key. Booking stays a purchase Echo
+  prepares and records, never makes.
+- WhatsApp — needs a WhatsApp Business number and signing secret.

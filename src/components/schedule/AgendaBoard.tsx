@@ -17,6 +17,8 @@ import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useAgenda, type AgendaEvent } from "@/hooks/useAgenda";
 import { useBody } from "@/hooks/useBody";
+import { useBank } from "@/hooks/useBank";
+import { dayMoneyLine } from "@/lib/bankPlan";
 import { dosesOn } from "@/lib/bodyLog";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatInTimeZone } from "date-fns-tz";
@@ -56,6 +58,7 @@ export function AgendaBoard() {
   const to = useMemo(() => endOfMonth(cursor), [cursor]);
   const { events, projects, loading, error, refresh } = useAgenda({ from, to });
   const { meds } = useBody();
+  const { transactions } = useBank(31);
 
   const rows = useMemo(() => dedupeBoard(events), [events]);
   const stay = useMemo(() => currentStay(rows), [rows]);
@@ -89,6 +92,12 @@ export function AgendaBoard() {
     if (isStay(a) !== isStay(b)) return isStay(a) ? -1 : 1;
     return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
   });
+
+  /* What the day cost, from entries the bank recorded. Silent when it recorded none. */
+  const dayMoney = useMemo(
+    () => dayMoneyLine(transactions, `${selected.getFullYear()}-${String(selected.getMonth() + 1).padStart(2, "0")}-${String(selected.getDate()).padStart(2, "0")}`),
+    [transactions, selected],
+  );
 
   /* Doses belong to the day, beside the appointments, not in a separate room. */
   const dayDoses = useMemo(() => dosesOn(meds, selected), [meds, selected]);
@@ -242,6 +251,12 @@ export function AgendaBoard() {
               );
             })}
           </ul>
+        )}
+        {dayMoney && (
+          <div className="mt-3 border-t border-border/50 pt-2">
+            <p className="vanta-machine-label mb-1 text-foreground/70">Money this day</p>
+            <p className="text-[12px] text-foreground/85">{dayMoney}</p>
+          </div>
         )}
         {dayDoses.length > 0 && (
           <div className="mt-3 border-t border-border/50 pt-2">
