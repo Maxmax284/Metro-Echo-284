@@ -521,8 +521,11 @@ or Safety room.
 - `money_read` in `_shared/echoReads.ts` so Ask and Telegram answer from the
   same read, with `bankRead` fetching link rows over REST with the service key.
 - Tests: `src/test/bank-plan.test.ts` (9).
-- Needs the user's own Plaid client id, secret and environment. Until those
-  exist, `lifeFacts` keeps `money_bank` at "needs connecting".
+- Keys saved: PLAID_CLIENT_ID + PLAID_SECRET. Sandbox only for now — the
+  function defaults PLAID_ENV to sandbox, so no env secret needed until
+  development/production credentials exist.
+- Migration 0027 lockdown: access_token/accounts columns revoked from every
+  client role; workspace visibility limited to owner_admin/manager.
 
 ### Still pinned
 - Flight depth — needs a flight-data key. Booking stays a purchase Echo
