@@ -56,6 +56,9 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   where_do_i_stand: "the whole board",
   find_note: "your captured notes",
   what_was_decided: "what your captures recorded as mattering",
+  convert_money: "a published exchange rate, read just now",
+  local_help: "the published emergency numbers for that country",
+  body_read: "what your watch recorded",
 };
 
 /**
