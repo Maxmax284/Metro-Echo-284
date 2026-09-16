@@ -62,9 +62,9 @@ export function useFlightPlans() {
     if (!user) return;
     setLoading(true);
     setError(null);
-    const { data, error: err } = await applyScope(
+    const { data, error: err } = (await applyScope(
       supabase.from("flight_plans").select("*").order("depart_on", { ascending: true }).limit(200) as never,
-    );
+    )) as { data: any[] | null; error: { message: string } | null };
     if (err) setError(err.message);
     setPlans(((data ?? []) as any[]).map(rowToPlan));
     setLoading(false);
