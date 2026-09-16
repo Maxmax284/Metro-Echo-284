@@ -20,7 +20,7 @@ import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export function MoneyDesk() {
-  const { linked, days, institutions, blocked, accounts, transactions, loading, error, noRail, refresh, linkToken, exchange, unlink } =
+  const { linked, days, items, blocked, accounts, transactions, loading, error, noRail, refresh, linkToken, exchange, unlink } =
     useBank(30);
   const [busy, setBusy] = useState(false);
 
@@ -163,7 +163,21 @@ export function MoneyDesk() {
 
           <Card className="vanta-card space-y-2 p-3">
             <p className="vanta-machine-label text-foreground/70">Linked</p>
-            <p className="text-[12.5px] text-foreground/85">{institutions.join(", ") || "One bank"}</p>
+            <ul className="space-y-1">
+              {items.map((it) => (
+                <li key={it.item_id} className="flex items-center gap-2 text-[12.5px]">
+                  <span className="min-w-0 flex-1 truncate text-foreground/85">{it.institution_name || "A bank"}</span>
+                  <button
+                    type="button"
+                    aria-label={`Unlink ${it.institution_name || "this bank"}`}
+                    onClick={() => void unlink(it.item_id)}
+                    className={cn("shrink-0 rounded-[2px] border border-border/60 p-2", MOTION_FOCUS)}
+                  >
+                    <Unlink className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => void connect()} disabled={busy} className="h-11 flex-1">
                 <Link2 className="mr-2 h-4 w-4" aria-hidden /> Add another
@@ -178,20 +192,5 @@ export function MoneyDesk() {
 
       <AftermathHint text="Each day on the Board now says what left and what arrived that day." />
     </div>
-  );
-}
-
-/** A single unlink row, kept separate so the desk stays readable. */
-export function MoneyUnlink({ itemId, name }: { itemId: string; name: string }) {
-  const { unlink } = useBank(1);
-  return (
-    <button
-      type="button"
-      aria-label={`Unlink ${name}`}
-      onClick={() => void unlink(itemId)}
-      className={cn("rounded-[2px] border border-border/60 p-2", MOTION_FOCUS)}
-    >
-      <Unlink className="h-3.5 w-3.5" aria-hidden />
-    </button>
   );
 }

@@ -15,13 +15,13 @@ import type { BankAccount, BankTxn } from "@/lib/bankPlan";
 export type BankRead = {
   linked: boolean;
   days: number;
-  institutions: string[];
+  items: Array<{ item_id: string; institution_name: string | null }>;
   blocked: string[];
   accounts: BankAccount[];
   transactions: BankTxn[];
 };
 
-const EMPTY: BankRead = { linked: false, days: 0, institutions: [], blocked: [], accounts: [], transactions: [] };
+const EMPTY: BankRead = { linked: false, days: 0, items: [], blocked: [], accounts: [], transactions: [] };
 
 async function callBank(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("plaid-bank", { body });

@@ -139,11 +139,11 @@ Deno.serve(async (req) => {
 
       const accounts: BankAccount[] = [];
       const transactions: BankTxn[] = [];
-      const institutions: string[] = [];
+      const items: Array<{ item_id: string; institution_name: string | null }> = [];
       const blocked: string[] = [];
 
-      for (const row of rows as Array<{ access_token: string; institution_name: string | null }>) {
-        if (row.institution_name) institutions.push(row.institution_name);
+      for (const row of rows as Array<{ item_id: string; access_token: string; institution_name: string | null }>) {
+        items.push({ item_id: row.item_id, institution_name: row.institution_name });
         try {
           const bal = await plaid("/accounts/balance/get", { access_token: row.access_token });
           for (const a of bal.accounts ?? []) {
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id);
       await receipt("bank.read", { accounts: accounts.length, transactions: transactions.length, days });
 
-      return json({ linked: true, days, institutions, blocked, accounts, transactions });
+      return json({ linked: true, days, items, blocked, accounts, transactions });
     }
 
     if (action === "unlink") {
