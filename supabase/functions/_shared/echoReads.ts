@@ -30,6 +30,7 @@ import { factsAnswer } from "./countryFacts.ts";
 import { troubleAnswer } from "./trouble.ts";
 import { frictionAnswer, type Option } from "./friction.ts";
 import { customsAnswer } from "./customs.ts";
+import { housingAnswer, leaseWords, type Place } from "./housing.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
@@ -55,6 +56,8 @@ export const ECHO_READ_NAMES = [
   "what_to_do",
   "compare_options",
   "local_customs",
+  "cost_of_living",
+  "lease_checks",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -83,6 +86,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   what_to_do: "the kept playbook for that situation, with the day it was checked",
   compare_options: "the numbers you gave, compared on price, time and hassle",
   local_customs: "kept notes on local custom, with the day they were checked",
+  cost_of_living: "the housing figures you gave, added up as real monthly cost",
+  lease_checks: "the questions a lease has to answer before you sign",
 };
 
 /**
@@ -358,6 +363,78 @@ export const ECHO_READ_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "cost_of_living",
+      description:
+        "Read-only: what living somewhere really costs per month, from figures the person gives. Adds recurring lines (rent, utilities, internet, commute, fuel, parking, building fees, laundry, maintenance, local tax), keeps move-in cash (deposit, agency fee, move-in fee, furnishing) separate, and spreads the money they will not get back over the term. Compares two or more places when both are priced in the same money. Use for 'what does this place really cost', 'is this flat cheaper than that one'. Never invents a market rent or a bill.",
+      parameters: {
+        type: "object",
+        properties: {
+          places: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "What to call this place." },
+                currency: { type: "string", description: "Three-letter code the figures are in." },
+                termMonths: { type: "number", description: "Months on the contract." },
+                depositReturned: { type: "boolean", description: "False when the deposit is gone for good." },
+                recurring: {
+                  type: "object",
+                  description: "Monthly figures given by the person. Omit anything unknown.",
+                  properties: {
+                    rent: { type: "number" },
+                    utilities: { type: "number" },
+                    internet: { type: "number" },
+                    commute: { type: "number" },
+                    fuel: { type: "number" },
+                    parking: { type: "number" },
+                    hoa: { type: "number" },
+                    laundry: { type: "number" },
+                    maintenance: { type: "number" },
+                    tax: { type: "number" },
+                    other: { type: "number" },
+                  },
+                  additionalProperties: false,
+                },
+                oneOff: {
+                  type: "object",
+                  description: "Cash paid once, at the start.",
+                  properties: {
+                    deposit: { type: "number" },
+                    agency_fee: { type: "number" },
+                    move_in_fee: { type: "number" },
+                    furnishing: { type: "number" },
+                  },
+                  additionalProperties: false,
+                },
+                notes: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Only what the person observed themselves.",
+                },
+              },
+              required: ["label"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["places"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "lease_checks",
+      description:
+        "Read-only: the questions a lease or rental contract has to answer before signing — term and break clauses, penalties, deposit deductions, what is included, repairs, rent rises, restrictions, address registration, notice, condition report. Returns questions, never legal answers. Use for 'what should I check in this lease', 'anything I should watch for before I sign'.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -473,6 +550,13 @@ export async function runEchoRead(
     case "local_customs": {
       const text = customsAnswer(String(a.place ?? ""), a.question ? String(a.question) : null);
       return { name, text, source };
+    }
+    case "cost_of_living": {
+      const rows = Array.isArray(a.places) ? (a.places as Place[]) : [];
+      return { name, text: housingAnswer(rows), source };
+    }
+    case "lease_checks": {
+      return { name, text: leaseWords(), source };
     }
   }
 }

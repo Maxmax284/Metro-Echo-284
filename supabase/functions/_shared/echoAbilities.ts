@@ -149,6 +149,15 @@ export function echoAbilities(f: AbilityFacts): Ability[] {
       limit: "Kept notes with the day they were checked. Nothing written means nothing said — no stereotypes.",
     },
     {
+      id: "housing",
+      label: "Work out what a place really costs a month",
+      plain:
+        "Rent, bills, internet, commute, parking, building fees and tax added up, move-in cash kept separate and spread over the term, two places weighed against each other, plus the questions a lease has to answer.",
+      state: "live",
+      limit:
+        "Only figures you give. Echo never guesses a market rent, a bill, or a landlord's reputation, and it will not add across currencies.",
+    },
+    {
       id: "portal",
       label: "Sign in somewhere and book, pay or submit",
       plain: "Would need a browser that can hold a session on your behalf.",
