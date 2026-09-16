@@ -18,6 +18,7 @@ import { AutoSendPanel } from "@/components/wearables/AutoSendPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
+import { BODY_LABEL, BODY_ROLE, REACH_LAW, type Body } from "@/lib/reachBody";
 
 const STEPS = [
   "Switch on the senses you want. Off means nothing is read and nothing is stored.",
