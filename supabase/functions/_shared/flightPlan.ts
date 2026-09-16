@@ -80,6 +80,14 @@ export type FlightPlan = {
   noticed_from?: NoticedFrom | null;
   live_status?: unknown;
   live_checked_at?: string | null;
+  /** The journey this leg belongs to, when it chains with others. */
+  journey_id?: string | null;
+  leg_order?: number | null;
+  /** Where the leg got to, when the person overruled the airline. */
+  leg_state?: string | null;
+  leg_state_source?: string | null;
+  leg_state_at?: string | null;
+  leg_state_note?: string | null;
 };
 
 /** An airport code or a place name, cleaned but never invented. */

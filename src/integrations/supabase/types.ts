@@ -184,6 +184,27 @@ export type Database = {
         }
         Relationships: []
       }
+      airport_places_cache: {
+        Row: {
+          category: string
+          fetched_at: string
+          iata: string
+          payload: Json
+        }
+        Insert: {
+          category: string
+          fetched_at?: string
+          iata: string
+          payload?: Json
+        }
+        Update: {
+          category?: string
+          fetched_at?: string
+          iata?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       api_cache: {
         Row: {
           created_at: string
@@ -2177,6 +2198,12 @@ export type Database = {
           destination: string
           event_ids: string[]
           id: string
+          journey_id: string | null
+          leg_order: number
+          leg_state: string | null
+          leg_state_at: string | null
+          leg_state_note: string | null
+          leg_state_source: string | null
           live_checked_at: string | null
           live_status: Json | null
           noticed_from: Json | null
@@ -2203,6 +2230,12 @@ export type Database = {
           destination: string
           event_ids?: string[]
           id?: string
+          journey_id?: string | null
+          leg_order?: number
+          leg_state?: string | null
+          leg_state_at?: string | null
+          leg_state_note?: string | null
+          leg_state_source?: string | null
           live_checked_at?: string | null
           live_status?: Json | null
           noticed_from?: Json | null
@@ -2229,6 +2262,12 @@ export type Database = {
           destination?: string
           event_ids?: string[]
           id?: string
+          journey_id?: string | null
+          leg_order?: number
+          leg_state?: string | null
+          leg_state_at?: string | null
+          leg_state_note?: string | null
+          leg_state_source?: string | null
           live_checked_at?: string | null
           live_status?: Json | null
           noticed_from?: Json | null
@@ -2246,6 +2285,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "flight_plans_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journeys"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "flight_plans_organization_id_fkey"
             columns: ["organization_id"]
@@ -2549,6 +2595,41 @@ export type Database = {
           locked_by?: string | null
         }
         Relationships: []
+      }
+      journeys: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journeys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medications: {
         Row: {
