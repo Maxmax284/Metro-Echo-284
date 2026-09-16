@@ -135,7 +135,9 @@ export function readCost(place: Place): CostRead {
   const trueMonthly =
     monthly != null && termMonths != null && termMonths > 0
       ? Math.round((monthly + (sunkUpfront ?? 0) / termMonths) * 100) / 100
-      : monthly;
+      : monthly == null
+        ? null
+        : Math.round(monthly * 100) / 100;
 
   return {
     label: place.label,
@@ -166,7 +168,9 @@ export function costWords(place: Place): string {
     const back =
       r.sunkUpfront != null && r.sunkUpfront < r.upfront
         ? ` ${money(r.upfront - r.sunkUpfront, r.currency)} of that is a deposit you expect back.`
-        : "";
+        : r.sunkUpfront == null
+          ? ` All of it is a deposit you expect back.`
+          : "";
     parts.push(`${money(r.upfront, r.currency)} at the door before you sleep there once.${back}`);
   }
   if (r.trueMonthly != null && r.termMonths && r.trueMonthly !== r.monthly) {
@@ -195,19 +199,35 @@ export type HousingComparison = {
   gapMonthly: number | null;
 };
 
-export function compareplaces(places: Place[]): HousingComparison {
+export function comparePlaces(places: Place[]): HousingComparison {
   const rows = (places ?? []).filter((p) => p && typeof p.label === "string" && p.label.trim());
   const reads = rows.map(readCost);
   if (reads.length < 2) {
-    return { reads, cheaper: null, blocked: "Only one place was given, and one place is not a comparison.", gapMonthly: null };
+    return {
+      reads,
+      cheaper: null,
+      blocked: "Only one place was given, and one place is not a comparison.",
+      gapMonthly: null,
+    };
   }
   const currencies = new Set(reads.map((r) => r.currency ?? "?"));
   if (currencies.size > 1) {
-    return { reads, cheaper: null, blocked: "These places are priced in different money, so Echo will not add them together.", gapMonthly: null };
+    return {
+      reads,
+      cheaper: null,
+      blocked: "These places are priced in different money, so Echo will not add them together.",
+      gapMonthly: null,
+    };
   }
   const usable = reads.filter((r) => r.trueMonthly != null);
   if (usable.length < 2) {
-    return { reads, cheaper: null, blocked: "At least one place has no recurring cost written down, so there is nothing to weigh it against.", gapMonthly: null };
+    return {
+      reads,
+      cheaper: null,
+      blocked:
+        "At least one place has no recurring cost written down, so there is nothing to weigh it against.",
+      gapMonthly: null,
+    };
   }
   const sorted = [...usable].sort((a, b) => (a.trueMonthly ?? 0) - (b.trueMonthly ?? 0));
   const gap = Math.round(((sorted[1].trueMonthly ?? 0) - (sorted[0].trueMonthly ?? 0)) * 100) / 100;
@@ -224,7 +244,9 @@ export function housingAnswer(places: Place[]): string {
   const lines = c.reads.map((r) =>
     r.trueMonthly == null
       ? `${r.label}: nothing recurring written down`
-      : `${r.label}: ${money(r.trueMonthly, r.currency)} a month all in${r.upfront != null ? `, ${money(r.upfront, r.currency)} at the door` : ""}`,
+      : `${r.label}: ${money(r.trueMonthly, r.currency)} a month all in${
+          r.upfront != null ? `, ${money(r.upfront, r.currency)} at the door` : ""
+        }`,
   );
   const parts: string[] = [lines.join(" | ")];
   if (c.blocked) parts.push(c.blocked);
@@ -245,243 +267,22 @@ export function housingAnswer(places: Place[]): string {
   return parts.join(" ");
 }
 
-/** Alias kept for readability at the call site above. */
-const comparePlaces = compareOrThrow;
-function compareOrThrow(places: Place[]): HousingComparison {
-  return compareplacesImpl(places);
-}
-const compareplacesImpl = compareePlaces;
-function compareePlaces(places: Place[]): HousingComparison {
-  return compareInner(places);
-}
-function compareInner(places: Place[]): HousingComparison {
-  return comparePlacesReal(places);
-}
-function comparePlacesReal(places: Place[]): HousingComparison {
-  return compareOptionsShim(places);
-}
-function compareOptionsShim(places: Place[]): HousingComparison {
-  return comparePlacesFinal(places);
-}
-function comparePlacesFinal(places: Place[]): HousingComparison {
-  return comparePlacesBase(places);
-}
-function comparePlacesBase(places: Place[]): HousingComparison {
-  return comparePlacesCore(places);
-}
-function comparePlacesCore(places: Place[]): HousingComparison {
-  return compareplacesEntry(places);
-}
-function compareplacesEntry(places: Place[]): HousingComparison {
-  return comparePlacesDirect(places);
-}
-function comparePlacesDirect(places: Place[]): HousingComparison {
-  return comparePlacesActual(places);
-}
-function comparePlacesActual(places: Place[]): HousingComparison {
-  return compareplacesTrue(places);
-}
-function compareplacesTrue(places: Place[]): HousingComparison {
-  return comparePlacesOnce(places);
-}
-function comparePlacesOnce(places: Place[]): HousingComparison {
-  return comparePlacesEnd(places);
-}
-function comparePlacesEnd(places: Place[]): HousingComparison {
-  return compareEnd(places);
-}
-function compareEnd(places: Place[]): HousingComparison {
-  return comparePlacesTail(places);
-}
-function comparePlacesTail(places: Place[]): HousingComparison {
-  return comparePlacesLast(places);
-}
-function comparePlacesLast(places: Place[]): HousingComparison {
-  return compareLast(places);
-}
-function compareLast(places: Place[]): HousingComparison {
-  return comparePlacesFn(places);
-}
-function comparePlacesFn(places: Place[]): HousingComparison {
-  return comparePlacesRoot(places);
-}
-function comparePlacesRoot(places: Place[]): HousingComparison {
-  return comparePlacesOrigin(places);
-}
-function comparePlacesOrigin(places: Place[]): HousingComparison {
-  return compareOrigin(places);
-}
-function compareOrigin(places: Place[]): HousingComparison {
-  return comparePlacesSource(places);
-}
-function comparePlacesSource(places: Place[]): HousingComparison {
-  return compareSourceFinal(places);
-}
-function compareSourceFinal(places: Place[]): HousingComparison {
-  return comparePlacesX(places);
-}
-function comparePlacesX(places: Place[]): HousingComparison {
-  return compareX(places);
-}
-function compareX(places: Place[]): HousingComparison {
-  return comparePlacesReal2(places);
-}
-function comparePlacesReal2(places: Place[]): HousingComparison {
-  return compareReal2(places);
-}
-function compareReal2(places: Place[]): HousingComparison {
-  return comparePlacesZ(places);
-}
-function comparePlacesZ(places: Place[]): HousingComparison {
-  return compareZ(places);
-}
-function compareZ(places: Place[]): HousingComparison {
-  return comparePlacesFinalImpl(places);
-}
-function comparePlacesFinalImpl(places: Place[]): HousingComparison {
-  return compareFinalImpl(places);
-}
-function compareFinalImpl(places: Place[]): HousingComparison {
-  return comparePlacesTerminal(places);
-}
-function comparePlacesTerminal(places: Place[]): HousingComparison {
-  return compareTerminal(places);
-}
-function compareTerminal(places: Place[]): HousingComparison {
-  return comparePlacesImplFinal(places);
-}
-function comparePlacesImplFinal(places: Place[]): HousingComparison {
-  return compareImplFinal(places);
-}
-function compareImplFinal(places: Place[]): HousingComparison {
-  return comparePlacesRealFinal(places);
-}
-function comparePlacesRealFinal(places: Place[]): HousingComparison {
-  return compareRealFinal(places);
-}
-function compareRealFinal(places: Place[]): HousingComparison {
-  return comparePlacesDone(places);
-}
-function comparePlacesDone(places: Place[]): HousingComparison {
-  return compareDone(places);
-}
-function compareDone(places: Place[]): HousingComparison {
-  return comparePlacesDoneFinal(places);
-}
-function comparePlacesDoneFinal(places: Place[]): HousingComparison {
-  return compareDoneFinal(places);
-}
-function compareDoneFinal(places: Place[]): HousingComparison {
-  return comparePlaceCosts(places);
-}
-function comparePlaceCosts(places: Place[]): HousingComparison {
-  return comparePlacesPublic(places);
-}
-function comparePlacesPublic(places: Place[]): HousingComparison {
-  return compareplaces(places);
-}
-function compareplaces(places: Place[]): HousingComparison {
-  return comparePlacesOuter(places);
-}
-function comparePlacesOuter(places: Place[]): HousingComparison {
-  return comparePlacesInner(places);
-}
-function comparePlacesInner(places: Place[]): HousingComparison {
-  return comparePlacesEntryPoint(places);
-}
-function comparePlacesEntryPoint(places: Place[]): HousingComparison {
-  return comparePlacesResolved(places);
-}
-function comparePlacesResolved(places: Place[]): HousingComparison {
-  return compareResolved(places);
-}
-function compareResolved(places: Place[]): HousingComparison {
-  return comparePlacesTop(places);
-}
-function comparePlacesTop(places: Place[]): HousingComparison {
-  return compareTop(places);
-}
-function compareTop(places: Place[]): HousingComparison {
-  return comparePlacesMain(places);
-}
-function comparePlacesMain(places: Place[]): HousingComparison {
-  return compareMain(places);
-}
-function compareMain(places: Place[]): HousingComparison {
-  return comparePlacesFinalExport(places);
-}
-function comparePlacesFinalExport(places: Place[]): HousingComparison {
-  return comparePlacesExported(places);
-}
-function comparePlacesExported(places: Place[]): HousingComparison {
-  return comparePlacesReal3(places);
-}
-function comparePlacesReal3(places: Place[]): HousingComparison {
-  return comparePlacesBaseImpl(places);
-}
-function comparePlacesBaseImpl(places: Place[]): HousingComparison {
-  return comparePlacesPure(places);
-}
-function comparePlacesPure(places: Place[]): HousingComparison {
-  return comparePlacesTrueFinal(places);
-}
-function comparePlacesTrueFinal(places: Place[]): HousingComparison {
-  return comparePlacesEndFinal(places);
-}
-function comparePlacesEndFinal(places: Place[]): HousingComparison {
-  return comparePlacesLastFinal(places);
-}
-function comparePlacesLastFinal(places: Place[]): HousingComparison {
-  return compareplacesCore(places);
-}
-function compareplacesCore(places: Place[]): HousingComparison {
-  return comparePlacesOriginal(places);
-}
-function comparePlacesOriginal(places: Place[]): HousingComparison {
-  return compareOriginal(places);
-}
-function compareOriginal(places: Place[]): HousingComparison {
-  return comparePlacesRealImpl(places);
-}
-function comparePlacesRealImpl(places: Place[]): HousingComparison {
-  return compareRealImpl(places);
-}
-function compareRealImpl(places: Place[]): HousingComparison {
-  return comparePlacesGo(places);
-}
-function comparePlacesGo(places: Place[]): HousingComparison {
-  return compareGo(places);
-}
-function compareGo(places: Place[]): HousingComparison {
-  return comparePlacesRun(places);
-}
-function comparePlacesRun(places: Place[]): HousingComparison {
-  return compareRun(places);
-}
-function compareRun(places: Place[]): HousingComparison {
-  return comparePlacesNow(places);
-}
-function comparePlacesNow(places: Place[]): HousingComparison {
-  return compareNow(places);
-}
-function compareNow(places: Place[]): HousingComparison {
-  return comparePlaces(places);
-}
-
 /** Questions the contract has to answer. Questions, never answers. */
 export const LEASE_CHECKS = [
   "How long is the term, and what breaks it early?",
-  "What does the penalty for leaving early actually cost?",
+  "What does leaving early actually cost?",
   "Is the deposit returnable, and what can be deducted from it?",
   "Which bills are included, and which are billed separately?",
   "Who pays for repairs, and who chooses the repairer?",
   "Is the rent fixed for the term, or can it be raised inside it?",
   "Are guests, pets, subletting or working from home restricted?",
-  "Does the address get registered anywhere, and does that affect your visa or tax?",
+  "Does the address get registered anywhere, and does that touch your visa or tax?",
   "What notice do you owe at the end, and in what form?",
   "What condition report exists now, so the deposit argument later is short?",
 ] as const;
 
 export function leaseWords(): string {
-  return `Before you sign, get the contract to answer these: ${LEASE_CHECKS.join(" ")} Echo lists the questions. The contract in your hand gives the answers — and if a clause is unclear, that is a reason to ask, not to assume.`;
+  return `Before you sign, get the contract to answer these: ${LEASE_CHECKS.join(
+    " ",
+  )} Echo lists the questions. The contract in your hand gives the answers — and a clause you cannot follow is a reason to ask, not to assume.`;
 }
