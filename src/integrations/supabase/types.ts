@@ -2168,6 +2168,7 @@ export type Database = {
       }
       flight_plans: {
         Row: {
+          booking_ref: string | null
           chosen_option_id: string | null
           confirmed_at: string | null
           created_at: string
@@ -2176,17 +2177,24 @@ export type Database = {
           destination: string
           event_ids: string[]
           id: string
+          live_checked_at: string | null
+          live_status: Json | null
+          noticed_from: Json | null
           options: Json
           organization_id: string | null
           origin: string
+          origin_kind: string
+          ownership: string
           passengers: number
           return_on: string | null
           source: string
           status: string
+          traveller_name: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          booking_ref?: string | null
           chosen_option_id?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -2195,17 +2203,24 @@ export type Database = {
           destination: string
           event_ids?: string[]
           id?: string
+          live_checked_at?: string | null
+          live_status?: Json | null
+          noticed_from?: Json | null
           options?: Json
           organization_id?: string | null
           origin: string
+          origin_kind?: string
+          ownership?: string
           passengers?: number
           return_on?: string | null
           source?: string
           status?: string
+          traveller_name?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          booking_ref?: string | null
           chosen_option_id?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -2214,19 +2229,69 @@ export type Database = {
           destination?: string
           event_ids?: string[]
           id?: string
+          live_checked_at?: string | null
+          live_status?: Json | null
+          noticed_from?: Json | null
           options?: Json
           organization_id?: string | null
           origin?: string
+          origin_kind?: string
+          ownership?: string
           passengers?: number
           return_on?: string | null
           source?: string
           status?: string
+          traveller_name?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "flight_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flight_senders: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string
+          organization_id: string | null
+          ownership: string
+          sender_key: string
+          sender_name: string | null
+          times_seen: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          ownership?: string
+          sender_key: string
+          sender_name?: string | null
+          times_seen?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          ownership?: string
+          sender_key?: string
+          sender_name?: string | null
+          times_seen?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_senders_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

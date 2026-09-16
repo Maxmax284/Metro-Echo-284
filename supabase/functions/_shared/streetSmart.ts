@@ -69,12 +69,13 @@ export function lifeDomains(f: LifeFacts): LifeDomain[] {
     {
       id: "move_flight",
       label: "Where a flight actually is",
-      plain:
-        "Prepares a flight from the times and prices you paste, holds it until you confirm, then records departure and landing on your board. Live status, gates and delays would need a provider.",
+      plain: f.flights
+        ? "Recognises a booking in a mail, a forwarded message or something you paste, asks once whose it is, holds it until you confirm, then records departure and landing on your board — and reads where the flight actually is, with the time of the reading on it."
+        : "Recognises a booking in a mail, a forwarded message or something you paste, asks once whose it is, holds it until you confirm, then records departure and landing on your board. Live status, gates and delays need a provider.",
       state: f.flights ? "live" : "needs_connecting",
       because: f.flights ? undefined : "No flight provider is configured.",
       needs: "A flight-data key.",
-      limit: "Reads status. Never checks you in, never rebooks.",
+      limit: "Reads and records. Never buys, holds, checks you in or rebooks, and never signs into an airline as you.",
     },
     {
       id: "ground_help",

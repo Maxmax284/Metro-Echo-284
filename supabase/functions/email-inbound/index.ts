@@ -6,6 +6,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // slug acts as a shared secret.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { linkEntities } from "../_shared/entityGraph.ts";
+import { noticeFlights } from "../_shared/flightNotice.ts";
 
 
 function extractSlug(toField: string | null | undefined): string | null {
@@ -235,6 +236,23 @@ Deno.serve(async (req: Request) => {
     try {
       await linkEntities({ sb: supabase, userId: addr.user_id, source_kind: "note", source_id: note!.id, text: `${title}\n${body}` });
     } catch {/* ignore */}
+    /* A booking that arrives by mail is read here — a pattern pass, no model, no
+       cost. What it finds is a draft with the mail as its evidence, and one
+       question when Echo cannot tell whose flight it is. Nothing is booked. */
+    try {
+      await noticeFlights(
+        supabase,
+        { userId: addr.user_id, orgId: addr.default_organization_id ?? null },
+        {
+          text: `${title}\n${body}`,
+          source: "mail",
+          sender: { name: null, email: from || null },
+          origin_ref: { kind: "note", id: note!.id },
+        },
+      );
+    } catch (e) {
+      console.error("email-inbound flight notice", e instanceof Error ? e.message : e);
+    }
     await supabase.from("audit_log").insert({
       user_id: addr.user_id, entity_type: "note", entity_id: note!.id,
       event: "email.ingest",

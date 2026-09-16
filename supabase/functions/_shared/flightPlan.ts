@@ -40,6 +40,24 @@ export type FlightOption = {
 
 export type FlightPlanStatus = "prepared" | "confirmed" | "dropped";
 
+/** Where the plan came from: made at the desk, or noticed in something readable. */
+export type FlightOriginKind = "desk" | "recognised";
+
+/** Whose flight this is. Unknown until the person says. */
+export type FlightOwnership = "unknown" | "mine" | "mine_too" | "theirs" | "not_mine";
+
+export type NoticedFrom = {
+  source: string;
+  source_words?: string | null;
+  sender?: { name?: string | null; email?: string | null } | null;
+  link?: string | null;
+  origin_ref?: { kind: string; id: string } | null;
+  evidence?: string[];
+  confidence?: "recorded" | "likely" | "unclear";
+  line?: string | null;
+  noticed_at?: string | null;
+};
+
 export type FlightPlan = {
   id: string;
   origin: string;
@@ -55,6 +73,13 @@ export type FlightPlan = {
   event_ids: string[];
   created_at?: string;
   confirmed_at?: string | null;
+  origin_kind?: FlightOriginKind;
+  ownership?: FlightOwnership;
+  traveller_name?: string | null;
+  booking_ref?: string | null;
+  noticed_from?: NoticedFrom | null;
+  live_status?: unknown;
+  live_checked_at?: string | null;
 };
 
 /** An airport code or a place name, cleaned but never invented. */
@@ -135,7 +160,18 @@ export function fastest(options: FlightOption[]): FlightOption | null {
 }
 
 export function planTitle(plan: FlightPlan): string {
-  const route = `${cleanPlace(plan.origin)} → ${cleanPlace(plan.destination)}`;
+  const from = cleanPlace(plan.origin);
+  const to = cleanPlace(plan.destination);
+  /* A booking read out of a mail does not always carry both ends. The flight
+     code is what is known, so that is what the title says. */
+  const route =
+    from && to
+      ? `${from} → ${to}`
+      : from || to
+        ? `${from || to}, other end not recorded`
+        : plan.options[0]?.flight_no
+          ? `${plan.options[0].flight_no}, route not recorded`
+          : "Route not recorded";
   return plan.return_on ? `${route}, ${plan.depart_on} and back ${plan.return_on}` : `${route}, ${plan.depart_on}`;
 }
 

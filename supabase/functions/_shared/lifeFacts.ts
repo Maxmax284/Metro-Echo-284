@@ -21,7 +21,7 @@ export async function readLifeFacts(admin: Client, userId: string): Promise<Life
     /* Public rates need no account. A failed read is reported on the answer. */
     rates: true,
     bank: !!Deno.env.get("PLAID_CLIENT_ID") && !!Deno.env.get("PLAID_SECRET"),
-    flights: !!Deno.env.get("FLIGHT_API_KEY"),
+    flights: !!Deno.env.get("AVIATIONSTACK_API_KEY") || !!Deno.env.get("FLIGHT_API_KEY"),
     whatsapp: !!Deno.env.get("WHATSAPP_TOKEN") && !!Deno.env.get("WHATSAPP_PHONE_ID"),
   };
 }
