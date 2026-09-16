@@ -21,10 +21,63 @@ import {
 } from "../_shared/journey.ts";
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
-/** Only legs within this many hours of a filed time are worth a provider call. */
+/** Rows are only pulled for days around now; nothing further out costs anything. */
 const WINDOW_HOURS = 8;
 /** A reading younger than this is reused. */
 const FRESH_MS = 20 * 60_000;
+/** Hard ceiling on provider readings per calendar day, across everyone. */
+const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
+/** How early before a filed departure a leg becomes worth reading. */
+const BEFORE_DEPART_MIN = 180;
+/** How long after a filed arrival a leg stays worth reading. */
+const AFTER_ARRIVE_MIN = 120;
+/** With no clock times at all, a leg is only read on its own day. */
+const DAY_ONLY_MS = 26 * 3_600_000;
+
+/**
+ * Is this leg close enough to a filed time to be worth a paid reading?
+ * A flight next week, or one that landed yesterday, is not. When the provider
+ * has already said "landed" or "cancelled", there is nothing left to ask.
+ */
+function worthReading(p: FlightPlan, now: number): boolean {
+  const live = (p.live_status ?? null) as LiveFlight | null;
+  const said = (live?.status ?? "").toLowerCase();
+  if (said === "landed" && live?.arrival?.actual) {
+    /* Landed and stamped — one more reading buys nothing. */
+    const at = Date.parse(live.arrival.actual);
+    if (Number.isFinite(at) && now - at > AFTER_ARRIVE_MIN * 60_000) return false;
+  }
+  if (said === "cancelled") return false;
+
+  const pick = (...vals: (string | null | undefined)[]) => {
+    for (const v of vals) {
+      const t = v ? Date.parse(v) : NaN;
+      if (Number.isFinite(t)) return t;
+    }
+    return NaN;
+  };
+  const dep = pick(
+    live?.departure?.actual,
+    live?.departure?.estimated,
+    live?.departure?.scheduled,
+    p.options[0]?.depart_at,
+  );
+  const arr = pick(
+    live?.arrival?.actual,
+    live?.arrival?.estimated,
+    live?.arrival?.scheduled,
+    p.options[0]?.arrive_at,
+  );
+
+  if (!Number.isFinite(dep) && !Number.isFinite(arr)) {
+    /* Bare flight: number and a day, no clock. Read only around that day. */
+    const day = Date.parse(`${p.depart_on}T00:00:00Z`);
+    return Number.isFinite(day) && now >= day - 6 * 3_600_000 && now <= day + DAY_ONLY_MS;
+  }
+  const from = (Number.isFinite(dep) ? dep : arr) - BEFORE_DEPART_MIN * 60_000;
+  const to = (Number.isFinite(arr) ? arr : dep) + AFTER_ARRIVE_MIN * 60_000;
+  return now >= from && now <= to;
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -86,8 +139,20 @@ Deno.serve(async (req) => {
       byUser.set(uid, [...(byUser.get(uid) ?? []), p]);
     }
 
+    /* The day's ledger of paid readings — the ceiling nothing gets past. */
+    const dayStart = new Date(now).toISOString().slice(0, 10);
+    const { count: spentToday } = await sb
+      .from("api_usage_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("provider", "aviationstack")
+      .eq("feature", "journey-watch")
+      .eq("cache_hit", false)
+      .gte("created_at", `${dayStart}T00:00:00Z`);
+    let spent = spentToday ?? 0;
+
     let readings = 0;
     let heads_up = 0;
+    let skipped_budget = 0;
 
     for (const [userId, own] of byUser) {
       const before = journeysFrom(own)[0] ?? null;
@@ -97,10 +162,28 @@ Deno.serve(async (req) => {
       for (const p of own) {
         const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
         if (now - stamp < FRESH_MS) continue;
+        if (!worthReading(p, now)) continue;
         const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
         if (!flightNo) continue;
+        if (spent >= DAILY_BUDGET) {
+          /* Budget spent. The journey still reads from the last stamped reading. */
+          skipped_budget += 1;
+          continue;
+        }
         const live = await askProvider(flightNo, p.depart_on);
         readings += 1;
+        spent += 1;
+        await sb.from("api_usage_logs").insert({
+          owner_id: userId,
+          user_id: userId,
+          provider: "aviationstack",
+          feature: "journey-watch",
+          request_type: "flight_status",
+          status: live ? "ok" : "empty",
+          cache_hit: false,
+          related_entity_type: "flight_plan",
+          related_entity_id: p.id,
+        } as never);
         if (!live) continue;
         await sb
           .from("flight_plans")
@@ -145,7 +228,14 @@ Deno.serve(async (req) => {
       heads_up += 1;
     }
 
-    return json({ users: byUser.size, readings, heads_up });
+    return json({
+      users: byUser.size,
+      readings,
+      heads_up,
+      skipped_budget,
+      spent_today: spent,
+      daily_budget: DAILY_BUDGET,
+    });
   } catch (e) {
     console.error("journey-watch failed:", e);
     return json({ error: e instanceof Error ? e.message : "Unknown failure" }, 500);
