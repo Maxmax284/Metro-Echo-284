@@ -25,6 +25,8 @@ import {
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
 import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
+import { measureAnswer, parseMeasureAsk, shoeAnswer } from "./measures.ts";
+import { factsAnswer } from "./countryFacts.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
@@ -45,6 +47,8 @@ export const ECHO_READ_NAMES = [
   "money_read",
   "care_nearby",
   "flights_prepared",
+  "convert_measure",
+  "how_things_work",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -68,6 +72,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   money_read: "what your bank recorded",
   care_nearby: "the emergency number for that country and the care you kept",
   flights_prepared: "the flights you prepared",
+  convert_measure: "exact conversion factors Echo keeps written down",
+  how_things_work: "kept practical notes for that country, with the day they were checked",
 };
 
 /**
@@ -242,6 +248,41 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "convert_measure",
+      description:
+        "Read-only: convert a measurement (distance, weight, volume, area, temperature, speed) using kept exact factors, and say what the number means to a person where a kept anchor supports it. Use for 'how many square feet is 42 m2', '180 lbs in kg', 'is 34C hot'. Also handles shoe sizing across US, UK, EU and centimetres.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "The measurement exactly as the person wrote it, e.g. '42 m2 to sqft'." },
+          shoe_cut: { type: "string", description: "'men' or 'women', only for a shoe sizing question." },
+          shoe_system: { type: "string", description: "'us', 'uk', 'eu' or 'cm', only for a shoe sizing question." },
+          shoe_size: { type: "number", description: "The size given, only for a shoe sizing question." },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "how_things_work",
+      description:
+        "Read-only: the kept practical notes for a country — plugs and voltage, driving side, date and clock format, dialling code, whether tax is already in the price, tipping, how people pay, fuel units, SIM and eSIM, and a few phrases. Use for 'what plug do I need in Japan', 'do I tip in Thailand', 'is tax included there'. A country with no kept notes returns nothing rather than a guess.",
+      parameters: {
+        type: "object",
+        properties: {
+          place: { type: "string", description: "Country name, two-letter code, or a major city." },
+          question: { type: "string", description: "The person's question, so only the topics asked about come back." },
+        },
+        required: ["place"],
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -332,6 +373,19 @@ export async function runEchoRead(
     }
     case "flights_prepared": {
       const text = await flightRead(sb, scope);
+      return { name, text, source };
+    }
+    case "convert_measure": {
+      const cut = String(a.shoe_cut ?? "").toLowerCase();
+      const system = String(a.shoe_system ?? "").toLowerCase();
+      const size = Number(a.shoe_size);
+      if ((cut === "men" || cut === "women") && ["us", "uk", "eu", "cm"].includes(system) && Number.isFinite(size)) {
+        return { name, text: shoeAnswer(cut as "men" | "women", system as "us" | "uk" | "eu" | "cm", size), source };
+      }
+      return { name, text: measureAnswer(parseMeasureAsk(String(a.text ?? ""))), source };
+    }
+    case "how_things_work": {
+      const text = factsAnswer(String(a.place ?? ""), a.question ? String(a.question) : null);
       return { name, text, source };
     }
   }

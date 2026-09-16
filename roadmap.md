@@ -695,3 +695,32 @@ or Safety room.
   on the terminal caveat.
 - 13 new checks in `src/test/flight-chat.test.ts`. 1,435 tests green, typecheck
   clean, `/flights` QA'd at 384px. `telegram-webhook` deployed.
+
+## Pass 19 — Phase A: a foreign number means something
+
+Approved plan: `.lovable/plan/metro-echo-everyday-life-expansion-plan-only-2026-09-16.md`.
+Phase A only. No new room, no tools menu — two abilities under the same Echo.
+
+- **`_shared/measures.ts` (pure).** Exact factors for length, mass, volume, area,
+  temperature and speed with everyday aliases; `parseMeasureAsk` reads
+  "42 m2 to sqft", "how many miles is 10 km", "180 lb in kg" and bare "32c";
+  an explicit target that names a different family returns nothing rather than
+  quietly converting something nobody asked for; unknown units return nothing.
+  `senseOf` adds a meaning sentence only where an anchor is written down
+  (area: studio / city apartment / comfortable / family; temperature: cold
+  through dangerous heat; walking distance 100 m–25 km) and stays silent
+  everywhere else. `shoeAnswer` covers US/UK/EU/cm within the kept table and
+  refuses outside it.
+- **`_shared/countryFacts.ts` (pure).** 16 countries, each line stamped with the
+  day it was checked: plugs, voltage, driving side, date format, clock, tax in
+  or on the price, tipping, how people pay, fuel units, SIM/eSIM, a few phrases.
+  `factsAnswer` returns only the topics actually asked about plus the emergency
+  number from `localHelp`. A country with nothing written gets no guess.
+- **One brain, both surfaces.** `convert_measure` and `how_things_work` are
+  registered in `_shared/echoReads.ts`, so Ask and Telegram gained them at the
+  same time from one definition, with provenance lines for "Why this?".
+  `echoAbilities` advertises both as live with their limits stated.
+- **Proof.** `src/test/measures.test.ts` (21) and `src/test/country-facts.test.ts`
+  (9). Full suite 1,465 green; typecheck clean.
+- **Next.** Phase B (street-smart trouble lane + friction reasoning + local
+  cultural context) waits on approval.
