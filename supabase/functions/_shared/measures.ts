@@ -107,7 +107,9 @@ export function counterpart(u: UnitSpec): UnitSpec | null {
 export type MeasureAsk = { amount: number; from: UnitSpec; to: UnitSpec };
 
 const NUM = "(-?\\d+(?:[.,]\\d+)?)";
-const UNIT_WORD = "([a-z°²^/\"'\\s]{1,22}?)";
+const UNIT_CHARS = "a-z0-9°²^/\"'\\s";
+const UNIT_WORD = `([${UNIT_CHARS}]{1,22}?)`;
+const UNIT_TAIL = `([${UNIT_CHARS}]{1,22})`;
 
 /**
  * Reads "42 m2 to sqft", "how many miles is 10 km", "180 lbs in kg", "32c".
