@@ -20,6 +20,8 @@ export type AgendaEvent = {
   ends_at: string | null;
   all_day: boolean;
   location: string | null;
+  /** People on the entry, when the entry actually carried them. */
+  attendees: string[];
   feed_id: string;
   /** The feed's own id for this entry — stable across a resync, unlike the row. */
   uid: string | null;
@@ -102,7 +104,7 @@ export function useAgenda(
       const to = new Date(explicit ? spanTo! : Date.now() + days * DAY_MS).toISOString();
       const nowIso = new Date().toISOString();
       const columns =
-        "id,title,uid,starts_at,ends_at,all_day,location,feed_id,project_id,origin,description,sync_state,sync_error,calendar_feeds(label)";
+        "id,title,uid,starts_at,ends_at,all_day,location,attendees,feed_id,project_id,origin,description,sync_state,sync_error,calendar_feeds(label)";
       const [{ data, error: err }, running, projs] = await Promise.all([
         applyScope(supabase.from("calendar_events").select(columns))
           .gte("starts_at", from)
@@ -131,6 +133,7 @@ export function useAgenda(
         ends_at: r.ends_at,
         all_day: r.all_day,
         location: r.location,
+        attendees: Array.isArray(r.attendees) ? (r.attendees as string[]) : [],
         feed_id: r.feed_id,
         uid: r.uid ?? null,
         project_id: r.project_id ?? null,
