@@ -25,6 +25,8 @@ import {
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
 import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
+import { measureAnswer, parseMeasureAsk, shoeAnswer } from "./measures.ts";
+import { factsAnswer } from "./countryFacts.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
@@ -70,6 +72,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   money_read: "what your bank recorded",
   care_nearby: "the emergency number for that country and the care you kept",
   flights_prepared: "the flights you prepared",
+  convert_measure: "exact conversion factors Echo keeps written down",
+  how_things_work: "kept practical notes for that country, with the day they were checked",
 };
 
 /**
@@ -369,6 +373,19 @@ export async function runEchoRead(
     }
     case "flights_prepared": {
       const text = await flightRead(sb, scope);
+      return { name, text, source };
+    }
+    case "convert_measure": {
+      const cut = String(a.shoe_cut ?? "").toLowerCase();
+      const system = String(a.shoe_system ?? "").toLowerCase();
+      const size = Number(a.shoe_size);
+      if ((cut === "men" || cut === "women") && ["us", "uk", "eu", "cm"].includes(system) && Number.isFinite(size)) {
+        return { name, text: shoeAnswer(cut as "men" | "women", system as "us" | "uk" | "eu" | "cm", size), source };
+      }
+      return { name, text: measureAnswer(parseMeasureAsk(String(a.text ?? ""))), source };
+    }
+    case "how_things_work": {
+      const text = factsAnswer(String(a.place ?? ""), a.question ? String(a.question) : null);
       return { name, text, source };
     }
   }
