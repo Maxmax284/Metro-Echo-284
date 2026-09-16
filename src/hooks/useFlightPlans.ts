@@ -377,5 +377,17 @@ export function useFlightPlans() {
     [orgId, load],
   );
 
-  return { plans, loading, error, refresh: load, prepare, confirm, drop, answerOwnership, checkStatus, noticeText };
+  return {
+    plans,
+    loading,
+    error,
+    refresh: load,
+    prepare,
+    confirm,
+    drop,
+    answerOwnership,
+    checkStatus,
+    noticeText,
+    addByNumber,
+  };
 }
