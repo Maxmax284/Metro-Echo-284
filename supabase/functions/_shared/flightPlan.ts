@@ -1,0 +1,273 @@
+// flightPlan — Echo prepares a flight, you confirm it.
+//
+// Doctrine:
+//   - Echo never buys. Preparing is arranging what is known — route, dates,
+//     times, prices — into one thing you can say yes to. Confirming records the
+//     flight on your board. No ticket is purchased, no seat is held, nobody is
+//     checked in.
+//   - Every price and time has a stated origin: you typed it, or you pasted a
+//     quote. There is no live fare feed here, so Echo never presents a number as
+//     today's market price.
+//   - A prepared plan is a draft with a fate: confirm it, or drop it. It never
+//     becomes real on its own.
+//   - Nothing is guessed. A missing arrival time stays missing.
+//
+// Pure module: no IO, no React.
+
+export const FLIGHT_LAW =
+  "Echo prepares and records. It never buys a ticket, holds a seat, or checks you in — confirming puts the flight on your board.";
+
+export type FlightSource = "entered" | "pasted";
+
+export const SOURCE_WORDS: Record<FlightSource, string> = {
+  entered: "you typed these times and prices",
+  pasted: "read from a quote you pasted",
+};
+
+export type FlightOption = {
+  id: string;
+  airline: string | null;
+  flight_no: string | null;
+  /** ISO instant. */
+  depart_at: string;
+  /** ISO instant, or null when the quote did not carry one. */
+  arrive_at: string | null;
+  price: number | null;
+  currency: string | null;
+  stops: number | null;
+  note: string | null;
+};
+
+export type FlightPlanStatus = "prepared" | "confirmed" | "dropped";
+
+export type FlightPlan = {
+  id: string;
+  origin: string;
+  destination: string;
+  depart_on: string;
+  return_on: string | null;
+  passengers: number;
+  currency: string | null;
+  source: FlightSource;
+  options: FlightOption[];
+  chosen_option_id: string | null;
+  status: FlightPlanStatus;
+  event_ids: string[];
+  created_at?: string;
+  confirmed_at?: string | null;
+};
+
+/** An airport code or a place name, cleaned but never invented. */
+export function cleanPlace(v: string | null | undefined): string {
+  const t = (v ?? "").replace(/\s+/g, " ").trim();
+  return /^[a-z]{3}$/i.test(t) ? t.toUpperCase() : t;
+}
+
+export function minutesBetween(a: string, b: string | null): number | null {
+  if (!b) return null;
+  const t1 = new Date(a).getTime();
+  const t2 = new Date(b).getTime();
+  if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 <= t1) return null;
+  return Math.round((t2 - t1) / 60_000);
+}
+
+export function durationWords(minutes: number | null): string | null {
+  if (minutes == null || minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (!h) return `${m}m`;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+export function optionDuration(o: FlightOption): number | null {
+  return minutesBetween(o.depart_at, o.arrive_at);
+}
+
+export function priceWords(o: FlightOption): string | null {
+  if (o.price == null || !Number.isFinite(o.price)) return null;
+  const cur = (o.currency ?? "").toUpperCase();
+  const amount = o.price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return cur ? `${amount} ${cur}` : amount;
+}
+
+/** HH:mm in UTC unless the caller hands in its own formatter. */
+function defaultClock(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "—";
+  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+export function optionWords(o: FlightOption, clock: (iso: string) => string = defaultClock): string {
+  const who = [o.airline, o.flight_no].filter(Boolean).join(" ") || "Flight";
+  const when = o.arrive_at ? `${clock(o.depart_at)} → ${clock(o.arrive_at)}` : `${clock(o.depart_at)}, arrival not recorded`;
+  const bits = [when];
+  const dur = durationWords(optionDuration(o));
+  if (dur) bits.push(dur);
+  if (o.stops != null) bits.push(o.stops === 0 ? "non-stop" : `${o.stops} ${o.stops === 1 ? "stop" : "stops"}`);
+  const p = priceWords(o);
+  if (p) bits.push(p);
+  if (o.note) bits.push(o.note);
+  return `${who} — ${bits.join(" · ")}`;
+}
+
+export function sortOptions(options: FlightOption[]): FlightOption[] {
+  return [...options].sort((a, b) => new Date(a.depart_at).getTime() - new Date(b.depart_at).getTime());
+}
+
+/** Cheapest of the options that actually carry a price. Null when none do. */
+export function cheapest(options: FlightOption[]): FlightOption | null {
+  const priced = options.filter((o) => o.price != null && Number.isFinite(o.price));
+  if (!priced.length) return null;
+  return priced.reduce((best, o) => ((o.price as number) < (best.price as number) ? o : best));
+}
+
+/** Shortest of the options that carry both ends. Null when none do. */
+export function fastest(options: FlightOption[]): FlightOption | null {
+  const timed = options.filter((o) => optionDuration(o) != null);
+  if (!timed.length) return null;
+  return timed.reduce((best, o) => ((optionDuration(o) as number) < (optionDuration(best) as number) ? o : best));
+}
+
+export function planTitle(plan: FlightPlan): string {
+  const route = `${cleanPlace(plan.origin)} → ${cleanPlace(plan.destination)}`;
+  return plan.return_on ? `${route}, ${plan.depart_on} and back ${plan.return_on}` : `${route}, ${plan.depart_on}`;
+}
+
+/** What the plan is, before anyone says yes. */
+export function planWords(plan: FlightPlan, clock?: (iso: string) => string): string {
+  const head = `${planTitle(plan)} · ${plan.passengers} ${plan.passengers === 1 ? "traveller" : "travellers"}`;
+  if (plan.status === "confirmed") {
+    const chosen = plan.options.find((o) => o.id === plan.chosen_option_id);
+    return chosen
+      ? `${head} — confirmed: ${optionWords(chosen, clock)}. Recorded on your board, not bought.`
+      : `${head} — confirmed, but no option is recorded against it.`;
+  }
+  if (plan.status === "dropped") return `${head} — dropped. Nothing was booked.`;
+  if (!plan.options.length) return `${head} — prepared, with no times on it yet.`;
+  const cheap = cheapest(plan.options);
+  const fast = fastest(plan.options);
+  const notes: string[] = [`${plan.options.length} ${plan.options.length === 1 ? "option" : "options"}`];
+  if (cheap) notes.push(`cheapest ${priceWords(cheap)}`);
+  if (fast && fast.id !== cheap?.id) notes.push(`fastest ${durationWords(optionDuration(fast))}`);
+  return `${head} — ${notes.join(", ")}. ${SOURCE_WORDS[plan.source]}. Waiting on your yes.`;
+}
+
+/** Whether this plan may be confirmed, and the honest reason when it may not. */
+export function canConfirm(plan: FlightPlan, optionId: string | null): { ok: boolean; reason?: string } {
+  if (plan.status === "confirmed") return { ok: false, reason: "This flight is already confirmed." };
+  if (plan.status === "dropped") return { ok: false, reason: "This plan was dropped." };
+  if (!plan.options.length) return { ok: false, reason: "There is nothing to confirm until an option carries a time." };
+  const chosen = plan.options.find((o) => o.id === optionId);
+  if (!chosen) return { ok: false, reason: "Pick which flight you mean first." };
+  if (!Number.isFinite(new Date(chosen.depart_at).getTime())) {
+    return { ok: false, reason: "That option has no real departure time." };
+  }
+  return { ok: true };
+}
+
+/** The board entries a confirmation writes. Departure always; arrival only if recorded. */
+export function confirmedEntries(
+  plan: FlightPlan,
+  option: FlightOption,
+): Array<{ title: string; starts_at: string; ends_at: string | null; location: string | null; description: string }> {
+  const who = [option.airline, option.flight_no].filter(Boolean).join(" ");
+  const from = cleanPlace(plan.origin);
+  const to = cleanPlace(plan.destination);
+  const priced = priceWords(option);
+  const description = [
+    `Flight prepared in Metro Echo and confirmed by you.`,
+    who ? `Carrier: ${who}.` : "",
+    priced ? `Price recorded: ${priced} (${SOURCE_WORDS[plan.source]}).` : `No price was recorded.`,
+    FLIGHT_LAW,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const rows = [
+    {
+      title: `Depart ${from} → ${to}${who ? ` · ${who}` : ""}`,
+      starts_at: option.depart_at,
+      ends_at: option.arrive_at,
+      location: from || null,
+      description,
+    },
+  ];
+  if (option.arrive_at) {
+    rows.push({
+      title: `Land ${to}${who ? ` · ${who}` : ""}`,
+      starts_at: option.arrive_at,
+      ends_at: null,
+      location: to || null,
+      description,
+    });
+  }
+  return rows;
+}
+
+const CODE_RE = /\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\s?(\d{1,4})\b/;
+const TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g;
+const PRICE_RE = /(?:([$€£])\s?)?(\d[\d,]*(?:\.\d{1,2})?)\s?(USD|EUR|GBP|THB|SGD|AUD|CAD|JPY)?/i;
+const SYMBOL_CURRENCY: Record<string, string> = { $: "USD", "€": "EUR", "£": "GBP" };
+
+/**
+ * A pasted quote, read conservatively. One line becomes an option only when it
+ * carries a flight code and a departure time. Anything else is handed back as
+ * unread rather than guessed at.
+ */
+export function parseQuote(
+  text: string | null | undefined,
+  departOn: string,
+  fallbackCurrency: string | null = null,
+): { options: FlightOption[]; unread: string[] } {
+  const options: FlightOption[] = [];
+  const unread: string[] = [];
+  const lines = (text ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    const code = line.toUpperCase().match(CODE_RE);
+    const times = [...line.matchAll(TIME_RE)].map((m) => `${m[1].padStart(2, "0")}:${m[2]}`);
+    if (!code || times.length === 0) {
+      unread.push(line);
+      continue;
+    }
+    const priceMatch = line.replace(CODE_RE, "").match(PRICE_RE);
+    let price: number | null = null;
+    let currency: string | null = fallbackCurrency;
+    if (priceMatch && (priceMatch[1] || priceMatch[3])) {
+      const raw = Number(priceMatch[2].replace(/,/g, ""));
+      if (Number.isFinite(raw) && raw > 0) {
+        price = raw;
+        currency = (priceMatch[3] ?? SYMBOL_CURRENCY[priceMatch[1] ?? ""] ?? fallbackCurrency ?? null) as string | null;
+        if (currency) currency = currency.toUpperCase();
+      }
+    }
+    const stopsMatch = line.match(/\b(non-?stop|direct)\b/i)
+      ? 0
+      : line.match(/\b(\d)\s?stops?\b/i)
+        ? Number(line.match(/\b(\d)\s?stops?\b/i)![1])
+        : null;
+    const depart_at = `${departOn}T${times[0]}:00`;
+    const arriveTime = times[1] ?? null;
+    let arrive_at: string | null = null;
+    if (arriveTime) {
+      arrive_at = `${departOn}T${arriveTime}:00`;
+      /* An arrival earlier in the clock than departure is the next day, which is
+         a fact of flying, not an error. */
+      if (new Date(arrive_at).getTime() <= new Date(depart_at).getTime()) {
+        const next = new Date(`${departOn}T00:00:00`);
+        next.setDate(next.getDate() + 1);
+        arrive_at = `${next.toISOString().slice(0, 10)}T${arriveTime}:00`;
+      }
+    }
+    options.push({
+      id: `${code[1]}${code[2]}-${times[0]}`,
+      airline: code[1],
+      flight_no: `${code[1]}${code[2]}`,
+      depart_at,
+      arrive_at,
+      price,
+      currency: price != null ? currency : null,
+      stops: stopsMatch,
+      note: null,
+    });
+  }
+  return { options, unread };
+}
