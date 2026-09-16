@@ -114,10 +114,16 @@ export function sortOptions(options: FlightOption[]): FlightOption[] {
   return [...options].sort((a, b) => new Date(a.depart_at).getTime() - new Date(b.depart_at).getTime());
 }
 
-/** Cheapest of the options that actually carry a price. Null when none do. */
+/**
+ * Cheapest of the options that actually carry a price. Null when none do — and
+ * null when the prices are in different currencies, because 200 EUR against 300
+ * USD is not arithmetic Echo is allowed to perform without a rate.
+ */
 export function cheapest(options: FlightOption[]): FlightOption | null {
   const priced = options.filter((o) => o.price != null && Number.isFinite(o.price));
   if (!priced.length) return null;
+  const currencies = new Set(priced.map((o) => o.currency ?? ""));
+  if (currencies.size > 1) return null;
   return priced.reduce((best, o) => ((o.price as number) < (best.price as number) ? o : best));
 }
 
