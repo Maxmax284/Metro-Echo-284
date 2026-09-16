@@ -204,6 +204,13 @@
       "when": 1789560780962,
       "tag": "0028_create_flight_plans",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1789565921466,
+      "tag": "0029_flight_recognition",
+      "breakpoints": true
     }
   ]
 }

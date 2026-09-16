@@ -31,11 +31,24 @@ export async function flightRead(
       }) as FlightPlan,
   );
   if (!rows.length) {
-    return "No flight is prepared. Schedule → Flights takes a route, the dates and the flight lines you paste, and holds it as a draft until you confirm it on the Board. Echo never buys a ticket.";
+    return "No flight is prepared. Schedule → Flights takes a route, the dates and the flight lines you paste, and holds it as a draft until you confirm it on the Board. If a booking turns up in something Echo already reads, it files it there too and asks whose it is. Echo never buys a ticket.";
   }
-  const waiting = rows.filter((r) => r.status === "prepared");
-  const done = rows.filter((r) => r.status === "confirmed");
+  const asked = rows.filter((r) => r.status === "prepared" && r.ownership === "unknown");
+  const waiting = rows.filter((r) => r.status === "prepared" && r.ownership !== "unknown" && r.ownership !== "theirs");
+  const watched = rows.filter((r) => r.ownership === "theirs" && r.status !== "dropped");
+  const done = rows.filter((r) => r.status === "confirmed" && r.ownership !== "theirs");
   const lines: string[] = [];
+  if (asked.length) {
+    lines.push(
+      `${asked.length} ${asked.length === 1 ? "flight was" : "flights were"} noticed and Echo does not know whose ${asked.length === 1 ? "it is" : "they are"}:`,
+    );
+    for (const p of asked) {
+      const who = p.traveller_name ? ` in the name of ${p.traveller_name}` : "";
+      const from = p.noticed_from?.sender?.name ?? p.noticed_from?.sender?.email ?? null;
+      lines.push(`• ${planWords(p)}${who}${from ? `, sent by ${from}` : ""}`);
+    }
+    lines.push("Schedule → Flights is where you say mine, mine too, theirs, or not mine. It asks once.");
+  }
   if (waiting.length) {
     lines.push(`${waiting.length} ${waiting.length === 1 ? "flight is" : "flights are"} waiting on your yes:`);
     for (const p of waiting) lines.push(`• ${planWords(p)}`);
@@ -43,6 +56,12 @@ export async function flightRead(
   if (done.length) {
     lines.push(`Confirmed and on the board:`);
     for (const p of done) lines.push(`• ${planWords(p)}`);
+  }
+  if (watched.length) {
+    lines.push(`Someone else's, watched and kept off your board:`);
+    for (const p of watched) {
+      lines.push(`• ${planWords(p)}${p.traveller_name ? ` · ${p.traveller_name}` : ""}`);
+    }
   }
   lines.push("Confirming happens on the Board, by your tap. Echo records the flight; it never buys it.");
   return lines.join("\n");

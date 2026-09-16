@@ -1,0 +1,344 @@
+// flightRecognize — reading flight information out of something Echo was
+// already allowed to read.
+//
+// Doctrine:
+//   - Deterministic. Patterns, not a model: a flight code, a date, times, a
+//     route, a booking reference. No AI call, no cost, no invention.
+//   - Recognition is never ownership. A booking found in someone else's mail is
+//     a question, not a flight of yours. The person answers; Echo remembers the
+//     answer against the sender and stops asking cold.
+//   - Every claim of relation is an evidence line drawn from something recorded:
+//     your name on the booking, your address on the mail, a sender you already
+//     answered for, a destination you already have on record, dates that touch
+//     your own. No line, no claim.
+//   - Anything ambiguous stays unread. A numeric date like 03/10 is two dates in
+//     two countries, so it is not read at all.
+//
+// Pure module: no IO, no React.
+
+export type NoticeSource = "mail" | "telegram" | "calendar" | "pasted" | "document";
+
+export const SOURCE_WORDS: Record<NoticeSource, string> = {
+  mail: "a mail Echo read",
+  telegram: "a message you forwarded",
+  calendar: "an entry on your calendar",
+  pasted: "something you pasted",
+  document: "a file on record",
+};
+
+export type Ownership = "unknown" | "mine" | "mine_too" | "theirs" | "not_mine";
+
+export const OWNERSHIP_CHOICES: Array<{ id: Exclude<Ownership, "unknown">; label: string; plain: string }> = [
+  { id: "mine", label: "Mine", plain: "It goes on your board as your flight." },
+  { id: "mine_too", label: "I'm on this too", plain: "Yours as well as theirs. It goes on your board." },
+  { id: "theirs", label: "Theirs — keep an eye on it", plain: "Kept as someone else's flight, watched, not yours." },
+  { id: "not_mine", label: "Not mine", plain: "Dropped. Echo stops asking about bookings like it." },
+];
+
+export type RecognizedLeg = {
+  /** IATA-shaped code, always upper case. */
+  flight_no: string;
+  airline: string;
+  /** ISO date, or null when nothing unambiguous was on record. */
+  depart_on: string | null;
+  /** HH:mm, or null. */
+  depart_time: string | null;
+  arrive_time: string | null;
+  origin: string | null;
+  destination: string | null;
+  /** The exact line it was read from, kept as evidence. */
+  line: string;
+};
+
+export type Recognition = {
+  legs: RecognizedLeg[];
+  booking_ref: string | null;
+  travellers: string[];
+  /** Lines that looked like flight information but were not readable. */
+  unread: string[];
+};
+
+const CODE_RE = /\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\s?(\d{2,4})\b/;
+const ISO_DATE_RE = /\b(20\d{2})-(\d{2})-(\d{2})\b/;
+const MONTHS = [
+  "january",
+  "february",
+  "march",
+  "april",
+  "may",
+  "june",
+  "july",
+  "august",
+  "september",
+  "october",
+  "november",
+  "december",
+];
+const MONTH_RE = new RegExp(
+  `\\b(?:(\\d{1,2})\\s+)?(${MONTHS.map((m) => `${m.slice(0, 3)}[a-z]*`).join("|")})\\.?\\s+(?:(\\d{1,2})[a-z]{0,2},?\\s+)?(20\\d{2})?\\b`,
+  "i",
+);
+const TIME_24_RE = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g;
+const TIME_12_RE = /\b(1[0-2]|0?[1-9]):([0-5]\d)\s?([ap])\.?m\.?\b/gi;
+const ROUTE_RE =
+  /\b([A-Z]{3})\s*(?:->|-->|→|—>|–>|-|–|—|to|>)\s*([A-Z]{3})\b/;
+const BOOKING_RE =
+  /(?:confirmation(?:\s+(?:code|number))?|booking(?:\s+(?:reference|code|number|ref))?|reservation(?:\s+code)?|record locator|pnr)\b[^A-Z0-9]{0,14}([A-Z0-9]{5,7})\b/i;
+const TRAVELLER_LABEL_RE =
+  /\b(?:passengers?|travell?ers?|traveler|name(?:\s+on\s+ticket)?)\b\s*[:\-–]\s*([^\n,;]{3,60})/gi;
+const SURNAME_SLASH_RE = /\b([A-Z][A-Z'’-]{1,20})\/([A-Z][A-Z'’-]{1,20})(?:\s+(?:MR|MRS|MS|MSTR|DR))?\b/g;
+const AIRPORT_HINT_RE = /\b(flight|departs?|departure|boarding|gate|terminal|airline|itinerary|e-?ticket)\b/i;
+
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function monthIndex(word: string): number {
+  const w = word.toLowerCase().slice(0, 3);
+  return MONTHS.findIndex((m) => m.slice(0, 3) === w);
+}
+
+/**
+ * One unambiguous date out of a line, or null. Named months only, plus ISO —
+ * a slash date is two different days in two different countries.
+ */
+export function readDate(line: string, fallbackYear?: number): string | null {
+  const iso = line.match(ISO_DATE_RE);
+  if (iso) {
+    const m = Number(iso[2]);
+    const d = Number(iso[3]);
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return `${iso[1]}-${pad(m)}-${pad(d)}`;
+  }
+  const named = line.match(MONTH_RE);
+  if (named) {
+    const mi = monthIndex(named[2]);
+    const day = Number(named[1] ?? named[3] ?? NaN);
+    const year = named[4] ? Number(named[4]) : fallbackYear;
+    if (mi >= 0 && Number.isFinite(day) && day >= 1 && day <= 31 && year) {
+      return `${year}-${pad(mi + 1)}-${pad(day)}`;
+    }
+  }
+  return null;
+}
+
+function readTimes(line: string): string[] {
+  const out: string[] = [];
+  for (const m of line.matchAll(TIME_12_RE)) {
+    let h = Number(m[1]) % 12;
+    if (m[3].toLowerCase() === "p") h += 12;
+    out.push(`${pad(h)}:${m[2]}`);
+  }
+  if (out.length) return out;
+  for (const m of line.matchAll(TIME_24_RE)) out.push(`${pad(Number(m[1]))}:${m[2]}`);
+  return out;
+}
+
+function cleanName(v: string): string {
+  return v
+    .replace(/\b(MR|MRS|MS|MSTR|DR|ADT|CHD)\b\.?/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function titleCase(v: string): string {
+  return v
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+/** Names the text presents as travelling. Labelled lines and ticket-style SURNAME/FIRST. */
+export function readTravellers(text: string): string[] {
+  const found: string[] = [];
+  for (const m of text.matchAll(TRAVELLER_LABEL_RE)) {
+    const name = cleanName(m[1]);
+    if (/^[A-Za-z][A-Za-z'’\-\s]{2,}$/.test(name) && name.split(/\s+/).length >= 2) found.push(titleCase(name));
+  }
+  for (const m of text.matchAll(SURNAME_SLASH_RE)) {
+    found.push(titleCase(`${m[2]} ${m[1]}`));
+  }
+  const seen = new Set<string>();
+  return found.filter((n) => {
+    const k = n.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/**
+ * Flight information out of arbitrary text. A leg needs a flight code and a
+ * date; the date may sit on a nearby line, as it does in every airline mail.
+ * A code with no date anywhere is handed back unread.
+ */
+export function recognizeFlights(
+  text: string | null | undefined,
+  opts: { today?: string } = {},
+): Recognition {
+  const whole = (text ?? "").replace(/\u00a0/g, " ");
+  const fallbackYear = Number((opts.today ?? "").slice(0, 4)) || new Date().getUTCFullYear();
+  const lines = whole.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const legs: RecognizedLeg[] = [];
+  const unread: string[] = [];
+  let carriedDate: string | null = null;
+  let carriedRoute: { origin: string; destination: string } | null = null;
+  const seen = new Set<string>();
+
+  for (const line of lines) {
+    const upper = line.toUpperCase();
+    const lineDate = readDate(line, fallbackYear);
+    if (lineDate) carriedDate = lineDate;
+    const route = upper.match(ROUTE_RE);
+    if (route) carriedRoute = { origin: route[1], destination: route[2] };
+
+    const code = upper.match(CODE_RE);
+    if (!code) continue;
+    /* A bare code in prose is not a flight. Something on the line has to say
+       flight, or the line has to carry a time or a route. */
+    const times = readTimes(line);
+    if (!times.length && !route && !AIRPORT_HINT_RE.test(line)) continue;
+
+    const flight_no = `${code[1]}${code[2]}`;
+    const depart_on = lineDate ?? carriedDate;
+    if (!depart_on) {
+      unread.push(line);
+      continue;
+    }
+    const key = `${flight_no}:${depart_on}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    legs.push({
+      flight_no,
+      airline: code[1],
+      depart_on,
+      depart_time: times[0] ?? null,
+      arrive_time: times[1] ?? null,
+      origin: route?.[1] ?? carriedRoute?.origin ?? null,
+      destination: route?.[2] ?? carriedRoute?.destination ?? null,
+      line,
+    });
+  }
+
+  const ref = whole.match(BOOKING_RE);
+  return {
+    legs,
+    booking_ref: ref ? ref[1].toUpperCase() : null,
+    travellers: readTravellers(whole),
+    unread,
+  };
+}
+
+export type Me = { name?: string | null; emails?: string[] | null };
+
+export type RelationInput = {
+  recognition: Recognition;
+  text?: string | null;
+  me: Me;
+  sender?: { name?: string | null; email?: string | null } | null;
+  /** What this person already answered for this sender, if anything. */
+  knownSender?: { ownership: Exclude<Ownership, "unknown">; name?: string | null } | null;
+  /** Place names already on record for this person (cities, airport codes). */
+  myPlaces?: string[];
+  /** Date windows already on this person's board, as ISO dates. */
+  myWindows?: Array<{ start: string; end: string }>;
+};
+
+export type Relation = {
+  /** Evidence lines, each one drawn from something recorded. */
+  lines: string[];
+  confidence: "recorded" | "likely" | "unclear";
+  /** What Echo would file it as, before the person answers. */
+  suggested: Ownership;
+};
+
+function nameMatches(a: string, b: string): boolean {
+  const parts = (v: string) => v.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter((p) => p.length > 1);
+  const x = parts(a);
+  const y = parts(b);
+  if (!x.length || !y.length) return false;
+  const overlap = x.filter((p) => y.includes(p));
+  return overlap.length >= Math.min(2, Math.min(x.length, y.length));
+}
+
+/** Why Echo thinks this booking might concern you. Recorded facts only. */
+export function relationEvidence(input: RelationInput): Relation {
+  const lines: string[] = [];
+  const { recognition, me } = input;
+  const text = (input.text ?? "").toLowerCase();
+  const myName = (me.name ?? "").trim();
+  const emails = (me.emails ?? []).map((e) => e.toLowerCase()).filter(Boolean);
+
+  const onTicket = myName ? recognition.travellers.some((t) => nameMatches(t, myName)) : false;
+  if (onTicket) lines.push("Your name is on the booking.");
+
+  const addressed = emails.find((e) => text.includes(e)) ?? null;
+  if (addressed) lines.push("Your address is on the booking.");
+
+  if (input.knownSender) {
+    const who = input.knownSender.name ?? input.sender?.name ?? "This sender";
+    const word =
+      input.knownSender.ownership === "mine"
+        ? "have been yours before"
+        : input.knownSender.ownership === "mine_too"
+          ? "have had you on them before"
+          : input.knownSender.ownership === "theirs"
+            ? "have been theirs before"
+            : "were not yours before";
+    lines.push(`${who}'s flights ${word}.`);
+  } else if (input.sender?.name || input.sender?.email) {
+    lines.push(`Sent by ${input.sender.name ?? input.sender.email}, who you have not answered for yet.`);
+  }
+
+  const places = (input.myPlaces ?? []).map((p) => p.toLowerCase()).filter(Boolean);
+  const dest = recognition.legs.map((l) => l.destination).filter(Boolean) as string[];
+  const placeHit = dest.find((d) => places.some((p) => p === d.toLowerCase() || p.includes(d.toLowerCase())));
+  if (placeHit) lines.push(`${placeHit} is somewhere you already have on record.`);
+
+  const windows = input.myWindows ?? [];
+  const dateHit = recognition.legs
+    .map((l) => l.depart_on)
+    .filter(Boolean)
+    .find((d) => windows.some((w) => (d as string) >= w.start && (d as string) <= w.end));
+  if (dateHit) lines.push(`${dateHit} falls inside something already on your board.`);
+
+  let suggested: Ownership = "unknown";
+  let confidence: Relation["confidence"] = "unclear";
+  if (onTicket || addressed) {
+    suggested = "mine";
+    confidence = "recorded";
+  } else if (input.knownSender) {
+    suggested = input.knownSender.ownership;
+    confidence = "recorded";
+  } else if (placeHit || dateHit) {
+    confidence = "likely";
+  }
+  return { lines, confidence, suggested };
+}
+
+function legWords(leg: RecognizedLeg): string {
+  const route = leg.origin && leg.destination ? `${leg.origin} → ${leg.destination}` : "route not recorded";
+  const when = leg.depart_time ? `${leg.depart_on} at ${leg.depart_time}` : leg.depart_on;
+  return `${leg.flight_no}, ${route}, ${when}`;
+}
+
+/** The one question Echo asks, once, about a booking it did not expect. */
+export function ownershipQuestion(
+  recognition: Recognition,
+  source: NoticeSource,
+  sender?: { name?: string | null; email?: string | null } | null,
+): string {
+  const who = sender?.name ?? sender?.email ?? null;
+  const head = who ? `${who} sent flight details` : `Flight details turned up in ${SOURCE_WORDS[source]}`;
+  const what = recognition.legs.map(legWords).join("; ");
+  const names = recognition.travellers.length
+    ? ` The booking is in the name of ${recognition.travellers.join(" and ")}.`
+    : "";
+  return `${head} — ${what}.${names} Does this flight have anything to do with you?`;
+}
+
+/** What answering does, said before the tap. */
+export function ownershipOutcome(answer: Exclude<Ownership, "unknown">): string {
+  const choice = OWNERSHIP_CHOICES.find((c) => c.id === answer);
+  return choice ? choice.plain : "Recorded.";
+}

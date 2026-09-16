@@ -58,6 +58,8 @@ import { matchHelpQuestion, renderTelegramHelp } from "../_shared/telegram_guide
 import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
+import { noticeFlights } from "../_shared/flightNotice.ts";
+import { recognizeFlights } from "../_shared/flightRecognize.ts";
 import { buildWorkingContext } from "../_shared/workingContext.ts";
 
 
@@ -865,6 +867,34 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       linkKind: null as VantaLinkKind | null,
       commitmentId: null as string | null,
     };
+  }
+
+  /* A booking forwarded into the pocket is read before anything else touches it:
+     a pattern pass, no model. It needs a flight code and a date, so an ordinary
+     question about a flight never lands here. What it finds is a draft and, when
+     Echo cannot tell whose flight it is, one question. Nothing is booked. */
+  const flightSeen = recognizeFlights(text, {});
+  if (flightSeen.legs.length) {
+    const noticed = await noticeFlights(
+      sb,
+      { userId, orgId },
+      { text, source: "telegram", sender: null, origin_ref: chatId == null ? null : { kind: "telegram_chat", id: String(chatId) } },
+    );
+    if (noticed.created || noticed.known) {
+      const lines: string[] = [];
+      if (noticed.questions.length) lines.push(noticed.questions.join("\n\n"));
+      else if (noticed.created) lines.push(`${noticed.created === 1 ? "That flight is" : `Those ${noticed.created} flights are`} on your record as a draft.`);
+      if (noticed.known) lines.push(`${noticed.known === 1 ? "One flight was" : `${noticed.known} flights were`} already on record. Nothing doubled.`);
+      lines.push("Schedule → Flights is where you answer and confirm. Nothing was bought, held or checked in.");
+      return {
+        reply: lines.join("\n\n"),
+        detectedType: "flight_noticed" as string | null,
+        routedTo: "flight_plan" as string | null,
+        readOnly: false,
+        linkKind: null as VantaLinkKind | null,
+        commitmentId: null as string | null,
+      };
+    }
   }
 
   /* One router for every surface. Telegram no longer decides on its own what a

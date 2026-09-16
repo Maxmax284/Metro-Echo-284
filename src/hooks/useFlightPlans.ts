@@ -17,6 +17,7 @@ import {
   cleanPlace,
   confirmedEntries,
   type FlightOption,
+  type FlightOwnership,
   type FlightPlan,
   type FlightSource,
 } from "@/lib/flightPlan";
@@ -48,6 +49,13 @@ function rowToPlan(r: any): FlightPlan {
     event_ids: Array.isArray(r.event_ids) ? r.event_ids : [],
     created_at: r.created_at,
     confirmed_at: r.confirmed_at ?? null,
+    origin_kind: (r.origin_kind ?? "desk") as FlightPlan["origin_kind"],
+    ownership: (r.ownership ?? "mine") as FlightPlan["ownership"],
+    traveller_name: r.traveller_name ?? null,
+    booking_ref: r.booking_ref ?? null,
+    noticed_from: (r.noticed_from ?? null) as FlightPlan["noticed_from"],
+    live_status: r.live_status ?? null,
+    live_checked_at: r.live_checked_at ?? null,
   };
 }
 
@@ -172,5 +180,107 @@ export function useFlightPlans() {
     [user, withScope, load],
   );
 
-  return { plans, loading, error, refresh: load, prepare, confirm, drop };
+  /**
+   * Your answer to "whose flight is this?". It files the draft, remembers the
+   * sender so the question is asked once, and settles the nudge that asked.
+   * Saying it is yours does not put it on your board — confirming still does.
+   */
+  const answerOwnership = useCallback(
+    async (plan: FlightPlan, answer: Exclude<FlightOwnership, "unknown">) => {
+      if (!user) return;
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({ ownership: answer, status: answer === "not_mine" ? "dropped" : plan.status })
+        .eq("id", plan.id);
+      if (err) throw new Error(err.message);
+
+      const sender = plan.noticed_from?.sender ?? null;
+      const key = (sender?.email ?? sender?.name ?? "").trim().toLowerCase();
+      if (key) {
+        const { data: existing } = (await applyScope(
+          supabase.from("flight_senders").select("id, times_seen").eq("sender_key", key).limit(1) as never,
+        )) as { data: Array<{ id: string; times_seen: number }> | null };
+        const row = existing?.[0];
+        if (row) {
+          await supabase
+            .from("flight_senders")
+            .update({
+              ownership: answer,
+              sender_name: sender?.name ?? null,
+              times_seen: Number(row.times_seen ?? 1) + 1,
+              last_seen_at: new Date().toISOString(),
+            })
+            .eq("id", row.id);
+        } else {
+          await supabase.from("flight_senders").insert(
+            withScope({
+              user_id: user.id,
+              sender_key: key,
+              sender_name: sender?.name ?? null,
+              ownership: answer,
+            }) as never,
+          );
+        }
+      }
+
+      await supabase
+        .from("nudges")
+        .update({ status: "acted" })
+        .eq("related_entity_id", plan.id)
+        .eq("kind", "flight_noticed");
+
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.ownership_answered",
+          payload: { plan_id: plan.id, answer, sender: key || null, bought: false },
+        }) as never,
+      );
+      await load();
+    },
+    [user, applyScope, withScope, load],
+  );
+
+  /** One reading of where the flight actually is. Reads; never rebooks. */
+  const checkStatus = useCallback(
+    async (plan: FlightPlan): Promise<{ words: string; news: string | null }> => {
+      const { data, error: err } = await supabase.functions.invoke("flight-status", {
+        body: { plan_id: plan.id },
+      });
+      if (err) {
+        const detail =
+          typeof (err as { context?: { text?: () => Promise<string> } }).context?.text === "function"
+            ? await (err as { context: { text: () => Promise<string> } }).context.text()
+            : err.message;
+        throw new Error(detail || "That flight could not be read.");
+      }
+      await load();
+      const body = data as { words?: string; news?: string | null };
+      return { words: body?.words ?? "Nothing was read.", news: body?.news ?? null };
+    },
+    [load],
+  );
+
+  /** Hand Echo a booking you have in front of you. It reads; it files nothing on the board. */
+  const noticeText = useCallback(
+    async (input: { text: string; sender_name?: string; sender_email?: string }) => {
+      const { data, error: err } = await supabase.functions.invoke("flight-notice", {
+        body: {
+          text: input.text,
+          source: "pasted",
+          sender_name: input.sender_name || undefined,
+          sender_email: input.sender_email || undefined,
+          organization_id: orgId ?? null,
+        },
+      });
+      if (err) throw new Error(err.message);
+      await load();
+      return data as { created: number; asked: number; known: number; questions: string[] };
+    },
+    [orgId, load],
+  );
+
+  return { plans, loading, error, refresh: load, prepare, confirm, drop, answerOwnership, checkStatus, noticeText };
 }

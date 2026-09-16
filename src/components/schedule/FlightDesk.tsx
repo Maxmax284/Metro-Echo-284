@@ -1,14 +1,16 @@
-// FlightDesk — Echo prepares a flight, you confirm it.
+// FlightDesk — Echo prepares a flight, notices one, and you say what it is.
 //
 // Doctrine:
-//   - No fare feed exists here, so Echo never presents a price as the market's.
-//     Every number carries where it came from: you typed it, or you pasted it.
-//   - Preparing is a draft with a fate. Confirming records it on your board.
-//     Nothing is bought, held, or checked in — the standing line says so.
-//   - A pasted quote is read conservatively: a line without a flight code and a
-//     time is handed back as unread rather than guessed at.
+//   - Two ways in. You prepare a flight from times you paste, or Echo recognises
+//     a booking in something already readable. A recognised booking is a
+//     question with its evidence attached, never a fact.
+//   - Whose it is, you answer. Once. The answer is remembered against the sender
+//     so the same person's next booking is not asked about cold.
+//   - Live status is a reading with a time on it. A provider that carries nothing
+//     is reported as carrying nothing.
+//   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { Plane, PlusCircle, Trash2 } from "lucide-react";
+import { Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +32,10 @@ import {
   planWords,
   sortOptions,
   type FlightOption,
+  type FlightPlan,
 } from "@/lib/flightPlan";
+import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
+import { STATUS_LAW, readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +43,18 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function noticedWords(plan: FlightPlan): string {
+  const n = plan.noticed_from;
+  if (!n) return "";
+  const src = (n.source_words ?? NOTICE_SOURCE_WORDS[(n.source as NoticeSource) ?? "pasted"]) || "something on record";
+  const who = n.sender?.name ?? n.sender?.email ?? null;
+  return who ? `Read from ${src}, sent by ${who}.` : `Read from ${src}.`;
+}
+
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
-  const { plans, loading, error, refresh, prepare, confirm, drop } = useFlightPlans();
+  const { plans, loading, error, refresh, prepare, confirm, drop, answerOwnership, checkStatus, noticeText } =
+    useFlightPlans();
   const clock = (iso: string) => {
     const d = new Date(iso);
     return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "—";
@@ -53,13 +67,17 @@ export function FlightDesk() {
   const [passengers, setPassengers] = useState("1");
   const [currency, setCurrency] = useState("USD");
   const [quote, setQuote] = useState("");
+  const [booking, setBooking] = useState("");
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
+  const [live, setLive] = useState<Record<string, string>>({});
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
-  const open = plans.filter((p) => p.status === "prepared");
-  const settled = plans.filter((p) => p.status !== "prepared");
+  const asked = plans.filter((p) => p.ownership === "unknown" && p.status === "prepared");
+  const open = plans.filter((p) => p.status === "prepared" && p.ownership !== "unknown" && p.ownership !== "theirs");
+  const watched = plans.filter((p) => p.ownership === "theirs" && p.status !== "dropped");
+  const settled = plans.filter((p) => p.status !== "prepared" && p.ownership !== "theirs");
 
   const submit = async () => {
     if (!origin.trim() || !destination.trim()) {
@@ -91,11 +109,132 @@ export function FlightDesk() {
     }
   };
 
+  const readBooking = async () => {
+    if (booking.trim().length < 8) {
+      vantaToast.warning("Paste the booking itself — a confirmation mail, an itinerary, a forwarded message.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await noticeText({ text: booking });
+      setBooking("");
+      if (!res.created && !res.known) {
+        vantaToast.warning("Nothing in that read as a flight. A flight code and a date are what Echo needs.");
+      } else if (res.asked) {
+        vantaToast.success(`${res.created} flight read. It is waiting on you to say whose it is.`);
+      } else {
+        vantaToast.success(
+          res.created ? `${res.created} flight filed against your record.` : "Already on your record. Nothing doubled.",
+        );
+      }
+    } catch (e) {
+      vantaToast.warning(e instanceof Error ? e.message : "That booking could not be read.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askLive = async (plan: FlightPlan) => {
+    setBusy(true);
+    try {
+      const res = await checkStatus(plan);
+      setLive((prev) => ({ ...prev, [plan.id]: res.news ? `${res.words} ${res.news}` : res.words }));
+      if (res.news) vantaToast.success(res.news);
+    } catch (e) {
+      vantaToast.warning(e instanceof Error ? e.message : "That flight could not be read.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const liveLine = (plan: FlightPlan): string | null => {
+    if (live[plan.id]) return live[plan.id];
+    const snapshot = plan.live_status as LiveFlight | null;
+    if (!snapshot || !plan.live_checked_at) return null;
+    return `${statusWords(snapshot, clock)} ${readingAge(plan.live_checked_at)}.`;
+  };
+
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
   return (
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
+
+      {asked.length > 0 && (
+        <Card className="vanta-card space-y-3 p-3">
+          <p className="vanta-machine-label text-foreground/70">Echo noticed a flight</p>
+          <ul className="space-y-3">
+            {asked.map((p) => (
+              <li key={p.id} className="space-y-2 border-l-2 border-primary/50 pl-2">
+                <p className="text-[13px] text-foreground/90">{planTitle(p)}</p>
+                {p.traveller_name && (
+                  <p className="text-[12px] text-foreground/80">In the name of {p.traveller_name}.</p>
+                )}
+                <p className="text-[11px] text-muted-foreground">{noticedWords(p)}</p>
+                {(p.noticed_from?.evidence ?? []).length > 0 && (
+                  <ul className="space-y-0.5">
+                    {(p.noticed_from?.evidence ?? []).map((line) => (
+                      <li key={line} className="text-[11px] text-muted-foreground">
+                        · {line}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-[12.5px] text-foreground/85">Does this flight have anything to do with you?</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {OWNERSHIP_CHOICES.map((choice) => (
+                    <Button
+                      key={choice.id}
+                      size="sm"
+                      variant={choice.id === "mine" ? "default" : "outline"}
+                      className="h-9 text-[12px]"
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await answerOwnership(p, choice.id);
+                          vantaToast.success(choice.plain);
+                        } catch (e) {
+                          vantaToast.warning(e instanceof Error ? e.message : "That answer did not save.");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      {choice.label}
+                    </Button>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted-foreground/80">
+            Nothing goes on your board from a booking Echo found. It asks once, remembers who sent it, and waits.
+          </p>
+        </Card>
+      )}
+
+      <Card className="vanta-card space-y-2 p-3">
+        <div className="flex items-center gap-2">
+          <ScanLine className="h-4 w-4 text-primary" aria-hidden />
+          <p className="text-[13px] font-medium">Read a booking</p>
+        </div>
+        <Textarea
+          value={booking}
+          onChange={(e) => setBooking(e.target.value)}
+          rows={3}
+          placeholder={"Paste a confirmation mail, an itinerary or a forwarded message."}
+          className="text-[13px]"
+          aria-label="Paste a booking for Echo to read"
+        />
+        <Button variant="outline" onClick={() => void readBooking()} disabled={busy} className="h-10 w-full text-[13px]">
+          Read it
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Echo reads the flight code, the date, the times and the name on it. It signs into nothing, and whatever it
+          reads waits on your answer.
+        </p>
+      </Card>
 
       <Card className="vanta-card space-y-3 p-3">
         <div className="flex items-center gap-2">
@@ -173,8 +312,8 @@ export function FlightDesk() {
         <p className="vanta-machine-label text-foreground/70">Waiting on your yes</p>
         {open.length === 0 ? (
           <p className="text-[12.5px] text-muted-foreground">
-            Nothing prepared. A flight lands here when you prepare one above, and it stays a draft until you confirm it
-            — here or on the Board.
+            Nothing prepared. A flight lands here when you prepare one above, or when Echo reads one and you say it is
+            yours — and it stays a draft until you confirm it, here or on the Board.
           </p>
         ) : (
           <ul className="space-y-3">
@@ -184,7 +323,12 @@ export function FlightDesk() {
               return (
                 <li key={p.id} className="space-y-2 border-l-2 border-primary/50 pl-2">
                   <p className="text-[13px] text-foreground/90">{planTitle(p)}</p>
-                  <p className="text-[11px] text-muted-foreground">{SOURCE_WORDS[p.source]}.</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {p.origin_kind === "recognised" ? noticedWords(p) : `${SOURCE_WORDS[p.source]}.`}
+                  </p>
+                  {p.booking_ref && (
+                    <p className="text-[11px] text-muted-foreground">Booking reference {p.booking_ref}.</p>
+                  )}
                   <ul className="space-y-1">
                     {sortOptions(p.options).map((o) => (
                       <li key={o.id}>
@@ -203,7 +347,8 @@ export function FlightDesk() {
                       </li>
                     ))}
                   </ul>
-                  <div className="flex items-center gap-2">
+                  {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
                       className="h-9 text-[12px]"
@@ -224,10 +369,15 @@ export function FlightDesk() {
                     </Button>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       className="h-9 text-[12px]"
-                      onClick={() => void drop(p)}
+                      disabled={busy}
+                      onClick={() => void askLive(p)}
                     >
+                      <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
+                      Where is it now
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-9 text-[12px]" onClick={() => void drop(p)}>
                       <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
                       Drop it
                     </Button>
@@ -242,18 +392,64 @@ export function FlightDesk() {
         )}
       </Card>
 
-      {settled.length > 0 && (
-        <Card className="vanta-card space-y-1.5 p-3">
-          <p className="vanta-machine-label text-foreground/70">Settled</p>
-          <ul className="space-y-1">
-            {settled.map((p) => (
-              <li key={p.id} className="text-[12px] text-foreground/85">{planWords(p, clock)}</li>
+      {watched.length > 0 && (
+        <Card className="vanta-card space-y-2 p-3">
+          <p className="vanta-machine-label text-foreground/70">Someone else's, watched</p>
+          <ul className="space-y-2">
+            {watched.map((p) => (
+              <li key={p.id} className="space-y-1">
+                <p className="text-[12.5px] text-foreground/85">
+                  {planTitle(p)}
+                  {p.traveller_name ? ` · ${p.traveller_name}` : ""}
+                </p>
+                {liveLine(p) && <p className="text-[11.5px] text-muted-foreground">{liveLine(p)}</p>}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[11.5px]"
+                  disabled={busy}
+                  onClick={() => void askLive(p)}
+                >
+                  Where is it now
+                </Button>
+              </li>
             ))}
           </ul>
+          <p className="text-[11px] text-muted-foreground/80">
+            These stay off your board. Echo watches them because you said to, and reads status only when you ask.
+          </p>
         </Card>
       )}
 
-      <AftermathHint text="A confirmed flight becomes departure and landing entries on your Board. Echo records; buying stays yours." />
+      {settled.length > 0 && (
+        <Card className="vanta-card space-y-1.5 p-3">
+          <p className="vanta-machine-label text-foreground/70">Settled</p>
+          <ul className="space-y-1.5">
+            {settled.map((p) => (
+              <li key={p.id} className="space-y-1">
+                <p className="text-[12px] text-foreground/85">{planWords(p, clock)}</p>
+                {p.status === "confirmed" && (
+                  <>
+                    {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-[11.5px]"
+                      disabled={busy}
+                      onClick={() => void askLive(p)}
+                    >
+                      Where is it now
+                    </Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted-foreground/80">{STATUS_LAW}</p>
+        </Card>
+      )}
+
+      <AftermathHint text="A confirmed flight becomes departure and landing entries on your Board. Echo records and reads; buying stays yours." />
     </div>
   );
 }
