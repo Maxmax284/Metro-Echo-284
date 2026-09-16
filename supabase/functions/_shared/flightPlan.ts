@@ -211,7 +211,11 @@ export function confirmedEntries(
 
 const CODE_RE = /\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\s?(\d{1,4})\b/;
 const TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)\b/g;
-const PRICE_RE = /(?:([$€£])\s?)?(\d[\d,]*(?:\.\d{1,2})?)\s?(USD|EUR|GBP|THB|SGD|AUD|CAD|JPY)?/i;
+/* A price is only a price when the line says so: a symbol or a currency code.
+   A bare number on a flight line is a time, a seat count or a stop count far
+   more often than it is money, so Echo will not read it as one. */
+const PRICE_RE =
+  /(?:([$€£])\s?(\d[\d,]*(?:\.\d{1,2})?)|(\d[\d,]*(?:\.\d{1,2})?)\s?(USD|EUR|GBP|THB|SGD|AUD|CAD|JPY)\b)/i;
 const SYMBOL_CURRENCY: Record<string, string> = { $: "USD", "€": "EUR", "£": "GBP" };
 
 /**
@@ -237,11 +241,14 @@ export function parseQuote(
     const priceMatch = line.replace(CODE_RE, "").match(PRICE_RE);
     let price: number | null = null;
     let currency: string | null = fallbackCurrency;
-    if (priceMatch && (priceMatch[1] || priceMatch[3])) {
-      const raw = Number(priceMatch[2].replace(/,/g, ""));
+    if (priceMatch) {
+      const symbol = priceMatch[1] ?? null;
+      const rawText = priceMatch[2] ?? priceMatch[3] ?? "";
+      const code = priceMatch[4] ?? null;
+      const raw = Number(rawText.replace(/,/g, ""));
       if (Number.isFinite(raw) && raw > 0) {
         price = raw;
-        currency = (priceMatch[3] ?? SYMBOL_CURRENCY[priceMatch[1] ?? ""] ?? fallbackCurrency ?? null) as string | null;
+        currency = (code ?? (symbol ? SYMBOL_CURRENCY[symbol] : null) ?? fallbackCurrency ?? null) as string | null;
         if (currency) currency = currency.toUpperCase();
       }
     }
