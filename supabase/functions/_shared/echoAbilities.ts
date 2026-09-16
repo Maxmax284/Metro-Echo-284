@@ -106,6 +106,15 @@ export function echoAbilities(f: AbilityFacts): Ability[] {
       state: "live",
     },
     {
+      id: "body_sense",
+      label: "Say how your recent days compare with your usual",
+      plain:
+        "Sleep, training, activity, caffeine, hydration and heart readings held against your own earlier days — what moved, and by how much.",
+      state: "live",
+      limit:
+        "Observation only, from recorded readings. Echo never judges a number, explains it, or gives health advice, and it says nothing until there is enough of your own history to compare against.",
+    },
+    {
       id: "prepare",
       label: "Prepare something for your yes",
       plain: "Drafts the message, event or task and holds it until you approve it.",
