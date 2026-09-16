@@ -68,6 +68,9 @@ export function FlightDesk() {
   const [currency, setCurrency] = useState("USD");
   const [quote, setQuote] = useState("");
   const [booking, setBooking] = useState("");
+  const [quickNo, setQuickNo] = useState("");
+  const [quickDate, setQuickDate] = useState(today());
+  const [detail, setDetail] = useState(false);
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [live, setLive] = useState<Record<string, string>>({});
