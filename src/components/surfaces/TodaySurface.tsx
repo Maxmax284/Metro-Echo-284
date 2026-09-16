@@ -679,7 +679,19 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                 </Section>
               ) : null}
 
+              {/* Standing door to the flight desk. A flight number is the one
+                  thing you put in standing in a line, so it does not get buried
+                  three taps deep. */}
+              <a
+                href="/flights"
+                className="flex items-center justify-between rounded-lg surface-elevated px-3 py-2.5 text-xs ring-1 ring-border/60 hover:ring-primary/40"
+              >
+                <span className="font-medium">Add a flight</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">number and a day</span>
+              </a>
+
             </Lane>
+
           ) : null}
 
           {/* Changed holds arrivals, alerts and receipts once each. */}
