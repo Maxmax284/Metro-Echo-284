@@ -79,8 +79,8 @@ const App = () => {
                                 <Route path="/" element={<Index />} />
                                 {/* A flight number is put in standing in a line.
                                     It gets its own address so it is one tap. */}
-                                <Route path="/flights" element={<Navigate to="/?surface=schedule&tab=flights" replace />} />
-                                <Route path="/flight" element={<Navigate to="/?surface=schedule&tab=flights" replace />} />
+                                <Route path="/flights" element={<FlightsPage />} />
+                                <Route path="/flight" element={<Navigate to="/flights" replace />} />
                                 <Route path="/projects" element={<ProjectsPage />} />
                                 <Route path="/projects/:id" element={<ProjectBriefPage />} />
                                 <Route path="/documents" element={<DocumentsPage />} />
