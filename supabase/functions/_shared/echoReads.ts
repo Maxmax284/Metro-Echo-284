@@ -33,6 +33,7 @@ import { customsAnswer } from "./customs.ts";
 import { housingAnswer, leaseWords, type Place } from "./housing.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyCompare, bodyRead } from "./bodyRead.ts";
+import { reachWords } from "./reachBody.ts";
 import { careRead } from "./careRead.ts";
 import { flightRead } from "./flightRead.ts";
 
@@ -59,6 +60,7 @@ export const ECHO_READ_NAMES = [
   "cost_of_living",
   "lease_checks",
   "body_compare",
+  "how_echo_reaches_you",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -80,6 +82,7 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   local_help: "the published emergency numbers for that country",
   body_read: "what your watch recorded",
   body_compare: "your recent readings against your own earlier days",
+  how_echo_reaches_you: "the rules for which surface Echo speaks through",
   money_read: "what your bank recorded",
   care_nearby: "the emergency number for that country and the care you kept",
   flights_prepared: "the flights you prepared",
@@ -453,6 +456,15 @@ export const ECHO_READ_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "how_echo_reaches_you",
+      description:
+        "Read-only: which surfaces Echo speaks through — phone, desk, watch, Telegram — what each one is for, where its edge is, and which ones are not built yet. Use for 'where will you tell me', 'can I approve this on my watch', 'do you work on earbuds'. States limits honestly and never claims an unbuilt surface.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -575,6 +587,9 @@ export async function runEchoRead(
     }
     case "lease_checks": {
       return { name, text: leaseWords(), source };
+    }
+    case "how_echo_reaches_you": {
+      return { name, text: reachWords(), source };
     }
     case "body_compare": {
       const text = await bodyCompare(sb, scope, {
