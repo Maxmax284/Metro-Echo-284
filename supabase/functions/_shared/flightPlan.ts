@@ -28,8 +28,8 @@ export type FlightOption = {
   id: string;
   airline: string | null;
   flight_no: string | null;
-  /** ISO instant. */
-  depart_at: string;
+  /** ISO instant, or null when nothing on record carried a departure time. */
+  depart_at: string | null;
   /** ISO instant, or null when the quote did not carry one. */
   arrive_at: string | null;
   price: number | null;
