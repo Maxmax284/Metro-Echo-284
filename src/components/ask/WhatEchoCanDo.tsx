@@ -72,6 +72,33 @@ export function WhatEchoCanDo({ className }: { className?: string }) {
                 </li>
               ))}
             </ul>
+            {domains.length > 0 && (
+              <>
+                <p className="vanta-machine-label mb-2 mt-4 text-foreground/70">Everyday life</p>
+                <p className="mb-2 text-foreground/90">{lifeLine(domains)}</p>
+                <ul className="space-y-2">
+                  {domains.map((d) => (
+                    <li key={d.id} className="border-l-2 border-border/70 pl-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-foreground/90">{d.label}</p>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-[2px] border px-1 text-[9px] uppercase tracking-[0.14em]",
+                            STATE_CLASS[d.state],
+                          )}
+                        >
+                          {STATE_WORD[d.state]}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground">{d.plain}</p>
+                      {d.because && <p className="text-muted-foreground/80">{d.because}</p>}
+                      {d.needs && <p className="text-[11px] text-muted-foreground/80">Needs: {d.needs}</p>}
+                      {d.limit && <p className="text-[11px] text-muted-foreground/80">{d.limit}</p>}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <p className="mt-2 text-[11px] text-muted-foreground/80">Nothing on this list acts on its own.</p>
           </>
         )}
