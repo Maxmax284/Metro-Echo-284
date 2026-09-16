@@ -53,8 +53,19 @@ function noticedWords(plan: FlightPlan): string {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
-  const { plans, loading, error, refresh, prepare, confirm, drop, answerOwnership, checkStatus, noticeText } =
-    useFlightPlans();
+  const {
+    plans,
+    loading,
+    error,
+    refresh,
+    prepare,
+    confirm,
+    drop,
+    answerOwnership,
+    checkStatus,
+    noticeText,
+    addByNumber,
+  } = useFlightPlans();
   const clock = (iso: string) => {
     const d = new Date(iso);
     return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "—";
