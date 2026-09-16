@@ -48,7 +48,6 @@ export const ECHO_READ_NAMES = [
   "convert_money",
   "local_help",
   "body_read",
-  "body_compare",
   "money_read",
   "care_nearby",
   "flights_prepared",
@@ -59,6 +58,7 @@ export const ECHO_READ_NAMES = [
   "local_customs",
   "cost_of_living",
   "lease_checks",
+  "body_compare",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
