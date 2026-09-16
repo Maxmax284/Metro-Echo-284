@@ -39,7 +39,14 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
   // The calendar half of the day. Read-only, and the same rows Echo reasons on.
   const { events: agendaEvents, loading: agendaLoading, setProject, refresh: refreshAgenda } = useAgenda({ days: 7 });
   useCalendarOpenRefresh(() => { void refreshAgenda(); });
-  const [tab, setTab] = useState<TabKey>("today");
+  /* A desk can be linked to directly — ?tab=flights lands on the flight desk,
+     so /flights is one tap from anywhere. */
+  const [tab, setTab] = useState<TabKey>(() => {
+    if (typeof window === "undefined") return "today";
+    const wanted = new URLSearchParams(window.location.search).get("tab");
+    const known: TabKey[] = ["today", "upcoming", "week", "board", "body", "money", "help", "flights", "month", "calendar"];
+    return known.includes(wanted as TabKey) ? (wanted as TabKey) : "today";
+  });
 
   const [commits, setCommits] = useState<Commitment[]>([]);
   const [reviewCaptures, setReviewCaptures] = useState<number>(0);
