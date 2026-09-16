@@ -23,6 +23,9 @@ import {
   type ScopeArgs,
 } from "./workReads.ts";
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
+import { fetchRates, moneyAnswer, parseMoneyAsk, toCode } from "./currency.ts";
+import { helpAnswer } from "./localHelp.ts";
+import { bodyRead } from "./bodyRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
