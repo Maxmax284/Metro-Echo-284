@@ -12,6 +12,8 @@ import { buildWorkingContext, workingContextBlock } from "../_shared/workingCont
 import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
 import { abilitiesBlock, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
 import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
+import { lifeBlock, lifeDomains, matchLifeQuestion } from "../_shared/streetSmart.ts";
+import { readLifeFacts } from "../_shared/lifeFacts.ts";
 import {
   ECHO_READ_TOOLS,
   isEchoRead,
@@ -874,7 +876,18 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, fileContextBlock, researchBlock]
+    /* Everyday life is answered off the same rule: connected reads say what they
+       can read, unconnected ones say what they are waiting on. */
+    let lifeFacts = "";
+    if (matchLifeQuestion(message)) {
+      try {
+        lifeFacts = lifeBlock(lifeDomains(await readLifeFacts(admin as never, user.id)));
+      } catch (e) {
+        console.error("life facts failed", e);
+      }
+    }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, lifeFacts, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
