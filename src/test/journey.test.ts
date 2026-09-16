@@ -224,17 +224,20 @@ describe("the sit between two legs", () => {
     expect(lay.words).toMatch(/cannot be worked out/i);
   });
 
-  it("only offers leaving the airport when there is real room", () => {
-    expect(layoverBetween(a, b).canLeaveAirport).toBe(false);
-    const late = legOf(
+  it("only offers leaving the airport when the math leaves room", () => {
+    /* Six hours minus boarding, a terminal change and immigration still leaves room. */
+    expect(layoverBetween(a, b).canLeaveAirport).toBe(true);
+    const tight = legOf(
       plan({
         id: "c",
         origin: "NRT",
         destination: "BKK",
-        live_status: live({ from: "NRT", to: "BKK", depScheduled: "2026-09-02T20:00:00+00:00", depTerminal: "1" }),
+        live_status: live({ from: "NRT", to: "BKK", depScheduled: "2026-09-02T05:00:00+00:00", depTerminal: "2" }),
       }),
     );
-    expect(layoverBetween(a, late).canLeaveAirport).toBe(true);
+    const lay = layoverBetween(a, tight);
+    expect(lay.gapMin).toBe(180);
+    expect(lay.canLeaveAirport).toBe(false);
   });
 });
 
@@ -414,7 +417,7 @@ describe("country notes", () => {
   it("says it has nothing rather than inventing advice", () => {
     expect(haveNotesFor("MG")).toBe(false);
     expect(countryNotes("MG")).toBeNull();
-    expect(noNotesWords("Madagascar")).toMatch(/rather than invent/i);
+    expect(noNotesWords("Madagascar")).toMatch(/than invent travel advice/i);
   });
 });
 
