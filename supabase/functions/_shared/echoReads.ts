@@ -23,7 +23,7 @@ import {
   type ScopeArgs,
 } from "./workReads.ts";
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
-import { fetchRates, moneyAnswer, parseMoneyAsk, toCode } from "./currency.ts";
+import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
 import { bodyRead } from "./bodyRead.ts";
 
