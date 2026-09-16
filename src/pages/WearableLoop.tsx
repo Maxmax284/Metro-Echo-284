@@ -121,6 +121,21 @@ export default function WearableLoopPage() {
         </p>
       </section>
 
+      <section className="vanta-card mb-4 p-4">
+        <h2 className="text-[14px] font-semibold tracking-tight">Where Echo speaks</h2>
+        <ul className="mt-2 space-y-1.5">
+          {(Object.keys(BODY_ROLE) as Body[]).map((b) => (
+            <li key={b} className="text-[12px] leading-snug text-foreground/90">
+              <span className="font-semibold">{BODY_LABEL[b]}</span> — {BODY_ROLE[b].role}.{" "}
+              <span className="text-muted-foreground">
+                {BODY_ROLE[b].built ? `Edge: ${BODY_ROLE[b].edge}.` : "Not built yet."}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11.5px] leading-snug text-muted-foreground">{REACH_LAW}</p>
+      </section>
+
       <section className="vanta-card mb-4 flex flex-wrap items-center gap-2 p-3">
         <MachineLabel className="text-foreground/70">Where it shows up</MachineLabel>
         <Link
