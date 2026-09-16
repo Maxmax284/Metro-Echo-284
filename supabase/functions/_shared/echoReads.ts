@@ -242,6 +242,41 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "convert_measure",
+      description:
+        "Read-only: convert a measurement (distance, weight, volume, area, temperature, speed) using kept exact factors, and say what the number means to a person where a kept anchor supports it. Use for 'how many square feet is 42 m2', '180 lbs in kg', 'is 34C hot'. Also handles shoe sizing across US, UK, EU and centimetres.",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "The measurement exactly as the person wrote it, e.g. '42 m2 to sqft'." },
+          shoe_cut: { type: "string", description: "'men' or 'women', only for a shoe sizing question." },
+          shoe_system: { type: "string", description: "'us', 'uk', 'eu' or 'cm', only for a shoe sizing question." },
+          shoe_size: { type: "number", description: "The size given, only for a shoe sizing question." },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "how_things_work",
+      description:
+        "Read-only: the kept practical notes for a country — plugs and voltage, driving side, date and clock format, dialling code, whether tax is already in the price, tipping, how people pay, fuel units, SIM and eSIM, and a few phrases. Use for 'what plug do I need in Japan', 'do I tip in Thailand', 'is tax included there'. A country with no kept notes returns nothing rather than a guess.",
+      parameters: {
+        type: "object",
+        properties: {
+          place: { type: "string", description: "Country name, two-letter code, or a major city." },
+          question: { type: "string", description: "The person's question, so only the topics asked about come back." },
+        },
+        required: ["place"],
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
