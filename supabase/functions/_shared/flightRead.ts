@@ -7,6 +7,9 @@
 //     implies a live fare.
 type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
+import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
+import { countryNotes } from "./countryNotes.ts";
+import { airport } from "./airports.ts";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const u = q.eq("user_id", userId);
@@ -38,6 +41,30 @@ export async function flightRead(
   const watched = rows.filter((r) => r.ownership === "theirs" && r.status !== "dropped");
   const done = rows.filter((r) => r.status === "confirmed" && r.ownership !== "theirs");
   const lines: string[] = [];
+
+  /* If the legs chain into a trip, that is the answer, and it goes first. Where
+     you are is derived from what the airline filed, and the line says so. */
+  const journey = journeysFrom(rows)[0] ?? null;
+  if (journey) {
+    const where = whereOnJourney(journey);
+    const numbers = bigNumbers(journey);
+    lines.push(`Your journey: ${journey.title}.`);
+    lines.push(where.words);
+    if (numbers.timeLeft) lines.push(`${numbers.timeLeft} ${numbers.timeLeftLabel}. ${numbers.gate ? `Next gate ${numbers.gate}.` : "No gate filed yet."}`);
+    if (where.layover) {
+      lines.push(where.layover.words);
+      if (where.layover.terminalChange === "yes") {
+        lines.push(`That is a terminal change, ${where.layover.arriveTerminal} to ${where.layover.departTerminal}.`);
+      }
+      const notes = countryNotes(airport(where.layover.iata)?.cc ?? null);
+      if (where.layover.canLeaveAirport && notes) {
+        lines.push(`There is room to leave the airport. Kept notes for ${notes.country}: ${notes.transport[0]?.line ?? ""} (checked ${notes.transport[0]?.checked_on ?? "an unrecorded date"}).`);
+      }
+    }
+    lines.push(TERMINAL_CAVEAT);
+    lines.push("");
+  }
+
   if (asked.length) {
     lines.push(
       `${asked.length} ${asked.length === 1 ? "flight was" : "flights were"} noticed and Echo does not know whose ${asked.length === 1 ? "it is" : "they are"}:`,

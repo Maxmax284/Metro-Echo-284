@@ -19,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
+import { useJourney } from "@/hooks/useJourney";
+import { JourneySpine } from "./JourneySpine";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatInTimeZone } from "date-fns-tz";
 import { vantaToast } from "@/lib/vantaVoice";
@@ -88,6 +90,9 @@ export function FlightDesk() {
   const [live, setLive] = useState<Record<string, string>>({});
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
+
+  /* The journey is derived from the same plans — no second source of truth. */
+  const journey = useJourney(plans, refresh);
 
   const asked = plans.filter((p) => p.ownership === "unknown" && p.status === "prepared");
   const open = plans.filter((p) => p.status === "prepared" && p.ownership !== "unknown" && p.ownership !== "theirs");
@@ -192,6 +197,20 @@ export function FlightDesk() {
   return (
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
+
+      {/* The trip you are actually on comes before anything you might add. */}
+      {journey.current ? (
+        <JourneySpine
+          journey={journey.current}
+          where={journey.where}
+          news={journey.news}
+          savedAt={journey.savedAt}
+          onOverride={(planId, state) => journey.setLegState(planId, state)}
+          onClearOverride={(planId) => journey.clearLegState(planId)}
+          onDismissNews={journey.dismissNews}
+        />
+      ) : null}
+
 
       {/* The manual way in, first thing on the desk and as small as a flight gets. */}
       <Card className="vanta-card space-y-2 p-3">
