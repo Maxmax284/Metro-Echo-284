@@ -21,6 +21,16 @@ import {
   type FlightPlan,
   type FlightSource,
 } from "@/lib/flightPlan";
+import {
+  bareOption,
+  bareWords,
+  fillFromLive,
+  findSameFlight,
+  liveAddedSomething,
+  quickVerdict,
+  routeFromLive,
+} from "@/lib/flightQuick";
+import type { LiveFlight } from "@/lib/flightStatus";
 
 export type PrepareInput = {
   origin: string;
