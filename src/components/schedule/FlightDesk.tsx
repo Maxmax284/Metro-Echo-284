@@ -316,7 +316,7 @@ export function FlightDesk() {
         </p>
       </Card>
 
-      <Card className="vanta-card space-y-3 p-3">
+      <Card className={cn("vanta-card space-y-3 p-3", !detail && "hidden")}>
         <div className="flex items-center gap-2">
           <Plane className="h-4 w-4 text-primary" aria-hidden />
           <p className="text-[13px] font-medium">Prepare a flight</p>
