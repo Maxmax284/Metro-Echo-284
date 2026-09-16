@@ -581,6 +581,7 @@ export function FlightDesk() {
             ))}
           </ul>
           <p className="text-[11px] text-muted-foreground/80">{STATUS_LAW}</p>
+          <p className="text-[11px] text-muted-foreground/80">{TRAVEL_SENSE_LAW}</p>
         </Card>
       )}
 
