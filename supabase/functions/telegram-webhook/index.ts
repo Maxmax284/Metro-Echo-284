@@ -134,6 +134,8 @@ import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
 import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
+import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
+import { dropFlightByNumber, fileFlightByNumber } from "../_shared/flightFile.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
@@ -1135,7 +1137,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      Filing is capture — it writes a card, never a booking, and it can be
      dropped from here or from the platform. */
   if (!intents.length && !reply) {
-    const today = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: defaults.timezone });
     const ask = readFlightAsk(text, today);
     const pendingFlight = prefs.flight_day_question as { flight_no?: string; asked_at?: string } | undefined;
     const pendingFresh =
