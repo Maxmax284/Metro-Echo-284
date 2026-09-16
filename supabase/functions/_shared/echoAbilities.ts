@@ -113,6 +113,20 @@ export function echoAbilities(f: AbilityFacts): Ability[] {
       limit: "Nothing consequential runs without your approval.",
     },
     {
+      id: "world",
+      label: "Make a foreign number mean something",
+      plain: "Converts a measurement and, where there is a kept anchor, says whether it is small, normal or brutal.",
+      state: "live",
+      limit: "Exact factors only. No anchor written down means no opinion offered.",
+    },
+    {
+      id: "facts",
+      label: "Tell you how things work where you are",
+      plain: "Plugs, voltage, driving side, date and clock format, dialling code, whether tax is in the price, tipping, how people pay, fuel, SIM.",
+      state: "live",
+      limit: "Kept notes with the day they were checked. A country with no notes gets no guess.",
+    },
+    {
       id: "portal",
       label: "Sign in somewhere and book, pay or submit",
       plain: "Would need a browser that can hold a session on your behalf.",
