@@ -127,6 +127,28 @@ export function echoAbilities(f: AbilityFacts): Ability[] {
       limit: "Kept notes with the day they were checked. A country with no notes gets no guess.",
     },
     {
+      id: "trouble",
+      label: "Line up the move when something goes wrong",
+      plain:
+        "Lost wallet or passport, card declined, ATM ate it, dead phone, missed connection, hotel or taxi trouble, locked out, missing package, outage, flat tyre, clinic or pharmacy, paperwork, government office, delayed bag, questionable fee — the first move, then the order.",
+      state: "live",
+      limit: "Echo prepares. It never phones anyone, cancels a card, files a claim, or calls for help on your behalf.",
+    },
+    {
+      id: "friction",
+      label: "Weigh the real cost of an option",
+      plain: "Counts money, minutes, transfers and walking, then shows the tradeoff instead of hiding it.",
+      state: "live",
+      limit: "Only on numbers you give. The recommendation is labelled a judgement, never a fact.",
+    },
+    {
+      id: "customs",
+      label: "Say what is usual where you are",
+      plain: "Bargaining, dress, religious spaces, queues, manners, timekeeping, tourist pricing, service, how people expect contact.",
+      state: "live",
+      limit: "Kept notes with the day they were checked. Nothing written means nothing said — no stereotypes.",
+    },
+    {
       id: "portal",
       label: "Sign in somewhere and book, pay or submit",
       plain: "Would need a browser that can hold a session on your behalf.",
