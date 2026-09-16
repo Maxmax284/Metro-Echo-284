@@ -185,6 +185,31 @@ export function FlightDesk() {
     }
   };
 
+  /**
+   * The arithmetic around a flight: when to leave, and what the clock does on
+   * arrival. Every cushion is stated, nothing is invented, and a leg with no
+   * filed time gets no leave-by line at all.
+   */
+  const senseLines = (plan: FlightPlan): string[] => {
+    const snap = plan.live_status as LiveFlight | null;
+    const code = (v?: string | null) => {
+      const t = (v ?? "").trim().toUpperCase();
+      return /^[A-Z]{3}$/.test(t) ? t : null;
+    };
+    const from = code(snap?.departure.iata) ?? code(plan.origin);
+    const to = code(snap?.arrival.iata) ?? code(plan.destination);
+    const departAt =
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null;
+
+    const out: string[] = [];
+    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, clock).words);
+    const shift = clockShift(from, to);
+    if (shift) out.push(shift.words);
+    const note = clockShiftNote(shift);
+    if (note) out.push(note);
+    return out;
+  };
+
   const liveLine = (plan: FlightPlan): string | null => {
     if (live[plan.id]) return live[plan.id];
     const snapshot = plan.live_status as LiveFlight | null;
