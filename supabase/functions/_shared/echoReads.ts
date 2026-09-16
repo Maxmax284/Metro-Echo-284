@@ -25,6 +25,7 @@ import {
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
 import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
+import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
@@ -39,6 +40,7 @@ export const ECHO_READ_NAMES = [
   "convert_money",
   "local_help",
   "body_read",
+  "money_read",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -59,6 +61,7 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   convert_money: "a published exchange rate, read just now",
   local_help: "the published emergency numbers for that country",
   body_read: "what your watch recorded",
+  money_read: "what your bank recorded",
 };
 
 /**
@@ -198,6 +201,19 @@ export const ECHO_READ_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "money_read",
+      description:
+        "Read-only: balances and settled entries this person's own bank recorded, plus what the days spent. Use for 'what's my balance', 'can I afford', 'what did I spend'. Never moves money and never advises.",
+      parameters: {
+        type: "object",
+        properties: { days: { type: "number", description: "How far back to look. Defaults to 30." } },
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -273,6 +289,10 @@ export async function runEchoRead(
     }
     case "local_help": {
       return { name, text: helpAnswer(String(a.place ?? "")), source };
+    }
+    case "money_read": {
+      const text = await bankRead(sb, scope, { days: Number(a.days) || 30 });
+      return { name, text, source };
     }
     case "body_read": {
       const text = await bodyRead(sb, scope, { days: Number(a.days) || 7 });
