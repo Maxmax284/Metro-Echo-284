@@ -139,8 +139,20 @@ Deno.serve(async (req) => {
       byUser.set(uid, [...(byUser.get(uid) ?? []), p]);
     }
 
+    /* The day's ledger of paid readings — the ceiling nothing gets past. */
+    const dayStart = new Date(now).toISOString().slice(0, 10);
+    const { count: spentToday } = await sb
+      .from("api_usage_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("provider", "aviationstack")
+      .eq("feature", "journey-watch")
+      .eq("cache_hit", false)
+      .gte("created_at", `${dayStart}T00:00:00Z`);
+    let spent = spentToday ?? 0;
+
     let readings = 0;
     let heads_up = 0;
+    let skipped_budget = 0;
 
     for (const [userId, own] of byUser) {
       const before = journeysFrom(own)[0] ?? null;
@@ -150,10 +162,28 @@ Deno.serve(async (req) => {
       for (const p of own) {
         const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
         if (now - stamp < FRESH_MS) continue;
+        if (!worthReading(p, now)) continue;
         const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
         if (!flightNo) continue;
+        if (spent >= DAILY_BUDGET) {
+          /* Budget spent. The journey still reads from the last stamped reading. */
+          skipped_budget += 1;
+          continue;
+        }
         const live = await askProvider(flightNo, p.depart_on);
         readings += 1;
+        spent += 1;
+        await sb.from("api_usage_logs").insert({
+          owner_id: userId,
+          user_id: userId,
+          provider: "aviationstack",
+          feature: "journey-watch",
+          request_type: "flight_status",
+          status: live ? "ok" : "empty",
+          cache_hit: false,
+          related_entity_type: "flight_plan",
+          related_entity_id: p.id,
+        } as never);
         if (!live) continue;
         await sb
           .from("flight_plans")
