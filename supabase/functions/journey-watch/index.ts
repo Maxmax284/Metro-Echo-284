@@ -19,6 +19,58 @@ import {
   packDiff,
   whereOnJourney,
 } from "../_shared/journey.ts";
+import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
+import { isInQuietHours } from "../_shared/drift.ts";
+import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+
+/**
+ * Reach the person on Telegram with the same note Today just got.
+ *
+ * Double-gated: the awareness opt-in has to be on AND a chat has to be linked.
+ * Quiet hours hold everything except a leg that is off or diverted. Returns
+ * whether a message actually went out.
+ */
+async function reachMessaging(
+  sb: ReturnType<typeof createClient>,
+  userId: string,
+  organizationId: string | null,
+  notice: JourneyNotice,
+): Promise<boolean> {
+  if (!Deno.env.get("TELEGRAM_API_KEY")) return false;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("timezone, preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const prefs = ((profile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}) as Record<
+    string,
+    unknown
+  >;
+  if (prefs.telegram_awareness_enabled !== true) return false;
+
+  const tz = ((profile as { timezone?: string } | null)?.timezone as string) || "UTC";
+  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) return false;
+
+  const chatId = await chatIdForUser(sb, userId);
+  if (!chatId) return false;
+
+  const res = await sendTelegram({
+    admin: sb,
+    userId,
+    chatId,
+    text: `${notice.title}. ${notice.body}`,
+    organizationId,
+    kind: "notice",
+    entityType: "nudge",
+    entityId: null,
+    auditEvent: "journey.reached_messaging",
+    auditFailedEvent: "journey.reach_messaging_failed",
+    auditPayload: { urgency: notice.urgency, title: notice.title, source: "journey_watch" },
+  });
+  if (!res.ok) console.error("journey-watch telegram reach failed", res.reason);
+  return res.ok;
+}
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
 /** Rows are only pulled for days around now; nothing further out costs anything. */
