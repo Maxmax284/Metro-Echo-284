@@ -263,6 +263,91 @@ export function useFlightPlans() {
     [load],
   );
 
+  /**
+   * A flight number and a day — the least a flight can be put in as. It files
+   * one card, asks the provider once for the route and the times, and leaves
+   * both blank if the provider carries nothing. The same flight on the same day
+   * hands back the card that already exists rather than a second one.
+   */
+  const addByNumber = useCallback(
+    async (
+      rawNo: string,
+      departOn: string,
+    ): Promise<{ ok: boolean; reason?: string; already?: FlightPlan; words?: string }> => {
+      if (!user) return { ok: false, reason: "Not signed in." };
+      const verdict = quickVerdict(rawNo, departOn);
+      if (!verdict.ok) return { ok: false, reason: verdict.reason };
+      const flight_no = verdict.flight_no!;
+
+      const already = findSameFlight(plans, flight_no, departOn);
+      if (already) return { ok: false, already, reason: `${flight_no} on ${departOn} is already on your record.` };
+
+      const option = bareOption(flight_no, departOn);
+      const { data, error: err } = await supabase
+        .from("flight_plans")
+        .insert(
+          withScope({
+            user_id: user.id,
+            origin: "",
+            destination: "",
+            depart_on: departOn,
+            passengers: 1,
+            currency: null,
+            source: "entered",
+            options: [option] as never,
+            status: "prepared",
+            origin_kind: "desk",
+            ownership: "mine",
+          }) as never,
+        )
+        .select("*")
+        .single();
+      if (err) return { ok: false, reason: err.message };
+      const plan = rowToPlan(data);
+
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.added_by_number",
+          payload: { flight_no, depart_on: departOn, bought: false },
+        }) as never,
+      );
+
+      /* One reading, right away, so the card is not bare when it does not have
+         to be. A provider that carries nothing leaves it bare, and says so. */
+      let words = bareWords(flight_no, departOn);
+      try {
+        const { data: read } = await supabase.functions.invoke("flight-status", {
+          body: { plan_id: plan.id, flight_no, flight_date: departOn },
+        });
+        const live = (read as { live?: LiveFlight | null } | null)?.live ?? null;
+        if (liveAddedSomething(live)) {
+          const route = routeFromLive(live);
+          const filled = fillFromLive(option, live);
+          await supabase
+            .from("flight_plans")
+            .update({
+              origin: route.origin || plan.origin,
+              destination: route.destination || plan.destination,
+              options: [filled] as never,
+            })
+            .eq("id", plan.id);
+          words = (read as { words?: string })?.words ?? words;
+        } else {
+          words = `${bareWords(flight_no, departOn)} The flight-data provider carries nothing for it yet — that is what it said, not that the flight is wrong.`;
+        }
+      } catch {
+        words = `${bareWords(flight_no, departOn)} Live times could not be read just now.`;
+      }
+
+      await load();
+      return { ok: true, words };
+    },
+    [user, plans, withScope, load],
+  );
+
   /** Hand Echo a booking you have in front of you. It reads; it files nothing on the board. */
   const noticeText = useCallback(
     async (input: { text: string; sender_name?: string; sender_email?: string }) => {
