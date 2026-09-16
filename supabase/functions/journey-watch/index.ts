@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
 
     let readings = 0;
     let heads_up = 0;
+    let pinged = 0;
     let skipped_budget = 0;
 
     for (const [userId, own] of byUser) {
