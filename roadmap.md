@@ -618,3 +618,46 @@ or Safety room.
 ### Still pinned
 - WhatsApp — needs a WhatsApp Business number and signing secret.
 - Plaid stays on sandbox credentials until development keys exist.
+
+## Pass 17 — the journey, and the sit in the middle of it
+
+- **A journey is the object, not a flight.** `_shared/journey.ts` chains legs that
+  meet at the same airport within a day into one trip (IAD → NRT → BKK), renders
+  as one card that moves down the shelf, and still writes departure and landing
+  onto the Board. No new room.
+- **Position is derived and labelled.** `legOf` prefers the airline's actual time
+  over estimated over scheduled and says which it used. `legState` reads
+  cancelled, diverted, filed landing, filed takeoff, then the clock — and a filed
+  landing time that simply passed reports as "in the air, the airline has filed
+  nothing since", never as landed.
+- **Your word beats the feed.** `OVERRIDE_CHOICES` on every leg: I did not make
+  this flight / still at the airport / I am on it / I am on the ground. An
+  override is stamped on the leg with "you" as the source, leaves an audit
+  receipt, and is reversible. A leg you say did not happen stops everything after
+  it — nothing later is assumed.
+- **The layover is the feature.** `layoverBetween` shows the subtraction: gap on
+  the clock, minus boarding (40m), minus a terminal change (30m), minus
+  immigration (45m), and what is actually yours. Terminals that were not filed
+  stay unknown rather than assumed equal. Leaving the airport is only offered
+  above four usable hours, with the math on show.
+- **What's around you.** `airport-places` (auth-only, one category per call, eight
+  results, shared week-long cache in `airport_places_cache`) reads water, food,
+  coffee, pharmacy, SIM, somewhere to lie down, shower and cash through the
+  Google Maps gateway. Hours only where published; "open now" only when the
+  provider said so, with the reading time on it. Empty is an answer.
+- **Ground notes are kept by hand.** `_shared/countryNotes.ts` — Thailand, Japan,
+  US, Singapore, UAE, Qatar, South Korea, UK: transport, money, and the
+  shakedowns, every line dated. A country with nothing written returns nothing
+  rather than plausible travel advice.
+- **No bars is the normal case.** The whole journey is written to the phone with a
+  saved-at stamp; a refresh reports the diff (`packDiff`) and no news is a valid
+  answer. Two big numbers on top for 3am: time left here, next gate.
+- **It speaks up.** `journey-watch` refreshes only legs within eight hours of a
+  filed time (20-minute reading freshness), then files one `journey_moved` nudge
+  carrying the arrival message or the diff, always closing on the terminal
+  caveat. Deployed and callable; **not on a cron** — the AviationStack key's quota
+  decides that, so say the word and it gets scheduled.
+- Ask and Telegram answer the journey first via `flightRead`: where you are, whose
+  word says so, time left, next gate, the layover math.
+- 27 new checks in `src/test/journey.test.ts`. 1,422 tests green, typecheck clean,
+  Flights QA'd at 384px.

@@ -138,8 +138,9 @@ Deno.serve(async (req) => {
         title: landed ? "You are on the ground" : "Your journey moved",
         body,
         status: "pending",
-        subject_kind: "flight_plan",
-        subject_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
+        related_entity_type: "flight_plan",
+        related_entity_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
+        dedupe_key: `journey_moved:${after.id}:${body.slice(0, 60)}`,
       } as never);
       heads_up += 1;
     }
