@@ -371,12 +371,15 @@ const WORDS: Record<TroubleId, string[]> = {
 export function matchTrouble(text: string | null | undefined): Playbook | null {
   const t = (text ?? "").toLowerCase();
   if (!t.trim()) return null;
-  let best: { id: TroubleId; score: number } | null = null;
+  // The thing they led with wins: earliest phrase in the sentence, and on a tie
+  // the longer, more specific phrase.
+  let best: { id: TroubleId; at: number; len: number } | null = null;
   for (const [id, words] of Object.entries(WORDS) as Array<[TroubleId, string[]]>) {
     for (const w of words) {
-      if (!t.includes(w)) continue;
-      const score = w.length;
-      if (!best || score > best.score) best = { id, score };
+      const at = t.indexOf(w);
+      if (at < 0) continue;
+      const better = !best || at < best.at || (at === best.at && w.length > best.len);
+      if (better) best = { id, at, len: w.length };
     }
   }
   if (!best) return null;
