@@ -91,6 +91,9 @@ export function FlightDesk() {
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
+  /* The journey is derived from the same plans — no second source of truth. */
+  const journey = useJourney(plans, refresh);
+
   const asked = plans.filter((p) => p.ownership === "unknown" && p.status === "prepared");
   const open = plans.filter((p) => p.status === "prepared" && p.ownership !== "unknown" && p.ownership !== "theirs");
   const watched = plans.filter((p) => p.ownership === "theirs" && p.status !== "dropped");
