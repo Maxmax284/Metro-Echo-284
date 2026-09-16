@@ -32,7 +32,7 @@ import { frictionAnswer, type Option } from "./friction.ts";
 import { customsAnswer } from "./customs.ts";
 import { housingAnswer, leaseWords, type Place } from "./housing.ts";
 import { bankRead } from "./bankRead.ts";
-import { bodyRead } from "./bodyRead.ts";
+import { bodyCompare, bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
 import { flightRead } from "./flightRead.ts";
 
@@ -58,6 +58,7 @@ export const ECHO_READ_NAMES = [
   "local_customs",
   "cost_of_living",
   "lease_checks",
+  "body_compare",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -78,6 +79,7 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   convert_money: "a published exchange rate, read just now",
   local_help: "the published emergency numbers for that country",
   body_read: "what your watch recorded",
+  body_compare: "your recent readings against your own earlier days",
   money_read: "what your bank recorded",
   care_nearby: "the emergency number for that country and the care you kept",
   flights_prepared: "the flights you prepared",
@@ -435,6 +437,22 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "body_compare",
+      description:
+        "Read-only: how this person's recent recorded readings — sleep, training, activity, caffeine, hydration, heart rate and the rest — compare with their own earlier days. Use for 'how am I doing lately', 'am I sleeping less than usual', 'what changed with my training'. Observation only: it names what moved and never judges it, explains it, or advises.",
+      parameters: {
+        type: "object",
+        properties: {
+          recent_days: { type: "number", description: "The recent stretch to read. Defaults to 3." },
+          usual_days: { type: "number", description: "How many earlier days count as usual. Defaults to 14." },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -557,6 +575,13 @@ export async function runEchoRead(
     }
     case "lease_checks": {
       return { name, text: leaseWords(), source };
+    }
+    case "body_compare": {
+      const text = await bodyCompare(sb, scope, {
+        recentDays: Number(a.recent_days) || 3,
+        usualDays: Number(a.usual_days) || 14,
+      });
+      return { name, text, source };
     }
   }
 }

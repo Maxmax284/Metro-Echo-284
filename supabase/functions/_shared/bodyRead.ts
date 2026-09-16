@@ -7,6 +7,29 @@
 //   - Read-only, scope-bound like every other read.
 type SupabaseClient = { from: (table: string) => any };
 import { dosesOn, nextDose, type Medication } from "./bodyLog.ts";
+import { bodySenseAnswer, type SenseReading } from "./bodySense.ts";
+
+/**
+ * The same readings, compared with this person's own earlier days. Observation
+ * only — the shared pure module owns every word of the comparison.
+ */
+export async function bodyCompare(
+  sb: SupabaseClient,
+  { userId, orgId }: { userId: string; orgId: string | null },
+  { recentDays = 3, usualDays = 14 }: { recentDays?: number; usualDays?: number } = {},
+): Promise<string> {
+  const span = recentDays + usualDays;
+  const since = new Date(Date.now() - span * 86_400_000).toISOString();
+  const { data } = await scoped(
+    sb.from("wearable_readings").select("kind, value, measured_at"),
+    userId,
+    orgId,
+  )
+    .gte("measured_at", since)
+    .order("measured_at", { ascending: false })
+    .limit(2000);
+  return bodySenseAnswer((data ?? []) as SenseReading[], { recentDays, usualDays });
+}
 
 export type Reading = { kind: string; value: number; unit: string | null; measured_at: string };
 
