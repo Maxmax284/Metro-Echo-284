@@ -1,5 +1,5 @@
-// trouble — the street-smart lane. Something went wrong; what is the least
-// stupid next move?
+// trouble — the street-smart lane. The day just went sideways; what is the
+// least stupid next move?
 //
 // Doctrine:
 //   - Kept by hand, stamped with the day it was checked. No model wrote a step.
