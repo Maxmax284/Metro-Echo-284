@@ -39,6 +39,7 @@ import {
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
 import { STATUS_LAW, readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
+import { TRAVEL_SENSE_LAW, clockShift, clockShiftNote, leaveForFlight } from "@/lib/travelSense";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
