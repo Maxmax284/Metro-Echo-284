@@ -7,6 +7,9 @@
 //     implies a live fare.
 type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
+import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
+import { countryNotes } from "./countryNotes.ts";
+import { airport } from "./airports.ts";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const u = q.eq("user_id", userId);
