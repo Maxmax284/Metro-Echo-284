@@ -117,32 +117,37 @@ export function parseMeasureAsk(text: string | null | undefined): MeasureAsk | n
   const t = (text ?? "").trim().toLowerCase();
   if (!t) return null;
 
-  // "<n> <unit> (to|in|into|as) <unit>"
-  const both = new RegExp(`${NUM}\\s*${UNIT_WORD}\\s+(?:to|in|into|as|=)\\s+([a-z°²^/\"'\\s]{1,22})`).exec(t);
+  // "<n> <unit> (to|in|into|as) <unit>" — an explicit target. If the pair does
+  // not line up, that is the answer: nothing. Echo does not fall back to a
+  // conversion the person never asked for.
+  const both = new RegExp(`${NUM}\\s*${UNIT_WORD}\\s+(?:to|into|in|as|=)\\s+${UNIT_TAIL}`).exec(t);
   if (both) {
     const from = unit(both[2]);
     const to = unit(both[3]);
     const amount = readNumber(both[1]);
     if (from && to && amount != null && from.family === to.family) return { amount, from, to };
+    if (from && to) return null;
   }
 
   // "how many <unit> is <n> <unit>"
-  const flipped = new RegExp(`how\\s+many\\s+([a-z°²^/\"'\\s]{1,22}?)\\s+(?:is|are|in)\\s+${NUM}\\s*${UNIT_WORD}`).exec(t);
+  const flipped = new RegExp(`how\\s+many\\s+${UNIT_TAIL}\\s+(?:is|are|in)\\s+${NUM}\\s*${UNIT_WORD}`).exec(t);
   if (flipped) {
     const to = unit(flipped[1]);
     const from = unit(flipped[3]);
     const amount = readNumber(flipped[2]);
     if (from && to && amount != null && from.family === to.family) return { amount, from, to };
+    if (from && to) return null;
   }
 
   // "<n> <unit>" on its own — convert to the usual counterpart.
-  const bare = new RegExp(`(?:^|\\s)${NUM}\\s*([a-z°²]{1,6})(?:\\s|$|\\?|\\.)`).exec(t);
+  const bare = new RegExp(`(?:^|\\s)${NUM}\\s*([a-z0-9°²]{1,6})(?:\\s|$|\\?|\\.)`).exec(t);
   if (bare) {
     const from = unit(bare[2]);
     const amount = readNumber(bare[1]);
     const to = from ? counterpart(from) : null;
     if (from && to && amount != null) return { amount, from, to };
   }
+
 
   return null;
 }
