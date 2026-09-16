@@ -69,7 +69,8 @@ export function lifeDomains(f: LifeFacts): LifeDomain[] {
     {
       id: "move_flight",
       label: "Where a flight actually is",
-      plain: "Would read a flight's real status, gate and delay instead of the printed time.",
+      plain:
+        "Prepares a flight from the times and prices you paste, holds it until you confirm, then records departure and landing on your board. Live status, gates and delays would need a provider.",
       state: f.flights ? "live" : "needs_connecting",
       because: f.flights ? undefined : "No flight provider is configured.",
       needs: "A flight-data key.",
@@ -78,9 +79,10 @@ export function lifeDomains(f: LifeFacts): LifeDomain[] {
     {
       id: "ground_help",
       label: "Help where you're standing",
-      plain: "Says the emergency number and what to ask for in the country you're actually in.",
+      plain:
+        "Says the emergency number for the country you're actually in, and finds the hospitals, clinics and pharmacies nearest to where you're standing.",
       state: "live",
-      limit: "Says the number. It never dials, and it never calls for you.",
+      limit: "Says the number and where care is. It never dials, never books, and never advises on treatment.",
     },
     {
       id: "ground_roof",
