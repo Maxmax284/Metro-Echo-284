@@ -129,7 +129,7 @@ export function useFlightPlans() {
           project_id: null,
           organization_id: orgId ?? null,
         });
-        if ((res as any)?.eventId) eventIds.push(String((res as any).eventId));
+        if (res.id) eventIds.push(res.id);
       }
       const { error: err } = await supabase
         .from("flight_plans")
