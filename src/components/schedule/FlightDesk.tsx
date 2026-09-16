@@ -561,6 +561,11 @@ export function FlightDesk() {
                 {p.status === "confirmed" && (
                   <>
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
+                    {senseLines(p).map((line) => (
+                      <p key={line} className="text-[11.5px] text-muted-foreground">
+                        {line}
+                      </p>
+                    ))}
                     <Button
                       size="sm"
                       variant="outline"
