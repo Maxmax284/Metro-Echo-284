@@ -155,6 +155,8 @@ import {
 } from "../_shared/capabilityStatus.ts";
 import { abilityAnswer, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
 import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
+import { lifeAnswer, lifeDomains, matchLifeQuestion } from "../_shared/streetSmart.ts";
+import { readLifeFacts } from "../_shared/lifeFacts.ts";
 import {
   attachToProject,
   findProject,
@@ -1104,6 +1106,9 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      from the same catalog the app shows, so the two surfaces cannot disagree. */
   if (matchAbilityQuestion(text)) {
     reply = abilityAnswer(echoAbilities(await readAbilityFacts(sb as never, userId)));
+    readOnly = true;
+  } else if (matchLifeQuestion(text)) {
+    reply = lifeAnswer(lifeDomains(await readLifeFacts(sb as never, userId)));
     readOnly = true;
   } else if (matchCapabilityQuestion(text)) {
     const consent = (prefs.sensor_consent ?? {}) as Record<string, boolean>;

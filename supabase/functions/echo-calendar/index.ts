@@ -17,7 +17,7 @@ import {
 } from "../_shared/echoCalendar.ts";
 
 const EVENT_COLUMNS =
-  "id, title, starts_at, ends_at, all_day, location, description, project_id, organization_id, origin, google_event_id, google_calendar_id, sync_state, sync_error, synced_at, uid";
+  "id, title, starts_at, ends_at, all_day, location, description, project_id, organization_id, origin, google_event_id, google_calendar_id, sync_state, sync_error, synced_at, uid, attendees";
 
 type Body = {
   op?: "create" | "update" | "delete";

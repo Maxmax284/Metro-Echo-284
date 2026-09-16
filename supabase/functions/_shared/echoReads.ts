@@ -23,6 +23,9 @@ import {
   type ScopeArgs,
 } from "./workReads.ts";
 import { findNotes, formatNoteHits, whatWasDecided } from "./noteReads.ts";
+import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
+import { helpAnswer } from "./localHelp.ts";
+import { bodyRead } from "./bodyRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
@@ -33,6 +36,9 @@ export const ECHO_READ_NAMES = [
   "find_note",
   "what_was_decided",
   "where_do_i_stand",
+  "convert_money",
+  "local_help",
+  "body_read",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -50,6 +56,9 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   where_do_i_stand: "the whole board",
   find_note: "your captured notes",
   what_was_decided: "what your captures recorded as mattering",
+  convert_money: "a published exchange rate, read just now",
+  local_help: "the published emergency numbers for that country",
+  body_read: "what your watch recorded",
 };
 
 /**
@@ -144,6 +153,51 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "convert_money",
+      description:
+        "Read-only: convert an amount between currencies using a published rate read at that moment. Use for 'what's 50 dollars in baht', 'how much is that in euros'. Never advises on money.",
+      parameters: {
+        type: "object",
+        properties: {
+          amount: { type: "number" },
+          from: { type: "string", description: "Currency code or word, e.g. USD or dollars." },
+          to: { type: "string", description: "Currency code or word, e.g. THB or baht." },
+        },
+        required: ["amount", "from", "to"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_help",
+      description:
+        "Read-only: the published emergency numbers for a country, and what to say first. Use for 'who do I call here', 'what's the emergency number'. Echo never dials.",
+      parameters: {
+        type: "object",
+        properties: { place: { type: "string", description: "Country name or two-letter code." } },
+        required: ["place"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "body_read",
+      description:
+        "Read-only: what this person's watch recorded recently. Use for 'how did I sleep', 'what's my heart rate'. Reports recorded numbers only — never a diagnosis or advice.",
+      parameters: {
+        type: "object",
+        properties: { days: { type: "number", description: "How far back to look. Defaults to 7." } },
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -205,6 +259,23 @@ export async function runEchoRead(
         query: a.query ? String(a.query) : undefined,
         want: (a.want as "decisions" | "followUps" | "all" | undefined) ?? "all",
       });
+      return { name, text, source };
+    }
+    case "convert_money": {
+      const from = toCode(String(a.from ?? ""));
+      const to = toCode(String(a.to ?? ""));
+      const amount = Number(a.amount);
+      if (!from || !to || !Number.isFinite(amount) || amount <= 0) {
+        return { name, text: "That conversion was not stated clearly enough to read a rate for.", source };
+      }
+      const rates = await fetchRates(from);
+      return { name, text: moneyAnswer({ amount, from, to }, rates), source };
+    }
+    case "local_help": {
+      return { name, text: helpAnswer(String(a.place ?? "")), source };
+    }
+    case "body_read": {
+      const text = await bodyRead(sb, scope, { days: Number(a.days) || 7 });
       return { name, text, source };
     }
   }

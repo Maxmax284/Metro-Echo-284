@@ -14,6 +14,7 @@ import { ScheduleQueryChips } from "@/components/schedule/ScheduleQueryChips";
 import { CalendarSyncPanel } from "@/components/schedule/CalendarSyncPanel";
 import { CalendarOnlyView } from "@/components/schedule/CalendarOnlyView";
 import { MonthGrid } from "@/components/schedule/MonthGrid";
+import { AgendaBoard } from "@/components/schedule/AgendaBoard";
 import { WeekPlanner } from "@/components/schedule/WeekPlanner";
 
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
@@ -21,7 +22,7 @@ import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
-type TabKey = "today" | "upcoming" | "week" | "month" | "calendar";
+type TabKey = "today" | "upcoming" | "week" | "board" | "month" | "calendar";
 
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
@@ -130,6 +131,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             { id: "today", label: "Day" },
             { id: "upcoming", label: "Upcoming" },
             { id: "week", label: "Week" },
+            { id: "board", label: "Board" },
             { id: "month", label: "Month" },
             { id: "calendar", label: "Calendar only" },
           ] as const).map((t) => (
@@ -149,6 +151,11 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
 
         {tab === "calendar" ? (
           <CalendarOnlyView />
+        ) : tab === "board" ? (
+          <div className="space-y-3">
+            <AgendaBoard />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
+          </div>
         ) : loading ? (
           <div className="py-10 text-center text-[12px] text-muted-foreground">Looking at the runway…</div>
         ) : tab === "today" ? (

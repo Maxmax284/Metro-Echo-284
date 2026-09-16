@@ -169,6 +169,13 @@
       "when": 1789488530955,
       "tag": "0023_allow_web_page_watches",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789554072195,
+      "tag": "0024_calendar_events_attendees",
+      "breakpoints": true
     }
   ]
 }
