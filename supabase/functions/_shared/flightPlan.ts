@@ -124,7 +124,13 @@ function defaultClock(iso: string): string {
 
 export function optionWords(o: FlightOption, clock: (iso: string) => string = defaultClock): string {
   const who = [o.airline, o.flight_no].filter(Boolean).join(" ") || "Flight";
-  const when = o.arrive_at ? `${clock(o.depart_at)} → ${clock(o.arrive_at)}` : `${clock(o.depart_at)}, arrival not recorded`;
+  /* No departure time on record stays no departure time. Midnight is not a
+     stand-in for something nobody wrote down. */
+  const when = !o.depart_at
+    ? "no times recorded yet"
+    : o.arrive_at
+      ? `${clock(o.depart_at)} → ${clock(o.arrive_at)}`
+      : `${clock(o.depart_at)}, arrival not recorded`;
   const bits = [when];
   const dur = durationWords(optionDuration(o));
   if (dur) bits.push(dur);
