@@ -819,3 +819,26 @@ under the same Echo, on both surfaces at once.
   landlord reputation, no legal advice.
 - **Next.** Phase F (body context, fenced) — Phase D money still blocked on real
   bank credentials, Phase G on a WhatsApp Business number.
+
+## Pass 23 — Phase F: body context, fenced
+
+- **`_shared/bodySense.ts` (pure).** Recent recorded days held against this
+  person's own earlier days. Totals add up (steps, active and training minutes,
+  caffeine, water, calories, sleep); levels average (heart rate, HRV, weight,
+  blood oxygen, stress). Under ten per cent difference reads as about the same.
+  Fewer than three earlier recorded days means there is no usual yet and Echo
+  says so instead of comparing against nothing. A usual of zero is never divided
+  by. A non-number is skipped, never counted as zero.
+- **How it speaks.** "The last 3 days against your own usual: you slept less
+  (355 against a usual 480) and trained harder." Steady things fold into one
+  tail line. Every answer states that usual means the person's own recorded days
+  and carries the no-diagnosis line. No verdicts, no explanations, no advice.
+- **One Echo.** `body_compare` added to `_shared/echoReads.ts` (name, source,
+  tool, executor) with `bodyCompare` in `bodyRead.ts` doing the scoped read, so
+  Ask and Telegram both gained it. A `body_sense` ability row states the fence.
+- **Proof.** `src/test/body-sense.test.ts` (14). Full suite 1,538 green;
+  typecheck clean. Client mirror `src/lib/bodySense.ts`.
+- **Not built.** No scores, no invented biomarkers, no diagnosis, no coaching,
+  no body dashboard.
+- **Next.** Phase H (ambient depth). Phase D money still blocked on real bank
+  credentials, Phase G on a WhatsApp Business number and API access.
