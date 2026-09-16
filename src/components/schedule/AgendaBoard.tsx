@@ -179,7 +179,7 @@ export function AgendaBoard() {
         {loading ? (
           <LoadingState label="Reading the calendars…" />
         ) : error ? (
-          <ErrorState message={error} onRetry={() => void refresh()} />
+          <ErrorState detail={error} onRetry={() => void refresh()} />
         ) : dayRows.length === 0 ? (
           <p className="text-[12.5px] text-muted-foreground">
             Nothing on this day. Entries land here from the calendars Echo reads, and from anything you add yourself.
@@ -237,9 +237,7 @@ export function AgendaBoard() {
             })}
           </ul>
         )}
-        <AftermathHint>
-          Tap a day to read it. Echo's own entries can be edited here; a subscribed calendar stays read-only.
-        </AftermathHint>
+        <AftermathHint text="Tap a day to read it. Echo's own entries can be edited here; a subscribed calendar stays read-only." />
       </Card>
 
       <EchoEventSheet
