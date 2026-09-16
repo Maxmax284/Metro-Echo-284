@@ -1130,6 +1130,70 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
   }
 
+  /* A flight number typed into this chat. Deterministic on purpose: whether
+     "TG601 friday" is a flight must not depend on a model feeling like it.
+     Filing is capture — it writes a card, never a booking, and it can be
+     dropped from here or from the platform. */
+  if (!intents.length && !reply) {
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    const ask = readFlightAsk(text, today);
+    const pendingFlight = prefs.flight_day_question as { flight_no?: string; asked_at?: string } | undefined;
+    const pendingFresh =
+      pendingFlight?.flight_no && pendingFlight.asked_at
+        ? Date.now() - new Date(pendingFlight.asked_at).getTime() < 30 * 60_000
+        : false;
+
+    async function rememberQuestion(flight_no: string | null) {
+      await sb
+        .from("profiles")
+        .update({
+          preferences: {
+            ...prefs,
+            flight_day_question: flight_no ? { flight_no, asked_at: new Date().toISOString() } : null,
+          },
+        })
+        .eq("id", userId);
+    }
+
+    if (ask?.kind === "cancel") {
+      const out = await dropFlightByNumber(sb, { userId, orgId }, ask.flight_no);
+      reply = out.words;
+      readOnly = true;
+      detectedType = "flight";
+      routedTo = out.dropped ? "flights" : null;
+    } else if (ask?.kind === "file") {
+      const out = await fileFlightByNumber(sb, { userId, orgId }, {
+        flight_no: ask.flight_no,
+        depart_on: ask.depart_on,
+        via: "telegram",
+      });
+      reply = out.words;
+      readOnly = true;
+      detectedType = "flight";
+      routedTo = "flights";
+      if (pendingFresh) await rememberQuestion(null);
+    } else if (ask?.kind === "needs_day") {
+      reply = askForDayWords(ask.flight_no);
+      readOnly = true;
+      detectedType = "flight";
+      await rememberQuestion(ask.flight_no);
+    } else if (pendingFresh && !ask) {
+      /* The answer to the one question Echo asked: a day, on its own. */
+      const day = readDay(text, today);
+      if (day && text.length <= 30) {
+        const out = await fileFlightByNumber(sb, { userId, orgId }, {
+          flight_no: pendingFlight!.flight_no!,
+          depart_on: day.on,
+          via: "telegram",
+        });
+        reply = out.words;
+        readOnly = true;
+        detectedType = "flight";
+        routedTo = "flights";
+        await rememberQuestion(null);
+      }
+    }
+  }
 
 
   /* Reach and senses are two different questions. "What can you do?" answers
