@@ -123,6 +123,24 @@ export function FlightDesk() {
     }
   };
 
+  /** The whole manual path: a number and a day. */
+  const quickAdd = async () => {
+    setBusy(true);
+    try {
+      const res = await addByNumber(quickNo, quickDate);
+      if (!res.ok) {
+        vantaToast.warning(res.reason ?? "That flight could not be added.");
+        return;
+      }
+      setQuickNo("");
+      vantaToast.success(res.words ?? "On your record.");
+    } catch (e) {
+      vantaToast.warning(e instanceof Error ? e.message : "That flight could not be added.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const readBooking = async () => {
     if (booking.trim().length < 8) {
       vantaToast.warning("Paste the booking itself — a confirmation mail, an itinerary, a forwarded message.");
