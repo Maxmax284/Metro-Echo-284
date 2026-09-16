@@ -79,10 +79,10 @@ describe("flightPlan", () => {
     expect(priceWords(option({ price: null }))).toBeNull();
   });
 
-  it("never compares prices across currencies when picking the cheapest", () => {
+  it("refuses to name a cheapest across two currencies", () => {
     const rows = [option({ id: "a", price: 300, currency: "USD" }), option({ id: "b", price: 200, currency: "EUR" })];
-    const pick = cheapest(rows);
-    expect(pick?.currency).toBe("USD");
+    expect(cheapest(rows)).toBeNull();
+    expect(cheapest([rows[0], option({ id: "c", price: 250, currency: "USD" })])?.id).toBe("c");
   });
 
   it("picks the fastest only from options with a recorded arrival", () => {
