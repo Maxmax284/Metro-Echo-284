@@ -133,7 +133,9 @@ export async function noticeFlights(
       continue;
     }
 
-    const departAt = leg.depart_time ? `${leg.depart_on}T${leg.depart_time}:00` : `${leg.depart_on}T00:00:00`;
+    /* A booking with no departure time on it gets no departure time. Midnight
+       would read as a fact nobody wrote down. */
+    const departAt = leg.depart_time ? `${leg.depart_on}T${leg.depart_time}:00` : null;
     const arriveAt = leg.arrive_time ? `${leg.depart_on}T${leg.arrive_time}:00` : null;
     const option = {
       id: `${leg.flight_no}-${leg.depart_time ?? "0000"}`,
