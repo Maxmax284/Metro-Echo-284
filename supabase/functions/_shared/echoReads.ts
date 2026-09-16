@@ -153,6 +153,51 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "convert_money",
+      description:
+        "Read-only: convert an amount between currencies using a published rate read at that moment. Use for 'what's 50 dollars in baht', 'how much is that in euros'. Never advises on money.",
+      parameters: {
+        type: "object",
+        properties: {
+          amount: { type: "number" },
+          from: { type: "string", description: "Currency code or word, e.g. USD or dollars." },
+          to: { type: "string", description: "Currency code or word, e.g. THB or baht." },
+        },
+        required: ["amount", "from", "to"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_help",
+      description:
+        "Read-only: the published emergency numbers for a country, and what to say first. Use for 'who do I call here', 'what's the emergency number'. Echo never dials.",
+      parameters: {
+        type: "object",
+        properties: { place: { type: "string", description: "Country name or two-letter code." } },
+        required: ["place"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "body_read",
+      description:
+        "Read-only: what this person's watch recorded recently. Use for 'how did I sleep', 'what's my heart rate'. Reports recorded numbers only — never a diagnosis or advice.",
+      parameters: {
+        type: "object",
+        properties: { days: { type: "number", description: "How far back to look. Defaults to 7." } },
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
