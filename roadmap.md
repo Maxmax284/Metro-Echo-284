@@ -794,3 +794,28 @@ under the same Echo, on both surfaces at once.
   buying, holding. Trip documents pulled from mail and files stay open.
 - **Next.** Phase E (housing and what living somewhere really costs) — Phase D
   money remains blocked on real bank credentials.
+
+## Pass 22 — Phase E: housing and what living somewhere really costs
+
+- **`_shared/housing.ts` (pure).** Recurring money (rent, utilities, internet,
+  commute, fuel, parking, building fees, laundry, maintenance, local tax) added
+  only from figures the person gave; move-in cash (deposit, agency fee, move-in
+  fee, furnishing) kept separate and never folded into a monthly number. Money
+  you do not get back is spread over the term to give a true monthly; a returnable
+  deposit is excluded from that. Unwritten lines are named as missing, not free.
+  No term means no spreading. A comparison refuses to cross currencies, refuses
+  to call one place a comparison, and refuses to weigh a place with nothing
+  written down. Landlord behaviour comes from the person's own notes only.
+- **`LEASE_CHECKS` / `leaseWords()`.** Ten questions a contract has to answer —
+  term and break clauses, penalties, deposit deductions, inclusions, repairs,
+  rent rises, restrictions, address registration, notice, condition report.
+  Questions only; the contract in hand gives the answers.
+- **One Echo.** `cost_of_living` and `lease_checks` added to `_shared/echoReads.ts`
+  (names, sources, tool definitions, executors), so Ask and Telegram gained both
+  from one definition. A `housing` ability row states the reach and the limit.
+- **Proof.** `src/test/housing.test.ts` (14). Full suite 1,525 green; typecheck
+  clean. Client mirror `src/lib/housing.ts`.
+- **Not built.** No housing dashboard, no market-rent lookup, no invented
+  landlord reputation, no legal advice.
+- **Next.** Phase F (body context, fenced) — Phase D money still blocked on real
+  bank credentials, Phase G on a WhatsApp Business number.
