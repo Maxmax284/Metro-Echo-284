@@ -724,3 +724,40 @@ Phase A only. No new room, no tools menu — two abilities under the same Echo.
   (9). Full suite 1,465 green; typecheck clean.
 - **Next.** Phase B (street-smart trouble lane + friction reasoning + local
   cultural context) waits on approval.
+
+## Pass 20 — Phase B: the street-smart lane, friction, local sense
+
+Approved and built. Still no new room and no tools menu — three more abilities
+under the same Echo, on both surfaces at once.
+
+- **`/flights` is its own page.** It was a redirect into the schedule desk;
+  now `src/pages/Flights.tsx` renders the flight desk on a plain address with
+  a link across to the deep desk. `/flight` redirects to it.
+- **`_shared/trouble.ts` (pure).** 19 kept playbooks, each stamped 2026-09-16:
+  lost wallet, lost passport, card declined, ATM kept the card, dead phone,
+  missed train/bus/connection, hotel, taxi, locked out, missing package, power
+  or internet out, flat tyre or scooter, broken appliance, doctor vs clinic vs
+  pharmacy, prescription abroad, printing/notary/mail, government office,
+  delayed or damaged bag, "is this fee normal". Every playbook carries one
+  first move, an ordered set of steps, what Echo still needs from the person,
+  and the hard edge on what Echo will not do. Matching takes the situation the
+  person led with (earliest phrase, longer phrase on a tie). A situation with
+  no kept playbook gets no invented steps.
+- **`_shared/friction.ts` (pure).** Money, minutes, transfers and walking
+  counted together; `hassleScore` charges eight minutes a transfer and half a
+  minute a walking minute. Cheapest, fastest and least hassle are named
+  separately; a field missing from any option is not ranked on and is said out
+  loud; a single option is never called the best one; the practical move comes
+  back labelled a judgement, never a fact.
+- **`_shared/customs.ts` (pure).** 13 countries, each stamped: bargaining,
+  dress, religious spaces, queues, manners and formality, timekeeping, tourist
+  pricing patterns, service, how people expect to be contacted. Only the topics
+  asked about come back. A country with nothing written gets silence, not a
+  stereotype. Money norms stay in `countryFacts`.
+- **One brain, both surfaces.** `what_to_do`, `compare_options` and
+  `local_customs` are registered in `_shared/echoReads.ts` with provenance
+  lines; `echoAbilities` advertises all three as live with their limits.
+  `vanta-converse` and `telegram-webhook` redeployed.
+- **Proof.** `src/test/trouble.test.ts` (9), `src/test/friction.test.ts` (11),
+  `src/test/customs.test.ts` (8). Full suite green; typecheck clean.
+- **Next.** Phase C (travel polish — only what is missing) waits on approval.

@@ -27,6 +27,9 @@ import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
 import { measureAnswer, parseMeasureAsk, shoeAnswer } from "./measures.ts";
 import { factsAnswer } from "./countryFacts.ts";
+import { troubleAnswer } from "./trouble.ts";
+import { frictionAnswer, type Option } from "./friction.ts";
+import { customsAnswer } from "./customs.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
@@ -49,6 +52,9 @@ export const ECHO_READ_NAMES = [
   "flights_prepared",
   "convert_measure",
   "how_things_work",
+  "what_to_do",
+  "compare_options",
+  "local_customs",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -74,6 +80,9 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   flights_prepared: "the flights you prepared",
   convert_measure: "exact conversion factors Echo keeps written down",
   how_things_work: "kept practical notes for that country, with the day they were checked",
+  what_to_do: "the kept playbook for that situation, with the day it was checked",
+  compare_options: "the numbers you gave, compared on price, time and hassle",
+  local_customs: "kept notes on local custom, with the day they were checked",
 };
 
 /**
@@ -283,6 +292,72 @@ export const ECHO_READ_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "what_to_do",
+      description:
+        "Read-only: the kept playbook for a real-life situation that just went wrong — lost wallet or passport, card declined or eaten by an ATM, dead phone, missed train or connection, hotel or taxi problem, locked out, missing package, power or internet out, flat tyre, broken appliance, doctor vs clinic vs pharmacy, prescription abroad, printing or notary, government office, delayed or damaged bag, 'is this fee normal'. Returns the first move, the order after it, what Echo still needs to know, and what Echo will not do. A situation with no kept playbook returns nothing rather than invented steps.",
+      parameters: {
+        type: "object",
+        properties: {
+          situation: { type: "string", description: "What went wrong, in the person's own words." },
+        },
+        required: ["situation"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "compare_options",
+      description:
+        "Read-only: compare two or more real options on price, time, transfers and walking, and show the tradeoff. Use when the person is choosing between a bus, a train and a taxi, or between two ways of doing something, and you have actual numbers. Never invent a number — leave a field out and Echo will say it did not rank on it. The recommendation comes back labelled as a judgement.",
+      parameters: {
+        type: "object",
+        properties: {
+          options: {
+            type: "array",
+            description: "The options, each with whatever numbers are actually known.",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string", description: "What this option is, e.g. 'bus'." },
+                money: { type: "number", description: "Total cost. Leave out if unknown." },
+                currency: { type: "string", description: "Three-letter currency code for money." },
+                minutes: { type: "number", description: "Door-to-door minutes. Leave out if unknown." },
+                transfers: { type: "number", description: "Number of changes." },
+                walkMinutes: { type: "number", description: "Minutes on foot." },
+                note: { type: "string", description: "Anything worth weighing that is not a number." },
+              },
+              required: ["label"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["options"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_customs",
+      description:
+        "Read-only: kept notes on local custom — bargaining, dress, religious-space etiquette, queues, manners and formality, timekeeping, tourist pricing patterns, what service looks like, and how people expect to be contacted. Use for 'do people haggle here', 'what should I wear to the temple', 'is it rude to be late'. A country with nothing written returns nothing rather than a stereotype. Money norms like tipping and tax live in how_things_work.",
+      parameters: {
+        type: "object",
+        properties: {
+          place: { type: "string", description: "Country name, two-letter code, or a major city." },
+          question: { type: "string", description: "The person's question, so only the topics asked about come back." },
+        },
+        required: ["place"],
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -386,6 +461,17 @@ export async function runEchoRead(
     }
     case "how_things_work": {
       const text = factsAnswer(String(a.place ?? ""), a.question ? String(a.question) : null);
+      return { name, text, source };
+    }
+    case "what_to_do": {
+      return { name, text: troubleAnswer(String(a.situation ?? "")), source };
+    }
+    case "compare_options": {
+      const raw = Array.isArray(a.options) ? (a.options as Option[]) : [];
+      return { name, text: frictionAnswer(raw), source };
+    }
+    case "local_customs": {
+      const text = customsAnswer(String(a.place ?? ""), a.question ? String(a.question) : null);
       return { name, text, source };
     }
   }
