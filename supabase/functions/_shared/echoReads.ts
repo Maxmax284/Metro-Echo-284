@@ -30,6 +30,7 @@ import { factsAnswer } from "./countryFacts.ts";
 import { troubleAnswer } from "./trouble.ts";
 import { frictionAnswer, type Option } from "./friction.ts";
 import { customsAnswer } from "./customs.ts";
+import { housingAnswer, leaseWords, type Place } from "./housing.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
 import { careRead } from "./careRead.ts";
@@ -55,6 +56,8 @@ export const ECHO_READ_NAMES = [
   "what_to_do",
   "compare_options",
   "local_customs",
+  "cost_of_living",
+  "lease_checks",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -83,6 +86,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   what_to_do: "the kept playbook for that situation, with the day it was checked",
   compare_options: "the numbers you gave, compared on price, time and hassle",
   local_customs: "kept notes on local custom, with the day they were checked",
+  cost_of_living: "the housing figures you gave, added up as real monthly cost",
+  lease_checks: "the questions a lease has to answer before you sign",
 };
 
 /**
