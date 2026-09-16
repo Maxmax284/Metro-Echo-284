@@ -18,6 +18,7 @@ import { AutoSendPanel } from "@/components/wearables/AutoSendPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
+import { BODY_LABEL, BODY_ROLE, REACH_LAW, type Body } from "@/lib/reachBody";
 
 const STEPS = [
   "Switch on the senses you want. Off means nothing is read and nothing is stored.",
@@ -119,6 +120,21 @@ export default function WearableLoopPage() {
           A watch feeds Echo. It never controls it. Approval doesn't travel to your wrist, and
           nothing here goes out through Telegram.
         </p>
+      </section>
+
+      <section className="vanta-card mb-4 p-4">
+        <h2 className="text-[14px] font-semibold tracking-tight">Where Echo speaks</h2>
+        <ul className="mt-2 space-y-1.5">
+          {(Object.keys(BODY_ROLE) as Body[]).map((b) => (
+            <li key={b} className="text-[12px] leading-snug text-foreground/90">
+              <span className="font-semibold">{BODY_LABEL[b]}</span> — {BODY_ROLE[b].role}.{" "}
+              <span className="text-muted-foreground">
+                {BODY_ROLE[b].built ? `Edge: ${BODY_ROLE[b].edge}.` : "Not built yet."}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[11.5px] leading-snug text-muted-foreground">{REACH_LAW}</p>
       </section>
 
       <section className="vanta-card mb-4 flex flex-wrap items-center gap-2 p-3">

@@ -842,3 +842,29 @@ under the same Echo, on both surfaces at once.
   no body dashboard.
 - **Next.** Phase H (ambient depth). Phase D money still blocked on real bank
   credentials, Phase G on a WhatsApp Business number and API access.
+
+## Pass 24 — Phase H: ambient depth, honest about its own edges
+
+- **`_shared/reachBody.ts` (pure).** Every surface gets a job and an edge: the
+  phone is the main one and where approval happens, the desk is deep work and
+  does not chase you, the wrist is one glance plus note / later / capture and can
+  never approve, Telegram is the pocket door that feeds the platform. Earbuds and
+  glasses are declared not built, never claimed.
+- **`planReach(urgency, reachable)`.** Ordinary news stays in Today. A change
+  reaches the phone, and the desk only when the person is actually at it. The
+  wrist and Telegram only when something is waiting on them. Quiet hours hold
+  everything except what you cannot sleep through. A surface Echo cannot reach is
+  named as unreachable, never counted as delivered. Every reach line ends on
+  approval staying in the platform.
+- **User-visible.** The watch loop page now carries a "Where Echo speaks"
+  section built from the same table, so no screen can describe the surfaces
+  differently from the code. `how_echo_reaches_you` added to
+  `_shared/echoReads.ts`, so Ask and Telegram answer "can I approve this on my
+  watch" from the same rules.
+- **Proof.** `src/test/reach-body.test.ts` (12). Full suite 1,550 green;
+  typecheck clean. Client mirror `src/lib/reachBody.ts`.
+- **Not built, on purpose.** No always-watching surface, no command centre, no
+  earbud or glasses runtime, no approval on a small screen.
+- **Remaining.** Phase D read-only money (blocked on real bank credentials) and
+  Phase G WhatsApp (blocked on a Business number and API access). Every phase
+  that does not need outside access is now in.
