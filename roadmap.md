@@ -446,3 +446,40 @@ or Safety room.
       unchanged.
 - New: `src/lib/threadShelf.ts`, `src/hooks/useEdgeSwipe.ts`, `src/test/thread-shelf.test.ts` (15).
 - Full suite: 1,258 tests across 137 files, green. Typecheck clean. Verified live at 384 and 1440.
+
+## Everyday-life pass — agenda workspace + street-smart layer
+- [x] 25. Agenda board (Schedule → Board). Month strip with per-day marks, one selected-day board
+      carrying only facts the entry actually held: when, how long, where (room from the address),
+      who (explicit attendees, else an address written into the description — never a name guessed
+      from a title). Feed rows stay read-only; only Echo's own entries carry a pencil.
+      `calendar_events.attendees text[]` added (migration 0024) and read by `useAgenda` and
+      `echo-calendar`.
+- [x] 26. One entry per real entry. `src/lib/agendaBoard.ts` dedupes on the server's own key
+      (uid, else lowercased title, plus start and end), so the board and Echo's answers agree
+      about a day. A stay (≥20h) is not repeated as an appointment: it gets one line at the top
+      with nights left and where.
+- [x] 27. Street-smart layer. `_shared/streetSmart.ts` — one registry of everyday domains with an
+      honest state each: money convert (live, published rate not a card rate), local help (live,
+      says the number, never dials), roof / stay (live off own records, books nothing),
+      body (live off recorded watch readings, never a health opinion), banking (needs a Plaid
+      client id and secret), flight depth (needs a flight-data key), WhatsApp (needs a Business
+      number with API access). Waiting rows say what they are waiting on and are never advertised
+      as working. Shown in Ask's "What Echo can do" panel as its own section.
+- [x] 28. Three new reads, same contract. `convert_money`, `local_help`, `body_read` registered in
+      the shared `echoReads` catalog (names, "Why this?" source lines, tool shapes, executor arms),
+      so Ask and Telegram read identically. Rates come from a keyless public table
+      (`open.er-api.com`) and every answer carries the rate and the minute it was read; a failed
+      read gives no number at all. An unknown country gets no number rather than a wrong one.
+- [x] 29. Everyday-life question routing. `matchLifeQuestion` injects the registry into Ask's
+      system block and answers Telegram directly, so neither surface can invent a capability.
+- New: `_shared/streetSmart.ts`, `currency.ts`, `localHelp.ts`, `bodyRead.ts`, `lifeFacts.ts`,
+  client mirrors, `src/lib/agendaBoard.ts`, `src/hooks/useLifeDomains.ts`,
+  `src/components/schedule/AgendaBoard.tsx`, `src/test/agenda-board.test.ts` (17),
+  `src/test/street-smart.test.ts` (21).
+- Full suite: 1,302 tests across 140 files, green. Typecheck clean.
+  Deployed: vanta-converse, telegram-webhook, echo-calendar.
+
+## Still pinned (no credentials yet)
+- Banking / Plaid — needs a Plaid client id and secret.
+- Flight depth — needs a flight-data provider key.
+- WhatsApp — needs a WhatsApp Business number with API access.
