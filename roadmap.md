@@ -655,8 +655,13 @@ or Safety room.
 - **It speaks up.** `journey-watch` refreshes only legs within eight hours of a
   filed time (20-minute reading freshness), then files one `journey_moved` nudge
   carrying the arrival message or the diff, always closing on the terminal
-  caveat. Deployed and callable; **not on a cron** — the AviationStack key's quota
-  decides that, so say the word and it gets scheduled.
+  caveat. Scheduled every 15 minutes (`journey-watch-quarter-hour`), and it
+  cannot eat the flight quota: a leg costs a reading only from 3h before its
+  filed departure to 2h after its filed arrival, landed/cancelled is never asked
+  again, a bare number-and-day flight is read only on its own day, and a hard
+  ceiling of 40 provider readings a day (`FLIGHT_DAILY_BUDGET`, logged in
+  `api_usage_logs`) stops the sweep dead. Over budget, the journey still reads
+  from its last stamped reading — it never guesses to fill the gap.
 - Ask and Telegram answer the journey first via `flightRead`: where you are, whose
   word says so, time left, next gate, the layover math.
 - 27 new checks in `src/test/journey.test.ts`. 1,422 tests green, typecheck clean,
