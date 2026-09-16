@@ -6,6 +6,7 @@
 //   - Silence is a valid read: no readings means it says so instead of guessing.
 //   - Read-only, scope-bound like every other read.
 type SupabaseClient = { from: (table: string) => any };
+import { dosesOn, nextDose, type Medication } from "./bodyLog.ts";
 
 export type Reading = { kind: string; value: number; unit: string | null; measured_at: string };
 
@@ -20,6 +21,9 @@ const LABEL: Record<string, string> = {
   temperature: "skin temperature",
   weight: "weight",
   stress: "stress score",
+  bp_systolic: "blood pressure (upper)",
+  bp_diastolic: "blood pressure (lower)",
+  pulse: "pulse",
 };
 
 function scoped(q: any, userId: string, orgId: string | null) {
@@ -75,5 +79,21 @@ export async function bodyRead(
     .gte("measured_at", since)
     .order("measured_at", { ascending: false })
     .limit(200);
-  return formatBody((data ?? []) as Reading[], days);
+  const body = formatBody((data ?? []) as Reading[], days);
+
+  // Medication is a recorded course, so the doses due today can be said plainly.
+  // Echo reminds; it never records a dose as taken on the person's behalf.
+  const { data: medRows } = await scoped(
+    sb.from("medications").select("id, name, dose, times_local, rhythm, starts_on, ends_on, active"),
+    userId,
+    orgId,
+  ).eq("active", true);
+  const meds = (medRows ?? []) as Medication[];
+  if (meds.length === 0) return body;
+  const today = dosesOn(meds, new Date());
+  const next = nextDose(meds, new Date());
+  if (today.length === 0) return body;
+  const line = today.map((d) => `${d.med.name}${d.med.dose ? ` ${d.med.dose}` : ""} at ${d.time}`).join(", ");
+  const upcoming = next ? ` Next due at ${next.time}.` : " Nothing further due today.";
+  return `${body} Medication today: ${line}.${upcoming} Marking a dose taken stays with you.`;
 }

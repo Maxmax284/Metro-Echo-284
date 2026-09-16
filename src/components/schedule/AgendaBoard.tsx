@@ -16,6 +16,8 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useAgenda, type AgendaEvent } from "@/hooks/useAgenda";
+import { useBody } from "@/hooks/useBody";
+import { dosesOn } from "@/lib/bodyLog";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatInTimeZone } from "date-fns-tz";
 import {
@@ -53,6 +55,7 @@ export function AgendaBoard() {
   const from = useMemo(() => startOfMonth(cursor), [cursor]);
   const to = useMemo(() => endOfMonth(cursor), [cursor]);
   const { events, projects, loading, error, refresh } = useAgenda({ from, to });
+  const { meds } = useBody();
 
   const rows = useMemo(() => dedupeBoard(events), [events]);
   const stay = useMemo(() => currentStay(rows), [rows]);
@@ -86,6 +89,9 @@ export function AgendaBoard() {
     if (isStay(a) !== isStay(b)) return isStay(a) ? -1 : 1;
     return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
   });
+
+  /* Doses belong to the day, beside the appointments, not in a separate room. */
+  const dayDoses = useMemo(() => dosesOn(meds, selected), [meds, selected]);
 
   const monthLabel = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const shift = (n: number) => {
@@ -236,6 +242,22 @@ export function AgendaBoard() {
               );
             })}
           </ul>
+        )}
+        {dayDoses.length > 0 && (
+          <div className="mt-3 border-t border-border/50 pt-2">
+            <p className="vanta-machine-label mb-1 text-foreground/70">Medication this day</p>
+            <ul className="space-y-1">
+              {dayDoses.map((d, i) => (
+                <li key={`${d.med.id}-${d.time}-${i}`} className="flex items-baseline gap-2 text-[12px]">
+                  <span className="w-14 shrink-0 tabular-nums text-foreground/70">{d.time}</span>
+                  <span className="truncate text-foreground/90">
+                    {d.med.name}
+                    {d.med.dose ? ` \u00b7 ${d.med.dose}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <AftermathHint text="Tap a day to read it. Echo's own entries can be edited here; a subscribed calendar stays read-only." />
       </Card>
