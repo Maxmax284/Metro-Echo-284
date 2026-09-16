@@ -18,6 +18,9 @@ import {
   type BankTxn,
 } from "./bankPlan.ts";
 
+// Edge-only at runtime; declared so the client-side typecheck stays clean.
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 const HOSTS: Record<string, string> = {
   sandbox: "https://sandbox.plaid.com",
   development: "https://development.plaid.com",
