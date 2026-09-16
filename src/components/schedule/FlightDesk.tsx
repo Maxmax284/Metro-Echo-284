@@ -35,6 +35,7 @@ import {
   type FlightPlan,
 } from "@/lib/flightPlan";
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
+import { QUICK_LAW } from "@/lib/flightQuick";
 import { STATUS_LAW, readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -53,8 +54,19 @@ function noticedWords(plan: FlightPlan): string {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
-  const { plans, loading, error, refresh, prepare, confirm, drop, answerOwnership, checkStatus, noticeText } =
-    useFlightPlans();
+  const {
+    plans,
+    loading,
+    error,
+    refresh,
+    prepare,
+    confirm,
+    drop,
+    answerOwnership,
+    checkStatus,
+    noticeText,
+    addByNumber,
+  } = useFlightPlans();
   const clock = (iso: string) => {
     const d = new Date(iso);
     return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "—";
@@ -68,6 +80,9 @@ export function FlightDesk() {
   const [currency, setCurrency] = useState("USD");
   const [quote, setQuote] = useState("");
   const [booking, setBooking] = useState("");
+  const [quickNo, setQuickNo] = useState("");
+  const [quickDate, setQuickDate] = useState(today());
+  const [detail, setDetail] = useState(false);
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [live, setLive] = useState<Record<string, string>>({});
@@ -104,6 +119,24 @@ export function FlightDesk() {
       vantaToast.success("Prepared. It waits for your yes on the board.");
     } catch (e) {
       vantaToast.warning(e instanceof Error ? e.message : "That flight could not be prepared.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** The whole manual path: a number and a day. */
+  const quickAdd = async () => {
+    setBusy(true);
+    try {
+      const res = await addByNumber(quickNo, quickDate);
+      if (!res.ok) {
+        vantaToast.warning(res.reason ?? "That flight could not be added.");
+        return;
+      }
+      setQuickNo("");
+      vantaToast.success(res.words ?? "On your record.");
+    } catch (e) {
+      vantaToast.warning(e instanceof Error ? e.message : "That flight could not be added.");
     } finally {
       setBusy(false);
     }
@@ -159,6 +192,53 @@ export function FlightDesk() {
   return (
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
+
+      {/* The manual way in, first thing on the desk and as small as a flight gets. */}
+      <Card className="vanta-card space-y-2 p-3">
+        <div className="flex items-center gap-2">
+          <Plane className="h-4 w-4 text-primary" aria-hidden />
+          <p className="text-[13px] font-medium">Add a flight</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[7.5rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-no" className="text-[11px]">Flight number</Label>
+            <Input
+              id="fd-quick-no"
+              value={quickNo}
+              onChange={(e) => setQuickNo(e.target.value)}
+              placeholder="TG601"
+              autoCapitalize="characters"
+              className="h-11 text-[15px] tracking-wide"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void quickAdd();
+              }}
+            />
+          </div>
+          <div className="min-w-[9rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-date" className="text-[11px]">Day it leaves</Label>
+            <Input
+              id="fd-quick-date"
+              type="date"
+              value={quickDate}
+              onChange={(e) => setQuickDate(e.target.value)}
+              className="h-11 text-[13px]"
+            />
+          </div>
+          <Button onClick={() => void quickAdd()} disabled={busy} className="h-11 min-w-[5rem] text-[13px]">
+            <PlusCircle className="mr-1 h-4 w-4" aria-hidden />
+            Add
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{QUICK_LAW}</p>
+        <button
+          type="button"
+          onClick={() => setDetail((v) => !v)}
+          className={cn("text-left text-[11.5px] text-primary/90 underline underline-offset-2", MOTION_FOCUS)}
+          aria-expanded={detail}
+        >
+          {detail ? "Hide the longer way" : "Got a route, times or a price? Add the detail"}
+        </button>
+      </Card>
 
       {asked.length > 0 && (
         <Card className="vanta-card space-y-3 p-3">
@@ -236,7 +316,7 @@ export function FlightDesk() {
         </p>
       </Card>
 
-      <Card className="vanta-card space-y-3 p-3">
+      <Card className={cn("vanta-card space-y-3 p-3", !detail && "hidden")}>
         <div className="flex items-center gap-2">
           <Plane className="h-4 w-4 text-primary" aria-hidden />
           <p className="text-[13px] font-medium">Prepare a flight</p>

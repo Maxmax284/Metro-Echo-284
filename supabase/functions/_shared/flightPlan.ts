@@ -28,8 +28,8 @@ export type FlightOption = {
   id: string;
   airline: string | null;
   flight_no: string | null;
-  /** ISO instant. */
-  depart_at: string;
+  /** ISO instant, or null when nothing on record carried a departure time. */
+  depart_at: string | null;
   /** ISO instant, or null when the quote did not carry one. */
   arrive_at: string | null;
   price: number | null;
@@ -88,8 +88,8 @@ export function cleanPlace(v: string | null | undefined): string {
   return /^[a-z]{3}$/i.test(t) ? t.toUpperCase() : t;
 }
 
-export function minutesBetween(a: string, b: string | null): number | null {
-  if (!b) return null;
+export function minutesBetween(a: string | null, b: string | null): number | null {
+  if (!a || !b) return null;
   const t1 = new Date(a).getTime();
   const t2 = new Date(b).getTime();
   if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 <= t1) return null;
@@ -124,7 +124,13 @@ function defaultClock(iso: string): string {
 
 export function optionWords(o: FlightOption, clock: (iso: string) => string = defaultClock): string {
   const who = [o.airline, o.flight_no].filter(Boolean).join(" ") || "Flight";
-  const when = o.arrive_at ? `${clock(o.depart_at)} → ${clock(o.arrive_at)}` : `${clock(o.depart_at)}, arrival not recorded`;
+  /* No departure time on record stays no departure time. Midnight is not a
+     stand-in for something nobody wrote down. */
+  const when = !o.depart_at
+    ? "no times recorded yet"
+    : o.arrive_at
+      ? `${clock(o.depart_at)} → ${clock(o.arrive_at)}`
+      : `${clock(o.depart_at)}, arrival not recorded`;
   const bits = [when];
   const dur = durationWords(optionDuration(o));
   if (dur) bits.push(dur);
@@ -136,7 +142,9 @@ export function optionWords(o: FlightOption, clock: (iso: string) => string = de
 }
 
 export function sortOptions(options: FlightOption[]): FlightOption[] {
-  return [...options].sort((a, b) => new Date(a.depart_at).getTime() - new Date(b.depart_at).getTime());
+  /* Timeless options sit last: they are waiting on a time, not competing on one. */
+  const at = (o: FlightOption) => (o.depart_at ? new Date(o.depart_at).getTime() : Infinity);
+  return [...options].sort((a, b) => at(a) - at(b));
 }
 
 /**
@@ -201,6 +209,9 @@ export function canConfirm(plan: FlightPlan, optionId: string | null): { ok: boo
   if (!plan.options.length) return { ok: false, reason: "There is nothing to confirm until an option carries a time." };
   const chosen = plan.options.find((o) => o.id === optionId);
   if (!chosen) return { ok: false, reason: "Pick which flight you mean first." };
+  if (!chosen.depart_at) {
+    return { ok: false, reason: "No departure time is on record for this one yet, so there is nothing to put on a day." };
+  }
   if (!Number.isFinite(new Date(chosen.depart_at).getTime())) {
     return { ok: false, reason: "That option has no real departure time." };
   }
@@ -224,6 +235,8 @@ export function confirmedEntries(
   ]
     .filter(Boolean)
     .join(" ");
+  /* No departure time, no board entry. A day cannot hold an hour nobody recorded. */
+  if (!option.depart_at) return [];
   const rows = [
     {
       title: `Depart ${from} → ${to}${who ? ` · ${who}` : ""}`,

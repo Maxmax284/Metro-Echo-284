@@ -593,6 +593,28 @@ or Safety room.
 - Echo signs into nothing, buys nothing, holds nothing, checks nobody in.
 - Tests: `src/test/flight-recognition.test.ts` (17). Suite: 1,373 green.
 
+## Pass 16 — a flight in two fields
+
+- Schedule → Flights opens with **Add a flight**: a flight number and the day it
+  leaves. Nothing else is asked. The route/times/price desk is folded behind
+  "Got a route, times or a price? Add the detail".
+- `_shared/flightQuick.ts` (+ client mirror): `readFlightNo` takes tg601, TG 601,
+  tg-601, U2 2490, 3K 205 and drops the airline's leading zeros so TG0601 and
+  TG601 are one flight. It refuses a bare number, a bare code and a sentence
+  rather than guessing. A half-written date is refused; Echo never picks a day.
+- After filing, one provider reading fills route, times and carrier — and only
+  those. A flight AviationStack carries nothing for stays bare and says so:
+  "that is what it said, not that the flight is wrong."
+- Missing stays missing end to end: `FlightOption.depart_at` is now nullable,
+  midnight is no longer a stand-in (recognition included), a timeless option
+  reads "no times recorded yet", sorts last, cannot be confirmed, and writes no
+  board entry until a time exists.
+- One flight, one card. Number + day is the identity across all three ways in —
+  typed, pasted, noticed. A repeat lands on the card that already exists,
+  dropped plans excluded, and the ownership question is never asked twice.
+- Receipt: `flight.added_by_number`, `bought: false`.
+- Tests: `src/test/flight-quick.test.ts` (22). Suite: 1,395 green.
+
 ### Still pinned
 - WhatsApp — needs a WhatsApp Business number and signing secret.
 - Plaid stays on sandbox credentials until development keys exist.
