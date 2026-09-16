@@ -142,7 +142,9 @@ export function optionWords(o: FlightOption, clock: (iso: string) => string = de
 }
 
 export function sortOptions(options: FlightOption[]): FlightOption[] {
-  return [...options].sort((a, b) => new Date(a.depart_at).getTime() - new Date(b.depart_at).getTime());
+  /* Timeless options sit last: they are waiting on a time, not competing on one. */
+  const at = (o: FlightOption) => (o.depart_at ? new Date(o.depart_at).getTime() : Infinity);
+  return [...options].sort((a, b) => at(a) - at(b));
 }
 
 /**
