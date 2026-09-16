@@ -110,7 +110,7 @@ describe("one line back", () => {
   it("converts and stops when no anchor exists", () => {
     const line = measureAnswer(parseMeasureAsk("180 lb to kg"));
     expect(line).toContain("81.6 kg");
-    expect(line.split(".").filter(Boolean).length).toBe(1);
+    expect(line).toBe("180 lb is about 81.6 kg.");
   });
 
   it("says plainly when it cannot read the ask", () => {
