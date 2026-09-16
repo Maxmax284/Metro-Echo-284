@@ -2,11 +2,11 @@
 //
 // Doctrine:
 //   - Read only. There is no arm here that moves money, and none will be added.
-//   - The access token stays server-side: this module opens its own service-role
-//     client rather than expecting a caller to hold a token it must not see.
+//   - The access token stays server-side: this module reads the link row itself
+//     with the service key over REST, so no caller ever holds a token it must
+//     not see, and this file stays importable by the test runner.
 //   - No bank linked is a real answer, not an error. A refused bank is named.
 //   - Nothing is converted between currencies and nothing is called sensible.
-import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   MONEY_LAW,
   NO_BANK,
@@ -64,6 +64,29 @@ export function formatBank(
   return `${onHand}${plan}${refused} ${MONEY_LAW}`;
 }
 
+/** The link rows, read with the service key so the token never leaves the server. */
+async function linkRows(
+  userId: string,
+  orgId: string | null,
+): Promise<Array<{ access_token: string; institution_name: string | null }>> {
+  const base = Deno.env.get("SUPABASE_URL")!;
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const params = new URLSearchParams({
+    select: "item_id,access_token,institution_name",
+    user_id: `eq.${userId}`,
+    active: "is.true",
+    organization_id: orgId ? `eq.${orgId}` : "is.null",
+  });
+  const res = await fetch(`${base}/rest/v1/bank_links?${params}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!res.ok) {
+    console.error(`bank_links read failed [${res.status}]: ${await res.text()}`);
+    return [];
+  }
+  return (await res.json()) as Array<{ access_token: string; institution_name: string | null }>;
+}
+
 export async function bankRead(
   _sb: unknown,
   { userId, orgId }: { userId: string; orgId: string | null },
@@ -72,14 +95,7 @@ export async function bankRead(
   if (!bankRailReady()) {
     return "No bank rail is configured, so there are no balances to read.";
   }
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const base = admin
-    .from("bank_links")
-    .select("item_id, access_token, institution_name")
-    .eq("user_id", userId)
-    .eq("active", true);
-  const { data } = orgId ? await base.eq("organization_id", orgId) : await base.is("organization_id", null);
-  const rows = (data ?? []) as Array<{ access_token: string; institution_name: string | null }>;
+  const rows = await linkRows(userId, orgId);
   if (!rows.length) return NO_BANK;
 
   const end = new Date();
