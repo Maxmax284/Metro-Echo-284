@@ -261,6 +261,23 @@ export async function runEchoRead(
       });
       return { name, text, source };
     }
+    case "convert_money": {
+      const from = toCode(String(a.from ?? ""));
+      const to = toCode(String(a.to ?? ""));
+      const amount = Number(a.amount);
+      if (!from || !to || !Number.isFinite(amount) || amount <= 0) {
+        return { name, text: "That conversion was not stated clearly enough to read a rate for.", source };
+      }
+      const rates = await fetchRates(from);
+      return { name, text: moneyAnswer({ amount, from, to }, rates), source };
+    }
+    case "local_help": {
+      return { name, text: helpAnswer(String(a.place ?? "")), source };
+    }
+    case "body_read": {
+      const text = await bodyRead(sb, scope, { days: Number(a.days) || 7 });
+      return { name, text, source };
+    }
   }
 }
 
