@@ -235,6 +235,8 @@ export function confirmedEntries(
   ]
     .filter(Boolean)
     .join(" ");
+  /* No departure time, no board entry. A day cannot hold an hour nobody recorded. */
+  if (!option.depart_at) return [];
   const rows = [
     {
       title: `Depart ${from} → ${to}${who ? ` · ${who}` : ""}`,
