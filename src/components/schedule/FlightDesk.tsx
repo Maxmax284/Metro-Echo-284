@@ -192,6 +192,53 @@ export function FlightDesk() {
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
 
+      {/* The manual way in, first thing on the desk and as small as a flight gets. */}
+      <Card className="vanta-card space-y-2 p-3">
+        <div className="flex items-center gap-2">
+          <Plane className="h-4 w-4 text-primary" aria-hidden />
+          <p className="text-[13px] font-medium">Add a flight</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[7.5rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-no" className="text-[11px]">Flight number</Label>
+            <Input
+              id="fd-quick-no"
+              value={quickNo}
+              onChange={(e) => setQuickNo(e.target.value)}
+              placeholder="TG601"
+              autoCapitalize="characters"
+              className="h-11 text-[15px] tracking-wide"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void quickAdd();
+              }}
+            />
+          </div>
+          <div className="min-w-[9rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-date" className="text-[11px]">Day it leaves</Label>
+            <Input
+              id="fd-quick-date"
+              type="date"
+              value={quickDate}
+              onChange={(e) => setQuickDate(e.target.value)}
+              className="h-11 text-[13px]"
+            />
+          </div>
+          <Button onClick={() => void quickAdd()} disabled={busy} className="h-11 min-w-[5rem] text-[13px]">
+            <PlusCircle className="mr-1 h-4 w-4" aria-hidden />
+            Add
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">{QUICK_LAW}</p>
+        <button
+          type="button"
+          onClick={() => setDetail((v) => !v)}
+          className={cn("text-left text-[11.5px] text-primary/90 underline underline-offset-2", MOTION_FOCUS)}
+          aria-expanded={detail}
+        >
+          {detail ? "Hide the longer way" : "Got a route, times or a price? Add the detail"}
+        </button>
+      </Card>
+
       {asked.length > 0 && (
         <Card className="vanta-card space-y-3 p-3">
           <p className="vanta-machine-label text-foreground/70">Echo noticed a flight</p>
