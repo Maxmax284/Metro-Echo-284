@@ -35,6 +35,7 @@ import ReconciliationView from "./pages/ReconciliationView.tsx";
 import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
 import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
 import ProjectsPage from "./pages/Projects.tsx";
+import FlightsPage from "./pages/Flights.tsx";
 import ProjectBriefPage from "./pages/ProjectBrief.tsx";
 import DocumentsPage from "./pages/Documents.tsx";
 import RoomMapPage from "./pages/RoomMap.tsx";
