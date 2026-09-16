@@ -26,6 +26,7 @@ const STATE_CLASS: Record<AbilityState, string> = {
 
 export function WhatEchoCanDo({ className }: { className?: string }) {
   const { abilities, loading } = useEchoAbilities();
+  const { domains } = useLifeDomains();
 
   return (
     <Popover>
