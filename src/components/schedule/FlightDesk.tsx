@@ -473,6 +473,11 @@ export function FlightDesk() {
                     ))}
                   </ul>
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
+                  {senseLines(p).map((line) => (
+                    <p key={line} className="text-[11.5px] text-muted-foreground">
+                      {line}
+                    </p>
+                  ))}
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
