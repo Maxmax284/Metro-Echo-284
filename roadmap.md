@@ -761,3 +761,36 @@ under the same Echo, on both surfaces at once.
 - **Proof.** `src/test/trouble.test.ts` (9), `src/test/friction.test.ts` (11),
   `src/test/customs.test.ts` (8). Full suite green; typecheck clean.
 - **Next.** Phase C (travel polish — only what is missing) waits on approval.
+
+## Pass 21 — Phase C: travel polish, and Echo speaking up first
+
+- **A flight change now interrupts you, in the right measure.**
+  `_shared/journeyNotice.ts` turns a journey diff into one heads-up with real
+  urgency behind it: a cancelled or diverted leg is critical, a gate or terminal
+  move or a delay of 30 min or more is high, a state change is ordinary, a
+  ten-minute slip is a footnote. An empty diff returns nothing at all — silence
+  stays a valid outcome. The nudge carries the matching priority and a title
+  that names the actual change ("Your gate moved"), not a generic one.
+- **Today says it without being asked.** `journey_moved` joined `DRIFT_KINDS`,
+  so a flight change lands in the same quiet Today lane as a drifting promise,
+  and `NudgesPanel` labels it "Flight".
+- **Telegram gets the same note, never a second brain.** `journey-watch` reaches
+  the linked chat only when the awareness opt-in is on AND a chat is linked, and
+  quiet hours hold everything except a leg that is off or diverted. Every send
+  writes a receipt (`journey.reached_messaging`); the run report counts pings.
+- **`_shared/travelSense.ts` (pure).** When to leave: a 120-min cushion
+  domestic, 180 crossing a border, 150 when Echo cannot tell — every cushion
+  named as an assumption. No filed departure means no leave time, and a ride
+  time Echo was not given is asked for, not invented. What the clock does:
+  offsets read from the kept airport table, "Bangkok runs 11 hours ahead of
+  Washington", a body-clock note only past a three-hour jump, silence for an
+  airport that is not kept.
+- **On the desk.** Prepared and confirmed flight cards now carry the leave-by
+  line, the clock shift and the body-clock note under the live reading.
+- **Proof.** `src/test/journey-notice.test.ts` (9) and
+  `src/test/travel-sense.test.ts` (9). Full suite 1,511 green; typecheck clean.
+  `journey-watch` redeployed.
+- **Still not built, on purpose.** Airline login, check-in, seat selection,
+  buying, holding. Trip documents pulled from mail and files stay open.
+- **Next.** Phase E (housing and what living somewhere really costs) — Phase D
+  money remains blocked on real bank credentials.

@@ -19,6 +19,58 @@ import {
   packDiff,
   whereOnJourney,
 } from "../_shared/journey.ts";
+import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
+import { isInQuietHours } from "../_shared/drift.ts";
+import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+
+/**
+ * Reach the person on Telegram with the same note Today just got.
+ *
+ * Double-gated: the awareness opt-in has to be on AND a chat has to be linked.
+ * Quiet hours hold everything except a leg that is off or diverted. Returns
+ * whether a message actually went out.
+ */
+async function reachMessaging(
+  sb: ReturnType<typeof createClient>,
+  userId: string,
+  organizationId: string | null,
+  notice: JourneyNotice,
+): Promise<boolean> {
+  if (!Deno.env.get("TELEGRAM_API_KEY")) return false;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("timezone, preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const prefs = ((profile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}) as Record<
+    string,
+    unknown
+  >;
+  if (prefs.telegram_awareness_enabled !== true) return false;
+
+  const tz = ((profile as { timezone?: string } | null)?.timezone as string) || "UTC";
+  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) return false;
+
+  const chatId = await chatIdForUser(sb, userId);
+  if (!chatId) return false;
+
+  const res = await sendTelegram({
+    admin: sb,
+    userId,
+    chatId,
+    text: `${notice.title}. ${notice.body}`,
+    organizationId,
+    kind: "notice",
+    entityType: "nudge",
+    entityId: null,
+    auditEvent: "journey.reached_messaging",
+    auditFailedEvent: "journey.reach_messaging_failed",
+    auditPayload: { urgency: notice.urgency, title: notice.title, source: "journey_watch" },
+  });
+  if (!res.ok) console.error("journey-watch telegram reach failed", res.reason);
+  return res.ok;
+}
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
 /** Rows are only pulled for days around now; nothing further out costs anything. */
@@ -152,6 +204,7 @@ Deno.serve(async (req) => {
 
     let readings = 0;
     let heads_up = 0;
+    let pinged = 0;
     let skipped_budget = 0;
 
     for (const [userId, own] of byUser) {
@@ -199,9 +252,11 @@ Deno.serve(async (req) => {
       const where = whereOnJourney(after);
       const landed = arrivalMessage(after);
 
-      /* One message, and only when something actually moved or you just landed. */
-      const body = landed ?? (news.length ? `${where.words} ${news.join(" ")} ${TERMINAL_CAVEAT}` : null);
-      if (!body) continue;
+      /* One heads-up, and only when something actually moved or you just landed.
+         How loud it is comes off the change itself, not off a feeling. */
+      const notice = journeyNotice({ news, whereWords: where.words, landed, caveat: TERMINAL_CAVEAT });
+      if (!notice) continue;
+      const body = notice.body;
 
       const orgId = (own[0] as unknown as { organization_id?: string | null }).organization_id ?? null;
       /* Don't stack the same heads-up twice. */
@@ -218,20 +273,30 @@ Deno.serve(async (req) => {
         user_id: userId,
         organization_id: orgId,
         kind: "journey_moved",
-        title: landed ? "You are on the ground" : "Your journey moved",
+        title: notice.title,
         body,
+        priority: notice.priority,
         status: "pending",
         related_entity_type: "flight_plan",
         related_entity_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
         dedupe_key: `journey_moved:${after.id}:${body.slice(0, 60)}`,
       } as never);
       heads_up += 1;
+
+      /* Messaging is a second surface for the same note, never a second brain.
+         Consent is double-gated (opt-in plus a linked chat) and quiet hours hold
+         everything except a leg that is off. */
+      if (notice.reachMessaging) {
+        const reached = await reachMessaging(sb, userId, orgId, notice);
+        if (reached) pinged += 1;
+      }
     }
 
     return json({
       users: byUser.size,
       readings,
       heads_up,
+      pinged,
       skipped_budget,
       spent_today: spent,
       daily_budget: DAILY_BUDGET,

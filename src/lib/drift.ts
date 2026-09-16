@@ -34,6 +34,9 @@ export const DRIFT_KINDS = [
   "web_page_changed",
   /* An urgent signal from a connected system: one line, in the same lane. */
   "inbound_needs_you",
+  /* A gate, terminal, time or state on a flight you are actually on moved.
+     Today says it without being asked — that is the whole point of watching. */
+  "journey_moved",
 ] as const;
 
 export function isDriftKind(kind: string): boolean {

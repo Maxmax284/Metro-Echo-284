@@ -39,6 +39,7 @@ import {
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
 import { STATUS_LAW, readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
+import { TRAVEL_SENSE_LAW, clockShift, clockShiftNote, leaveForFlight } from "@/lib/travelSense";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -183,6 +184,31 @@ export function FlightDesk() {
     } finally {
       setBusy(false);
     }
+  };
+
+  /**
+   * The arithmetic around a flight: when to leave, and what the clock does on
+   * arrival. Every cushion is stated, nothing is invented, and a leg with no
+   * filed time gets no leave-by line at all.
+   */
+  const senseLines = (plan: FlightPlan): string[] => {
+    const snap = plan.live_status as LiveFlight | null;
+    const code = (v?: string | null) => {
+      const t = (v ?? "").trim().toUpperCase();
+      return /^[A-Z]{3}$/.test(t) ? t : null;
+    };
+    const from = code(snap?.departure.iata) ?? code(plan.origin);
+    const to = code(snap?.arrival.iata) ?? code(plan.destination);
+    const departAt =
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null;
+
+    const out: string[] = [];
+    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, clock).words);
+    const shift = clockShift(from, to);
+    if (shift) out.push(shift.words);
+    const note = clockShiftNote(shift);
+    if (note) out.push(note);
+    return out;
   };
 
   const liveLine = (plan: FlightPlan): string | null => {
@@ -447,6 +473,11 @@ export function FlightDesk() {
                     ))}
                   </ul>
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
+                  {senseLines(p).map((line) => (
+                    <p key={line} className="text-[11.5px] text-muted-foreground">
+                      {line}
+                    </p>
+                  ))}
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
@@ -530,6 +561,11 @@ export function FlightDesk() {
                 {p.status === "confirmed" && (
                   <>
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
+                    {senseLines(p).map((line) => (
+                      <p key={line} className="text-[11.5px] text-muted-foreground">
+                        {line}
+                      </p>
+                    ))}
                     <Button
                       size="sm"
                       variant="outline"
@@ -545,6 +581,7 @@ export function FlightDesk() {
             ))}
           </ul>
           <p className="text-[11px] text-muted-foreground/80">{STATUS_LAW}</p>
+          <p className="text-[11px] text-muted-foreground/80">{TRAVEL_SENSE_LAW}</p>
         </Card>
       )}
 
