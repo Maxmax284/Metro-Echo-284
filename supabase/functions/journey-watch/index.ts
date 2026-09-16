@@ -199,9 +199,11 @@ Deno.serve(async (req) => {
       const where = whereOnJourney(after);
       const landed = arrivalMessage(after);
 
-      /* One message, and only when something actually moved or you just landed. */
-      const body = landed ?? (news.length ? `${where.words} ${news.join(" ")} ${TERMINAL_CAVEAT}` : null);
-      if (!body) continue;
+      /* One heads-up, and only when something actually moved or you just landed.
+         How loud it is comes off the change itself, not off a feeling. */
+      const notice = journeyNotice({ news, whereWords: where.words, landed, caveat: TERMINAL_CAVEAT });
+      if (!notice) continue;
+      const body = notice.body;
 
       const orgId = (own[0] as unknown as { organization_id?: string | null }).organization_id ?? null;
       /* Don't stack the same heads-up twice. */
@@ -218,14 +220,23 @@ Deno.serve(async (req) => {
         user_id: userId,
         organization_id: orgId,
         kind: "journey_moved",
-        title: landed ? "You are on the ground" : "Your journey moved",
+        title: notice.title,
         body,
+        priority: notice.priority,
         status: "pending",
         related_entity_type: "flight_plan",
         related_entity_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
         dedupe_key: `journey_moved:${after.id}:${body.slice(0, 60)}`,
       } as never);
       heads_up += 1;
+
+      /* Messaging is a second surface for the same note, never a second brain.
+         Consent is double-gated (opt-in plus a linked chat) and quiet hours hold
+         everything except a leg that is off. */
+      if (notice.reachMessaging) {
+        const reached = await reachMessaging(sb, userId, orgId, notice);
+        if (reached) pinged += 1;
+      }
     }
 
     return json({
