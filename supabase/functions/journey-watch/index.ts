@@ -296,6 +296,7 @@ Deno.serve(async (req) => {
       users: byUser.size,
       readings,
       heads_up,
+      pinged,
       skipped_budget,
       spent_today: spent,
       daily_budget: DAILY_BUDGET,
