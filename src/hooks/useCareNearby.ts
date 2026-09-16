@@ -44,7 +44,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
         body: { lat, lon, kinds: kinds.length ? kinds : undefined },
       });
       if (err) throw err;
-      setPlaces((((data as any)?.places ?? []) as CarePlace[]) ?? []);
+      setPlaces(((data as any)?.places ?? []) as CarePlace[]);
       setRadiusM(Number((data as any)?.radius_m ?? 0));
     } catch (e) {
       setError(e instanceof Error ? e.message : "The map could not be read just now.");
