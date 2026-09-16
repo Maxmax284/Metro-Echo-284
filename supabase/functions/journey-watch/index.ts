@@ -228,7 +228,14 @@ Deno.serve(async (req) => {
       heads_up += 1;
     }
 
-    return json({ users: byUser.size, readings, heads_up });
+    return json({
+      users: byUser.size,
+      readings,
+      heads_up,
+      skipped_budget,
+      spent_today: spent,
+      daily_budget: DAILY_BUDGET,
+    });
   } catch (e) {
     console.error("journey-watch failed:", e);
     return json({ error: e instanceof Error ? e.message : "Unknown failure" }, 500);
