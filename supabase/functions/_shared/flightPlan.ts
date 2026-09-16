@@ -88,8 +88,8 @@ export function cleanPlace(v: string | null | undefined): string {
   return /^[a-z]{3}$/i.test(t) ? t.toUpperCase() : t;
 }
 
-export function minutesBetween(a: string, b: string | null): number | null {
-  if (!b) return null;
+export function minutesBetween(a: string | null, b: string | null): number | null {
+  if (!a || !b) return null;
   const t1 = new Date(a).getTime();
   const t2 = new Date(b).getTime();
   if (!Number.isFinite(t1) || !Number.isFinite(t2) || t2 <= t1) return null;
