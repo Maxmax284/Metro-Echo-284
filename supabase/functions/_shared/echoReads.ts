@@ -27,6 +27,8 @@ import { fetchRates, moneyAnswer, toCode } from "./currency.ts";
 import { helpAnswer } from "./localHelp.ts";
 import { bankRead } from "./bankRead.ts";
 import { bodyRead } from "./bodyRead.ts";
+import { careRead } from "./careRead.ts";
+import { flightRead } from "./flightRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
@@ -41,6 +43,8 @@ export const ECHO_READ_NAMES = [
   "local_help",
   "body_read",
   "money_read",
+  "care_nearby",
+  "flights_prepared",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -62,6 +66,8 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   local_help: "the published emergency numbers for that country",
   body_read: "what your watch recorded",
   money_read: "what your bank recorded",
+  care_nearby: "the emergency number for that country and the care you kept",
+  flights_prepared: "the flights you prepared",
 };
 
 /**
@@ -214,6 +220,28 @@ export const ECHO_READ_TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "care_nearby",
+      description:
+        "Read-only: the published emergency number where this person is, plus the hospitals, clinics and pharmacies they kept. Use for 'where is the nearest hospital', 'I need a pharmacy', 'I need a doctor'. Echo never calls and never books.",
+      parameters: {
+        type: "object",
+        properties: { place: { type: "string", description: "Country name or two-letter code, when the person named one." } },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "flights_prepared",
+      description:
+        "Read-only: the flights this person prepared, their times and recorded prices, and which are still waiting on their yes. Use for 'what flight am I on', 'did I confirm that flight'. Echo never books, buys, or checks in.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -296,6 +324,14 @@ export async function runEchoRead(
     }
     case "body_read": {
       const text = await bodyRead(sb, scope, { days: Number(a.days) || 7 });
+      return { name, text, source };
+    }
+    case "care_nearby": {
+      const text = await careRead(sb, scope, { place: a.place ? String(a.place) : null });
+      return { name, text, source };
+    }
+    case "flights_prepared": {
+      const text = await flightRead(sb, scope);
       return { name, text, source };
     }
   }

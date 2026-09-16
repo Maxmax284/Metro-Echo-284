@@ -2166,6 +2166,74 @@ export type Database = {
           },
         ]
       }
+      flight_plans: {
+        Row: {
+          chosen_option_id: string | null
+          confirmed_at: string | null
+          created_at: string
+          currency: string | null
+          depart_on: string
+          destination: string
+          event_ids: string[]
+          id: string
+          options: Json
+          organization_id: string | null
+          origin: string
+          passengers: number
+          return_on: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chosen_option_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          depart_on: string
+          destination: string
+          event_ids?: string[]
+          id?: string
+          options?: Json
+          organization_id?: string | null
+          origin: string
+          passengers?: number
+          return_on?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chosen_option_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          depart_on?: string
+          destination?: string
+          event_ids?: string[]
+          id?: string
+          options?: Json
+          organization_id?: string | null
+          origin?: string
+          passengers?: number
+          return_on?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flight_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingested_files: {
         Row: {
           approved_actions: Json

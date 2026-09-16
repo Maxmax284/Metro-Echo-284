@@ -17,6 +17,8 @@ import { MonthGrid } from "@/components/schedule/MonthGrid";
 import { AgendaBoard } from "@/components/schedule/AgendaBoard";
 import { BodyDesk } from "@/components/schedule/BodyDesk";
 import { MoneyDesk } from "@/components/schedule/MoneyDesk";
+import { HelpDesk } from "@/components/schedule/HelpDesk";
+import { FlightDesk } from "@/components/schedule/FlightDesk";
 import { WeekPlanner } from "@/components/schedule/WeekPlanner";
 
 import { CommitmentActions } from "@/components/commitments/CommitmentActions";
@@ -24,7 +26,7 @@ import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
-type TabKey = "today" | "upcoming" | "week" | "board" | "body" | "money" | "month" | "calendar";
+type TabKey = "today" | "upcoming" | "week" | "board" | "body" | "money" | "help" | "flights" | "month" | "calendar";
 
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
@@ -136,6 +138,8 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
             { id: "board", label: "Board" },
             { id: "body", label: "Body" },
             { id: "money", label: "Money" },
+            { id: "flights", label: "Flights" },
+            { id: "help", label: "Help" },
             { id: "month", label: "Month" },
             { id: "calendar", label: "Calendar only" },
           ] as const).map((t) => (
@@ -157,6 +161,10 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <CalendarOnlyView />
         ) : tab === "money" ? (
           <MoneyDesk />
+        ) : tab === "help" ? (
+          <HelpDesk />
+        ) : tab === "flights" ? (
+          <FlightDesk />
         ) : tab === "body" ? (
           <BodyDesk />
         ) : tab === "board" ? (

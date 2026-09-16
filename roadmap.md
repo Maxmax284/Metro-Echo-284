@@ -531,3 +531,31 @@ or Safety room.
 - Flight depth — needs a flight-data key. Booking stays a purchase Echo
   prepares and records, never makes.
 - WhatsApp — needs a WhatsApp Business number and signing secret.
+
+## Pass 14 — Care directory and flight preparation
+
+- `_shared/careFinder.ts` (+ client mirror): Overpass query, honest normalising
+  (no name or no coordinates → dropped, never placed at the person), urgent
+  care ranked first then nearest, straight-line distance said as straight-line,
+  recorded hours repeated as recorded and never as "open now". `CARE_LAW`: Echo
+  says where care is; it never dials, never books, never advises on treatment.
+- `care-nearby` edge function shares the awareness Overpass cache, widens the
+  radius until at least five places are found, and returns the radius it used.
+- Schedule → Help: the published emergency number first, kind chips, search,
+  keep/forget. Kept places live in `awareness_places` (category `care`) with an
+  audit receipt, and surface on the Board.
+- `_shared/flightPlan.ts` (+ client mirror) and migration 0028 `flight_plans`:
+  Echo prepares from typed or pasted lines only. A line without a flight code
+  and a time is handed back unread. A bare number is never read as a price —
+  only a symbol or a currency code makes one. No cheapest is named across two
+  currencies. `FLIGHT_LAW`: preparing is not buying.
+- Schedule → Flights and the Board: prepared flights wait on the person's own
+  tap; confirming writes departure (and landing, when recorded) as Echo-owned
+  board entries and leaves a receipt. Nothing is bought, held or checked in.
+- `care_nearby` + `flights_prepared` reads in `_shared/echoReads.ts`, answered
+  from records only — a chat answer never triggers a fresh map lookup.
+- Tests: `src/test/care-finder.test.ts` (15), `src/test/flight-plan.test.ts` (17).
+
+### Still pinned
+- Live flight status, gates and delays — needs a flight-data provider key.
+- WhatsApp — needs a WhatsApp Business number and signing secret.

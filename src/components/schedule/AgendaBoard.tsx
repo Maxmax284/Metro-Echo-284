@@ -18,6 +18,11 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useAgenda, type AgendaEvent } from "@/hooks/useAgenda";
 import { useBody } from "@/hooks/useBody";
 import { useBank } from "@/hooks/useBank";
+import { useFlightPlans } from "@/hooks/useFlightPlans";
+import { useCareNearby } from "@/hooks/useCareNearby";
+import { Button } from "@/components/ui/button";
+import { vantaToast } from "@/lib/vantaVoice";
+import { FLIGHT_LAW, SOURCE_WORDS, optionWords, planTitle, sortOptions } from "@/lib/flightPlan";
 import { dayMoneyLine } from "@/lib/bankPlan";
 import { dosesOn } from "@/lib/bodyLog";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
@@ -59,6 +64,9 @@ export function AgendaBoard() {
   const { events, projects, loading, error, refresh } = useAgenda({ from, to });
   const { meds } = useBody();
   const { transactions } = useBank(31);
+  const { plans, confirm } = useFlightPlans();
+  const { kept } = useCareNearby();
+  const [confirming, setConfirming] = useState(false);
 
   const rows = useMemo(() => dedupeBoard(events), [events]);
   const stay = useMemo(() => currentStay(rows), [rows]);
@@ -101,6 +109,18 @@ export function AgendaBoard() {
 
   /* Doses belong to the day, beside the appointments, not in a separate room. */
   const dayDoses = useMemo(() => dosesOn(meds, selected), [meds, selected]);
+
+  /* Flights prepared for this day, still waiting on a yes. Confirming here is
+     the person's own tap: it records the flight, it buys nothing. */
+  const dayFlights = useMemo(
+    () => plans.filter((p) => p.status === "prepared" && p.depart_on === dayKey(selected)),
+    [plans, selected],
+  );
+
+  const clock = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "\u2014";
+  };
 
   const monthLabel = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
   const shift = (n: number) => {
@@ -269,6 +289,59 @@ export function AgendaBoard() {
                     {d.med.name}
                     {d.med.dose ? ` \u00b7 ${d.med.dose}` : ""}
                   </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {dayFlights.length > 0 && (
+          <div className="mt-3 border-t border-border/50 pt-2">
+            <p className="vanta-machine-label mb-1 text-foreground/70">Flight waiting on your yes</p>
+            <ul className="space-y-2">
+              {dayFlights.map((p) => (
+                <li key={p.id} className="space-y-1.5 border-l-2 border-primary/50 pl-2">
+                  <p className="text-[12.5px] text-foreground/90">{planTitle(p)}</p>
+                  <p className="text-[11px] text-muted-foreground">{SOURCE_WORDS[p.source]}. {FLIGHT_LAW}</p>
+                  <ul className="space-y-1">
+                    {sortOptions(p.options).map((o) => (
+                      <li key={o.id} className="flex items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-foreground/85">{optionWords(o, clock)}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 shrink-0 text-[11px]"
+                          disabled={confirming}
+                          onClick={async () => {
+                            setConfirming(true);
+                            try {
+                              await confirm(p, o.id);
+                              vantaToast.success("Confirmed on your board. No ticket was bought.");
+                              await refresh();
+                            } catch (e) {
+                              vantaToast.warning(e instanceof Error ? e.message : "That could not be confirmed.");
+                            } finally {
+                              setConfirming(false);
+                            }
+                          }}
+                        >
+                          Confirm
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {kept.length > 0 && (
+          <div className="mt-3 border-t border-border/50 pt-2">
+            <p className="vanta-machine-label mb-1 text-foreground/70">Care you kept nearby</p>
+            <ul className="space-y-1">
+              {kept.slice(0, 6).map((k) => (
+                <li key={k.id} className="text-[12px] text-foreground/85">
+                  {k.label}
+                  {k.address ? <span className="text-muted-foreground"> \u00b7 {k.address}</span> : null}
                 </li>
               ))}
             </ul>
