@@ -36,6 +36,7 @@ const KIND_LABEL: Record<string, string> = {
   sherlock_watch_quiet: "Quiet",
   web_page_changed: "Page changed",
   inbound_needs_you: "Needs you",
+  journey_moved: "Flight",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
