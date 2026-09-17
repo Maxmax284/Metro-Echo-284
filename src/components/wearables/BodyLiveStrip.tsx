@@ -90,11 +90,14 @@ export function BodyLiveStrip({
 
       <p className={cn("mt-1 leading-snug text-foreground/90", tall ? "text-[12px]" : "text-[11.5px]")}>
         {state.line}
+        {state.markers.length > 2 ? (
+          <span className="text-muted-foreground"> Slide the line sideways for the rest.</span>
+        ) : null}
       </p>
 
       {state.markers.length ? (
         <div className="mt-2 -mx-1 overflow-x-auto pb-1">
-          <div className="relative px-1" style={{ width, height: tall ? 62 : 52 }}>
+          <div className="relative px-1" style={{ width, height: tall ? 74 : 68 }}>
             {/* The line itself. */}
             <span
               aria-hidden
