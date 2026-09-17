@@ -21,6 +21,8 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useJourney } from "@/hooks/useJourney";
 import { JourneySpine } from "./JourneySpine";
+import { FlightLive } from "./FlightLive";
+import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { formatInTimeZone } from "date-fns-tz";
 import { vantaToast } from "@/lib/vantaVoice";
@@ -223,6 +225,8 @@ export function FlightDesk() {
   return (
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
+
+      <FlightAlertsCard />
 
       {/* The trip you are actually on comes before anything you might add. */}
       {journey.current ? (
@@ -472,6 +476,14 @@ export function FlightDesk() {
                       </li>
                     ))}
                   </ul>
+                  {(p.live_status as LiveFlight | null) && (
+                    <FlightLive
+                      live={p.live_status as LiveFlight}
+                      checkedAt={p.live_checked_at ?? null}
+                      clock={clock}
+                      reading={busy}
+                    />
+                  )}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
                     <p key={line} className="text-[11.5px] text-muted-foreground">
@@ -560,6 +572,13 @@ export function FlightDesk() {
                 <p className="text-[12px] text-foreground/85">{planWords(p, clock)}</p>
                 {p.status === "confirmed" && (
                   <>
+                    {(p.live_status as LiveFlight | null) && (
+                      <FlightLive
+                        live={p.live_status as LiveFlight}
+                        checkedAt={p.live_checked_at ?? null}
+                        clock={clock}
+                      />
+                    )}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
                     {senseLines(p).map((line) => (
                       <p key={line} className="text-[11.5px] text-muted-foreground">

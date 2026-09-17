@@ -169,3 +169,55 @@ export function readingAge(checkedAt: string, now: Date = new Date()): string {
 
 export const STATUS_LAW =
   "Echo reads where a flight is. It never checks you in, never rebooks, and never buys.";
+
+/* ---- Where a flight is in its own arc -------------------------------------
+   Only for showing motion on screen. Every value is derived from times the
+   provider actually carried; a missing time means no progress is drawn rather
+   than a guessed halfway. */
+
+export type FlightPhase = "waiting" | "flying" | "landed" | "stopped" | "unknown";
+
+/** The flight's own arc, from the provider's word first and its times second. */
+export function flightPhase(live: LiveFlight, now: Date = new Date()): FlightPhase {
+  const s = (live.status ?? "").toLowerCase();
+  if (s === "cancelled" || s === "diverted" || s === "incident") return "stopped";
+  if (s === "landed") return "landed";
+  if (s === "active") return "flying";
+  const off = live.departure.actual ?? null;
+  const on = live.arrival.actual ?? null;
+  if (on) return "landed";
+  if (off) return "flying";
+  const dep = live.departure.estimated ?? live.departure.scheduled;
+  if (!dep) return "unknown";
+  const t = new Date(dep).getTime();
+  if (!Number.isFinite(t)) return "unknown";
+  return now.getTime() < t ? "waiting" : "unknown";
+}
+
+/**
+ * How far along, 0 to 1. Null when either end has no time on record — a strip
+ * with no honest position shows none.
+ */
+export function flightProgress(live: LiveFlight, now: Date = new Date()): number | null {
+  const phase = flightPhase(live, now);
+  if (phase === "landed") return 1;
+  if (phase === "stopped") return null;
+  const depIso = live.departure.actual ?? live.departure.estimated ?? live.departure.scheduled;
+  const arrIso = live.arrival.actual ?? live.arrival.estimated ?? live.arrival.scheduled;
+  if (!depIso || !arrIso) return null;
+  const dep = new Date(depIso).getTime();
+  const arr = new Date(arrIso).getTime();
+  if (!Number.isFinite(dep) || !Number.isFinite(arr) || arr <= dep) return null;
+  const p = (now.getTime() - dep) / (arr - dep);
+  if (p <= 0) return 0;
+  if (p >= 1) return 1;
+  return p;
+}
+
+export const PHASE_WORDS: Record<FlightPhase, string> = {
+  waiting: "on the ground, waiting",
+  flying: "in the air",
+  landed: "landed",
+  stopped: "not flying",
+  unknown: "position not on record",
+};

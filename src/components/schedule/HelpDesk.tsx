@@ -19,8 +19,8 @@ import { helpAnswer } from "@/lib/localHelp";
 import {
   CARE_KINDS,
   CARE_LAW,
-  CARE_SOURCE,
   careKindLabel,
+  careSourceWords,
   careMapLink,
   distanceWords,
   filterCare,
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 export function HelpDesk() {
   const [kinds, setKinds] = useState<CareKind[]>([]);
   const [query, setQuery] = useState("");
-  const { places, radiusM, loading, error, hasFix, country, kept, look, keep, forget } = useCareNearby(kinds);
+  const { places, radiusM, source, loading, error, hasFix, country, kept, look, keep, forget } = useCareNearby(kinds);
 
   const rows = useMemo(() => filterCare(places, query, kinds), [places, query, kinds]);
   const help = useMemo(() => helpAnswer(country), [country]);
@@ -59,7 +59,7 @@ export function HelpDesk() {
             variant="ghost"
             size="sm"
             className="ml-auto h-8 px-2 text-[12px]"
-            onClick={() => void look()}
+            onClick={() => void look(true)}
             disabled={!hasFix || loading}
           >
             <RefreshCw className={cn("mr-1 h-3.5 w-3.5", loading && "animate-spin")} aria-hidden />
@@ -111,7 +111,7 @@ export function HelpDesk() {
         ) : rows.length === 0 ? (
           <p className="text-[12.5px] text-muted-foreground">
             {places.length === 0
-              ? `The map has nothing recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of you. That is the map being empty, not care being absent — ask where you are staying.`
+              ? `Neither place provider has anything recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of where Echo has you. That is the records being empty, not care being absent — check the place Echo is holding for you.`
               : "Nothing on the list matches that. Clear the search to see all of it."}
           </p>
         ) : (
@@ -169,7 +169,7 @@ export function HelpDesk() {
         )}
 
         <p className="text-[11px] text-muted-foreground/80">
-          {CARE_LAW} Listings come from {CARE_SOURCE}.
+          {CARE_LAW} Listings come from {careSourceWords(source)}.
         </p>
       </Card>
 

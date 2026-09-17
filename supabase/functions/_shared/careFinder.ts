@@ -206,3 +206,103 @@ export function careAnswer(rows: CarePlace[], helpText: string | null, radiusM: 
   lines.push(CARE_LAW);
   return lines.join("\n");
 }
+
+/* ── Where the listings came from ──────────────────────────────────────────
+   Two providers, one shape. A row never pretends to be from a source it is
+   not, and the panel says which one answered. */
+
+export type CareSource = "google" | "osm";
+
+export const CARE_SOURCE_WORDS: Record<CareSource, string> = {
+  google: "Google Maps place records",
+  osm: "OpenStreetMap records",
+};
+
+export function careSourceWords(source: string | null | undefined): string {
+  return CARE_SOURCE_WORDS[(source ?? "osm") as CareSource] ?? CARE_SOURCE;
+}
+
+/** The place types to ask Google for, per kind a person tapped. */
+const GOOGLE_TYPES: Record<CareKind, string[]> = {
+  emergency: ["hospital"],
+  hospital: ["hospital"],
+  clinic: ["doctor", "medical_lab"],
+  doctor: ["doctor"],
+  pharmacy: ["pharmacy", "drugstore"],
+  dentist: ["dentist", "dental_clinic"],
+};
+
+/**
+ * The type groups to ask for separately. One request for everything returns the
+ * twenty nearest of anything, which on a dense street is twenty dentists and no
+ * pharmacy — so a group per family of care is asked for on its own.
+ */
+export function googleCareGroups(kinds: CareKind[]): string[][] {
+  const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
+  const groups = new Map<string, string[]>();
+  for (const k of wanted) {
+    const types = GOOGLE_TYPES[k] ?? [];
+    if (types.length) groups.set(types.join("+"), types);
+  }
+  return [...groups.values()];
+}
+
+export function googleCareTypes(kinds: CareKind[]): string[] {
+  const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
+  return Array.from(new Set(wanted.flatMap((k) => GOOGLE_TYPES[k] ?? [])));
+}
+
+function googleKind(types: string[], name: string, primary?: string | null): CareKind | null {
+  /* Google's primary type is the one it stands behind. A podiatry office often
+     carries "hospital" somewhere in its list; that does not make it a hospital. */
+  const has = (t: string) => (primary ? primary === t : types.includes(t));
+  if (has("hospital")) return "hospital";
+  if (has("pharmacy") || has("drugstore")) return "pharmacy";
+  if (has("dentist") || has("dental_clinic")) return "dentist";
+  if (has("doctor") || has("medical_lab")) {
+    /* Google has no clinic type. A name that says clinic is the only honest
+       reason to call it one. */
+    return /\bclinic\b|urgent care|walk-?in/i.test(name) ? "clinic" : "doctor";
+  }
+  return null;
+}
+
+/**
+ * Google's Places rows, narrowed to the same honest shape. A field Google did
+ * not carry stays blank; nothing here is rated, ranked or invented.
+ */
+export function normalizeGoogleCare(rows: unknown[], lat: number, lon: number): CarePlace[] {
+  const out: CarePlace[] = [];
+  const seen = new Set<string>();
+  for (const raw of rows ?? []) {
+    const p = raw as Record<string, any>;
+    const name = String(p?.displayName?.text ?? "").trim();
+    const plat = Number(p?.location?.latitude);
+    const plon = Number(p?.location?.longitude);
+    if (!name || !Number.isFinite(plat) || !Number.isFinite(plon)) continue;
+    const types: string[] = Array.isArray(p?.types) ? p.types.map(String) : [];
+    const primary = p?.primaryType ? String(p.primaryType) : null;
+    const kind = googleKind(types, name, primary) ?? googleKind(types, name, null);
+    if (!kind) continue;
+    const id = `google/${String(p?.id ?? `${plat},${plon}`)}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const hours: string[] = Array.isArray(p?.regularOpeningHours?.weekdayDescriptions)
+      ? p.regularOpeningHours.weekdayDescriptions.map(String)
+      : [];
+    out.push({
+      id,
+      name,
+      kind,
+      lat: plat,
+      lon: plon,
+      distanceM: Math.round(haversineM(lat, lon, plat, plon)),
+      address: String(p?.formattedAddress ?? "").trim() || null,
+      phone: String(p?.nationalPhoneNumber ?? p?.internationalPhoneNumber ?? "").trim() || null,
+      hours: hours.length ? hours.join("; ") : null,
+      /* Google does not say whether a hospital takes emergencies. Silence stays silence. */
+      emergency: null,
+    });
+  }
+  return rankCare(out);
+}
