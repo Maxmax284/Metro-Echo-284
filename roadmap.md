@@ -36,7 +36,47 @@ receipts live in `.lovable/plan/` and the audit trail; nothing there is rewritte
   cancelled from the same linked Telegram chat and message, under strict chat and
   message binding. Nothing else executes from messaging.
 
-## Active pass — street-smart substrate and phone doctrine
+## Active pass — world context, place truth, universal reach
+
+Done:
+
+- World context spine: `_shared/judgment/worldContext.ts` turns the kept country
+  notes, customs notes and emergency numbers into stamped facts on the existing
+  world backbone, and a state/province row replaces the country row for the same
+  topic (Virginia and DC tax, DC transit). A place with no notes contributes
+  nothing rather than a generalisation.
+- Place truth: `_shared/placeState.ts` fuses stated place, an allowed fix, the
+  device clock, a filed journey, a calendar location and a nearby lookup into one
+  role-aware read (home / temporary base / current / recent / transit /
+  destination) across country → region → metro → locality → exact. Each source
+  is capped at the precision it can honestly support, a day-old fix reads thin,
+  and a contested level is spoken about by nobody: both readings are shown.
+- Transition ledger: `_shared/placeTransitions.ts` records the coarsest move that
+  actually happened plus airport arrivals and coming home. No breadcrumb trail,
+  nothing recorded from a contested or thin read.
+- One delivery rail: `_shared/delivery/rail.ts` plus the `deliveries` table.
+  One event makes one dedupe key; the unique claim is what stops the same news
+  buzzing on the phone and arriving on Telegram. Quiet hours hold anything short
+  of critical, sensitive content gets privacy-safe lock-screen wording, and every
+  reach or silence leaves a receipt.
+- Notification actions: View / Later / Got it / Stop watching only. The service
+  worker mutates nothing — it carries a status in the deep link, and
+  `useDeliveryAck` applies it to the same situation inside the signed-in session.
+- Ask environment edge: `WHERE · TZ | next thing`, from one shared read
+  (`useEnvironmentEdge`), rendering nothing when nothing is known and showing a
+  place disagreement instead of hiding it. Auto-generated pin names are treated
+  as filenames, not places.
+- Ask and Telegram read the same world and place evidence through the one gather
+  path; empty evidence still produces an empty block.
+
+Open in this pass:
+
+- Work document engine: staged as its own approved plan, deliberately not built
+  in this turn.
+- Travel proof walk (Virginia → airport → Tokyo layover → Thailand) against real
+  filed journeys rather than fixtures.
+
+## Previous pass — street-smart substrate and phone doctrine
 
 Done:
 
