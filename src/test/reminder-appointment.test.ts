@@ -86,6 +86,28 @@ describe("reminder follow-ups", () => {
     expect(resolveReminderReference("dentist", rows).status).toBe("none");
   });
 
+  it("lets the words you said beat a demonstrative", () => {
+    // "that" must never override a name the person actually said.
+    expect(resolveReminderReference("that trash reminder", rows)).toMatchObject({ status: "one", reminder: { id: "trash" } });
+    expect(resolveReminderReference("that dentist reminder", rows).status).toBe("none");
+  });
+
+  it("asks instead of claiming a stale reminder for a bare reference", () => {
+    const now = new Date("2026-09-17T11:00:00Z");
+    expect(resolveReminderReference("that reminder", rows, now).status).toBe("many");
+    const fresh = [{ id: "fresh", summary: "Call the villas", created_at: "2026-09-17T10:40:00Z" }, ...rows];
+    expect(resolveReminderReference("that reminder", fresh, now)).toMatchObject({ status: "one", reminder: { id: "fresh" } });
+  });
+
+  it("asks when two reminders landed minutes apart", () => {
+    const now = new Date("2026-09-17T11:00:00Z");
+    const pair = [
+      { id: "a", summary: "Call the villas", created_at: "2026-09-17T10:50:00Z" },
+      { id: "b", summary: "Call the clinic", created_at: "2026-09-17T10:46:00Z" },
+    ];
+    expect(resolveReminderReference("that reminder", pair, now).status).toBe("many");
+  });
+
   it("preserves multiple Google reminder offsets and a location", () => {
     expect(reminderOffsetsMinutes("a day and an hour beforehand")).toEqual([1440, 60]);
     expect(reminderLocation(rows[0].summary)).toBe("One Loudoun or Old Town");
