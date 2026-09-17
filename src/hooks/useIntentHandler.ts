@@ -299,7 +299,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             .select("id, summary, due_at, created_at")
             .eq("user_id", user.id).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
             .order("created_at", { ascending: false }).limit(12);
-          const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), reminders ?? []);
+          const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), reminders ?? [], new Date());
           if (resolved.status === "none") {
             toast.warning({ title: "No matching reminder", description: "Nothing changed." });
             return;
