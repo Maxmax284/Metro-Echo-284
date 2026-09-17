@@ -25,6 +25,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
   const { place } = useAwareness();
   const [places, setPlaces] = useState<CarePlace[]>([]);
   const [radiusM, setRadiusM] = useState<number>(0);
+  const [source, setSource] = useState<string>("google");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kept, setKept] = useState<KeptCare[]>([]);
@@ -35,17 +36,18 @@ export function useCareNearby(kinds: CareKind[] = []) {
   const country = (place?.country as string | null) ?? null;
   const kindKey = useMemo(() => [...kinds].sort().join("+"), [kinds]);
 
-  const look = useCallback(async () => {
+  const look = useCallback(async (refresh = false) => {
     if (!hasFix) return;
     setLoading(true);
     setError(null);
     try {
       const { data, error: err } = await supabase.functions.invoke("care-nearby", {
-        body: { lat, lon, kinds: kinds.length ? kinds : undefined },
+        body: { lat, lon, kinds: kinds.length ? kinds : undefined, refresh },
       });
       if (err) throw err;
       setPlaces(((data as any)?.places ?? []) as CarePlace[]);
       setRadiusM(Number((data as any)?.radius_m ?? 0));
+      setSource(String((data as any)?.source ?? "google"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "The map could not be read just now.");
     } finally {
@@ -117,5 +119,5 @@ export function useCareNearby(kinds: CareKind[] = []) {
     [loadKept],
   );
 
-  return { places, radiusM, loading, error, hasFix, country, kept, look, keep, forget };
+  return { places, radiusM, source, loading, error, hasFix, country, kept, look, keep, forget };
 }
