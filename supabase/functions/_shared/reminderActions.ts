@@ -44,7 +44,8 @@ export function wantsReminderCancellation(text: string): boolean {
 
 export function wantsRecentReminderOnCalendar(text: string): boolean {
   return /\b(?:put|add|move)\s+(?:this|that|it|the)\s+(?:private\s+)?reminder\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(text)
-    || /\b(?:put|add|move)\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(text);
+    || /\b(?:put|add|move)\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(text)
+    || /\bwant\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(text);
 }
 
 export function reminderOffsetsMinutes(text: string): number[] {

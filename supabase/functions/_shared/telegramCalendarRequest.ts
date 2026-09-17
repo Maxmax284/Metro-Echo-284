@@ -12,7 +12,8 @@ export type NewTelegramCalendarRequest = {
 export function explicitlyPromotesExistingReminder(text: string): boolean {
   const t = text.trim();
   return /\b(?:put|add|move)\s+(?:this|that|it|the)\s+(?:private\s+)?reminder\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(t)
-    || /\b(?:put|add|move)\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(t);
+    || /\b(?:put|add|move)\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(t)
+    || /\bwant\s+(?:this|that|it)\b[\s\S]{0,30}\b(?:on|to|in)\s+(?:my\s+)?calendar\b/i.test(t);
 }
 
 function sentenceLocation(text: string): string | null {
@@ -24,7 +25,7 @@ function sentenceLocation(text: string): string | null {
 
 function concisePlace(location: string): string {
   return location
-    .replace(/\s+(?:about\s+)?(?:\w+\s+){0,3}(?:minute|minutes|hour|hours)\s+(?:away|down the street)(?:\s+from me)?$/i, "")
+    .replace(/\s+(?:about\s+)?(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:minute|minutes|hour|hours)\s+(?:away|down the street)(?:\s+from me)?$/i, "")
     .trim();
 }
 
