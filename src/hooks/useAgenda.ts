@@ -7,11 +7,12 @@
 //    room only.
 //  - Structural: an entry can be filed under a project, which is the user's own
 //    organisational work and survives every re-sync.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { listProjects, type Project } from "@/lib/projects";
+import { agendaChangeTouchesScope } from "@/lib/agendaRealtime";
 
 export type AgendaEvent = {
   id: string;
@@ -82,7 +83,7 @@ export function useAgenda(
   { days = 7, from: fromDate, to: toDate }: { days?: number; from?: Date; to?: Date } = {},
 ) {
   const { user } = useAuth();
-  const { applyScope, orgId, key } = useScope();
+  const { applyScope, orgId, key, scope } = useScope();
   const [events, setEvents] = useState<AgendaEvent[]>([]);
   /** Entries running right now, kept apart so they never fake a past day. */
   const [ongoing, setOngoing] = useState<AgendaEvent[]>([]);
@@ -181,6 +182,39 @@ export function useAgenda(
   }, [user?.id, key, orgId, days, spanFrom, spanTo]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  /* calendar-sync replaces a feed window in one burst. Listen once here—the
+     shared read seam—then coalesce that burst into a single scoped refresh so
+     every agenda surface, including the open day rail, receives the same rows. */
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+    let pending: number | null = null;
+    const scheduleRefresh = () => {
+      if (pending != null) window.clearTimeout(pending);
+      pending = window.setTimeout(() => {
+        pending = null;
+        void refreshRef.current();
+      }, 700);
+    };
+    const channel = supabase
+      .channel(`agenda-${userId}-${key}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "calendar_events", filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (agendaChangeTouchesScope(payload as never, userId, scope)) scheduleRefresh();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      if (pending != null) window.clearTimeout(pending);
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, key, scope]);
 
   /** File an entry under a project (or clear it). Local, reversible, audited by the row itself. */
   const setProject = useCallback(

@@ -1,0 +1,1 @@
+ALTER TABLE public.calendar_events REPLICA IDENTITY FULL;
