@@ -51,6 +51,7 @@ export function useDeliveryAck(): void {
             .eq("id", row.situation_id)
             .eq("user_id", user.id);
         }
+        window.dispatchEvent(new Event("metro:attention-changed"));
       }
 
       params.delete("ack");

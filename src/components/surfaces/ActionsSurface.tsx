@@ -286,7 +286,7 @@ export function ActionsSurface() {
                 {list.map((a) => {
                   const Icon = RiskIcon[a.risk];
                   return (
-                    <li key={a.id} className="vanta-focus-card rounded-xl surface-elevated border border-transparent p-3 ring-1 ring-border/60">
+                    <li id={`action-${a.id}`} key={a.id} className="vanta-focus-card rounded-xl surface-elevated border border-transparent p-3 ring-1 ring-border/60">
                       <div className="flex items-start gap-2">
                         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", riskColor[a.risk])} />
                         <div className="flex-1 min-w-0">

@@ -56,6 +56,7 @@ import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
 import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
+import { useRoomSignals } from "@/hooks/useRoomSignals";
 
 export default function Index() {
   return <IndexInner />;
@@ -112,6 +113,7 @@ function IndexInner() {
   const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
   const { overall: awareness, place } = useAwareness();
+  const roomSignals = useRoomSignals();
 
   useEffect(() => {
     setContext({ surface });
@@ -310,7 +312,7 @@ function IndexInner() {
       />
 
       <div className="flex flex-1 min-h-0">
-        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" />
+        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} />
         <main className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-x-hidden">
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
@@ -347,7 +349,7 @@ function IndexInner() {
         </main>
       </div>
 
-      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" />
+      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
       <GlobalDropZone />
       <ClipboardImageIntake />
