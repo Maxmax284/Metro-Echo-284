@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   Wallet,
   LifeBuoy,
+  HeartPulse,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
