@@ -14,7 +14,9 @@ import { TERMINAL_CAVEAT } from "./journey.ts";
 import { countedRead } from "./flightProvider.ts";
 import { bareOption } from "./flightQuick.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
-import { dropConfirmWords, droppedWords } from "./flightChat.ts";
+import { dropConfirmWords, droppedWords, type DropCleared } from "./flightChat.ts";
+import { googleCalendarConnection } from "./calendarConnection.ts";
+import { deleteEchoEventFromGoogle } from "./echoCalendar.ts";
 
 type Db = { from: (t: string) => any };
 
@@ -154,14 +156,74 @@ export async function findFlightByNumber(
   return { id: hit.id, depart_on: String(hit.depart_on).slice(0, 10), status: hit.status };
 }
 
+/**
+ * The board entries a confirmed card wrote, cleared with it — including the
+ * Google mirror, one entry at a time, with a receipt for each removal.
+ */
+async function clearFlightEntries(
+  sb: Db,
+  scope: FileScope,
+  planId: string,
+): Promise<DropCleared> {
+  const cleared: DropCleared = { entries: 0, google_removed: 0, google_failed: 0 };
+  const { data: plan } = await sb.from("flight_plans").select("event_ids").eq("id", planId).maybeSingle();
+  const ids = (Array.isArray(plan?.event_ids) ? plan!.event_ids : []).filter((v: unknown) => typeof v === "string");
+  if (!ids.length) return cleared;
+
+  const { data: rows } = await sb
+    .from("calendar_events")
+    .select("id, title, google_event_id, google_calendar_id, organization_id")
+    .in("id", ids)
+    .eq("origin", "echo");
+  const events = (rows ?? []) as Array<{
+    id: string;
+    title: string | null;
+    google_event_id: string | null;
+    google_calendar_id: string | null;
+    organization_id: string | null;
+  }>;
+  if (!events.length) return cleared;
+
+  const conn = events.some((e) => e.google_event_id) ? await googleCalendarConnection(scope.userId) : null;
+  for (const event of events) {
+    let mirrored: "removed" | "none" | "failed" = "none";
+    if (conn && event.google_event_id) {
+      try {
+        await deleteEchoEventFromGoogle(conn, event.google_event_id, event.google_calendar_id ?? "primary");
+        mirrored = "removed";
+        cleared.google_removed += 1;
+      } catch {
+        mirrored = "failed";
+        cleared.google_failed += 1;
+      }
+    }
+    const { error } = await sb.from("calendar_events").delete().eq("id", event.id);
+    if (error) continue;
+    cleared.entries += 1;
+    await sb.from("audit_log").insert({
+      user_id: scope.userId,
+      organization_id: event.organization_id ?? scope.orgId ?? null,
+      entity_type: "calendar_event",
+      entity_id: event.id,
+      event: "calendar.event_deleted",
+      payload: { title: event.title, google: mirrored, because: "flight_dropped", plan_id: planId },
+    } as never);
+  }
+  return cleared;
+}
+
 /** Taking one known card off the record, with its receipt. */
 export async function dropFlightPlan(
   sb: Db,
   scope: FileScope,
   hit: FlightHit,
   input: { flight_no: string; via: "desk" | "telegram" | "chat" | "ask" },
-): Promise<{ dropped: boolean; words: string }> {
-  const { error } = await sb.from("flight_plans").update({ status: "dropped" }).eq("id", hit.id);
+): Promise<{ dropped: boolean; words: string; cleared?: DropCleared }> {
+  const cleared = hit.status === "confirmed" ? await clearFlightEntries(sb, scope, hit.id) : undefined;
+  const { error } = await sb
+    .from("flight_plans")
+    .update({ status: "dropped", ...(cleared ? { event_ids: [] } : {}) })
+    .eq("id", hit.id);
   if (error) return { dropped: false, words: "That flight couldn't be dropped just now." };
   await sb.from("audit_log").insert({
     user_id: scope.userId,
@@ -174,9 +236,12 @@ export async function dropFlightPlan(
       depart_on: hit.depart_on,
       via: input.via,
       was_confirmed: hit.status === "confirmed",
+      entries_cleared: cleared?.entries ?? 0,
+      google_removed: cleared?.google_removed ?? 0,
+      google_failed: cleared?.google_failed ?? 0,
     },
   } as never);
-  return { dropped: true, words: droppedWords(input.flight_no, hit) };
+  return { dropped: true, words: droppedWords(input.flight_no, hit, cleared), cleared };
 }
 
 /** Dropping a card. Not an execution, so it can be done from anywhere. */

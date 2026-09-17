@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
-import { createEchoEvent } from "@/lib/echoCalendar";
+import { createEchoEvent, deleteEchoEvent } from "@/lib/echoCalendar";
 import {
   canConfirm,
   cleanPlace,
@@ -192,17 +192,39 @@ export function useFlightPlans() {
     [user, orgId, withScope, load],
   );
 
+  /* Removing a confirmed flight clears the exact entries it wrote — board and
+     Google mirror both — before the card goes. Each removal leaves its own
+     receipt; nothing is cancelled with the airline. */
   const drop = useCallback(
     async (plan: FlightPlan) => {
       if (!user) return;
-      const { error: err } = await supabase.from("flight_plans").update({ status: "dropped" }).eq("id", plan.id);
+      let cleared = 0;
+      let failed = 0;
+      for (const id of plan.event_ids ?? []) {
+        try {
+          await deleteEchoEvent(id);
+          cleared += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({ status: "dropped", event_ids: [] })
+        .eq("id", plan.id);
       if (err) throw new Error(err.message);
       await supabase.from("audit_log").insert(
         withScope({
           user_id: user.id,
           entity_type: "flight_plan",
           event: "flight.dropped",
-          payload: { plan_id: plan.id },
+          payload: {
+            plan_id: plan.id,
+            via: "desk",
+            was_confirmed: plan.status === "confirmed",
+            entries_cleared: cleared,
+            entries_failed: failed,
+          },
         }) as never,
       );
       await load();
