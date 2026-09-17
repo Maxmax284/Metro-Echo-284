@@ -70,8 +70,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    /* The honest "is anything actually arriving?" line for the setup page. */
+    const { data: last } = await admin
+      .from("wearable_readings")
+      .select("measured_at, kind")
+      .eq("user_id", user.id)
+      .eq("source", "ingest")
+      .order("measured_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/wearable-ingest`;
-    return json({ ok: true, url, token });
+    return json({
+      ok: true,
+      url,
+      token,
+      last_arrival: last?.measured_at ?? null,
+      last_kind: last?.kind ?? null,
+    });
   } catch (e) {
     console.error("wearable-link", e);
     return json({ error: e instanceof Error ? e.message : "unknown" }, 500);

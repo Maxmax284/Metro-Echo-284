@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { BodyPatternsPanel } from "@/components/wearables/BodyPatternsPanel";
+import { BodyProfileCard } from "@/components/body/BodyProfileCard";
 import { useBody } from "@/hooks/useBody";
 import { vantaToast } from "@/lib/vantaVoice";
 import { SOURCE_LABEL } from "@/lib/wearable";
@@ -148,6 +150,14 @@ export function BodyDesk() {
         </span>
         <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
       </Link>
+
+      {/* What the numbers have been doing, and who they belong to. Both read
+          recorded readings only; neither sets a target or offers advice. */}
+      <BodyPatternsPanel />
+
+      <BodyProfileCard />
+
+
 
 
 

@@ -19,7 +19,9 @@ export const SENSORS = [
   "posture_inference",
   "device_class",
   "heart_rate",
+  "body_basics",
   "activity",
+  "sleep",
 ] as const;
 export type SensorKey = (typeof SENSORS)[number];
 
@@ -30,7 +32,9 @@ export const SENSOR_LABEL: Record<SensorKey, string> = {
   posture_inference: "Posture suggestions",
   device_class: "Which device you're on",
   heart_rate: "Heart rate",
-  activity: "Steps, sleep and workouts",
+  body_basics: "Everyday body numbers",
+  activity: "Movement and workouts",
+  sleep: "Sleep",
 };
 
 export const SENSOR_DETAIL: Record<SensorKey, string> = {
@@ -40,7 +44,9 @@ export const SENSOR_DETAIL: Record<SensorKey, string> = {
   posture_inference: "Echo may suggest a posture. It never switches one on by itself.",
   device_class: "Lets Echo say less on a phone or watch than it does at a desk.",
   heart_rate: "Only while you hold a Bluetooth connection open on the Wearables page. Nothing runs in the background.",
-  activity: "Daily numbers your phone sends over — steps, sleep, workouts. Echo never pulls them on its own.",
+  body_basics: "Resting heart rate, variability, blood oxygen, breathing, weight, blood pressure — whatever your phone sends. Echo never pulls them on its own.",
+  activity: "Steps, standing, workouts, active energy and distance, sent by your phone.",
+  sleep: "How long you slept, sent by your phone. Nothing watches you overnight.",
 };
 
 /** The persisted slice, stored under `profiles.preferences.context`. */

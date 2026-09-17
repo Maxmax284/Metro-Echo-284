@@ -80,6 +80,12 @@
       "description": "Open Receipts and see what happened and why."
     },
     {
+      "name": "Body",
+      "short_name": "Body",
+      "url": "/?surface=schedule&tab=body",
+      "description": "Open the Body desk: readings, patterns and medication."
+    },
+    {
       "name": "Flights",
       "short_name": "Flights",
       "url": "/flights",

@@ -30,6 +30,8 @@ export type UserPreferences = {
   brand_voice_no_jargon?: boolean;
   /** Per-sensor consent. Absent means off. */
   sensor_consent?: Record<string, boolean>;
+  /** Self-reported body context. Phrasing only — never a target or a score. */
+  body_profile?: Record<string, unknown>;
   intake?: Record<string, unknown>;
 };
 
@@ -52,6 +54,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   brand_voice_intensity: 2,
   brand_voice_no_jargon: true,
   sensor_consent: {},
+  body_profile: {},
   intake: {},
 };
 
