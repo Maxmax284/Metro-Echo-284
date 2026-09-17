@@ -28,6 +28,18 @@ import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 
 type TabKey = "today" | "upcoming" | "week" | "board" | "body" | "money" | "help" | "flights" | "month" | "calendar";
 
+/* Desks that used to sit in this tab strip. They still render here so an old
+   link lands where it always did, but they belong to Work now. */
+const DESK_TABS = ["board", "body", "money", "flights", "help"] as const;
+type DeskTab = (typeof DESK_TABS)[number];
+const DESK_LABEL: Record<DeskTab, string> = {
+  board: "The agenda board",
+  body: "Body",
+  money: "Money",
+  flights: "Flights",
+  help: "Local help",
+};
+
 type Commitment = { id: string; summary: string; due_at: string | null; remind_at: string | null; status: string };
 type FileRow = { id: string; filename: string; status: string; metadata: any; created_at: string };
 
