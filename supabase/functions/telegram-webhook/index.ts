@@ -242,7 +242,7 @@ const tools = [
   { type: "function", function: { name: "set_reminder", description: "Create a reminder. Use whenever the user asks you to remind them, nudge them, or follow up. Pass their exact time phrasing in `when` — server resolves against timezone + defaults.", parameters: { type: "object", properties: { summary: { type: "string" }, when: { type: "string" }, timezone: { type: "string" } }, required: ["summary", "when"], additionalProperties: false } } },
   { type: "function", function: { name: "cancel_reminder", description: "Cancel an open private Echo reminder. Use for remove/cancel/delete/drop that reminder. This never changes Google Calendar.", parameters: { type: "object", properties: { reference: { type: "string", description: "The user's words identifying the reminder. Use 'that reminder' for the recent one." } }, required: ["reference"], additionalProperties: false } } },
   { type: "function", function: { name: "stage_action", description: "Stage an action for review.", parameters: { type: "object", properties: { title: { type: "string" }, description: { type: "string" }, risk: { type: "string", enum: ["low_reversible", "standard", "high"] } }, required: ["title"], additionalProperties: false } } },
-  { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, invite a guest by email with the attendee field, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence", "attendee"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_id: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
+  { type: "function", function: { name: "stage_calendar_change", description: "Propose a calendar change (move, retitle, relocate, add notes, add a reminder, invite a guest by email with the attendee field, create, or cancel). Stages a proposal for a Yes/No — it never touches the calendar. Give exact before/after values and pass the user's own wording as event_reference.", parameters: { type: "object", properties: { event_reference: { type: "string", description: "The user's own words for the event, e.g. 'doctor appointment tomorrow'. Omit when creating a new event." }, changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence", "attendee"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } }, attendee_count: { type: "number" }, source_kind: { type: "string" }, source_note: { type: "string", description: "One human line for where this came from, e.g. 'the clinic's Telegram message'." } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "refine_calendar_change", description: "The user is adjusting the calendar change you already showed them (\"actually 3:30\", \"make it the clinic on Sathorn\"). Updates that same pending proposal and re-asks Yes/No. Never creates a second proposal and never touches the calendar.", parameters: { type: "object", properties: { changes: { type: "array", items: { type: "object", properties: { field: { type: "string", enum: ["time", "title", "location", "description", "reminder", "existence", "attendee"] }, before: { type: "string" }, after: { type: "string", description: "New value. Omit for a removal or cancellation." } }, required: ["field"], additionalProperties: false } } }, required: ["changes"], additionalProperties: false } } },
   { type: "function", function: { name: "add_commitment", description: "Record a commitment.", parameters: { type: "object", properties: { summary: { type: "string" }, due_at: { type: "string" } }, required: ["summary"], additionalProperties: false } } },
   // Read-only questions. These never write anything.
@@ -439,8 +439,8 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
           ...(reminderLocation(String(args.summary ?? "")) ? [{ field: "location", after: reminderLocation(String(args.summary ?? "")) }] : []),
           ...(reminderOffsetsMinutes(String(args.when ?? "")).length ? [{ field: "reminder", after: reminderOffsetsMinutes(String(args.when ?? "")).join(",") }] : []),
         ],
-        source_kind: "you",
-        source_id: data?.id ?? null,
+          source_kind: "you",
+          _trusted_source_id: data?.id ?? null,
         source_note: "your reminder in this chat",
       }, defaults, orgId);
       return {
@@ -1126,6 +1126,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         detectedType = "calendar status";
         routedTo = "actions";
       }
+    }
+    if (!reply) {
+      reply = "No. I do not have a calendar proposal or a Google receipt for that request, so I will not tell you it was done.";
+      readOnly = true;
+      detectedType = "calendar status";
     }
   }
 

@@ -35,6 +35,7 @@ describe("calendar conversation truth", () => {
 
   it("recognizes a direct challenge and answers a staged action honestly", () => {
     expect(asksCalendarActionStatus("Did you actually already do it?")).toBe(true);
+    expect(asksCalendarActionStatus("So it's for the 22nd correct?")).toBe(true);
     expect(calendarActionStatusLine({ status: "staged", payload }, "America/New_York"))
       .toContain("waiting on your Yes");
   });
