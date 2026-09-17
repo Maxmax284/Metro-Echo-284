@@ -1,25 +1,40 @@
-// BodyPatternsPanel — heart, sleep and movement over the last fortnight.
+// BodyPatternsPanel — the whole body read, from recorded readings only.
 //
-// Every number here comes from a recorded reading. A day nothing arrived is a
-// gap in the strip, never a zero bar, and "usual" is this person's own history
-// rather than a published ideal. Observation only: no target, no score, no
-// advice. The maths lives in `@/lib/wearable` so this panel, the Body desk,
-// Today's quiet panel and Ask all say the same thing.
+// Today's line on top (the flight-strip / day-rail feel), the fortnight in bar
+// strips underneath, then where you stand: heart, sleep, movement, steps,
+// energy, standing, weight and BMI.
 //
-// Two sizes, one component. The desk gets the full read; Today gets the same
-// three strips, tighter and without a second card around them — Today stays a
-// glance, not a dashboard.
+// Truth rules, all enforced by the maths in `@/lib/wearable`:
+//   - A day nothing arrived is an empty slot, never a bar at zero.
+//   - "Usual" is this person's own history, never a published ideal.
+//   - BMI is arithmetic shown back. No category, no band, no colour, no range.
+//   - Nothing here is a target, a score, a verdict or advice.
+//
+// Two sizes, one component: the desk gets the roomy read, Today the tighter one.
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowUpRight, Moon, HeartPulse } from "lucide-react";
+import { Activity, ArrowUpRight, Flame, Footprints, HeartPulse, Moon, Scale, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_ARRIVE } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
+import { BodyLiveStrip } from "@/components/wearables/BodyLiveStrip";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
-import { formatMinutes, heartByDay, heartCompare } from "@/lib/wearable";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { sanitizeBodyProfile } from "@/lib/bodyProfile";
+import {
+  bmiLine,
+  energyByDay,
+  formatMinutes,
+  heartByDay,
+  heartCompare,
+  seriesCompare,
+  standByDay,
+  weightMove,
+  weightSeries,
+} from "@/lib/wearable";
 
-/** One strip of days. Null is drawn as an empty slot, never as a floor value. */
+/** One strip of days. Null is drawn as an empty slot, never a floor value. */
 function Strip({ values, tint, tall }: { values: (number | null)[]; tint: string; tall: boolean }) {
   const top = Math.max(1, ...values.map((v) => v ?? 0));
   return (
@@ -50,34 +65,45 @@ function Row({
   Icon: typeof Activity;
   label: string;
   line: string;
-  values: (number | null)[];
-  tint: string;
+  values?: (number | null)[];
+  tint?: string;
   tall: boolean;
 }) {
-  const recorded = values.filter((v) => v !== null).length;
+  const recorded = values ? values.filter((v) => v !== null).length : 0;
   return (
     <div className="vanta-inset px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
         <MachineLabel className="text-foreground/70">{label}</MachineLabel>
-        <MachineText className="ml-auto text-[10px] text-muted-foreground">
-          {recorded} of {values.length} days recorded
-        </MachineText>
+        {values ? (
+          <MachineText className="ml-auto text-[10px] text-muted-foreground">
+            {recorded} of {values.length} days recorded
+          </MachineText>
+        ) : null}
       </div>
       <p className={cn("mt-1 leading-snug text-foreground/90", tall ? "text-[12px]" : "text-[11.5px]")}>
         {line}
       </p>
-      {recorded > 0 ? <Strip values={values} tint={tint} tall={tall} /> : null}
+      {values && recorded > 0 && tint ? <Strip values={values} tint={tint} tall={tall} /> : null}
     </div>
   );
 }
 
 export function BodyPatternsPanel({ variant = "desk" }: { variant?: "desk" | "today" }) {
   const onDesk = variant === "desk";
+  const tall = onDesk;
   const { trends, loading, error, refresh } = useWearableTrends(14);
+  const { prefs } = useUserPreferences();
 
-  const heartLevels = useMemo(() => heartByDay(trends.readings, 14), [trends.readings]);
-  const heartLine = useMemo(() => heartCompare(heartLevels), [heartLevels]);
+  const heightCm = useMemo(
+    () => sanitizeBodyProfile((prefs as any).body_profile).height_cm ?? null,
+    [prefs],
+  );
+
+  const heart = useMemo(() => heartByDay(trends.readings, 14), [trends.readings]);
+  const energy = useMemo(() => energyByDay(trends.readings, 14), [trends.readings]);
+  const standing = useMemo(() => standByDay(trends.readings, 14), [trends.readings]);
+  const weight = useMemo(() => weightSeries(trends.readings, 14), [trends.readings]);
 
   const weekWorkouts = trends.workouts.filter(
     (w) => Date.now() - new Date(w.at).getTime() < 7 * 86_400_000,
@@ -86,40 +112,7 @@ export function BodyPatternsPanel({ variant = "desk" }: { variant?: "desk" | "to
   if (loading) return <LoadingState label="Reading the last fortnight…" />;
   if (error) return <ErrorState error={error} doing="reading your body patterns" onRetry={refresh} />;
 
-  const nothing =
-    !trends.readings.length ||
-    (!trends.days.some((d) => d.steps !== null) &&
-      !trends.nights.some((n) => n.minutes !== null) &&
-      !heartLevels.some((v) => v !== null));
-
-  const strips = (
-    <>
-      <Row
-        Icon={HeartPulse}
-        label="Heart"
-        line={heartLine}
-        values={heartLevels}
-        tint="bg-primary/70"
-        tall={onDesk}
-      />
-      <Row
-        Icon={Moon}
-        label="Sleep"
-        line={trends.sleepLine}
-        values={trends.nights.map((n) => n.minutes)}
-        tint="bg-primary/45"
-        tall={onDesk}
-      />
-      <Row
-        Icon={Activity}
-        label="Movement"
-        line={trends.stepsLine}
-        values={trends.days.map((d) => d.steps)}
-        tint="bg-primary/60"
-        tall={onDesk}
-      />
-    </>
-  );
+  const nothing = !trends.readings.length;
 
   const missing = (
     <p className="text-[11.5px] leading-snug text-muted-foreground">
@@ -128,7 +121,73 @@ export function BodyPatternsPanel({ variant = "desk" }: { variant?: "desk" | "to
     </p>
   );
 
-  /* Today: the same three strips, no second card, no extra chrome. */
+  const body = (
+    <>
+      {/* Today, on a moving line — same feel as the flight strip and day rail. */}
+      <BodyLiveStrip readings={trends.readings} timezone={prefs.timezone ?? undefined} tall={tall} />
+
+      {/* The fortnight, in bars. */}
+      <Row Icon={HeartPulse} label="Heart" line={heartCompare(heart)} values={heart} tint="bg-primary/70" tall={tall} />
+      <Row
+        Icon={Moon}
+        label="Sleep"
+        line={trends.sleepLine}
+        values={trends.nights.map((n) => n.minutes)}
+        tint="bg-primary/45"
+        tall={tall}
+      />
+      <Row
+        Icon={Footprints}
+        label="Steps"
+        line={trends.stepsLine}
+        values={trends.days.map((d) => d.steps)}
+        tint="bg-primary/60"
+        tall={tall}
+      />
+      <Row
+        Icon={Flame}
+        label="Energy"
+        line={seriesCompare(energy, "kcal", "No energy reading has arrived yet.")}
+        values={energy}
+        tint="bg-primary/55"
+        tall={tall}
+      />
+      <Row
+        Icon={Activity}
+        label="Standing"
+        line={seriesCompare(standing, "hours", "No standing record has arrived yet.")}
+        values={standing}
+        tint="bg-primary/40"
+        tall={tall}
+      />
+
+      {/* Weight and the arithmetic on top of it. No label goes on either. */}
+      <Row Icon={Scale} label="Weight" line={weightMove(weight)} tall={tall} />
+      <Row Icon={Scale} label="BMI" line={bmiLine(weight, heightCm)} tall={tall} />
+
+      <Row
+        Icon={Timer}
+        label="Sessions"
+        line={
+          weekWorkouts.length
+            ? `${weekWorkouts.length} recorded in the last seven days, ${formatMinutes(
+                weekWorkouts.reduce((s, w) => s + w.minutes, 0),
+              )} in total.`
+            : "Nothing recorded in the last seven days."
+        }
+        tall={tall}
+      />
+    </>
+  );
+
+  const law = (
+    <p className={cn("leading-snug text-muted-foreground", tall ? "mt-2.5 text-[11px]" : "mt-2 text-[11px]")}>
+      These are your own numbers against your own history. Echo says what changed and stops there — no
+      target, no score, no advice, and no label on any figure. A day with nothing sent stays a gap.
+    </p>
+  );
+
+  /* Today: the same read, no second card around it. */
   if (!onDesk) {
     return (
       <div className="space-y-2">
@@ -142,7 +201,8 @@ export function BodyPatternsPanel({ variant = "desk" }: { variant?: "desk" | "to
             <ArrowUpRight className="h-3 w-3" />
           </Link>
         </div>
-        {nothing ? missing : strips}
+        {nothing ? missing : body}
+        {nothing ? null : law}
       </div>
     );
   }
@@ -159,29 +219,8 @@ export function BodyPatternsPanel({ variant = "desk" }: { variant?: "desk" | "to
           <ArrowUpRight className="h-3 w-3" />
         </Link>
       </div>
-
-      {nothing ? (
-        <div className="mt-2">{missing}</div>
-      ) : (
-        <div className="mt-2 space-y-2">
-          {strips}
-          <div className="vanta-inset px-3 py-2">
-            <MachineLabel className="text-foreground/70">Sessions</MachineLabel>
-            <p className="mt-1 text-[12px] leading-snug text-foreground/90">
-              {weekWorkouts.length
-                ? `${weekWorkouts.length} recorded in the last seven days, ${formatMinutes(
-                    weekWorkouts.reduce((s, w) => s + w.minutes, 0),
-                  )} in total.`
-                : "Nothing recorded in the last seven days."}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <p className="mt-2.5 text-[11px] leading-snug text-muted-foreground">
-        These are your own numbers against your own history. Echo says what changed and stops there —
-        no target, no score, no advice. A day with nothing sent stays a gap.
-      </p>
+      {nothing ? <div className="mt-2">{missing}</div> : <div className="mt-2 space-y-2">{body}</div>}
+      {law}
     </section>
   );
 }
