@@ -106,7 +106,7 @@ export const TELEGRAM_READ_ONLY: string[] = [
 /** Things that deliberately finish inside the app, not in a chat window. */
 export const TELEGRAM_APP_ONLY: string[] = [
   "High-stakes or messy changes — several events at once, anything with money or travel riding on it.",
-  "Deleting things, and undoing something already executed.",
+  "Deleting stored records, and undoing something already executed. A staged calendar cancellation can be approved here.",
   "Exports: PDFs, Word files, briefings.",
   "Sending anything to another person, booking, or paying.",
   "Connecting a calendar or an account, and every setting.",
@@ -139,7 +139,7 @@ export const TELEGRAM_GUIDE: GuideSection[] = [
       "It never changes anything outside Metro Echo without your explicit yes.",
       "Reading your calendar never stages a change. Looking is just looking.",
       "It won't guess when two sources disagree — it shows you the contradiction first.",
-      "Big, messy or high-stakes changes get finished in the app, not from a chat window.",
+      "Big or messy changes get finished in the app. A calendar change that reaches other people needs a second explicit confirmation here.",
       "Calendars you added by link are read-only. It'll say so instead of pretending.",
       "Video isn't read yet, and neither are odd file types. It names the file and says so.",
     ],
@@ -218,7 +218,7 @@ export function renderTelegramHelp(): string {
     "• Change anything outside Metro Echo without your yes.",
     "• Guess when two sources disagree — I show you the contradiction first.",
     "• Pretend a calendar you added by link can be edited. It's read-only, and I'll say so.",
-    "• Finish big, messy or high-stakes changes from a chat window. Those get done in the app.",
+    "• Finish big or messy changes from a chat window. Calendar changes that reach other people get a second confirmation here.",
     "• Read video, or file types I don't handle yet. I'll name the file and say so instead of bluffing.",
     "Reading never stages anything. Looking is just looking.",
     "",
@@ -260,7 +260,7 @@ export function renderTelegramGuideMarkdown(botUsername?: string | null): string
     "## The one rule that never bends",
     "",
     "Capture never executes. Anything that touches the world outside Metro Echo waits for your",
-    "approval, and leaves a receipt once it's done.",
+    "approval — in Metro Echo, or for an exact calendar proposal in its linked Telegram chat — and leaves a receipt once it's done.",
     "",
   );
   return out.join("\n");

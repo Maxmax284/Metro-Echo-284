@@ -108,11 +108,11 @@ export function TelegramLinkCard() {
       <div className="mb-3 rounded-md border border-border/50 bg-muted/20 p-2.5">
         <div className="mb-1 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground">
           <ShieldCheck className="h-3 w-3 text-primary" />
-          Capture layer only
+          Safe by default
         </div>
         <p className="text-[11.5px] leading-snug text-muted-foreground">
-          Messages become <strong className="text-foreground/85">drafts</strong> inside Metro Echo — never live actions.
-          Plan → Approve → Execute always happens here. Telegram feeds the system; it doesn't control it.
+          Messages become <strong className="text-foreground/85">drafts</strong> inside Metro Echo.
+          Calendar changes can be approved or cancelled in this linked chat; everything else still waits here.
         </p>
       </div>
 

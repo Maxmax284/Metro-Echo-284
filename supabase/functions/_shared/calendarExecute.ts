@@ -294,7 +294,7 @@ export async function projectCalendarEvent(
 export function telegramMayAutoExecute(proposal: CalendarProposal): boolean {
   // The proposal carries the write state it was staged with; the caller checks it.
   if (proposal.write_state === "read_only") return false;
-  // High-risk changes (cancelling with attendees, or anything explicitly high)
-  // still need the stronger in-app gate.
+  // High-risk changes need a second explicit confirmation. Telegram can carry
+  // that confirmation when it is bound to the exact proposal and linked chat.
   return calendarProposalRisk(proposal) !== "high";
 }

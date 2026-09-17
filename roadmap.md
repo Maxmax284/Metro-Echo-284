@@ -8,3 +8,9 @@
 - [x] Preserve booking details across Telegram follow-ups
 - [x] Ground every status answer in the exact proposal and Google receipt
 - [x] Verify create, clarify, approve, Google write, import, and reverse-sync flows
+
+## Telegram calendar decisions on the move
+- [x] Let the linked originating chat approve or reject its exact calendar proposal
+- [x] Let Telegram stage and approve Google Calendar cancellations
+- [x] Keep unrelated actions and other chats outside that authority
+- [x] Verify receipts, stale-button protection, and plain-language setup copy
