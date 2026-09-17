@@ -1054,7 +1054,16 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 - may prepare an action: ${plan.may_prepare_action ? "yes, as a draft only" : "no"}
 - confidence needed before stating something plainly: ${plan.min_confidence}`;
 
-  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, calendarDraftContext(calendarDraft), workBlock, correctionsBlock, fieldNotesBlock]
+  /* Same judgement substrate as Ask — one brain, two surfaces. Empty when
+     there is no recorded evidence about the shape of the situation. */
+  let judgeBlock = "";
+  try {
+    judgeBlock = judgmentBlock(await gatherJudgment(sb, userId, text));
+  } catch (e) {
+    console.error("judgment failed", e);
+  }
+
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, calendarDraftContext(calendarDraft), workBlock, correctionsBlock, fieldNotesBlock, judgeBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
