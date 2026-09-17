@@ -24,6 +24,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
+import { useDeliveryAck } from "@/hooks/useDeliveryAck";
 import Index from "./pages/Index.tsx";
 import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
 import GoogleReturn from "./pages/oauth/GoogleReturn";
@@ -53,6 +54,13 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+/* A tapped notification action carries a status, never an execution. It is
+   applied here, inside the signed-in session, and then wiped from the URL. */
+const DeliveryAck = () => {
+  useDeliveryAck();
+  return null;
+};
+
 const App = () => {
   useRegisterServiceWorker();
 
@@ -65,6 +73,7 @@ const App = () => {
         <AmbientInteractions />
         <BrowserRouter>
           <AuthProvider>
+            <DeliveryAck />
             <SherlockProvider>
               <EntityProvider>
                 <CanvasProvider>

@@ -29,6 +29,7 @@ import { attachmentHints, processingLabel, type AttachmentHint } from "@/lib/ask
 import { CrossRefChip, readableForCrossRef } from "@/components/crossref/CrossRefChip";
 
 import { AskContextStrip } from "@/components/ask/AskContextStrip";
+import { AskEnvironmentEdge } from "@/components/ask/AskEnvironmentEdge";
 import { AskDestinationsNote } from "@/components/ask/AskDestinationsNote";
 import { FileAftermathTray } from "@/components/files/FileAftermathTray";
 import { StructuredResponse } from "@/components/companion/StructuredResponse";
@@ -290,6 +291,8 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       )}
       {/* What this thread is about stays visible without exposing machinery. */}
       <AskContextStrip />
+      {/* Where you are, the clock there, what is next. Nothing when irrelevant. */}
+      <AskEnvironmentEdge />
       <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
         Echo can prepare the work here. You still approve anything that acts.
       </div>

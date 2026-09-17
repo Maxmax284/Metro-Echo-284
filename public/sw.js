@@ -20,12 +20,21 @@ self.addEventListener("push", (event) => {
   }
 
   const title = payload.title || "Metro Echo";
+  // Low-consequence actions only. Nothing here approves, sends, buys or cancels:
+  // a tap carries a status back into the platform, where the person decides.
+  const allowed = ["view", "later", "got_it", "review", "stop_watching"];
+  const actions = (payload.actions || [])
+    .filter((a) => a && allowed.includes(a.action))
+    .slice(0, 3)
+    .map((a) => ({ action: a.action, title: a.title || a.action }));
+
   const options = {
     body: payload.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     tag: payload.tag || "metro-echo",
     data: { url: payload.url || "/", ...(payload.data || {}) },
+    actions,
     requireInteraction: false,
     silent: false,
   };
@@ -33,9 +42,29 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// A tapped action never mutates anything from the service worker. It opens the
+// exact situation with the status it carries, and the platform applies it once
+// the signed-in session is there to stand behind it.
+const ACTION_STATUS = {
+  view: "seen",
+  review: "seen",
+  later: "snoozed",
+  got_it: "acted",
+  stop_watching: "muted",
+};
+
+function situationUrl(notification, action) {
+  const data = notification.data || {};
+  const base = data.url || "/";
+  const status = ACTION_STATUS[action];
+  if (!status || !data.dedupeKey) return base;
+  const joiner = base.includes("?") ? "&" : "?";
+  return `${base}${joiner}ack=${encodeURIComponent(data.dedupeKey)}&as=${encodeURIComponent(status)}`;
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
+  const url = situationUrl(event.notification, event.action);
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
