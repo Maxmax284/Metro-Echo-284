@@ -15,7 +15,8 @@ import { PLACE_CACHE_TTL_MS, PLACE_LOOKUP_TIMEOUT_MS, placeLookupHeaders } from 
 import {
   CARE_KINDS,
   careOverpassQL,
-  googleCareTypes,
+  googleCareGroups,
+  rankCare,
   normalizeCare,
   normalizeGoogleCare,
   type CareKind,

@@ -232,6 +232,21 @@ const GOOGLE_TYPES: Record<CareKind, string[]> = {
   dentist: ["dentist", "dental_clinic"],
 };
 
+/**
+ * The type groups to ask for separately. One request for everything returns the
+ * twenty nearest of anything, which on a dense street is twenty dentists and no
+ * pharmacy — so a group per family of care is asked for on its own.
+ */
+export function googleCareGroups(kinds: CareKind[]): string[][] {
+  const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
+  const groups = new Map<string, string[]>();
+  for (const k of wanted) {
+    const types = GOOGLE_TYPES[k] ?? [];
+    if (types.length) groups.set(types.join("+"), types);
+  }
+  return [...groups.values()];
+}
+
 export function googleCareTypes(kinds: CareKind[]): string[] {
   const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
   return Array.from(new Set(wanted.flatMap((k) => GOOGLE_TYPES[k] ?? [])));
