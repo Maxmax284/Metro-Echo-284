@@ -97,7 +97,14 @@ export type PlaceEvidence = {
 export type PlaceConflict = {
   level: PlaceLevel;
   /** The competing values, plain words, strongest first. */
-  values: Array<{ value: string; from: PlaceEvidenceKind; stamp: SourceStamp }>;
+  values: Array<{
+    /** The contested value at this level, e.g. "JP". */
+    value: string;
+    /** How that source names the place in full, e.g. "Tokyo, JP". */
+    words: string;
+    from: PlaceEvidenceKind;
+    stamp: SourceStamp;
+  }>;
 };
 
 export type PlaceState = {
