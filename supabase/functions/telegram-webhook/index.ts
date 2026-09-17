@@ -1179,7 +1179,14 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* “Did you actually do it?” is answered from the exact action tied to this
      Telegram thread. The model is not allowed to remember or infer a write. */
   if (!intents.length && !reply && asksCalendarActionStatus(text)) {
+    /* The working pointer is truth for half an hour, not forever. An old id
+       must not answer a fresh question — that is how a receipt for one booking
+       ends up quoted at another. */
+    const pointerAt = typeof conv?.state?.last_calendar_action_at === "string"
+      ? conv.state.last_calendar_action_at
+      : null;
     const actionId = typeof conv?.state?.last_calendar_action_id === "string"
+      && pointerIsFresh(pointerAt, POINTER_TTL_MINUTES, new Date())
       ? conv.state.last_calendar_action_id
       : null;
     if (actionId) {
@@ -1371,6 +1378,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       state: {
         ...((currentConversation?.state as Record<string, unknown>) ?? {}),
         last_calendar_action_id: calendarActionId,
+        last_calendar_action_at: new Date().toISOString(),
       },
     }).eq("id", conv.id).eq("user_id", userId);
   }
