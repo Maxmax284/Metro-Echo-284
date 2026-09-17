@@ -59,7 +59,23 @@ export function mergeCalendarDraft(
 export function activeCalendarDraft(value: unknown, now = new Date()): TelegramCalendarDraft | null {
   const draft = value as TelegramCalendarDraft | null;
   if (!draft || !Array.isArray(draft.changes) || !draft.expires_at) return null;
-  return new Date(draft.expires_at).getTime() > now.getTime() ? draft : null;
+  const expiresAt = new Date(draft.expires_at).getTime();
+  if (!Number.isFinite(expiresAt) || expiresAt <= now.getTime()) return null;
+  const validChanges = draft.changes.every((change) =>
+    !!change
+    && typeof change === "object"
+    && typeof change.field === "string"
+    && typeof change.label === "string"
+  );
+  return validChanges ? draft : null;
+}
+
+/** Reset only Telegram's temporary calendar working state. Receipts and events stay put. */
+export function resetTelegramCalendarState(state: unknown): Record<string, unknown> {
+  const next = { ...((state && typeof state === "object" ? state : {}) as Record<string, unknown>) };
+  delete next.calendar_draft;
+  delete next.last_calendar_action_id;
+  return next;
 }
 
 export function calendarDraftContext(draft: TelegramCalendarDraft | null): string {

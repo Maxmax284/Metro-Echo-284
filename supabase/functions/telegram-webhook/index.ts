@@ -127,8 +127,12 @@ import {
   calendarDraftContext,
   calendarEventButtons,
   mergeCalendarDraft,
+  resetTelegramCalendarState,
   type TelegramCalendarDraft,
 } from "../_shared/telegramCalendarPanel.ts";
+import {
+  parseNewTelegramCalendarRequest,
+} from "../_shared/telegramCalendarRequest.ts";
 import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
@@ -1039,10 +1043,34 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let calendarActionId: string | null = null;
   let reply = "";
 
+  /* A complete new event request is resolved before model tools. This prevents
+     words such as “reminder on my calendar” from selecting an unrelated old
+     private reminder or receipt. New facts supersede an unfinished draft. */
+  const exactNewEvent = parseNewTelegramCalendarRequest(text, defaults);
+  if (exactNewEvent && conv?.id) {
+    const cleanState = resetTelegramCalendarState(conv.state);
+    await sb.from("conversations").update({ state: cleanState })
+      .eq("id", conv.id).eq("user_id", userId);
+    const res = await applyIntent(sb, userId, "stage_calendar_change", {
+      changes: exactNewEvent.changes,
+      source_kind: "telegram",
+      source_note: "this Telegram request",
+      _conversation_id: conv.id,
+      _telegram_chat_id: chatId,
+    }, defaults, orgId);
+    if (res) {
+      intents.push(res.reply);
+      detectedType = res.detectedType;
+      routedTo = res.routedTo;
+      toolMarkup = res.markup;
+      calendarActionId = res.calendarActionId;
+    }
+  }
+
   /* When Echo asked one focused calendar question, the answer completes that
      same short-lived draft deterministically. This prevents a title like
      “Evening Meetup with Dani” from falling sideways into a private reminder. */
-  if (calendarDraft && !calendarDraft.edit_target) {
+  if (!intents.length && calendarDraft && !calendarDraft.edit_target) {
     const current = normalizeCalendarChanges(calendarDraft.changes, defaults);
     const missing = createsCalendarEvent(current) ? calendarCreationMissing(current) : null;
     let completion: CalendarFieldChange[] = [];
@@ -1082,7 +1110,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 
   /* Deterministic rescue for the two follow-ups that caused the live dead end.
      Clear commands should not depend on the model deciding to use a tool. */
-  if (wantsReminderCancellation(text) || wantsRecentReminderOnCalendar(text)) {
+  if (!intents.length && (wantsReminderCancellation(text) || wantsRecentReminderOnCalendar(text))) {
     const { data: recentReminders } = await sb.from("commitments")
       .select("id, summary, due_at, created_at, metadata")
       .eq("user_id", userId).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
@@ -1107,6 +1135,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
           ...(offsets.length ? [{ field: "reminder", after: offsets.join(",") }] : []),
         ],
         source_kind: "reminder", _trusted_source_id: reminder.id, source_note: "your private reminder in this chat",
+        _conversation_id: conv?.id ?? null, _telegram_chat_id: chatId,
       }, defaults, orgId);
       if (res) {
         intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
@@ -1280,7 +1309,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       const toolName = calendarDraft && tc.function.name === "refine_calendar_change"
         ? "stage_calendar_change"
         : tc.function.name;
-      const res = await applyIntent(sb, userId, toolName, { ...args, _conversation_id: conv?.id ?? null }, defaults, orgId);
+      const res = await applyIntent(sb, userId, toolName, {
+        ...args,
+        _conversation_id: conv?.id ?? null,
+        _telegram_chat_id: chatId,
+      }, defaults, orgId);
       if (res) {
         intents.push(res.reply);
         detectedType = res.detectedType ?? detectedType;
@@ -1922,6 +1955,22 @@ Deno.serve(async (req) => {
           ...queue.stopIds.slice(0, 3).map((id) => [{ text: "Stop it", callback_data: `calstop:${id}` }]),
           [openButton("actions", { label: "Open it in Metro Echo" })],
         ),
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    /* Clear only the short-lived calendar draft and receipt pointer. The real
+       calendar, private reminders, transcript and audit receipts are untouched. */
+    if (/^\/reset(?:\s+calendar)?\b/i.test(text)) {
+      const conv = await telegramConversation(admin, link.user_id, null, chatId, text);
+      if (conv) {
+        await admin.from("conversations")
+          .update({ state: resetTelegramCalendarState(conv.state) })
+          .eq("id", conv.id).eq("user_id", link.user_id);
+      }
+      await tg("sendMessage", {
+        chat_id: chatId,
+        text: "Calendar draft cleared. Your events, reminders, messages, and receipts are untouched.",
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }

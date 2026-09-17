@@ -4,6 +4,7 @@ import {
   calendarDraftContext,
   calendarEventButtons,
   mergeCalendarDraft,
+  resetTelegramCalendarState,
 } from "../../supabase/functions/_shared/telegramCalendarPanel";
 
 describe("Telegram calendar panel", () => {
@@ -64,5 +65,19 @@ describe("Telegram calendar panel", () => {
     expect(corrected.changes.map((change) => change.field)).toEqual([
       "existence", "title", "location", "reminder", "time",
     ]);
+  });
+
+  it("clears only temporary calendar state", () => {
+    expect(resetTelegramCalendarState({
+      channel: "telegram",
+      chat_id: "42",
+      calendar_draft: { changes: [], expires_at: "2026-09-11T09:30:00.000Z" },
+      last_calendar_action_id: "old-action",
+      other: "kept",
+    })).toEqual({ channel: "telegram", chat_id: "42", other: "kept" });
+  });
+
+  it("rejects malformed drafts even before their expiry", () => {
+    expect(activeCalendarDraft({ changes: [{ field: "time" }], expires_at: "2099-01-01T00:00:00.000Z" })).toBeNull();
   });
 });
