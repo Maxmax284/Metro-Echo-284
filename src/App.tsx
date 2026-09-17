@@ -1,4 +1,3 @@
-import BodyStripPreview from "./pages/__BodyStripPreview";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -89,8 +88,7 @@ const App = () => {
                                 {/* One door: /how. Everything explanatory lives behind it. */}
                                 <Route path="/how" element={<RoomMapPage />} />
                                 <Route path="/how/paper" element={<PhysicalLoopPage />} />
-                                <Route path="/__bodystrip" element={<BodyStripPreview />} />
-          <Route path="/how/watch" element={<WearableLoopPage />} />
+                                <Route path="/how/watch" element={<WearableLoopPage />} />
                                 <Route path="/how/glance" element={<GlancePage />} />
                                 <Route path="/how/trends" element={<WatchPage />} />
                                 {/* Old standalone doors — kept as redirects so links never break. */}
