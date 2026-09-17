@@ -76,6 +76,25 @@ Open in this pass:
 - Travel proof walk (Virginia → airport → Tokyo layover → Thailand) against real
   filed journeys rather than fixtures.
 
+## Presence and discovery polish — done
+
+- The four room tabs now carry restrained context, attention, critical and
+  completion signals derived from existing nudges, actions, receipts and Ask
+  context. No fifth room or parallel attention system was added.
+- First-use discovery bubbles are anchored to the room that needs explaining,
+  dismiss themselves, remember dismissal, and open the exact situation where an
+  existing anchor is available.
+- Ask can disclose the real place, clock and calendar sources it is using and
+  seed up to three situational questions into the existing composer. It states
+  plainly when no live device location was requested.
+- App, push and Telegram acknowledgements now refresh the same delivery state;
+  Telegram notices use Got it / Later / Open and retain one delivery identity.
+- Room movement is one-shot and settles; reduced-motion users get the same state
+  without ongoing animation.
+- Verified at 384px and 1440px with no horizontal overflow, including the Ask
+  source disclosure and reduced-motion mode. Focused and full automated checks
+  are green.
+
 ## Previous pass — street-smart substrate and phone doctrine
 
 Done:
