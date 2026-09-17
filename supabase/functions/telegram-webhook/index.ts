@@ -1219,7 +1219,14 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* A typed "yes" is still an approval. Same settle path as the Yes button, so
      an answer given in words is never lost to conversation. */
   if (!intents.length && !reply && (readsAsApproval(text) || readsAsRejection(text))) {
-    const pending = await pendingCalendarAction(sb, userId, chatId);
+    const waiting = await pendingCalendarActions(sb, userId, chatId);
+    /* A bare "yes" with two changes waiting would approve whichever happens to
+       be newest. Ask once instead — the buttons on each card stay exact. */
+    if (waiting.length > 1) {
+      const candidates = waiting.slice(0, 4).map((r: any) => ({ id: r.id, label: r.title ?? "a pending change", createdAt: r.created_at ?? null }));
+      return { reply: askWhichOne(candidates, "change"), markup: undefined, calendarActionId: null };
+    }
+    const pending = waiting[0] ?? null;
     if (pending) {
       const out = await settleCalendarProposal(sb, userId, {
         actionId: pending.id,
