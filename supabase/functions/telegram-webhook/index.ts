@@ -542,11 +542,18 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       .order("created_at", { ascending: false })
       .limit(10);
     const telegramChatId = args?._telegram_chat_id ?? null;
-    const row = ((pending ?? []) as any[]).find((r) =>
+    const mine = ((pending ?? []) as any[]).filter((r) =>
       isCalendarProposal(r.payload)
       && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
     );
-    if (!row) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    if (!mine.length) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    /* Two proposals waiting means the newest one is a guess, not an answer. Ask
+       once rather than quietly adjusting the wrong booking. */
+    if (mine.length > 1) {
+      const candidates = mine.slice(0, 4).map((r) => ({ id: r.id, label: proposalSummary(r.payload) ?? r.title ?? "a pending change", createdAt: r.created_at ?? null }));
+      return { reply: askWhichOne(candidates, "change"), detectedType: "calendar change", routedTo: null, readOnly: true };
+    }
+    const row = mine[0];
 
     const refined = refineCalendarProposal(row.payload, changes);
     await sb.from("actions").update({
