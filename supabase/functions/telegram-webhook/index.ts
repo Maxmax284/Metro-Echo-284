@@ -1289,8 +1289,13 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   if (!reply) reply = VANTA_PHRASES.gotIt();
 
   if (calendarActionId && conv?.id) {
+    const { data: currentConversation } = await sb.from("conversations")
+      .select("state").eq("id", conv.id).eq("user_id", userId).maybeSingle();
     await sb.from("conversations").update({
-      state: { ...conv.state, last_calendar_action_id: calendarActionId },
+      state: {
+        ...((currentConversation?.state as Record<string, unknown>) ?? {}),
+        last_calendar_action_id: calendarActionId,
+      },
     }).eq("id", conv.id).eq("user_id", userId);
   }
 
