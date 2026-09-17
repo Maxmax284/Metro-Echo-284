@@ -40,7 +40,8 @@ import {
   settleCalendarProposal,
 } from "../_shared/calendarSettle.ts";
 import { findConflicts, resolveEventReference, type ResolvableEvent } from "../_shared/calendarResolve.ts";
-import { calendarCreationMissing, normalizeCalendarChanges } from "../_shared/calendarChangeNormalize.ts";
+import { calendarCreationMissing, hasCalendarCreationDetails, normalizeCalendarChanges } from "../_shared/calendarChangeNormalize.ts";
+import { asksCalendarActionStatus, calendarActionStatusLine } from "../_shared/calendarConversation.ts";
 import {
   answerAfterEvent,
   answerCalendarQuestion,
@@ -560,11 +561,12 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
 
     /* One source reminder owns one calendar proposal. Repeating “put it on my
        calendar” returns the existing state instead of minting another action. */
-    if (args.source_id) {
+    const trustedSourceId = typeof args._trusted_source_id === "string" ? args._trusted_source_id : null;
+    if (trustedSourceId) {
       const { data: existing } = await sb.from("actions")
         .select("id, status, payload")
         .eq("user_id", userId)
-        .eq("payload->source->>id", String(args.source_id))
+        .eq("payload->source->>id", trustedSourceId)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (existing && isCalendarProposal(existing.payload)) {
         if (existing.status === "staged") return {
@@ -590,14 +592,19 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       calendarDraft = activeCalendarDraft((draftConversation?.state as any)?.calendar_draft);
     }
     const reference = String(args.event_reference ?? calendarDraft?.event_reference ?? "").trim();
+    let incomingChanges = normalizeCalendarChanges(args.changes, defaults);
     let target: ResolvableEvent | null = null;
     if (calendarDraft?.edit_target) {
       target = calendarDraft.edit_target;
     } else if (reference) {
       const resolved = resolveEventReference(reference, events);
       if (resolved.status === "none") {
-        const creating = createsCalendarEvent(Array.isArray(args.changes) ? args.changes : []);
+        const creating = createsCalendarEvent(incomingChanges) || hasCalendarCreationDetails(incomingChanges);
         if (!creating) return { reply: `Nothing on your calendar matches "${reference}". Nothing has changed.`, detectedType: "calendar change", routedTo: null, readOnly: true };
+        if (!createsCalendarEvent(incomingChanges)) {
+          const title = incomingChanges.find((change) => change.field === "title")?.after ?? "create";
+          incomingChanges = [{ field: "existence", label: calendarFieldLabel("existence"), before: null, after: title }, ...incomingChanges];
+        }
       } else if (resolved.status === "many") {
         return {
           reply: `Which one? ${resolved.candidates.map((c) => c.title).join(" · ")}. Nothing has changed.`,
@@ -610,7 +617,6 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       }
     }
 
-    const incomingChanges = normalizeCalendarChanges(args.changes, defaults);
     const mergedDraft = mergeCalendarDraft(calendarDraft, incomingChanges);
     const changes: CalendarFieldChange[] = calendarDraft
       ? normalizeCalendarChanges(mergedDraft.changes, defaults)
@@ -653,7 +659,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       } : null,
       changes,
       attendeeCount: Number(args.attendee_count ?? 0),
-      source: args.source_note ? { kind: String(args.source_kind ?? "you"), id: args.source_id ? String(args.source_id) : null, note: String(args.source_note) } : null,
+      source: args.source_note ? { kind: String(args.source_kind ?? "you"), id: trustedSourceId, note: String(args.source_note) } : null,
       conflicts,
       writeState: await calendarWriteStateForUser(userId),
     });
@@ -1094,11 +1100,31 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
           ...(location ? [{ field: "location", after: location }] : []),
           ...(offsets.length ? [{ field: "reminder", after: offsets.join(",") }] : []),
         ],
-        source_kind: "reminder", source_id: reminder.id, source_note: "your private reminder in this chat",
+        source_kind: "reminder", _trusted_source_id: reminder.id, source_note: "your private reminder in this chat",
       }, defaults, orgId);
       if (res) {
         intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
         toolMarkup = res.markup; calendarActionId = res.calendarActionId;
+      }
+    }
+  }
+
+  /* “Did you actually do it?” is answered from the exact action tied to this
+     Telegram thread. The model is not allowed to remember or infer a write. */
+  if (!intents.length && !reply && asksCalendarActionStatus(text)) {
+    const actionId = typeof conv?.state?.last_calendar_action_id === "string"
+      ? conv.state.last_calendar_action_id
+      : null;
+    if (actionId) {
+      const { data: action } = await sb.from("actions")
+        .select("status, payload, result")
+        .eq("id", actionId).eq("user_id", userId).maybeSingle();
+      const grounded = action ? calendarActionStatusLine(action, defaults.timezone) : null;
+      if (grounded) {
+        reply = grounded;
+        readOnly = true;
+        detectedType = "calendar status";
+        routedTo = "actions";
       }
     }
   }
@@ -1256,6 +1282,12 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
   if (!reply) reply = VANTA_PHRASES.gotIt();
+
+  if (calendarActionId && conv?.id) {
+    await sb.from("conversations").update({
+      state: { ...conv.state, last_calendar_action_id: calendarActionId },
+    }).eq("id", conv.id).eq("user_id", userId);
+  }
 
   // Stage 7 — audit expansion: when nothing routed, this is an ambiguous capture
   // waiting for review in the Captures lane. Emit a distinct event so the Audit

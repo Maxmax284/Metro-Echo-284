@@ -90,3 +90,10 @@ export function calendarCreationMissing(changes: CalendarFieldChange[]): "title"
   if (!time || Number.isNaN(new Date(time).getTime())) return "time";
   return null;
 }
+
+/** Enough concrete detail to rescue a create request that was mislabelled as an edit. */
+export function hasCalendarCreationDetails(changes: CalendarFieldChange[]): boolean {
+  const title = changes.find((change) => change.field === "title")?.after?.trim() ?? "";
+  const time = changes.find((change) => change.field === "time")?.after?.trim() ?? "";
+  return !!title && !!time && !Number.isNaN(new Date(time).getTime());
+}
