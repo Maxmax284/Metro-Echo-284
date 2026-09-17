@@ -239,6 +239,13 @@
       "when": 1789642541602,
       "tag": "0033_broadcast_flight_readings_to_open_rails",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1789654058305,
+      "tag": "0034_broadcast_wearable_arrivals",
+      "breakpoints": true
     }
   ]
 }

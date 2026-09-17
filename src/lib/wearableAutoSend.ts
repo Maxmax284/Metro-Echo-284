@@ -174,30 +174,40 @@ export interface SetupRecipe {
 export const SETUP_RECIPES: SetupRecipe[] = [
   {
     platform: "iphone",
-    title: "iPhone",
-    app: "Shortcuts, or Health Auto Export",
+    title: "iPhone · Apple Health",
+    app: "Health Auto Export (App Store), or Shortcuts if you'd rather not install anything",
     steps: [
       "Copy your private link below. Treat it like a key — it can drop readings in, nothing else.",
-      "Open Shortcuts, make a new shortcut, and add “Get Health Sample” for each thing you want sent — steps, heart rate, resting heart rate, variability, sleep, workouts, energy, weight.",
-      "Add “Get Contents of URL”. Paste the link, set the method to POST, and set the request body to JSON in the shape shown below.",
-      "Add an Automation: run it daily at a time you're usually awake, and again after a workout ends.",
-      "Turn off “Ask Before Running” so it goes hands-off.",
+      "Install Health Auto Export and let it read Apple Health for whatever you want sent — heart rate, resting heart rate, variability, sleep, steps, energy, workouts, weight.",
+      "In the app: Automations, add a REST API automation, paste the link as the URL, method POST, format JSON.",
+      "Set it to run hourly, or daily plus after a workout — whatever suits you.",
+      "Echo reads Health Auto Export's own format, so there is no JSON to write. If you use Shortcuts instead, post the plain list shown below.",
       "Tap Check the feed here once. If it says sending, you're done — you never touch it again.",
     ],
   },
   {
     platform: "android",
-    title: "Android",
-    app: "Health Connect, via an export app or Tasker",
+    title: "Android · Health Connect",
+    app: "Health Connect, read by an exporter app (Health Sync, Tasker or similar)",
     steps: [
       "Copy your private link below.",
-      "Give your export app read access to Health Connect for whatever you want sent — steps, heart rate, resting heart rate, sleep, workouts, energy, weight.",
-      "Point its webhook or HTTP POST at the link, with the JSON body shown below.",
-      "Set the schedule to daily, plus on workout end if the app offers it.",
+      "Give your exporter read access in Health Connect — Google Fit's own numbers live here now, so anything Fit or your watch writes is included.",
+      "Point the exporter's webhook or HTTP POST at the link, method POST, JSON.",
+      "Set the schedule to hourly or daily, plus on workout end if it offers it.",
+      "Echo reads a plain sample list as well as its own format, so most exporters work untouched.",
       "Tap Check the feed here once to confirm the first send landed.",
     ],
   },
 ];
+
+/**
+ * The honest limit, said once and in plain words. Apple Health and Health
+ * Connect have no cloud to read from — Google Fit's own API was retired and its
+ * data moved into Health Connect — so the phone is always the sender. That is
+ * not a shortcut Echo took; it is the only door either platform opens.
+ */
+export const HEALTH_PUSH_TRUTH =
+  "Apple Health and Health Connect keep your readings on the phone; neither offers a cloud Echo could read. So your phone pushes on a schedule and Echo never reaches out to a device. Once it's set up, nothing is typed by hand.";
 
 /** What the wrist may say about the feed in one proof chip. */
 export function autoSendProof(health: AutoSendHealth): string {
