@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
 import { TodaySectionSheet, type TodaySectionKey } from "@/components/today/TodaySectionSheet";
 import { FieldSessionCard } from "@/components/field/FieldSessionCard";
+import { TodayBodyPanel } from "@/components/today/TodayBodyPanel";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { gapMinutes, useAgenda } from "@/hooks/useAgenda";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
@@ -854,6 +855,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         </>
       )}
 
+
+      {/* Your body, folded and quiet: the same three fortnight strips the Body
+          desk shows, from the same calculator. It stays a glance — no score, no
+          target, and it says nothing when nothing has arrived. */}
+      <TodayBodyPanel />
 
       <FieldSessionCard variant="today" />
 

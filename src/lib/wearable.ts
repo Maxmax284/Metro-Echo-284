@@ -560,3 +560,44 @@ export function bodyCompare(readings: Reading[], days = 14, now = new Date()): B
     },
   ];
 }
+
+
+/* ------------------------------------------------------------------ *
+ * Heart, one level per day
+ *
+ * A single spike during a session should not stand in for the whole day, so a
+ * day reads as the median of its readings. A day with nothing recorded is null
+ * — a gap, never a zero. Resting readings count alongside ordinary ones.
+ * ------------------------------------------------------------------ */
+
+/** One level per day across the window, oldest first. Null where nothing arrived. */
+export function heartByDay(readings: Reading[], days = 14, now = new Date()): (number | null)[] {
+  const byDay = new Map<string, number[]>();
+  for (const r of readings) {
+    if (r.kind !== "heart_rate" && r.kind !== "resting_heart_rate") continue;
+    const k = r.measured_at.slice(0, 10);
+    byDay.set(k, [...(byDay.get(k) ?? []), r.value]);
+  }
+  const out: (number | null)[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const xs = (byDay.get(dayKey(new Date(now.getTime() - i * 86_400_000))) ?? []).sort((a, b) => a - b);
+    out.push(xs.length ? Math.round(xs[Math.floor(xs.length / 2)]) : null);
+  }
+  return out;
+}
+
+/** Plain comparison of the newest level against your own history. Never a verdict. */
+export function heartCompare(levels: (number | null)[]): string {
+  const recorded = levels.filter((v): v is number => v !== null);
+  if (!recorded.length) return "No heart reading has arrived yet.";
+  const last = [...levels].reverse().find((v): v is number => v !== null)!;
+  const usual = [...recorded].sort((a, b) => a - b)[Math.floor(recorded.length / 2)];
+  if (recorded.length < 3) return `${last} bpm most recently. Not enough days to know your usual yet.`;
+  const diff = last - usual;
+  if (Math.abs(diff) < Math.max(3, usual * 0.05)) {
+    return `${last} bpm most recently — about your usual ${usual}.`;
+  }
+  return diff > 0
+    ? `${last} bpm most recently, ${diff} above your usual ${usual}.`
+    : `${last} bpm most recently, ${Math.abs(diff)} below your usual ${usual}.`;
+}
