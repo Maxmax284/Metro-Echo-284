@@ -9,6 +9,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Activity, ArrowUpRight, Moon, HeartPulse } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOTION_ARRIVE } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { useWearableTrends } from "@/hooks/useWearableTrends";
@@ -23,7 +24,8 @@ function Strip({ values, tint }: { values: (number | null)[]; tint: string }) {
         <span
           key={i}
           className={cn(
-            "flex-1 rounded-[1px] transition-[height] duration-500 motion-reduce:transition-none",
+            "flex-1 rounded-[1px]",
+            MOTION_ARRIVE,
             v === null ? "border border-dashed border-border/60 bg-transparent" : tint,
           )}
           style={{ height: v === null ? "100%" : `${Math.max(6, (v / top) * 100)}%` }}
