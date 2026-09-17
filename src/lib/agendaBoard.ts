@@ -287,3 +287,28 @@ export function stayLine(e: BoardEntry | null, now = new Date()): string {
   const nights = left === 1 ? "1 night left" : `${left} nights left`;
   return end ? `${title}${where} — ${nights}, until ${end}.` : `${title}${where} — ${nights}.`;
 }
+
+/**
+ * Where each marker actually sits on the rail.
+ *
+ * Time decides the order and the rough place; a minimum gap decides that two
+ * entries an hour apart on a busy morning don't print on top of each other.
+ * Each marker still shows its own clock time, so nudging a label right never
+ * changes what it says.
+ */
+export function spreadMarkers(percents: number[], width: number, minGap = 104): number[] {
+  const out: number[] = [];
+  let last = -Infinity;
+  for (const pct of percents) {
+    const wanted = (Math.max(0, Math.min(100, pct)) / 100) * width;
+    const placed = Math.max(wanted, last + minGap);
+    out.push(placed);
+    last = placed;
+  }
+  return out;
+}
+
+/** The rail has to be wide enough to hold the spread it just produced. */
+export function railWidthFor(count: number, minGap = 104): number {
+  return Math.max(300, count * minGap + 32);
+}
