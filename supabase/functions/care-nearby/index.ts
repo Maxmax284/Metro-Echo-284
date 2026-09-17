@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
     );
 
     const kindKey = [...kinds].sort().join("+");
-    const cellKey = `care:${lat.toFixed(2)},${lon.toFixed(2)}:${kindKey}`;
+    const cellKey = `nearby:v2:${lat.toFixed(2)},${lon.toFixed(2)}:${kindKey || "all"}`;
 
     if (!parsed.data.refresh) {
       try {

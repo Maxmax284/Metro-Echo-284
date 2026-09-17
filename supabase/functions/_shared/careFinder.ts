@@ -1,7 +1,7 @@
 // careFinder — practical places around where you are standing.
 //
 // Doctrine:
-//   - Map data, not a guess. Every row here came from an OpenStreetMap record;
+//   - Map data, not a guess. Every row here came from Google Maps or OpenStreetMap;
 //     a field the map did not carry stays blank instead of being filled in.
 //   - Echo shows. It never calls, never books an appointment, and never says
 //     what you should do about your body.

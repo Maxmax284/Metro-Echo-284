@@ -104,7 +104,7 @@ export function HelpDesk() {
 
         {!hasFix ? (
           <p className="text-[12.5px] text-muted-foreground">
-            Echo does not have a place for you yet, so it will not list care from the last city you were in. Set where
+            Echo does not have a place for you yet, so it will not list places from the last city you were in. Set where
             you are and the list fills in.
           </p>
         ) : loading ? (
