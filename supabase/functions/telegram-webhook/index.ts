@@ -1075,6 +1075,23 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let calendarActionId: string | null = null;
   let reply = "";
 
+  /* Two independent asks in one message used to be mashed into whichever one the
+     model noticed first. Better to ask for one at a time than to half-do both.
+     A single situation described in two clauses is not two asks and stays whole. */
+  const separateAsks = splitRequests(text);
+  if (separateAsks.length > 1) {
+    return {
+      reply: askOneAtATime(separateAsks),
+      detectedType: null,
+      routedTo: null,
+      readOnly: true,
+      commitmentId: null,
+      linkKind: null,
+      markup: undefined,
+      calendarActionId: null,
+    } as never;
+  }
+
   /* A complete new event request is resolved before model tools. This prevents
      words such as “reminder on my calendar” from selecting an unrelated old
      private reminder or receipt. New facts supersede an unfinished draft. */
