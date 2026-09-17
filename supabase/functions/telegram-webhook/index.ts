@@ -532,7 +532,11 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       .eq("status", "staged")
       .order("created_at", { ascending: false })
       .limit(10);
-    const row = ((pending ?? []) as any[]).find((r) => isCalendarProposal(r.payload));
+    const telegramChatId = args?._telegram_chat_id ?? null;
+    const row = ((pending ?? []) as any[]).find((r) =>
+      isCalendarProposal(r.payload)
+      && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
+    );
     if (!row) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
 
     const refined = refineCalendarProposal(row.payload, changes);
