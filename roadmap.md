@@ -101,15 +101,17 @@ Done:
   Native Apple Health / Health Connect reads stay a documented seam.
 
 
-Open in this pass:
+Left open then, resolved since:
 
-- Badging, offline capture queue, contact picker and notification actions remain
-  seams only — see external blockers.
+- Notification actions are now live (low-consequence only). Badging, offline
+  capture queue and contact picker remain seams only — see external blockers.
 
 ## Next approved expansion
 
-The everyday-life expansion plan dated 2026-09-16 (`.lovable/plan/`), starting
-with Phase A World Context. Do not start it without a go.
+The Work document engine, staged as its own plan: approved platform evidence in,
+finished artifacts out (brief, stakeholder review, hand-off, checklist, digest),
+sources preserved, drafted and staged before anything is shared. Do not start it
+without a go.
 
 ## External blockers
 
