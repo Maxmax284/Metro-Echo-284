@@ -18,6 +18,7 @@ import { useWearableLoop } from "@/hooks/useWearableLoop";
 import {
   autoSendHealth,
   ingestBodyTemplate,
+  HEALTH_PUSH_TRUTH,
   SETUP_RECIPES,
   type AutoSendState,
 } from "@/lib/wearableAutoSend";
@@ -94,7 +95,8 @@ export function AutoSendPanel() {
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold tracking-tight">Send it without asking me</h2>
           <p className="text-[12px] text-muted-foreground">
-            Your phone posts the numbers on a schedule. Echo never reaches out to your watch.
+            Apple Health or Health Connect, pushed by your phone on a schedule. Nothing typed by
+            hand, and Echo never reaches out to a device.
           </p>
         </div>
       </div>
@@ -176,6 +178,7 @@ export function AutoSendPanel() {
           </div>
         </div>
         <p className="mt-1 text-[11px] text-muted-foreground">{recipe.app}</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{HEALTH_PUSH_TRUTH}</p>
         <ol className="mt-2 space-y-1.5">
           {recipe.steps.map((s, i) => (
             <li key={s} className="flex gap-2 text-[11.5px] leading-snug text-foreground/90">
