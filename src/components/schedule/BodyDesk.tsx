@@ -19,6 +19,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useBody } from "@/hooks/useBody";
 import { vantaToast } from "@/lib/vantaVoice";
+import { SOURCE_LABEL } from "@/lib/wearable";
 import {
   BODY_DISCLAIMER,
   DOSE_LAW,
