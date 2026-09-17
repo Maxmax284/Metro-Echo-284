@@ -20,6 +20,8 @@ export type KeptCare = {
   lon: number | null;
 };
 
+const HEALTH_KINDS: CareKind[] = ["emergency", "hospital", "clinic", "doctor", "pharmacy", "dentist"];
+
 export function useCareNearby(kinds: CareKind[] = []) {
   const { user } = useAuth();
   const { place } = useAwareness();
@@ -61,7 +63,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
       .from("awareness_places")
       .select("id, label, address, notes, geo")
       .eq("user_id", user.id)
-      .eq("category", "care")
+      .in("category", ["care", "nearby"])
       .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(30);
@@ -89,10 +91,11 @@ export function useCareNearby(kinds: CareKind[] = []) {
   const keep = useCallback(
     async (p: CarePlace) => {
       if (!user) return;
+      const isHealth = HEALTH_KINDS.includes(p.kind);
       await supabase.from("awareness_places").insert({
         user_id: user.id,
         label: p.name,
-        category: "care",
+        category: isHealth ? "care" : "nearby",
         address: p.address,
         country,
         notes: [p.phone ? `Phone: ${p.phone}` : "", p.hours ? `Hours as recorded: ${p.hours}` : ""]
@@ -103,7 +106,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
       await supabase.from("audit_log").insert({
         user_id: user.id,
         entity_type: "place",
-        event: "care.kept",
+        event: "place.kept_nearby",
         payload: { name: p.name, kind: p.kind },
       });
       await loadKept();
@@ -119,5 +122,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
     [loadKept],
   );
 
-  return { places, radiusM, source, loading, error, hasFix, country, kept, look, keep, forget };
+  const placeLabel = (place?.geo as any)?.display_name || place?.label || null;
+
+  return { places, radiusM, source, loading, error, hasFix, country, placeLabel, kept, look, keep, forget };
 }

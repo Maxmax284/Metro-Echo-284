@@ -7,7 +7,7 @@
 //   - Distances are straight-line and say so. They are not drive times.
 //   - Keeping a place is the person's own record, and it shows up on the board.
 import { useMemo, useState } from "react";
-import { LifeBuoy, MapPin, Phone, Pin, PinOff, RefreshCw, Search, Stethoscope } from "lucide-react";
+import { LifeBuoy, MapPin, Phone, Pin, PinOff, RefreshCw, Search, Store } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 export function HelpDesk() {
   const [kinds, setKinds] = useState<CareKind[]>([]);
   const [query, setQuery] = useState("");
-  const { places, radiusM, source, loading, error, hasFix, country, kept, look, keep, forget } = useCareNearby(kinds);
+  const { places, radiusM, source, loading, error, hasFix, country, placeLabel, kept, look, keep, forget } = useCareNearby(kinds);
 
   const rows = useMemo(() => filterCare(places, query, kinds), [places, query, kinds]);
   const help = useMemo(() => helpAnswer(country), [country]);
@@ -53,8 +53,11 @@ export function HelpDesk() {
 
       <Card className="vanta-card space-y-3 p-3">
         <div className="flex items-center gap-2">
-          <Stethoscope className="h-4 w-4 text-primary" aria-hidden />
-          <p className="text-[13px] font-medium">Care near you</p>
+          <Store className="h-4 w-4 text-primary" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium">Around you</p>
+            {placeLabel && <p className="truncate text-[10.5px] text-muted-foreground">From {placeLabel}</p>}
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -94,14 +97,14 @@ export function HelpDesk() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or street"
-            aria-label="Search care nearby"
+            aria-label="Search places nearby"
             className="h-10 pl-7 text-[13px]"
           />
         </div>
 
         {!hasFix ? (
           <p className="text-[12.5px] text-muted-foreground">
-            Echo does not have a place for you yet, so it will not list care from the last city you were in. Set where
+            Echo does not have a place for you yet, so it will not list places from the last city you were in. Set where
             you are and the list fills in.
           </p>
         ) : loading ? (
@@ -111,7 +114,7 @@ export function HelpDesk() {
         ) : rows.length === 0 ? (
           <p className="text-[12.5px] text-muted-foreground">
             {places.length === 0
-              ? `Neither place provider has anything recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of where Echo has you. That is the records being empty, not care being absent — check the place Echo is holding for you.`
+              ? `Neither place provider has anything recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of where Echo has you. That is the records being empty, not proof that nothing is nearby — check the place Echo is holding for you.`
               : "Nothing on the list matches that. Clear the search to see all of it."}
           </p>
         ) : (
@@ -169,7 +172,7 @@ export function HelpDesk() {
         )}
 
         <p className="text-[11px] text-muted-foreground/80">
-          {CARE_LAW} Listings come from {careSourceWords(source)}.
+          {CARE_LAW} Food, cash, transport and everyday essentials are included. Listings come from {careSourceWords(source)}.
         </p>
       </Card>
 

@@ -51,6 +51,7 @@ export function AgendaLiveStrip({
       : timeline.status === "complete"
         ? "Day complete"
         : `Next · ${timeline.statusTitle}`;
+  const railWidth = Math.max(300, timeline.markers.length * 112);
 
   return (
     <div
@@ -79,40 +80,44 @@ export function AgendaLiveStrip({
         )}
       </div>
 
-      <div className="mt-3 px-1">
-        <div className="relative h-8" aria-hidden>
-          <div className="absolute inset-x-0 top-3 h-px bg-border" />
-          {timeline.markers.map((marker) => {
+      <div className="-mx-1 mt-3 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]">
+        <div className="relative h-[70px]" style={{ width: `${railWidth}px` }}>
+          <div className="absolute inset-x-0 top-5 h-px bg-border" aria-hidden />
+          {timeline.markers.map((marker, index) => {
             const left = position(marker.startMinute, timeline.startMinute, timeline.endMinute);
             const active = marker.id === timeline.activeId;
+            const passed = timeline.nowMinute != null && marker.startMinute < timeline.nowMinute;
+            const align = index === 0 ? "translate-x-0 text-left" : index === timeline.markers.length - 1 ? "-translate-x-full text-right" : "-translate-x-1/2 text-center";
             return (
               <span
                 key={marker.id}
-                className="absolute top-1 -translate-x-1/2"
+                className={cn("absolute top-0 w-24", align)}
                 style={{ left: `${left}%` }}
               >
-                {active && (
-                  <span className="absolute -left-1 -top-1 h-4 w-4 animate-live-ping rounded-full bg-primary/40 motion-reduce:animate-none" />
-                )}
-                <span className={cn(
-                  "relative block h-4 w-0.5 rounded-full",
-                  active ? "bg-primary" : "bg-foreground/55",
-                )} />
+                <span className="block text-[10px] tabular-nums text-muted-foreground">{clock(marker.startMinute)}</span>
+                <span className="relative mx-auto mt-1 block h-4 w-4" aria-hidden>
+                  {active && <span className="absolute inset-1 animate-live-ping rounded-full bg-primary/50 motion-reduce:animate-none" />}
+                  <span className={cn("absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 rounded-full", active ? "bg-primary" : passed ? "bg-foreground/35" : "bg-foreground/65")} />
+                </span>
+                <span className={cn("mt-1 block truncate text-[10.5px]", active ? "font-medium text-primary" : "text-foreground/75")} title={marker.title}>
+                  {marker.title}
+                </span>
               </span>
             );
           })}
           {timeline.nowMinute != null && (
             <span
-              className="absolute top-0 h-6 w-px bg-primary transition-[left] duration-[var(--motion-slow)] ease-[var(--ease-out)] motion-reduce:transition-none"
+              className="absolute top-3 h-6 w-px bg-primary transition-[left] duration-[var(--motion-slow)] ease-[var(--ease-out)] motion-reduce:transition-none"
               style={{ left: `${position(timeline.nowMinute, timeline.startMinute, timeline.endMinute)}%` }}
+              aria-label={`Now, ${formatInTimeZone(now, timezone, "HH:mm")}`}
             >
-              <Clock3 className="absolute -left-1.5 -top-1.5 h-3 w-3 text-primary" />
+              <Clock3 className="absolute -left-1.5 -top-2 h-3 w-3 text-primary" aria-hidden />
             </span>
           )}
-        </div>
-        <div className="flex justify-between text-[10px] tabular-nums text-muted-foreground/80">
-          <span>{clock(timeline.startMinute)}</span>
-          <span>{clock(timeline.endMinute)}</span>
+          <div className="absolute inset-x-0 bottom-0 flex justify-between text-[10px] tabular-nums text-muted-foreground/70" aria-hidden>
+            <span>{clock(timeline.startMinute)}</span>
+            <span>{clock(timeline.endMinute)}</span>
+          </div>
         </div>
       </div>
     </div>

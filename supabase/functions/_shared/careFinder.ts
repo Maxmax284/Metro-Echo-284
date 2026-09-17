@@ -1,7 +1,7 @@
-// careFinder — where care is, where you are standing.
+// careFinder — practical places around where you are standing.
 //
 // Doctrine:
-//   - Map data, not a guess. Every row here came from an OpenStreetMap record;
+//   - Map data, not a guess. Every row here came from Google Maps or OpenStreetMap;
 //     a field the map did not carry stays blank instead of being filled in.
 //   - Echo shows. It never calls, never books an appointment, and never says
 //     what you should do about your body.
@@ -12,10 +12,13 @@
 //
 // Pure module: no IO, no React. The caller hands in map elements.
 
-export type CareKind = "emergency" | "hospital" | "clinic" | "doctor" | "pharmacy" | "dentist";
+export type CareKind =
+  | "emergency" | "hospital" | "clinic" | "doctor" | "pharmacy" | "dentist"
+  | "grocery" | "convenience" | "atm" | "bank" | "fuel" | "cafe" | "restaurant"
+  | "police" | "transit";
 
 export const CARE_LAW =
-  "Echo shows where care is, from map records. It never calls, never books, and never reads your symptoms.";
+  "Echo shows what is nearby from map records. It never calls, books, orders, or treats a listing as advice.";
 
 export const CARE_SOURCE = "OpenStreetMap records";
 
@@ -29,6 +32,15 @@ export const CARE_KINDS: CareKindRow[] = [
   { id: "doctor", label: "Doctor", plain: "Doctors' practices." },
   { id: "pharmacy", label: "Pharmacy", plain: "Where a prescription gets filled." },
   { id: "dentist", label: "Dentist", plain: "Dental practices." },
+  { id: "grocery", label: "Groceries", plain: "Supermarkets and grocery stores." },
+  { id: "convenience", label: "Convenience", plain: "Convenience stores nearby." },
+  { id: "atm", label: "ATM", plain: "Cash machines nearby." },
+  { id: "bank", label: "Bank", plain: "Bank branches nearby." },
+  { id: "fuel", label: "Fuel", plain: "Fuel stations nearby." },
+  { id: "cafe", label: "Cafe", plain: "Cafes nearby." },
+  { id: "restaurant", label: "Food", plain: "Restaurants nearby." },
+  { id: "police", label: "Police", plain: "Police stations nearby." },
+  { id: "transit", label: "Transit", plain: "Train, subway and bus stations nearby." },
 ];
 
 export function isCareKind(v: unknown): v is CareKind {
@@ -63,6 +75,15 @@ const TAG_FOR: Record<CareKind, string> = {
   doctor: "doctors",
   pharmacy: "pharmacy",
   dentist: "dentist",
+  grocery: "supermarket",
+  convenience: "convenience",
+  atm: "atm",
+  bank: "bank",
+  fuel: "fuel",
+  cafe: "cafe",
+  restaurant: "restaurant",
+  police: "police",
+  transit: "bus_station",
 };
 
 /** Overpass QL for the kinds asked for. One query, nodes and ways. */
@@ -106,6 +127,15 @@ function kindOf(tags: Record<string, string>): CareKind | null {
   if (amenity === "doctors") return "doctor";
   if (amenity === "pharmacy") return "pharmacy";
   if (amenity === "dentist") return "dentist";
+  if (amenity === "supermarket") return "grocery";
+  if (amenity === "convenience") return "convenience";
+  if (amenity === "atm") return "atm";
+  if (amenity === "bank") return "bank";
+  if (amenity === "fuel") return "fuel";
+  if (amenity === "cafe") return "cafe";
+  if (amenity === "restaurant") return "restaurant";
+  if (amenity === "police") return "police";
+  if (amenity === "bus_station") return "transit";
   return null;
 }
 
@@ -149,6 +179,15 @@ const KIND_RANK: Record<CareKind, number> = {
   doctor: 3,
   pharmacy: 4,
   dentist: 5,
+  police: 6,
+  grocery: 7,
+  convenience: 8,
+  atm: 9,
+  bank: 10,
+  fuel: 11,
+  transit: 12,
+  cafe: 13,
+  restaurant: 14,
 };
 
 /** Urgent care first, then nearest. Never price, never rating — there is none. */
@@ -188,7 +227,7 @@ export function careWords(p: CarePlace): string {
 
 /** A map link anyone can open. Echo does not route you there. */
 export function careMapLink(p: CarePlace): string {
-  return `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=17/${p.lat}/${p.lon}`;
+  return `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
 }
 
 /** The whole answer: the number first, then the nearest places. */
@@ -230,14 +269,30 @@ const GOOGLE_TYPES: Record<CareKind, string[]> = {
   doctor: ["doctor"],
   pharmacy: ["pharmacy", "drugstore"],
   dentist: ["dentist", "dental_clinic"],
+  grocery: ["supermarket", "grocery_store"],
+  convenience: ["convenience_store"],
+  atm: ["atm"],
+  bank: ["bank"],
+  fuel: ["gas_station"],
+  cafe: ["cafe", "coffee_shop"],
+  restaurant: ["restaurant"],
+  police: ["police"],
+  transit: ["train_station", "subway_station", "bus_station", "transit_station"],
 };
 
 /**
- * The type groups to ask for separately. One request for everything returns the
- * twenty nearest of anything, which on a dense street is twenty dentists and no
- * pharmacy — so a group per family of care is asked for on its own.
+ * Default reads are deliberately grouped into three bounded calls: care,
+ * essentials and getting around. A selected filter gets one focused call.
+ * This keeps useful variety without fanning out one paid request per chip.
  */
 export function googleCareGroups(kinds: CareKind[]): string[][] {
+  if (kinds.length === 0) {
+    return [
+      ["hospital", "doctor", "medical_lab", "pharmacy", "drugstore", "dentist", "dental_clinic"],
+      ["supermarket", "grocery_store", "convenience_store", "atm", "bank", "gas_station", "police"],
+      ["cafe", "coffee_shop", "restaurant", "train_station", "subway_station", "bus_station", "transit_station"],
+    ];
+  }
   const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
   const groups = new Map<string, string[]>();
   for (const k of wanted) {
@@ -264,6 +319,15 @@ function googleKind(types: string[], name: string, primary?: string | null): Car
        reason to call it one. */
     return /\bclinic\b|urgent care|walk-?in/i.test(name) ? "clinic" : "doctor";
   }
+  if (has("supermarket") || has("grocery_store")) return "grocery";
+  if (has("convenience_store")) return "convenience";
+  if (has("atm")) return "atm";
+  if (has("bank")) return "bank";
+  if (has("gas_station")) return "fuel";
+  if (has("cafe") || has("coffee_shop")) return "cafe";
+  if (has("restaurant")) return "restaurant";
+  if (has("police")) return "police";
+  if (has("train_station") || has("subway_station") || has("bus_station") || has("transit_station")) return "transit";
   return null;
 }
 

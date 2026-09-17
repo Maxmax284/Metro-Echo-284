@@ -6,6 +6,7 @@ import {
   careWords,
   distanceWords,
   filterCare,
+  googleCareGroups,
   isCareKind,
   normalizeCare,
   rankCare,
@@ -109,11 +110,18 @@ describe("careFinder", () => {
   });
 
   it("links to the map at the recorded point", () => {
-    expect(careMapLink(place())).toContain("mlat=13.75");
+    expect(careMapLink(place())).toContain("query=13.75,100.5");
+  });
+
+  it("bounds the default Google read to three useful groups", () => {
+    expect(googleCareGroups([])).toHaveLength(3);
+    expect(googleCareGroups(["pharmacy"])).toEqual([["pharmacy", "drugstore"]]);
   });
 
   it("knows its own kinds", () => {
     expect(isCareKind("pharmacy")).toBe(true);
+    expect(isCareKind("grocery")).toBe(true);
+    expect(isCareKind("transit")).toBe(true);
     expect(isCareKind("veterinary")).toBe(false);
   });
 });
