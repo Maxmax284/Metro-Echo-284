@@ -10,7 +10,8 @@
 //     so nothing has to be unpacked later.
 //   - Calm and archival: paper, tape, stamps. No charts pretending to be care.
 import { useMemo, useState } from "react";
-import { Activity, Check, Pause, Pill, Plus, Thermometer, Trash2, Weight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Activity, ArrowUpRight, Check, Pause, Pill, Plus, Thermometer, Trash2, Weight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useBody } from "@/hooks/useBody";
 import { vantaToast } from "@/lib/vantaVoice";
+import { SOURCE_LABEL } from "@/lib/wearable";
 import {
   BODY_DISCLAIMER,
   DOSE_LAW,
@@ -60,6 +62,9 @@ export function BodyDesk() {
   );
   const today = useMemo(() => dosesOn(meds, new Date()), [meds]);
   const next = useMemo(() => nextDose(meds, new Date()), [meds]);
+  /* The newest reading that came from a device rather than a keyboard. Null when
+     nothing has ever arrived that way — never softened into a guess. */
+  const fromDevice = useMemo(() => readings.find((r) => r.source && r.source !== "manual") ?? null, [readings]);
 
   const saveReadings = async () => {
     const rows: Array<{ kind: string; value: number; unit: string }> = [];
@@ -121,6 +126,30 @@ export function BodyDesk() {
   return (
     <div className="space-y-3">
       <p className="vanta-machine-label text-foreground/60">{BODY_DISCLAIMER}</p>
+
+      {/* Where a device gets linked. One place, said plainly, so the desk and the
+          day are never two different stories. */}
+      <Link
+        to="/how/watch"
+        className={cn(
+          "vanta-card flex items-center justify-between gap-3 p-3 transition-colors hover:bg-surface-elevated",
+          MOTION_FOCUS,
+        )}
+      >
+        <span className="min-w-0">
+          <span className="block text-[13px] font-semibold tracking-tight">
+            {fromDevice ? "A device is sending readings" : "Link a watch, band, ring or strap"}
+          </span>
+          <span className="mt-0.5 block text-[11.5px] leading-snug text-muted-foreground">
+            {fromDevice
+              ? `Newest arrival ${SOURCE_LABEL[fromDevice.source]} · ${stamp(fromDevice.measured_at)}. Anything it sends lands on this desk and in Your body on Today.`
+              : "Nothing is sending yet. Set it up once and its numbers land on this desk and in Your body on Today. A device never approves anything."}
+          </span>
+        </span>
+        <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+
+
 
       {/* Where things stand — the newest of each number, and its own movement. */}
       <Card className="vanta-card p-3">
