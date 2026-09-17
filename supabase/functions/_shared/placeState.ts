@@ -211,13 +211,20 @@ export function fusePlace(
   return { role, where, level, confidence, stamp: best.stamp, conflicts, used: mine };
 }
 
+/**
+ * The two most specific known levels, the way a person says them:
+ * "Arlington, VA". Empty string when nothing is known.
+ */
+export function hierarchyWords(where: PlaceHierarchy): string {
+  const parts = [where.exact, where.locality, where.metro, where.region, where.country]
+    .filter((p): p is string => !!p && !!p.trim());
+  return parts.slice(0, 2).join(", ");
+}
+
 /** The place in plain words, at exactly the precision the evidence supports. */
 export function placeWords(state: PlaceState): string | null {
-  const parts = [state.where.exact, state.where.locality, state.where.metro, state.where.region, state.where.country]
-    .filter((p): p is string => !!p && !!p.trim());
-  if (!parts.length) return null;
-  // Say the two most specific known levels: "Arlington, VA" reads like a person.
-  return parts.slice(0, 2).join(", ");
+  const words = hierarchyWords(state.where);
+  return words ? words : null;
 }
 
 /** What Echo says when sources disagree. It never picks for the person. */
