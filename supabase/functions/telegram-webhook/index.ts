@@ -124,6 +124,14 @@ import {
 } from "../_shared/reminderActions.ts";
 import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
 import {
+  POINTER_TTL_MINUTES,
+  askOneAtATime,
+  askWhichOne,
+  pointerIsFresh,
+  resolveReference,
+  splitRequests,
+} from "../_shared/reference.ts";
+import {
   activeCalendarDraft,
   calendarDraftContext,
   calendarEventButtons,
@@ -257,7 +265,7 @@ const tools = [
      described the same read in slightly different words, which is how one Echo
      starts sounding like two. One definition, both surfaces. */
   ...ECHO_READ_TOOLS,
-  { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
+  { type: "function", function: { name: "file_under_project", description: "File a capture under an existing project. Reversible filing link only — it does not execute anything. Pass the user's own words for which capture in item_reference; omit it only when they clearly meant the one they just sent.", parameters: { type: "object", properties: { project: { type: "string" }, item_reference: { type: "string", description: "Their words for which capture, e.g. 'the lease pdf'. Use 'that' only when they clearly meant the most recent one." } }, required: ["project"], additionalProperties: false } } },
   // Long-running attention. These never write anywhere — they only keep looking.
   { type: "function", function: { name: "keep_an_eye_on", description: "The user wants you to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object — it only observes and reports, never writes or executes. Pass the user's own words as reference.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their own words for the thing to watch, e.g. 'my flight Friday' or 'the deposit'." }, kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." } }, required: ["reference"], additionalProperties: false } } },
   { type: "function", function: { name: "stop_watching", description: "The user wants you to stop keeping an eye on something: 'stop watching that', 'drop that watch'.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their words for which one. Use 'that' when they didn't say." } }, additionalProperties: false } } },
@@ -528,17 +536,24 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
 
     const { data: pending } = await sb
       .from("actions")
-      .select("id, payload, status")
+      .select("id, title, payload, status, created_at")
       .eq("user_id", userId)
       .eq("status", "staged")
       .order("created_at", { ascending: false })
       .limit(10);
     const telegramChatId = args?._telegram_chat_id ?? null;
-    const row = ((pending ?? []) as any[]).find((r) =>
+    const mine = ((pending ?? []) as any[]).filter((r) =>
       isCalendarProposal(r.payload)
       && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
     );
-    if (!row) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    if (!mine.length) return { reply: "Nothing's pending to adjust. Tell me the change and I'll show it fresh.", detectedType: "calendar change", routedTo: null, readOnly: true };
+    /* Two proposals waiting means the newest one is a guess, not an answer. Ask
+       once rather than quietly adjusting the wrong booking. */
+    if (mine.length > 1) {
+      const candidates = mine.slice(0, 4).map((r) => ({ id: r.id, label: proposalSummary(r.payload) ?? r.title ?? "a pending change", createdAt: r.created_at ?? null }));
+      return { reply: askWhichOne(candidates, "change"), detectedType: "calendar change", routedTo: null, readOnly: true };
+    }
+    const row = mine[0];
 
     const refined = refineCalendarProposal(row.payload, changes);
     await sb.from("actions").update({
@@ -763,7 +778,10 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
   }
 
-  /* ---- Filing: a reversible link between a capture and a project. --------- */
+  /* ---- Filing: a reversible link between a capture and a project. ---------
+     Filing used to take whichever capture arrived last, whatever the person
+     actually named. That is the same shape as today's calendar collision, so it
+     now resolves by the words used and asks once when two captures fit. */
   if (name === "file_under_project") {
     const project = await findProject(sb, scope, String(args?.project ?? ""));
     if (!project) {
@@ -771,14 +789,23 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       const list = options.length ? ` I can see: ${options.map((o) => o.title).join(", ")}.` : "";
       return { reply: `No project matching that.${list}`, detectedType: null, routedTo: null, readOnly: true };
     }
-    const { data: recent } = await (orgId
-      ? sb.from("ingested_files").select("id").eq("user_id", userId).eq("organization_id", orgId)
-      : sb.from("ingested_files").select("id").eq("user_id", userId).is("organization_id", null))
-      .eq("source", "telegram").order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!recent?.id) {
+    const { data: captures } = await (orgId
+      ? sb.from("ingested_files").select("id, filename, created_at").eq("user_id", userId).eq("organization_id", orgId)
+      : sb.from("ingested_files").select("id, filename, created_at").eq("user_id", userId).is("organization_id", null))
+      .eq("source", "telegram").order("created_at", { ascending: false }).limit(10);
+    const rows = ((captures ?? []) as Array<{ id: string; filename: string | null; created_at: string | null }>)
+      .map((r) => ({ id: r.id, label: r.filename ?? "a capture", createdAt: r.created_at }));
+    if (!rows.length) {
       return { reply: "Nothing recent from this chat to file. Send it first, then tell me where it goes.", detectedType: null, routedTo: null, readOnly: true };
     }
-    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: recent.id, via: "Telegram" });
+    const wanted = resolveReference(String(args?.item_reference ?? "that"), rows, new Date());
+    if (wanted.status === "many") {
+      return { reply: askWhichOne(wanted.candidates, "capture"), detectedType: null, routedTo: null, readOnly: true };
+    }
+    if (wanted.status === "none") {
+      return { reply: "I can't tell which capture you mean. Say a word from it and I'll file that one.", detectedType: null, routedTo: null, readOnly: true };
+    }
+    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: wanted.item.id, via: "Telegram" });
     return res.ok
       ? { reply: `Filed under ${res.title}. Nothing else happened to it.`, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind }
       : { reply: "Couldn't file that. Open Metro Echo and attach it there.", detectedType: null, routedTo: null, readOnly: true };
@@ -1048,6 +1075,14 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   let calendarActionId: string | null = null;
   let reply = "";
 
+  /* Two independent asks in one message used to be mashed into whichever one the
+     model noticed first. Better to ask for one at a time than to half-do both.
+     A single situation described in two clauses is not two asks and stays whole. */
+  const separateAsks = splitRequests(text);
+  if (separateAsks.length > 1) {
+    return { reply: askOneAtATime(separateAsks), markup: undefined, calendarActionId: null };
+  }
+
   /* A complete new event request is resolved before model tools. This prevents
      words such as “reminder on my calendar” from selecting an unrelated old
      private reminder or receipt. New facts supersede an unfinished draft. */
@@ -1152,7 +1187,14 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* “Did you actually do it?” is answered from the exact action tied to this
      Telegram thread. The model is not allowed to remember or infer a write. */
   if (!intents.length && !reply && asksCalendarActionStatus(text)) {
+    /* The working pointer is truth for half an hour, not forever. An old id
+       must not answer a fresh question — that is how a receipt for one booking
+       ends up quoted at another. */
+    const pointerAt = typeof conv?.state?.last_calendar_action_at === "string"
+      ? conv.state.last_calendar_action_at
+      : null;
     const actionId = typeof conv?.state?.last_calendar_action_id === "string"
+      && pointerIsFresh(pointerAt, POINTER_TTL_MINUTES, new Date())
       ? conv.state.last_calendar_action_id
       : null;
     if (actionId) {
@@ -1344,6 +1386,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       state: {
         ...((currentConversation?.state as Record<string, unknown>) ?? {}),
         last_calendar_action_id: calendarActionId,
+        last_calendar_action_at: new Date().toISOString(),
       },
     }).eq("id", conv.id).eq("user_id", userId);
   }
