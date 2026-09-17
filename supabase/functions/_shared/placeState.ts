@@ -179,7 +179,12 @@ export function fusePlace(
     if (differing.length) {
       conflicts.push({
         level,
-        values: speakers.map((e) => ({ value: valueAt(e.where, level)!, from: e.kind, stamp: e.stamp })),
+        values: speakers.map((e) => ({
+          value: valueAt(e.where, level)!,
+          words: hierarchyWords(e.where),
+          from: e.kind,
+          stamp: e.stamp,
+        })),
       });
       // A contested level is spoken about by nobody. Coarser levels still hold.
       break;
@@ -220,7 +225,7 @@ export function conflictWords(state: PlaceState): string | null {
   if (!state.conflicts.length) return null;
   const c = state.conflicts[0];
   const said = c.values
-    .map((v) => `${v.value} (${EVIDENCE_WORDS[v.from]})`)
+    .map((v) => `${v.words || v.value} (${EVIDENCE_WORDS[v.from]})`)
     .join(" and ");
   return `Two sources disagree about where you are: ${said}. Echo is not going to pick one — say which is right.`;
 }
