@@ -9,6 +9,18 @@
 //   - A stay is not an appointment. Something spanning days reads as a stay with
 //     the days remaining, not as a block sitting on one morning.
 
+/**
+ * What a provider reading adds to an entry — a flight keeping different hours
+ * than the ones filed. Only ever present when a provider actually said so.
+ */
+export type MarkerLive = {
+  status: string | null;
+  gate: string | null;
+  terminal: string | null;
+  movedMinutes: number | null;
+  checkedAt: string | null;
+};
+
 export type BoardEntry = {
   id: string;
   title: string | null;
@@ -22,6 +34,8 @@ export type BoardEntry = {
   origin?: "feed" | "echo";
   projectTitle?: string | null;
   feedLabel?: string;
+  /** A live reading, when one exists for this entry. Never inferred. */
+  live?: MarkerLive | null;
 };
 
 /** One row per real entry. Same key the server uses. */
@@ -133,6 +147,8 @@ export type AgendaTimelineMarker = {
   title: string;
   startMinute: number;
   endMinute: number | null;
+  /** Carried through untouched: the rail says a live hour is live. */
+  live?: MarkerLive | null;
 };
 
 export type AgendaTimeline = {
@@ -180,7 +196,7 @@ export function buildAgendaTimeline(
 ): AgendaTimeline | null {
   const markers = entries
     .filter((entry) => !entry.all_day && !isStay(entry))
-    .map((entry) => {
+    .map((entry): AgendaTimelineMarker | null => {
       const startMinute = minuteInZone(entry.starts_at, timezone);
       if (startMinute == null) return null;
       const rawEnd = entry.ends_at ? minuteInZone(entry.ends_at, timezone) : null;
@@ -190,6 +206,7 @@ export function buildAgendaTimeline(
         title: entry.title?.trim() || "Untitled",
         startMinute,
         endMinute,
+        live: entry.live ?? null,
       };
     })
     .filter((marker): marker is AgendaTimelineMarker => marker !== null)

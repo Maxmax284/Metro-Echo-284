@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, Clock3 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { buildAgendaTimeline, type BoardEntry } from "@/lib/agendaBoard";
+import { liveMarkerWords } from "@/lib/agendaFlightTimes";
 import { MOTION_ARRIVE, MOTION_FLIP } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +103,11 @@ export function AgendaLiveStrip({
                 <span className={cn("mt-1 block truncate text-[10.5px]", active ? "font-medium text-primary" : "text-foreground/75")} title={marker.title}>
                   {marker.title}
                 </span>
+                {liveMarkerWords(marker.live) && (
+                  <span className={cn("block truncate text-[9.5px] text-primary/80", MOTION_FLIP)} title="From the airline's own reading">
+                    {liveMarkerWords(marker.live)}
+                  </span>
+                )}
               </span>
             );
           })}

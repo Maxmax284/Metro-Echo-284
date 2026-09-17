@@ -36,6 +36,7 @@ import {
   isStay,
   stayLine,
 } from "@/lib/agendaBoard";
+import { applyLiveFlightTimes, liveMarkerWords } from "@/lib/agendaFlightTimes";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -99,10 +100,18 @@ export function AgendaBoard() {
     return out;
   }, [cursor]);
 
-  const dayRows = (byDay.get(dayKey(selected)) ?? []).slice().sort((a, b) => {
-    if (isStay(a) !== isStay(b)) return isStay(a) ? -1 : 1;
-    return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
-  });
+  /* A filed flight keeps the hours the airline is actually keeping. The rail and
+     the list read the same re-timed rows, so they can never disagree about a day. */
+  const dayRows = useMemo(() => {
+    const rows = (byDay.get(dayKey(selected)) ?? []).slice().sort((a, b) => {
+      if (isStay(a) !== isStay(b)) return isStay(a) ? -1 : 1;
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
+    return applyLiveFlightTimes(rows, plans).sort((a, b) => {
+      if (isStay(a) !== isStay(b)) return isStay(a) ? -1 : 1;
+      return new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+    });
+  }, [byDay, selected, plans]);
 
   /* What the day cost, from entries the bank recorded. Silent when it recorded none. */
   const dayMoney = useMemo(
@@ -255,6 +264,9 @@ export function AgendaBoard() {
                           <span className="inline-flex items-center gap-1">
                             <Users className="h-3 w-3" aria-hidden /> {f.people}
                           </span>
+                        )}
+                        {liveMarkerWords(e.live) && (
+                          <span className="text-primary/85">Airline says {liveMarkerWords(e.live)}</span>
                         )}
                         {e.projectTitle && <span className="text-primary/80">{e.projectTitle}</span>}
                         <span className="text-muted-foreground/70">{e.feedLabel}</span>
