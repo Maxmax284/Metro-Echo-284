@@ -11,6 +11,7 @@ import { MachineLabel, MachineText } from "@/components/ui/instrument";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
+import { BodyPatternsPanel } from "@/components/wearables/BodyPatternsPanel";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { readingLine, restBalance, workoutList } from "@/lib/wearable";
@@ -121,6 +122,11 @@ export function TodayBodyPanel() {
                 : "Whatever you set by hand. Echo suggests; it never switches."}
             </p>
           </div>
+
+          {/* What the numbers have been doing, the same three strips the Body
+              desk shows, from the same calculator. A glance, not a dashboard:
+              gaps stay gaps and nothing here is a target or a verdict. */}
+          <BodyPatternsPanel variant="today" />
 
           <AftermathHint text="These numbers only change how Echo talks — shorter when you're moving, quieter when you're training. They never change what needs your approval." />
         </div>
