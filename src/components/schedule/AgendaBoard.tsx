@@ -14,6 +14,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Pencil, Users, 
 import { Card } from "@/components/ui/card";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
+import { AgendaLiveStrip } from "@/components/schedule/AgendaLiveStrip";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useAgenda, type AgendaEvent } from "@/hooks/useAgenda";
 import { useBody } from "@/hooks/useBody";
@@ -210,6 +211,10 @@ export function AgendaBoard() {
         <p className="vanta-machine-label mb-2 text-foreground/70">
           {selected.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
         </p>
+
+        {!loading && !error && dayRows.length > 0 && (
+          <AgendaLiveStrip entries={dayRows} selectedDayKey={dayKey(selected)} timezone={timezone} />
+        )}
 
         {loading ? (
           <LoadingState label="Reading the calendars…" />
