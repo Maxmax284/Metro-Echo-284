@@ -201,9 +201,12 @@ export function useFlightPlans() {
       let cleared = 0;
       let failed = 0;
       for (const id of plan.event_ids ?? []) {
-        const res = await deleteEchoEvent(id);
-        if (res.error) failed += 1;
-        else cleared += 1;
+        try {
+          await deleteEchoEvent(id);
+          cleared += 1;
+        } catch {
+          failed += 1;
+        }
       }
       const { error: err } = await supabase
         .from("flight_plans")
