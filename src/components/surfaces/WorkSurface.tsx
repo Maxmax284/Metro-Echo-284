@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   Wallet,
   LifeBuoy,
+  HeartPulse,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
@@ -166,13 +167,17 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <nav aria-label="Go straight there" className="vanta-card p-2.5">
           <MachineLabel className="px-1 text-foreground/70">Go straight there</MachineLabel>
           <div className="mt-2 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            <JumpTile label="Schedule" line="Your day in order" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
             <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
+            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
             <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
+            <JumpTile label="Body" line="Medication and readings" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
             <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
             <JumpTile label="Documents" line="Drafts and exports" Icon={FileText} href="/documents" />
           </div>
+          <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+            Schedule keeps time only. Every desk lives here.
+          </p>
         </nav>
 
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
