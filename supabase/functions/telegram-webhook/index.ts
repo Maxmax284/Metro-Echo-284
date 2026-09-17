@@ -1295,11 +1295,21 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
 
     if (ask?.kind === "cancel") {
-      const out = await dropFlightByNumber(sb, { userId, orgId }, ask.flight_no);
-      reply = out.words;
+      /* Removal is asked once, never guessed. The card only comes off the record
+         when the button on this exact message is tapped. */
+      const hit = await findFlightByNumber(sb, { userId, orgId }, ask.flight_no);
       readOnly = true;
       detectedType = "flight";
-      routedTo = out.dropped ? "flights" : null;
+      if (!hit) {
+        reply = `I don't have ${ask.flight_no} on your record, so there's nothing to remove.`;
+      } else {
+        reply = dropConfirmWords(ask.flight_no, hit);
+        toolMarkup = keyboard([
+          { text: `Remove ${ask.flight_no}`, callback_data: `fltdrop:${hit.id}:${ask.flight_no}` },
+          { text: "Keep it", callback_data: `fltkeep:${hit.id}` },
+        ]);
+        routedTo = "flights";
+      }
     } else if (ask?.kind === "file") {
       const out = await fileFlightByNumber(sb, { userId, orgId }, {
         flight_no: ask.flight_no,
