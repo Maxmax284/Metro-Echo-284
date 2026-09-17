@@ -1080,16 +1080,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      A single situation described in two clauses is not two asks and stays whole. */
   const separateAsks = splitRequests(text);
   if (separateAsks.length > 1) {
-    return {
-      reply: askOneAtATime(separateAsks),
-      detectedType: null,
-      routedTo: null,
-      readOnly: true,
-      commitmentId: null,
-      linkKind: null,
-      markup: undefined,
-      calendarActionId: null,
-    } as never;
+    return { reply: askOneAtATime(separateAsks), markup: undefined, calendarActionId: null };
   }
 
   /* A complete new event request is resolved before model tools. This prevents
