@@ -20,23 +20,34 @@ export function providerConfigured(): boolean {
 /** One provider call. Null when it failed or carried nothing — both are logged. */
 export async function readFlight(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
   if (!KEY) return null;
-  const url = new URL("https://api.aviationstack.com/v1/flights");
-  url.searchParams.set("access_key", KEY);
-  url.searchParams.set("flight_iata", flight_no);
-  url.searchParams.set("flight_date", flight_date);
-  try {
+
+  const ask = async (withDate: boolean): Promise<{ payload?: unknown; limited?: boolean }> => {
+    const url = new URL("https://api.aviationstack.com/v1/flights");
+    url.searchParams.set("access_key", KEY);
+    url.searchParams.set("flight_iata", flight_no);
+    if (withDate) url.searchParams.set("flight_date", flight_date);
     const res = await fetch(url.toString());
     const text = await res.text();
+    const limited = text.includes("function_access_restricted") || text.includes("usage_limit_reached");
     if (!res.ok) {
       console.error(`aviationstack failed [${res.status}]: ${text}`);
-      return null;
+      return { limited };
     }
     const payload = JSON.parse(text || "{}");
     if (payload?.error) {
       console.error("aviationstack error body", JSON.stringify(payload.error));
-      return null;
+      return { limited };
     }
-    return normalizeAviationstack(payload, { flight_no, flight_date });
+    return { payload };
+  };
+
+  try {
+    let out = await ask(true);
+    // The free plan refuses a date filter. Ask plainly; normalizing still keeps
+    // only a reading that matches the day asked about.
+    if (out.payload === undefined && out.limited) out = await ask(false);
+    if (out.payload === undefined) return null;
+    return normalizeAviationstack(out.payload, { flight_no, flight_date });
   } catch (e) {
     console.error("aviationstack call threw", e);
     return null;
