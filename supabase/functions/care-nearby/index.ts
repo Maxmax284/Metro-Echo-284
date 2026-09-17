@@ -138,6 +138,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const authorization = req.headers.get("Authorization");
+    if (!authorization) return json({ error: "Sign in to read nearby places." }, 401);
+    const auth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authorization } } },
+    );
+    const { data: { user }, error: authError } = await auth.auth.getUser();
+    if (authError || !user) return json({ error: "Sign in to read nearby places." }, 401);
+
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
     const { lat, lon } = parsed.data;

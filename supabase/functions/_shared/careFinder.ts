@@ -1,4 +1,4 @@
-// careFinder — where care is, where you are standing.
+// careFinder — practical places around where you are standing.
 //
 // Doctrine:
 //   - Map data, not a guess. Every row here came from an OpenStreetMap record;
@@ -227,7 +227,7 @@ export function careWords(p: CarePlace): string {
 
 /** A map link anyone can open. Echo does not route you there. */
 export function careMapLink(p: CarePlace): string {
-  return `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=17/${p.lat}/${p.lon}`;
+  return `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
 }
 
 /** The whole answer: the number first, then the nearest places. */
@@ -281,11 +281,18 @@ const GOOGLE_TYPES: Record<CareKind, string[]> = {
 };
 
 /**
- * The type groups to ask for separately. One request for everything returns the
- * twenty nearest of anything, which on a dense street is twenty dentists and no
- * pharmacy — so a group per family of care is asked for on its own.
+ * Default reads are deliberately grouped into three bounded calls: care,
+ * essentials and getting around. A selected filter gets one focused call.
+ * This keeps useful variety without fanning out one paid request per chip.
  */
 export function googleCareGroups(kinds: CareKind[]): string[][] {
+  if (kinds.length === 0) {
+    return [
+      ["hospital", "doctor", "medical_lab", "pharmacy", "drugstore", "dentist", "dental_clinic"],
+      ["supermarket", "grocery_store", "convenience_store", "atm", "bank", "gas_station", "police"],
+      ["cafe", "coffee_shop", "restaurant", "train_station", "subway_station", "bus_station", "transit_station"],
+    ];
+  }
   const wanted = kinds.length ? kinds : (CARE_KINDS.map((k) => k.id) as CareKind[]);
   const groups = new Map<string, string[]>();
   for (const k of wanted) {

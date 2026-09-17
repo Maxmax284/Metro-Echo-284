@@ -124,6 +124,7 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     const { data: p } = await supabase
       .from("awareness_places")
       .select("id,label,geo,country,region,address,category,notes,updated_at")
+      .or("category.is.null,category.neq.care")
       .is("archived_at", null)
       .order("updated_at", { ascending: false })
       .limit(1)

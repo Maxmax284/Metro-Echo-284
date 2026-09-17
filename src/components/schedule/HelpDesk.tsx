@@ -114,8 +114,8 @@ export function HelpDesk() {
         ) : rows.length === 0 ? (
           <p className="text-[12.5px] text-muted-foreground">
             {places.length === 0
-              ? `Neither place provider has anything recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of where Echo has you. That is the records being empty, not care being absent — check the place Echo is holding for you.`
-             Nothing on the list matches that. Clear the search to see all of it."}
+              ? `Neither place provider has anything recorded within ${Math.max(1, Math.round(radiusM / 1000))} km of where Echo has you. That is the records being empty, not proof that nothing is nearby — check the place Echo is holding for you.`
+              : "Nothing on the list matches that. Clear the search to see all of it."}
           </p>
         ) : (
           <ul className="space-y-2">
