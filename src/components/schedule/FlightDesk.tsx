@@ -91,6 +91,8 @@ export function FlightDesk() {
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [live, setLive] = useState<Record<string, string>>({});
+  /* Removal is asked once, plainly, and never assumed from a stray tap. */
+  const [removing, setRemoving] = useState<FlightPlan | null>(null);
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
