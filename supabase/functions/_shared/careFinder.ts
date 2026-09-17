@@ -252,8 +252,10 @@ export function googleCareTypes(kinds: CareKind[]): string[] {
   return Array.from(new Set(wanted.flatMap((k) => GOOGLE_TYPES[k] ?? [])));
 }
 
-function googleKind(types: string[], name: string): CareKind | null {
-  const has = (t: string) => types.includes(t);
+function googleKind(types: string[], name: string, primary?: string | null): CareKind | null {
+  /* Google's primary type is the one it stands behind. A podiatry office often
+     carries "hospital" somewhere in its list; that does not make it a hospital. */
+  const has = (t: string) => (primary ? primary === t : types.includes(t));
   if (has("hospital")) return "hospital";
   if (has("pharmacy") || has("drugstore")) return "pharmacy";
   if (has("dentist") || has("dental_clinic")) return "dentist";
@@ -279,8 +281,8 @@ export function normalizeGoogleCare(rows: unknown[], lat: number, lon: number): 
     const plon = Number(p?.location?.longitude);
     if (!name || !Number.isFinite(plat) || !Number.isFinite(plon)) continue;
     const types: string[] = Array.isArray(p?.types) ? p.types.map(String) : [];
-    if (p?.primaryType) types.unshift(String(p.primaryType));
-    const kind = googleKind(types, name);
+    const primary = p?.primaryType ? String(p.primaryType) : null;
+    const kind = googleKind(types, name, primary) ?? googleKind(types, name, null);
     if (!kind) continue;
     const id = `google/${String(p?.id ?? `${plat},${plon}`)}`;
     if (seen.has(id)) continue;
