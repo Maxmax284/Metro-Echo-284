@@ -148,3 +148,17 @@ export function readFlightAsk(raw: string, today: string): FlightAsk {
 export function askForDayWords(flight_no: string): string {
   return `${flight_no} — which day does it leave? Say a date, or "tomorrow", or the weekday. I won't pick one for you.`;
 }
+
+/** The question asked before a card is taken off the record. */
+export function dropConfirmWords(flight_no: string, hit: { depart_on: string; status: string }): string {
+  return hit.status === "confirmed"
+    ? `Remove ${flight_no} on ${hit.depart_on} from your record? It's confirmed, so the departure and landing entries it wrote stay on your board until you clear those. Nothing is cancelled with the airline either way.`
+    : `Remove ${flight_no} on ${hit.depart_on} from your record? It's still a draft, so nothing was booked and nothing gets cancelled with the airline.`;
+}
+
+/** The words left behind once a card is off the record. */
+export function droppedWords(flight_no: string, hit: { depart_on: string; status: string }): string {
+  return hit.status === "confirmed"
+    ? `${flight_no} on ${hit.depart_on} is off your record. The board entries it wrote are still there — clear those in Metro Echo.`
+    : `${flight_no} on ${hit.depart_on} is off your record. Nothing was booked, so nothing was cancelled with the airline.`;
+}

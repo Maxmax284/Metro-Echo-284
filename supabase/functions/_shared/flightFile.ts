@@ -14,6 +14,7 @@ import { TERMINAL_CAVEAT } from "./journey.ts";
 import { countedRead } from "./flightProvider.ts";
 import { bareOption } from "./flightQuick.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
+import { dropConfirmWords, droppedWords } from "./flightChat.ts";
 
 type Db = { from: (t: string) => any };
 
@@ -153,20 +154,6 @@ export async function findFlightByNumber(
   return { id: hit.id, depart_on: String(hit.depart_on).slice(0, 10), status: hit.status };
 }
 
-/** The question asked before a card is taken off the record. */
-export function dropConfirmWords(flight_no: string, hit: FlightHit): string {
-  return hit.status === "confirmed"
-    ? `Remove ${flight_no} on ${hit.depart_on} from your record? It's confirmed, so the departure and landing entries it wrote stay on your board until you clear those. Nothing is cancelled with the airline either way.`
-    : `Remove ${flight_no} on ${hit.depart_on} from your record? It's still a draft, so nothing was booked and nothing gets cancelled with the airline.`;
-}
-
-/** The words left behind once a card is off the record. */
-export function droppedWords(flight_no: string, hit: FlightHit): string {
-  return hit.status === "confirmed"
-    ? `${flight_no} on ${hit.depart_on} is off your record. The board entries it wrote are still there — clear those in Metro Echo.`
-    : `${flight_no} on ${hit.depart_on} is off your record. Nothing was booked, so nothing was cancelled with the airline.`;
-}
-
 /** Taking one known card off the record, with its receipt. */
 export async function dropFlightPlan(
   sb: Db,
@@ -205,4 +192,5 @@ export async function dropFlightByNumber(
   return dropFlightPlan(sb, scope, hit, { flight_no, via: "chat" });
 }
 
+export { dropConfirmWords, droppedWords };
 export type { FlightPlan };
