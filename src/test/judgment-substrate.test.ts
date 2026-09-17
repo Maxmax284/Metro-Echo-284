@@ -80,7 +80,7 @@ describe("what bit me before", () => {
   });
 
   it("yields to a newer authoritative source", () => {
-    expect(yieldsToCurrent(held[0], { source: "clinic website", authority: "official", at: daysAgo(1) }, NOW)).toBe(true);
+    expect(yieldsToCurrent(held[0], { source: "clinic website", authority: "official", readAt: daysAgo(1) }, NOW)).toBe(true);
   });
 });
 
@@ -113,8 +113,8 @@ describe("role map, not absorption", () => {
 describe("source disagreement", () => {
   it("shows the disagreement instead of smoothing it", () => {
     const out = reconcile([
-      { topic: "emergency", country: "TH", value: "191", stamp: { source: "gov", authority: "official", at: daysAgo(2) } },
-      { topic: "emergency", country: "TH", value: "911", stamp: { source: "blog", authority: "public", at: daysAgo(1) } },
+      { topic: "emergency", country: "TH", value: "191", stamp: { source: "gov", authority: "official", readAt: daysAgo(2) } },
+      { topic: "emergency", country: "TH", value: "911", stamp: { source: "blog", authority: "public", readAt: daysAgo(1) } },
     ], NOW);
     expect(out.disagreements.length).toBe(1);
   });
