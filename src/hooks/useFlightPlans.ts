@@ -7,7 +7,7 @@
 //     rounded, and the source is recorded with the plan.
 //   - Every confirmation and drop leaves a receipt in audit_log.
 //   - Scope-bound like every other desk.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
@@ -91,6 +91,26 @@ export function useFlightPlans() {
   useEffect(() => {
     void load();
   }, [load, key]);
+
+  /* The watcher stamps a new reading whenever a flight actually changes. Read it
+     the moment it lands instead of waiting for the next sweep, so an open day
+     rail moves with the gate change rather than minutes after it. Each hook
+     instance owns one uniquely named channel — realtime reuses names. */
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useEffect(() => {
+    if (!user?.id) return;
+    const userId = user.id;
+    const channel = supabase
+      .channel(`flight-plans-${userId}-${key}-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "flight_plans", filter: `user_id=eq.${userId}` },
+        () => { void loadRef.current(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [user?.id, key]);
 
   const prepare = useCallback(
     async (input: PrepareInput) => {
