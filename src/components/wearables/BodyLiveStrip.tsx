@@ -67,10 +67,13 @@ export function BodyLiveStrip({
 
   const state = useMemo(() => todayClock(readings, now), [readings, now]);
 
-  const width = railWidthFor(Math.max(1, state.markers.length), tall ? 104 : 88);
+  /* A slot per reading, wide enough that a label never lands on its neighbour.
+     On a phone the rail scrolls sideways rather than squeezing the words. */
+  const gap = tall ? 116 : 112;
+  const width = railWidthFor(Math.max(1, state.markers.length), gap);
   const placed = useMemo(
-    () => spreadMarkers(state.markers.map((m) => m.percent), width, tall ? 104 : 88),
-    [state.markers, width, tall],
+    () => spreadMarkers(state.markers.map((m) => m.percent), width, gap),
+    [state.markers, width, gap],
   );
 
   return (
@@ -112,7 +115,7 @@ export function BodyLiveStrip({
               return (
                 <div
                   key={`${m.kind}-${m.at}-${i}`}
-                  className={cn("absolute top-0 flex w-[96px] flex-col items-start", MOTION_ARRIVE)}
+                  className={cn("absolute top-0 flex w-[104px] flex-col items-start", MOTION_ARRIVE)}
                   style={{ left: Math.max(0, placed[i] - 6) }}
                 >
                   <span
@@ -123,14 +126,17 @@ export function BodyLiveStrip({
                     )}
                     style={{ marginTop: 4 }}
                   />
-                  <span className="mt-1.5 flex items-center gap-1">
+                  <span className="mt-1.5 flex w-full items-center gap-1">
                     <Icon className="h-3 w-3 shrink-0 text-primary/80" aria-hidden />
-                    <MachineText className="text-[10px] text-foreground/85">
+                    <MachineText className="truncate text-[10px] text-foreground/85">
                       {shown(m.value, m.unit, m.kind)}
                     </MachineText>
                   </span>
-                  <span className="text-[9.5px] leading-tight text-muted-foreground">
-                    {KIND_LABEL[m.kind] ?? m.kind} · {clock(m.at, timezone)}
+                  <span className="w-full truncate text-[9.5px] leading-tight text-muted-foreground">
+                    {KIND_LABEL[m.kind] ?? m.kind}
+                  </span>
+                  <span className="w-full truncate text-[9.5px] leading-tight text-muted-foreground/80">
+                    {clock(m.at, timezone)}
                   </span>
                 </div>
               );
