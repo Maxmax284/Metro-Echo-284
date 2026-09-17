@@ -12,6 +12,10 @@ import {
   
   ChevronRight,
   Briefcase,
+  Plane,
+  LayoutGrid,
+  Wallet,
+  LifeBuoy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
@@ -156,6 +160,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </span>
         </header>
 
+        {/* Go straight there. The desks below still hold the records; this row
+            exists because on a phone the thing you came for should be one tap
+            from the top of the room, not somewhere down a shelf. */}
+        <nav aria-label="Go straight there" className="vanta-card p-2.5">
+          <MachineLabel className="px-1 text-foreground/70">Go straight there</MachineLabel>
+          <div className="mt-2 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
+            <JumpTile label="Schedule" line="Your day in order" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
+            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
+            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
+            <JumpTile label="Documents" line="Drafts and exports" Icon={FileText} href="/documents" />
+          </div>
+        </nav>
+
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
 
         {/* Three stable shelves instead of ten equal choices: what is coming
@@ -250,6 +269,45 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <SurfaceAftermath surface="work" />
       </div>
     </div>
+  );
+}
+
+/**
+ * One tap to a place you already know you want. Presentation only — every
+ * destination is an existing route, nothing new is read or written here.
+ */
+function JumpTile({
+  label,
+  line,
+  Icon,
+  href,
+  onOpen,
+}: {
+  label: string;
+  line: string;
+  Icon: typeof Inbox;
+  href?: string;
+  onOpen?: () => void;
+}) {
+  const className = cn(
+    "flex min-h-[60px] w-full flex-col justify-center gap-0.5 vanta-inset vanta-cut px-3 py-2 text-left touch-manipulation hover:bg-surface-elevated/70",
+    MOTION_ROW,
+    MOTION_HOVER_LIFT,
+    MOTION_FOCUS,
+  );
+  const body = (
+    <>
+      <span className="flex items-center gap-1.5">
+        <Icon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="truncate text-[12.5px] font-semibold text-foreground">{label}</span>
+      </span>
+      <span className="block text-[11px] leading-snug text-muted-foreground">{line}</span>
+    </>
+  );
+  return href ? (
+    <a href={href} className={className}>{body}</a>
+  ) : (
+    <button type="button" onClick={onOpen} className={className}>{body}</button>
   );
 }
 
