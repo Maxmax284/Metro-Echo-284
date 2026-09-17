@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   boardFacts,
+  buildAgendaTimeline,
   currentStay,
   dedupeBoard,
   durationWords,
@@ -116,5 +117,57 @@ describe("agenda board — where and who", () => {
 
   it("leaves every fact blank that the entry never carried", () => {
     expect(boardFacts(e({}))).toEqual({ duration: "", room: "", people: "" });
+  });
+});
+
+describe("agenda board — live day strip", () => {
+  const now = new Date("2026-09-17T14:15:00.000Z");
+
+  it("positions real timed entries and marks the running one", () => {
+    const timeline = buildAgendaTimeline([
+      e({ id: "a", title: "Breakfast", starts_at: "2026-09-17T12:00:00.000Z", ends_at: "2026-09-17T13:00:00.000Z" }),
+      e({ id: "b", title: "Clinic", starts_at: "2026-09-17T14:00:00.000Z", ends_at: "2026-09-17T15:00:00.000Z" }),
+    ], "2026-09-17", "UTC", now);
+
+    expect(timeline?.markers).toHaveLength(2);
+    expect(timeline?.activeId).toBe("b");
+    expect(timeline?.status).toBe("now");
+    expect(timeline?.statusTitle).toBe("Clinic");
+  });
+
+  it("calls out honest clear time before the next entry", () => {
+    const timeline = buildAgendaTimeline([
+      e({ title: "Call", starts_at: "2026-09-17T15:00:00.000Z", ends_at: "2026-09-17T15:30:00.000Z" }),
+    ], "2026-09-17", "UTC", now);
+
+    expect(timeline?.status).toBe("clear");
+    expect(timeline?.clearMinutes).toBe(45);
+  });
+
+  it("marks a past day complete and never draws a live now marker", () => {
+    const timeline = buildAgendaTimeline([
+      e({ starts_at: "2026-09-16T10:00:00.000Z", ends_at: "2026-09-16T11:00:00.000Z" }),
+    ], "2026-09-16", "UTC", now);
+
+    expect(timeline?.status).toBe("complete");
+    expect(timeline?.nowMinute).toBeNull();
+  });
+
+  it("does not invent positions for all-day entries or stays", () => {
+    const timeline = buildAgendaTimeline([
+      e({ all_day: true }),
+      e({ ends_at: "2026-09-20T14:00:00.000Z" }),
+    ], "2026-09-17", "UTC", now);
+
+    expect(timeline).toBeNull();
+  });
+
+  it("reads local clock minutes in the supplied timezone", () => {
+    const timeline = buildAgendaTimeline([
+      e({ starts_at: "2026-09-17T14:00:00.000Z", ends_at: "2026-09-17T15:00:00.000Z" }),
+    ], "2026-09-17", "America/New_York", new Date("2026-09-17T14:15:00.000Z"));
+
+    expect(timeline?.markers[0].startMinute).toBe(600);
+    expect(timeline?.nowMinute).toBe(615);
   });
 });
