@@ -13,6 +13,8 @@ import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead
 import { abilitiesBlock, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
 import { readAbilityFacts } from "../_shared/echoAbilityFacts.ts";
 import { lifeBlock, lifeDomains, matchLifeQuestion } from "../_shared/streetSmart.ts";
+import { judgmentBlock } from "../_shared/judgment/index.ts";
+import { gatherJudgment } from "../_shared/judgment/gather.ts";
 import { readLifeFacts } from "../_shared/lifeFacts.ts";
 import {
   ECHO_READ_TOOLS,
