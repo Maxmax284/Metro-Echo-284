@@ -10,7 +10,8 @@
 //     so nothing has to be unpacked later.
 //   - Calm and archival: paper, tape, stamps. No charts pretending to be care.
 import { useMemo, useState } from "react";
-import { Activity, Check, Pause, Pill, Plus, Thermometer, Trash2, Weight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Activity, ArrowUpRight, Check, Pause, Pill, Plus, Thermometer, Trash2, Weight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
