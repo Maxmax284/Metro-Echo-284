@@ -125,12 +125,17 @@ export async function fileFlightByNumber(
   return { status: "filed", plan_id: planId, words: `${words}\n\n${TERMINAL_CAVEAT}` };
 }
 
-/** Dropping a card. Not an execution, so it can be done from anywhere. */
-export async function dropFlightByNumber(
+export type FlightHit = { id: string; depart_on: string; status: string };
+
+/**
+ * The one card a typed flight number means: the soonest one still ahead, or the
+ * most recent past one when they all are. Nothing is changed by looking.
+ */
+export async function findFlightByNumber(
   sb: Db,
   scope: FileScope,
   flight_no: string,
-): Promise<{ dropped: boolean; words: string }> {
+): Promise<FlightHit | null> {
   let q = sb
     .from("flight_plans")
     .select("id, options, depart_on, status")
@@ -144,10 +149,31 @@ export async function dropFlightByNumber(
   const today = new Date().toISOString().slice(0, 10);
   const matches = rows.filter((r) => sameCode(r.options, flight_no));
   const hit = matches.find((r) => String(r.depart_on).slice(0, 10) >= today) ?? matches[0];
-  if (!hit) {
-    return { dropped: false, words: `I don't have ${flight_no} on your record, so there's nothing to drop.` };
-  }
-  const wasConfirmed = hit.status === "confirmed";
+  if (!hit) return null;
+  return { id: hit.id, depart_on: String(hit.depart_on).slice(0, 10), status: hit.status };
+}
+
+/** The question asked before a card is taken off the record. */
+export function dropConfirmWords(flight_no: string, hit: FlightHit): string {
+  return hit.status === "confirmed"
+    ? `Remove ${flight_no} on ${hit.depart_on} from your record? It's confirmed, so the departure and landing entries it wrote stay on your board until you clear those. Nothing is cancelled with the airline either way.`
+    : `Remove ${flight_no} on ${hit.depart_on} from your record? It's still a draft, so nothing was booked and nothing gets cancelled with the airline.`;
+}
+
+/** The words left behind once a card is off the record. */
+export function droppedWords(flight_no: string, hit: FlightHit): string {
+  return hit.status === "confirmed"
+    ? `${flight_no} on ${hit.depart_on} is off your record. The board entries it wrote are still there — clear those in Metro Echo.`
+    : `${flight_no} on ${hit.depart_on} is off your record. Nothing was booked, so nothing was cancelled with the airline.`;
+}
+
+/** Taking one known card off the record, with its receipt. */
+export async function dropFlightPlan(
+  sb: Db,
+  scope: FileScope,
+  hit: FlightHit,
+  input: { flight_no: string; via: "desk" | "telegram" | "chat" | "ask" },
+): Promise<{ dropped: boolean; words: string }> {
   const { error } = await sb.from("flight_plans").update({ status: "dropped" }).eq("id", hit.id);
   if (error) return { dropped: false, words: "That flight couldn't be dropped just now." };
   await sb.from("audit_log").insert({
@@ -156,14 +182,27 @@ export async function dropFlightByNumber(
     entity_type: "flight_plan",
     entity_id: hit.id,
     event: "flight.dropped",
-    payload: { flight_no, depart_on: hit.depart_on, via: "chat", was_confirmed: wasConfirmed },
+    payload: {
+      flight_no: input.flight_no,
+      depart_on: hit.depart_on,
+      via: input.via,
+      was_confirmed: hit.status === "confirmed",
+    },
   } as never);
-  return {
-    dropped: true,
-    words: wasConfirmed
-      ? `${flight_no} on ${String(hit.depart_on).slice(0, 10)} is off your record. The board entries it wrote are still there — clear those in Metro Echo.`
-      : `${flight_no} on ${String(hit.depart_on).slice(0, 10)} is off your record. Nothing was booked, so nothing was cancelled with the airline.`,
-  };
+  return { dropped: true, words: droppedWords(input.flight_no, hit) };
+}
+
+/** Dropping a card. Not an execution, so it can be done from anywhere. */
+export async function dropFlightByNumber(
+  sb: Db,
+  scope: FileScope,
+  flight_no: string,
+): Promise<{ dropped: boolean; words: string }> {
+  const hit = await findFlightByNumber(sb, scope, flight_no);
+  if (!hit) {
+    return { dropped: false, words: `I don't have ${flight_no} on your record, so there's nothing to drop.` };
+  }
+  return dropFlightPlan(sb, scope, hit, { flight_no, via: "chat" });
 }
 
 export type { FlightPlan };
