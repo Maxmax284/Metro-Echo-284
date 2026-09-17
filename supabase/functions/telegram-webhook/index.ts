@@ -575,11 +575,8 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
           markup: keyboard(calendarApprovalButtons(existing.id, existing.payload.version)),
           calendarActionId: existing.id,
         };
-        const line = existing.status === "executed" || existing.status === "audited"
-          ? "That calendar event was already written to Google."
-          : existing.status === "approved"
-            ? "That change is approved and waiting to be written to Google."
-            : "That earlier calendar proposal was dropped. Tell me to add it again if you still want it.";
+        const line = calendarActionStatusLine(existing, defaults.timezone)
+          ?? "I found the earlier calendar proposal, but its receipt does not prove a Google write.";
         return { reply: line, detectedType: "calendar change", routedTo: "actions", readOnly: true };
       }
     }
@@ -1052,7 +1049,16 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     if (missing === "title" && text.length <= 160) {
       completion = [{ field: "title", label: calendarFieldLabel("title"), before: null, after: text }];
     } else if (missing === "time") {
-      const parsed = parseReminderHint(text, defaults);
+      /* A follow-up may only correct the day ("the 22nd") after the first
+         message already supplied 1 PM. Parse the whole short thread as a
+         fallback so we preserve that clock instead of asking forever. */
+      const recentUserContext = history
+        .filter((message: any) => message.role === "user")
+        .slice(-4)
+        .map((message: any) => String(message.content ?? ""))
+        .join(" ");
+      let parsed = parseReminderHint(text, defaults);
+      if (parsed.status !== "ok") parsed = parseReminderHint(`${text} ${recentUserContext}`, defaults);
       if (parsed.status === "ok") {
         completion = [
           { field: "time", label: calendarFieldLabel("time"), before: null, after: parsed.due_at },

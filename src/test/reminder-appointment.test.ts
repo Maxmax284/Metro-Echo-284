@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { looksLikeAppointment } from "../../supabase/functions/_shared/reminderParse";
+import { looksLikeAppointment, parseReminderHint } from "../../supabase/functions/_shared/reminderParse";
 import { reminderLocation, reminderOffsetsMinutes, resolveReminderReference, wantsRecentReminderOnCalendar, wantsReminderCancellation } from "../../supabase/functions/_shared/reminderActions";
 import { hasCalendarCreationDetails } from "../../supabase/functions/_shared/calendarChangeNormalize";
 import { asksCalendarActionStatus, calendarActionStatusLine } from "../../supabase/functions/_shared/calendarConversation";
@@ -72,5 +72,24 @@ describe("reminder follow-ups", () => {
   it("preserves multiple Google reminder offsets and a location", () => {
     expect(reminderOffsetsMinutes("a day and an hour beforehand")).toEqual([1440, 60]);
     expect(reminderLocation(rows[0].summary)).toBe("One Loudoun or Old Town");
+  });
+});
+
+describe("Telegram date corrections", () => {
+  const defaults = { timezone: "America/New_York", morning: "08:00", afternoon: "14:00", evening: "19:00" };
+
+  it("understands a day-first named date with dotted PM", () => {
+    const parsed = parseReminderHint("the 22nd of September at 1:00 p.m.", defaults);
+    expect(parsed.status).toBe("ok");
+    if (parsed.status === "ok") expect(parsed.due_at).toBe("2026-09-22T17:00:00.000Z");
+  });
+
+  it("combines a corrected day with the clock retained from the thread", () => {
+    const parsed = parseReminderHint(
+      "This coming Tuesday on the 22nd I need it at 1:00 p.m. for an appointment at the villas",
+      defaults,
+    );
+    expect(parsed.status).toBe("ok");
+    if (parsed.status === "ok") expect(parsed.due_at).toBe("2026-09-22T17:00:00.000Z");
   });
 });
