@@ -119,5 +119,7 @@ export function useCareNearby(kinds: CareKind[] = []) {
     [loadKept],
   );
 
-  return { places, radiusM, source, loading, error, hasFix, country, kept, look, keep, forget };
+  const placeLabel = place?.address || (place?.geo as any)?.display_name || place?.label || null;
+
+  return { places, radiusM, source, loading, error, hasFix, country, placeLabel, kept, look, keep, forget };
 }

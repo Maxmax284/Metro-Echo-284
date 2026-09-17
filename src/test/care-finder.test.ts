@@ -114,6 +114,8 @@ describe("careFinder", () => {
 
   it("knows its own kinds", () => {
     expect(isCareKind("pharmacy")).toBe(true);
+    expect(isCareKind("grocery")).toBe(true);
+    expect(isCareKind("transit")).toBe(true);
     expect(isCareKind("veterinary")).toBe(false);
   });
 });
