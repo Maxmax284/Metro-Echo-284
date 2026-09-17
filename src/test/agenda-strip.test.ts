@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+import { railWidthFor, spreadMarkers } from "@/lib/agendaBoard";
 
 describe("labels that have to fit next to each other", () => {
   it("keeps a minimum gap so two close entries don't print on top of each other", () => {
