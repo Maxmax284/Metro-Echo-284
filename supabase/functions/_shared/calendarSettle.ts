@@ -27,16 +27,25 @@ export type SettleResult = {
   actionId: string | null;
 };
 
-/** The newest calendar change still waiting on a yes, if there is exactly one. */
-export async function pendingCalendarAction(admin: SupabaseClient, userId: string, telegramChatId?: string | number | null) {
+/**
+ * Every calendar change from this chat still waiting on a yes, newest first.
+ * Callers that settle on a bare "yes" must check the length: two proposals
+ * waiting means the newest one is a guess, and a guess must not be approved.
+ */
+export async function pendingCalendarActions(admin: SupabaseClient, userId: string, telegramChatId?: string | number | null) {
   const { data } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title, created_at")
     .eq("user_id", userId).eq("status", "staged")
     .order("created_at", { ascending: false }).limit(6);
-  const rows = ((data ?? []) as any[]).filter((r) =>
+  return ((data ?? []) as any[]).filter((r) =>
     isCalendarProposal(r.payload)
     && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
   );
+}
+
+/** The newest calendar change still waiting on a yes. */
+export async function pendingCalendarAction(admin: SupabaseClient, userId: string, telegramChatId?: string | number | null) {
+  const rows = await pendingCalendarActions(admin, userId, telegramChatId);
   return rows[0] ?? null;
 }
 
