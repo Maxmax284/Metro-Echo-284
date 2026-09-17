@@ -887,7 +887,16 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, lifeFacts, fileContextBlock, researchBlock]
+    /* Judgement, not a mode. One block, built only from recorded evidence, and
+       empty when there is nothing to say about the shape of the situation. */
+    let judgeBlock = "";
+    try {
+      judgeBlock = judgmentBlock(await gatherJudgment(admin as never, user.id, message));
+    } catch (e) {
+      console.error("judgment failed", e);
+    }
+
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, lifeFacts, judgeBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
