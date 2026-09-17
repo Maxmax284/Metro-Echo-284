@@ -41,12 +41,16 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** Google's Places, nearest first. Null when the provider could not be asked. */
-async function googleNearby(
+/**
+ * One kind group at a time. Asking for everything at once and taking the twenty
+ * nearest buries the pharmacy under a street of dentists, so each group is asked
+ * for on its own and the answers are merged.
+ */
+async function googleGroup(
   lat: number,
   lon: number,
   radius: number,
-  kinds: CareKind[],
+  types: string[],
 ): Promise<CarePlace[] | null> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
