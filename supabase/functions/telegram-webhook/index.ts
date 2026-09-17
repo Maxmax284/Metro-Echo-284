@@ -564,7 +564,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     const trustedSourceId = typeof args._trusted_source_id === "string" ? args._trusted_source_id : null;
     if (trustedSourceId) {
       const { data: existing } = await sb.from("actions")
-        .select("id, status, payload")
+        .select("id, status, payload, result")
         .eq("user_id", userId)
         .eq("payload->source->>id", trustedSourceId)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
