@@ -1488,6 +1488,71 @@ export type Database = {
         }
         Relationships: []
       }
+      deliveries: {
+        Row: {
+          acted_status: string | null
+          because: string | null
+          created_at: string
+          dedupe_key: string
+          failure: string | null
+          headline: string | null
+          id: string
+          organization_id: string | null
+          sensitivity: string
+          sent_at: string
+          situation_id: string
+          situation_kind: string
+          status: string
+          surface: string
+          urgency: string
+          user_id: string
+        }
+        Insert: {
+          acted_status?: string | null
+          because?: string | null
+          created_at?: string
+          dedupe_key: string
+          failure?: string | null
+          headline?: string | null
+          id?: string
+          organization_id?: string | null
+          sensitivity?: string
+          sent_at?: string
+          situation_id: string
+          situation_kind: string
+          status?: string
+          surface: string
+          urgency: string
+          user_id: string
+        }
+        Update: {
+          acted_status?: string | null
+          because?: string | null
+          created_at?: string
+          dedupe_key?: string
+          failure?: string | null
+          headline?: string | null
+          id?: string
+          organization_id?: string | null
+          sensitivity?: string
+          sent_at?: string
+          situation_id?: string
+          situation_kind?: string
+          status?: string
+          surface?: string
+          urgency?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_obligations: {
         Row: {
           conditions: string | null
@@ -3094,6 +3159,134 @@ export type Database = {
         }
         Relationships: []
       }
+      place_state: {
+        Row: {
+          confidence: string
+          conflicts: Json
+          country: string | null
+          created_at: string
+          evidence: Json
+          exact_label: string | null
+          exact_place_id: string | null
+          fixed_at: string | null
+          id: string
+          level: string
+          locality: string | null
+          metro: string | null
+          organization_id: string | null
+          region: string | null
+          role: string
+          source: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string
+          conflicts?: Json
+          country?: string | null
+          created_at?: string
+          evidence?: Json
+          exact_label?: string | null
+          exact_place_id?: string | null
+          fixed_at?: string | null
+          id?: string
+          level?: string
+          locality?: string | null
+          metro?: string | null
+          organization_id?: string | null
+          region?: string | null
+          role: string
+          source?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string
+          conflicts?: Json
+          country?: string | null
+          created_at?: string
+          evidence?: Json
+          exact_label?: string | null
+          exact_place_id?: string | null
+          fixed_at?: string | null
+          id?: string
+          level?: string
+          locality?: string | null
+          metro?: string | null
+          organization_id?: string | null
+          region?: string | null
+          role?: string
+          source?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_state_exact_place_id_fkey"
+            columns: ["exact_place_id"]
+            isOneToOne: false
+            referencedRelation: "awareness_places"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "place_state_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      place_transitions: {
+        Row: {
+          at: string
+          confidence: string
+          created_at: string
+          evidence: Json
+          from_words: string | null
+          id: string
+          kind: string
+          level: string
+          organization_id: string | null
+          to_words: string | null
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          confidence?: string
+          created_at?: string
+          evidence?: Json
+          from_words?: string | null
+          id?: string
+          kind: string
+          level: string
+          organization_id?: string | null
+          to_words?: string | null
+          user_id: string
+        }
+        Update: {
+          at?: string
+          confidence?: string
+          created_at?: string
+          evidence?: Json
+          from_words?: string | null
+          id?: string
+          kind?: string
+          level?: string
+          organization_id?: string | null
+          to_words?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "place_transitions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       privacy_settings: {
         Row: {
           allow_shared_aggregation: boolean
@@ -4273,6 +4466,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      world_facts: {
+        Row: {
+          authority: string
+          checked_on: string
+          country: string
+          created_at: string
+          id: string
+          region: string | null
+          source: string
+          topic: string
+          value: string
+        }
+        Insert: {
+          authority?: string
+          checked_on: string
+          country: string
+          created_at?: string
+          id?: string
+          region?: string | null
+          source: string
+          topic: string
+          value: string
+        }
+        Update: {
+          authority?: string
+          checked_on?: string
+          country?: string
+          created_at?: string
+          id?: string
+          region?: string | null
+          source?: string
+          topic?: string
+          value?: string
+        }
+        Relationships: []
       }
     }
     Views: {
