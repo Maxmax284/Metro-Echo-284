@@ -156,6 +156,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </span>
         </header>
 
+        {/* Go straight there. The desks below still hold the records; this row
+            exists because on a phone the thing you came for should be one tap
+            from the top of the room, not somewhere down a shelf. */}
+        <nav aria-label="Go straight there" className="vanta-card p-2.5">
+          <MachineLabel className="px-1 text-foreground/70">Go straight there</MachineLabel>
+          <div className="mt-2 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
+            <JumpTile label="Schedule" line="Your day in order" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
+            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
+            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
+            <JumpTile label="Documents" line="Drafts and exports" Icon={FileText} href="/documents" />
+          </div>
+        </nav>
+
         {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
 
         {/* Three stable shelves instead of ten equal choices: what is coming
