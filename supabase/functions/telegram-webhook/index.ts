@@ -1552,11 +1552,11 @@ Deno.serve(async (req) => {
       // "Noted" — acknowledges a nudge. Marks it seen; changes nothing else.
       if (action === "noted") {
         const { data: nudge } = await admin.from("nudges")
-          .select("id, status, organization_id").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+          .select("id, status, organization_id, dedupe_key").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
         if (nudge && nudge.status === "pending") {
           await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
-          await admin.from("deliveries").update({ acted_status: "acted" })
-            .eq("user_id", cbLink.user_id).eq("situation_id", nudge.id);
+          if (nudge.dedupe_key) await admin.from("deliveries").update({ acted_status: "acted" })
+            .eq("user_id", cbLink.user_id).eq("dedupe_key", `nudge:${nudge.dedupe_key}`);
           await admin.from("audit_log").insert({
             user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
             entity_type: "nudge", entity_id: nudge.id, event: "nudge.seen",
@@ -1570,11 +1570,11 @@ Deno.serve(async (req) => {
 
       if (action === "nudgelater") {
         const { data: nudge } = await admin.from("nudges")
-          .select("id, organization_id").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+          .select("id, organization_id, dedupe_key").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
         if (nudge) {
           await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
-          await admin.from("deliveries").update({ acted_status: "snoozed" })
-            .eq("user_id", cbLink.user_id).eq("situation_id", nudge.id);
+          if (nudge.dedupe_key) await admin.from("deliveries").update({ acted_status: "snoozed" })
+            .eq("user_id", cbLink.user_id).eq("dedupe_key", `nudge:${nudge.dedupe_key}`);
           await admin.from("audit_log").insert({
             user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
             entity_type: "nudge", entity_id: nudge.id, event: "nudge.snoozed",
