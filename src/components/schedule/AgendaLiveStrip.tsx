@@ -52,7 +52,13 @@ export function AgendaLiveStrip({
       : timeline.status === "complete"
         ? "Day complete"
         : `Next · ${timeline.statusTitle}`;
-  const railWidth = Math.max(300, timeline.markers.length * 112);
+  /* Wide enough for the labels it holds, and each label nudged so a busy
+     morning reads instead of printing on top of itself. */
+  const railWidth = railWidthFor(timeline.markers.length);
+  const markerLefts = spreadMarkers(
+    timeline.markers.map((m) => position(m.startMinute, timeline.startMinute, timeline.endMinute)),
+    railWidth - 64,
+  ).map((left) => left + 48);
 
   return (
     <div
