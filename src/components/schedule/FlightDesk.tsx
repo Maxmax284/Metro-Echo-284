@@ -619,6 +619,41 @@ export function FlightDesk() {
       )}
 
       <AftermathHint text="A confirmed flight becomes departure and landing entries on your Board. Echo records and reads; buying stays yours." />
+
+      <AlertDialog open={!!removing} onOpenChange={(open) => !open && setRemoving(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this flight?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removing ? planTitle(removing) : ""}
+              {removing?.status === "confirmed"
+                ? " — it comes off your record. The departure and landing entries it already wrote stay on your Board until you clear those. Nothing is cancelled with the airline."
+                : " — it comes off your record. Nothing was booked, so nothing is cancelled with the airline."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const p = removing;
+                setRemoving(null);
+                if (!p) return;
+                setBusy(true);
+                try {
+                  await drop(p);
+                  vantaToast.success("Off your record. The receipt is in Receipts.");
+                } catch (e) {
+                  vantaToast.warning(e instanceof Error ? e.message : "That could not be removed.");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Remove it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
