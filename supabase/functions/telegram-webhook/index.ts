@@ -771,7 +771,10 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     return { reply: res.reply, detectedType: null, routedTo: null, readOnly: true, linkKind: "work" as VantaLinkKind };
   }
 
-  /* ---- Filing: a reversible link between a capture and a project. --------- */
+  /* ---- Filing: a reversible link between a capture and a project. ---------
+     Filing used to take whichever capture arrived last, whatever the person
+     actually named. That is the same shape as today's calendar collision, so it
+     now resolves by the words used and asks once when two captures fit. */
   if (name === "file_under_project") {
     const project = await findProject(sb, scope, String(args?.project ?? ""));
     if (!project) {
@@ -779,14 +782,23 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       const list = options.length ? ` I can see: ${options.map((o) => o.title).join(", ")}.` : "";
       return { reply: `No project matching that.${list}`, detectedType: null, routedTo: null, readOnly: true };
     }
-    const { data: recent } = await (orgId
-      ? sb.from("ingested_files").select("id").eq("user_id", userId).eq("organization_id", orgId)
-      : sb.from("ingested_files").select("id").eq("user_id", userId).is("organization_id", null))
-      .eq("source", "telegram").order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!recent?.id) {
+    const { data: captures } = await (orgId
+      ? sb.from("ingested_files").select("id, filename, created_at").eq("user_id", userId).eq("organization_id", orgId)
+      : sb.from("ingested_files").select("id, filename, created_at").eq("user_id", userId).is("organization_id", null))
+      .eq("source", "telegram").order("created_at", { ascending: false }).limit(10);
+    const rows = ((captures ?? []) as Array<{ id: string; filename: string | null; created_at: string | null }>)
+      .map((r) => ({ id: r.id, label: r.filename ?? "a capture", createdAt: r.created_at }));
+    if (!rows.length) {
       return { reply: "Nothing recent from this chat to file. Send it first, then tell me where it goes.", detectedType: null, routedTo: null, readOnly: true };
     }
-    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: recent.id, via: "Telegram" });
+    const wanted = resolveReference(String(args?.item_reference ?? "that"), rows, new Date());
+    if (wanted.status === "many") {
+      return { reply: askWhichOne(wanted.candidates, "capture"), detectedType: null, routedTo: null, readOnly: true };
+    }
+    if (wanted.status === "none") {
+      return { reply: "I can't tell which capture you mean. Say a word from it and I'll file that one.", detectedType: null, routedTo: null, readOnly: true };
+    }
+    const res = await attachToProject(sb, scope, { projectId: project.id, itemType: "file", itemId: wanted.item.id, via: "Telegram" });
     return res.ok
       ? { reply: `Filed under ${res.title}. Nothing else happened to it.`, detectedType: null, routedTo: null, readOnly: true, linkKind: "projects" as VantaLinkKind }
       : { reply: "Couldn't file that. Open Metro Echo and attach it there.", detectedType: null, routedTo: null, readOnly: true };
