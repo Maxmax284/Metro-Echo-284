@@ -152,7 +152,7 @@ import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
 import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
-import { dropFlightByNumber, fileFlightByNumber } from "../_shared/flightFile.ts";
+import { dropConfirmWords, dropFlightPlan, fileFlightByNumber, findFlightByNumber } from "../_shared/flightFile.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
