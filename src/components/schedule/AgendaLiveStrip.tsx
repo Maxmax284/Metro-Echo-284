@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Clock3 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
-import { buildAgendaTimeline, type BoardEntry } from "@/lib/agendaBoard";
+import { buildAgendaTimeline, railWidthFor, spreadMarkers, type BoardEntry } from "@/lib/agendaBoard";
 import { liveMarkerWords } from "@/lib/agendaFlightTimes";
 import { MOTION_ARRIVE, MOTION_FLIP } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,13 @@ export function AgendaLiveStrip({
       : timeline.status === "complete"
         ? "Day complete"
         : `Next · ${timeline.statusTitle}`;
-  const railWidth = Math.max(300, timeline.markers.length * 112);
+  /* Wide enough for the labels it holds, and each label nudged so a busy
+     morning reads instead of printing on top of itself. */
+  const railWidth = railWidthFor(timeline.markers.length);
+  const markerLefts = spreadMarkers(
+    timeline.markers.map((m) => position(m.startMinute, timeline.startMinute, timeline.endMinute)),
+    railWidth - 64,
+  ).map((left) => left + 48);
 
   return (
     <div
@@ -82,30 +88,32 @@ export function AgendaLiveStrip({
       </div>
 
       <div className="-mx-1 mt-3 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:thin]">
-        <div className="relative h-[70px]" style={{ width: `${railWidth}px` }}>
+        <div className="relative h-[104px]" style={{ width: `${railWidth}px` }}>
           <div className="absolute inset-x-0 top-5 h-px bg-border" aria-hidden />
           {timeline.markers.map((marker, index) => {
-            const left = position(marker.startMinute, timeline.startMinute, timeline.endMinute);
             const active = marker.id === timeline.activeId;
             const passed = timeline.nowMinute != null && marker.startMinute < timeline.nowMinute;
-            const align = index === 0 ? "translate-x-0 text-left" : index === timeline.markers.length - 1 ? "-translate-x-full text-right" : "-translate-x-1/2 text-center";
+            const live = liveMarkerWords(marker.live);
             return (
               <span
                 key={marker.id}
-                className={cn("absolute top-0 w-24", align)}
-                style={{ left: `${left}%` }}
+                className="absolute top-0 w-24 -translate-x-1/2 text-center"
+                style={{ left: `${markerLefts[index]}px` }}
               >
                 <span className="block text-[10px] tabular-nums text-muted-foreground">{clock(marker.startMinute)}</span>
                 <span className="relative mx-auto mt-1 block h-4 w-4" aria-hidden>
                   {active && <span className="absolute inset-1 animate-live-ping rounded-full bg-primary/50 motion-reduce:animate-none" />}
                   <span className={cn("absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 rounded-full", active ? "bg-primary" : passed ? "bg-foreground/35" : "bg-foreground/65")} />
                 </span>
-                <span className={cn("mt-1 block truncate text-[10.5px]", active ? "font-medium text-primary" : "text-foreground/75")} title={marker.title}>
+                <span
+                  className={cn("mt-1 block text-[10.5px] leading-[1.25] line-clamp-2", active ? "font-medium text-primary" : "text-foreground/75")}
+                  title={marker.title}
+                >
                   {marker.title}
                 </span>
-                {liveMarkerWords(marker.live) && (
-                  <span className={cn("block truncate text-[9.5px] text-primary/80", MOTION_FLIP)} title="From the airline's own reading">
-                    {liveMarkerWords(marker.live)}
+                {live && (
+                  <span className={cn("mt-0.5 block text-[9.5px] leading-[1.2] text-primary/80", MOTION_FLIP)} title="From the airline's own reading">
+                    {live}
                   </span>
                 )}
               </span>
