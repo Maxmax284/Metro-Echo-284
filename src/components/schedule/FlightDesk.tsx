@@ -596,6 +596,18 @@ export function FlightDesk() {
                     </Button>
                   </>
                 )}
+                {p.status !== "dropped" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-9 text-[12px]"
+                    disabled={busy}
+                    onClick={() => setRemoving(p)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
+                    Remove this flight
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
