@@ -461,7 +461,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       .select("id, summary, due_at, created_at, organization_id")
       .eq("user_id", userId).in("status", ["open", "done"]).eq("metadata->>kind", "reminder")
       .order("created_at", { ascending: false }).limit(12);
-    const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), (reminders ?? []) as any[]);
+    const resolved = resolveReminderReference(String(args?.reference ?? "that reminder"), (reminders ?? []) as any[], new Date());
     if (resolved.status === "none") return { reply: "I don't see an open private reminder matching that. Nothing changed.", detectedType: "reminder", routedTo: null, readOnly: true };
     if (resolved.status === "many") return { reply: `Which reminder? ${resolved.candidates.map((r) => r.summary).join(" · ")}. Nothing changed.`, detectedType: "reminder", routedTo: null, readOnly: true };
     const { error } = await sb.from("commitments").update({ status: "cancelled" }).eq("id", resolved.reminder.id).eq("user_id", userId).in("status", ["open", "done"]);
