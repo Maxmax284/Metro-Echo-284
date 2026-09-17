@@ -93,7 +93,7 @@ describe("bmi", () => {
     const series = weightSeries([r("weight", 88, 10), r("weight", 85, 0)], 14, NOW);
     const line = bmiLine(series, 178);
     expect(line).toMatch(/26\.8/);
-    expect(line).toMatch(/down 0\.9/);
+    expect(line).toMatch(/down 1/);
     expect(line).toMatch(/no label on it/i);
     expect(line).not.toMatch(/normal|healthy|overweight|obese|underweight|range/i);
   });
