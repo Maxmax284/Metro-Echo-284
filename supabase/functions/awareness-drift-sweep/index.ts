@@ -13,6 +13,7 @@ import { corsHeaders } from "../_shared/http.ts";
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { planDelivery, pushPayload } from "../_shared/delivery/index.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
@@ -233,10 +234,28 @@ async function reachPhone(
 
   let sent = 0;
   let failed = 0;
+  /* Conclusion first, a deep link to the exact thing, and only low-consequence
+     actions. Nothing here approves anything: "Later" and "Got it" carry a status
+     back into the platform, where the person decides. */
+  const plan = planDelivery({
+    situation: {
+      id: decision.entityId ?? "nudge",
+      kind: `nudge.${decision.entityType ?? "nudge"}`,
+      url: "/?room=today",
+    },
+    urgency: (decision.urgency as never) ?? "attention",
+    sensitivity: "ordinary",
+    headline: decision.title,
+    detail: decision.nextStep,
+    changeKey: decision.entityId ?? decision.title,
+    context: { pushOptIn: true, pushSubscribed: true },
+  });
+  const payload = pushPayload(plan);
+
   for (const s of subs as any[]) {
     const r = await sendWebPush(
       { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
-      { title: decision.title, body: decision.nextStep, tag: "vanta-awareness", url: "/" },
+      { ...payload, tag: "vanta-awareness" },
       { vapidPublicKey, vapidPrivateKey, vapidSubject },
     );
     if (r.ok) {
