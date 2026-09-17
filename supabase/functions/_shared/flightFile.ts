@@ -14,7 +14,9 @@ import { TERMINAL_CAVEAT } from "./journey.ts";
 import { countedRead } from "./flightProvider.ts";
 import { bareOption } from "./flightQuick.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
-import { dropConfirmWords, droppedWords } from "./flightChat.ts";
+import { dropConfirmWords, droppedWords, type DropCleared } from "./flightChat.ts";
+import { googleCalendarConnection } from "./calendarConnection.ts";
+import { deleteEchoEventFromGoogle } from "./echoCalendar.ts";
 
 type Db = { from: (t: string) => any };
 
