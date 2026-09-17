@@ -1566,6 +1566,53 @@ Deno.serve(async (req) => {
         return ok();
       }
 
+      /* "Remove <flight>" / "Keep it" — the deliberate yes behind taking a flight
+         card off the record. It drops the card and leaves a receipt; it never
+         touches the board entries a confirmed flight already wrote, and it
+         cancels nothing with any airline. */
+      if (action === "fltdrop" || action === "fltkeep") {
+        const { data: plan } = await admin.from("flight_plans")
+          .select("id, depart_on, status, organization_id")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!plan) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That flight is no longer on your record." });
+          await dropButtons();
+          return ok();
+        }
+        if (action === "fltkeep") {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Kept. Nothing changed." });
+          await dropButtons();
+          return ok();
+        }
+        const flightNo = parts[2] ?? "that flight";
+        const out = await dropFlightPlan(
+          admin,
+          { userId: cbLink.user_id, orgId: (plan as any).organization_id ?? null },
+          {
+            id: String((plan as any).id),
+            depart_on: String((plan as any).depart_on).slice(0, 10),
+            status: String((plan as any).status),
+          },
+          { flight_no: flightNo, via: "telegram" },
+        );
+        await tg("answerCallbackQuery", {
+          callback_query_id: cbId,
+          text: out.dropped ? "Removed." : "That couldn't be removed.",
+        });
+        if (out.dropped) await dropButtons();
+        await sendTelegram({
+          admin,
+          userId: cbLink.user_id,
+          organizationId: (plan as any).organization_id ?? null,
+          chatId: cbChatId,
+          text: out.words,
+          kind: "notice",
+          entityType: "flight_plan",
+          entityId: String((plan as any).id),
+        });
+        return ok();
+      }
+
       // "File under <project>" — a reversible filing link, nothing more.
       if (action === "file") {
         const [, projectId, itemType, itemId] = parts;
