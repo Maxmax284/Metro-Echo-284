@@ -536,7 +536,7 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
 
     const { data: pending } = await sb
       .from("actions")
-      .select("id, payload, status")
+      .select("id, title, payload, status, created_at")
       .eq("user_id", userId)
       .eq("status", "staged")
       .order("created_at", { ascending: false })
