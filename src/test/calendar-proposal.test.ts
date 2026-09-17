@@ -4,6 +4,8 @@ import {
   buildCalendarProposal,
   calendarFieldLabel,
   calendarProposalRisk,
+  telegramProposalBelongsTo,
+  withTelegramRef,
   calendarProposalTitle,
   createsCalendarEvent,
   isCalendarProposal,

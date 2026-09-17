@@ -1143,12 +1143,13 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* A typed "yes" is still an approval. Same settle path as the Yes button, so
      an answer given in words is never lost to conversation. */
   if (!intents.length && !reply && (readsAsApproval(text) || readsAsRejection(text))) {
-    const pending = await pendingCalendarAction(sb, userId);
+    const pending = await pendingCalendarAction(sb, userId, chatId);
     if (pending) {
       const out = await settleCalendarProposal(sb, userId, {
         actionId: pending.id,
         approve: readsAsApproval(text),
         source: "telegram_text",
+        telegramChatId: chatId,
       });
       reply = out.text;
       readOnly = true;
@@ -1161,7 +1162,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
          "stop it" still has to mean stop. */
       const approved = await approvedUnwrittenCalendarAction(sb, userId);
       if (approved) {
-        const out = await stopCalendarProposal(sb, userId, { actionId: approved.id, source: "telegram_text" });
+        const out = await stopCalendarProposal(sb, userId, {
+          actionId: approved.id,
+          source: "telegram_text",
+          telegramChatId: chatId,
+        });
         reply = out.text;
         readOnly = true;
         calendarActionId = approved.id;
@@ -1511,7 +1516,9 @@ Deno.serve(async (req) => {
          Same actions row the app reads, same receipt trail. */
       if (action === "calstop") {
         const out = await stopCalendarProposal(admin, cbLink.user_id, {
-          actionId: commitmentId, source: "telegram_callback",
+          actionId: commitmentId,
+          source: "telegram_callback",
+          telegramChatId: cbChatId,
         });
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
         if (out.status === "cancelled") await dropButtons();
@@ -1594,6 +1601,8 @@ Deno.serve(async (req) => {
           approve: action !== "calno",
           source: "telegram_callback",
           strongConfirm: action === "calconfirm",
+          telegramChatId: cbChatId,
+          telegramMessageId: cb.message?.message_id ?? null,
         });
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: out.text.slice(0, 190) });
         if (out.status === "needs_confirmation") {

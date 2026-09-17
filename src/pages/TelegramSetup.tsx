@@ -171,7 +171,7 @@ export default function TelegramSetup() {
         <div className="flex-1">
           <h1 className="text-lg font-semibold tracking-tight">Telegram</h1>
           <p className="text-xs text-muted-foreground">
-            Message Echo from your phone. What you send lands in the Inbox as a draft.
+            Message Echo from your phone. Capture anything, or manage your calendar while moving.
           </p>
         </div>
         <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => void load()}>
@@ -181,10 +181,10 @@ export default function TelegramSetup() {
 
       <div className="mb-4 rounded-lg border border-border/50 bg-muted/20 p-3">
         <div className="mb-1 flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground">
-          <ShieldCheck className="h-3 w-3 text-primary" /> Capture layer only
+          <ShieldCheck className="h-3 w-3 text-primary" /> Safe by default
         </div>
         <p className="text-[11.5px] leading-snug text-muted-foreground">
-          Messages become drafts inside Metro Echo — never live actions. Approving and executing always happens here.
+          Messages become drafts. Calendar changes can be approved or cancelled in the same linked Telegram chat; other actions still wait in Metro Echo.
         </p>
       </div>
 

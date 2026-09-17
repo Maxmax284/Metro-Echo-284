@@ -9,6 +9,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0
 import {
   approvalOutcomeLine,
   isCalendarProposal,
+  telegramProposalBelongsTo,
 } from "./calendarProposal.ts";
 import {
   calendarWriteStateForUser,
@@ -27,19 +28,30 @@ export type SettleResult = {
 };
 
 /** The newest calendar change still waiting on a yes, if there is exactly one. */
-export async function pendingCalendarAction(admin: SupabaseClient, userId: string) {
+export async function pendingCalendarAction(admin: SupabaseClient, userId: string, telegramChatId?: string | number | null) {
   const { data } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title, created_at")
     .eq("user_id", userId).eq("status", "staged")
     .order("created_at", { ascending: false }).limit(6);
-  const rows = ((data ?? []) as any[]).filter((r) => isCalendarProposal(r.payload));
+  const rows = ((data ?? []) as any[]).filter((r) =>
+    isCalendarProposal(r.payload)
+    && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
+  );
   return rows[0] ?? null;
 }
 
 export async function settleCalendarProposal(
   admin: SupabaseClient,
   userId: string,
-  opts: { actionId: string; version?: number | null; approve: boolean; source: string; strongConfirm?: boolean },
+  opts: {
+    actionId: string;
+    version?: number | null;
+    approve: boolean;
+    source: string;
+    strongConfirm?: boolean;
+    telegramChatId?: string | number | null;
+    telegramMessageId?: string | number | null;
+  },
 ): Promise<SettleResult> {
   const { data: act } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title")
@@ -48,6 +60,9 @@ export async function settleCalendarProposal(
     return { status: "not_found", text: "Not found.", actionId: null };
   }
   const proposal = act.payload;
+  if (opts.telegramChatId != null && !telegramProposalBelongsTo(proposal, opts.telegramChatId, opts.telegramMessageId)) {
+    return { status: "not_found", text: "That approval belongs to a different chat or message.", actionId: null };
+  }
   if (typeof opts.version === "number" && proposal.version !== opts.version) {
     return { status: "stale", text: "That changed since I asked — use the newest message.", actionId: act.id };
   }
@@ -148,12 +163,20 @@ export async function approvedUnwrittenCalendarAction(admin: SupabaseClient, use
 export async function stopCalendarProposal(
   admin: SupabaseClient,
   userId: string,
-  opts: { actionId: string; source: string },
+  opts: {
+    actionId: string;
+    source: string;
+    telegramChatId?: string | number | null;
+    telegramMessageId?: string | number | null;
+  },
 ): Promise<SettleResult> {
   const { data: act } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title")
     .eq("id", opts.actionId).eq("user_id", userId).maybeSingle();
-  if (!act) return { status: "not_found", text: "Not found.", actionId: null };
+  if (!act || !isCalendarProposal(act.payload)) return { status: "not_found", text: "Not found.", actionId: null };
+  if (opts.telegramChatId != null && !telegramProposalBelongsTo(act.payload, opts.telegramChatId, opts.telegramMessageId)) {
+    return { status: "not_found", text: "That stop belongs to a different chat or message.", actionId: null };
+  }
   if (act.status === "cancelled" || act.status === "rolled_back") {
     return { status: "already", text: "Already stopped.", actionId: act.id };
   }

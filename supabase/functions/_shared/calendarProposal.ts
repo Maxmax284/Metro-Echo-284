@@ -130,6 +130,20 @@ export function withTelegramRef(
 }
 
 /**
+ * A Telegram decision belongs to the exact chat where Echo showed the proposal.
+ * The linked user check happens in the webhook; this second binding prevents a
+ * typed yes or copied callback from deciding another chat's pending change.
+ */
+export function telegramProposalBelongsTo(
+  proposal: CalendarProposal,
+  chatId: string | number,
+  messageId?: string | number | null,
+): boolean {
+  if (!proposal.telegram || String(proposal.telegram.chat_id) !== String(chatId)) return false;
+  return messageId == null || String(proposal.telegram.message_id) === String(messageId);
+}
+
+/**
  * Whether opening the app actually earns its place. Ordinary proposals are
  * decided in the conversation; depth is for things you'd want to look at.
  */
