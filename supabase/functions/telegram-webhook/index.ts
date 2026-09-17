@@ -1160,7 +1160,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     } else if (readsAsRejection(text)) {
       /* Nothing waiting on a yes, but a yes already given hasn't landed —
          "stop it" still has to mean stop. */
-      const approved = await approvedUnwrittenCalendarAction(sb, userId);
+      const approved = await approvedUnwrittenCalendarAction(sb, userId, chatId);
       if (approved) {
         const out = await stopCalendarProposal(sb, userId, {
           actionId: approved.id,
@@ -1587,10 +1587,10 @@ Deno.serve(async (req) => {
         await tg("sendMessage", { chat_id: cbChatId, text: outcomeText, disable_web_page_preview: true });
         return ok();
       }
-      /* Yes / No on ONE staged calendar change. This approves the exact
-         proposal that was shown — version has to match, so a refinement
-         retires the old buttons. It never executes: while the calendar is a
-         read-only feed, an approval holds the change and says so. */
+      /* Yes / No on ONE staged calendar change. The user link, originating
+         chat, Telegram message and proposal version all have to match. With a
+         live Google connection this may write immediately; high-risk changes
+         require the second Confirm write button in this same chat. */
       if (action === "calyes" || action === "calno" || action === "calconfirm") {
         const version = Number(parts[2] ?? "0");
         /* Same settle path as a typed yes and as an in-app approval: one

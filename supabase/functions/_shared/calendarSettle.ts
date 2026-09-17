@@ -146,12 +146,19 @@ export async function settleCalendarProposal(
 }
 
 /** The newest calendar change that said yes but hasn't landed in Google yet. */
-export async function approvedUnwrittenCalendarAction(admin: SupabaseClient, userId: string) {
+export async function approvedUnwrittenCalendarAction(
+  admin: SupabaseClient,
+  userId: string,
+  telegramChatId?: string | number | null,
+) {
   const { data } = await admin.from("actions")
     .select("id, status, payload, risk, organization_id, title, created_at")
     .eq("user_id", userId).eq("status", "approved")
     .order("created_at", { ascending: false }).limit(6);
-  const rows = ((data ?? []) as any[]).filter((r) => isCalendarProposal(r.payload));
+  const rows = ((data ?? []) as any[]).filter((r) =>
+    isCalendarProposal(r.payload)
+    && (telegramChatId == null || telegramProposalBelongsTo(r.payload, telegramChatId))
+  );
   return rows[0] ?? null;
 }
 

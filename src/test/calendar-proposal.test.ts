@@ -60,6 +60,18 @@ describe("calendar proposals", () => {
     expect(refined.changes[0].after).toBe("3:30 PM");
   });
 
+  it("binds a Telegram decision to the exact chat and proposal message", () => {
+    const bound = withTelegramRef(
+      buildCalendarProposal({ event, changes: [move("3:00 PM")], writeState: "connected" }),
+      { chat_id: 42, message_id: 9001 },
+    );
+    expect(telegramProposalBelongsTo(bound, 42)).toBe(true);
+    expect(telegramProposalBelongsTo(bound, "42", 9001)).toBe(true);
+    expect(telegramProposalBelongsTo(bound, 7)).toBe(false);
+    expect(telegramProposalBelongsTo(bound, 42, 9002)).toBe(false);
+    expect(telegramProposalBelongsTo(buildCalendarProposal({ event, changes: [move("3:00 PM")] }), 42)).toBe(false);
+  });
+
   it("recognises its own payload shape and normalises fields", () => {
     expect(isCalendarProposal(buildCalendarProposal({ event, changes: [move("3:00 PM")] }))).toBe(true);
     expect(isCalendarProposal({ kind: "note" })).toBe(false);
