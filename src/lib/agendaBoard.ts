@@ -128,6 +128,123 @@ export function dayLoad(entries: BoardEntry[]): number {
   return dedupeBoard(entries).length;
 }
 
+export type AgendaTimelineMarker = {
+  id: string;
+  title: string;
+  startMinute: number;
+  endMinute: number | null;
+};
+
+export type AgendaTimeline = {
+  startMinute: number;
+  endMinute: number;
+  markers: AgendaTimelineMarker[];
+  nowMinute: number | null;
+  activeId: string | null;
+  status: "now" | "next" | "clear" | "complete";
+  statusTitle: string | null;
+  clearMinutes: number | null;
+};
+
+function minuteInZone(iso: string, timezone: string): number | null {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : null;
+}
+
+function dateKeyInZone(date: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/** A truthful strip for one selected day. All-day entries and stays get no fake position. */
+export function buildAgendaTimeline(
+  entries: BoardEntry[],
+  selectedDayKey: string,
+  timezone: string,
+  now = new Date(),
+): AgendaTimeline | null {
+  const markers = entries
+    .filter((entry) => !entry.all_day && !isStay(entry))
+    .map((entry) => {
+      const startMinute = minuteInZone(entry.starts_at, timezone);
+      if (startMinute == null) return null;
+      const rawEnd = entry.ends_at ? minuteInZone(entry.ends_at, timezone) : null;
+      const endMinute = rawEnd != null && rawEnd > startMinute ? rawEnd : null;
+      return {
+        id: entry.id,
+        title: entry.title?.trim() || "Untitled",
+        startMinute,
+        endMinute,
+      };
+    })
+    .filter((marker): marker is AgendaTimelineMarker => marker !== null)
+    .sort((a, b) => a.startMinute - b.startMinute);
+
+  if (markers.length === 0) return null;
+
+  const todayKey = dateKeyInZone(now, timezone);
+  const isToday = selectedDayKey === todayKey;
+  const nowMinute = isToday ? minuteInZone(now.toISOString(), timezone) : null;
+  const earliest = markers[0].startMinute;
+  const latest = Math.max(...markers.map((marker) => marker.endMinute ?? marker.startMinute + 30));
+  const focusMinutes = nowMinute == null ? [earliest, latest] : [earliest, latest, nowMinute];
+  let startMinute = Math.max(0, Math.floor((Math.min(...focusMinutes) - 60) / 60) * 60);
+  let endMinute = Math.min(1440, Math.ceil((Math.max(...focusMinutes) + 60) / 60) * 60);
+  if (endMinute - startMinute < 240) {
+    const extra = 240 - (endMinute - startMinute);
+    startMinute = Math.max(0, startMinute - Math.floor(extra / 2));
+    endMinute = Math.min(1440, startMinute + 240);
+    startMinute = Math.max(0, endMinute - 240);
+  }
+
+  const active = nowMinute == null
+    ? null
+    : markers.find((marker) => marker.endMinute != null && marker.startMinute <= nowMinute && marker.endMinute > nowMinute) ?? null;
+  const next = nowMinute == null
+    ? markers[0]
+    : markers.find((marker) => marker.startMinute > nowMinute) ?? null;
+
+  let status: AgendaTimeline["status"] = "next";
+  let statusTitle: string | null = next?.title ?? null;
+  let clearMinutes: number | null = null;
+  if (active) {
+    status = "now";
+    statusTitle = active.title;
+  } else if (isToday && next && nowMinute != null) {
+    clearMinutes = Math.max(0, next.startMinute - nowMinute);
+    status = clearMinutes >= 15 ? "clear" : "next";
+  } else if (selectedDayKey < todayKey || (isToday && !next)) {
+    status = "complete";
+    statusTitle = null;
+  }
+
+  return {
+    startMinute,
+    endMinute,
+    markers,
+    nowMinute,
+    activeId: active?.id ?? null,
+    status,
+    statusTitle,
+    clearMinutes,
+  };
+}
+
 /** The stay you are inside right now, if any. */
 export function currentStay(entries: BoardEntry[], now = new Date()): BoardEntry | null {
   const t = now.getTime();
