@@ -78,6 +78,14 @@ export function notedButton(nudgeId: string): TgInlineButton {
   return { text: "Noted", callback_data: `noted:${nudgeId}` };
 }
 
+/** Same acknowledgement vocabulary as push; neither action executes anything. */
+export function attentionButtons(nudgeId: string): TgInlineButton[] {
+  return [
+    { text: "Got it", callback_data: `noted:${nudgeId}` },
+    { text: "Later", callback_data: `nudgelater:${nudgeId}` },
+  ];
+}
+
 export function markDoneButton(commitmentId: string): TgInlineButton {
   return { text: "Mark done", callback_data: `done:${commitmentId}` };
 }

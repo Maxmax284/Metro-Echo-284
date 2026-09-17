@@ -17,6 +17,7 @@ import { planDelivery, pushPayload } from "../_shared/delivery/index.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
+import { attentionButtons, keyboard, openButton } from "../_shared/telegramReplies.ts";
 import {
   detectDriftingCommitment,
   detectSilentProject,
@@ -716,7 +717,7 @@ async function sweepScope(
     });
     if (claimed) {
       if (surface === "phone") await reachPhone(sb, userId, scopeCols, decision);
-      else await reachMessaging(sb, userId, scopeCols, decision);
+      else await reachMessaging(sb, userId, scopeCols, decision, decision.entityId ?? decision.dedupeKey);
     }
   }
   return "proposed";
@@ -775,6 +776,7 @@ async function reachMessaging(
   userId: string,
   scopeCols: Record<string, unknown>,
   decision: { title: string; nextStep: string; why: string; entityType?: string; entityId?: string; urgency: string },
+  nudgeId: string,
 ): Promise<void> {
   if (!Deno.env.get("TELEGRAM_API_KEY")) return;
 
@@ -808,6 +810,7 @@ async function reachMessaging(
     userId,
     chatId,
     text,
+    replyMarkup: keyboard(attentionButtons(nudgeId), [openButton("today")]),
     organizationId: (scopeCols as { organization_id?: string | null }).organization_id ?? null,
     kind: "notice",
     entityType: decision.entityType ?? "nudge",

@@ -341,7 +341,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
               const open = openId === r.id;
               const fresh = isNewReceipt(r.id);
               return (
-              <Card key={r.id} className={cn("p-0 text-xs", fresh && MOTION_STAMP)}>
+              <Card id={`receipt-${r.entity_id ?? r.id}`} key={r.id} className={cn("p-0 text-xs", fresh && MOTION_STAMP)}>
                 <button
                   type="button"
                   aria-expanded={open}
