@@ -11,7 +11,7 @@
 //     the phone can send is a reading the desk can show.
 import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { acceptReadings, refusalWords, type IncomingReading } from "../_shared/bodyKinds.ts";
+import { acceptReadings, flattenHealthPayload, refusalWords } from "../_shared/bodyKinds.ts";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
     const body = (await req.json().catch(() => null)) as
-      | { token?: string; readings?: IncomingReading[] }
+      | (Record<string, unknown> & { token?: string })
       | null;
     const token = String(body?.token ?? url.searchParams.get("token") ?? "").trim();
     if (token.length < 20) return json({ error: "A valid token is required." }, 401);
@@ -45,8 +45,15 @@ Deno.serve(async (req: Request) => {
     if (!secret?.owner_id) return json({ error: "That token is not recognised." }, 401);
     const userId = secret.owner_id as string;
 
-    const incoming = Array.isArray(body?.readings) ? body!.readings!.slice(0, 500) : [];
-    if (!incoming.length) return json({ error: "No readings in the request." }, 400);
+    /* Echo's own list, or the shape Health Auto Export / a Health Connect
+       exporter already posts. Nobody should have to hand-write JSON. */
+    const incoming = flattenHealthPayload(body).slice(0, 500);
+    if (!incoming.length) {
+      return json(
+        { error: "No readings Echo could find in that request. Send its own list, or point Health Auto Export / your Health Connect exporter straight at this link." },
+        400,
+      );
+    }
 
     /* Consent first, per group. Off means those readings are not stored. */
     const { data: profile } = await admin

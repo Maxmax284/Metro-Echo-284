@@ -69,6 +69,7 @@ const ALIASES: Record<string, string> = {
   body_temperature: "temperature",
   basal_body_temperature: "temperature",
   body_mass: "weight",
+  weight_body_mass: "weight",
   bodymass: "weight",
   body_weight: "weight",
   body_fat_percentage: "body_fat",
@@ -176,7 +177,7 @@ export function acceptReadings(
     }
     let unit = String(r?.unit ?? "").trim() || spec.unit;
     let stored = value;
-    if (spec.kind === "sleep" && /^h(ours?)?$/i.test(unit)) {
+    if (spec.kind === "sleep" && /^(h|hr|hrs|hour|hours)$/i.test(unit)) {
       stored = value * 60;
       unit = "min";
     }
@@ -203,4 +204,90 @@ export function refusalWords(refused: ReadingRefusal[]): string | null {
   if (off.length) parts.push(`${[...new Set(off)].join(", ")} is switched off in Metro Echo`);
   if (bad) parts.push(`${bad} reading${bad === 1 ? "" : "s"} did not carry a number`);
   return `${parts.join(". ")}.`;
+}
+
+
+/* ------------------------------------------------------------------ *
+ * What the health apps themselves post
+ *
+ * Apple Health has no cloud API and Health Connect has no cloud API, so the
+ * phone is always the sender. What Echo can do is take the shape those exports
+ * already send, so nobody has to hand-write JSON: Health Auto Export's REST
+ * body on iPhone, a Health Connect exporter's body on Android, or Echo's own
+ * plain list. An unrecognised shape is refused, never half-read.
+ * ------------------------------------------------------------------ */
+
+type Loose = Record<string, unknown>;
+
+const num = (v: unknown): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+/** Flatten whatever the phone posted into one plain list of readings. */
+export function flattenHealthPayload(body: unknown): IncomingReading[] {
+  if (!body) return [];
+  if (Array.isArray(body)) return body as IncomingReading[];
+  const b = body as Loose;
+
+  if (Array.isArray(b.readings)) return b.readings as IncomingReading[];
+
+  const out: IncomingReading[] = [];
+
+  /* Health Auto Export (iPhone): { data: { metrics: [...], workouts: [...] } } */
+  const data = (b.data ?? b) as Loose;
+  const metrics = Array.isArray(data.metrics) ? (data.metrics as Loose[]) : [];
+  for (const metric of metrics) {
+    const name = metric.name ?? metric.type;
+    const unit = metric.units ?? metric.unit;
+    const points = Array.isArray(metric.data) ? (metric.data as Loose[]) : [];
+    for (const point of points) {
+      /* Sleep points carry hours asleep in their own field. */
+      const asleep = num(point.asleep ?? point.totalSleep);
+      const value = asleep ?? num(point.qty ?? point.value ?? point.Avg ?? point.avg);
+      if (value === null) continue;
+      out.push({
+        kind: name,
+        value,
+        unit: asleep !== null ? "hours" : unit,
+        measured_at: (point.date ?? point.startDate ?? point.start ?? point.measured_at) as string,
+      });
+    }
+  }
+
+  /* Workouts, from either export. Duration is minutes in both. */
+  const workouts = Array.isArray(data.workouts)
+    ? (data.workouts as Loose[])
+    : Array.isArray(b.workouts)
+      ? (b.workouts as Loose[])
+      : [];
+  for (const w of workouts) {
+    const minutes = num(w.duration ?? w.durationMinutes ?? w.minutes);
+    if (minutes === null) continue;
+    out.push({
+      kind: "workout",
+      value: minutes,
+      unit: "min",
+      measured_at: (w.start ?? w.startDate ?? w.date ?? w.end) as string,
+    });
+  }
+
+  /* Health Connect exporters and Shortcuts: a flat sample list. */
+  const samples = Array.isArray(b.samples)
+    ? (b.samples as Loose[])
+    : Array.isArray(b.records)
+      ? (b.records as Loose[])
+      : [];
+  for (const sample of samples) {
+    const value = num(sample.value ?? sample.qty ?? sample.count ?? sample.beatsPerMinute);
+    if (value === null) continue;
+    out.push({
+      kind: sample.kind ?? sample.type ?? sample.recordType ?? sample.name,
+      value,
+      unit: sample.unit ?? sample.units,
+      measured_at: (sample.measured_at ?? sample.date ?? sample.time ?? sample.startTime) as string,
+    });
+  }
+
+  return out;
 }
