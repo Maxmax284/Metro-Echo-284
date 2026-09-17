@@ -23,6 +23,7 @@ import {
   refineCalendarProposal,
   type CalendarFieldChange,
   settledElsewhereLine,
+  telegramProposalBelongsTo,
   withTelegramRef,
 } from "../_shared/calendarProposal.ts";
 import {
