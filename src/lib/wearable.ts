@@ -601,3 +601,179 @@ export function heartCompare(levels: (number | null)[]): string {
     ? `${last} bpm most recently, ${diff} above your usual ${usual}.`
     : `${last} bpm most recently, ${Math.abs(diff)} below your usual ${usual}.`;
 }
+
+/* ------------------------------------------------------------------ *
+ * Energy, weight, BMI, and today's readings on the clock
+ *
+ * Doctrine, restated because this is where it would be easiest to slip:
+ *   - Recorded readings only. A day with nothing sent is null.
+ *   - BMI is arithmetic Echo shows back. There is no category, no band, no
+ *     colour, no "healthy range" anywhere in this file, and there never will be.
+ *   - Movement is described, never judged. "Down 0.4 since a fortnight ago" is
+ *     a fact; "you're doing well" is an opinion Echo does not hold.
+ * ------------------------------------------------------------------ */
+
+/** Active energy per day, oldest first. Highest reading wins — phones send totals. */
+export function energyByDay(readings: Reading[], days = 14, now = new Date()): (number | null)[] {
+  const top = new Map<string, number>();
+  for (const r of readings) {
+    if (r.kind !== "calories") continue;
+    const k = r.measured_at.slice(0, 10);
+    top.set(k, Math.max(top.get(k) ?? 0, r.value));
+  }
+  const out: (number | null)[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const k = dayKey(new Date(now.getTime() - i * 86_400_000));
+    out.push(top.has(k) ? Math.round(top.get(k)!) : null);
+  }
+  return out;
+}
+
+/** Standing hours per day, oldest first. */
+export function standByDay(readings: Reading[], days = 14, now = new Date()): (number | null)[] {
+  const top = new Map<string, number>();
+  for (const r of readings) {
+    if (r.kind !== "stand") continue;
+    const k = r.measured_at.slice(0, 10);
+    top.set(k, Math.max(top.get(k) ?? 0, r.value));
+  }
+  const out: (number | null)[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const k = dayKey(new Date(now.getTime() - i * 86_400_000));
+    out.push(top.has(k) ? Math.round(top.get(k)!) : null);
+  }
+  return out;
+}
+
+/** One plain line about a per-day series against its own median. Never a verdict. */
+export function seriesCompare(
+  values: (number | null)[],
+  unit: string,
+  nothingYet: string,
+): string {
+  const recorded = values.filter((v): v is number => v !== null);
+  if (!recorded.length) return nothingYet;
+  const last = [...values].reverse().find((v): v is number => v !== null)!;
+  const usual = median(recorded)!;
+  if (recorded.length < 3) {
+    return `${last} ${unit} most recently. Not enough days to know your usual yet.`;
+  }
+  const diff = last - usual;
+  if (Math.abs(diff) < Math.max(1, usual * 0.1)) {
+    return `${last} ${unit} most recently — about your usual ${usual}.`;
+  }
+  return diff > 0
+    ? `${last} ${unit} most recently, ${Math.round(diff)} above your usual ${usual}.`
+    : `${last} ${unit} most recently, ${Math.round(Math.abs(diff))} below your usual ${usual}.`;
+}
+
+/** Weight readings in the window, oldest first. Kilograms as stored. */
+export function weightSeries(readings: Reading[], days = 14, now = new Date()): Point[] {
+  const from = now.getTime() - days * 86_400_000;
+  return readings
+    .filter((r) => r.kind === "weight" && new Date(r.measured_at).getTime() >= from)
+    .map((r) => ({ at: r.measured_at, value: Math.round(r.value * 10) / 10 }))
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+}
+
+/** How weight has moved across the window. Movement, not judgement. */
+export function weightMove(series: Point[]): string {
+  if (!series.length) return "No weight reading has arrived yet.";
+  const last = series[series.length - 1];
+  if (series.length === 1) return `${last.value} kg recorded. One reading, so there is no movement to show.`;
+  const first = series[0];
+  const diff = Math.round((last.value - first.value) * 10) / 10;
+  if (Math.abs(diff) < 0.2) return `${last.value} kg — about the same across these readings.`;
+  return diff > 0
+    ? `${last.value} kg, up ${Math.abs(diff)} since the first reading in this stretch.`
+    : `${last.value} kg, down ${Math.abs(diff)} since the first reading in this stretch.`;
+}
+
+/**
+ * BMI: weight in kilograms over height in metres squared. Arithmetic, nothing
+ * more. Null when either number is missing — Echo never guesses a height, and
+ * it never turns the figure into a category.
+ */
+export function bmiFrom(weightKg: number | null, heightCm: number | null | undefined): number | null {
+  if (weightKg === null || !Number.isFinite(weightKg) || weightKg <= 0) return null;
+  if (!heightCm || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const m = heightCm / 100;
+  return Math.round((weightKg / (m * m)) * 10) / 10;
+}
+
+/** The BMI line, including the honest reason it can't be shown. No bands, ever. */
+export function bmiLine(series: Point[], heightCm: number | null | undefined): string {
+  if (!series.length) return "No weight reading has arrived, so there is nothing to work it out from.";
+  if (!heightCm) return "BMI needs your height. Fill it in on the About-you card and it works itself out.";
+  const now = bmiFrom(series[series.length - 1].value, heightCm);
+  if (now === null) return "BMI needs your height. Fill it in on the About-you card and it works itself out.";
+  const then = series.length > 1 ? bmiFrom(series[0].value, heightCm) : null;
+  if (then === null || Math.abs(now - then) < 0.1) {
+    return `${now} from your own weight and height. Just the arithmetic — Echo puts no label on it.`;
+  }
+  const diff = Math.round((now - then) * 10) / 10;
+  return `${now} from your own weight and height, ${diff > 0 ? "up" : "down"} ${Math.abs(diff)} across this stretch. Just the arithmetic — Echo puts no label on it.`;
+}
+
+export interface ClockMarker {
+  /** Reading kind, for the icon and label. */
+  kind: ReadingKind;
+  /** Where it sits between the first and last reading of the day, 0–100. */
+  percent: number;
+  /** Local-ish clock text, formatted by the caller's timezone if it has one. */
+  at: string;
+  value: number;
+  unit: string;
+  newest: boolean;
+}
+
+export interface TodayClock {
+  markers: ClockMarker[];
+  /** Where "now" sits on the same line, or null when now is outside the span. */
+  nowPercent: number | null;
+  /** One honest line for the strip. */
+  line: string;
+}
+
+/**
+ * Today's readings laid out on the clock, the way the day rail lays out the
+ * day. A day with nothing recorded returns no markers and says so — it never
+ * draws a position it does not have.
+ */
+export function todayClock(readings: Reading[], now = new Date()): TodayClock {
+  const key = dayKey(now);
+  const today = readings
+    .filter((r) => r.measured_at.slice(0, 10) === key)
+    .sort((a, b) => new Date(a.measured_at).getTime() - new Date(b.measured_at).getTime());
+
+  if (!today.length) {
+    return { markers: [], nowPercent: null, line: "Nothing has arrived today yet." };
+  }
+
+  const start = new Date(today[0].measured_at).getTime();
+  const end = new Date(today[today.length - 1].measured_at).getTime();
+  const span = Math.max(1, end - start);
+  const newestAt = end;
+
+  const markers: ClockMarker[] = today.map((r) => {
+    const at = new Date(r.measured_at).getTime();
+    return {
+      kind: r.kind,
+      percent: Math.max(0, Math.min(100, ((at - start) / span) * 100)),
+      at: r.measured_at,
+      value: r.kind === "sleep" ? Math.round(r.value) : Math.round(r.value * 10) / 10,
+      unit: r.unit,
+      newest: at === newestAt,
+    };
+  });
+
+  const nowMs = now.getTime();
+  const nowPercent = nowMs >= start && nowMs <= end ? ((nowMs - start) / span) * 100 : null;
+
+  const kinds = [...new Set(today.map((r) => KIND_LABEL[r.kind] ?? r.kind))];
+  return {
+    markers,
+    nowPercent,
+    line: `${today.length} reading${today.length === 1 ? "" : "s"} today · ${kinds.join(", ")}.`,
+  };
+}
