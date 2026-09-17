@@ -47,7 +47,11 @@ export function resolveReminderReference(reference: string, rows: ReminderCandid
   if (!rows.length) return { status: "none" };
   const wanted = tokens(reference);
   // Words the person actually said always beat "that" — a demonstrative never overrides a name.
-  if (!wanted.length) return obviousNewest(rows, now);
+  if (!wanted.length) {
+    const pointsAtRecent = /\b(that|this|it)\b/i.test(reference);
+    if (!pointsAtRecent) return rows.length === 1 ? { status: "one", reminder: rows[0] } : { status: "many", candidates: rows.slice(0, 4) };
+    return obviousNewest(rows, now);
+  }
   const scored = rows
     .map((reminder) => ({ reminder, score: wanted.reduce((n, word) => n + (reminder.summary.toLowerCase().includes(word) ? 1 : 0), 0) }))
     .filter((row) => row.score > 0)
