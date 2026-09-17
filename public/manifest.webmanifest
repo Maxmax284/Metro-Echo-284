@@ -10,7 +10,10 @@
   "orientation": "portrait",
   "background_color": "#0c1014",
   "theme_color": "#0c1014",
-  "categories": ["productivity", "utilities"],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "share_target": {
     "action": "/share-target",
     "method": "POST",
@@ -22,7 +25,17 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "application/pdf", "text/*", ".doc", ".docx", ".xls", ".xlsx", ".csv", ".heic"]
+          "accept": [
+            "image/*",
+            "application/pdf",
+            "text/*",
+            ".doc",
+            ".docx",
+            ".xls",
+            ".xlsx",
+            ".csv",
+            ".heic"
+          ]
         }
       ]
     }
@@ -45,6 +58,32 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "What needs me?",
+      "short_name": "Today",
+      "url": "/?room=today",
+      "description": "Open Today and see what actually needs you."
+    },
+    {
+      "name": "Ask Echo",
+      "short_name": "Ask",
+      "url": "/?room=ask",
+      "description": "Open Ask and put the situation in your own words."
+    },
+    {
+      "name": "Receipts",
+      "short_name": "Receipts",
+      "url": "/?room=receipts",
+      "description": "Open Receipts and see what happened and why."
+    },
+    {
+      "name": "Flights",
+      "short_name": "Flights",
+      "url": "/flights",
+      "description": "Open the flight board for a filed journey."
     }
   ]
 }
