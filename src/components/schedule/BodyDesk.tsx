@@ -61,6 +61,9 @@ export function BodyDesk() {
   );
   const today = useMemo(() => dosesOn(meds, new Date()), [meds]);
   const next = useMemo(() => nextDose(meds, new Date()), [meds]);
+  /* The newest reading that came from a device rather than a keyboard. Null when
+     nothing has ever arrived that way — never softened into a guess. */
+  const fromDevice = useMemo(() => readings.find((r) => r.source && r.source !== "manual") ?? null, [readings]);
 
   const saveReadings = async () => {
     const rows: Array<{ kind: string; value: number; unit: string }> = [];
