@@ -67,7 +67,7 @@ const statusOrder: Action["status"][] = ["proposed", "staged", "approved", "exec
 type Executor = { id: string; name: string; kind: "webhook" | "telegram" | "google_calendar" | "email"; enabled: boolean };
 
 
-export function ActionsSurface() {
+export function ActionsSurface({ focusId, onFocusHandled }: { focusId?: string | null; onFocusHandled?: () => void } = {}) {
   const { session } = useAuth();
   const { scope, applyScope, key: scopeKey } = useScope();
   const [actions, setActions] = useState<Action[]>([]);
@@ -119,6 +119,15 @@ export function ActionsSurface() {
   };
 
   useEffect(() => { if (session) refresh(); }, [session, scopeKey]);
+
+  useEffect(() => {
+    if (!focusId || loading) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById(`action-${focusId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      onFocusHandled?.();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [focusId, loading, onFocusHandled]);
 
 
   const transition = async (a: Action, to: Action["status"], reason?: string) => {

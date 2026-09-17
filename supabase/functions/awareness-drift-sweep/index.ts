@@ -659,6 +659,9 @@ async function sweepScope(
     console.warn("drift-sweep nudge upsert", error.message);
     return "none";
   }
+  const { data: storedNudge } = await sb.from("nudges")
+    .select("id").eq("user_id", userId).eq("dedupe_key", decision.dedupeKey).maybeSingle();
+  const nudgeId = String((storedNudge as { id?: string } | null)?.id ?? decision.entityId ?? decision.dedupeKey);
 
   await sb.from("audit_log").insert({
     user_id: userId,
@@ -717,7 +720,7 @@ async function sweepScope(
     });
     if (claimed) {
       if (surface === "phone") await reachPhone(sb, userId, scopeCols, decision);
-      else await reachMessaging(sb, userId, scopeCols, decision, decision.entityId ?? decision.dedupeKey);
+      else await reachMessaging(sb, userId, scopeCols, decision, nudgeId);
     }
   }
   return "proposed";
