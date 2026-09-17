@@ -85,9 +85,10 @@ export default function WearableLoopPage() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight">The watch loop</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Wearables</h1>
           <p className="text-xs text-muted-foreground">
-            From your wrist to Today, without your watch ever taking the wheel.
+            Watch, band, ring, strap or your phone's health export — to Today and the Body desk,
+            without any of them taking the wheel.
           </p>
         </div>
       </header>
