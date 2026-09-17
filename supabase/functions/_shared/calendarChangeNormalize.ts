@@ -22,9 +22,17 @@ export function normalizeCalendarChanges(raw: unknown, defaults: Defaults): Cale
       ? String(candidate.after).trim()
       : null;
 
-    if (field === "time" && after && Number.isNaN(new Date(after).getTime())) {
-      const parsed = parseReminderHint(after, defaults);
-      if (parsed.status === "ok") after = parsed.due_at;
+    if (field === "time" && after) {
+      /* Native Date accepts incomplete phrases such as "September 22" and
+         silently invents a year (often 2001). Calendar approval must never
+         bless an invented instant. Only explicit ISO timestamps pass through;
+         every human phrase uses the same wall-clock parser as Telegram. */
+      const explicitInstant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(after)
+        && !Number.isNaN(new Date(after).getTime());
+      if (!explicitInstant) {
+        const parsed = parseReminderHint(after, defaults);
+        after = parsed.status === "ok" ? parsed.due_at : null;
+      }
     }
 
     if (field === "attendee") {
@@ -95,5 +103,7 @@ export function calendarCreationMissing(changes: CalendarFieldChange[]): "title"
 export function hasCalendarCreationDetails(changes: CalendarFieldChange[]): boolean {
   const title = changes.find((change) => change.field === "title")?.after?.trim() ?? "";
   const time = changes.find((change) => change.field === "time")?.after?.trim() ?? "";
-  return !!title && !!time && !Number.isNaN(new Date(time).getTime());
+  const explicitInstant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(time)
+    && !Number.isNaN(new Date(time).getTime());
+  return !!title && explicitInstant;
 }

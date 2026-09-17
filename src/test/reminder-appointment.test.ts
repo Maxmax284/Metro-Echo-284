@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { looksLikeAppointment, parseReminderHint } from "../../supabase/functions/_shared/reminderParse";
 import { reminderLocation, reminderOffsetsMinutes, resolveReminderReference, wantsRecentReminderOnCalendar, wantsReminderCancellation } from "../../supabase/functions/_shared/reminderActions";
-import { hasCalendarCreationDetails } from "../../supabase/functions/_shared/calendarChangeNormalize";
+import { hasCalendarCreationDetails, normalizeCalendarChanges } from "../../supabase/functions/_shared/calendarChangeNormalize";
 import { asksCalendarActionStatus, calendarActionStatusLine } from "../../supabase/functions/_shared/calendarConversation";
 describe("appointment shape", () => {
   it("spots people and places", () => {
@@ -31,6 +31,15 @@ describe("calendar conversation truth", () => {
 
   it("rescues a fully described creation even when no old event matches", () => {
     expect(hasCalendarCreationDetails(payload.changes)).toBe(true);
+  });
+
+  it("never lets JavaScript invent a year for a date without a clock", () => {
+    const changes = normalizeCalendarChanges([
+      { field: "title", after: "Appointment at the Villas" },
+      { field: "time", after: "September 22" },
+    ], { timezone: "America/New_York", morning: "08:00", afternoon: "14:00", evening: "19:00" });
+    expect(changes.find((change) => change.field === "time")?.after).toBeNull();
+    expect(hasCalendarCreationDetails(changes)).toBe(false);
   });
 
   it("recognizes a direct challenge and answers a staged action honestly", () => {
