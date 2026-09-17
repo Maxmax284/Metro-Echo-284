@@ -50,4 +50,19 @@ describe("Telegram calendar panel", () => {
     expect(activeCalendarDraft(next, new Date("2026-09-11T09:31:00.000Z"))).toBeNull();
     expect(calendarDraftContext(next)).toContain("same draft");
   });
+
+  it("replaces only the corrected field without losing the booking", () => {
+    const first = mergeCalendarDraft(null, [
+      { field: "existence", label: "Event", before: null, after: "Appointment at the Villas" },
+      { field: "title", label: "Title", before: null, after: "Appointment at the Villas" },
+      { field: "location", label: "Location", before: null, after: "the Villas" },
+      { field: "reminder", label: "Reminder", before: null, after: "1440,60" },
+    ]);
+    const corrected = mergeCalendarDraft(first, [
+      { field: "time", label: "Time", before: null, after: "2026-09-22T17:00:00.000Z" },
+    ]);
+    expect(corrected.changes.map((change) => change.field)).toEqual([
+      "existence", "title", "location", "reminder", "time",
+    ]);
+  });
 });

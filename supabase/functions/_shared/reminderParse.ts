@@ -113,6 +113,15 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
       dayPhrase = `${month}/${day}`;
     }
   }
+  const dayFirstNamedDate = txt.match(new RegExp(`\\b(?:the\\s+)?(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${monthNames.join("|")})\\b`, "i"));
+  if (dayFirstNamedDate) {
+    const month = monthNames.indexOf(dayFirstNamedDate[2].toLowerCase()) + 1;
+    const day = Number(dayFirstNamedDate[1]);
+    if (month > 0 && day >= 1 && day <= 31) {
+      explicitDate = { y: today.y, m: month, d: day };
+      dayPhrase = `${month}/${day}`;
+    }
+  }
 
   if (!explicitDate && /\btomorrow\b/i.test(txt)) { dayOffset = 1; dayPhrase = "tomorrow"; }
   else if (!explicitDate && /\b(this\s+)?weekend\b/i.test(txt)) {
@@ -139,7 +148,8 @@ export function parseReminderHint(input: string, d: Defaults): ParseResult {
   // Specific time: "5pm", "5:30pm", "17:00", "at 5"
   const timeText = txt
     .replace(/\b\d{1,2}(?:st|nd|rd|th)?\s+(?:of\s+)?this\s+month\b/gi, "")
-    .replace(new RegExp(`\\b(?:${monthNames.join("|")})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b`, "gi"), "");
+    .replace(new RegExp(`\\b(?:${monthNames.join("|")})\\s+\\d{1,2}(?:st|nd|rd|th)?\\b`, "gi"), "")
+    .replace(new RegExp(`\\b(?:the\\s+)?\\d{1,2}(?:st|nd|rd|th)?(?:\\s+of)?\\s+(?:${monthNames.join("|")})\\b`, "gi"), "");
   const tm = timeText.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.?m\.?|p\.?m\.?)(?=\s|$|[,.!?])/i)
     ?? timeText.match(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\b/i);
   let hh: number | null = null;

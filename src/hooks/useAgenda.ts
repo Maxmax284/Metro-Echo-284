@@ -191,6 +191,11 @@ export function useAgenda(
   useEffect(() => {
     if (!user?.id) return;
     const userId = user.id;
+    /* Several agenda readers can be mounted together (Today, Schedule and the
+       board). Realtime reuses channels by name, so a shared name could hand a
+       later hook an already-subscribed channel and crash when it added its
+       callback. Each hook instance owns exactly one uniquely named channel. */
+    const channelName = `agenda-${userId}-${key}-${crypto.randomUUID()}`;
     let pending: number | null = null;
     const scheduleRefresh = () => {
       if (pending != null) window.clearTimeout(pending);
@@ -200,7 +205,7 @@ export function useAgenda(
       }, 700);
     };
     const channel = supabase
-      .channel(`agenda-${userId}-${key}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "calendar_events", filter: `user_id=eq.${userId}` },
