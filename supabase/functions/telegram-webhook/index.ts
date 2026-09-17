@@ -35,6 +35,7 @@ import {
 import {
   approvedUnwrittenCalendarAction,
   pendingCalendarAction,
+  pendingCalendarActions,
   stopCalendarProposal,
   readsAsApproval,
   readsAsRejection,
@@ -123,6 +124,8 @@ import {
   wantsReminderCancellation,
 } from "../_shared/reminderActions.ts";
 import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
+import { judgmentBlock } from "../_shared/judgment/index.ts";
+import { gatherJudgment } from "../_shared/judgment/gather.ts";
 import {
   POINTER_TTL_MINUTES,
   askOneAtATime,
@@ -1053,7 +1056,16 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 - may prepare an action: ${plan.may_prepare_action ? "yes, as a draft only" : "no"}
 - confidence needed before stating something plainly: ${plan.min_confidence}`;
 
-  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, calendarDraftContext(calendarDraft), workBlock, correctionsBlock, fieldNotesBlock]
+  /* Same judgement substrate as Ask — one brain, two surfaces. Empty when
+     there is no recorded evidence about the shape of the situation. */
+  let judgeBlock = "";
+  try {
+    judgeBlock = judgmentBlock(await gatherJudgment(sb, userId, text));
+  } catch (e) {
+    console.error("judgment failed", e);
+  }
+
+  const sys = [SYSTEM, brandBlock, depthDirective("telegram"), planBlock, timeBlock, calendarDraftContext(calendarDraft), workBlock, correctionsBlock, fieldNotesBlock, judgeBlock]
     .filter(Boolean).join("\n\n");
 
   const messages = [{ role: "system", content: sys }, ...history, { role: "user", content: text }];
@@ -1219,7 +1231,14 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* A typed "yes" is still an approval. Same settle path as the Yes button, so
      an answer given in words is never lost to conversation. */
   if (!intents.length && !reply && (readsAsApproval(text) || readsAsRejection(text))) {
-    const pending = await pendingCalendarAction(sb, userId, chatId);
+    const waiting = await pendingCalendarActions(sb, userId, chatId);
+    /* A bare "yes" with two changes waiting would approve whichever happens to
+       be newest. Ask once instead — the buttons on each card stay exact. */
+    if (waiting.length > 1) {
+      const candidates = waiting.slice(0, 4).map((r: any) => ({ id: r.id, label: r.title ?? "a pending change", createdAt: r.created_at ?? null }));
+      return { reply: askWhichOne(candidates, "change"), markup: undefined, calendarActionId: null };
+    }
+    const pending = waiting[0] ?? null;
     if (pending) {
       const out = await settleCalendarProposal(sb, userId, {
         actionId: pending.id,

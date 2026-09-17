@@ -145,6 +145,14 @@ function IndexInner() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
+    /* Home-screen shortcuts and notification links open the exact room instead
+       of dropping someone on the front page. Only the four rooms are allowed. */
+    const wanted = url.searchParams.get("room");
+    if (wanted && ["today", "work", "ask", "receipts"].includes(wanted)) {
+      setSurface(wanted as typeof surface);
+      url.searchParams.delete("room");
+      window.history.replaceState({}, "", url.pathname + (url.search ? url.search : "") + url.hash);
+    }
     const id = url.searchParams.get("commitment");
     if (id) {
       setSurface("commitments");
