@@ -63,7 +63,7 @@ describe("setup copy", () => {
   it("names both platforms and stays honest about who pushes", () => {
     expect(SETUP_RECIPES.map((r) => r.title).join(" ")).toMatch(/Apple Health/);
     expect(SETUP_RECIPES.map((r) => r.title).join(" ")).toMatch(/Health Connect/);
-    expect(HEALTH_PUSH_TRUTH).toMatch(/no cloud/i);
+    expect(HEALTH_PUSH_TRUTH).toMatch(/neither offers a cloud/i);
     expect(HEALTH_PUSH_TRUTH).toMatch(/never reaches out/i);
   });
 
