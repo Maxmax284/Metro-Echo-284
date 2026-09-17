@@ -137,32 +137,45 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <span className="ml-auto text-[10.5px] text-muted-foreground">{timezone}</span>
         </div>
 
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
-          {([
-            { id: "today", label: "Day" },
-            { id: "upcoming", label: "Upcoming" },
-            { id: "week", label: "Week" },
-            { id: "board", label: "Board" },
-            { id: "body", label: "Body" },
-            { id: "money", label: "Money" },
-            { id: "flights", label: "Flights" },
-            { id: "help", label: "Help" },
-            { id: "month", label: "Month" },
-            { id: "calendar", label: "Calendar only" },
-          ] as const).map((t) => (
-
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "shrink-0 rounded-full border px-3 py-1 text-[12px] transition-colors",
-                tab === t.id ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.label}
+        {/* Schedule is time only: the day, what's next, the week. The desks
+            (Board, Body, Money, Flights, Local help) live in Work under "Go
+            straight there" — the links here still work so nothing that already
+            points at a desk breaks, but a desk announces where it lives. */}
+        {DESK_TABS.includes(tab as DeskTab) ? (
+          <div className="flex items-center gap-2 text-[12px]">
+            <span className="text-muted-foreground">
+              {DESK_LABEL[tab as DeskTab]} lives in Work now.
+            </span>
+            <a href="/?surface=work" className="min-h-[36px] text-primary hover:underline">
+              Open Work
+            </a>
+            <button onClick={() => setTab("today")} className="ml-auto min-h-[36px] text-primary hover:underline">
+              Back to your day
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1">
+            {([
+              { id: "today", label: "Day" },
+              { id: "upcoming", label: "Upcoming" },
+              { id: "week", label: "Week" },
+              { id: "month", label: "Month" },
+              { id: "calendar", label: "Calendar only" },
+            ] as const).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-[12px] transition-colors",
+                  tab === t.id ? "border-primary/40 bg-primary/15 text-primary" : "border-border/60 bg-surface-elevated/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
 
         {tab === "calendar" ? (
           <CalendarOnlyView />
