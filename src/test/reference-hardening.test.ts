@@ -29,7 +29,8 @@ describe("the collision that started this", () => {
   });
 
   it("never lets a vague word pull the newest unrelated item when several fit", () => {
-    const out = resolveReference("that reminder", ROWS, NOW);
+    const crowded = [{ id: "gym", label: "Gym renewal", createdAt: ago(18) }, ...ROWS];
+    const out = resolveReference("that reminder", crowded, NOW);
     expect(out.status).toBe("many");
   });
 
