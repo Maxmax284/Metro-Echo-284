@@ -28,21 +28,43 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+/** The provider said this plan cannot ask that question. Not a crash — a limit. */
+class PlanLimited extends Error {}
+
+function restricted(body: string): boolean {
+  return body.includes("function_access_restricted") || body.includes("usage_limit_reached");
+}
+
+async function askOnce(flight_no: string, flight_date: string, withDate: boolean) {
   const url = new URL("https://api.aviationstack.com/v1/flights");
   url.searchParams.set("access_key", KEY);
   url.searchParams.set("flight_iata", flight_no);
-  url.searchParams.set("flight_date", flight_date);
+  if (withDate) url.searchParams.set("flight_date", flight_date);
   const res = await fetch(url.toString());
   const text = await res.text();
   if (!res.ok) {
-    console.error(`aviationstack failed [${res.status}]: ${text}`);
+    if (restricted(text)) throw new PlanLimited(text);
     throw new Error(`[${res.status}] ${text}`);
   }
   const payload = JSON.parse(text || "{}");
   if (payload?.error) {
-    console.error("aviationstack error body", JSON.stringify(payload.error));
-    throw new Error(`[200] ${JSON.stringify(payload.error)}`);
+    const body = JSON.stringify(payload.error);
+    if (restricted(body)) throw new PlanLimited(body);
+    throw new Error(`[200] ${body}`);
+  }
+  return payload;
+}
+
+async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+  let payload: unknown;
+  try {
+    payload = await askOnce(flight_no, flight_date, true);
+  } catch (e) {
+    // The free plan refuses a date filter. Ask for the flight plainly instead;
+    // normalizing still keeps only a reading that matches the day asked about.
+    if (!(e instanceof PlanLimited)) throw e;
+    console.error("aviationstack refused the date filter; asking without it");
+    payload = await askOnce(flight_no, flight_date, false);
   }
   return normalizeAviationstack(payload, { flight_no, flight_date });
 }
