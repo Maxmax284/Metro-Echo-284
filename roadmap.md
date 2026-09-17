@@ -7,4 +7,4 @@
 - [x] Trace the repeated date/time question and contradictory Google claim
 - [x] Preserve booking details across Telegram follow-ups
 - [x] Ground every status answer in the exact proposal and Google receipt
-- [ ] Verify create, clarify, approve, Google write, import, and reverse-sync flows
+- [x] Verify create, clarify, approve, Google write, import, and reverse-sync flows
