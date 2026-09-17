@@ -51,8 +51,15 @@ Done:
   crowded field asks once, working pointers expire after 30 minutes, two
   independent asks in one message are separated instead of mashed together,
   refinement and typed approval refuse to guess between two pending changes.
-- Phone: home-screen shortcuts for Today, Ask, Receipts and Flights;
+- Phone: home-screen shortcuts for Today, Ask, Receipts, Flights and Body;
   `?room=` deep link into the exact room.
+- Wearables, one body in one place: the hand-off now accepts nineteen kinds of
+  reading with phone-name aliases and per-group consent (everyday body numbers,
+  movement, sleep); the Body desk carries the fortnight strips, a self-reported
+  body profile (phrasing only, never a target) and the device link; Work has a
+  Wearables tile. Recorded rest and effort feed judgment as a friction input.
+  Native Apple Health / Health Connect reads stay a documented seam.
+
 
 Open in this pass:
 

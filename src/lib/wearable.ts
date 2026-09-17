@@ -5,7 +5,29 @@
 // reading that isn't there is never guessed at.
 import type { Posture } from "@/lib/awareness";
 
-export type ReadingKind = "heart_rate" | "steps" | "sleep" | "workout" | "stand";
+/* The kinds Echo stores. The accepted list lives in one place — see
+   `@/lib/bodyKinds` — and this union names the same things so the maths below
+   and the hand-off can never drift apart. */
+export type ReadingKind =
+  | "heart_rate"
+  | "resting_heart_rate"
+  | "hrv"
+  | "spo2"
+  | "respiratory_rate"
+  | "temperature"
+  | "weight"
+  | "body_fat"
+  | "bp_systolic"
+  | "bp_diastolic"
+  | "pulse"
+  | "steps"
+  | "stand"
+  | "workout"
+  | "active_minutes"
+  | "calories"
+  | "distance_walk"
+  | "distance_cycle"
+  | "sleep";
 export type ReadingSource = "bluetooth" | "ingest" | "manual";
 
 export interface Reading {
@@ -18,10 +40,24 @@ export interface Reading {
 
 export const KIND_LABEL: Record<ReadingKind, string> = {
   heart_rate: "Heart rate",
+  resting_heart_rate: "Resting heart rate",
+  hrv: "Heart rate variability",
+  spo2: "Blood oxygen",
+  respiratory_rate: "Breathing rate",
+  temperature: "Temperature",
+  weight: "Weight",
+  body_fat: "Body fat",
+  bp_systolic: "Blood pressure (upper)",
+  bp_diastolic: "Blood pressure (lower)",
+  pulse: "Pulse",
   steps: "Steps",
-  sleep: "Sleep",
-  workout: "Workout",
   stand: "Standing",
+  workout: "Workout",
+  active_minutes: "Active minutes",
+  calories: "Active energy",
+  distance_walk: "Walking distance",
+  distance_cycle: "Cycling distance",
+  sleep: "Sleep",
 };
 
 export const SOURCE_LABEL: Record<ReadingSource, string> = {

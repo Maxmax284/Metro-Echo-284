@@ -1,3 +1,4 @@
+import { specFor } from "@/lib/bodyKinds";
 import { describe, expect, it } from "vitest";
 import {
   autoSendHealth,
@@ -78,14 +79,13 @@ describe("bodyStrip", () => {
 });
 
 describe("setup material", () => {
-  it("posts only the four kinds the ingest accepts", () => {
+  it("posts only kinds the ingest actually accepts", () => {
     const body = JSON.parse(ingestBodyTemplate()) as { readings: { kind: string }[] };
-    expect(body.readings.map((r) => r.kind).sort()).toEqual([
-      "heart_rate",
-      "sleep",
-      "steps",
-      "workout",
-    ]);
+    const kinds = body.readings.map((r) => r.kind);
+    expect(kinds.length).toBeGreaterThan(3);
+    for (const k of kinds) expect(specFor(k)?.kind).toBe(k);
+    /* The four Echo has always taken are still in the example. */
+    for (const k of ["steps", "heart_rate", "sleep", "workout"]) expect(kinds).toContain(k);
   });
 
   it("never tells anyone to approve anything from a watch", () => {

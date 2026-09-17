@@ -16,8 +16,7 @@ import {
   LayoutGrid,
   Wallet,
   LifeBuoy,
-  HeartPulse,
-} from "lucide-react";
+  HeartPulse, Watch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useScope } from "@/hooks/useScope";
 import { listProjects, type Project } from "@/lib/projects";
@@ -171,7 +170,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
             <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
             <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
-            <JumpTile label="Body" line="Medication and readings" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
+            <JumpTile label="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
+            <JumpTile label="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
             <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
             <JumpTile label="Documents" line="Drafts and exports" Icon={FileText} href="/documents" />
           </div>

@@ -12,6 +12,7 @@ export * from "./experience.ts";
 export * from "./rhythm.ts";
 export * from "./roleMap.ts";
 export * from "./worldBackbone.ts";
+export * from "./bodyLoad.ts";
 export * from "./compose.ts";
 
 import { type ArchetypeHypothesis, activeArchetypes, archetypeBlock } from "./archetype.ts";
@@ -21,6 +22,7 @@ import { type PlatformRow, roleMapBlock } from "./roleMap.ts";
 import { type SituationSense, senseBlock } from "./situationSense.ts";
 import { type Tradeoff, frictionBlock } from "./friction.ts";
 import { type WorldFact, worldBlock } from "./worldBackbone.ts";
+import { type BodyLoad, bodyLoadBlock } from "./bodyLoad.ts";
 import { STREET_ANSWER_RULES } from "./compose.ts";
 
 export type JudgmentInput = {
@@ -31,6 +33,8 @@ export type JudgmentInput = {
   rhythms?: Rhythm[] | null;
   platforms?: PlatformRow[] | null;
   world?: { facts: WorldFact[]; country: string } | null;
+  /** Recorded rest and effort. A friction input, never a health reading. */
+  bodyLoad?: BodyLoad | null;
   now?: Date;
 };
 
@@ -60,6 +64,10 @@ export function judgmentBlock(input: JudgmentInput): string {
     if (block) parts.push(block);
   }
   if (input.platforms?.length) parts.push(roleMapBlock(input.platforms));
+  if (input.bodyLoad) {
+    const block = bodyLoadBlock(input.bodyLoad);
+    if (block) parts.push(block);
+  }
   if (input.world) parts.push(worldBlock(input.world.facts, input.world.country, now));
   if (!parts.length) return "";
   return [...parts, STREET_ANSWER_RULES].join("\n\n");
