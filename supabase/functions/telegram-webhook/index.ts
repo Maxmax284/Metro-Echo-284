@@ -124,6 +124,14 @@ import {
 } from "../_shared/reminderActions.ts";
 import { buildCalendarQueue } from "../_shared/calendarQueue.ts";
 import {
+  POINTER_TTL_MINUTES,
+  askOneAtATime,
+  askWhichOne,
+  pointerIsFresh,
+  resolveReference,
+  splitRequests,
+} from "../_shared/reference.ts";
+import {
   activeCalendarDraft,
   calendarDraftContext,
   calendarEventButtons,
@@ -257,7 +265,7 @@ const tools = [
      described the same read in slightly different words, which is how one Echo
      starts sounding like two. One definition, both surfaces. */
   ...ECHO_READ_TOOLS,
-  { type: "function", function: { name: "file_under_project", description: "File the most recent capture (or a named one) under an existing project. Reversible filing link only — it does not execute anything.", parameters: { type: "object", properties: { project: { type: "string" } }, required: ["project"], additionalProperties: false } } },
+  { type: "function", function: { name: "file_under_project", description: "File a capture under an existing project. Reversible filing link only — it does not execute anything. Pass the user's own words for which capture in item_reference; omit it only when they clearly meant the one they just sent.", parameters: { type: "object", properties: { project: { type: "string" }, item_reference: { type: "string", description: "Their words for which capture, e.g. 'the lease pdf'. Use 'that' only when they clearly meant the most recent one." } }, required: ["project"], additionalProperties: false } } },
   // Long-running attention. These never write anywhere — they only keep looking.
   { type: "function", function: { name: "keep_an_eye_on", description: "The user wants you to keep checking something over time: 'keep an eye on this', 'watch my flight for a time change', 'keep checking until the deposit lands', 'tell me if this appointment moves'. Starts the one watch object — it only observes and reports, never writes or executes. Pass the user's own words as reference.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their own words for the thing to watch, e.g. 'my flight Friday' or 'the deposit'." }, kind: { type: "string", enum: ["calendar_event", "action", "unknown"], description: "calendar_event for anything on the calendar; action for a staged change or payment." } }, required: ["reference"], additionalProperties: false } } },
   { type: "function", function: { name: "stop_watching", description: "The user wants you to stop keeping an eye on something: 'stop watching that', 'drop that watch'.", parameters: { type: "object", properties: { reference: { type: "string", description: "Their words for which one. Use 'that' when they didn't say." } }, additionalProperties: false } } },
