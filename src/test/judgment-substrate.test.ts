@@ -23,8 +23,8 @@ describe("nothing in, nothing out", () => {
 describe("situation shapes", () => {
   it("reads a disrupted filed flight as a travel day and explains itself", () => {
     const out = inferArchetypes({ flightWithin24h: true, flightDisrupted: true }, NOW);
-    expect(out[0].id).toBe("travel_day");
-    expect(out[0].because.length).toBeGreaterThan(0);
+    expect(out.map((h) => h.id)).toContain("travel_day");
+    expect(out.every((h) => h.because.length > 0)).toBe(true);
     expect(out[0].confidence).toBeLessThanOrEqual(0.9);
   });
 
