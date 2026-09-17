@@ -680,14 +680,66 @@ async function sweepScope(
   // The nudge always lands in Today. Reaching the phone is a second, narrower
   // step: only when the ladder asked for it, push is opted into, and a device
   // is registered. Quiet hours were already honoured by the caller.
-  if (decision.delivery.recommendedChannel === "phone") {
-    await reachPhone(sb, userId, scopeCols, decision);
-  } else if (decision.delivery.recommendedChannel === "messaging") {
-    await reachMessaging(sb, userId, scopeCols, decision);
+  //
+  // One event, one delivery: the ledger claim below is what stops the same
+  // change buzzing on the phone and arriving on Telegram as if they were two
+  // separate pieces of news.
+  const surface = decision.delivery.recommendedChannel;
+  if (surface === "phone" || surface === "messaging") {
+    const claimed = await claimDelivery(sb, userId, scopeCols, {
+      situationKind: `nudge.${decision.bundle.lead.signal.type}`,
+      situationId: decision.entityId ?? decision.dedupeKey,
+      dedupeKey: `nudge:${decision.dedupeKey}`,
+      surface,
+      urgency: decision.urgency,
+      headline: decision.title,
+      because: `awareness ladder chose ${surface}`,
+    });
+    if (claimed) {
+      if (surface === "phone") await reachPhone(sb, userId, scopeCols, decision);
+      else await reachMessaging(sb, userId, scopeCols, decision);
+    }
   }
   return "proposed";
 
 
+}
+
+/**
+ * Claim the right to deliver this exact change on this exact surface. The unique
+ * index on (user, dedupe key, surface) is the referee: a second claim for the
+ * same news loses and nothing is sent twice.
+ */
+async function claimDelivery(
+  sb: SupabaseClient,
+  userId: string,
+  scopeCols: Record<string, unknown>,
+  d: {
+    situationKind: string;
+    situationId: string;
+    dedupeKey: string;
+    surface: string;
+    urgency: string;
+    headline: string;
+    because: string;
+  },
+): Promise<boolean> {
+  const { error } = await sb.from("deliveries").insert({
+    user_id: userId,
+    ...scopeCols,
+    situation_kind: d.situationKind,
+    situation_id: d.situationId,
+    dedupe_key: d.dedupeKey,
+    surface: d.surface,
+    urgency: d.urgency,
+    sensitivity: "ordinary",
+    because: d.because,
+    headline: d.headline,
+    status: "sent",
+  });
+  if (!error) return true;
+  /* A duplicate key means this news already went out. Silence is correct. */
+  return false;
 }
 
 
