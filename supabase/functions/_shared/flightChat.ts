@@ -152,13 +152,37 @@ export function askForDayWords(flight_no: string): string {
 /** The question asked before a card is taken off the record. */
 export function dropConfirmWords(flight_no: string, hit: { depart_on: string; status: string }): string {
   return hit.status === "confirmed"
-    ? `Remove ${flight_no} on ${hit.depart_on} from your record? It's confirmed, so the departure and landing entries it wrote stay on your board until you clear those. Nothing is cancelled with the airline either way.`
+    ? `Remove ${flight_no} on ${hit.depart_on} from your record? It's confirmed, so the departure and landing entries it wrote come off your board and out of your Google calendar too. Nothing is cancelled with the airline either way.`
     : `Remove ${flight_no} on ${hit.depart_on} from your record? It's still a draft, so nothing was booked and nothing gets cancelled with the airline.`;
 }
 
+export type DropCleared = {
+  /** Entries removed from the board. */
+  entries: number;
+  /** Mirrored entries removed from Google, and any that refused. */
+  google_removed: number;
+  google_failed: number;
+};
+
 /** The words left behind once a card is off the record. */
-export function droppedWords(flight_no: string, hit: { depart_on: string; status: string }): string {
-  return hit.status === "confirmed"
-    ? `${flight_no} on ${hit.depart_on} is off your record. The board entries it wrote are still there — clear those in Metro Echo.`
-    : `${flight_no} on ${hit.depart_on} is off your record. Nothing was booked, so nothing was cancelled with the airline.`;
+export function droppedWords(
+  flight_no: string,
+  hit: { depart_on: string; status: string },
+  cleared?: DropCleared,
+): string {
+  if (hit.status !== "confirmed") {
+    return `${flight_no} on ${hit.depart_on} is off your record. Nothing was booked, so nothing was cancelled with the airline.`;
+  }
+  const head = `${flight_no} on ${hit.depart_on} is off your record.`;
+  if (!cleared || cleared.entries === 0) {
+    return `${head} It had no board entries left to clear. Nothing was cancelled with the airline.`;
+  }
+  const entryWords = `${cleared.entries} board ${cleared.entries === 1 ? "entry" : "entries"} removed`;
+  const googleWords = cleared.google_failed > 0
+    ? `${cleared.google_removed} cleared from Google, ${cleared.google_failed} Google could not remove — check those there`
+    : cleared.google_removed > 0
+      ? `${cleared.google_removed} cleared from Google too`
+      : `nothing was mirrored to Google`;
+  return `${head} ${entryWords}, ${googleWords}. Nothing was cancelled with the airline.`;
 }
+
