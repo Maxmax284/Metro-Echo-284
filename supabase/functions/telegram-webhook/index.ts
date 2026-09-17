@@ -58,7 +58,7 @@ import {
   type AgendaPendingChange,
 } from "../_shared/calendarAgenda.ts";
 import { matchHelpQuestion, renderTelegramHelp } from "../_shared/telegram_guide.ts";
-import { tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
+import { sendTelegram, tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
 import { noticeFlights } from "../_shared/flightNotice.ts";
@@ -152,7 +152,7 @@ import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
 import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
-import { dropFlightByNumber, fileFlightByNumber } from "../_shared/flightFile.ts";
+import { dropConfirmWords, dropFlightPlan, fileFlightByNumber, findFlightByNumber } from "../_shared/flightFile.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
 import {
   calendarApprovalButtons,
@@ -1295,11 +1295,21 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
 
     if (ask?.kind === "cancel") {
-      const out = await dropFlightByNumber(sb, { userId, orgId }, ask.flight_no);
-      reply = out.words;
+      /* Removal is asked once, never guessed. The card only comes off the record
+         when the button on this exact message is tapped. */
+      const hit = await findFlightByNumber(sb, { userId, orgId }, ask.flight_no);
       readOnly = true;
       detectedType = "flight";
-      routedTo = out.dropped ? "flights" : null;
+      if (!hit) {
+        reply = `I don't have ${ask.flight_no} on your record, so there's nothing to remove.`;
+      } else {
+        reply = dropConfirmWords(ask.flight_no, hit);
+        toolMarkup = keyboard([
+          { text: `Remove ${ask.flight_no}`, callback_data: `fltdrop:${hit.id}:${ask.flight_no}` },
+          { text: "Keep it", callback_data: `fltkeep:${hit.id}` },
+        ]);
+        routedTo = "flights";
+      }
     } else if (ask?.kind === "file") {
       const out = await fileFlightByNumber(sb, { userId, orgId }, {
         flight_no: ask.flight_no,
@@ -1553,6 +1563,53 @@ Deno.serve(async (req) => {
         }
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: nudge ? "Noted." : "Not found." });
         await dropButtons();
+        return ok();
+      }
+
+      /* "Remove <flight>" / "Keep it" — the deliberate yes behind taking a flight
+         card off the record. It drops the card and leaves a receipt; it never
+         touches the board entries a confirmed flight already wrote, and it
+         cancels nothing with any airline. */
+      if (action === "fltdrop" || action === "fltkeep") {
+        const { data: plan } = await admin.from("flight_plans")
+          .select("id, depart_on, status, organization_id")
+          .eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (!plan) {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "That flight is no longer on your record." });
+          await dropButtons();
+          return ok();
+        }
+        if (action === "fltkeep") {
+          await tg("answerCallbackQuery", { callback_query_id: cbId, text: "Kept. Nothing changed." });
+          await dropButtons();
+          return ok();
+        }
+        const flightNo = parts[2] ?? "that flight";
+        const out = await dropFlightPlan(
+          admin,
+          { userId: cbLink.user_id, orgId: (plan as any).organization_id ?? null },
+          {
+            id: String((plan as any).id),
+            depart_on: String((plan as any).depart_on).slice(0, 10),
+            status: String((plan as any).status),
+          },
+          { flight_no: flightNo, via: "telegram" },
+        );
+        await tg("answerCallbackQuery", {
+          callback_query_id: cbId,
+          text: out.dropped ? "Removed." : "That couldn't be removed.",
+        });
+        if (out.dropped) await dropButtons();
+        await sendTelegram({
+          admin,
+          userId: cbLink.user_id,
+          organizationId: (plan as any).organization_id ?? null,
+          chatId: cbChatId,
+          text: out.words,
+          kind: "notice",
+          entityType: "flight_plan",
+          entityId: String((plan as any).id),
+        });
         return ok();
       }
 

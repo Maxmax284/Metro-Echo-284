@@ -12,6 +12,16 @@
 import { useMemo, useState } from "react";
 import { Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,6 +101,8 @@ export function FlightDesk() {
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [live, setLive] = useState<Record<string, string>>({});
+  /* Removal is asked once, plainly, and never assumed from a stray tap. */
+  const [removing, setRemoving] = useState<FlightPlan | null>(null);
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
@@ -596,6 +608,18 @@ export function FlightDesk() {
                     </Button>
                   </>
                 )}
+                {p.status !== "dropped" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-9 text-[12px]"
+                    disabled={busy}
+                    onClick={() => setRemoving(p)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
+                    Remove this flight
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -605,6 +629,41 @@ export function FlightDesk() {
       )}
 
       <AftermathHint text="A confirmed flight becomes departure and landing entries on your Board. Echo records and reads; buying stays yours." />
+
+      <AlertDialog open={!!removing} onOpenChange={(open) => !open && setRemoving(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this flight?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removing ? planTitle(removing) : ""}
+              {removing?.status === "confirmed"
+                ? " — it comes off your record. The departure and landing entries it already wrote stay on your Board until you clear those. Nothing is cancelled with the airline."
+                : " — it comes off your record. Nothing was booked, so nothing is cancelled with the airline."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const p = removing;
+                setRemoving(null);
+                if (!p) return;
+                setBusy(true);
+                try {
+                  await drop(p);
+                  vantaToast.success("Off your record. The receipt is in Receipts.");
+                } catch (e) {
+                  vantaToast.warning(e instanceof Error ? e.message : "That could not be removed.");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Remove it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
