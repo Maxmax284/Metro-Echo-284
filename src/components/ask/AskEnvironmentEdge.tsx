@@ -21,7 +21,7 @@ export function AskEnvironmentEdge({ className }: { className?: string }) {
   const useSuggestion = (question: string) => {
     setAskDraft(activeId ?? "_none", question);
     setOpen(false);
-    document.querySelector<HTMLElement>("[data-ask-composer]")?.focus();
+    document.querySelector<HTMLElement>("textarea")?.focus();
   };
 
   return (

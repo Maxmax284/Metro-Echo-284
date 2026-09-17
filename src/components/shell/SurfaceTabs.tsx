@@ -94,7 +94,7 @@ export function SurfaceTabs({
                   : "text-muted-foreground hover:text-foreground"
               )}
 
-              aria-label={label}
+                aria-label={signals[key as RoomKey] ? `${label}: ${signals[key as RoomKey]?.label}` : label}
               aria-current={isActive ? "page" : undefined}
             >
               {signals[key as RoomKey] && <RoomSignal signal={signals[key as RoomKey] as RoomSignalState} />}
@@ -142,7 +142,7 @@ export function SurfaceTabs({
             key={key}
             onClick={(e) => go(key, e)}
             title={label}
-            aria-label={label}
+            aria-label={signals[key as RoomKey] ? `${label}: ${signals[key as RoomKey]?.label}` : label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "group relative flex h-11 w-11 flex-col items-center justify-center rounded-lg",
