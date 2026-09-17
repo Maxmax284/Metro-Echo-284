@@ -225,6 +225,13 @@
       "when": 1789640788342,
       "tag": "0031_broadcast_calendar_events_to_open_agendas",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1789640829423,
+      "tag": "0032_retain_calendar_scope_for_live_removals",
+      "breakpoints": true
     }
   ]
 }
