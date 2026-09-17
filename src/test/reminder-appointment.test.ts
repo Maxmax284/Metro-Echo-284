@@ -3,6 +3,7 @@ import { looksLikeAppointment, parseReminderHint } from "../../supabase/function
 import { reminderLocation, reminderOffsetsMinutes, resolveReminderReference, wantsRecentReminderOnCalendar, wantsReminderCancellation } from "../../supabase/functions/_shared/reminderActions";
 import { hasCalendarCreationDetails, normalizeCalendarChanges } from "../../supabase/functions/_shared/calendarChangeNormalize";
 import { asksCalendarActionStatus, calendarActionStatusLine } from "../../supabase/functions/_shared/calendarConversation";
+import { explicitlyPromotesExistingReminder, parseNewTelegramCalendarRequest } from "../../supabase/functions/_shared/telegramCalendarRequest";
 describe("appointment shape", () => {
   it("spots people and places", () => {
     expect(looksLikeAppointment("Meet up with Dani at One Loudoun")).toBe(true);
@@ -71,6 +72,13 @@ describe("reminder follow-ups", () => {
     expect(wantsReminderCancellation("Remove that reminder and start all over again")).toBe(true);
   });
 
+  it("does not promote an unrelated reminder from a complete new event request", () => {
+    const text = "I need you to set a reminder on my calendar for this coming Tuesday at 1:00 p.m. that reminds me a day and an hour beforehand that I have an appointment at the villas two minutes down the street from me";
+    expect(wantsRecentReminderOnCalendar(text)).toBe(false);
+    expect(explicitlyPromotesExistingReminder(text)).toBe(false);
+    expect(explicitlyPromotesExistingReminder("Put that reminder on my calendar")).toBe(true);
+  });
+
   it("resolves one, many, and no private reminders without guessing", () => {
     expect(resolveReminderReference("Dani reminder", rows).status).toBe("one");
     expect(resolveReminderReference("that reminder", rows)).toMatchObject({ status: "one", reminder: { id: "dani" } });
@@ -100,5 +108,17 @@ describe("Telegram date corrections", () => {
     );
     expect(parsed.status).toBe("ok");
     if (parsed.status === "ok") expect(parsed.due_at).toBe("2026-09-22T17:00:00.000Z");
+  });
+
+  it("deterministically stages the exact Villas request before model routing", () => {
+    const request = parseNewTelegramCalendarRequest(
+      "I need you to set a reminder on my calendar for this coming Tuesday at 1:00 p.m. that reminds me a day and an hour beforehand that I have an appointment at the villas two minutes down the street from me",
+      defaults,
+    );
+    expect(request?.title).toBe("Appointment at the villas");
+    expect(request?.due_at).toBe("2026-09-22T17:00:00.000Z");
+    expect(request?.changes.find((change) => change.field === "location")?.after)
+      .toBe("the villas two minutes down the street from me");
+    expect(request?.changes.find((change) => change.field === "reminder")?.after).toBe("1440,60");
   });
 });
