@@ -272,6 +272,45 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   );
 }
 
+/**
+ * One tap to a place you already know you want. Presentation only — every
+ * destination is an existing route, nothing new is read or written here.
+ */
+function JumpTile({
+  label,
+  line,
+  Icon,
+  href,
+  onOpen,
+}: {
+  label: string;
+  line: string;
+  Icon: typeof Inbox;
+  href?: string;
+  onOpen?: () => void;
+}) {
+  const className = cn(
+    "flex min-h-[60px] w-full flex-col justify-center gap-0.5 vanta-inset vanta-cut px-3 py-2 text-left touch-manipulation hover:bg-surface-elevated/70",
+    MOTION_ROW,
+    MOTION_HOVER_LIFT,
+    MOTION_FOCUS,
+  );
+  const body = (
+    <>
+      <span className="flex items-center gap-1.5">
+        <Icon className="h-4 w-4 shrink-0 text-primary" />
+        <span className="truncate text-[12.5px] font-semibold text-foreground">{label}</span>
+      </span>
+      <span className="block text-[11px] leading-snug text-muted-foreground">{line}</span>
+    </>
+  );
+  return href ? (
+    <a href={href} className={className}>{body}</a>
+  ) : (
+    <button type="button" onClick={onOpen} className={className}>{body}</button>
+  );
+}
+
 /** A shelf label. Typography carries the hierarchy — no numbered tour. */
 function ShelfHeading({ title, line }: { title: string; line?: string }) {
   return (
