@@ -88,7 +88,8 @@ const App = () => {
                                 {/* One door: /how. Everything explanatory lives behind it. */}
                                 <Route path="/how" element={<RoomMapPage />} />
                                 <Route path="/how/paper" element={<PhysicalLoopPage />} />
-                                <Route path="/how/watch" element={<WearableLoopPage />} />
+                                <Route path="/__bodystrip" element={<BodyStripPreview />} />
+          <Route path="/how/watch" element={<WearableLoopPage />} />
                                 <Route path="/how/glance" element={<GlancePage />} />
                                 <Route path="/how/trends" element={<WatchPage />} />
                                 {/* Old standalone doors — kept as redirects so links never break. */}
