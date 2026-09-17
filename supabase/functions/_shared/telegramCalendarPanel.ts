@@ -75,6 +75,7 @@ export function resetTelegramCalendarState(state: unknown): Record<string, unkno
   const next = { ...((state && typeof state === "object" ? state : {}) as Record<string, unknown>) };
   delete next.calendar_draft;
   delete next.last_calendar_action_id;
+  delete next.last_calendar_action_at;
   return next;
 }
 
