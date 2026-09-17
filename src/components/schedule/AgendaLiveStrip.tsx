@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, Clock3 } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
-import { buildAgendaTimeline, type BoardEntry } from "@/lib/agendaBoard";
+import { buildAgendaTimeline, railWidthFor, spreadMarkers, type BoardEntry } from "@/lib/agendaBoard";
 import { liveMarkerWords } from "@/lib/agendaFlightTimes";
 import { MOTION_ARRIVE, MOTION_FLIP } from "@/lib/motion";
 import { cn } from "@/lib/utils";
