@@ -74,8 +74,8 @@ async function googleGroup(
       ].join(","),
     },
     body: JSON.stringify({
-      includedTypes: googleCareTypes(kinds),
-      maxResultCount: 20,
+      includedTypes: types,
+      maxResultCount: 10,
       rankPreference: "DISTANCE",
       locationRestriction: { circle: { center: { latitude: lat, longitude: lon }, radius } },
     }),
@@ -88,6 +88,28 @@ async function googleGroup(
   }
   const payload = await res.json();
   return normalizeGoogleCare((payload?.places ?? []) as unknown[], lat, lon);
+}
+
+/** Every group asked for, merged and deduped. Null only when Google is unusable. */
+async function googleNearby(
+  lat: number,
+  lon: number,
+  radius: number,
+  kinds: CareKind[],
+): Promise<CarePlace[] | null> {
+  const groups = googleCareGroups(kinds);
+  const answers = await Promise.all(groups.map((types) => googleGroup(lat, lon, radius, types)));
+  if (answers.every((a) => a === null)) return null;
+  const seen = new Set<string>();
+  const merged: CarePlace[] = [];
+  for (const rows of answers) {
+    for (const row of rows ?? []) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      merged.push(row);
+    }
+  }
+  return rankCare(merged);
 }
 
 /** OpenStreetMap, the fallback. An empty answer is an empty answer. */
