@@ -43,15 +43,19 @@ export function useEnvironmentEdge(): { edge: EnvironmentEdge; line: string; loa
   const state = useMemo(() => {
     const evidence: PlaceEvidence[] = [];
     if (place?.country || place?.label) {
+      /* An auto-generated pin name ("Spot 8/29/2026, 4:47 AM") is a filename,
+         not a place. Echo only speaks a locality when the label reads like one. */
+      const label = (place.label ?? "").trim();
+      const spoken = label && !/\d/.test(label) && !/^spot\b/i.test(label) ? label : null;
       evidence.push({
         kind: "device_fix",
         role: "current",
         where: {
           country: place.country ?? null,
           region: place.region ?? null,
-          locality: place.label ?? null,
+          locality: spoken,
         },
-        level: place.label ? "locality" : "country",
+        level: spoken ? "locality" : "region",
         stamp: {
           source: "your recorded place",
           authority: "own_record",
