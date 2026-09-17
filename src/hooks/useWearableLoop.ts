@@ -163,5 +163,32 @@ export function useWearableLoop(): {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, key, consentKey, context.posture, nonce]);
 
+
+  /* Live arrivals. When a reading lands from the phone hand-off, the panel
+     shows it without a reload — same idea as a gate change or a moved calendar
+     entry. Own rows only, one channel per hook instance so two mounted panels
+     never collide, and a short debounce so a burst of twenty readings is one
+     read, not twenty. */
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel(`wearable-arrivals-${crypto.randomUUID()}`);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    channel
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "wearable_readings", filter: `user_id=eq.${user.id}` },
+        () => {
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(() => void load(), 700);
+        },
+      )
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, load]);
+
   return { loop, loading, error, refresh: () => setNonce((n) => n + 1) };
 }
