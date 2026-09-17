@@ -14,6 +14,7 @@ import {
   stayLine,
   type BoardEntry,
 } from "@/lib/agendaBoard";
+import { agendaChangeTouchesScope } from "@/lib/agendaRealtime";
 
 const e = (o: Partial<BoardEntry>): BoardEntry => ({
   id: o.id ?? "1",
@@ -169,5 +170,45 @@ describe("agenda board — live day strip", () => {
 
     expect(timeline?.markers[0].startMinute).toBe(600);
     expect(timeline?.nowMinute).toBe(615);
+  });
+});
+
+describe("agenda board — real calendar changes", () => {
+  const personal = { type: "personal", organizationId: null } as const;
+  const workspace = { type: "organization", organizationId: "org-1" } as const;
+
+  it("refreshes for inserts in the active room", () => {
+    expect(agendaChangeTouchesScope({
+      eventType: "INSERT",
+      new: { user_id: "me", organization_id: null },
+    }, "me", personal)).toBe(true);
+  });
+
+  it("ignores another person's and another room's entries", () => {
+    expect(agendaChangeTouchesScope({
+      eventType: "INSERT",
+      new: { user_id: "someone-else", organization_id: null },
+    }, "me", personal)).toBe(false);
+    expect(agendaChangeTouchesScope({
+      eventType: "INSERT",
+      new: { user_id: "me", organization_id: "org-2" },
+    }, "me", workspace)).toBe(false);
+  });
+
+  it("uses the previous row when an entry is removed", () => {
+    expect(agendaChangeTouchesScope({
+      eventType: "DELETE",
+      old: { user_id: "me", organization_id: "org-1" },
+    }, "me", workspace)).toBe(true);
+  });
+
+  it("refreshes both rooms when an update crosses a scope boundary", () => {
+    const payload = {
+      eventType: "UPDATE",
+      old: { user_id: "me", organization_id: null },
+      new: { user_id: "me", organization_id: "org-1" },
+    };
+    expect(agendaChangeTouchesScope(payload, "me", personal)).toBe(true);
+    expect(agendaChangeTouchesScope(payload, "me", workspace)).toBe(true);
   });
 });

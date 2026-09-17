@@ -17,6 +17,7 @@ import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
 import { AgendaLiveStrip } from "@/components/schedule/AgendaLiveStrip";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useAgenda, type AgendaEvent } from "@/hooks/useAgenda";
+import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { useBody } from "@/hooks/useBody";
 import { useBank } from "@/hooks/useBank";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
@@ -63,6 +64,7 @@ export function AgendaBoard() {
   const from = useMemo(() => startOfMonth(cursor), [cursor]);
   const to = useMemo(() => endOfMonth(cursor), [cursor]);
   const { events, projects, loading, error, refresh } = useAgenda({ from, to });
+  useCalendarOpenRefresh(() => { void refresh(); });
   const { meds } = useBody();
   const { transactions } = useBank(31);
   const { plans, confirm } = useFlightPlans();
