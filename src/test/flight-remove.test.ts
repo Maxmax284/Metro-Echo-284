@@ -17,9 +17,10 @@ describe("asking to remove a flight", () => {
 });
 
 describe("the words before and after removal", () => {
-  it("says the board entries survive a confirmed removal", () => {
+  it("says the entries it wrote come off the board and out of Google", () => {
     const words = dropConfirmWords("TG601", { depart_on: "2026-09-22", status: "confirmed" });
-    expect(words).toContain("stay on your board");
+    expect(words).toContain("come off your board");
+    expect(words).toContain("Google");
     expect(words).toContain("Nothing is cancelled with the airline");
   });
 
@@ -30,9 +31,32 @@ describe("the words before and after removal", () => {
     );
   });
 
-  it("never says a confirmed flight was cancelled with the airline", () => {
-    expect(droppedWords("TG601", { depart_on: "2026-09-22", status: "confirmed" })).toContain(
-      "board entries it wrote are still there",
-    );
+  it("counts what it actually cleared, board and Google", () => {
+    const words = droppedWords("TG601", { depart_on: "2026-09-22", status: "confirmed" }, {
+      entries: 2,
+      google_removed: 2,
+      google_failed: 0,
+    });
+    expect(words).toContain("2 board entries removed");
+    expect(words).toContain("2 cleared from Google too");
+    expect(words).toContain("Nothing was cancelled with the airline");
+  });
+
+  it("says plainly when Google kept a copy", () => {
+    const words = droppedWords("TG601", { depart_on: "2026-09-22", status: "confirmed" }, {
+      entries: 2,
+      google_removed: 1,
+      google_failed: 1,
+    });
+    expect(words).toContain("1 Google could not remove");
+  });
+
+  it("claims nothing when a confirmed card had no entries left", () => {
+    const words = droppedWords("TG601", { depart_on: "2026-09-22", status: "confirmed" }, {
+      entries: 0,
+      google_removed: 0,
+      google_failed: 0,
+    });
+    expect(words).toContain("no board entries left to clear");
   });
 });
