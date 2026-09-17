@@ -50,7 +50,7 @@ export function NoticedRow({
   });
 
   return (
-    <div className="vanta-inset motion-arrival flex items-start gap-2.5 px-3 py-2.5">
+    <div id={`situation-${signal.id}`} className="vanta-inset motion-arrival flex items-start gap-2.5 px-3 py-2.5">
       <Eye className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <MachineLabel className="text-accent/80">Echo noticed</MachineLabel>

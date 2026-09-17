@@ -1552,9 +1552,11 @@ Deno.serve(async (req) => {
       // "Noted" — acknowledges a nudge. Marks it seen; changes nothing else.
       if (action === "noted") {
         const { data: nudge } = await admin.from("nudges")
-          .select("id, status, organization_id").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+          .select("id, status, organization_id, dedupe_key").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
         if (nudge && nudge.status === "pending") {
           await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
+          if (nudge.dedupe_key) await admin.from("deliveries").update({ acted_status: "acted" })
+            .eq("user_id", cbLink.user_id).eq("dedupe_key", `nudge:${nudge.dedupe_key}`);
           await admin.from("audit_log").insert({
             user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
             entity_type: "nudge", entity_id: nudge.id, event: "nudge.seen",
@@ -1562,6 +1564,24 @@ Deno.serve(async (req) => {
           });
         }
         await tg("answerCallbackQuery", { callback_query_id: cbId, text: nudge ? "Noted." : "Not found." });
+        await dropButtons();
+        return ok();
+      }
+
+      if (action === "nudgelater") {
+        const { data: nudge } = await admin.from("nudges")
+          .select("id, organization_id, dedupe_key").eq("id", commitmentId).eq("user_id", cbLink.user_id).maybeSingle();
+        if (nudge) {
+          await admin.from("nudges").update({ status: "seen", seen_at: new Date().toISOString() }).eq("id", nudge.id);
+          if (nudge.dedupe_key) await admin.from("deliveries").update({ acted_status: "snoozed" })
+            .eq("user_id", cbLink.user_id).eq("dedupe_key", `nudge:${nudge.dedupe_key}`);
+          await admin.from("audit_log").insert({
+            user_id: cbLink.user_id, organization_id: nudge.organization_id ?? null,
+            entity_type: "nudge", entity_id: nudge.id, event: "nudge.snoozed",
+            payload: { source: "telegram_callback", at: new Date().toISOString() },
+          });
+        }
+        await tg("answerCallbackQuery", { callback_query_id: cbId, text: nudge ? "Held for later." : "Not found." });
         await dropButtons();
         return ok();
       }

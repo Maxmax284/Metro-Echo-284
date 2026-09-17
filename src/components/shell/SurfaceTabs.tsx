@@ -11,6 +11,9 @@ import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
 import { setRoom, throwFrom } from "@/lib/skins";
+import { RoomSignal } from "@/components/shell/RoomSignal";
+import type { RoomKey } from "@/lib/navigation";
+import type { RoomSignal as RoomSignalState } from "@/lib/roomSignals";
 
 export type SurfaceKey = SurfaceId;
 
@@ -26,10 +29,18 @@ export function SurfaceTabs({
   active,
   onChange,
   variant = "rail",
+  signals = {},
+  bubble = null,
+  onDismissBubble,
+  onOpenSignal,
 }: {
   active: SurfaceKey;
   onChange: (k: SurfaceKey) => void;
   variant?: "rail" | "bottom";
+  signals?: Partial<Record<RoomKey, RoomSignalState>>;
+  bubble?: { room: RoomKey; text: string } | null;
+  onDismissBubble?: () => void;
+  onOpenSignal?: (signal: RoomSignalState) => void;
 }) {
   const primaryItems = PRIMARY_ROOMS.map((k) => items.find((i) => i.key === k)).filter((i): i is (typeof items)[number] => Boolean(i));
   const activeRoom = roomForSurface(active);
@@ -45,7 +56,17 @@ export function SurfaceTabs({
      visually. Presentation only — navigation itself is unchanged. */
   const go = (key: SurfaceKey, e: { clientX: number; clientY: number }) => {
     throwFrom(e.clientX, e.clientY);
-    onChange(key);
+    const signal = signals[key as RoomKey];
+    onChange(signal?.target ?? key);
+    if (signal?.situationId) {
+      window.setTimeout(() => document.getElementById(
+        signal.target === "actions" ? `action-${signal.situationId}` :
+        signal.target === "receipts" ? `receipt-${signal.situationId}` :
+        signal.room === "ask" ? "ask-environment-edge" : `situation-${signal.situationId}`,
+      )?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+    }
+    if (bubble?.room === key) onDismissBubble?.();
+    if (signal) onOpenSignal?.(signal);
   };
 
   if (variant === "bottom") {
@@ -73,9 +94,15 @@ export function SurfaceTabs({
                   : "text-muted-foreground hover:text-foreground"
               )}
 
-              aria-label={label}
+                aria-label={signals[key as RoomKey] ? `${label}: ${signals[key as RoomKey]?.label}` : label}
               aria-current={isActive ? "page" : undefined}
             >
+              {signals[key as RoomKey] && <RoomSignal signal={signals[key as RoomKey] as RoomSignalState} />}
+              {bubble?.room === key && (
+                <span className="vanta-discovery-bubble absolute bottom-[calc(100%+8px)] left-1/2 w-56 -translate-x-1/2 px-3 py-2 text-left text-[11px] leading-snug text-foreground" role="status">
+                  {bubble.text}
+                </span>
+              )}
               {/* Machined marker: square-cut 2px bar, not a soft pill. */}
               <span
                 /* Keyed on the active room so the marker cuts in from its own
@@ -115,7 +142,7 @@ export function SurfaceTabs({
             key={key}
             onClick={(e) => go(key, e)}
             title={label}
-            aria-label={label}
+            aria-label={signals[key as RoomKey] ? `${label}: ${signals[key as RoomKey]?.label}` : label}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "group relative flex h-11 w-11 flex-col items-center justify-center rounded-lg",
@@ -128,6 +155,12 @@ export function SurfaceTabs({
             )}
 
           >
+            {signals[key as RoomKey] && <RoomSignal signal={signals[key as RoomKey] as RoomSignalState} />}
+            {bubble?.room === key && (
+              <span className="vanta-discovery-bubble absolute left-[calc(100%+8px)] top-1/2 z-40 w-56 -translate-y-1/2 px-3 py-2 text-left text-[11px] leading-snug text-foreground" role="status">
+                {bubble.text}
+              </span>
+            )}
             <Icon className="h-5 w-5" />
             <span className="text-[9px] leading-tight tracking-[0.02em]">{label}</span>
             {isActive && (

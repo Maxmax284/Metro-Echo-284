@@ -11,12 +11,12 @@ import { useScope } from "@/hooks/useScope";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { fusePlace, type PlaceEvidence } from "@/lib/placeState";
-import { environmentEdge, environmentLine, type EnvironmentEdge } from "@/lib/environmentEdge";
+import { environmentEdge, environmentLine, situationalAsks, type EnvironmentEdge, type SituationalAsk } from "@/lib/environmentEdge";
 
-export function useEnvironmentEdge(): { edge: EnvironmentEdge; line: string; loading: boolean } {
+export function useEnvironmentEdge(): { edge: EnvironmentEdge; line: string; loading: boolean; sources: string[]; suggestions: SituationalAsk[] } {
   const { user } = useAuth();
   const { applyScope, key } = useScope();
-  const { place } = useAwareness();
+  const { place, briefings } = useAwareness();
   const { timezone, storedTimezone } = useUserTimezone();
 
   const [next, setNext] = useState<{ words: string; atIso: string } | null>(null);
@@ -80,5 +80,19 @@ export function useEnvironmentEdge(): { edge: EnvironmentEdge; line: string; loa
     [state, timezone, next],
   );
 
-  return { edge, line: environmentLine(edge), loading };
+  const sources = useMemo(() => {
+    const out: string[] = [];
+    if (place?.country || place?.label) out.push("your recorded place");
+    if (storedTimezone) out.push("your saved clock setting");
+    if (next) out.push("your upcoming calendar");
+    return out;
+  }, [place, storedTimezone, next]);
+
+  const suggestions = useMemo(() => situationalAsks({
+    haveLocalFacts: briefings.length > 0,
+    abroad: Boolean(place?.country),
+    changesTonight: next ? 1 : 0,
+  }), [briefings.length, place?.country, next]);
+
+  return { edge, line: environmentLine(edge), loading, sources, suggestions };
 }

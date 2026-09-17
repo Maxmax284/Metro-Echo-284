@@ -56,6 +56,7 @@ import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
 import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { useEffect } from "react";
+import { useRoomSignals } from "@/hooks/useRoomSignals";
 
 export default function Index() {
   return <IndexInner />;
@@ -71,6 +72,7 @@ function IndexInner() {
   );
   const [focusCommitmentId, setFocusCommitmentId] = useState<string | null>(null);
   const [focusReceiptActionId, setFocusReceiptActionId] = useState<string | null>(null);
+  const [focusActionId, setFocusActionId] = useState<string | null>(null);
 
   // Per-surface scroll memory. We capture the active surface's scroll position
   // right before switching, then restore the incoming surface's position on
@@ -112,6 +114,12 @@ function IndexInner() {
   const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
   const { overall: awareness, place } = useAwareness();
+  const roomSignals = useRoomSignals();
+  const openRoomSignal = (signal: import("@/lib/roomSignals").RoomSignal) => {
+    if (signal.target === "actions") setFocusActionId(signal.situationId ?? null);
+    if (signal.target === "receipts") setFocusReceiptActionId(signal.situationId ?? null);
+    void roomSignals.acknowledge(signal);
+  };
 
   useEffect(() => {
     setContext({ surface });
@@ -310,7 +318,7 @@ function IndexInner() {
       />
 
       <div className="flex flex-1 min-h-0">
-        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" />
+        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} onOpenSignal={openRoomSignal} />
         <main className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-x-hidden">
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
@@ -340,14 +348,14 @@ function IndexInner() {
             {surface === "schedule" && <ScheduleSurface onNavigate={setSurface} />}
             {surface === "memory" && <MemorySurface />}
             {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
-            {surface === "actions" && <ActionsSurface />}
+            {surface === "actions" && <ActionsSurface focusId={focusActionId} onFocusHandled={() => setFocusActionId(null)} />}
             {surface === "sherlock" && <SherlockSurface />}
             {surface === "awareness" && <AwarenessSurface />}
           </SurfaceCrossfade>
         </main>
       </div>
 
-      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" />
+      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} onOpenSignal={openRoomSignal} />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
       <GlobalDropZone />
       <ClipboardImageIntake />
