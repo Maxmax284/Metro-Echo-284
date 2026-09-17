@@ -335,6 +335,37 @@
     transition: box-shadow var(--motion-base) var(--ease-out),
                 border-color var(--motion-base) var(--ease-out);
   }
+
+  /* Room presence is state, not a badge count. Every motion ends in a steady
+     LED; settled reality never keeps breathing. */
+  .vanta-room-led { transform-origin: center; }
+  @keyframes vanta-led-context {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    20%, 60% { opacity: 0.4; transform: scale(0.72); }
+    40%, 80% { opacity: 1; transform: scale(1.35); }
+  }
+  @keyframes vanta-led-attention {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    18%, 54% { opacity: 0.45; transform: scale(0.8); }
+    36%, 72% { opacity: 1; transform: scale(1.45); }
+  }
+  @keyframes vanta-led-settle {
+    from { opacity: 0; transform: scale(1.8); }
+    65% { opacity: 1; transform: scale(0.82); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .vanta-room-led-context { animation: vanta-led-context calc(var(--motion-slow) * 4 * var(--feel-k, 1)) var(--ease-out) 1 both; }
+  .vanta-room-led-attention,
+  .vanta-room-led-critical { animation: vanta-led-attention calc(var(--motion-slow) * 3 * var(--feel-k, 1)) var(--ease-out) 1 both; }
+  .vanta-room-led-complete { animation: vanta-led-settle calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) 1 both; }
+
+  .vanta-discovery-bubble {
+    z-index: 45;
+    border-radius: calc(var(--radius) - 4px);
+    background: hsl(var(--surface-overlay) / 0.96);
+    box-shadow: inset 2px 0 0 hsl(var(--primary) / 0.75), var(--shadow-md);
+    animation: vanta-arrival calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
+  }
 }
 
 
@@ -963,6 +994,11 @@ html.vanta-exhale-once body {
   .vanta-glyph-ping,
   .vanta-slip-line,
   .vanta-slip-stamp,
+  .vanta-room-led-context,
+  .vanta-room-led-attention,
+  .vanta-room-led-critical,
+  .vanta-room-led-complete,
+  .vanta-discovery-bubble,
 
   .vanta-hero,
   .motion-surface-out,

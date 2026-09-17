@@ -74,6 +74,21 @@ export function useRoomSignals() {
     if (!discoveryWasSeen(window.localStorage, key)) setBubble({ room: "ask", text: contextLabel, key });
   }, [contextLabel, edge.where, sources]);
 
+  useEffect(() => {
+    if (!bubble) return;
+    const timer = window.setTimeout(() => {
+      markDiscoverySeen(window.localStorage, bubble.key);
+      setBubble(null);
+    }, 10_000);
+    return () => window.clearTimeout(timer);
+  }, [bubble]);
+
+  useEffect(() => {
+    if (!completion) return;
+    const timer = window.setTimeout(() => setCompletion(null), 4_000);
+    return () => window.clearTimeout(timer);
+  }, [completion?.id]);
+
   const dismissBubble = useCallback(() => {
     if (bubble && typeof window !== "undefined") markDiscoverySeen(window.localStorage, bubble.key);
     setBubble(null);

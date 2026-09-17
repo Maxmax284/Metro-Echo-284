@@ -312,7 +312,7 @@ function IndexInner() {
       />
 
       <div className="flex flex-1 min-h-0">
-        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} />
+        <SurfaceTabs active={surface} onChange={setSurface} variant="rail" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} onOpenSignal={roomSignals.acknowledge} />
         <main className="relative flex flex-1 min-w-0 min-h-0 flex-col overflow-x-hidden">
           <div className="px-3 pt-2 md:px-4">
             <NudgesPanel collapsed />
@@ -349,7 +349,7 @@ function IndexInner() {
         </main>
       </div>
 
-      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} />
+      <SurfaceTabs active={surface} onChange={setSurface} variant="bottom" signals={roomSignals.signals} bubble={roomSignals.bubble} onDismissBubble={roomSignals.dismissBubble} onOpenSignal={roomSignals.acknowledge} />
       <CaptureToastProvider onOpenFile={() => setSurface("memory")} />
       <GlobalDropZone />
       <ClipboardImageIntake />

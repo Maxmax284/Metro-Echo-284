@@ -32,6 +32,7 @@ export function SurfaceTabs({
   signals = {},
   bubble = null,
   onDismissBubble,
+  onOpenSignal,
 }: {
   active: SurfaceKey;
   onChange: (k: SurfaceKey) => void;
@@ -39,6 +40,7 @@ export function SurfaceTabs({
   signals?: Partial<Record<RoomKey, RoomSignalState>>;
   bubble?: { room: RoomKey; text: string } | null;
   onDismissBubble?: () => void;
+  onOpenSignal?: (signal: RoomSignalState) => void;
 }) {
   const primaryItems = PRIMARY_ROOMS.map((k) => items.find((i) => i.key === k)).filter((i): i is (typeof items)[number] => Boolean(i));
   const activeRoom = roomForSurface(active);
@@ -64,6 +66,7 @@ export function SurfaceTabs({
       )?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
     }
     if (bubble?.room === key) onDismissBubble?.();
+    if (signal) onOpenSignal?.(signal);
   };
 
   if (variant === "bottom") {

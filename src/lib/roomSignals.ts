@@ -51,7 +51,7 @@ export function deriveRoomSignals(input: {
       tone: nudge.priority >= 95 ? "critical" : "attention",
       label: nudge.title,
       target,
-      situationId: nudge.related_entity_id ?? nudge.id,
+      situationId: target === "today" ? nudge.id : (nudge.related_entity_id ?? nudge.id),
       dedupeKey: nudge.dedupe_key,
       fresh: true,
     };

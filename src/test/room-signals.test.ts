@@ -37,4 +37,9 @@ describe("room signals", () => {
     markDiscoverySeen(localStorage, key);
     expect(discoveryWasSeen(localStorage, key)).toBe(true);
   });
+
+  it("keeps new context as a one-shot state rather than a permanent count", () => {
+    const signals = deriveRoomSignals({ nudges: [], actions: [], askContext: { label: "Context ready", fresh: true } });
+    expect(signals.ask).toMatchObject({ tone: "context", fresh: true });
+  });
 });
