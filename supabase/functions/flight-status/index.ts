@@ -159,6 +159,15 @@ Deno.serve(async (req) => {
     return json({ live, words: statusWords(live), news, law: STATUS_LAW });
   } catch (e) {
     console.error("flight-status", e);
+    if (e instanceof PlanLimited) {
+      return json({
+        live: null,
+        words: "The flight-data plan you're on won't answer this one. Nothing is wrong with the flight — the provider just won't say.",
+        news: null,
+        plan_limited: true,
+        law: STATUS_LAW,
+      });
+    }
     return json({ error: "provider_failed", message: e instanceof Error ? e.message : "unknown" }, 502);
   }
 });
