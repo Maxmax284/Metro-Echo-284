@@ -200,6 +200,87 @@ export const SETUP_RECIPES: SetupRecipe[] = [
   },
 ];
 
+export interface WatchRecipe {
+  key: string;
+  /** What the box says. */
+  title: string;
+  /** The phone app that stands between the watch and Echo. */
+  app: string;
+  steps: string[];
+  /** Live heart rate straight to Echo, when the watch broadcasts it. */
+  broadcast: string | null;
+}
+
+/**
+ * Watch brands that reach Echo through the phone's own health store. None of
+ * these needs an account with the brand: the brand's app writes to Apple Health
+ * or Health Connect, and Echo reads what the phone sends on. A watch that is
+ * not listed still works if its app writes to either store.
+ */
+export const WATCH_RECIPES: WatchRecipe[] = [
+  {
+    key: "amazfit",
+    title: "Amazfit · Bip, Active, T-Rex, Cheetah",
+    app: "Zepp",
+    steps: [
+      "Pair the watch to the Zepp app as normal.",
+      "In Zepp: Profile, then Add Accounts — link Health Connect on Android, or Apple Health on iPhone.",
+      "Allow steps, heart rate, resting heart rate, sleep and workouts to be written across.",
+      "Set up the phone hand-off above once. Zepp fills the phone, the phone sends it to Echo.",
+      "Tap Check the feed here after the next sync to see the first readings land.",
+    ],
+    broadcast:
+      "Amazfit watches can also broadcast heart rate during a workout — turn on heart rate sharing on the watch and Echo can read the beats live over Bluetooth from Android Chrome or a computer.",
+  },
+  {
+    key: "garmin",
+    title: "Garmin",
+    app: "Garmin Connect",
+    steps: [
+      "In Garmin Connect: Settings, Connected Apps — turn on Health Connect or Apple Health.",
+      "Allow the readings you want shared.",
+      "Set up the phone hand-off above once, then check the feed.",
+    ],
+    broadcast:
+      "Most Garmin watches broadcast heart rate during an activity, so Echo can read the beats live over Bluetooth.",
+  },
+  {
+    key: "fitbit",
+    title: "Fitbit",
+    app: "Fitbit",
+    steps: [
+      "On Android: Fitbit app, Settings, Health Connect — turn it on and allow the readings.",
+      "On iPhone: Fitbit writes to Apple Health for steps, sleep and workouts; heart rate stays inside Fitbit.",
+      "Set up the phone hand-off above once, then check the feed.",
+    ],
+    broadcast: null,
+  },
+  {
+    key: "samsung",
+    title: "Samsung Galaxy Watch",
+    app: "Samsung Health",
+    steps: [
+      "Samsung Health: Settings, Health Connect — allow the readings you want shared.",
+      "Set up the phone hand-off above once, then check the feed.",
+    ],
+    broadcast: null,
+  },
+  {
+    key: "apple",
+    title: "Apple Watch",
+    app: "Apple Health",
+    steps: [
+      "Nothing to link — the watch already writes straight into Apple Health.",
+      "Set up the iPhone hand-off above once, then check the feed.",
+    ],
+    broadcast: null,
+  },
+];
+
+/** The plain answer for a watch nobody listed. */
+export const UNLISTED_WATCH_LINE =
+  "A watch that isn't listed still works, as long as its own app can write to Apple Health or Health Connect. If it can't, Echo says so rather than pretending a reading arrived.";
+
 /**
  * The honest limit, said once and in plain words. Apple Health and Health
  * Connect have no cloud to read from — Google Fit's own API was retired and its
