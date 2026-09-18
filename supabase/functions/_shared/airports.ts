@@ -120,3 +120,64 @@ export function bordersCrossed(fromIata: string | null, toIata: string | null): 
 export function airportCount(): number {
   return LIST.length;
 }
+
+/* ---- Where an airport sits ------------------------------------------------
+   Kept by hand, same rule as the rest of this table: an airport with no
+   coordinate here has none, and a radar fix near it is reported as a fix
+   without a place on the track rather than pinned to a guess. */
+
+export type Point = { lat: number; lon: number };
+
+const POINTS: Record<string, Point> = {
+  IAD: { lat: 38.9531, lon: -77.4565 },
+  DCA: { lat: 38.8512, lon: -77.0402 },
+  BWI: { lat: 39.1754, lon: -76.6683 },
+  JFK: { lat: 40.6413, lon: -73.7781 },
+  EWR: { lat: 40.6895, lon: -74.1745 },
+  LGA: { lat: 40.7769, lon: -73.874 },
+  BOS: { lat: 42.3656, lon: -71.0096 },
+  PHL: { lat: 39.8744, lon: -75.2424 },
+  ATL: { lat: 33.6407, lon: -84.4277 },
+  MIA: { lat: 25.7959, lon: -80.287 },
+  ORD: { lat: 41.9742, lon: -87.9073 },
+  DFW: { lat: 32.8998, lon: -97.0403 },
+  IAH: { lat: 29.9902, lon: -95.3368 },
+  DEN: { lat: 39.8561, lon: -104.6737 },
+  LAX: { lat: 33.9416, lon: -118.4085 },
+  SFO: { lat: 37.6213, lon: -122.379 },
+  SEA: { lat: 47.4502, lon: -122.3088 },
+  YYZ: { lat: 43.6777, lon: -79.6248 },
+  MEX: { lat: 19.4363, lon: -99.0721 },
+  PTY: { lat: 9.0714, lon: -79.3835 },
+  LHR: { lat: 51.47, lon: -0.4543 },
+  CDG: { lat: 49.0097, lon: 2.5479 },
+  AMS: { lat: 52.3105, lon: 4.7683 },
+  FRA: { lat: 50.0379, lon: 8.5622 },
+  MAD: { lat: 40.4839, lon: -3.568 },
+  BCN: { lat: 41.2974, lon: 2.0833 },
+  DXB: { lat: 25.2532, lon: 55.3657 },
+  SIN: { lat: 1.3644, lon: 103.9915 },
+  HKG: { lat: 22.308, lon: 113.9185 },
+  TPE: { lat: 25.0777, lon: 121.2328 },
+  BKK: { lat: 13.69, lon: 100.7501 },
+  NRT: { lat: 35.772, lon: 140.3929 },
+  HND: { lat: 35.5494, lon: 139.7798 },
+  ICN: { lat: 37.4602, lon: 126.4407 },
+};
+
+/** The airport's coordinate, or null when it is not on record. */
+export function airportPoint(iata: string | null | undefined): Point | null {
+  const code = (iata ?? "").trim().toUpperCase();
+  return code ? (POINTS[code] ?? null) : null;
+}
+
+/** Great-circle distance in kilometres between two coordinates. */
+export function distanceKm(a: Point, b: Point): number {
+  const R = 6371;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLon = rad(b.lon - a.lon);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}

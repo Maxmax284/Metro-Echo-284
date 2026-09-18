@@ -10,10 +10,15 @@
 import { useMemo } from "react";
 import {
   PHASE_WORDS,
+  altitudeWords,
+  climbWords,
+  fixWords,
   flightPhase,
-  flightProgress,
+  headingWords,
   readingAge,
+  speedWords,
   statusWords,
+  trackProgress,
   type LiveFlight,
 } from "@/lib/flightStatus";
 import { cn } from "@/lib/utils";
@@ -61,7 +66,17 @@ export function FlightLive({
   reading?: boolean;
 }) {
   const phase = flightPhase(live);
-  const progress = flightProgress(live);
+  /* Radar first: when the airline filed a fix for the aircraft, the marker sits
+     where the aircraft is. Otherwise the clock draws it, and the card says which. */
+  const track = trackProgress(live);
+  const progress = track.value;
+  const pos = live.position ?? null;
+  const telemetry = [
+    { label: "Altitude", text: altitudeWords(pos) },
+    { label: "Speed", text: speedWords(pos) },
+    { label: "Heading", text: headingWords(pos) },
+  ].filter((c): c is { label: string; text: string } => !!c.text);
+  const climb = climbWords(pos);
   const from = live.departure.iata ?? "—";
   const to = live.arrival.iata ?? "—";
 
@@ -114,7 +129,8 @@ export function FlightLive({
         {gate && <SolariBoard text={gate} label="Stand" tone="primary" />}
       </div>
 
-      {/* The track. Drawn with a position only when both ends carried a time. */}
+      {/* The track. The marker sits on the aircraft's own fix when there is one,
+          on the clock when there isn't, and nowhere at all when neither holds. */}
       <FlightArc
         from={from}
         to={to}
@@ -122,10 +138,28 @@ export function FlightLive({
         phase={phase}
         instantAt={instantAt}
         clock={clock}
+        live={track.source === "radar"}
+        heading={pos?.heading_deg ?? null}
       />
       {progress === null && (
         <p className="text-[10.5px] text-muted-foreground/80">
-          No position drawn — the provider carried no times for both ends.
+          No position drawn — the airline filed no fix and no times for both ends.
+        </p>
+      )}
+
+      {/* The aircraft's own numbers. Only what the airline filed, never filled in. */}
+      {telemetry.length > 0 && (
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
+          {telemetry.map((c) => (
+            <SolariBoard key={c.label} text={c.text} label={c.label} tone="primary" />
+          ))}
+          {climb && <SolariBoard text={climb.toUpperCase()} label="Vertical" />}
+        </div>
+      )}
+      {fixWords(pos) && <p className="text-[10.5px] text-muted-foreground/80">{fixWords(pos)}</p>}
+      {!pos && phase === "flying" && (
+        <p className="text-[10.5px] text-muted-foreground/80">
+          No radar fix from the airline yet — the track is worked out from the filed times.
         </p>
       )}
 
