@@ -341,7 +341,7 @@ describe("where you are on it", () => {
     const [j] = journeysFrom([legOne, noGate]);
     const n = bigNumbers(j, new Date("2026-09-02T03:00:00Z"));
     expect(n.gate).toBeNull();
-    expect(n.gateLabel).toMatch(/no gate filed/i);
+    expect(n.gateLabel).toMatch(/gate not filed/i);
   });
 
   it("stops assuming anything after a leg you say did not happen", () => {

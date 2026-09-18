@@ -541,16 +541,55 @@ export function bigNumbers(
   now: Date = new Date(),
 ): { timeLeft: string | null; timeLeftLabel: string; gate: string | null; gateLabel: string } {
   const where = whereOnJourney(journey, now);
-  const next = where.nextLeg;
-  const leftMin = next?.from.at ? Math.round((new Date(next.from.at).getTime() - now.getTime()) / 60_000) : null;
-  const gate = next?.from.gate ?? null;
-  const terminal = next?.from.terminal ?? null;
+  const mins = (at: string | null | undefined) =>
+    at ? Math.round((new Date(at).getTime() - now.getTime()) / 60_000) : null;
+  const term = (t: string | null) => (t ? `T${t.replace(/^T/i, "")}` : null);
+
+  /* In the air, the number is the landing of the flight you are on — a direct
+     flight has no next leg, and reading a missing one made the card say "not on
+     record" while the gate sat printed right below. */
+  if (where.kind === "in_air") {
+    const flying = journey.legs[where.legIndex];
+    const left = mins(flying?.to.at);
+    const gate = flying?.to.gate ?? null;
+    return {
+      timeLeft: left == null ? null : durationWords(left),
+      timeLeftLabel: "until you land",
+      gate: gate ?? term(flying?.to.terminal ?? null),
+      gateLabel: gate
+        ? "arrival gate"
+        : flying?.to.terminal
+          ? "arrival terminal, gate not filed"
+          : "arrival gate not filed yet",
+    };
+  }
+
+  /* A finished or halted trip has no countdown to give. Saying nothing is
+     honest; a negative number is not. */
+  if (where.kind === "done" || where.kind === "stopped") {
+    return {
+      timeLeft: null,
+      timeLeftLabel: where.kind === "done" ? "trip finished" : "trip on hold",
+      gate: null,
+      gateLabel: "nothing ahead on record",
+    };
+  }
+
+  /* Anywhere on the ground, the number is the departure ahead of you: the next
+     leg when there is one, otherwise the leg you are standing in. */
+  const ahead = where.nextLeg ?? journey.legs[where.legIndex] ?? null;
+  const leftMin = mins(ahead?.from.at);
+  const gate = ahead?.from.gate ?? null;
+  const terminal = ahead?.from.terminal ?? null;
   return {
     timeLeft: leftMin == null ? null : durationWords(leftMin),
-    timeLeftLabel:
-      where.kind === "on_ground" ? "left here" : where.kind === "in_air" ? "until you land" : "until you leave",
-    gate: gate ?? (terminal ? `T${terminal.replace(/^T/i, "")}` : null),
-    gateLabel: gate ? "next gate" : terminal ? "next terminal, gate not filed" : "no gate filed yet",
+    timeLeftLabel: where.kind === "on_ground" ? "left here" : "until you leave",
+    gate: gate ?? term(terminal),
+    gateLabel: gate
+      ? "departure gate"
+      : terminal
+        ? "terminal, gate not filed"
+        : "gate not filed yet",
   };
 }
 

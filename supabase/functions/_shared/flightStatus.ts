@@ -67,10 +67,23 @@ export function normalizeAviationstack(
 ): LiveFlight | null {
   const rows = Array.isArray((payload as any)?.data) ? ((payload as any).data as any[]) : [];
   const want = ask.flight_no.replace(/\s+/g, "").toUpperCase();
-  const row =
-    rows.find((r) => str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want) ??
-    rows.find((r) => str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want) ??
-    null;
+  const day = (ask.flight_date ?? "").slice(0, 10);
+  const sameNumber = (r: any) =>
+    str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want ||
+    str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want;
+  /* The day matters as much as the number. A provider that refuses a date filter
+     hands back every recent run of this flight; grafting yesterday's run onto
+     tomorrow's ticket would invent a departure that already happened. When no
+     row carries the day asked about, the answer is nothing on record. */
+  const sameDay = (r: any) => {
+    const filed = str(r?.flight_date)?.slice(0, 10) ?? null;
+    if (filed) return filed === day;
+    const dep = str(r?.departure?.scheduled)?.slice(0, 10) ?? null;
+    return dep ? dep === day : false;
+  };
+  const row = day
+    ? (rows.find((r) => sameNumber(r) && sameDay(r)) ?? null)
+    : (rows.find(sameNumber) ?? null);
   if (!row) return null;
   return {
     flight_no: want,
@@ -127,6 +140,10 @@ export function statusDiff(
   clock: (iso: string) => string = (i) => i.slice(11, 16),
 ): string | null {
   if (!prev) return null;
+  /* A shift bigger than half a day is a different day's flight, not a delay.
+     Two readings that disagree that much are not news — they are a mismatch. */
+  if (prev.flight_date && next.flight_date && prev.flight_date !== next.flight_date) return null;
+  const SANE_SHIFT_MIN = 12 * 60;
   const news: string[] = [];
   if (prev.status !== next.status && next.status) {
     news.push(`now ${STATUS_WORDS[next.status] ?? next.status}`);
@@ -135,7 +152,7 @@ export function statusDiff(
   const depNext = next.departure.estimated ?? next.departure.scheduled;
   if (depPrev && depNext && depPrev !== depNext) {
     const moved = Math.round((new Date(depNext).getTime() - new Date(depPrev).getTime()) / 60_000);
-    if (Number.isFinite(moved) && moved !== 0) {
+    if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
       news.push(
         moved > 0
           ? `leaves ${Math.abs(moved)} min later, ${clock(depNext)}`
@@ -150,7 +167,9 @@ export function statusDiff(
   const arrNext = next.arrival.estimated ?? next.arrival.scheduled;
   if (arrPrev && arrNext && arrPrev !== arrNext) {
     const moved = Math.round((new Date(arrNext).getTime() - new Date(arrPrev).getTime()) / 60_000);
-    if (Number.isFinite(moved) && moved !== 0) news.push(`lands ${clock(arrNext)}`);
+    if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
+      news.push(`lands ${clock(arrNext)}`);
+    }
   }
   if (!news.length) return null;
   return `${next.flight_no} — ${news.join(", ")}.`;
