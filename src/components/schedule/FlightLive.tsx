@@ -17,6 +17,7 @@ import {
   type LiveFlight,
 } from "@/lib/flightStatus";
 import { cn } from "@/lib/utils";
+import { ArrivalStamp } from "./ArrivalStamp";
 import { FlightArc } from "./FlightArc";
 import { SolariBoard } from "./SolariBoard";
 
