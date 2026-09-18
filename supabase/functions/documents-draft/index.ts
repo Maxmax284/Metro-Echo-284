@@ -293,7 +293,7 @@ async function publishDraftReady(admin: any, input: {
   const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "https://metroecho.lovable.app").replace(/\/$/, "");
   const url = `${base}/documents?document=${input.documentId}&ack=telegram`;
   const deliveryKey = `nudge:${dedupe}`;
-  const { error: claimError } = await admin.from("deliveries").insert({
+  const { data: claimedDelivery, error: claimError } = await admin.from("deliveries").insert({
     user_id: input.userId,
     organization_id: input.organizationId,
     situation_kind: "nudge.document_draft_ready",
@@ -305,10 +305,13 @@ async function publishDraftReady(admin: any, input: {
     because: "the person asked for draft-ready Telegram links",
     headline: `${input.title} is ready to review`,
     status: "sent",
-  });
-  if (claimError) return; // Existing claim means this version already spoke.
+  }).select("id").maybeSingle();
+  if (claimError || !claimedDelivery?.id) return; // Existing claim means this version already spoke.
   const chatId = await chatIdForUser(admin, input.userId);
-  if (!chatId) return;
+  if (!chatId) {
+    await admin.from("deliveries").update({ status: "failed", failure: "Telegram is not linked." }).eq("id", claimedDelivery.id);
+    return;
+  }
   const result = await sendTelegram({
     admin,
     userId: input.userId,
@@ -326,5 +329,5 @@ async function publishDraftReady(admin: any, input: {
     auditFailedEvent: "document.draft_telegram_failed",
     auditPayload: { nudge_id: nudge?.id ?? null, dedupe_key: dedupe },
   });
-  if (!result.ok) await admin.from("deliveries").update({ status: "failed", failure: result.reason }).eq("user_id", input.userId).eq("dedupe_key", deliveryKey);
+  if (!result.ok) await admin.from("deliveries").update({ status: "failed", failure: result.reason }).eq("id", claimedDelivery.id);
 }
