@@ -192,31 +192,37 @@ export function CommitmentActions({ c, onChanged, size = "md", words = false }: 
           return snoozeTo(pending.at, pending.label);
         }}
       />
-      <AskAboutButton
-        kind="commitment"
-        id={c.id}
-        label={c.title?.trim() || (isReminder ? "Reminder" : "Commitment")}
-        question={`Where does “${c.title?.trim() || "this one"}” stand?`}
-        size="icon"
-      />
+      {/* Asking about it is a second thought, not a decision — it stays out of
+          the way where the words are on. */}
+      {words ? null : (
+        <AskAboutButton
+          kind="commitment"
+          id={c.id}
+          label={c.title?.trim() || (isReminder ? "Reminder" : "Commitment")}
+          question={`Where does “${c.title?.trim() || "this one"}” stand?`}
+          size="icon"
+        />
+      )}
       <button
         onClick={askDone}
         disabled={!!busy}
-        title="Mark done"
-        aria-label="Mark done"
+        title="Done"
+        aria-label="Done"
         className={cn(btn, tap, "hover:text-signal hover:ring-signal/40")}
       >
         {busy === "done" ? <Loader2 className={cn(icon, "animate-spin")} /> : <CheckCircle2 className={icon} />}
+        {word("Done")}
       </button>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             disabled={!!busy}
-            title="Later"
-            aria-label="Later"
+            title="Not yet"
+            aria-label="Not yet"
             className={cn(btn, tap)}
           >
             {busy === "snooze" ? <Loader2 className={cn(icon, "animate-spin")} /> : <Clock className={icon} />}
+            {word("Not yet")}
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" sideOffset={6} className="w-44 p-1">
@@ -235,12 +241,14 @@ export function CommitmentActions({ c, onChanged, size = "md", words = false }: 
       <button
         onClick={dismiss}
         disabled={!!busy}
-        title="Cancel it"
-        aria-label="Cancel it"
+        title="Drop it"
+        aria-label="Drop it"
         className={cn(btn, tap, "hover:text-danger hover:ring-danger/40")}
       >
         {busy === "drop" ? <Loader2 className={cn(icon, "animate-spin")} /> : <X className={icon} />}
+        {word("Drop it")}
       </button>
+
     </div>
   );
 }
