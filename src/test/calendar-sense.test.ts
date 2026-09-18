@@ -113,6 +113,14 @@ describe("calendar sense", () => {
     expect(commitmentCollisionToSignal({ ...c, due_at: null }, [soon], scope, NOW)).toBeNull();
   });
 
+  it("never reports a promise as clashing with its own calendar entry", () => {
+    const c = { id: "c3", summary: "Storage unit payment", due_at: iso(9, 40), status: "open" };
+    const filed = { ...soon, id: "e9", title: "Reminder: Storage unit payment" };
+    expect(commitmentCollisionToSignal(c, [filed], scope, NOW)).toBeNull();
+    expect(commitmentCollisionToSignal(c, [{ ...soon, id: "e10", title: "Storage unit payment" }], scope, NOW)).toBeNull();
+  });
+
+
   it("bundles both senses in one call and keeps scope on every signal", () => {
     const out = calendarSignals(
       [soon],
