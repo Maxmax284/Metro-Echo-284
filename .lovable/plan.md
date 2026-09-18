@@ -59,6 +59,11 @@ Phase 7 turns it on:
 
 ## Technical notes
 
+- Install: `InstallVantaSection.tsx` trims to one primary button driven by
+  `usePwaInstall().canPrompt` / `promptInstall()`, a single iOS line, and a
+  "Having trouble?" link to `/install`. `installBlockedHere()` and installed
+  state each collapse to one sentence. `/install` and `InstallApp.tsx` keep the
+  full steps; Settings loses the numbered copy.
 - `src/components/schedule/FlightRadarMap.tsx`: react-leaflet (already in the
   project, as in `AwarenessMap`/`ProjectsMapInner`) — tile layer, `Polyline` for
   the route from `routeStops` coordinates, `divIcon` airport dots, and a rotated
