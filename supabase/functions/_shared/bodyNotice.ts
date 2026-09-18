@@ -66,7 +66,7 @@ function moveLine(m: Move): string {
 export function bodyNews(
   rows: SenseReading[],
   arrived: string[],
-  opts: { now?: Date; recentDays?: number; usualDays?: number } = {},
+  opts: { now?: Date; recentDays?: number; usualDays?: number; heightCm?: number | null } = {},
 ): BodyNews | null {
   const now = opts.now ?? new Date();
   const wanted = new Set(
