@@ -564,6 +564,17 @@ export function bigNumbers(
     };
   }
 
+  /* A finished or halted trip has no countdown to give. Saying nothing is
+     honest; a negative number is not. */
+  if (where.kind === "done" || where.kind === "stopped") {
+    return {
+      timeLeft: null,
+      timeLeftLabel: where.kind === "done" ? "trip finished" : "trip on hold",
+      gate: null,
+      gateLabel: "nothing ahead on record",
+    };
+  }
+
   /* Anywhere on the ground, the number is the departure ahead of you: the next
      leg when there is one, otherwise the leg you are standing in. */
   const ahead = where.nextLeg ?? journey.legs[where.legIndex] ?? null;
