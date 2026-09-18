@@ -20,7 +20,20 @@ export const SPOKEN_KINDS = [
   "pulse",
   "sleep",
   "sleep_minutes",
+  "weight",
 ] as const;
+
+/**
+ * BMI is arithmetic Echo shows back: weight in kilograms over height in metres
+ * squared. Null when either number is missing — no height is ever guessed, and
+ * there is no band, no category and no label on the number.
+ */
+export function bmiFrom(weightKg: number, heightCm: number | null | undefined): number | null {
+  if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
+  if (!heightCm || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const m = heightCm / 100;
+  return Math.round((weightKg / (m * m)) * 10) / 10;
+}
 
 export type BodyNews = {
   title: string;
