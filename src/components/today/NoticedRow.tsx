@@ -3,7 +3,7 @@
 // One signal at a time, always a draft. Tapping hands off to the surface that
 // owns the review → approve → execute → receipt path. Dismiss is one tap and
 // sticks. When there is nothing, this renders nothing at all.
-import { Eye, X } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
