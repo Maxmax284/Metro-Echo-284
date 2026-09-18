@@ -5,7 +5,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
+import { ArrowLeft, ShieldAlert, Power, ChevronRight, Download } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
@@ -92,6 +92,23 @@ export default function Settings() {
 
       {/* The install door lives at the top of the control room so it isn't
           buried three taps deep. It vanishes once the app is installed. */}
+      {/* Blatant door: one tap from the Control Room to the install page. */}
+      <Link
+        to="/install"
+        className="vanta-focus mb-4 flex items-center gap-3 rounded-xl bg-primary/15 p-4 ring-1 ring-primary/40 transition-colors hover:bg-primary/20"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-primary ring-1 ring-primary/30">
+          <Download className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Install Metro Echo on this phone</span>
+          <span className="mt-0.5 block text-[11.5px] text-muted-foreground">
+            Android one-tap install, plus the iPhone steps.
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-primary" />
+      </Link>
+
       <InstallVantaSection />
 
       {/* One plain read on the connections Echo relies on. */}

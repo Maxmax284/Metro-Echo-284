@@ -31,6 +31,7 @@ import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
 import GoogleReturn from "./pages/oauth/GoogleReturn";
 import Auth from "./pages/Auth.tsx";
 import Settings from "./pages/Settings.tsx";
+import InstallApp from "./pages/InstallApp.tsx";
 import SettingsGroup from "./pages/SettingsGroup.tsx";
 import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
 import ReconciliationView from "./pages/ReconciliationView.tsx";
@@ -116,6 +117,7 @@ const App = () => {
                                 <Route path="/oauth/google-calendar/return" element={<GoogleCalendarReturn />} />
                                 <Route path="/oauth/google/return" element={<GoogleReturn />} />
                                 <Route path="/settings" element={<Settings />} />
+                                <Route path="/install" element={<InstallApp />} />
                                 <Route path="/settings/g/:groupId" element={<SettingsGroup />} />
                                 <Route path="/settings/telegram" element={<TelegramSetupPage />} />
                                 <Route path="/guide/telegram" element={<TelegramGuidePage />} />
