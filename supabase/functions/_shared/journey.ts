@@ -520,7 +520,9 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     legIndex: 0,
     iata: first?.from.iata || null,
     place: first?.from.iata ? airportWords(first.from.iata) : null,
-    words: `Not started. ${journey.title}${first?.from.at ? `, leaving ${first.from.at.slice(11, 16)}` : ""}.`,
+    /* The rail underneath carries the times, in the reader's own words. A raw
+       24-hour stamp here only confused people. */
+    words: `Not started. ${journey.title}.`,
     layover: null,
     nextLeg: first ?? null,
     checked,
