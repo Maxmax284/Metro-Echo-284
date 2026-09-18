@@ -21,23 +21,20 @@ import {
 } from "../_shared/journey.ts";
 import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
-import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+import { reachOnce } from "../_shared/delivery/reach.ts";
 
 /**
- * Reach the person on Telegram with the same note Today just got.
+ * Consent for a second surface, read once per user.
  *
- * Double-gated: the awareness opt-in has to be on AND a chat has to be linked.
- * Quiet hours hold everything except a leg that is off or diverted. Returns
- * whether a message actually went out.
+ * Double-gated as before: the awareness opt-in has to be on for Telegram, and
+ * quiet hours hold everything except a leg that is off or diverted. This decides
+ * WHETHER Echo may speak; the shared rail decides WHERE.
  */
-async function reachMessaging(
-  sb: ReturnType<typeof createClient>,
+async function reachGate(
+  sb: any,
   userId: string,
-  organizationId: string | null,
   notice: JourneyNotice,
-): Promise<boolean> {
-  if (!Deno.env.get("TELEGRAM_API_KEY")) return false;
-
+): Promise<{ allowed: boolean; messagingAllowed: boolean }> {
   const { data: profile } = await sb
     .from("profiles")
     .select("timezone, preferences")
@@ -47,29 +44,11 @@ async function reachMessaging(
     string,
     unknown
   >;
-  if (prefs.telegram_awareness_enabled !== true) return false;
-
   const tz = ((profile as { timezone?: string } | null)?.timezone as string) || "UTC";
-  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) return false;
-
-  const chatId = await chatIdForUser(sb, userId);
-  if (!chatId) return false;
-
-  const res = await sendTelegram({
-    admin: sb,
-    userId,
-    chatId,
-    text: `${notice.title}. ${notice.body}`,
-    organizationId,
-    kind: "notice",
-    entityType: "nudge",
-    entityId: null,
-    auditEvent: "journey.reached_messaging",
-    auditFailedEvent: "journey.reach_messaging_failed",
-    auditPayload: { urgency: notice.urgency, title: notice.title, source: "journey_watch" },
-  });
-  if (!res.ok) console.error("journey-watch telegram reach failed", res.reason);
-  return res.ok;
+  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) {
+    return { allowed: false, messagingAllowed: false };
+  }
+  return { allowed: true, messagingAllowed: prefs.telegram_awareness_enabled === true };
 }
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
@@ -269,7 +248,9 @@ Deno.serve(async (req) => {
         .limit(5);
       if ((pending ?? []).some((n) => (n as { body?: string }).body === body)) continue;
 
-      await sb.from("nudges").insert({
+      const planId = after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null;
+      const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
+      const { data: nudgeRow } = await sb.from("nudges").insert({
         user_id: userId,
         organization_id: orgId,
         kind: "journey_moved",
@@ -278,17 +259,39 @@ Deno.serve(async (req) => {
         priority: notice.priority,
         status: "pending",
         related_entity_type: "flight_plan",
-        related_entity_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
-        dedupe_key: `journey_moved:${after.id}:${body.slice(0, 60)}`,
-      } as never);
+        related_entity_id: planId,
+        dedupe_key: dedupe,
+      } as never).select("id").maybeSingle();
       heads_up += 1;
 
-      /* Messaging is a second surface for the same note, never a second brain.
-         Consent is double-gated (opt-in plus a linked chat) and quiet hours hold
-         everything except a leg that is off. */
-      if (notice.reachMessaging) {
-        const reached = await reachMessaging(sb, userId, orgId, notice);
-        if (reached) pinged += 1;
+      /* A second surface for the same note, never a second brain. Phone first
+         when a device is registered, Telegram when it is not; one claim stops
+         both firing for one gate change. The buttons only acknowledge, and they
+         settle the same nudge Today reads, so the signal clears from the chat. */
+      const nudgeId = (nudgeRow as { id?: string } | null)?.id ?? null;
+      if (notice.reachMessaging && nudgeId) {
+        const gate = await reachGate(sb, userId, notice);
+        if (gate.allowed) {
+          const surface = await reachOnce(sb, {
+            userId,
+            organizationId: orgId,
+            nudgeId,
+            title: notice.title,
+            detail: body,
+            url: "/?room=today",
+            changeKey: dedupe,
+            urgency: notice.urgency === "critical" ? "critical" : "time_sensitive",
+            entityType: "flight_plan",
+            entityId: planId,
+            source: "journey_watch",
+            situationKind: "nudge.journey_moved",
+            dedupeKey: `nudge:${dedupe}`,
+            because: "a filed leg moved and the person asked to be reachable",
+            openKind: "today",
+            messagingAllowed: gate.messagingAllowed,
+          });
+          if (surface) pinged += 1;
+        }
       }
     }
 

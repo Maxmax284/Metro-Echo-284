@@ -10,6 +10,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 import { streamAstraText } from "../_shared/aiResponses.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+import { claimDelivery, hasPushDevice, reachPhone } from "../_shared/delivery/reach.ts";
 
 
 const Body = z.object({
@@ -293,20 +294,45 @@ async function publishDraftReady(admin: any, input: {
   const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "https://metroecho.lovable.app").replace(/\/$/, "");
   const url = `${base}/documents?document=${input.documentId}&ack=telegram`;
   const deliveryKey = `nudge:${dedupe}`;
-  const { data: claimedDelivery, error: claimError } = await admin.from("deliveries").insert({
-    user_id: input.userId,
-    organization_id: input.organizationId,
-    situation_kind: "nudge.document_draft_ready",
-    situation_id: input.documentId,
-    dedupe_key: deliveryKey,
-    surface: "messaging",
+  const claim = (surface: "phone" | "messaging", because: string) => claimDelivery(admin, {
+    userId: input.userId,
+    organizationId: input.organizationId,
+    situationKind: "nudge.document_draft_ready",
+    situationId: input.documentId,
+    dedupeKey: deliveryKey,
+    surface,
     urgency: "attention",
-    sensitivity: "ordinary",
-    because: "the person asked for draft-ready Telegram links",
     headline: `${input.title} is ready to review`,
-    status: "sent",
-  }).select("id").maybeSingle();
-  if (claimError || !claimedDelivery?.id) return; // Existing claim means this version already spoke.
+    because,
+  });
+
+  /* Phone first when a device is registered. The deep link carries the ack, so
+     opening the draft from the notification settles the same nudge Today reads.
+     Telegram is the fallback, never a second buzz for the same draft. */
+  if (await hasPushDevice(admin, input.userId)) {
+    const claimId = await claim("phone", "a draft the person asked for is ready and a device is registered");
+    if (!claimId) return;
+    const pushed = await reachPhone(admin, {
+      userId: input.userId,
+      organizationId: input.organizationId,
+      title: `${input.title} is ready to review`,
+      detail: "Drafted from the notes and receipts you selected. Nothing was approved or sent.",
+      url: `${url}&mode=review`,
+      changeKey: dedupe,
+      urgency: "attention",
+      entityType: "document",
+      entityId: input.documentId,
+      source: "documents_draft",
+    });
+    if (pushed) return;
+    await admin.from("deliveries")
+      .update({ status: "failed", failure: "No device accepted the notification." })
+      .eq("id", claimId);
+  }
+
+  const claimedId = await claim("messaging", "the person asked for draft-ready Telegram links");
+  if (!claimedId) return; // Existing claim means this version already spoke.
+  const claimedDelivery = { id: claimedId };
   const chatId = await chatIdForUser(admin, input.userId);
   if (!chatId) {
     await admin.from("deliveries").update({ status: "failed", failure: "Telegram is not linked." }).eq("id", claimedDelivery.id);
