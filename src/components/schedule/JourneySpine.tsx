@@ -157,8 +157,10 @@ export function JourneySpine({
   const numbers = bigNumbers(journey);
   const liveIndex = where?.legIndex ?? 0;
   const { timezone } = useUserTimezone();
-  /* Times read the way a person says them: 1:15 AM tomorrow, not 01:15. */
-  const clock = (at: string | null) => (at ? flightTimeWords(at, timezone) : "not on record");
+  /* Times read the way a person says them — 1:15 AM tomorrow, not 01:15 — and in
+     the local time at that end of the leg, the way the ticket prints them. */
+  const clock = (at: string | null, iata: string | null) =>
+    at ? flightTimeWords(at, airportZone(iata) ?? timezone) : "not on record";
 
   return (
     <Card className="vanta-card space-y-4 p-4">
