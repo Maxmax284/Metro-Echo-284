@@ -81,6 +81,20 @@ const WORDS: Record<string, { up: string; down: string; same: string }> = {
 /** Below this much difference, nothing moved worth mentioning. */
 export const NOISE_PCT = 10;
 
+/**
+ * Some kinds move in a narrower band than others. Body weight swings a few
+ * percent at most, so a 10% rule would mean weight never reads as news at all.
+ * These are per-kind noise bands, still measured against this person's own
+ * recorded usual — no published ideal anywhere.
+ */
+export const NOISE_BY_KIND: Record<string, number> = {
+  weight: 3,
+  temperature: 2,
+  spo2: 2,
+  bp_systolic: 6,
+  bp_diastolic: 6,
+};
+
 /** Fewer recorded days than this on either side and there is no comparison. */
 export const MIN_DAYS = 3;
 
@@ -156,7 +170,8 @@ export function compareKind(
   const u = mean(usual);
   if (u === 0) return null;
   const pct = ((r - u) / Math.abs(u)) * 100;
-  const direction: Move["direction"] = Math.abs(pct) < NOISE_PCT ? "same" : pct > 0 ? "up" : "down";
+  const band = NOISE_BY_KIND[kind] ?? NOISE_PCT;
+  const direction: Move["direction"] = Math.abs(pct) < band ? "same" : pct > 0 ? "up" : "down";
   return {
     kind,
     direction,

@@ -20,7 +20,20 @@ export const SPOKEN_KINDS = [
   "pulse",
   "sleep",
   "sleep_minutes",
+  "weight",
 ] as const;
+
+/**
+ * BMI is arithmetic Echo shows back: weight in kilograms over height in metres
+ * squared. Null when either number is missing — no height is ever guessed, and
+ * there is no band, no category and no label on the number.
+ */
+export function bmiFrom(weightKg: number, heightCm: number | null | undefined): number | null {
+  if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
+  if (!heightCm || !Number.isFinite(heightCm) || heightCm <= 0) return null;
+  const m = heightCm / 100;
+  return Math.round((weightKg / (m * m)) * 10) / 10;
+}
 
 export type BodyNews = {
   title: string;
@@ -53,7 +66,7 @@ function moveLine(m: Move): string {
 export function bodyNews(
   rows: SenseReading[],
   arrived: string[],
-  opts: { now?: Date; recentDays?: number; usualDays?: number } = {},
+  opts: { now?: Date; recentDays?: number; usualDays?: number; heightCm?: number | null } = {},
 ): BodyNews | null {
   const now = opts.now ?? new Date();
   const wanted = new Set(
@@ -69,10 +82,25 @@ export function bodyNews(
 
   const day = now.toISOString().slice(0, 10);
   const kinds = moved.map((m) => m.kind);
+
+  /* When weight moved and a height is recorded, the same note carries the
+     arithmetic. No height means no BMI line — nothing is guessed. */
+  const weight = moved.find((m) => m.kind === "weight");
+  const bmiNow = weight ? bmiFrom(weight.recent, opts.heightCm) : null;
+  const bmiThen = weight ? bmiFrom(weight.usual, opts.heightCm) : null;
+  const bmiLine = bmiNow === null
+    ? null
+    : bmiThen === null || bmiThen === bmiNow
+    ? `BMI reads ${bmiNow} from your own weight and height. Just the arithmetic — Echo puts no label on it.`
+    : `BMI reads ${bmiNow} from your own weight and height, ${
+      bmiNow > bmiThen ? "up" : "down"
+    } ${Math.abs(Math.round((bmiNow - bmiThen) * 10) / 10)} against that usual. Just the arithmetic — Echo puts no label on it.`;
+
   return {
     title: moved.length === 1 ? `Your ${label(moved[0].kind)} moved` : "Your readings moved",
     body: [
       `${moved.map(moveLine).join(". ")}.`,
+      ...(bmiLine ? [bmiLine] : []),
       `Usual here means your own last ${moved[0].usualDays} recorded days, nothing published.`,
       BODY_DISCLAIMER,
     ].join(" "),
@@ -83,5 +111,6 @@ export function bodyNews(
 
 function label(kind: string): string {
   if (kind === "sleep" || kind === "sleep_minutes") return "sleep";
+  if (kind === "weight") return "weight";
   return "heart rate";
 }

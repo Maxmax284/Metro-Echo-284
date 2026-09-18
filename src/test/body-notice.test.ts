@@ -49,3 +49,25 @@ describe("bodyNews", () => {
     expect(news?.title).toBe("Your readings moved");
   });
 });
+
+describe("bodyNews weight and BMI", () => {
+  const rows = [...days("weight", [80, 80.2, 79.8, 80.1, 80], 8), ...days("weight", [86, 86.4], 1)];
+
+  it("speaks when weight moved against the person's own usual", () => {
+    const news = bodyNews(rows, ["weight"], { now });
+    expect(news?.kinds).toEqual(["weight"]);
+    expect(news?.title).toBe("Your weight moved");
+    expect(news?.body).toContain("weight read higher");
+  });
+
+  it("carries the BMI arithmetic when a height is recorded", () => {
+    const news = bodyNews(rows, ["weight"], { now, heightCm: 180 });
+    expect(news?.body).toMatch(/BMI reads \d+(\.\d)?/);
+    expect(news?.body).toContain("puts no label on it");
+  });
+
+  it("leaves BMI out entirely when no height is recorded", () => {
+    const news = bodyNews(rows, ["weight"], { now, heightCm: null });
+    expect(news?.body).not.toContain("BMI");
+  });
+});
