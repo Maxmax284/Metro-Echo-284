@@ -34,6 +34,7 @@ import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
+import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { FlightAlertsCard } from "./FlightAlertsCard";
@@ -320,6 +321,9 @@ export function FlightDesk() {
           onClearOverride={(planId) => journey.clearLegState(planId)}
           onDismissNews={journey.dismissNews}
         />
+        {/* The same trip as a route you can tap, stop by stop. */}
+        <FlightRouteMap journey={journey.current} homeZone={timezone} />
+        </>
       ) : null}
 
       {/* What a later reading said, and the two honest answers to it. */}
