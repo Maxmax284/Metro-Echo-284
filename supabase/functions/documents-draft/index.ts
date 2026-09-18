@@ -290,8 +290,8 @@ async function publishDraftReady(admin: any, input: {
   }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }).select("id").maybeSingle();
   if (error) throw error;
 
-  const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "").replace(/\/$/, "");
-  const url = base ? `${base}/documents?document=${input.documentId}&ack=telegram` : null;
+  const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "https://metroecho.lovable.app").replace(/\/$/, "");
+  const url = `${base}/documents?document=${input.documentId}&ack=telegram`;
   const deliveryKey = `nudge:${dedupe}`;
   const { error: claimError } = await admin.from("deliveries").insert({
     user_id: input.userId,
@@ -308,7 +308,7 @@ async function publishDraftReady(admin: any, input: {
   });
   if (claimError) return; // Existing claim means this version already spoke.
   const chatId = await chatIdForUser(admin, input.userId);
-  if (!chatId || !url) return;
+  if (!chatId) return;
   const result = await sendTelegram({
     admin,
     userId: input.userId,
