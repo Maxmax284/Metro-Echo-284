@@ -41,6 +41,8 @@ export type RecognizedLeg = {
   airline: string;
   /** ISO date, or null when nothing unambiguous was on record. */
   depart_on: string | null;
+  /** The day it lands, when the evidence plainly said a second day. */
+  arrive_on?: string | null;
   /** HH:mm, or null. */
   depart_time: string | null;
   arrive_time: string | null;
@@ -49,6 +51,7 @@ export type RecognizedLeg = {
   /** The exact line it was read from, kept as evidence. */
   line: string;
 };
+
 
 export type Recognition = {
   legs: RecognizedLeg[];
@@ -89,7 +92,64 @@ const TRAVELLER_LABEL_RE =
 const SURNAME_SLASH_RE = /\b([A-Z][A-Z'’-]{1,20})\/([A-Z][A-Z'’-]{1,20})(?:\s+(?:MR|MRS|MS|MSTR|DR))?\b/g;
 const AIRPORT_HINT_RE = /\b(flight|departs?|departure|boarding|gate|terminal|airline|itinerary|e-?ticket)\b/i;
 
+/* A screenshot of a booking site rarely writes "TG 6285". It writes the
+   carrier's name and the words "Flight 6285". A small, explicit table turns
+   that into the same code — a name that is not on the table stays unread
+   rather than being guessed at. */
+export const AIRLINE_CODES: Record<string, string> = {
+  "thai airways": "TG",
+  "thai airways intl": "TG",
+  "thai airways international": "TG",
+  "eva air": "BR",
+  "china airlines": "CI",
+  starlux: "JX",
+  "japan airlines": "JL",
+  "all nippon": "NH",
+  ana: "NH",
+  "korean air": "KE",
+  "asiana airlines": "OZ",
+  "singapore airlines": "SQ",
+  "cathay pacific": "CX",
+  "bangkok airways": "PG",
+  "vietnam airlines": "VN",
+  "philippine airlines": "PR",
+  emirates: "EK",
+  "qatar airways": "QR",
+  "turkish airlines": "TK",
+  lufthansa: "LH",
+  "british airways": "BA",
+  "air france": "AF",
+  klm: "KL",
+  "united airlines": "UA",
+  "american airlines": "AA",
+  "delta air lines": "DL",
+  "alaska airlines": "AS",
+  "jetblue airways": "B6",
+  "air canada": "AC",
+  "air india": "AI",
+  "china eastern": "MU",
+  "china southern": "CZ",
+  "hong kong airlines": "HX",
+};
+
+/** The carrier code a line names in words, or null. Longest name wins. */
+export function airlineCodeFromName(line: string): string | null {
+  const hay = line.toLowerCase();
+  let best: { name: string; code: string } | null = null;
+  for (const [name, code] of Object.entries(AIRLINE_CODES)) {
+    if (!hay.includes(name)) continue;
+    if (!best || name.length > best.name.length) best = { name, code };
+  }
+  return best?.code ?? null;
+}
+
+/** "Flight 6285", "Flight #6285" — the number without a code in front of it. */
+const NAMED_FLIGHT_RE = /\bflight\s*(?:number|no\.?|#)?\s*(\d{2,4})\b/i;
+/** An airport written out in full usually carries its code in brackets. */
+const PAREN_CODE_RE = /\(([A-Z]{3})\)/g;
+
 function pad(n: number): string {
+
   return String(n).padStart(2, "0");
 }
 
@@ -171,6 +231,14 @@ export function readTravellers(text: string): string[] {
  * Flight information out of arbitrary text. A leg needs a flight code and a
  * date; the date may sit on a nearby line, as it does in every airline mail.
  * A code with no date anywhere is handed back unread.
+ *
+ * A screenshot of a booking page is laid out down the page rather than across a
+ * line: the carrier and "Flight 6285" on one line, the airports and their days
+ * below it. So the whole text is read for airport codes in brackets, days and
+ * times in the order they appear, and a single leg is allowed to take what it
+ * is missing from that order. More than one leg and nothing is borrowed —
+ * guessing which day belongs to which leg is exactly the kind of confidence
+ * this module refuses.
  */
 export function recognizeFlights(
   text: string | null | undefined,
@@ -183,7 +251,21 @@ export function recognizeFlights(
   const unread: string[] = [];
   let carriedDate: string | null = null;
   let carriedRoute: { origin: string; destination: string } | null = null;
+  let carriedAirline: string | null = null;
   const seen = new Set<string>();
+
+  /* The page read as a whole, in the order a person reads it. */
+  const pageDates: string[] = [];
+  const pageTimes: string[] = [];
+  const pageCodes: string[] = [];
+  for (const line of lines) {
+    const d = readDate(line, fallbackYear);
+    if (d && !pageDates.includes(d)) pageDates.push(d);
+    for (const t of readTimes(line)) pageTimes.push(t);
+    for (const m of line.toUpperCase().matchAll(PAREN_CODE_RE)) {
+      if (!pageCodes.includes(m[1])) pageCodes.push(m[1]);
+    }
+  }
 
   for (const line of lines) {
     const upper = line.toUpperCase();
@@ -191,16 +273,25 @@ export function recognizeFlights(
     if (lineDate) carriedDate = lineDate;
     const route = upper.match(ROUTE_RE);
     if (route) carriedRoute = { origin: route[1], destination: route[2] };
+    const named = airlineCodeFromName(line);
+    if (named) carriedAirline = named;
 
     const code = upper.match(CODE_RE);
-    if (!code) continue;
+    /* "Thai Airways Intl Flight 6285" — a carrier in words plus a bare flight
+       number is the same claim as a code, and only when both are present. */
+    const spelled = code ? null : line.match(NAMED_FLIGHT_RE);
+    const spelledCarrier = spelled ? (named ?? carriedAirline) : null;
+    if (!code && !(spelled && spelledCarrier)) continue;
     /* A bare code in prose is not a flight. Something on the line has to say
        flight, or the line has to carry a time or a route. */
     const times = readTimes(line);
     if (!times.length && !route && !AIRPORT_HINT_RE.test(line)) continue;
 
-    const flight_no = `${code[1]}${code[2]}`;
-    const depart_on = lineDate ?? carriedDate;
+    const airline = code ? code[1] : spelledCarrier!;
+    const flight_no = code ? `${code[1]}${code[2]}` : `${spelledCarrier}${spelled![1]}`;
+    /* A booking page states the day below the flight, not above it, so the
+       page's first day counts as the departure day when nothing came first. */
+    const depart_on = lineDate ?? carriedDate ?? pageDates[0] ?? null;
     if (!depart_on) {
       unread.push(line);
       continue;
@@ -210,14 +301,29 @@ export function recognizeFlights(
     seen.add(key);
     legs.push({
       flight_no,
-      airline: code[1],
+      airline,
       depart_on,
+      arrive_on: null,
       depart_time: times[0] ?? null,
       arrive_time: times[1] ?? null,
       origin: route?.[1] ?? carriedRoute?.origin ?? null,
       destination: route?.[2] ?? carriedRoute?.destination ?? null,
       line,
     });
+  }
+
+  /* One leg, one page: what the leg is missing may be taken from the order the
+     page itself set out. Never with two or more legs. */
+  if (legs.length === 1) {
+    const leg = legs[0];
+    if (!leg.origin && !leg.destination && pageCodes.length >= 2) {
+      leg.origin = pageCodes[0];
+      leg.destination = pageCodes[1];
+    }
+    if (!leg.depart_time && pageTimes[0]) leg.depart_time = pageTimes[0];
+    if (!leg.arrive_time && pageTimes[1]) leg.arrive_time = pageTimes[1];
+    const later = pageDates.find((d) => d > leg.depart_on!);
+    if (later) leg.arrive_on = later;
   }
 
   const ref = whole.match(BOOKING_RE);
@@ -228,6 +334,20 @@ export function recognizeFlights(
     unread,
   };
 }
+
+/** Does this text read like travel evidence at all? Cheap, before any cost. */
+export function looksLikeTravel(text: string | null | undefined): boolean {
+  const t = (text ?? "").toLowerCase();
+  if (!t) return false;
+  const travelWords = /\b(flight|airline|airways|boarding|departs?|departure|arrives?|arrival|terminal|gate|itinerary|e-?ticket|confirmation code|booking reference|airport)\b/;
+  if (!travelWords.test(t)) return false;
+  /* Two independent hints, so "I'll take a flight sometime" is not evidence. */
+  const second = /\b(airport|airways|airline|terminal|gate|confirmation|booking|itinerary|e-?ticket|\([A-Z]{3}\))\b/i.test(text ?? "")
+    || /\b\d{1,2}:\d{2}\b/.test(t)
+    || !!airlineCodeFromName(t);
+  return second;
+}
+
 
 export type Me = { name?: string | null; emails?: string[] | null };
 

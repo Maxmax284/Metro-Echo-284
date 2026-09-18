@@ -56,6 +56,17 @@ export type NoticedFrom = {
   confidence?: "recorded" | "likely" | "unclear";
   line?: string | null;
   noticed_at?: string | null;
+  /** Every later source that contributed, in the order it arrived. Appended,
+      never replaced — a flight can always say which source filled which fact. */
+  sources?: Array<{
+    source: string;
+    source_words?: string | null;
+    origin_ref?: { kind: string; id: string } | null;
+    filled?: string[];
+    line?: string | null;
+    at?: string | null;
+  }>;
+
 };
 
 export type FlightPlan = {
