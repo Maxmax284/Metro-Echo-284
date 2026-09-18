@@ -272,11 +272,24 @@ export function FlightDesk() {
    */
   const groundAhead = (plan: FlightPlan) => {
     if (plan.live_status) return null;
+    const from = (plan.origin ?? "").trim().toUpperCase();
     const to = (plan.destination ?? "").trim().toUpperCase();
-    if (!/^[A-Z]{3}$/.test(to)) return null;
     const at = anchorToZone(plan.options.find((o) => o.arrive_at)?.arrive_at ?? null, airportZone(to));
-    if (!at) return null;
-    return <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />;
+    /* The clock at the airport you leave from, live, so the board reads right
+       standing at the gate — not only after the wheels are down. */
+    const here = /^[A-Z]{3}$/.test(from) ? (
+      <AirportClock iata={from} homeZone={timezone} label="Local time at the gate" />
+    ) : null;
+    const there = /^[A-Z]{3}$/.test(to) && at ? (
+      <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />
+    ) : null;
+    if (!here && !there) return null;
+    return (
+      <div className="space-y-2.5">
+        {here}
+        {there}
+      </div>
+    );
   };
 
   const liveLine = (plan: FlightPlan): string | null => {
