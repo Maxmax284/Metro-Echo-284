@@ -109,6 +109,11 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
   const arr = live ? pickTime(live.arrival) : { at: null, basis: "none" as TimeBasis };
   const fromIata = (live?.departure.iata ?? plan.origin ?? "").toUpperCase();
   const toIata = (live?.arrival.iata ?? plan.destination ?? "").toUpperCase();
+  /* A time off a ticket is the wall clock at that airport. Anchored to the
+     airport's own zone so every countdown on it is real; left exactly as given
+     when the zone is not on record. */
+  const departAt = anchorToZone(option?.depart_at ?? null, airportZone(fromIata));
+  const arriveAt = anchorToZone(option?.arrive_at ?? null, airportZone(toIata));
   return {
     plan_id: plan.id,
     order,
@@ -116,7 +121,7 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
     airline: option?.airline ?? live?.airline ?? null,
     from: {
       iata: fromIata,
-      at: dep.at ?? option?.depart_at ?? null,
+      at: dep.at ?? departAt,
       basis: dep.at ? dep.basis : option?.depart_at ? "recorded" : "none",
       terminal: live?.departure.terminal ?? null,
       gate: live?.departure.gate ?? null,
