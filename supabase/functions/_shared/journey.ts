@@ -344,7 +344,11 @@ export type JourneyWhere = {
   checked: string | null;
 };
 
-/** Legs that belong on your own spine: yours, and not dropped. */
+/**
+ * Legs that belong on your own spine: yours, not dropped, and with a route on
+ * record. A draft with no airports is not a trip — it renders as "? → ?" and it
+ * is not allowed to stand in front of a real flight.
+ */
 export function ownLegs(plans: FlightPlan[]): Leg[] {
   const mine = plans.filter(
     (p) =>
@@ -353,7 +357,7 @@ export function ownLegs(plans: FlightPlan[]): Leg[] {
   );
   const legs = mine.map((p) => legOf(p, p.leg_order ?? 0));
   return legs
-    .filter((l) => l.from.at || l.to.at)
+    .filter((l) => (l.from.at || l.to.at) && l.from.iata && l.to.iata)
     .sort((x, y) => new Date(x.from.at ?? x.to.at ?? 0).getTime() - new Date(y.from.at ?? y.to.at ?? 0).getTime())
     .map((l, i) => ({ ...l, order: i }));
 }
