@@ -46,12 +46,12 @@ export function TasksLane({
               key={t.id}
               data-echo-row
               className={cn(
-                "vanta-inset flex items-center gap-2 px-3 py-2",
+                "vanta-inset flex flex-wrap items-center gap-2 px-3 py-2",
                 LEAD_BAR,
                 due.late ? "text-warn" : "text-primary/25",
               )}
             >
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[60%] flex-1">
                 <p className="truncate text-xs text-foreground/90">{t.summary}</p>
                 <p
                   className={cn(
@@ -62,9 +62,12 @@ export function TasksLane({
                   {due.text}
                 </p>
               </div>
+              {/* One promise, one question: did it happen, not yet, or is it off
+                  the table. The words say the outcome. */}
               <CommitmentActions
                 c={{ id: t.id, title: t.summary, due_at: t.due_at, remind_at: null, status: "open" }}
                 size="sm"
+                words
                 onChanged={onChanged}
               />
             </li>
@@ -74,6 +77,7 @@ export function TasksLane({
       <p className="text-[10.5px] leading-snug text-muted-foreground/80">
         Closing one here is the same close as in Commitments — you get the preview first, and it leaves a receipt.
       </p>
+
     </section>
   );
 }

@@ -3,7 +3,7 @@
 // One signal at a time, always a draft. Tapping hands off to the surface that
 // owns the review → approve → execute → receipt path. Dismiss is one tap and
 // sticks. When there is nothing, this renders nothing at all.
-import { Eye, X } from "lucide-react";
+import { Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MachineLabel } from "@/components/ui/instrument";
 import { WhySurfaced } from "@/components/ui/why-surfaced";
@@ -58,6 +58,7 @@ export function NoticedRow({
         {/* One shared reveal, rendering only what was recorded. */}
         <WhySurfaced why={why} className="mt-1" />
         <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          {/* Say the outcome: one tap opens the real next step. */}
           <Button
             variant="ghost"
             size="sm"
@@ -67,21 +68,22 @@ export function NoticedRow({
               onNavigate(target);
             }}
           >
-            Take a look
+            Do something
+          </Button>
+          {/* "Noted" means: I've seen it, go quiet. The record stays. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("h-8 px-2 text-[11.5px] text-muted-foreground", MOTION_PRESS)}
+            onClick={() => onDismiss(signal.id)}
+          >
+            Noted
           </Button>
           {/* Answer it here. The reply becomes a real turn Echo acts on. */}
           <HeadsUpReply nudgeId={signal.id} label={title} onReplied={() => onFollow(signal)} />
         </div>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("h-11 w-11 shrink-0 text-muted-foreground", MOTION_PRESS)}
-        aria-label="Hide"
-        onClick={() => onDismiss(signal.id)}
-      >
-        <X className="h-3.5 w-3.5" />
-      </Button>
+
     </div>
   );
 }

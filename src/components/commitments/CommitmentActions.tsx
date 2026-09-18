@@ -22,13 +22,17 @@ type Props = {
   c: CommitmentLike;
   onChanged?: () => void;
   size?: "sm" | "md";
+  /** Show the outcome in words — Done / Not yet / Drop it — instead of icons.
+      Used where a person is deciding, not scanning. */
+  words?: boolean;
 };
+
 
 /**
  * Shared resolve cluster for a commitment row.
  * Done · Snooze · Dismiss — 32px tap targets, optimistic, audited.
  */
-export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
+export function CommitmentActions({ c, onChanged, size = "md", words = false }: Props) {
   const { session } = useAuth();
   const [busy, setBusy] = useState<"done" | "snooze" | "drop" | null>(null);
   const [open, setOpen] = useState(false);
@@ -50,8 +54,10 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
   };
 
   const isReminder = !!c.remind_at;
-  const tap = size === "sm" ? "h-7 w-7" : "h-8 w-8";
+  const tap = words ? "h-8 px-2 gap-1" : size === "sm" ? "h-7 w-7" : "h-8 w-8";
   const icon = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const word = (t: string) => (words ? <span className="text-[11.5px]">{t}</span> : null);
+
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!session) return;
@@ -186,31 +192,37 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
           return snoozeTo(pending.at, pending.label);
         }}
       />
-      <AskAboutButton
-        kind="commitment"
-        id={c.id}
-        label={c.title?.trim() || (isReminder ? "Reminder" : "Commitment")}
-        question={`Where does “${c.title?.trim() || "this one"}” stand?`}
-        size="icon"
-      />
+      {/* Asking about it is a second thought, not a decision — it stays out of
+          the way where the words are on. */}
+      {words ? null : (
+        <AskAboutButton
+          kind="commitment"
+          id={c.id}
+          label={c.title?.trim() || (isReminder ? "Reminder" : "Commitment")}
+          question={`Where does “${c.title?.trim() || "this one"}” stand?`}
+          size="icon"
+        />
+      )}
       <button
         onClick={askDone}
         disabled={!!busy}
-        title="Mark done"
-        aria-label="Mark done"
+        title="Done"
+        aria-label="Done"
         className={cn(btn, tap, "hover:text-signal hover:ring-signal/40")}
       >
         {busy === "done" ? <Loader2 className={cn(icon, "animate-spin")} /> : <CheckCircle2 className={icon} />}
+        {word("Done")}
       </button>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
             disabled={!!busy}
-            title="Later"
-            aria-label="Later"
+            title="Not yet"
+            aria-label="Not yet"
             className={cn(btn, tap)}
           >
             {busy === "snooze" ? <Loader2 className={cn(icon, "animate-spin")} /> : <Clock className={icon} />}
+            {word("Not yet")}
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" sideOffset={6} className="w-44 p-1">
@@ -229,12 +241,14 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
       <button
         onClick={dismiss}
         disabled={!!busy}
-        title="Cancel it"
-        aria-label="Cancel it"
+        title="Drop it"
+        aria-label="Drop it"
         className={cn(btn, tap, "hover:text-danger hover:ring-danger/40")}
       >
         {busy === "drop" ? <Loader2 className={cn(icon, "animate-spin")} /> : <X className={icon} />}
+        {word("Drop it")}
       </button>
+
     </div>
   );
 }
