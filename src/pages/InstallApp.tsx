@@ -72,6 +72,15 @@ export default function InstallApp() {
           </p>
         </div>
 
+        <div className="rounded-xl surface-elevated p-4 ring-1 ring-border/60">
+          <div className="text-sm font-medium">Want a downloadable Android file?</div>
+          <p className="mt-2 text-[12px] text-muted-foreground">
+            The installed version above is the real app on Android: own icon, own window, offline-capable, and it updates
+            itself. A separate downloadable file for the Play Store has to be built on a computer with Android Studio —
+            Metro Echo is already set up for it, but the file itself cannot be produced from inside Metro Echo.
+          </p>
+        </div>
+
         {blocked && (
           <p className="text-[11px] text-muted-foreground">
             You are reading this inside a temporary window, so a phone cannot install from here. Open{" "}
