@@ -248,7 +248,9 @@ Deno.serve(async (req) => {
         .limit(5);
       if ((pending ?? []).some((n) => (n as { body?: string }).body === body)) continue;
 
-      await sb.from("nudges").insert({
+      const planId = after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null;
+      const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
+      const { data: nudgeRow } = await sb.from("nudges").insert({
         user_id: userId,
         organization_id: orgId,
         kind: "journey_moved",
@@ -257,17 +259,39 @@ Deno.serve(async (req) => {
         priority: notice.priority,
         status: "pending",
         related_entity_type: "flight_plan",
-        related_entity_id: after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null,
-        dedupe_key: `journey_moved:${after.id}:${body.slice(0, 60)}`,
-      } as never);
+        related_entity_id: planId,
+        dedupe_key: dedupe,
+      } as never).select("id").maybeSingle();
       heads_up += 1;
 
-      /* Messaging is a second surface for the same note, never a second brain.
-         Consent is double-gated (opt-in plus a linked chat) and quiet hours hold
-         everything except a leg that is off. */
-      if (notice.reachMessaging) {
-        const reached = await reachMessaging(sb, userId, orgId, notice);
-        if (reached) pinged += 1;
+      /* A second surface for the same note, never a second brain. Phone first
+         when a device is registered, Telegram when it is not; one claim stops
+         both firing for one gate change. The buttons only acknowledge, and they
+         settle the same nudge Today reads, so the signal clears from the chat. */
+      const nudgeId = (nudgeRow as { id?: string } | null)?.id ?? null;
+      if (notice.reachMessaging && nudgeId) {
+        const gate = await reachGate(sb, userId, notice);
+        if (gate.allowed) {
+          const surface = await reachOnce(sb, {
+            userId,
+            organizationId: orgId,
+            nudgeId,
+            title: notice.title,
+            detail: body,
+            url: "/?room=today",
+            changeKey: dedupe,
+            urgency: notice.urgency === "critical" ? "critical" : "time_sensitive",
+            entityType: "flight_plan",
+            entityId: planId,
+            source: "journey_watch",
+            situationKind: "nudge.journey_moved",
+            dedupeKey: `nudge:${dedupe}`,
+            because: "a filed leg moved and the person asked to be reachable",
+            openKind: "today",
+            messagingAllowed: gate.messagingAllowed,
+          });
+          if (surface) pinged += 1;
+        }
       }
     }
 
