@@ -154,6 +154,9 @@ export function JourneySpine({
 }) {
   const numbers = bigNumbers(journey);
   const liveIndex = where?.legIndex ?? 0;
+  const { timezone } = useUserTimezone();
+  /* Times read the way a person says them: 1:15 AM tomorrow, not 01:15. */
+  const clock = (at: string | null) => (at ? flightTimeWords(at, timezone) : "not on record");
 
   return (
     <Card className="vanta-card space-y-4 p-4">
@@ -201,6 +204,7 @@ export function JourneySpine({
               key={`air-${seg.leg.plan_id}`}
               leg={seg.leg}
               live={journey.legs.indexOf(seg.leg) === liveIndex}
+              clock={clock}
               onOverride={(s) => onOverride(seg.leg.plan_id, s)}
               onClearOverride={() => onClearOverride(seg.leg.plan_id)}
             />
@@ -212,14 +216,14 @@ export function JourneySpine({
         )}
       </div>
 
+      {/* One caveat, not a wall of doctrine. The terminal board is the only line
+          that earns its place on a card you read while walking. */}
       <div className="space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-        <p>{JOURNEY_LAW}</p>
         <p>{TERMINAL_CAVEAT}</p>
         {savedAt ? (
           <p className="flex items-center gap-1">
             <RadioTower className="h-3 w-3" aria-hidden />
-            Saved to this phone {readingWords(savedAt)} — it reads with no service, and every line is stamped with when
-            it was read.
+            Saved to this phone {readingWords(savedAt)}, so it reads with no service.
           </p>
         ) : null}
       </div>
