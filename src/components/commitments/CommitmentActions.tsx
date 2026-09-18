@@ -32,7 +32,7 @@ type Props = {
  * Shared resolve cluster for a commitment row.
  * Done · Snooze · Dismiss — 32px tap targets, optimistic, audited.
  */
-export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
+export function CommitmentActions({ c, onChanged, size = "md", words = false }: Props) {
   const { session } = useAuth();
   const [busy, setBusy] = useState<"done" | "snooze" | "drop" | null>(null);
   const [open, setOpen] = useState(false);
@@ -54,8 +54,10 @@ export function CommitmentActions({ c, onChanged, size = "md" }: Props) {
   };
 
   const isReminder = !!c.remind_at;
-  const tap = size === "sm" ? "h-7 w-7" : "h-8 w-8";
+  const tap = words ? "h-8 px-2 gap-1" : size === "sm" ? "h-7 w-7" : "h-8 w-8";
   const icon = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const word = (t: string) => (words ? <span className="text-[11.5px]">{t}</span> : null);
+
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!session) return;
