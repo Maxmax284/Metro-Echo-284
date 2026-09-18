@@ -53,10 +53,34 @@ export type RecognizedLeg = {
 };
 
 
+/** Where a booking was made, when the evidence says it plainly. Provenance
+    only — Echo never signs into a booking site and never calls one. */
+export type BookingSource = {
+  /** The site's own name as written, e.g. "Priceline". */
+  site: string | null;
+  /** The site's own reference for the trip, kept as written. */
+  trip_ref: string | null;
+  /** One plain line for the record. */
+  words: string;
+};
+
+/** A human sentence around the evidence that makes something wait on this
+    flight. Kept as words, never turned into a rule on its own. */
+export type RecognizedCondition = {
+  /** The sentence, as written. */
+  words: string;
+  /** The phrase that made it read as a condition. */
+  because: string;
+};
+
 export type Recognition = {
   legs: RecognizedLeg[];
   booking_ref: string | null;
   travellers: string[];
+  /** Where it was booked, when the page said so. */
+  booking?: BookingSource | null;
+  /** One condition sentence around the evidence, when there is one. */
+  condition?: RecognizedCondition | null;
   /** Lines that looked like flight information but were not readable. */
   unread: string[];
 };
