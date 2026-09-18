@@ -12,6 +12,73 @@
 import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { acceptReadings, flattenHealthPayload, refusalWords } from "../_shared/bodyKinds.ts";
+import { bodyNews } from "../_shared/bodyNotice.ts";
+import { reachOnce } from "../_shared/delivery/reach.ts";
+import { isInQuietHours } from "../_shared/drift.ts";
+
+/**
+ * A reading landing is not news; a move against this person's own usual is.
+ * Today gets the note, then one other surface carries it — phone when a device
+ * is registered, the linked chat when it is not. Never both, never a verdict,
+ * and nothing here executes anything.
+ */
+async function speakIfMoved(admin: any, userId: string, kinds: string[]) {
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("timezone, preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const prefs = ((profile?.preferences ?? {}) as Record<string, unknown>);
+  const tz = (profile?.timezone as string) || "UTC";
+  /* Body observations are never urgent enough to break quiet hours. */
+  if (isInQuietHours(tz)) return;
+
+  const since = new Date(Date.now() - 18 * 86_400_000).toISOString();
+  const { data: rows } = await admin
+    .from("wearable_readings")
+    .select("kind, value, measured_at")
+    .eq("user_id", userId)
+    .gte("measured_at", since)
+    .order("measured_at", { ascending: false })
+    .limit(2000);
+
+  const news = bodyNews((rows ?? []) as never, kinds);
+  if (!news) return;
+
+  const { data: nudgeRow } = await admin.from("nudges").insert({
+    user_id: userId,
+    kind: "body_moved",
+    title: news.title,
+    body: news.body,
+    priority: 40,
+    status: "pending",
+    related_entity_type: "wearable",
+    related_entity_id: null,
+    dedupe_key: news.dedupeKey,
+  } as never).select("id").maybeSingle();
+  const nudgeId = (nudgeRow as { id?: string } | null)?.id;
+  /* A duplicate dedupe key means today's note already exists. Silence. */
+  if (!nudgeId) return;
+
+  await reachOnce(admin, {
+    userId,
+    organizationId: null,
+    nudgeId,
+    title: news.title,
+    detail: news.body,
+    url: "/?room=today",
+    changeKey: news.dedupeKey,
+    urgency: "useful",
+    entityType: "wearable",
+    entityId: null,
+    source: "wearable_ingest",
+    situationKind: "nudge.body_moved",
+    dedupeKey: `nudge:${news.dedupeKey}`,
+    because: "a reading moved against their own recorded usual",
+    openKind: "today",
+    messagingAllowed: prefs.telegram_awareness_enabled === true,
+  });
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
