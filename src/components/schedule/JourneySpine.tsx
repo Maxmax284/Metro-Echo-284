@@ -52,7 +52,8 @@ function LegRow({
 }: {
   leg: Leg;
   live: boolean;
-  clock: (at: string | null) => string;
+  /** Each end reads in the local time at that airport, the way a ticket does. */
+  clock: (at: string | null, iata: string | null) => string;
   onOverride: (state: LegStateKind) => Promise<void> | void;
   onClearOverride: () => Promise<void> | void;
 }) {
@@ -79,7 +80,7 @@ function LegRow({
         ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        {clock(leg.from.at)} → {clock(leg.to.at)}
+        {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)} local
         {leg.from.terminal ? ` · terminal ${leg.from.terminal}` : ""}
         {leg.from.gate ? ` · gate ${leg.from.gate}` : " · no gate filed"}
       </p>
