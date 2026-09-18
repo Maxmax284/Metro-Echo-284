@@ -5,7 +5,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { ExplainThisButton } from "@/components/ask/ExplainThisButton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShieldAlert, Power, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
