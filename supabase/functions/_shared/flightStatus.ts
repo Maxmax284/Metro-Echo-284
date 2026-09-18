@@ -152,7 +152,7 @@ export function statusDiff(
   const depNext = next.departure.estimated ?? next.departure.scheduled;
   if (depPrev && depNext && depPrev !== depNext) {
     const moved = Math.round((new Date(depNext).getTime() - new Date(depPrev).getTime()) / 60_000);
-    if (Number.isFinite(moved) && moved !== 0) {
+    if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
       news.push(
         moved > 0
           ? `leaves ${Math.abs(moved)} min later, ${clock(depNext)}`
