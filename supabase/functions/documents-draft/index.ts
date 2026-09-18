@@ -174,7 +174,7 @@ Template: ${template_title}.`;
       },
     });
 
-    if (!isRevision) await publishDraftReady(admin, {
+    if (!isRevision && draft_format) await publishDraftReady(admin, {
       userId: user.id,
       organizationId: doc.organization_id ?? null,
       documentId: document_id,
