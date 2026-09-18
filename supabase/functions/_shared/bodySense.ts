@@ -170,7 +170,8 @@ export function compareKind(
   const u = mean(usual);
   if (u === 0) return null;
   const pct = ((r - u) / Math.abs(u)) * 100;
-  const direction: Move["direction"] = Math.abs(pct) < NOISE_PCT ? "same" : pct > 0 ? "up" : "down";
+  const band = NOISE_BY_KIND[kind] ?? NOISE_PCT;
+  const direction: Move["direction"] = Math.abs(pct) < band ? "same" : pct > 0 ? "up" : "down";
   return {
     kind,
     direction,
