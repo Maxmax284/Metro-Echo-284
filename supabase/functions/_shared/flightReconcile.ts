@@ -139,7 +139,11 @@ export function reconcileFlight(
  * The database patch for the safe fills only. Returns null when there is
  * nothing to write, so a caller never issues an empty update.
  */
-export function fillPatch(filed: FiledFlight, fills: Fill[]): Record<string, unknown> | null {
+export function fillPatch(
+  filed: FiledFlight,
+  fills: Fill[],
+  seen: { arrive_on?: string | null } = {},
+): Record<string, unknown> | null {
   if (fills.length === 0) return null;
   const patch: Record<string, unknown> = {};
   const byKey = new Map(fills.map((f) => [f.key, f.value]));
