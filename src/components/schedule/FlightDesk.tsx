@@ -240,11 +240,17 @@ export function FlightDesk() {
     };
     const from = code(snap?.departure.iata) ?? code(plan.origin);
     const to = code(snap?.arrival.iata) ?? code(plan.destination);
-    const departAt =
-      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null;
+    /* A ticket time is the wall clock where you take off. Anchored to that
+       airport's zone so the leave-by arithmetic is real, and read back in the
+       same local time you will be standing in. */
+    const departAt = anchorToZone(
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null,
+      airportZone(from),
+    );
+    const there = flightClock(airportZone(from) ?? timezone);
 
     const out: string[] = [];
-    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, clock).words);
+    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, there).words);
     const shift = clockShift(from, to);
     /* The clock difference, first sentence only. The advice that used to follow
        it was never asked for. */
