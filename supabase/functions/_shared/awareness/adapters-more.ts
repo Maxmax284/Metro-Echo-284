@@ -19,7 +19,7 @@ export type DocumentRow = {
 };
 
 /** Statuses that mean the document is waiting on a human, not on a machine. */
-const WAITING_DOC_STATUSES = new Set(["draft", "drafting", "reviewing", "review", "needs_review"]);
+const WAITING_DOC_STATUSES = new Set(["uploaded", "extracted", "reviewing", "drafting", "drafted"]);
 const STALLED_AFTER_DAYS = 3;
 
 /**

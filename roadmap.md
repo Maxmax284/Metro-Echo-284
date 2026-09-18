@@ -71,10 +71,27 @@ Done:
 
 Open in this pass:
 
-- Work document engine: staged as its own approved plan, deliberately not built
-  in this turn.
 - Travel proof walk (Virginia → airport → Tokyo layover → Thailand) against real
   filed journeys rather than fixtures.
+
+## Work document engine — done
+
+- Work now offers an evidence-grounded “From meeting notes” path alongside the
+  existing templates. The person chooses Meeting brief or Follow-up memo, then
+  explicitly selects notes and optional audit receipts.
+- Source records are re-read and scope-checked on the server. Drafts use only
+  those records, retain source IDs/markers, label missing facts “to be supplied,”
+  and leave model, version, source, truncation and run receipts.
+- Drafting uses the streaming Metro Echo AI path. A draft can take its time
+  without a silent timeout; provider errors stay visible instead of becoming a
+  fake answer.
+- A ready draft lands in the existing Today/Work attention state. Telegram gets
+  Review and Open in Work links when linked; opening the exact document clears
+  the same nudge/delivery state. Opening is acknowledgement, never approval.
+- Document waiting/settled vocabulary now matches real statuses: drafted waits;
+  reviewed, approved and failed settle. No second receipt or document system.
+- Type check is clean. Full suite: 1,715 tests across 174 files. Focused signal
+  checks cover exact document links and reviewed/approved settlement.
 
 ## Presence and discovery polish — done
 
@@ -127,10 +144,8 @@ Left open then, resolved since:
 
 ## Next approved expansion
 
-The Work document engine, staged as its own plan: approved platform evidence in,
-finished artifacts out (brief, stakeholder review, hand-off, checklist, digest),
-sources preserved, drafted and staged before anything is shared. Do not start it
-without a go.
+No further expansion is approved. The remaining active proof is the real travel
+walk listed above; broader document formats stay behind a fresh approval.
 
 ## External blockers
 

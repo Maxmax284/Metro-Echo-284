@@ -57,6 +57,11 @@ export function SurfaceTabs({
   const go = (key: SurfaceKey, e: { clientX: number; clientY: number }) => {
     throwFrom(e.clientX, e.clientY);
     const signal = signals[key as RoomKey];
+    if (signal?.href) {
+      onOpenSignal?.(signal);
+      window.location.assign(signal.href);
+      return;
+    }
     onChange(signal?.target ?? key);
     if (signal?.situationId) {
       window.setTimeout(() => document.getElementById(

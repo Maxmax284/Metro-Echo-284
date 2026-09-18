@@ -125,7 +125,9 @@ export function buildDraftBrief(args: {
     : `Operator working draft · ${kindLabel(doc.kind)}`;
 
   const signatures = isSignature
-    ? extractSignatories((doc.draft_inputs as Record<string, string> | null) ?? null)
+    ? extractSignatories(
+        Object.fromEntries(Object.entries(doc.draft_inputs ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+      )
     : [];
 
   return {

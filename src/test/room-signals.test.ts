@@ -42,4 +42,25 @@ describe("room signals", () => {
     const signals = deriveRoomSignals({ nudges: [], actions: [], askContext: { label: "Context ready", fresh: true } });
     expect(signals.ask).toMatchObject({ tone: "context", fresh: true });
   });
+
+  it("opens a ready document exactly and uses the same link from Today and Work", () => {
+    const signals = deriveRoomSignals({
+      nudges: [{
+        id: "n-doc",
+        kind: "document_draft_ready",
+        title: "Meeting brief is ready",
+        priority: 72,
+        related_entity_type: "document",
+        related_entity_id: "d-ready",
+        dedupe_key: "document_draft_ready:d-ready:v1",
+        status: "pending",
+      }],
+      actions: [],
+    });
+    expect(signals.today?.href).toBe("/documents?document=d-ready&ack=today");
+    expect(signals.work).toMatchObject({
+      situationId: "d-ready",
+      href: "/documents?document=d-ready&ack=work",
+    });
+  });
 });

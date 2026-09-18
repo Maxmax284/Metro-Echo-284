@@ -10,6 +10,7 @@ export type RoomSignal = {
   situationId?: string | null;
   dedupeKey?: string | null;
   fresh?: boolean;
+  href?: string;
 };
 
 export type SignalNudge = {
@@ -67,6 +68,22 @@ export function deriveRoomSignals(input: {
       situationId: action.id,
       fresh: true,
     };
+  }
+  const documentNudge = input.nudges.find((row) => row.status === "pending" && row.related_entity_type === "document" && !!row.related_entity_id);
+  if (!out.work && documentNudge?.related_entity_id) {
+    out.work = {
+      room: "work",
+      tone: "attention",
+      label: documentNudge.title,
+      target: "work",
+      situationId: documentNudge.related_entity_id,
+      dedupeKey: documentNudge.dedupe_key,
+      href: `/documents?document=${documentNudge.related_entity_id}&ack=work`,
+      fresh: true,
+    };
+  }
+  if (out.today && nudge?.related_entity_type === "document" && nudge.related_entity_id) {
+    out.today.href = `/documents?document=${nudge.related_entity_id}&ack=today`;
   }
 
   if (input.askContext) {

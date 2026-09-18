@@ -2,14 +2,14 @@
 // Same DocumentDetailSheet + NewDocumentDialog the project view uses, just
 // listed across all projects within the active workspace scope.
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 import { useAuth } from "@/lib/auth";
 import { useActiveOrgId } from "@/providers/WorkspaceProvider";
-import { listAllDocuments, kindLabel, statusLabel, isDraftDocument, type DocumentRow } from "@/lib/documents";
+import { acknowledgeDocumentDraft, listAllDocuments, kindLabel, statusLabel, isDraftDocument, type DocumentRow } from "@/lib/documents";
 import { type Project } from "@/lib/projects";
 import { ProjectPickerBody } from "@/components/projects/ProjectPickerPopover";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export default function DocumentsPage() {
   const { user, loading: authLoading } = useAuth();
   const orgId = useActiveOrgId();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [docs, setDocs] = useState<DocumentRow[] | null>(null);
   const [tab, setTab] = useState<Tab>("all");
@@ -130,6 +131,21 @@ export default function DocumentsPage() {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, orgId]);
+
+  useEffect(() => {
+    if (!user) return;
+    const documentId = searchParams.get("document");
+    if (!documentId) return;
+    setSelectedId(documentId);
+    const source = searchParams.get("ack");
+    if (source === "today" || source === "work" || source === "telegram") {
+      void acknowledgeDocumentDraft(documentId, source).finally(() => {
+        const next = new URLSearchParams(searchParams);
+        next.delete("ack");
+        setSearchParams(next, { replace: true });
+      });
+    }
+  }, [user, searchParams, setSearchParams]);
 
   const filtered = useMemo(() => {
     if (!docs) return [];

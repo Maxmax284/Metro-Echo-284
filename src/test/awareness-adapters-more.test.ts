@@ -31,6 +31,12 @@ describe("document adapters", () => {
   it("stays quiet on fresh or settled documents", () => {
     expect(documentToSignal(doc({ updated_at: daysAgo(1) }), scope, NOW)).toBeNull();
     expect(documentToSignal(doc({ status: "archived" }), scope, NOW)).toBeNull();
+    expect(documentToSignal(doc({ status: "reviewed" }), scope, NOW)).toBeNull();
+    expect(documentToSignal(doc({ status: "approved" }), scope, NOW)).toBeNull();
+  });
+
+  it("keeps a drafted document visible when review never starts", () => {
+    expect(documentToSignal(doc({ status: "drafted" }), scope, NOW)?.type).toBe("document_stalled");
   });
 
   it("flags serious unanswered risks only", () => {
@@ -72,7 +78,7 @@ describe("resolution recheck for the new kinds", () => {
     commitments: {},
     actions: {},
     projects: {},
-    documents: { d1: "signed", d2: "reviewing" },
+    documents: { d1: "signed", d2: "reviewing", d3: "approved" },
     captures: { n1: "accepted", n2: null },
   };
 
@@ -91,6 +97,13 @@ describe("resolution recheck for the new kinds", () => {
         NOW,
       ).stillTrue,
     ).toBe(true);
+    expect(
+      recheckNudge(
+        { id: "x", kind: "document_stalled", related_entity_type: "document", related_entity_id: "d3", dedupe_key: null },
+        state,
+        NOW,
+      ),
+    ).toEqual({ stillTrue: false, reason: "document_moved_on" });
   });
 
   it("retires a capture nudge once it is routed", () => {
