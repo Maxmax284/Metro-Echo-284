@@ -1396,3 +1396,48 @@ html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.52; }
   html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.72; }
 }
 html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
+
+
+/* ---- Flight deck --------------------------------------------------------
+   The one place in Metro Echo that gets to feel like an instrument: a
+   split-flap board, a great-circle arc that draws once, a beacon ping while
+   the flight waits on the ground. Every one of these is event-driven or a
+   single slow loop, and all of them degrade to the same words at rest. */
+@keyframes solari-flap {
+  0%   { transform: perspective(240px) rotateX(-88deg); opacity: 0.25; }
+  55%  { transform: perspective(240px) rotateX(12deg); opacity: 1; }
+  100% { transform: perspective(240px) rotateX(0deg); opacity: 1; }
+}
+.solari-cell {
+  animation: solari-flap calc(220ms * var(--feel-k, 1)) var(--ease-out) both;
+  transform-origin: center top;
+}
+@keyframes flight-arc-draw {
+  from { stroke-dasharray: 600; stroke-dashoffset: 600; }
+  to   { stroke-dasharray: 600; stroke-dashoffset: 0; }
+}
+.flight-arc-draw {
+  animation: flight-arc-draw calc(900ms * var(--feel-k, 1)) var(--ease-out) both;
+}
+@keyframes flight-radar-ping {
+  0%   { r: 3; opacity: 0.7; }
+  100% { r: 16; opacity: 0; }
+}
+.flight-radar-ping {
+  animation: flight-radar-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes flight-plane-hum {
+  0%, 100% { margin-top: 0; }
+  50%      { margin-top: -2px; }
+}
+.flight-plane-hum {
+  animation: flight-plane-hum 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .solari-cell,
+  .flight-arc-draw,
+  .flight-radar-ping,
+  .flight-plane-hum { animation: none !important; }
+  .solari-cell { transform: none !important; opacity: 1 !important; }
+}

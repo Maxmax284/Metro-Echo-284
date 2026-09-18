@@ -1,12 +1,13 @@
-// FlightLive — the reading, drawn so you can feel it at a glance.
+// FlightLive — the flight deck: the reading, drawn so you can feel it at a glance.
 //
 // Doctrine:
 //   - Motion never invents position. When the provider carried no times, the
-//     strip shows no plane and says so in words.
+//     arc draws dashed, no plane is shown, and the deck says so in words.
+//   - The split-flap board flips only when the wording genuinely changed.
 //   - The pulse means "this is a live reading", and the reading's age sits right
 //     next to it so nobody mistakes an old check for now.
 //   - Colour is a shortcut, never the message. Every state is also written out.
-import { Plane } from "lucide-react";
+import { useMemo } from "react";
 import {
   PHASE_WORDS,
   flightPhase,
@@ -16,6 +17,8 @@ import {
   type LiveFlight,
 } from "@/lib/flightStatus";
 import { cn } from "@/lib/utils";
+import { FlightArc } from "./FlightArc";
+import { SolariBoard } from "./SolariBoard";
 
 const TONE: Record<string, string> = {
   waiting: "bg-primary/70",
@@ -23,6 +26,22 @@ const TONE: Record<string, string> = {
   landed: "bg-emerald-400/80",
   stopped: "bg-destructive/80",
   unknown: "bg-muted-foreground/60",
+};
+
+const BOARD_WORDS: Record<string, string> = {
+  waiting: "ON THE GROUND",
+  flying: "EN ROUTE",
+  landed: "LANDED",
+  stopped: "NOT FLYING",
+  unknown: "NO POSITION",
+};
+
+const BOARD_TONE: Record<string, "primary" | "good" | "danger" | "default"> = {
+  waiting: "primary",
+  flying: "primary",
+  landed: "good",
+  stopped: "danger",
+  unknown: "default",
 };
 
 export function FlightLive({
@@ -34,19 +53,36 @@ export function FlightLive({
   live: LiveFlight;
   checkedAt: string | null;
   clock: (iso: string) => string;
-  /** True while a fresh read is in flight — the strip breathes instead of freezing. */
+  /** True while a fresh read is in flight — the deck breathes instead of freezing. */
   reading?: boolean;
 }) {
   const phase = flightPhase(live);
   const progress = flightProgress(live);
   const from = live.departure.iata ?? "—";
   const to = live.arrival.iata ?? "—";
-  const pct = progress === null ? null : Math.round(progress * 100);
+
+  const depIso = live.departure.actual ?? live.departure.estimated ?? live.departure.scheduled;
+  const arrIso = live.arrival.actual ?? live.arrival.estimated ?? live.arrival.scheduled;
+
+  /* An instant anywhere along the trip, only where both ends carried a time. */
+  const instantAt = useMemo(() => {
+    if (!depIso || !arrIso) return undefined;
+    const a = Date.parse(depIso);
+    const b = Date.parse(arrIso);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return undefined;
+    return (t: number) => new Date(a + (b - a) * Math.max(0, Math.min(1, t))).toISOString();
+  }, [depIso, arrIso]);
+
+  const gate = live.departure.gate
+    ? `GATE ${live.departure.gate}`
+    : live.departure.terminal
+      ? `TERM ${live.departure.terminal}`
+      : null;
 
   return (
     <div
       className={cn(
-        "animate-slide-up space-y-2 rounded-md border border-border/60 bg-muted/20 p-2.5",
+        "animate-slide-up space-y-2.5 rounded-md border border-border/60 bg-muted/20 p-2.5",
         reading && "animate-pulse",
       )}
     >
@@ -67,53 +103,29 @@ export function FlightLive({
         )}
       </div>
 
-      {/* The runway. Drawn only when both ends carried a time. */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-2 text-[11px] text-foreground/80">
-          <span className="font-medium tracking-wide">{from}</span>
-          <div className="relative h-5 flex-1">
-            <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-            {pct !== null && (
-              <>
-                <div
-                  className="absolute left-0 top-1/2 h-px -translate-y-1/2 bg-primary/70 transition-[width] duration-[1200ms] ease-out"
-                  style={{ width: `${pct}%` }}
-                />
-                <Plane
-                  className={cn(
-                    "absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 text-primary transition-[left] duration-[1200ms] ease-out",
-                    phase === "flying" && "animate-plane-drift",
-                  )}
-                  style={{ left: `${pct}%` }}
-                  aria-hidden
-                />
-              </>
-            )}
-          </div>
-          <span className="font-medium tracking-wide">{to}</span>
-        </div>
-        {pct === null && (
-          <p className="text-[10.5px] text-muted-foreground/80">
-            No position drawn — the provider carried no times for both ends.
-          </p>
-        )}
+      {/* The board: flight, status, gate. Flips once when the wording changes. */}
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
+        <SolariBoard text={live.flight_no} label="Flight" />
+        <SolariBoard text={BOARD_WORDS[phase] ?? "STATUS"} label="Status" tone={BOARD_TONE[phase]} />
+        {gate && <SolariBoard text={gate} label="Stand" tone="primary" />}
       </div>
 
-      <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
-      {(live.departure.gate || live.departure.terminal) && (
-        <div className="flex flex-wrap gap-1.5">
-          {live.departure.terminal && (
-            <span className="animate-slide-up rounded border border-border/60 px-1.5 py-0.5 text-[10.5px] text-foreground/80">
-              Terminal {live.departure.terminal}
-            </span>
-          )}
-          {live.departure.gate && (
-            <span className="animate-slide-up rounded border border-primary/50 bg-primary/10 px-1.5 py-0.5 text-[10.5px] text-foreground">
-              Gate {live.departure.gate}
-            </span>
-          )}
-        </div>
+      {/* The track. Drawn with a position only when both ends carried a time. */}
+      <FlightArc
+        from={from}
+        to={to}
+        progress={progress}
+        phase={phase}
+        instantAt={instantAt}
+        clock={clock}
+      />
+      {progress === null && (
+        <p className="text-[10.5px] text-muted-foreground/80">
+          No position drawn — the provider carried no times for both ends.
+        </p>
       )}
+
+      <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
     </div>
   );
 }
