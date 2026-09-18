@@ -2363,9 +2363,15 @@ Deno.serve(async (req) => {
             },
           }).eq("id", fileRec.id);
 
-          /* The look said what it is. If what it is reads like travel, the words
-             are worth reading properly — one extra read, only then. */
-          if (looksLikeTravel(`${look.answer}\n${caption}`)) {
+          /* The look said what it is. Words are read properly when the look
+             already reads like travel, and also when it reads like a picture
+             that is mostly text — a forwarded screenshot of a booking mail
+             often gets described as "a screenshot of an email" without a
+             single travel word in it. One extra read, and only for those. */
+          const textHeavy =
+            /screenshot|screen shot|chat|message|e-?mail|inbox|ticket|receipt|invoice|confirmation|itinerary|boarding|reservation|booking|document|letter|text/i
+              .test(`${look.answer}\n${caption}`);
+          if (looksLikeTravel(`${look.answer}\n${caption}`) || textHeavy) {
             let words = "";
             try {
               words = await ocrImage(new Blob([bytes]), page.mime);

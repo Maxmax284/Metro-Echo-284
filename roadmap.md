@@ -160,3 +160,16 @@ walk listed above; broader document formats stay behind a fresh approval.
 
 - Home-screen widget ("2 things need you" / "CLEAR · Next: …"). Contract only.
 - Full world-context fact coverage beyond the backbone.
+
+## Screenshot → flight truth (in progress, Sep 18)
+
+- Booking-site trip number read off a screenshot, kept as provenance. DONE
+- Settle a disagreement on the flight: keep the record, or accept the
+  screenshot's version (writes the field, leaves a receipt). DONE
+- Unclaimed flights get one airline lookup, inside the daily read budget. DONE
+  (watcher reads once; "Look up the details" on the card.)
+- A condition sentence around the evidence becomes one promise, on the person's
+  word only. DONE
+- Real photo forwarded in Telegram reads end to end (picture kept as evidence,
+  text off the picture goes through the same flight reader). IN PROGRESS
+- Proof: the real Telegram screenshots, in order.

@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
       .from("flight_plans")
       .select("*")
       .neq("status", "dropped")
-      .in("ownership", ["mine", "mine_too"])
+      /* Your own legs, plus a leg Echo noticed and cannot place yet: that one
+         gets a single reading so the question you are answering carries the
+         airline's route and times, never a guess. It never produces a heads-up. */
+      .in("ownership", ["mine", "mine_too", "unknown"])
       .gte("depart_on", since)
       .lte("depart_on", soon)
       .limit(200);
@@ -164,9 +167,17 @@ Deno.serve(async (req) => {
 
     const plans = (data ?? []).map((r) => asPlan(r as Record<string, unknown>));
     const byUser = new Map<string, FlightPlan[]>();
+    /* Noticed legs nobody has claimed yet: read once, never spoken about. */
+    const unclaimedByUser = new Map<string, FlightPlan[]>();
     for (const p of plans) {
       const uid = (p as unknown as { user_id?: string }).user_id;
       if (!uid) continue;
+      const ownership = (p as unknown as { ownership?: string }).ownership ?? "mine";
+      if (ownership === "unknown") {
+        if (p.live_checked_at) continue;
+        unclaimedByUser.set(uid, [...(unclaimedByUser.get(uid) ?? []), p]);
+        continue;
+      }
       byUser.set(uid, [...(byUser.get(uid) ?? []), p]);
     }
 
@@ -186,44 +197,55 @@ Deno.serve(async (req) => {
     let pinged = 0;
     let skipped_budget = 0;
 
+    /* One paid reading against one leg, stamped and logged. The ceiling and the
+       travel window are checked here so no caller can spend around them. */
+    const readLeg = async (userId: string, p: FlightPlan, force = false) => {
+      const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
+      if (!force && now - stamp < FRESH_MS) return;
+      if (!worthReading(p, now)) return;
+      const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
+      if (!flightNo) return;
+      if (spent >= DAILY_BUDGET) {
+        /* Budget spent. The journey still reads from the last stamped reading. */
+        skipped_budget += 1;
+        return;
+      }
+      const live = await askProvider(flightNo, p.depart_on);
+      readings += 1;
+      spent += 1;
+      await sb.from("api_usage_logs").insert({
+        owner_id: userId,
+        user_id: userId,
+        provider: "aviationstack",
+        feature: "journey-watch",
+        request_type: "flight_status",
+        status: live ? "ok" : "empty",
+        cache_hit: false,
+        related_entity_type: "flight_plan",
+        related_entity_id: p.id,
+      } as never);
+      if (!live) return;
+      await sb
+        .from("flight_plans")
+        .update({ live_status: live as never, live_checked_at: new Date().toISOString() })
+        .eq("id", p.id);
+      (p as FlightPlan).live_status = live;
+      (p as FlightPlan).live_checked_at = new Date().toISOString();
+    };
+
+    /* A noticed leg nobody has claimed: one reading, so the ownership question
+       carries the airline's own route and times. No heads-up comes of it. */
+    for (const [userId, waiting] of unclaimedByUser) {
+      for (const p of waiting) await readLeg(userId, p, true);
+    }
+
     for (const [userId, own] of byUser) {
       const before = journeysFrom(own)[0] ?? null;
       const beforePack = before ? offlinePack(before, new Date(now)) : null;
 
       /* Refresh the legs that are actually near a filed time. */
-      for (const p of own) {
-        const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
-        if (now - stamp < FRESH_MS) continue;
-        if (!worthReading(p, now)) continue;
-        const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
-        if (!flightNo) continue;
-        if (spent >= DAILY_BUDGET) {
-          /* Budget spent. The journey still reads from the last stamped reading. */
-          skipped_budget += 1;
-          continue;
-        }
-        const live = await askProvider(flightNo, p.depart_on);
-        readings += 1;
-        spent += 1;
-        await sb.from("api_usage_logs").insert({
-          owner_id: userId,
-          user_id: userId,
-          provider: "aviationstack",
-          feature: "journey-watch",
-          request_type: "flight_status",
-          status: live ? "ok" : "empty",
-          cache_hit: false,
-          related_entity_type: "flight_plan",
-          related_entity_id: p.id,
-        } as never);
-        if (!live) continue;
-        await sb
-          .from("flight_plans")
-          .update({ live_status: live as never, live_checked_at: new Date().toISOString() })
-          .eq("id", p.id);
-        (p as FlightPlan).live_status = live;
-        (p as FlightPlan).live_checked_at = new Date().toISOString();
-      }
+      for (const p of own) await readLeg(userId, p);
+
 
       const after = journeysFrom(own)[0] ?? null;
       if (!after) continue;

@@ -31,6 +31,7 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useJourney } from "@/hooks/useJourney";
 import { JourneySpine } from "./JourneySpine";
+import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
@@ -64,7 +65,10 @@ function noticedWords(plan: FlightPlan): string {
   if (!n) return "";
   const src = (n.source_words ?? NOTICE_SOURCE_WORDS[(n.source as NoticeSource) ?? "pasted"]) || "something on record";
   const who = n.sender?.name ?? n.sender?.email ?? null;
-  return who ? `Read from ${src}, sent by ${who}.` : `Read from ${src}.`;
+  const read = who ? `Read from ${src}, sent by ${who}.` : `Read from ${src}.`;
+  /* Where it was booked, when the evidence named it. Provenance only — Echo
+     never signs into a booking site and never takes a status from one. */
+  return n.booking?.words ? `${read} ${n.booking.words}` : read;
 }
 
 /** Every later source that filled a blank on this flight. Recorded only. */
@@ -101,6 +105,8 @@ export function FlightDesk() {
     confirm,
     drop,
     answerOwnership,
+    settleConflict,
+    keepCondition,
     checkStatus,
     noticeText,
     addByNumber,
@@ -276,6 +282,14 @@ export function FlightDesk() {
         />
       ) : null}
 
+      {/* What a later reading said, and the two honest answers to it. */}
+      <FlightEvidenceCard
+        plans={plans}
+        onSettle={settleConflict}
+        onKeepCondition={keepCondition}
+        onLookUp={askLive}
+      />
+
 
       {/* The manual way in, first thing on the desk and as small as a flight gets. */}
       <Card className="vanta-card space-y-2 p-3">
@@ -369,6 +383,19 @@ export function FlightDesk() {
                     </Button>
                   ))}
                 </div>
+                {/* One reading from the airline, on your tap. It fills in the
+                    route and the times the airline actually carries; it never
+                    answers whose flight it is. */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 text-[12px]"
+                  disabled={busy}
+                  onClick={() => void askLive(p)}
+                >
+                  Look up the details
+                </Button>
+                {liveLine(p) && <p className="text-[11px] text-muted-foreground">{liveLine(p)}</p>}
               </li>
             ))}
           </ul>
