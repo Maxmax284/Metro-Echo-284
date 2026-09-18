@@ -17,6 +17,7 @@ import { vantaToast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { airportWords } from "@/lib/airports";
 import { flightTimeWords } from "@/lib/flightClock";
+import { airportZone } from "@/lib/travelSense";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
   OVERRIDE_CHOICES,
