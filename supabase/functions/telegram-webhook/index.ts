@@ -62,7 +62,7 @@ import { sendTelegram, tgCall, tgFetchFile } from "../_shared/telegramApi.ts";
 import { routeRequest } from "../_shared/orchestration/capabilityRouter.ts";
 import { runFieldIntent } from "../_shared/fieldReply.ts";
 import { noticeFlights } from "../_shared/flightNotice.ts";
-import { recognizeFlights } from "../_shared/flightRecognize.ts";
+import { looksLikeTravel, recognizeFlights } from "../_shared/flightRecognize.ts";
 import { buildWorkingContext } from "../_shared/workingContext.ts";
 
 
@@ -149,7 +149,7 @@ import { linkEntities } from "../_shared/entityGraph.ts";
 import { runSherlockSuggest } from "../_shared/sherlockSuggest.ts";
 import { ROUTING_RULES, VOICE_RULES } from "../_shared/routingRules.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
-import { readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
+import { ocrImage, readPageFile, type PageReadResult } from "../_shared/pageRead.ts";
 import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt.ts";
 import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
 import { dropConfirmWords, dropFlightPlan, fileFlightByNumber, findFlightByNumber } from "../_shared/flightFile.ts";
@@ -928,8 +928,13 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       const lines: string[] = [];
       if (noticed.questions.length) lines.push(noticed.questions.join("\n\n"));
       else if (noticed.created) lines.push(`${noticed.created === 1 ? "That flight is" : `Those ${noticed.created} flights are`} on your record as a draft.`);
-      if (noticed.known) lines.push(`${noticed.known === 1 ? "One flight was" : `${noticed.known} flights were`} already on record. Nothing doubled.`);
+      /* A second sighting of the same flight either fills a blank, agrees, or
+         disagrees. All three are said plainly; only the last one is a question. */
+      if (noticed.filled.length) lines.push(`On the flight you already had, that ${noticed.filled.join("; ")}.`);
+      else if (noticed.known) lines.push(`${noticed.known === 1 ? "One flight was" : `${noticed.known} flights were`} already on record. Nothing doubled.`);
+      if (noticed.conflicts.length) lines.push(`One thing doesn't line up — ${noticed.conflicts.join("; ")}. I left your record alone.`);
       lines.push("Schedule → Flights is where you answer and confirm. Nothing was bought, held or checked in.");
+
       return {
         reply: lines.join("\n\n"),
         detectedType: "flight_noticed" as string | null,
@@ -2262,6 +2267,48 @@ Deno.serve(async (req) => {
       const wantIntent = intentFromCaption(caption);
       let reply: string;
 
+      /* A picture of a booking is travel evidence, not a new kind of thing.
+         The words come off it with the same reader a document gets, then go
+         through the same flight reader an emailed booking goes through — so a
+         screenshot lands on the flight you already have instead of starting a
+         parallel one. Evidence only: nothing here sets a live status, and
+         nothing is bought, held or checked in. */
+      const travelLines = async (words: string): Promise<string[]> => {
+        if (!looksLikeTravel(words)) return [];
+        try {
+          const noticed = await noticeFlights(
+            admin as never,
+            { userId: link.user_id, orgId: routeOrgId },
+            {
+              text: words,
+              source: "telegram",
+              sender: null,
+              origin_ref: { kind: "ingested_file", id: String(fileRec.id) },
+              today: new Date().toISOString().slice(0, 10),
+            },
+          );
+          const out: string[] = [];
+          if (noticed.created) {
+            out.push(
+              `${noticed.created === 1 ? "That reads as a flight" : `Those read as ${noticed.created} flights`} — on your record as a draft.`,
+            );
+          }
+          if (noticed.filled.length) out.push(`Against the flight you already had, that ${noticed.filled.join("; ")}.`);
+          else if (noticed.known && !noticed.conflicts.length) out.push("That flight was already on record. Nothing doubled, nothing changed.");
+          if (noticed.conflicts.length) {
+            out.push(`One thing doesn't line up — ${noticed.conflicts.join("; ")}. I left your record alone.`);
+          }
+          if (noticed.questions.length) out.push(noticed.questions.join("\n\n"));
+          if (out.length) {
+            out.push("Gate, terminal and status still come from the airline's own data, not the picture. Nothing was bought, held or checked in.");
+          }
+          return out;
+        } catch (e) {
+          console.error("[vanta] telegram screenshot flight read failed:", e);
+          return [];
+        }
+      };
+
       /* Documents are always read, never looked at — the picture-perception
          lane is for photos only. */
       if (page.isDoc || wantIntent === "text") {
@@ -2285,11 +2332,13 @@ Deno.serve(async (req) => {
           detectedDocType: (fileRec as any)?.detected_doc_type ?? null,
           confidence: (fileRec as any)?.confidence ?? null,
         });
+        const travel = read.ok ? await travelLines(words) : [];
         reply = read.ok
           ? [
               intent.line,
               "",
               readSummaryLine(words, 900),
+              ...(travel.length ? ["", ...travel] : []),
               "",
               "It's in your Inbox — nothing filed under a project yet.",
               nextStepsLine(intent.kind),
@@ -2313,11 +2362,25 @@ Deno.serve(async (req) => {
               looks: [{ intent: wantIntent, answer: look.answer.slice(0, 2000), at: new Date().toISOString() }],
             },
           }).eq("id", fileRec.id);
+
+          /* The look said what it is. If what it is reads like travel, the words
+             are worth reading properly — one extra read, only then. */
+          if (looksLikeTravel(`${look.answer}\n${caption}`)) {
+            let words = "";
+            try {
+              words = await ocrImage(new Blob([bytes]), page.mime);
+            } catch (e) {
+              console.error("[vanta] telegram screenshot read failed:", e);
+            }
+            const travel = words ? await travelLines(words) : [];
+            if (travel.length) reply = `${reply}\n\n${travel.join("\n\n")}`;
+          }
         } catch (e) {
           console.error("[vanta] telegram look failed:", e);
           reply = "Didn't run. I couldn't look at that picture just now. Nothing else changed — it's saved in your Inbox.";
         }
       }
+
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
       const suggestions = await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 2);

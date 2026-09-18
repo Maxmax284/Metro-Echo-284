@@ -67,6 +67,29 @@ function noticedWords(plan: FlightPlan): string {
   return who ? `Read from ${src}, sent by ${who}.` : `Read from ${src}.`;
 }
 
+/** Every later source that filled a blank on this flight. Recorded only. */
+const FACT_WORDS: Record<string, string> = {
+  origin: "where it leaves from",
+  destination: "where it lands",
+  depart_time: "the departure time",
+  arrive_time: "the arrival time",
+  booking_ref: "the confirmation code",
+  traveller: "who is travelling",
+};
+
+function filledWords(plan: FlightPlan): string[] {
+  const sources = plan.noticed_from?.sources ?? [];
+  return sources
+    .map((s) => {
+      const facts = (s.filled ?? []).map((f) => FACT_WORDS[f] ?? f);
+      if (!facts.length) return null;
+      const src = s.source_words ?? "another source";
+      return `${facts.join(", ")} came off ${src}`;
+    })
+    .filter((v): v is string => !!v);
+}
+
+
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
   const {
@@ -467,6 +490,13 @@ export function FlightDesk() {
                   <p className="text-[11px] text-muted-foreground">
                     {p.origin_kind === "recognised" ? noticedWords(p) : `${SOURCE_WORDS[p.source]}.`}
                   </p>
+                  {/* Which source filled which fact. Recorded lines only. */}
+                  {filledWords(p).map((line) => (
+                    <p key={line} className="text-[11px] text-muted-foreground">
+                      · {line}
+                    </p>
+                  ))}
+
                   {p.booking_ref && (
                     <p className="text-[11px] text-muted-foreground">Booking reference {p.booking_ref}.</p>
                   )}

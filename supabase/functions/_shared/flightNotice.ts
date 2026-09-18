@@ -16,8 +16,15 @@ import {
   type NoticeSource,
   type Ownership,
 } from "./flightRecognize.ts";
+import {
+  fillPatch,
+  isSameFiledFlight,
+  reconcileFlight,
+  reconcileWords,
+  type FiledFlight,
+} from "./flightReconcile.ts";
 
-type SupabaseClient = { from: (table: string) => any };
+type SupabaseClient = { from: (table: string) => any; rpc?: (fn: string, args: Record<string, unknown>) => any };
 
 export type NoticeScope = { userId: string; orgId: string | null };
 
@@ -37,10 +44,15 @@ export type NoticeInput = {
 export type NoticeResult = {
   created: number;
   asked: number;
-  /** Flights already on record, left alone. */
+  /** Flights already on record. Left alone unless the evidence filled a blank. */
   known: number;
   questions: string[];
+  /** Blanks this evidence filled on a flight that already existed. */
+  filled: string[];
+  /** Facts this evidence disagrees with. Nothing was written for these. */
+  conflicts: string[];
 };
+
 
 function scoped(q: any, scope: NoticeScope) {
   const u = q.eq("user_id", scope.userId);
@@ -55,6 +67,75 @@ export function senderKey(sender?: { name?: string | null; email?: string | null
 }
 
 /**
+ * Keep the original evidence attached to the flight it spoke about, so the
+ * desk, Today and Ask can all say which source a fact came from. A link that
+ * cannot be written is not worth failing a capture over.
+ */
+async function linkEvidence(
+  sb: SupabaseClient,
+  scope: NoticeScope,
+  planId: string,
+  ref: { kind: string; id: string } | null | undefined,
+  reason: string,
+): Promise<void> {
+  if (!ref?.id) return;
+  /* The same link table the rest of the product uses, with the words it
+     already accepts: a stored file or note is *about* this flight. Written
+     here rather than through the user-facing helper, because a sweep has no
+     session — the link still carries the person it belongs to. */
+  const kind = ref.kind === "ingested_file" ? "file" : ref.kind;
+  if (!["file", "note", "message", "capture"].includes(kind)) return;
+  try {
+    const { data: existing } = await sb
+      .from("cross_links")
+      .select("id")
+      .eq("user_id", scope.userId)
+      .eq("source_kind", kind)
+      .eq("source_id", ref.id)
+      .eq("target_kind", "flight_plan")
+      .eq("target_id", planId)
+      .maybeSingle();
+    if (existing?.id) return;
+    const { data: link, error } = await sb
+      .from("cross_links")
+      .insert({
+        user_id: scope.userId,
+        source_kind: kind,
+        source_id: ref.id,
+        target_kind: "flight_plan",
+        target_id: planId,
+        relation: "about",
+        confidence: "high",
+        created_by: "system",
+        reason,
+      })
+      .select("id")
+      .single();
+    if (error || !link) throw new Error(error?.message ?? "no link");
+    await sb.from("audit_log").insert({
+      user_id: scope.userId,
+      organization_id: scope.orgId,
+      entity_type: "cross_link",
+      entity_id: link.id,
+      event: "link.created",
+      payload: {
+        source_kind: kind,
+        source_id: ref.id,
+        target_kind: "flight_plan",
+        target_id: planId,
+        relation: "about",
+        created_by: "system",
+        reason,
+      },
+    });
+  } catch (e) {
+    console.error("flightNotice evidence link", (e as Error)?.message);
+  }
+}
+
+
+
+/**
  * Read flight information out of one piece of text and file what it finds.
  * Returns what it did, so the caller can say so instead of guessing.
  */
@@ -63,7 +144,8 @@ export async function noticeFlights(
   scope: NoticeScope,
   input: NoticeInput,
 ): Promise<NoticeResult> {
-  const empty: NoticeResult = { created: 0, asked: 0, known: 0, questions: [] };
+  const empty: NoticeResult = { created: 0, asked: 0, known: 0, questions: [], filled: [], conflicts: [] };
+
   const recognition = recognizeFlights(input.text, { today: input.today });
   if (!recognition.legs.length) return empty;
 
@@ -113,30 +195,137 @@ export async function noticeFlights(
     myWindows,
   });
 
-  const result: NoticeResult = { created: 0, asked: 0, known: 0, questions: [] };
+  const result: NoticeResult = { created: 0, asked: 0, known: 0, questions: [], filled: [], conflicts: [] };
 
   for (const leg of recognition.legs) {
     if (!leg.depart_on) continue;
     /* The same flight on the same day is the same flight. Read the day's drafts
        and compare rather than trusting a unique index over jsonb. */
     const { data: sameDay } = await scoped(
-      sb.from("flight_plans").select("id, options, booking_ref").eq("depart_on", leg.depart_on),
+      sb
+        .from("flight_plans")
+        .select("id, origin, destination, depart_on, options, booking_ref, traveller_name, noticed_from")
+        .eq("depart_on", leg.depart_on),
       scope,
     );
-    const already = ((sameDay ?? []) as any[]).some((r) =>
-      (Array.isArray(r.options) ? r.options : []).some(
-        (o: any) => String(o?.flight_no ?? "").toUpperCase() === leg.flight_no,
+    const filed = ((sameDay ?? []) as any[]).find((r) =>
+      isSameFiledFlight(
+        {
+          id: String(r.id),
+          origin: r.origin ?? null,
+          destination: r.destination ?? null,
+          depart_on: String(r.depart_on),
+          booking_ref: r.booking_ref ?? null,
+          traveller_name: r.traveller_name ?? null,
+          options: Array.isArray(r.options) ? r.options : [],
+        },
+        leg,
       ),
     );
-    if (already) {
+    if (filed) {
+      /* The flight exists. New evidence is allowed to fill what is blank, is
+         recorded when it agrees, and is only ever a question when it disagrees.
+         Nothing already filled in is rewritten here. */
       result.known += 1;
+      const record: FiledFlight = {
+        id: String(filed.id),
+        origin: filed.origin ?? null,
+        destination: filed.destination ?? null,
+        depart_on: String(filed.depart_on),
+        booking_ref: filed.booking_ref ?? null,
+        traveller_name: filed.traveller_name ?? null,
+        options: Array.isArray(filed.options) ? filed.options : [],
+      };
+      const recon = reconcileFlight(record, leg, {
+        booking_ref: recognition.booking_ref,
+        traveller: recognition.travellers[0] ?? null,
+      });
+      const patch = fillPatch(record, recon.fills);
+      if (patch) {
+        /* The provenance trail grows; it is never replaced. Each source that
+           contributed stays readable on the flight. */
+        const previous = (filed.noticed_from ?? {}) as Record<string, unknown>;
+        const sources = Array.isArray(previous.sources) ? (previous.sources as unknown[]) : [];
+        const { error: upErr } = await sb
+          .from("flight_plans")
+          .update({
+            ...patch,
+            noticed_from: {
+              ...previous,
+              sources: [
+                ...sources,
+                {
+                  source: input.source,
+                  source_words: SOURCE_WORDS[input.source],
+                  origin_ref: input.origin_ref ?? null,
+                  filled: recon.fills.map((f) => f.key),
+                  line: leg.line,
+                  at: new Date().toISOString(),
+                },
+              ],
+            },
+          })
+          .eq("id", record.id);
+        if (upErr) console.error("flightNotice fill", upErr.message);
+        else {
+          result.filled.push(...recon.fills.map((f) => f.words));
+          await sb.from("audit_log").insert({
+            user_id: scope.userId,
+            organization_id: scope.orgId,
+            entity_type: "flight_plan",
+            entity_id: record.id,
+            event: "flight.filled_from_evidence",
+            payload: {
+              flight_no: leg.flight_no,
+              source: input.source,
+              origin_ref: input.origin_ref ?? null,
+              filled: recon.fills.map((f) => ({ fact: f.key, value: f.value })),
+              overwritten: [],
+            },
+          });
+        }
+      }
+      if (recon.conflicts.length) {
+        result.conflicts.push(...recon.conflicts.map((c) => c.words));
+        await sb.from("audit_log").insert({
+          user_id: scope.userId,
+          organization_id: scope.orgId,
+          entity_type: "flight_plan",
+          entity_id: record.id,
+          event: "flight.evidence_conflict",
+          payload: {
+            flight_no: leg.flight_no,
+            source: input.source,
+            origin_ref: input.origin_ref ?? null,
+            conflicts: recon.conflicts,
+            changed: false,
+          },
+        });
+        await sb.from("nudges").insert({
+          user_id: scope.userId,
+          organization_id: scope.orgId,
+          kind: "flight_evidence_conflict",
+          title: `Two versions of ${leg.flight_no}`,
+          body: reconcileWords(recon).join(" "),
+          related_entity_type: "flight_plan",
+          related_entity_id: record.id,
+          priority: 55,
+          dedupe_key: `flight_conflict:${leg.flight_no}:${leg.depart_on}`,
+        });
+      }
+      await linkEvidence(sb, scope, record.id, input.origin_ref, `read off ${SOURCE_WORDS[input.source]}`);
       continue;
     }
 
+
     /* A booking with no departure time on it gets no departure time. Midnight
-       would read as a fact nobody wrote down. */
+       would read as a fact nobody wrote down. An overnight flight lands on the
+       day the evidence actually named, not the day it left. */
     const departAt = leg.depart_time ? `${leg.depart_on}T${leg.depart_time}:00` : null;
-    const arriveAt = leg.arrive_time ? `${leg.depart_on}T${leg.arrive_time}:00` : null;
+    const arriveAt = leg.arrive_time
+      ? `${leg.arrive_on ?? leg.depart_on}T${leg.arrive_time}:00`
+      : null;
+
     const option = {
       id: `${leg.flight_no}-${leg.depart_time ?? "0000"}`,
       airline: leg.airline,
@@ -186,6 +375,9 @@ export async function noticeFlights(
       continue;
     }
     result.created += 1;
+    await linkEvidence(sb, scope, String(plan.id), input.origin_ref, `read off ${SOURCE_WORDS[input.source]}`);
+
+
 
     await sb.from("audit_log").insert({
       user_id: scope.userId,
