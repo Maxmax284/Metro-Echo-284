@@ -66,7 +66,22 @@ export type NoticedFrom = {
     line?: string | null;
     at?: string | null;
   }>;
-
+  /** Where the booking was made, when a page said so. Provenance only: Echo
+      never calls a booking site and never takes a status from one. */
+  booking?: { site: string | null; trip_ref: string | null; words: string } | null;
+  /** Disagreements between a later source and what is already on record.
+      Nothing is written from these — each one waits on the person. */
+  conflicts?: Array<{
+    key: string;
+    filed: string;
+    seen: string;
+    words: string;
+    source_words?: string | null;
+    at: string;
+  }>;
+  /** A sentence around the evidence that makes something wait on this flight.
+      Words until the person turns it into a promise. */
+  condition?: { words: string; because: string; at: string; kept_at?: string | null } | null;
 };
 
 export type FlightPlan = {
