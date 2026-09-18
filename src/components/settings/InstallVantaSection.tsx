@@ -5,7 +5,7 @@ import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { HOME_ADDRESS, installBlockedHere, isEmbeddedWindow } from "@/lib/pwaInstall";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
-export function InstallVantaSection() {
+export function InstallVantaSection({ alwaysShow = false }: { alwaysShow?: boolean } = {}) {
   const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
   const [busy, setBusy] = useState(false);
   // No prompt can appear in an embedded window or on a throwaway link.
