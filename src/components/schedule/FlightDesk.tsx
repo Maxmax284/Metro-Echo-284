@@ -554,6 +554,7 @@ export function FlightDesk() {
                       live={p.live_status as LiveFlight}
                       checkedAt={p.live_checked_at ?? null}
                       clock={clock}
+                      homeZone={timezone}
                       reading={busy}
                     />
                   )}
@@ -650,6 +651,7 @@ export function FlightDesk() {
                         live={p.live_status as LiveFlight}
                         checkedAt={p.live_checked_at ?? null}
                         clock={clock}
+                        homeZone={timezone}
                       />
                     )}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
