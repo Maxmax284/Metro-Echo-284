@@ -294,6 +294,26 @@ export function FlightDesk() {
     );
   };
 
+  /* The aircraft is drawn only from a filed fix on a leg of this very trip.
+     No fix, no plane — the route still draws, the position is simply not known. */
+  const aircraft = useMemo(() => {
+    const ids = new Set((journey.current?.legs ?? []).map((l) => l.plan_id));
+    for (const p of plans) {
+      if (!ids.has(p.id)) continue;
+      const snap = p.live_status as LiveFlight | null;
+      const pos = snap?.position ?? null;
+      if (!pos || typeof pos.lat !== "number" || typeof pos.lon !== "number") continue;
+      if (trackProgress(snap!).source !== "radar") continue;
+      return {
+        lat: pos.lat,
+        lon: pos.lon,
+        heading: typeof pos.heading_deg === "number" ? pos.heading_deg : null,
+        label: snap?.flight_no ? `${snap.flight_no} · airline fix` : "airline fix",
+      };
+    }
+    return null;
+  }, [plans, journey.current]);
+
   const liveLine = (plan: FlightPlan): string | null => {
     if (live[plan.id]) return live[plan.id];
     const snapshot = plan.live_status as LiveFlight | null;
