@@ -19,7 +19,6 @@ import { airportWords } from "@/lib/airports";
 import { flightTimeWords } from "@/lib/flightClock";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
-  JOURNEY_LAW,
   OVERRIDE_CHOICES,
   OVERRIDE_WORDS,
   STATE_WORDS,
