@@ -31,7 +31,7 @@ import { reachOnce } from "../_shared/delivery/reach.ts";
  * WHETHER Echo may speak; the shared rail decides WHERE.
  */
 async function reachGate(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   userId: string,
   notice: JourneyNotice,
 ): Promise<{ allowed: boolean; messagingAllowed: boolean }> {
