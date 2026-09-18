@@ -37,6 +37,8 @@ const KIND_LABEL: Record<string, string> = {
   web_page_changed: "Page changed",
   inbound_needs_you: "Needs you",
   journey_moved: "Flight",
+  flight_evidence_conflict: "Flight disagrees",
+  flight_condition_noticed: "Waiting on a flight",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {

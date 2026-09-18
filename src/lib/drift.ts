@@ -37,6 +37,10 @@ export const DRIFT_KINDS = [
   /* A gate, terminal, time or state on a flight you are actually on moved.
      Today says it without being asked — that is the whole point of watching. */
   "journey_moved",
+  /* A later reading disagrees with the flight on record, or a sentence around it
+     makes something wait on that flight. Settled on the flight, never here. */
+  "flight_evidence_conflict",
+  "flight_condition_noticed",
 ] as const;
 
 export function isDriftKind(kind: string): boolean {

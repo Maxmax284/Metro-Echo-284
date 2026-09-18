@@ -295,6 +295,152 @@ export function useFlightPlans() {
     [user, applyScope, withScope, load],
   );
 
+  /**
+   * A disagreement between the flight on record and something Echo read later.
+   *
+   * Two honest answers, both recorded: keep what is on record, or take the
+   * later reading. Nothing is written until you pick, and picking writes only
+   * the one field in question. Airline-owned facts — status, gate, terminal —
+   * never appear here, so they can never be settled from a picture.
+   */
+  const settleConflict = useCallback(
+    async (plan: FlightPlan, key: string, choice: "keep" | "accept"): Promise<string> => {
+      if (!user) throw new Error("Not signed in.");
+      const noticed = (plan.noticed_from ?? {}) as NonNullable<FlightPlan["noticed_from"]>;
+      const open = noticed.conflicts ?? [];
+      const hit = open.find((c) => c.key === key);
+      if (!hit) throw new Error("That disagreement is already settled.");
+
+      const update: Record<string, unknown> = {};
+      if (choice === "accept") {
+        if (key === "origin") update.origin = cleanPlace(hit.seen);
+        else if (key === "destination") update.destination = cleanPlace(hit.seen);
+        else if (key === "booking_ref") update.booking_ref = hit.seen;
+        else if (key === "traveller") update.traveller_name = hit.seen;
+        else if (key === "depart_time" || key === "arrive_time") {
+          const field = key === "depart_time" ? "depart_at" : "arrive_at";
+          const day =
+            key === "arrive_time"
+              ? String((plan.options[0]?.arrive_at ?? "").slice(0, 10) || plan.depart_on)
+              : plan.depart_on;
+          update.options = plan.options.map((o, i) =>
+            i === 0 ? { ...o, [field]: `${day}T${hit.seen}:00` } : o,
+          );
+        } else throw new Error("That fact cannot be settled here.");
+      }
+
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({
+          ...update,
+          noticed_from: {
+            ...noticed,
+            conflicts: open.filter((c) => c.key !== key),
+            settled: [
+              ...((noticed as { settled?: unknown[] }).settled ?? []),
+              { ...hit, choice, at: new Date().toISOString() },
+            ],
+          },
+        } as never)
+        .eq("id", plan.id);
+      if (err) throw new Error(err.message);
+
+      await supabase
+        .from("nudges")
+        .update({ status: "acted" })
+        .eq("related_entity_id", plan.id)
+        .eq("kind", "flight_evidence_conflict");
+
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.conflict_settled",
+          payload: {
+            fact: key,
+            choice,
+            kept: choice === "keep" ? hit.filed : hit.seen,
+            dropped: choice === "keep" ? hit.seen : hit.filed,
+            source_words: hit.source_words ?? null,
+            bought: false,
+          },
+        }) as never,
+      );
+      await load();
+      return choice === "keep"
+        ? `Left as you have it — ${hit.filed}. The other reading stays on the receipt.`
+        : `Filed ${hit.seen}. What you had before stays on the receipt.`;
+    },
+    [user, withScope, load],
+  );
+
+  /**
+   * A sentence around the evidence that makes something wait on this flight,
+   * kept as a real promise — on your word, never from the reading alone.
+   */
+  const keepCondition = useCallback(
+    async (plan: FlightPlan): Promise<string> => {
+      if (!user) throw new Error("Not signed in.");
+      const noticed = (plan.noticed_from ?? {}) as NonNullable<FlightPlan["noticed_from"]>;
+      const condition = noticed.condition ?? null;
+      if (!condition || condition.kept_at) throw new Error("There is nothing waiting on this flight.");
+
+      const { data: made, error: cErr } = await supabase
+        .from("commitments")
+        .insert(
+          withScope({
+            user_id: user.id,
+            summary: condition.words.slice(0, 200),
+            priority: "normal",
+          }) as never,
+        )
+        .select("id")
+        .single();
+      if (cErr) throw new Error(cErr.message);
+
+      /* The promise and the flight point at each other, so neither reads alone. */
+      if (made?.id) {
+        await supabase.rpc("cross_links_create", {
+          _source_kind: "commitment",
+          _source_id: made.id,
+          _target_kind: "flight_plan",
+          _target_id: plan.id,
+          _relation: "about",
+          _confidence: "high",
+          _created_by: "user",
+          _reason: "Kept from a line read alongside this flight.",
+        } as never);
+      }
+
+      await supabase
+        .from("flight_plans")
+        .update({
+          noticed_from: { ...noticed, condition: { ...condition, kept_at: new Date().toISOString() } },
+        } as never)
+        .eq("id", plan.id);
+
+      await supabase
+        .from("nudges")
+        .update({ status: "acted" })
+        .eq("related_entity_id", plan.id)
+        .eq("kind", "flight_condition_noticed");
+
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.condition_kept",
+          payload: { words: condition.words, commitment_id: made?.id ?? null, bought: false },
+        }) as never,
+      );
+      await load();
+      return "Kept as a promise, tied to this flight.";
+    },
+    [user, withScope, load],
+  );
+
   /** One reading of where the flight actually is. Reads; never rebooks. */
   const checkStatus = useCallback(
     async (plan: FlightPlan): Promise<{ words: string; news: string | null }> => {
@@ -414,7 +560,14 @@ export function useFlightPlans() {
       });
       if (err) throw new Error(err.message);
       await load();
-      return data as { created: number; asked: number; known: number; questions: string[] };
+      return data as {
+        created: number;
+        asked: number;
+        known: number;
+        questions: string[];
+        filled?: string[];
+        conflicts?: string[];
+      };
     },
     [orgId, load],
   );
@@ -428,6 +581,8 @@ export function useFlightPlans() {
     confirm,
     drop,
     answerOwnership,
+    settleConflict,
+    keepCondition,
     checkStatus,
     noticeText,
     addByNumber,

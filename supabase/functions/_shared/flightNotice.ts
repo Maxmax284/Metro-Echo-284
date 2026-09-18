@@ -450,8 +450,47 @@ export async function noticeFlights(
         dedupe_key: `flight_noticed:${leg.flight_no}:${leg.depart_on}`,
       });
     }
+    if (recognition.condition) {
+      await noticeCondition(sb, scope, String(plan.id), leg.flight_no, recognition.condition);
+    }
   }
   return result;
+}
+
+/**
+ * One note that something is waiting on this flight. It is a draft: a promise
+ * only exists once the person keeps it, and the words come off the evidence,
+ * never off a rule Echo made up. Deduped per flight, so a resend is silent.
+ */
+async function noticeCondition(
+  sb: SupabaseClient,
+  scope: NoticeScope,
+  flightId: string,
+  flightNo: string,
+  condition: { words: string; because: string },
+): Promise<void> {
+  const { error } = await sb.from("nudges").insert({
+    user_id: scope.userId,
+    organization_id: scope.orgId,
+    kind: "flight_condition_noticed",
+    title: `Something is waiting on ${flightNo}`,
+    body: `"${condition.words}" Keep it as a promise on this flight, or leave it as a note.`,
+    related_entity_type: "flight_plan",
+    related_entity_id: flightId,
+    priority: 45,
+    dedupe_key: `flight_condition:${flightId}`,
+  });
+  if (error && !/duplicate/i.test(error.message)) console.error("flightNotice condition", error.message);
+  else if (!error) {
+    await sb.from("audit_log").insert({
+      user_id: scope.userId,
+      organization_id: scope.orgId,
+      entity_type: "flight_plan",
+      entity_id: flightId,
+      event: "flight.condition_noticed",
+      payload: { flight_no: flightNo, words: condition.words, because: condition.because, kept: false },
+    });
+  }
 }
 
 /** The person's answer, remembered against the sender so it is asked once. */

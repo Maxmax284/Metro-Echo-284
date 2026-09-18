@@ -411,7 +411,7 @@ export function readBookingSource(text: string | null | undefined): BookingSourc
 }
 
 const CONDITION_RE =
-  /\b(only (?:after|once|when)|after (?:we|you|I) know|wait (?:until|for|till)|don'?t book (?:until|unless)|do not book (?:until|unless)|before (?:we|you|I) book|hold off (?:until|till))\b/i;
+  /\b(only (?:after|once|when)|(?:after|once|when) (?:we|you|I) (?:know|see|hear)|wait (?:until|for|till)|don'?t book (?:until|unless)|do not book (?:until|unless)|before (?:we|you|I) book|hold off (?:until|till))\b/i;
 
 /**
  * One sentence around the evidence that makes something wait on this flight.
