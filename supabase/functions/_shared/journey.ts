@@ -128,7 +128,7 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
     },
     to: {
       iata: toIata,
-      at: arr.at ?? option?.arrive_at ?? null,
+      at: arr.at ?? arriveAt,
       basis: arr.at ? arr.basis : option?.arrive_at ? "recorded" : "none",
       terminal: live?.arrival.terminal ?? null,
       gate: live?.arrival.gate ?? null,
