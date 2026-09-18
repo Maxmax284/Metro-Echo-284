@@ -148,7 +148,7 @@ export function FlightRouteMap({
             {facts?.localTime ? (
               <p>
                 {pick.role === "origin" ? "Leaves" : "Lands"} {facts.localTime} local
-                {facts.localDate ? ` · ${facts.localDate}` : ""}.
+                {facts.localDate ? ` · ${facts.localDate}` : "."}
               </p>
             ) : (
               <p className="text-muted-foreground/85">No filed time for this stop yet.</p>
