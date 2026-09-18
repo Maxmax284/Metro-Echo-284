@@ -18,6 +18,7 @@
 // Pure module: no IO, no React.
 
 import { airport, airportWords, bordersCrossed } from "./airports.ts";
+import { airportZone, anchorToZone } from "./travelSense.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
 import type { LiveFlight } from "./flightStatus.ts";
 
