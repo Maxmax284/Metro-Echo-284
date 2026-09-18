@@ -109,6 +109,32 @@ export function offsetMinutes(tz: string, at: Date = new Date()): number | null 
   }
 }
 
+const HAS_ZONE = /(?:[Zz]|[+-]\d{2}:?\d{2})$/;
+
+/** The zone an airport keeps, when the kept table carries it. */
+export function airportZone(iata: string | null | undefined): string | null {
+  return airport(iata)?.tz ?? null;
+}
+
+/**
+ * A ticket time carries no zone: it is the wall clock at the airport. Anchoring
+ * turns it into a real instant so arithmetic on it is honest. Returns the string
+ * untouched when it already carries a zone or when the airport's zone is unknown
+ * — Echo does not assume a time is UTC just because nobody said.
+ */
+export function anchorToZone(local: string | null | undefined, tz: string | null | undefined): string | null {
+  if (!local) return null;
+  if (HAS_ZONE.test(local) || !tz) return local;
+  const guess = Date.parse(`${local}Z`);
+  if (!Number.isFinite(guess)) return local;
+  const first = offsetMinutes(tz, new Date(guess));
+  if (first == null) return local;
+  let ms = guess - first * 60_000;
+  const second = offsetMinutes(tz, new Date(ms));
+  if (second != null && second !== first) ms = guess - second * 60_000;
+  return new Date(ms).toISOString();
+}
+
 export type ClockShift = {
   hours: number;
   minutes: number;

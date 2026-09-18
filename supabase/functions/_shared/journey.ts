@@ -18,6 +18,7 @@
 // Pure module: no IO, no React.
 
 import { airport, airportWords, bordersCrossed } from "./airports.ts";
+import { airportZone, anchorToZone } from "./travelSense.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
 import type { LiveFlight } from "./flightStatus.ts";
 
@@ -108,6 +109,11 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
   const arr = live ? pickTime(live.arrival) : { at: null, basis: "none" as TimeBasis };
   const fromIata = (live?.departure.iata ?? plan.origin ?? "").toUpperCase();
   const toIata = (live?.arrival.iata ?? plan.destination ?? "").toUpperCase();
+  /* A time off a ticket is the wall clock at that airport. Anchored to the
+     airport's own zone so every countdown on it is real; left exactly as given
+     when the zone is not on record. */
+  const departAt = anchorToZone(option?.depart_at ?? null, airportZone(fromIata));
+  const arriveAt = anchorToZone(option?.arrive_at ?? null, airportZone(toIata));
   return {
     plan_id: plan.id,
     order,
@@ -115,14 +121,14 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
     airline: option?.airline ?? live?.airline ?? null,
     from: {
       iata: fromIata,
-      at: dep.at ?? option?.depart_at ?? null,
+      at: dep.at ?? departAt,
       basis: dep.at ? dep.basis : option?.depart_at ? "recorded" : "none",
       terminal: live?.departure.terminal ?? null,
       gate: live?.departure.gate ?? null,
     },
     to: {
       iata: toIata,
-      at: arr.at ?? option?.arrive_at ?? null,
+      at: arr.at ?? arriveAt,
       basis: arr.at ? arr.basis : option?.arrive_at ? "recorded" : "none",
       terminal: live?.arrival.terminal ?? null,
       gate: live?.arrival.gate ?? null,
@@ -344,7 +350,11 @@ export type JourneyWhere = {
   checked: string | null;
 };
 
-/** Legs that belong on your own spine: yours, and not dropped. */
+/**
+ * Legs that belong on your own spine: yours, not dropped, and with a route on
+ * record. A draft with no airports is not a trip — it renders as "? → ?" and it
+ * is not allowed to stand in front of a real flight.
+ */
 export function ownLegs(plans: FlightPlan[]): Leg[] {
   const mine = plans.filter(
     (p) =>
@@ -353,7 +363,7 @@ export function ownLegs(plans: FlightPlan[]): Leg[] {
   );
   const legs = mine.map((p) => legOf(p, p.leg_order ?? 0));
   return legs
-    .filter((l) => l.from.at || l.to.at)
+    .filter((l) => (l.from.at || l.to.at) && l.from.iata && l.to.iata)
     .sort((x, y) => new Date(x.from.at ?? x.to.at ?? 0).getTime() - new Date(y.from.at ?? y.to.at ?? 0).getTime())
     .map((l, i) => ({ ...l, order: i }));
 }
@@ -406,9 +416,26 @@ function makeJourney(legs: Leg[], now: Date = new Date()): Journey {
   return { id: legs.map((l) => l.plan_id).join("+"), legs, segments, title };
 }
 
-/** Journeys off your own plans, soonest first. */
-export function journeysFrom(plans: FlightPlan[]): Journey[] {
-  return groupJourneys(ownLegs(plans));
+/**
+ * Journeys off your own plans. A trip that is still ahead of you, or one you are
+ * on, comes before one that is over or that you said did not happen — a stopped
+ * leg from last week must not sit where tomorrow's flight belongs.
+ */
+export function journeysFrom(plans: FlightPlan[], now: Date = new Date()): Journey[] {
+  const all = groupJourneys(ownLegs(plans));
+  const rank = (j: Journey): number => {
+    const where = whereOnJourney(j, now);
+    if (where.kind === "stopped") return 3;
+    if (where.kind === "done") return 2;
+    const last = j.legs[j.legs.length - 1];
+    const end = last?.to.at ? new Date(last.to.at).getTime() : NaN;
+    if (Number.isFinite(end) && end < now.getTime() - 6 * 3_600_000) return 2;
+    return where.kind === "before" ? 1 : 0;
+  };
+  return all
+    .map((j, i) => ({ j, i, r: rank(j) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.j);
 }
 
 /** Where you are on this journey, and whose word says so. */
@@ -499,7 +526,9 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     legIndex: 0,
     iata: first?.from.iata || null,
     place: first?.from.iata ? airportWords(first.from.iata) : null,
-    words: `Not started. ${journey.title}${first?.from.at ? `, leaving ${first.from.at.slice(11, 16)}` : ""}.`,
+    /* The rail underneath carries the times, in the reader's own words. A raw
+       24-hour stamp here only confused people. */
+    words: `Not started. ${journey.title}.`,
     layover: null,
     nextLeg: first ?? null,
     checked,

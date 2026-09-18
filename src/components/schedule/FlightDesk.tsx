@@ -35,7 +35,7 @@ import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { formatInTimeZone } from "date-fns-tz";
+import { flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
 import {
   FLIGHT_LAW,
@@ -51,8 +51,8 @@ import {
 } from "@/lib/flightPlan";
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
-import { STATUS_LAW, readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
-import { TRAVEL_SENSE_LAW, clockShift, clockShiftNote, leaveForFlight } from "@/lib/travelSense";
+import { readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
+import { airportZone, anchorToZone, clockShift, leaveForFlight } from "@/lib/travelSense";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -111,10 +111,8 @@ export function FlightDesk() {
     noticeText,
     addByNumber,
   } = useFlightPlans();
-  const clock = (iso: string) => {
-    const d = new Date(iso);
-    return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "—";
-  };
+  /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
+  const clock = useMemo(() => flightClock(timezone), [timezone]);
 
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -230,9 +228,9 @@ export function FlightDesk() {
   };
 
   /**
-   * The arithmetic around a flight: when to leave, and what the clock does on
-   * arrival. Every cushion is stated, nothing is invented, and a leg with no
-   * filed time gets no leave-by line at all.
+   * The arithmetic around a flight: when to leave, and one line on what the clock
+   * does on arrival. Two lines at most — nobody needs a lecture on jet lag while
+   * they are working out what time to leave the house.
    */
   const senseLines = (plan: FlightPlan): string[] => {
     const snap = plan.live_status as LiveFlight | null;
@@ -242,15 +240,21 @@ export function FlightDesk() {
     };
     const from = code(snap?.departure.iata) ?? code(plan.origin);
     const to = code(snap?.arrival.iata) ?? code(plan.destination);
-    const departAt =
-      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null;
+    /* A ticket time is the wall clock where you take off. Anchored to that
+       airport's zone so the leave-by arithmetic is real, and read back in the
+       same local time you will be standing in. */
+    const departAt = anchorToZone(
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? plan.options[0]?.depart_at ?? null,
+      airportZone(from),
+    );
+    const there = flightClock(airportZone(from) ?? timezone);
 
     const out: string[] = [];
-    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, clock).words);
+    if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, there).words);
     const shift = clockShift(from, to);
-    if (shift) out.push(shift.words);
-    const note = clockShiftNote(shift);
-    if (note) out.push(note);
+    /* The clock difference, first sentence only. The advice that used to follow
+       it was never asked for. */
+    if (shift && shift.direction !== "same") out.push(`${shift.words.split(". ")[0]}.`);
     return out;
   };
 
@@ -680,8 +684,6 @@ export function FlightDesk() {
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-muted-foreground/80">{STATUS_LAW}</p>
-          <p className="text-[11px] text-muted-foreground/80">{TRAVEL_SENSE_LAW}</p>
         </Card>
       )}
 

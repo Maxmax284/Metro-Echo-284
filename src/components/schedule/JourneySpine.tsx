@@ -16,8 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { vantaToast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { airportWords } from "@/lib/airports";
+import { flightTimeWords } from "@/lib/flightClock";
+import { airportZone } from "@/lib/travelSense";
+import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
-  JOURNEY_LAW,
   OVERRIDE_CHOICES,
   OVERRIDE_WORDS,
   STATE_WORDS,
@@ -42,18 +44,17 @@ function readingWords(at: string | null): string {
   return hours < 24 ? `read ${hours}h ago` : `read ${Math.round(hours / 24)}d ago`;
 }
 
-function clock(at: string | null): string {
-  return at ? at.slice(11, 16) : "—";
-}
-
 function LegRow({
   leg,
   live,
+  clock,
   onOverride,
   onClearOverride,
 }: {
   leg: Leg;
   live: boolean;
+  /** Each end reads in the local time at that airport, the way a ticket does. */
+  clock: (at: string | null, iata: string | null) => string;
   onOverride: (state: LegStateKind) => Promise<void> | void;
   onClearOverride: () => Promise<void> | void;
 }) {
@@ -80,7 +81,7 @@ function LegRow({
         ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        {clock(leg.from.at)} → {clock(leg.to.at)}
+        {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)}
         {leg.from.terminal ? ` · terminal ${leg.from.terminal}` : ""}
         {leg.from.gate ? ` · gate ${leg.from.gate}` : " · no gate filed"}
       </p>
@@ -156,6 +157,11 @@ export function JourneySpine({
 }) {
   const numbers = bigNumbers(journey);
   const liveIndex = where?.legIndex ?? 0;
+  const { timezone } = useUserTimezone();
+  /* Times read the way a person says them — 1:15 AM tomorrow, not 01:15 — and in
+     the local time at that end of the leg, the way the ticket prints them. */
+  const clock = (at: string | null, iata: string | null) =>
+    at ? flightTimeWords(at, airportZone(iata) ?? timezone) : "not on record";
 
   return (
     <Card className="vanta-card space-y-4 p-4">
@@ -203,6 +209,7 @@ export function JourneySpine({
               key={`air-${seg.leg.plan_id}`}
               leg={seg.leg}
               live={journey.legs.indexOf(seg.leg) === liveIndex}
+              clock={clock}
               onOverride={(s) => onOverride(seg.leg.plan_id, s)}
               onClearOverride={() => onClearOverride(seg.leg.plan_id)}
             />
@@ -214,14 +221,15 @@ export function JourneySpine({
         )}
       </div>
 
+      {/* One caveat, not a wall of doctrine. The terminal board is the only line
+          that earns its place on a card you read while walking. */}
       <div className="space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-        <p>{JOURNEY_LAW}</p>
+        <p>Each time is the local time at that airport, the way your ticket prints it.</p>
         <p>{TERMINAL_CAVEAT}</p>
         {savedAt ? (
           <p className="flex items-center gap-1">
             <RadioTower className="h-3 w-3" aria-hidden />
-            Saved to this phone {readingWords(savedAt)} — it reads with no service, and every line is stamped with when
-            it was read.
+            Saved to this phone {readingWords(savedAt)}, so it reads with no service.
           </p>
         ) : null}
       </div>

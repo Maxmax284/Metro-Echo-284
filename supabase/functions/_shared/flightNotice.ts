@@ -240,7 +240,7 @@ export async function noticeFlights(
         booking_ref: recognition.booking_ref,
         traveller: recognition.travellers[0] ?? null,
       });
-      const patch = fillPatch(record, recon.fills);
+      const patch = fillPatch(record, recon.fills, { arrive_on: leg.arrive_on ?? null });
       /* The provenance trail grows; it is never replaced. Each source that
          contributed stays readable on the flight. */
       const previous = (filed.noticed_from ?? {}) as Record<string, unknown>;

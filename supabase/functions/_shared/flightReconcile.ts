@@ -139,7 +139,11 @@ export function reconcileFlight(
  * The database patch for the safe fills only. Returns null when there is
  * nothing to write, so a caller never issues an empty update.
  */
-export function fillPatch(filed: FiledFlight, fills: Fill[]): Record<string, unknown> | null {
+export function fillPatch(
+  filed: FiledFlight,
+  fills: Fill[],
+  seen: { arrive_on?: string | null } = {},
+): Record<string, unknown> | null {
   if (fills.length === 0) return null;
   const patch: Record<string, unknown> = {};
   const byKey = new Map(fills.map((f) => [f.key, f.value]));
@@ -153,10 +157,22 @@ export function fillPatch(filed: FiledFlight, fills: Fill[]): Record<string, unk
   if (depart || arrive) {
     /* A time is written onto the option it belongs to, on the day that is
        already on record. No day is invented here. */
+    /* An overnight flight lands on the next day. The evidence's own arrival day
+       wins; with none, a landing clock earlier than the take-off clock rolls one
+       day forward, which is arithmetic, not a guess. */
+    const arriveDay = (() => {
+      if (seen.arrive_on) return seen.arrive_on;
+      const dep = typeof depart === "string" ? depart : clockOf(filed.options[0]?.depart_at as string | null);
+      if (arrive && dep && arrive < dep) {
+        const t = Date.parse(`${filed.depart_on}T00:00:00Z`);
+        if (Number.isFinite(t)) return new Date(t + 86_400_000).toISOString().slice(0, 10);
+      }
+      return filed.depart_on;
+    })();
     patch.options = filed.options.map((o) => {
       const next = { ...o };
       if (depart && !next.depart_at) next.depart_at = `${filed.depart_on}T${depart}:00`;
-      if (arrive && !next.arrive_at) next.arrive_at = `${filed.depart_on}T${arrive}:00`;
+      if (arrive && !next.arrive_at) next.arrive_at = `${arriveDay}T${arrive}:00`;
       return next;
     });
   }
