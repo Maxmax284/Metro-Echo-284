@@ -441,11 +441,18 @@ export function useFlightPlans() {
     [user, withScope, load],
   );
 
-  /** One reading of where the flight actually is. Reads; never rebooks. */
+  /**
+   * One reading of where the flight actually is. Reads; never rebooks.
+   * `auto` marks the deck refreshing itself — the server holds those to the
+   * flight's own window and the day's allowance of airline checks.
+   */
   const checkStatus = useCallback(
-    async (plan: FlightPlan): Promise<{ words: string; news: string | null }> => {
+    async (
+      plan: FlightPlan,
+      opts?: { auto?: boolean },
+    ): Promise<{ words: string; news: string | null }> => {
       const { data, error: err } = await supabase.functions.invoke("flight-status", {
-        body: { plan_id: plan.id },
+        body: { plan_id: plan.id, auto: opts?.auto ? true : undefined },
       });
       if (err) {
         const detail =

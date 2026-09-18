@@ -131,9 +131,15 @@ export function FlightLive({
 
       <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
 
-      {/* Touchdown: the stamp, the local clock, the money, the number. */}
-      {phase === "landed" && (
-        <ArrivalStamp iata={live.arrival.iata} at={arrIso} homeZone={homeZone} />
+      {/* The ground you are heading for — its clock, its money, its number —
+          read from this flight's own arrival airport. Inked only once landed. */}
+      {live.arrival.iata && (
+        <ArrivalStamp
+          iata={live.arrival.iata}
+          at={arrIso}
+          homeZone={homeZone}
+          arrived={phase === "landed"}
+        />
       )}
     </div>
   );
