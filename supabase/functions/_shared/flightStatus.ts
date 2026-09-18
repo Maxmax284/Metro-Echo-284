@@ -67,10 +67,23 @@ export function normalizeAviationstack(
 ): LiveFlight | null {
   const rows = Array.isArray((payload as any)?.data) ? ((payload as any).data as any[]) : [];
   const want = ask.flight_no.replace(/\s+/g, "").toUpperCase();
-  const row =
-    rows.find((r) => str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want) ??
-    rows.find((r) => str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want) ??
-    null;
+  const day = (ask.flight_date ?? "").slice(0, 10);
+  const sameNumber = (r: any) =>
+    str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want ||
+    str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want;
+  /* The day matters as much as the number. A provider that refuses a date filter
+     hands back every recent run of this flight; grafting yesterday's run onto
+     tomorrow's ticket would invent a departure that already happened. When no
+     row carries the day asked about, the answer is nothing on record. */
+  const sameDay = (r: any) => {
+    const filed = str(r?.flight_date)?.slice(0, 10) ?? null;
+    if (filed) return filed === day;
+    const dep = str(r?.departure?.scheduled)?.slice(0, 10) ?? null;
+    return dep ? dep === day : false;
+  };
+  const row = day
+    ? (rows.find((r) => sameNumber(r) && sameDay(r)) ?? null)
+    : (rows.find(sameNumber) ?? null);
   if (!row) return null;
   return {
     flight_no: want,
