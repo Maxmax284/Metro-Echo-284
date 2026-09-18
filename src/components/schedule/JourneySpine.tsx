@@ -81,7 +81,7 @@ function LegRow({
         ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)} local
+        {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)}
         {leg.from.terminal ? ` · terminal ${leg.from.terminal}` : ""}
         {leg.from.gate ? ` · gate ${leg.from.gate}` : " · no gate filed"}
       </p>
