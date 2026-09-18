@@ -1434,10 +1434,22 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
   animation: flight-plane-hum 3.2s ease-in-out infinite;
 }
 
+@keyframes arrival-stamp-land {
+  0%   { transform: scale(1.5) rotate(-9deg); opacity: 0; }
+  60%  { transform: scale(0.97) rotate(-3.5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-3.5deg); opacity: 1; }
+}
+.arrival-stamp {
+  animation: arrival-stamp-land calc(520ms * var(--feel-k, 1)) var(--ease-out) both;
+  transform: rotate(-3.5deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .arrival-stamp,
   .solari-cell,
   .flight-arc-draw,
   .flight-radar-ping,
   .flight-plane-hum { animation: none !important; }
+  .arrival-stamp { transform: none !important; opacity: 1 !important; }
   .solari-cell { transform: none !important; opacity: 1 !important; }
 }

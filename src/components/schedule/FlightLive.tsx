@@ -49,11 +49,14 @@ export function FlightLive({
   live,
   checkedAt,
   clock,
+  homeZone,
   reading = false,
 }: {
   live: LiveFlight;
   checkedAt: string | null;
   clock: (iso: string) => string;
+  /** The clock Echo is keeping, so a landing can state the shift honestly. */
+  homeZone?: string | null;
   /** True while a fresh read is in flight — the deck breathes instead of freezing. */
   reading?: boolean;
 }) {
@@ -127,6 +130,11 @@ export function FlightLive({
       )}
 
       <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
+
+      {/* Touchdown: the stamp, the local clock, the money, the number. */}
+      {phase === "landed" && (
+        <ArrivalStamp iata={live.arrival.iata} at={arrIso} homeZone={homeZone} />
+      )}
     </div>
   );
 }
