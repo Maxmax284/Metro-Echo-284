@@ -35,7 +35,7 @@ import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { formatInTimeZone } from "date-fns-tz";
+import { flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
 import {
   FLIGHT_LAW,
@@ -111,10 +111,8 @@ export function FlightDesk() {
     noticeText,
     addByNumber,
   } = useFlightPlans();
-  const clock = (iso: string) => {
-    const d = new Date(iso);
-    return Number.isFinite(d.getTime()) ? formatInTimeZone(d, timezone, "HH:mm") : "—";
-  };
+  /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
+  const clock = useMemo(() => flightClock(timezone), [timezone]);
 
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
