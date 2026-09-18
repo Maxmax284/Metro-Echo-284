@@ -283,7 +283,7 @@ export async function createDraftDocument(opts: {
       title: opts.title || "Untitled draft",
       status: "drafting",
       template_key: opts.templateKey,
-      draft_inputs: opts.inputs ?? {},
+      draft_inputs: (opts.inputs ?? {}) as never,
       tone: opts.tone,
     })
     .select()

@@ -223,7 +223,10 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
         documentId,
         templateTitle: template?.promptTitle ?? doc.title,
         userMessage: template
-          ? template.buildUserMessage(doc.draft_inputs ?? {}, (doc.tone as any) ?? "warm")
+          ? template.buildUserMessage(
+              Object.fromEntries(Object.entries(doc.draft_inputs ?? {}).filter((entry): entry is [string, string] => typeof entry[1] === "string")),
+              (doc.tone as any) ?? "warm",
+            )
           : `Document: ${doc.title}`,
         revisionPrompt: prompt,
       });

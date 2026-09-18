@@ -8,6 +8,8 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
+import { streamAstraText } from "../_shared/aiResponses.ts";
+import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 
 
 const Body = z.object({
@@ -17,6 +19,13 @@ const Body = z.object({
   template_title: z.string().min(2).max(200),
   // optional follow-up. When present, we are revising the latest draft.
   revision_prompt: z.string().min(1).max(4_000).optional(),
+  evidence: z.array(z.object({
+    kind: z.enum(["note", "receipt"]),
+    id: z.string().uuid(),
+    label: z.string().min(1).max(240),
+    recordedAt: z.string(),
+  })).max(40).optional(),
+  draft_format: z.enum(["meeting_brief", "follow_up_memo"]).optional(),
 });
 
 Deno.serve(async (req: Request) => {
@@ -34,11 +43,16 @@ Deno.serve(async (req: Request) => {
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json({ error: parsed.error.flatten() }, 400);
-    const { document_id, user_message, template_title, revision_prompt } = parsed.data;
+    const { document_id, user_message, template_title, revision_prompt, evidence = [], draft_format } = parsed.data;
 
     const { data: doc } = await supabase
       .from("documents").select("*").eq("id", document_id).maybeSingle();
     if (!doc) return json({ error: "not_found" }, 404);
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -54,6 +68,13 @@ Deno.serve(async (req: Request) => {
 
     const isRevision = !!revision_prompt && !!latestVer?.body_text;
 
+    const evidenceBundle = isRevision
+      ? { text: "", refs: [] as Array<Record<string, string>>, truncated: false }
+      : await resolveEvidence(admin, user.id, doc.organization_id ?? null, evidence);
+    if (draft_format && !evidenceBundle.refs.some((ref) => ref.kind === "note")) {
+      return json({ ok: false, error: "Choose at least one accessible note." }, 400);
+    }
+
     await supabase.from("documents").update({ status: "drafting", failure_reason: null }).eq("id", document_id);
 
     const sys = `${VANTA_CORE_VOICE}
@@ -62,6 +83,9 @@ You draft business documents in plain English for an operator who is not a lawye
 - No legal cosplay. No jurisdiction-specific guarantees. No "as an AI".
 - Output Markdown only. Use real headings (##) and short paragraphs.
 - Where information is missing, write "[to be supplied]" instead of inventing facts.
+- Never invent attendees, decisions, owners, dates, promises, or outcomes.
+- When evidence is supplied, use only that evidence for factual claims.
+- Preserve source markers such as [N1] and [R1] beside the claims they support.
 - End with a short closing line: "This draft is for review. It is not legal advice."
 Template: ${template_title}.`;
 
@@ -79,30 +103,27 @@ Template: ${template_title}.`;
         ]
       : [
           { role: "system", content: sys },
-          { role: "user", content: user_message },
+          {
+            role: "user",
+            content: `${user_message}\n\n${draftInstructions(draft_format)}\n\nEVIDENCE:\n${evidenceBundle.text || "No evidence was supplied."}`,
+          },
         ];
 
-    const model = "google/gemini-2.5-flash";
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages }),
-    });
-    if (r.status === 429) {
-      await failDoc(supabase, document_id, user.id, "Echo is over its rate limit just now. Try again in a minute.");
-      return json({ ok: false, error: "rate_limited" }, 429);
+    const model = "openai/gpt-6-astra";
+    let generated: { text: string; runId?: string };
+    try {
+      generated = await streamAstraText({
+        apiKey: LOVABLE_API_KEY,
+        messages: messages as Array<{ role: "system" | "user" | "assistant"; content: string }>,
+        incomingRunId: req.headers.get("X-Lovable-AIG-Run-ID") ?? undefined,
+      });
+    } catch (error) {
+      const status = Number((error as { status?: number }).status ?? 500);
+      const message = error instanceof Error ? error.message : "Echo couldn't finish this draft.";
+      await failDoc(supabase, document_id, user.id, message);
+      return json({ ok: false, error: message }, status);
     }
-    if (r.status === 402) {
-      await failDoc(supabase, document_id, user.id, "Drafting credits are exhausted. Top up in Settings.");
-      return json({ ok: false, error: "credits_exhausted" }, 402);
-    }
-    if (!r.ok) {
-      await failDoc(supabase, document_id, user.id, "Echo couldn't finish this draft. Try again.");
-      return json({ ok: false, error: `ai_gateway_${r.status}` }, 500);
-    }
-
-    const j = await r.json();
-    const body: string = j.choices?.[0]?.message?.content ?? "";
+    const body = generated.text;
     if (!body.trim()) {
       await failDoc(supabase, document_id, user.id, "Echo's draft came back empty. Try again.");
       return json({ ok: false, error: "empty_output" }, 500);
@@ -123,7 +144,18 @@ Template: ${template_title}.`;
     if (verErr) throw verErr;
 
     await supabase.from("documents")
-      .update({ status: "drafted", failure_reason: null })
+      .update({
+        status: "drafted",
+        failure_reason: null,
+        ...(evidenceBundle.refs.length ? {
+          draft_inputs: {
+            ...(typeof doc.draft_inputs === "object" && doc.draft_inputs ? doc.draft_inputs : {}),
+            evidence: evidenceBundle.refs,
+            draft_format: draft_format ?? null,
+            evidence_truncated: evidenceBundle.truncated,
+          },
+        } : {}),
+      })
       .eq("id", document_id);
 
     await supabase.from("audit_log").insert({
@@ -131,10 +163,26 @@ Template: ${template_title}.`;
       entity_type: "document",
       entity_id: document_id,
       event: isRevision ? "document.draft_revised" : "document.draft_created",
-      payload: { version_id: version.id, version_no: nextVersionNo, model },
+      payload: {
+        version_id: version.id,
+        version_no: nextVersionNo,
+        model,
+        evidence: evidenceBundle.refs,
+        evidence_truncated: evidenceBundle.truncated,
+        draft_format: draft_format ?? null,
+        run_id: generated.runId ?? null,
+      },
     });
 
-    return json({ ok: true, version_id: version.id, version_no: nextVersionNo });
+    if (!isRevision) await publishDraftReady(admin, {
+      userId: user.id,
+      organizationId: doc.organization_id ?? null,
+      documentId: document_id,
+      title: doc.title || template_title,
+      versionNo: nextVersionNo,
+    });
+
+    return json({ ok: true, version_id: version.id, version_no: nextVersionNo }, 200, generated.runId);
   } catch (e) {
     console.error("[documents-draft] error", e);
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
@@ -151,9 +199,132 @@ async function failDoc(supabase: any, document_id: string, user_id: string, reas
   });
 }
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, runId?: string) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+      ...(runId ? { "X-Lovable-AIG-Run-ID": runId, "Access-Control-Expose-Headers": "X-Lovable-AIG-Run-ID" } : {}),
+    },
   });
+}
+
+function draftInstructions(kind?: "meeting_brief" | "follow_up_memo"): string {
+  if (kind === "meeting_brief") {
+    return "Write a meeting brief with: What was discussed, Decisions, Owners and dates, Open questions, and Sources used. Omit an empty section except Sources used.";
+  }
+  if (kind === "follow_up_memo") {
+    return "Write a polished follow-up memo with: Subject, concise recap, confirmed decisions, next steps with owners/dates, open questions, and Sources used. It must remain a draft and must not claim it was sent.";
+  }
+  return "Follow the selected business-document template.";
+}
+
+async function resolveEvidence(
+  admin: any,
+  userId: string,
+  organizationId: string | null,
+  refs: Array<{ kind: "note" | "receipt"; id: string }>,
+): Promise<{ text: string; refs: Array<Record<string, string>>; truncated: boolean }> {
+  if (!refs.length) return { text: "", refs: [], truncated: false };
+  const noteIds = refs.filter((ref) => ref.kind === "note").map((ref) => ref.id);
+  const receiptIds = refs.filter((ref) => ref.kind === "receipt").map((ref) => ref.id);
+  const noteQuery = admin.from("notes").select("id,title,body,created_at,organization_id").eq("user_id", userId).in("id", noteIds.length ? noteIds : [crypto.randomUUID()]);
+  const receiptQuery = admin.from("audit_log").select("id,event,entity_type,entity_id,payload,created_at,organization_id").eq("user_id", userId).in("id", receiptIds.length ? receiptIds : [crypto.randomUUID()]);
+  if (organizationId) {
+    noteQuery.eq("organization_id", organizationId);
+    receiptQuery.eq("organization_id", organizationId);
+  } else {
+    noteQuery.is("organization_id", null);
+    receiptQuery.is("organization_id", null);
+  }
+  const [{ data: notes }, { data: receipts }] = await Promise.all([noteQuery, receiptQuery]);
+  if ((notes ?? []).length !== noteIds.length || (receipts ?? []).length !== receiptIds.length) {
+    throw Object.assign(new Error("One or more evidence sources are unavailable in this room."), { status: 403 });
+  }
+  const byNote = new Map((notes ?? []).map((row: any) => [row.id, row]));
+  const byReceipt = new Map((receipts ?? []).map((row: any) => [row.id, row]));
+  const blocks: string[] = [];
+  const validated: Array<Record<string, string>> = [];
+  let chars = 0;
+  let truncated = false;
+  let noteNo = 0;
+  let receiptNo = 0;
+  for (const ref of refs) {
+    const row = ref.kind === "note" ? byNote.get(ref.id) : byReceipt.get(ref.id);
+    if (!row) continue;
+    const marker = ref.kind === "note" ? `N${++noteNo}` : `R${++receiptNo}`;
+    const label = ref.kind === "note" ? String(row.title || "Untitled note") : String(row.event).replace(/[._]/g, " ");
+    const raw = ref.kind === "note"
+      ? String(row.body ?? "")
+      : JSON.stringify({ event: row.event, entity_type: row.entity_type, entity_id: row.entity_id, created_at: row.created_at, payload: row.payload ?? {} });
+    const remaining = Math.max(0, 48_000 - chars);
+    const excerpt = raw.slice(0, Math.min(remaining, ref.kind === "note" ? 14_000 : 4_000));
+    if (excerpt.length < raw.length) truncated = true;
+    chars += excerpt.length;
+    blocks.push(`[${marker}] ${label}\nRecorded: ${row.created_at}\n${excerpt || "[no readable text]"}`);
+    validated.push({ kind: ref.kind, id: ref.id, label, recordedAt: row.created_at, marker });
+    if (chars >= 48_000) { truncated = true; break; }
+  }
+  if (truncated) blocks.push("[SOURCE LIMIT] Some selected source text was truncated. Do not infer what was omitted.");
+  return { text: blocks.join("\n\n---\n\n"), refs: validated, truncated };
+}
+
+async function publishDraftReady(admin: any, input: {
+  userId: string; organizationId: string | null; documentId: string; title: string; versionNo: number;
+}): Promise<void> {
+  const dedupe = `document_draft_ready:${input.documentId}:v${input.versionNo}`;
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: nudge, error } = await admin.from("nudges").upsert({
+    user_id: input.userId,
+    organization_id: input.organizationId,
+    kind: "document_draft_ready",
+    title: `${input.title} is ready to review`,
+    body: "Open the grounded draft. Nothing has been approved, sent, or shared.",
+    related_entity_type: "document",
+    related_entity_id: input.documentId,
+    priority: 72,
+    status: "pending",
+    dedupe_key: dedupe,
+    expires_at: expiresAt,
+  }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true }).select("id").maybeSingle();
+  if (error) throw error;
+
+  const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "").replace(/\/$/, "");
+  const url = base ? `${base}/documents?document=${input.documentId}&ack=telegram` : null;
+  const deliveryKey = `nudge:${dedupe}`;
+  const { error: claimError } = await admin.from("deliveries").insert({
+    user_id: input.userId,
+    organization_id: input.organizationId,
+    situation_kind: "nudge.document_draft_ready",
+    situation_id: input.documentId,
+    dedupe_key: deliveryKey,
+    surface: "messaging",
+    urgency: "attention",
+    sensitivity: "ordinary",
+    because: "the person asked for draft-ready Telegram links",
+    headline: `${input.title} is ready to review`,
+    status: "sent",
+  });
+  if (claimError) return; // Existing claim means this version already spoke.
+  const chatId = await chatIdForUser(admin, input.userId);
+  if (!chatId || !url) return;
+  const result = await sendTelegram({
+    admin,
+    userId: input.userId,
+    organizationId: input.organizationId,
+    chatId,
+    text: `${input.title} is ready to review.\n\nIt was drafted from the notes and receipts you selected. Nothing was approved, sent, or shared.`,
+    replyMarkup: { inline_keyboard: [[
+      { text: "Review", url: `${url}&mode=review` },
+      { text: "Open in Work", url },
+    ]] },
+    kind: "notice",
+    entityType: "document",
+    entityId: input.documentId,
+    auditEvent: "document.draft_reached_telegram",
+    auditFailedEvent: "document.draft_telegram_failed",
+    auditPayload: { nudge_id: nudge?.id ?? null, dedupe_key: dedupe },
+  });
+  if (!result.ok) await admin.from("deliveries").update({ status: "failed", failure: result.reason }).eq("user_id", input.userId).eq("dedupe_key", deliveryKey);
 }
