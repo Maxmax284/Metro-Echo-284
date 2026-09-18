@@ -241,34 +241,63 @@ export async function noticeFlights(
         traveller: recognition.travellers[0] ?? null,
       });
       const patch = fillPatch(record, recon.fills);
-      if (patch) {
-        /* The provenance trail grows; it is never replaced. Each source that
-           contributed stays readable on the flight. */
-        const previous = (filed.noticed_from ?? {}) as Record<string, unknown>;
-        const sources = Array.isArray(previous.sources) ? (previous.sources as unknown[]) : [];
+      /* The provenance trail grows; it is never replaced. Each source that
+         contributed stays readable on the flight. */
+      const previous = (filed.noticed_from ?? {}) as Record<string, unknown>;
+      const nowIso = new Date().toISOString();
+      const nextNoticed: Record<string, unknown> = { ...previous };
+      /* Where it was booked is provenance: recorded when it is blank, never
+         rewritten, and never used as a status. */
+      const bookingFilled =
+        recognition.booking && !previous.booking
+          ? ((nextNoticed.booking = recognition.booking), true)
+          : false;
+      /* A disagreement is kept on the flight so it can be settled where the
+         flight lives. Nothing here writes the disputed field. */
+      if (recon.conflicts.length) {
+        const open = Array.isArray(previous.conflicts)
+          ? (previous.conflicts as Array<Record<string, unknown>>)
+          : [];
+        const added = recon.conflicts
+          .filter((c) => !open.some((o) => o.key === c.key && o.seen === c.seen))
+          .map((c) => ({
+            key: c.key,
+            filed: c.filed,
+            seen: c.seen,
+            words: c.words,
+            source_words: SOURCE_WORDS[input.source],
+            at: nowIso,
+          }));
+        nextNoticed.conflicts = [...open, ...added];
+      }
+      /* A sentence that makes something wait on this flight is kept as words.
+         It becomes a promise only when the person says so. */
+      if (recognition.condition && !previous.condition) {
+        nextNoticed.condition = { ...recognition.condition, at: nowIso, kept_at: null };
+      }
+      if (patch || bookingFilled || recon.conflicts.length || nextNoticed.condition !== previous.condition) {
+        const filledKeys = [...recon.fills.map((f) => f.key), ...(bookingFilled ? ["booking"] : [])];
+        nextNoticed.sources = [
+          ...(Array.isArray(previous.sources) ? (previous.sources as unknown[]) : []),
+          {
+            source: input.source,
+            source_words: SOURCE_WORDS[input.source],
+            origin_ref: input.origin_ref ?? null,
+            filled: filledKeys,
+            line: leg.line,
+            at: nowIso,
+          },
+        ];
         const { error: upErr } = await sb
           .from("flight_plans")
-          .update({
-            ...patch,
-            noticed_from: {
-              ...previous,
-              sources: [
-                ...sources,
-                {
-                  source: input.source,
-                  source_words: SOURCE_WORDS[input.source],
-                  origin_ref: input.origin_ref ?? null,
-                  filled: recon.fills.map((f) => f.key),
-                  line: leg.line,
-                  at: new Date().toISOString(),
-                },
-              ],
-            },
-          })
+          .update({ ...(patch ?? {}), noticed_from: nextNoticed })
           .eq("id", record.id);
         if (upErr) console.error("flightNotice fill", upErr.message);
-        else {
-          result.filled.push(...recon.fills.map((f) => f.words));
+        else if (patch || bookingFilled) {
+          result.filled.push(
+            ...recon.fills.map((f) => f.words),
+            ...(bookingFilled ? [recognition.booking!.words] : []),
+          );
           await sb.from("audit_log").insert({
             user_id: scope.userId,
             organization_id: scope.orgId,
@@ -279,12 +308,16 @@ export async function noticeFlights(
               flight_no: leg.flight_no,
               source: input.source,
               origin_ref: input.origin_ref ?? null,
-              filled: recon.fills.map((f) => ({ fact: f.key, value: f.value })),
+              filled: [
+                ...recon.fills.map((f) => ({ fact: f.key, value: f.value })),
+                ...(bookingFilled ? [{ fact: "booking", value: recognition.booking!.words }] : []),
+              ],
               overwritten: [],
             },
           });
         }
       }
+      if (recognition.condition) await noticeCondition(sb, scope, record.id, leg.flight_no, recognition.condition);
       if (recon.conflicts.length) {
         result.conflicts.push(...recon.conflicts.map((c) => c.words));
         await sb.from("audit_log").insert({
