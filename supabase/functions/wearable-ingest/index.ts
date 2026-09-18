@@ -42,7 +42,12 @@ async function speakIfMoved(admin: any, userId: string, kinds: string[]) {
     .order("measured_at", { ascending: false })
     .limit(2000);
 
-  const news = bodyNews((rows ?? []) as never, kinds);
+  /* Height comes from the About-you card, never from a guess. Missing height
+     simply means the note carries no BMI line. */
+  const heightCm = Number(((prefs.body_profile ?? {}) as Record<string, unknown>).n);
+  const news = bodyNews((rows ?? []) as never, kinds, {
+    heightCm: Number.isFinite(heightCm) ? heightCm : null,
+  });
   if (!news) return;
 
   const { data: nudgeRow } = await admin.from("nudges").insert({
