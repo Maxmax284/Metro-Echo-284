@@ -310,6 +310,7 @@ export function FlightDesk() {
 
       {/* The trip you are actually on comes before anything you might add. */}
       {journey.current ? (
+        <>
         <JourneySpine
           journey={journey.current}
           where={journey.where}
