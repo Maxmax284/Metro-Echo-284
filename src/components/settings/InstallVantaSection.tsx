@@ -24,7 +24,7 @@ export function InstallVantaSection({ alwaysShow = false }: { alwaysShow?: boole
     else toast("Install isn't available from this browser right now. Try opening Metro Echo in Chrome.");
   };
 
-  if (standalone && !installed) {
+  if (standalone && !installed && !alwaysShow) {
     // Standalone signal trumps stale installed flag.
     return null;
   }
