@@ -20,6 +20,8 @@ import {
   ingestBodyTemplate,
   HEALTH_PUSH_TRUTH,
   SETUP_RECIPES,
+  WATCH_RECIPES,
+  UNLISTED_WATCH_LINE,
   type AutoSendState,
 } from "@/lib/wearableAutoSend";
 
@@ -40,6 +42,8 @@ export function AutoSendPanel() {
   const [link, setLink] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [platform, setPlatform] = useState<"iphone" | "android">("iphone");
+  const [watchKey, setWatchKey] = useState<string>(WATCH_RECIPES[0].key);
+  const watch = WATCH_RECIPES.find((w) => w.key === watchKey) ?? WATCH_RECIPES[0];
 
   const health = useMemo(
     () => autoSendHealth(loop.readings, loop.consent.activity === true),
@@ -189,6 +193,42 @@ export function AutoSendPanel() {
             </li>
           ))}
         </ol>
+      </div>
+
+      {/* Which watch */}
+      <div className="mt-2 vanta-inset px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <RadioTower className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <MachineLabel className="text-foreground/70">Your watch</MachineLabel>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {WATCH_RECIPES.map((w) => (
+            <button
+              key={w.key}
+              type="button"
+              onClick={() => setWatchKey(w.key)}
+              aria-pressed={watchKey === w.key}
+              className={cn(btnClass, watchKey === w.key && "border-primary/50 text-foreground")}
+            >
+              {w.title}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">Phone app: {watch.app}</p>
+        <ol className="mt-2 space-y-1.5">
+          {watch.steps.map((s, i) => (
+            <li key={s} className="flex gap-2 text-[11.5px] leading-snug text-foreground/90">
+              <MachineText className="mt-[1px] shrink-0 text-[10px] text-primary">
+                {String(i + 1).padStart(2, "0")}
+              </MachineText>
+              <span>{s}</span>
+            </li>
+          ))}
+        </ol>
+        {watch.broadcast ? (
+          <p className="mt-2 text-[11.5px] leading-snug text-foreground/90">{watch.broadcast}</p>
+        ) : null}
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">{UNLISTED_WATCH_LINE}</p>
       </div>
 
       {/* The exact body */}
