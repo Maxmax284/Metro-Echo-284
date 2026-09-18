@@ -22,6 +22,7 @@ import { FirstRunWalkthrough } from "@/components/tutorial/FirstRunWalkthrough";
 import { ActivityProvider } from "@/components/workstatus/ActivityStore";
 import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
+import { PlaceSkin } from "@/components/shell/PlaceSkin";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { useDeliveryAck } from "@/hooks/useDeliveryAck";
@@ -80,6 +81,7 @@ const App = () => {
                   <CurrentContextProvider>
                    <VantaContextProvider>
                     <AwarenessProvider>
+                      <PlaceSkin />
                       <WorkspaceProvider>
                        <AskThreadProvider>
                         <CompanionProvider>
