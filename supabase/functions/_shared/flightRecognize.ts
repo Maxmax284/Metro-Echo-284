@@ -355,8 +355,83 @@ export function recognizeFlights(
     legs,
     booking_ref: ref ? ref[1].toUpperCase() : null,
     travellers: readTravellers(whole),
+    booking: readBookingSource(whole),
+    condition: readCondition(whole),
     unread,
   };
+}
+
+/* Booking sites Echo can name from a screenshot. Naming one is provenance, not
+   a connection: nothing here is ever called, signed into, or trusted for a
+   status. A site that is not on this table stays unnamed rather than guessed. */
+export const BOOKING_SITES: Record<string, string> = {
+  priceline: "Priceline",
+  expedia: "Expedia",
+  orbitz: "Orbitz",
+  travelocity: "Travelocity",
+  kayak: "Kayak",
+  "booking.com": "Booking.com",
+  agoda: "Agoda",
+  "trip.com": "Trip.com",
+  kiwi: "Kiwi.com",
+  "google flights": "Google Flights",
+  "chase travel": "Chase Travel",
+  "capital one travel": "Capital One Travel",
+  gotogate: "Gotogate",
+  edreams: "eDreams",
+};
+
+const TRIP_REF_RE =
+  /\b(?:trip|itinerary|order)\s*(?:number|no\.?|#|id)?\s*[:#\-–]?\s*([0-9]{8,18})\b/i;
+
+/**
+ * Where it was booked, read off the page. Either half can be missing: a trip
+ * number with no site still records, and a site with no number still records.
+ */
+export function readBookingSource(text: string | null | undefined): BookingSource | null {
+  const whole = (text ?? "").replace(/\r/g, "");
+  if (!whole.trim()) return null;
+  const low = whole.toLowerCase();
+  let site: string | null = null;
+  for (const [needle, name] of Object.entries(BOOKING_SITES)) {
+    if (low.includes(needle)) {
+      site = name;
+      break;
+    }
+  }
+  const trip = whole.match(TRIP_REF_RE);
+  const trip_ref = trip ? trip[1] : null;
+  if (!site && !trip_ref) return null;
+  const words = site
+    ? trip_ref
+      ? `Booked through ${site} — trip ${trip_ref}.`
+      : `Booked through ${site}.`
+    : `Booking site trip number ${trip_ref}.`;
+  return { site, trip_ref, words };
+}
+
+const CONDITION_RE =
+  /\b(only (?:after|once|when)|after (?:we|you|I) know|wait (?:until|for|till)|don'?t book (?:until|unless)|do not book (?:until|unless)|before (?:we|you|I) book|hold off (?:until|till))\b/i;
+
+/**
+ * One sentence around the evidence that makes something wait on this flight.
+ * Read as words only. It becomes a promise when the person says so — never
+ * from the reading alone.
+ */
+export function readCondition(text: string | null | undefined): RecognizedCondition | null {
+  const whole = (text ?? "").replace(/\s+/g, " ").trim();
+  if (!whole) return null;
+  const sentences = whole.split(/(?<=[.!?])\s+/);
+  for (const raw of sentences) {
+    const s = raw.trim();
+    if (s.length < 12 || s.length > 300) continue;
+    const hit = s.match(CONDITION_RE);
+    if (!hit) continue;
+    /* It has to be waiting on something travel-shaped, or it is just talk. */
+    if (!/\b(flight|arriv|land|delay|connection|on[- ]time|depart)/i.test(s)) continue;
+    return { words: s, because: hit[1].toLowerCase() };
+  }
+  return null;
 }
 
 /** Does this text read like travel evidence at all? Cheap, before any cost. */
