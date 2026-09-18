@@ -399,6 +399,11 @@ export async function noticeFlights(
           confidence: relation.confidence,
           line: leg.line,
           noticed_at: new Date().toISOString(),
+          /* Where it was booked, when the page named it. Provenance only. */
+          booking: recognition.booking ?? null,
+          condition: recognition.condition
+            ? { ...recognition.condition, at: new Date().toISOString(), kept_at: null }
+            : null,
         },
       })
       .select("id")
