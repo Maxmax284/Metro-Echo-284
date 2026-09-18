@@ -1339,6 +1339,61 @@ html[data-room="settings"] .vanta-bd-wall {
   }
 }
 
+/* ---- Layer 0.6: the district ---------------------------------------------
+   Where you are standing, painted behind the room's own tag. One tag per room
+   still holds: this layer is light, texture and colour temperature, blended at
+   street-art weight and masked out of the reading middle. It never animates and
+   it never carries information — the words always say where you are. */
+.vanta-bd-place {
+  opacity: var(--bd-place, 0);
+  mix-blend-mode: overlay;
+  background-repeat: no-repeat, no-repeat;
+  background-size: auto, cover;
+  background-position: center, center center;
+  transition: opacity 1200ms var(--ease-out), background-image 1200ms var(--ease-out);
+  mask-image: radial-gradient(128% 100% at 50% 46%, hsl(0 0% 0% / 0.06) 30%, #000 78%);
+  -webkit-mask-image: radial-gradient(128% 100% at 50% 46%, hsl(0 0% 0% / 0.06) 30%, #000 78%);
+}
+
+/* Taipei — wet alley, night-market neon in the puddles. */
+html[data-place="taipei"] .vanta-bd-place {
+  --bd-place: 0.2;
+  background-image:
+    radial-gradient(60% 46% at 88% 92%, hsl(318 88% 60% / 0.2), transparent 70%),
+    var(--bd-place-taipei, none);
+  filter: saturate(1.2) contrast(1.04);
+}
+
+/* Bangkok — warm wildstyle spray, gold ink, tropical heat. */
+html[data-place="bangkok"] .vanta-bd-place {
+  --bd-place: 0.18;
+  background-image:
+    radial-gradient(58% 44% at 10% 90%, hsl(38 92% 58% / 0.2), transparent 70%),
+    var(--bd-place-bangkok, none);
+  filter: saturate(1.14) contrast(1.03);
+}
+
+/* Tokyo — cyber stencil, pixel grid, one red accent. */
+html[data-place="tokyo"] .vanta-bd-place {
+  --bd-place: 0.17;
+  background-image:
+    radial-gradient(52% 40% at 92% 12%, hsl(0 84% 58% / 0.16), transparent 70%),
+    var(--bd-place-tokyo, none);
+  filter: saturate(0.94) contrast(1.06);
+}
+
+/* Narrow screens: pull the district into frame rather than showing empty wall. */
+@media (max-width: 640px) {
+  .vanta-bd-place {
+    background-size: auto, auto 108%;
+    background-position: center, 62% center;
+  }
+}
+
+/* Concrete stays cold, and a quiet day dims the district first. */
+html[data-skin="concrete"] .vanta-bd-place { filter: saturate(0.4) contrast(1.06); }
+html[data-ambient="off"] .vanta-bd-place { opacity: 0; }
+
 /* Concrete has no glow, so the wall reads heavier and colder there. */
 html[data-skin="concrete"] .vanta-bd-wall { filter: saturate(0.35) contrast(1.1); }
 

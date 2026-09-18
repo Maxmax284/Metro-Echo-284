@@ -12,6 +12,11 @@ import workWall from "@/assets/wall-work-railyard.jpg";
 import askWall from "@/assets/wall-ask-alley.jpg";
 import receiptsWall from "@/assets/wall-receipts-pasteup.jpg";
 import settingsWall from "@/assets/wall-settings-door.jpg";
+/* City walls — the district you are standing in, layered behind the room's own
+   tag at low opacity. They shift only when the recorded place shifts. */
+import taipeiWall from "@/assets/place-wall-taipei.jpg";
+import bangkokWall from "@/assets/place-wall-bangkok.jpg";
+import tokyoWall from "@/assets/place-wall-tokyo.jpg";
 
 export function AmbientBackdrop() {
   return (
@@ -25,6 +30,9 @@ export function AmbientBackdrop() {
           "--bd-wall-ask": `url(${askWall})`,
           "--bd-wall-receipts": `url(${receiptsWall})`,
           "--bd-wall-settings": `url(${settingsWall})`,
+          "--bd-place-taipei": `url(${taipeiWall})`,
+          "--bd-place-bangkok": `url(${bangkokWall})`,
+          "--bd-place-tokyo": `url(${tokyoWall})`,
         } as React.CSSProperties
       }
     >
@@ -35,6 +43,8 @@ export function AmbientBackdrop() {
       <div className="vanta-bd-wash" />
       {/* One painted wall per room — static, edge-weighted, behind everything. */}
       <div className="vanta-bd-wall" />
+      {/* The district. Only present when the recorded place has a kept wall. */}
+      <div className="vanta-bd-place" />
       <div className="vanta-bd-grid" />
       <div className="vanta-bd-streaks" />
       <div className="vanta-bd-traces" />
