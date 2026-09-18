@@ -42,6 +42,8 @@ export function AutoSendPanel() {
   const [link, setLink] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [platform, setPlatform] = useState<"iphone" | "android">("iphone");
+  const [watchKey, setWatchKey] = useState<string>(WATCH_RECIPES[0].key);
+  const watch = WATCH_RECIPES.find((w) => w.key === watchKey) ?? WATCH_RECIPES[0];
 
   const health = useMemo(
     () => autoSendHealth(loop.readings, loop.consent.activity === true),
