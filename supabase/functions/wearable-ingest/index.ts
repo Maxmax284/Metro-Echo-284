@@ -162,6 +162,11 @@ Deno.serve(async (req: Request) => {
       payload: { stored: rows.length, kinds: [...new Set(rows.map((r) => r.kind))] },
     });
 
+    /* Storing is the job; speaking is only allowed when something moved. A
+       failure here must never lose the readings that already landed. */
+    await speakIfMoved(admin, userId, [...new Set(rows.map((r) => r.kind))])
+      .catch((e) => console.error("wearable-ingest speak", e));
+
     return json({
       ok: true,
       stored: rows.length,
