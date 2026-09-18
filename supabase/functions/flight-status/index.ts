@@ -12,10 +12,34 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
+const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
+/* Automatic readings are only allowed close to the flight. Outside that window
+   the deck keeps drawing the last stamped reading rather than paying again. */
+const AUTO_BEFORE_MS = 30 * 60 * 60_000;
+const AUTO_AFTER_MS = 4 * 60 * 60_000;
+
+/** True when an unattended reading is fair to pay for on this plan, right now. */
+function insideAutoWindow(plan: any, previous: LiveFlight | null, now: number): boolean {
+  const options = Array.isArray(plan?.options) ? (plan.options as any[]) : [];
+  const chosen = options.find((o) => o.id === plan?.chosen_option_id) ?? options[0] ?? null;
+  const dep =
+    previous?.departure?.actual ??
+    previous?.departure?.estimated ??
+    previous?.departure?.scheduled ??
+    chosen?.depart_at ??
+    (plan?.depart_on ? `${String(plan.depart_on).slice(0, 10)}T00:00:00Z` : null);
+  const arr = previous?.arrival?.actual ?? previous?.arrival?.estimated ?? previous?.arrival?.scheduled ?? null;
+  const depMs = dep ? Date.parse(dep) : NaN;
+  if (!Number.isFinite(depMs)) return false;
+  const endMs = arr && Number.isFinite(Date.parse(arr)) ? Date.parse(arr) : depMs + 20 * 60 * 60_000;
+  return now >= depMs - AUTO_BEFORE_MS && now <= endMs + AUTO_AFTER_MS;
+}
 const FRESH_MS = 5 * 60_000;
 
 const BodySchema = z.object({
   probe: z.boolean().optional(),
+  /** The deck refreshing itself rather than a person tapping. Budget-bound. */
+  auto: z.boolean().optional(),
   plan_id: z.string().uuid().optional(),
   flight_no: z.string().min(3).max(8).optional(),
   flight_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -75,7 +99,7 @@ Deno.serve(async (req) => {
   try {
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
-    const { probe, plan_id } = parsed.data;
+    const { probe, plan_id, auto } = parsed.data;
 
     /* The app asks once whether a provider exists at all, so the capability
        panel can say live or needs connecting without ever guessing. */
@@ -129,11 +153,62 @@ Deno.serve(async (req) => {
       return json({ error: "need_flight", message: "A flight number and a date are needed." }, 400);
     }
 
+    /* An unattended refresh is held to the flight's own window, so the deck
+       cannot quietly read a flight that is weeks away. */
+    if (auto && plan && !insideAutoWindow(plan, previous, Date.now())) {
+      return json({
+        live: previous,
+        words: previous ? statusWords(previous) : "Too early for an automatic airline check on this flight.",
+        news: null,
+        auto_held: "outside_window",
+        law: STATUS_LAW,
+      });
+    }
+
+    /* The day's ledger of paid readings — the ceiling nothing reads past. */
+    const dayStart = new Date().toISOString().slice(0, 10);
+    const { count: spentToday } = await asUser
+      .from("api_usage_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("provider", "aviationstack")
+      .eq("cache_hit", false)
+      .gte("created_at", `${dayStart}T00:00:00Z`);
+    if ((spentToday ?? 0) >= DAILY_BUDGET) {
+      return json({
+        live: previous,
+        words: previous
+          ? `${statusWords(previous)} Today's airline checks are used up, so this is the last reading on record.`
+          : "Today's airline checks are used up. Nothing is wrong with the flight — Echo just cannot ask again until tomorrow.",
+        news: null,
+        budget_spent: true,
+        law: STATUS_LAW,
+      });
+    }
+
     const live = await askProvider(flight_no, flight_date);
+    await asUser.from("api_usage_logs").insert({
+      owner_id: user.id,
+      user_id: user.id,
+      provider: "aviationstack",
+      feature: auto ? "flight-deck-auto" : "flight-status",
+      request_type: "flight_status",
+      status: live ? "ok" : "empty",
+      cache_hit: false,
+      related_entity_type: plan ? "flight_plan" : null,
+      related_entity_id: plan?.id ?? null,
+    } as never);
     if (!live) {
+      /* Stamp the attempt even though it carried nothing, so the deck knows it
+         asked and does not pay to ask again a moment later. */
+      if (plan) {
+        await asUser
+          .from("flight_plans")
+          .update({ live_checked_at: new Date().toISOString() })
+          .eq("id", plan.id);
+      }
       return json({
         live: null,
-        words: `${flight_no} on ${flight_date} — the provider carries nothing for it. That is what it said, not that the flight is fine.`,
+        words: `${flight_no} on ${flight_date} — the provider carries nothing for it yet. That is what it said, not that the flight is wrong.`,
         news: null,
         law: STATUS_LAW,
       });
@@ -146,14 +221,18 @@ Deno.serve(async (req) => {
         .from("flight_plans")
         .update({ live_status: live as never, live_checked_at: live.checked_at })
         .eq("id", plan.id);
-      await asUser.from("audit_log").insert({
-        user_id: user.id,
-        organization_id: plan.organization_id ?? null,
-        entity_type: "flight_plan",
-        entity_id: plan.id,
-        event: "flight.status_read",
-        payload: { flight_no, flight_date, status: live.status, changed: news, bought: false },
-      } as never);
+      /* A receipt for every asked reading, and for an unattended one only when
+         it actually changed something. Otherwise the log would fill with "same". */
+      if (!auto || news) {
+        await asUser.from("audit_log").insert({
+          user_id: user.id,
+          organization_id: plan.organization_id ?? null,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.status_read",
+          payload: { flight_no, flight_date, status: live.status, changed: news, auto: !!auto, bought: false },
+        } as never);
+      }
     }
 
     return json({ live, words: statusWords(live), news, law: STATUS_LAW });

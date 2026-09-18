@@ -30,9 +30,11 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useJourney } from "@/hooks/useJourney";
+import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
+import { ArrivalStamp } from "./ArrivalStamp";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { flightClock } from "@/lib/flightClock";
@@ -135,6 +137,10 @@ export function FlightDesk() {
 
   /* The journey is derived from the same plans — no second source of truth. */
   const journey = useJourney(plans, refresh);
+
+  /* Near a flight, the deck keeps its own reading current while you are looking
+     at it — one flight at a time, held to the day's allowance of airline checks. */
+  const { readingPlanId } = useFlightTelemetry(plans, checkStatus);
 
   const asked = plans.filter((p) => p.ownership === "unknown" && p.status === "prepared");
   const open = plans.filter((p) => p.status === "prepared" && p.ownership !== "unknown" && p.ownership !== "theirs");
@@ -256,6 +262,21 @@ export function FlightDesk() {
        it was never asked for. */
     if (shift && shift.direction !== "same") out.push(`${shift.words.split(". ")[0]}.`);
     return out;
+  };
+
+  /**
+   * Where this flight puts you down — its clock, its money, its emergency
+   * number — taken from the flight's own arrival airport. Shown from the ticket
+   * alone, so it does not wait on the airline feed. The live deck inks its own
+   * stamp once a reading exists, so this stands in only until then.
+   */
+  const groundAhead = (plan: FlightPlan) => {
+    if (plan.live_status) return null;
+    const to = (plan.destination ?? "").trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(to)) return null;
+    const at = anchorToZone(plan.options.find((o) => o.arrive_at)?.arrive_at ?? null, airportZone(to));
+    if (!at) return null;
+    return <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />;
   };
 
   const liveLine = (plan: FlightPlan): string | null => {
@@ -555,9 +576,10 @@ export function FlightDesk() {
                       checkedAt={p.live_checked_at ?? null}
                       clock={clock}
                       homeZone={timezone}
-                      reading={busy}
+                      reading={busy || readingPlanId === p.id}
                     />
                   )}
+                  {groundAhead(p)}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
                     <p key={line} className="text-[11.5px] text-muted-foreground">
@@ -652,8 +674,10 @@ export function FlightDesk() {
                         checkedAt={p.live_checked_at ?? null}
                         clock={clock}
                         homeZone={timezone}
+                        reading={readingPlanId === p.id}
                       />
                     )}
+                    {groundAhead(p)}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
                     {senseLines(p).map((line) => (
                       <p key={line} className="text-[11.5px] text-muted-foreground">

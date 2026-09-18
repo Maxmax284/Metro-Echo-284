@@ -16,6 +16,7 @@ export function ArrivalStamp({
   iata,
   at,
   homeZone,
+  arrived = true,
   className,
 }: {
   /** Arrival airport code. */
@@ -24,6 +25,11 @@ export function ArrivalStamp({
   at: string | null | undefined;
   /** The clock Echo is currently keeping, so the shift can be stated. */
   homeZone?: string | null;
+  /**
+   * True once the flight has actually landed. False reads the same facts about
+   * the place you are heading to, and says so — it never claims you arrived.
+   */
+  arrived?: boolean;
   className?: string;
 }) {
   const f = useMemo(() => arrivalFacts(iata, at, homeZone), [iata, at, homeZone]);
@@ -34,10 +40,18 @@ export function ArrivalStamp({
 
   return (
     <div className={cn("space-y-2.5 rounded-md border border-border/60 bg-muted/15 p-2.5", className)}>
-      {/* The stamp. Ink on the card, not a popup. */}
+      {/* The stamp. Ink on the card, not a popup. Ahead of the landing it is the
+          same plate, not inked, so nothing reads as already stamped. */}
       <div className="flex justify-center py-0.5">
-        <div className="arrival-stamp rounded-[3px] border-2 border-dashed border-emerald-400/60 px-3 py-1.5 text-center text-emerald-400/90">
-          <p className="vanta-machine-label leading-tight">★ Arrived</p>
+        <div
+          className={cn(
+            "rounded-[3px] border-2 border-dashed px-3 py-1.5 text-center",
+            arrived
+              ? "arrival-stamp border-emerald-400/60 text-emerald-400/90"
+              : "border-primary/45 text-primary/85",
+          )}
+        >
+          <p className="vanta-machine-label leading-tight">{arrived ? "★ Arrived" : "Where you land"}</p>
           <p className="font-mono text-[13px] font-semibold leading-tight tracking-[0.12em]">
             {f.iata}
             {f.city ? ` · ${f.city}` : ""}
@@ -49,10 +63,15 @@ export function ArrivalStamp({
         </div>
       </div>
 
+
       {/* The clock slip, the money and the number, all on the same board. */}
       <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
         {f.localTime ? (
-          <SolariBoard text={f.localTime} label="Local time" tone="primary" />
+          <SolariBoard
+            text={f.localTime}
+            label={arrived ? "Local time" : "Local landing time"}
+            tone="primary"
+          />
         ) : (
           <p className="text-[10.5px] text-muted-foreground/80">No landing time on record yet.</p>
         )}
@@ -69,7 +88,10 @@ export function ArrivalStamp({
         {shift && <p>{shift}</p>}
         {!f.city && <p>{f.iata} is not in Echo's airport table, so the clock and country here are unknown.</p>}
         {f.currency ? (
-          <p>Spending is in {f.currency}. No rate is shown here — ask Echo for one and it reads it fresh.</p>
+          <p>
+            Spending {arrived ? "is" : "will be"} in {f.currency}. No rate is shown here — ask Echo for one and it
+            reads it fresh.
+          </p>
         ) : (
           f.city && <p>Echo does not have the currency for {f.country} on record.</p>
         )}
