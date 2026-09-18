@@ -224,6 +224,7 @@ export function JourneySpine({
       {/* One caveat, not a wall of doctrine. The terminal board is the only line
           that earns its place on a card you read while walking. */}
       <div className="space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+        <p>Each time is the local time at that airport, the way your ticket prints it.</p>
         <p>{TERMINAL_CAVEAT}</p>
         {savedAt ? (
           <p className="flex items-center gap-1">
