@@ -167,7 +167,9 @@ export function statusDiff(
   const arrNext = next.arrival.estimated ?? next.arrival.scheduled;
   if (arrPrev && arrNext && arrPrev !== arrNext) {
     const moved = Math.round((new Date(arrNext).getTime() - new Date(arrPrev).getTime()) / 60_000);
-    if (Number.isFinite(moved) && moved !== 0) news.push(`lands ${clock(arrNext)}`);
+    if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
+      news.push(`lands ${clock(arrNext)}`);
+    }
   }
   if (!news.length) return null;
   return `${next.flight_no} — ${news.join(", ")}.`;
