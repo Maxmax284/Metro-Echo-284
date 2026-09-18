@@ -22,6 +22,7 @@ import {
   type LiveFlight,
 } from "@/lib/flightStatus";
 import { cn } from "@/lib/utils";
+import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { FlightArc } from "./FlightArc";
 import { SolariBoard } from "./SolariBoard";
@@ -164,6 +165,17 @@ export function FlightLive({
       )}
 
       <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
+
+      {/* The ground you are standing on: the clock at this flight's own departure
+          airport, live, from the moment the trip is on until you have landed.
+          It states the difference from your clock; it never switches it. */}
+      {live.departure.iata && phase !== "landed" && (
+        <AirportClock
+          iata={live.departure.iata}
+          homeZone={homeZone}
+          label={phase === "flying" ? "Time where you left" : "Local time at the gate"}
+        />
+      )}
 
       {/* The ground you are heading for — its clock, its money, its number —
           read from this flight's own arrival airport. Inked only once landed. */}
