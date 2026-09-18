@@ -12,6 +12,8 @@ export const CURRENCY_SYMBOL: Record<string, string> = {
   USD: "$", EUR: "€", GBP: "£", THB: "฿", JPY: "¥", CAD: "CA$", AUD: "A$", CHF: "CHF",
   MXN: "MX$", INR: "₹", CNY: "CN¥", SEK: "kr", NOK: "kr", DKK: "kr", PLN: "zł",
   BRL: "R$", ZAR: "R", TRY: "₺", AED: "AED", SGD: "S$", NZD: "NZ$", KRW: "₩", VND: "₫", PHP: "₱",
+  TWD: "NT$", HKD: "HK$", MYR: "RM", IDR: "Rp", KHR: "៛", LKR: "Rs", QAR: "QR", BHD: "BD",
+  EGP: "E£", ETB: "Br", ISK: "kr",
 };
 
 const WORD_TO_CODE: Record<string, string> = {
@@ -118,4 +120,25 @@ export async function fetchRates(base = "USD"): Promise<Rates | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Country (ISO-3166 alpha-2) to the currency actually spent there. A kept table,
+ * not a guess: a country that is not listed returns null and Echo says it does
+ * not know the money rather than naming the wrong note.
+ */
+export const COUNTRY_CURRENCY: Record<string, string> = {
+  US: "USD", CA: "CAD", GB: "GBP", IE: "EUR", FR: "EUR", DE: "EUR", ES: "EUR", IT: "EUR",
+  NL: "EUR", PT: "EUR", BE: "EUR", AT: "EUR", GR: "EUR", FI: "EUR", MT: "EUR", CY: "EUR",
+  CH: "CHF", NO: "NOK", SE: "SEK", DK: "DKK", PL: "PLN", IS: "ISK", TR: "TRY",
+  TH: "THB", JP: "JPY", KR: "KRW", CN: "CNY", TW: "TWD", HK: "HKD", SG: "SGD", MY: "MYR",
+  VN: "VND", PH: "PHP", ID: "IDR", KH: "KHR", IN: "INR", LK: "LKR",
+  AE: "AED", QA: "QAR", BH: "BHD", EG: "EGP", ET: "ETB", ZA: "ZAR",
+  AU: "AUD", NZ: "NZD", BR: "BRL", MX: "MXN", PA: "USD",
+};
+
+/** The currency spent in a country, or null when it is not on record. */
+export function currencyForCountry(cc: string | null | undefined): string | null {
+  const code = (cc ?? "").trim().toUpperCase();
+  return code ? (COUNTRY_CURRENCY[code] ?? null) : null;
 }

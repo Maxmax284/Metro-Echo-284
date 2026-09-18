@@ -42,6 +42,15 @@ const TABLE: Record<string, HelpNumbers> = {
   CH: { country: "Switzerland", general: "112" },
   NO: { country: "Norway", police: "112", ambulance: "113", fire: "110" },
   IS: { country: "Iceland", general: "112" },
+  TW: { country: "Taiwan", police: "110", ambulance: "119", fire: "119", note: "0800-024-111 is the 24-hour travel hotline, English spoken." },
+  HK: { country: "Hong Kong", general: "999" },
+  QA: { country: "Qatar", general: "999" },
+  BH: { country: "Bahrain", general: "999" },
+  EG: { country: "Egypt", police: "122", ambulance: "123", fire: "180" },
+  ET: { country: "Ethiopia", police: "991", ambulance: "907", fire: "939" },
+  LK: { country: "Sri Lanka", police: "119", ambulance: "1990" },
+  KH: { country: "Cambodia", police: "117", ambulance: "119", fire: "118" },
+  PA: { country: "Panama", general: "911" },
 };
 
 /** Every country inside the EU/EEA answer 112 — one row instead of thirty. */
