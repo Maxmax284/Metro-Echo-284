@@ -10,6 +10,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 import { streamAstraText } from "../_shared/aiResponses.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+import { claimDelivery, hasPushDevice, reachPhone } from "../_shared/delivery/reach.ts";
 
 
 const Body = z.object({
