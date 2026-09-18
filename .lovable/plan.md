@@ -1,6 +1,19 @@
-# Phase 6 — the real map. Phase 7 — told before you look.
+# One install button. Then Phase 6 — the real map. Phase 7 — told before you look.
 
 Phase 8 is parked, as you said.
+
+## First — just an install button
+
+In the Control Room, the install card becomes one button: **Install app**. Tap
+it, your phone's install prompt opens, done. No steps, no lists, no reading.
+
+- The long numbered instructions come off the Control Room entirely.
+- On an iPhone, where Apple gives no button, it stays one short line — Safari's
+  Share, then Add to Home Screen — because there is no button to press there.
+- The separate install page and its per-phone steps stay reachable behind a
+  small "Having trouble?" link, out of the way instead of in your face.
+- Already installed, or on a window where a phone cannot install anyway, and the
+  card says that in one line instead of showing a dead button.
 
 ## Phase 6 — your flight on an actual map
 
