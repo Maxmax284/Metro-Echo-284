@@ -94,6 +94,22 @@ export function calendarEventToSignal(
   };
 }
 
+/** Two labels that name the same thing. A promise filed onto the calendar
+ *  must never be reported as clashing with itself — that was real noise on
+ *  Today: "this promise is due during this promise". */
+function namesSameThing(a: string | null | undefined, b: string | null | undefined): boolean {
+  const norm = (s: string | null | undefined) =>
+    (s ?? "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const x = norm(a);
+  const y = norm(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  // One is the other plus a prefix Echo or a calendar added ("Reminder: …").
+  const shorter = x.length <= y.length ? x : y;
+  const longer = x.length <= y.length ? y : x;
+  return shorter.length >= 6 && longer.includes(shorter);
+}
+
 /**
  * A commitment falls inside a booked block. This is the calendar earning its
  * keep: the promise is not late yet, but the day says it will be.
@@ -112,11 +128,14 @@ export function commitmentCollisionToSignal(
 
   const clash = events.find((e) => {
     if (e.all_day) return false;
+    if (namesSameThing(e.title, c.summary)) return false;
     const s = ms(e.starts_at);
     const end = Number.isFinite(ms(e.ends_at)) ? ms(e.ends_at) : s + 60 * MIN;
     return Number.isFinite(s) && due >= s && due < end;
   });
   if (!clash) return null;
+
+
 
   const meeting = clash.title?.trim() || "a calendar entry";
   const promise = c.summary?.trim() || "An open promise";

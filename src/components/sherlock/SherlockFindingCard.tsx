@@ -172,15 +172,18 @@ export function SherlockFindingCard({
               {revealed ? "Hide" : "Reveal"}
             </Button>
           )}
+          {/* The button says the outcome, not the mechanic. "Accept" told
+              nobody what would happen. */}
           <Button size="sm" variant="default" className="h-7 px-2 text-xs" disabled={busy} onClick={doAccept}>
-            <Check className="mr-1 h-3 w-3" /> Accept
+            <Check className="mr-1 h-3 w-3" /> Yes, link it
           </Button>
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={busy} onClick={doEdit}>
             <Pencil className="mr-1 h-3 w-3" /> Edit
           </Button>
           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={busy} onClick={doDismiss}>
-            <X className="mr-1 h-3 w-3" /> Dismiss
+            <X className="mr-1 h-3 w-3" /> Not right
           </Button>
+
           <Button
             size="sm"
             variant="ghost"
