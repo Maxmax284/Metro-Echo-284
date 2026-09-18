@@ -10,6 +10,8 @@
 //
 // Pure module: no IO, no React.
 
+import { airportPoint, distanceKm } from "./airports.ts";
+
 export type LiveEnd = {
   airport: string | null;
   iata: string | null;
@@ -21,6 +23,27 @@ export type LiveEnd = {
   delay_min: number | null;
 };
 
+/**
+ * The aircraft's own reading: where it is, how high, how fast, which way. Only
+ * ever the provider's numbers, with the moment they were taken — a fix has an
+ * age, and an old fix is said to be old rather than drawn as now.
+ */
+export type LivePosition = {
+  /** When the provider took this fix. */
+  updated: string | null;
+  lat: number;
+  lon: number;
+  /** Metres above sea level, as filed. */
+  altitude_m: number | null;
+  /** True heading in degrees, 0–360. */
+  heading_deg: number | null;
+  /** Ground speed, km/h. */
+  speed_kmh: number | null;
+  /** Climb or descent, km/h. Negative is descending. */
+  vertical_kmh: number | null;
+  on_ground: boolean | null;
+};
+
 export type LiveFlight = {
   flight_no: string;
   flight_date: string;
@@ -29,6 +52,8 @@ export type LiveFlight = {
   status: string | null;
   departure: LiveEnd;
   arrival: LiveEnd;
+  /** The aircraft's fix, when the provider carried one. Null is an answer. */
+  position?: LivePosition | null;
   checked_at: string;
 };
 
@@ -54,6 +79,30 @@ function end(raw: any): LiveEnd {
     delay_min: num(r.delay),
   };
 }
+
+/**
+ * The aircraft fix from a provider payload. Null unless it carried a real pair
+ * of coordinates — a fix without a place on the earth is no fix at all.
+ */
+function fix(raw: any): LivePosition | null {
+  const r = raw ?? {};
+  const lat = num(r.latitude);
+  const lon = num(r.longitude);
+  if (lat === null || lon === null) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  const heading = num(r.direction);
+  return {
+    updated: str(r.updated),
+    lat,
+    lon,
+    altitude_m: num(r.altitude),
+    heading_deg: heading === null ? null : ((heading % 360) + 360) % 360,
+    speed_kmh: num(r.speed_horizontal),
+    vertical_kmh: num(r.speed_vertical),
+    on_ground: typeof r.is_ground === "boolean" ? r.is_ground : null,
+  };
+}
+
 
 /**
  * One AviationStack /v1/flights payload, narrowed to the flight asked about.
@@ -92,6 +141,7 @@ export function normalizeAviationstack(
     status: str(row.flight_status),
     departure: end(row.departure),
     arrival: end(row.arrival),
+    position: fix(row.live),
     checked_at: checkedAt,
   };
 }
@@ -240,3 +290,113 @@ export const PHASE_WORDS: Record<FlightPhase, string> = {
   stopped: "not flying",
   unknown: "position not on record",
 };
+
+/* ---- The aircraft's own telemetry -----------------------------------------
+   Altitude, speed and heading are the provider's numbers or nothing. A fix has
+   an age: past FIX_FRESH_MS it is still shown, still labelled with its age, but
+   it no longer moves the marker as though it were now. */
+
+/** How long a radar fix is treated as current. */
+export const FIX_FRESH_MS = 20 * 60_000;
+
+/** Age of a fix in minutes, or null when it carries no time. */
+export function fixAgeMin(pos: LivePosition | null | undefined, now: Date = new Date()): number | null {
+  const t = pos?.updated ? new Date(pos.updated).getTime() : NaN;
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.round((now.getTime() - t) / 60_000));
+}
+
+/** A fix with no time on it is taken at face value; a timed one must be recent. */
+export function fixIsCurrent(pos: LivePosition | null | undefined, now: Date = new Date()): boolean {
+  if (!pos) return false;
+  const age = fixAgeMin(pos, now);
+  return age === null ? true : age * 60_000 <= FIX_FRESH_MS;
+}
+
+/**
+ * How far along the track the aircraft actually is, from its own fix measured
+ * against both airports. Null unless the fix and both coordinates are on
+ * record — the alternative would be a position worked out from a guess.
+ */
+export function positionProgress(live: LiveFlight, now: Date = new Date()): number | null {
+  const pos = live.position ?? null;
+  if (!pos || !fixIsCurrent(pos, now)) return null;
+  const a = airportPoint(live.departure.iata);
+  const b = airportPoint(live.arrival.iata);
+  if (!a || !b) return null;
+  const whole = distanceKm(a, b);
+  if (!Number.isFinite(whole) || whole < 1) return null;
+  const flown = distanceKm(a, { lat: pos.lat, lon: pos.lon });
+  const left = distanceKm({ lat: pos.lat, lon: pos.lon }, b);
+  /* Measured both ways so a fix off to the side of the track still lands
+     somewhere sensible along it rather than past the far end. */
+  const t = flown / Math.max(whole, flown + left);
+  if (!Number.isFinite(t)) return null;
+  return Math.min(1, Math.max(0, t));
+}
+
+export type TrackSource = "radar" | "clock" | "none";
+
+/** Where to draw the aircraft, and on whose word. Radar first, clock second. */
+export function trackProgress(
+  live: LiveFlight,
+  now: Date = new Date(),
+): { value: number | null; source: TrackSource } {
+  const radar = positionProgress(live, now);
+  if (radar !== null) return { value: radar, source: "radar" };
+  const clock = flightProgress(live, now);
+  return { value: clock, source: clock === null ? "none" : "clock" };
+}
+
+const M_TO_FT = 3.28084;
+const KMH_TO_MPH = 0.621371;
+const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+/** "291° WNW", or null when the provider filed no heading. */
+export function headingWords(pos: LivePosition | null | undefined): string | null {
+  const d = pos?.heading_deg;
+  if (d === null || d === undefined) return null;
+  return `${Math.round(d)}° ${COMPASS[Math.round(d / 22.5) % 16]}`;
+}
+
+/** Altitude in feet, the way a board prints it. Null when none was filed. */
+export function altitudeWords(pos: LivePosition | null | undefined): string | null {
+  const m = pos?.altitude_m;
+  if (m === null || m === undefined) return null;
+  const ft = Math.round((m * M_TO_FT) / 100) * 100;
+  return `${ft.toLocaleString("en-US")} ft`;
+}
+
+/** Ground speed in mph. Null when none was filed. */
+export function speedWords(pos: LivePosition | null | undefined): string | null {
+  const k = pos?.speed_kmh;
+  if (k === null || k === undefined) return null;
+  return `${Math.round(k * KMH_TO_MPH)} mph`;
+}
+
+/** Climbing, descending or level — only when a vertical rate was filed. */
+export function climbWords(pos: LivePosition | null | undefined): string | null {
+  const v = pos?.vertical_kmh;
+  if (v === null || v === undefined) return null;
+  if (Math.abs(v) < 1) return "level";
+  return v > 0 ? "climbing" : "descending";
+}
+
+/** One line on the fix and its age, for the card to print under the track. */
+export function fixWords(pos: LivePosition | null | undefined, now: Date = new Date()): string | null {
+  if (!pos) return null;
+  const age = fixAgeMin(pos, now);
+  const when =
+    age === null
+      ? "the airline filed no time with it"
+      : age < 1
+        ? "taken moments ago"
+        : age === 1
+          ? "taken a minute ago"
+          : age < 60
+            ? `taken ${age} min ago`
+            : "taken over an hour ago";
+  const where = `${pos.lat.toFixed(2)}, ${pos.lon.toFixed(2)}`;
+  const stale = age !== null && age * 60_000 > FIX_FRESH_MS ? " The track is drawn from the clock until a newer fix lands." : "";
+  return `Radar fix ${where} — ${when}.${stale}`;
+}

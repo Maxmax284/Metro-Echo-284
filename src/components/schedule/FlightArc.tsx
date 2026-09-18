@@ -36,6 +36,8 @@ export function FlightArc({
   /** Instant at a given fraction of the trip, when both ends carried a time. */
   instantAt,
   clock,
+  live: fromRadar = false,
+  heading = null,
 }: {
   from: string;
   to: string;
@@ -44,6 +46,10 @@ export function FlightArc({
   phase: "waiting" | "flying" | "landed" | "stopped" | "unknown";
   instantAt?: (t: number) => string | null;
   clock: (iso: string) => string;
+  /** True when the marker sits on the aircraft's own fix, not on the clock. */
+  live?: boolean;
+  /** The aircraft's filed heading, used to turn the marker. Null leaves it on the track. */
+  heading?: number | null;
 }) {
   const [scrub, setScrub] = useState<number | null>(null);
   const holdRef = useRef<number | null>(null);
@@ -54,6 +60,10 @@ export function FlightArc({
   const shown = scrub ?? live;
   const canScrub = live !== null && instantAt !== undefined;
   const marker = shown === null ? null : pointAt(shown);
+  /* A filed heading turns the aircraft the way it is actually pointing. Without
+     one it lies along the track, which is a drawing, not a claim. */
+  const nose =
+    marker === null ? 0 : fromRadar && scrub === null && heading !== null ? heading - 90 : marker.angle;
 
   const release = () => {
     /* Spring back to the real moment, so the deck never keeps a fictional time. */
@@ -159,8 +169,11 @@ export function FlightArc({
             style={{
               left: `${(marker.x / W) * 100}%`,
               top: `${(marker.y / H) * 100}%`,
-              transform: `translate(-50%, -50%) rotate(${marker.angle}deg)`,
-              transition: scrub === null ? "left 900ms cubic-bezier(0.22,1,0.36,1), top 900ms cubic-bezier(0.22,1,0.36,1)" : "none",
+              transform: `translate(-50%, -50%) rotate(${nose}deg)`,
+              transition:
+                scrub === null
+                  ? "left 900ms cubic-bezier(0.22,1,0.36,1), top 900ms cubic-bezier(0.22,1,0.36,1), transform 900ms cubic-bezier(0.22,1,0.36,1)"
+                  : "none",
             }}
             aria-hidden
           />
