@@ -21,23 +21,20 @@ import {
 } from "../_shared/journey.ts";
 import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
-import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
+import { reachOnce } from "../_shared/delivery/reach.ts";
 
 /**
- * Reach the person on Telegram with the same note Today just got.
+ * Consent for a second surface, read once per user.
  *
- * Double-gated: the awareness opt-in has to be on AND a chat has to be linked.
- * Quiet hours hold everything except a leg that is off or diverted. Returns
- * whether a message actually went out.
+ * Double-gated as before: the awareness opt-in has to be on for Telegram, and
+ * quiet hours hold everything except a leg that is off or diverted. This decides
+ * WHETHER Echo may speak; the shared rail decides WHERE.
  */
-async function reachMessaging(
+async function reachGate(
   sb: ReturnType<typeof createClient>,
   userId: string,
-  organizationId: string | null,
   notice: JourneyNotice,
-): Promise<boolean> {
-  if (!Deno.env.get("TELEGRAM_API_KEY")) return false;
-
+): Promise<{ allowed: boolean; messagingAllowed: boolean }> {
   const { data: profile } = await sb
     .from("profiles")
     .select("timezone, preferences")
@@ -47,29 +44,11 @@ async function reachMessaging(
     string,
     unknown
   >;
-  if (prefs.telegram_awareness_enabled !== true) return false;
-
   const tz = ((profile as { timezone?: string } | null)?.timezone as string) || "UTC";
-  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) return false;
-
-  const chatId = await chatIdForUser(sb, userId);
-  if (!chatId) return false;
-
-  const res = await sendTelegram({
-    admin: sb,
-    userId,
-    chatId,
-    text: `${notice.title}. ${notice.body}`,
-    organizationId,
-    kind: "notice",
-    entityType: "nudge",
-    entityId: null,
-    auditEvent: "journey.reached_messaging",
-    auditFailedEvent: "journey.reach_messaging_failed",
-    auditPayload: { urgency: notice.urgency, title: notice.title, source: "journey_watch" },
-  });
-  if (!res.ok) console.error("journey-watch telegram reach failed", res.reason);
-  return res.ok;
+  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) {
+    return { allowed: false, messagingAllowed: false };
+  }
+  return { allowed: true, messagingAllowed: prefs.telegram_awareness_enabled === true };
 }
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
