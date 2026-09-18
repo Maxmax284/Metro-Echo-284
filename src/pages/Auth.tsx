@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { ProductMark } from "@/components/shell/AmbientHeader";
+import { InstallFlyer } from "@/components/settings/InstallFlyer";
 import { Loader2 } from "lucide-react";
 
 export default function Auth() {
@@ -104,6 +105,8 @@ export default function Auth() {
             Continue with Google
           </Button>
         </form>
+
+        <InstallFlyer />
 
         <div className="text-center text-sm text-muted-foreground">
           {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
