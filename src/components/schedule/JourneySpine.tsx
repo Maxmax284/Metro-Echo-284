@@ -42,18 +42,16 @@ function readingWords(at: string | null): string {
   return hours < 24 ? `read ${hours}h ago` : `read ${Math.round(hours / 24)}d ago`;
 }
 
-function clock(at: string | null): string {
-  return at ? at.slice(11, 16) : "—";
-}
-
 function LegRow({
   leg,
   live,
+  clock,
   onOverride,
   onClearOverride,
 }: {
   leg: Leg;
   live: boolean;
+  clock: (at: string | null) => string;
   onOverride: (state: LegStateKind) => Promise<void> | void;
   onClearOverride: () => Promise<void> | void;
 }) {
