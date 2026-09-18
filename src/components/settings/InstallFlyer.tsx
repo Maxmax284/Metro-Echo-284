@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Download, Share } from "lucide-react";
+import { Download, ExternalLink, Share } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
-import { installBlockedHere } from "@/lib/pwaInstall";
+import { HOME_ADDRESS, installBlockedHere } from "@/lib/pwaInstall";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 /**
@@ -15,11 +16,11 @@ export function InstallFlyer({ className = "" }: { className?: string }) {
   const { platform, installed, canPrompt, promptInstall } = usePwaInstall();
   const [busy, setBusy] = useState(false);
   const [gone, setGone] = useState(false);
+  const blocked = installBlockedHere();
 
-  if (installed || gone || installBlockedHere()) return null;
+  if (installed || gone) return null;
 
   const ios = platform === "ios-safari" || platform === "ios-other";
-  if (!ios && !canPrompt) return null;
 
   const handleInstall = async () => {
     setBusy(true);
@@ -35,7 +36,17 @@ export function InstallFlyer({ className = "" }: { className?: string }) {
 
   return (
     <div className={`rounded-2xl glass p-4 ring-1 ring-border/60 ${className}`}>
-      {ios ? (
+      {blocked ? (
+        <>
+          <p className="mb-3 text-[12px] text-muted-foreground">Install Metro Echo on this device.</p>
+          <Button size="lg" className="w-full gap-2" asChild>
+            <a href={`https://${HOME_ADDRESS}/install`} target="_blank" rel="noreferrer">
+              <ExternalLink className="h-4 w-4" />
+              Open to install
+            </a>
+          </Button>
+        </>
+      ) : ios ? (
         <div className="flex items-start gap-3">
           <Share className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="text-[12px] text-muted-foreground">
@@ -43,12 +54,22 @@ export function InstallFlyer({ className = "" }: { className?: string }) {
             <span className="text-foreground">Add to Home Screen</span>.
           </p>
         </div>
-      ) : (
+      ) : canPrompt ? (
         <>
           <p className="mb-3 text-[12px] text-muted-foreground">Keep Metro Echo on your home screen.</p>
           <Button size="lg" className="w-full gap-2" onClick={handleInstall} disabled={busy}>
             <Download className="h-4 w-4" />
             Install app
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="mb-3 text-[12px] text-muted-foreground">Install Metro Echo on this device.</p>
+          <Button size="lg" className="w-full gap-2" asChild>
+            <Link to="/install">
+              <Download className="h-4 w-4" />
+              Install app
+            </Link>
           </Button>
         </>
       )}
