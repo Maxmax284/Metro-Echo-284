@@ -85,9 +85,10 @@ export function FlightRadarMapInner({
       className="h-[240px] w-full"
       attributionControl={false}
     >
+      {/* Same open tiles the rest of Metro Echo uses — no key, no account. */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        subdomains={["a", "b", "c", "d"]}
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Fit points={all} />
       {line.length > 1 && (
