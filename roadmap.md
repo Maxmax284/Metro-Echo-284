@@ -171,5 +171,6 @@ walk listed above; broader document formats stay behind a fresh approval.
 - A condition sentence around the evidence becomes one promise, on the person's
   word only. DONE
 - Real photo forwarded in Telegram reads end to end (picture kept as evidence,
-  text off the picture goes through the same flight reader). IN PROGRESS
+  text off the picture goes through the same flight reader). DONE — proven with
+  a forwarded booking picture: one record, no double, receipt left.
 - Proof: the real Telegram screenshots, in order.
