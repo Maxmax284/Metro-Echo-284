@@ -192,6 +192,18 @@ function IndexInner() {
         onAwarenessClick={() => setSurface("awareness")}
         right={
           <div className="flex items-center gap-1.5">
+             {/* Sign out stays visible at phone width instead of being buried
+                 inside Settings. The icon keeps the header compact. */}
+             <Button
+               variant="ghost"
+               size="icon"
+               onClick={signOut}
+               className="h-8 w-8 shrink-0 sm:hidden"
+               aria-label="Sign out"
+               title="Sign out"
+             >
+               <LogOut className="h-4 w-4" />
+             </Button>
             {/* The gear leads the cluster: Control Room must never scroll out
                 of reach on a phone. Bordered and labelled so it reads as the
                 door to settings, not decoration. */}
