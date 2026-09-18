@@ -55,7 +55,7 @@ import {
 } from "@/lib/flightPlan";
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
-import { readingAge, statusWords, type LiveFlight } from "@/lib/flightStatus";
+import { readingAge, statusWords, trackProgress, type LiveFlight } from "@/lib/flightStatus";
 import { airportZone, anchorToZone, clockShift, leaveForFlight } from "@/lib/travelSense";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -342,7 +342,7 @@ export function FlightDesk() {
           onDismissNews={journey.dismissNews}
         />
         {/* The same trip as a route you can tap, stop by stop. */}
-        <FlightRouteMap journey={journey.current} homeZone={timezone} />
+        <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
         </>
       ) : null}
 
