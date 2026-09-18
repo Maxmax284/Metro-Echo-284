@@ -410,9 +410,26 @@ function makeJourney(legs: Leg[], now: Date = new Date()): Journey {
   return { id: legs.map((l) => l.plan_id).join("+"), legs, segments, title };
 }
 
-/** Journeys off your own plans, soonest first. */
-export function journeysFrom(plans: FlightPlan[]): Journey[] {
-  return groupJourneys(ownLegs(plans));
+/**
+ * Journeys off your own plans. A trip that is still ahead of you, or one you are
+ * on, comes before one that is over or that you said did not happen — a stopped
+ * leg from last week must not sit where tomorrow's flight belongs.
+ */
+export function journeysFrom(plans: FlightPlan[], now: Date = new Date()): Journey[] {
+  const all = groupJourneys(ownLegs(plans));
+  const rank = (j: Journey): number => {
+    const where = whereOnJourney(j, now);
+    if (where.kind === "stopped") return 3;
+    if (where.kind === "done") return 2;
+    const last = j.legs[j.legs.length - 1];
+    const end = last?.to.at ? new Date(last.to.at).getTime() : NaN;
+    if (Number.isFinite(end) && end < now.getTime() - 6 * 3_600_000) return 2;
+    return where.kind === "before" ? 1 : 0;
+  };
+  return all
+    .map((j, i) => ({ j, i, r: rank(j) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.j);
 }
 
 /** Where you are on this journey, and whose word says so. */
