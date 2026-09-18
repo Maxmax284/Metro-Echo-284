@@ -140,6 +140,10 @@ export function statusDiff(
   clock: (iso: string) => string = (i) => i.slice(11, 16),
 ): string | null {
   if (!prev) return null;
+  /* A shift bigger than half a day is a different day's flight, not a delay.
+     Two readings that disagree that much are not news — they are a mismatch. */
+  if (prev.flight_date && next.flight_date && prev.flight_date !== next.flight_date) return null;
+  const SANE_SHIFT_MIN = 12 * 60;
   const news: string[] = [];
   if (prev.status !== next.status && next.status) {
     news.push(`now ${STATUS_WORDS[next.status] ?? next.status}`);
