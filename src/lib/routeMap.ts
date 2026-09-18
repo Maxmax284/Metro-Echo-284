@@ -21,18 +21,23 @@ export type RouteStop = {
   role: "origin" | "stop" | "final";
   /** The leg that leaves this stop, when there is one. */
   outboundFlight: string | null;
+  /** The filed instant at this stop — leaving it, or landing at it. Null when none. */
+  at: string | null;
 };
 
 /** The stops of a journey, in order, without repeats. */
 export function routeStops(journey: Journey | null | undefined): RouteStop[] {
   const legs = journey?.legs ?? [];
-  const codes: Array<{ iata: string; out: string | null }> = [];
+  const codes: Array<{ iata: string; out: string | null; at: string | null }> = [];
   for (const leg of legs) {
     const from = (leg.from.iata ?? "").trim().toUpperCase();
     const to = (leg.to.iata ?? "").trim().toUpperCase();
-    if (from && codes[codes.length - 1]?.iata !== from) codes.push({ iata: from, out: leg.flight_no ?? null });
-    else if (from && codes.length) codes[codes.length - 1].out = leg.flight_no ?? null;
-    if (to && codes[codes.length - 1]?.iata !== to) codes.push({ iata: to, out: null });
+    if (from && codes[codes.length - 1]?.iata !== from) {
+      codes.push({ iata: from, out: leg.flight_no ?? null, at: leg.from.at ?? null });
+    } else if (from && codes.length) {
+      codes[codes.length - 1].out = leg.flight_no ?? null;
+    }
+    if (to && codes[codes.length - 1]?.iata !== to) codes.push({ iata: to, out: null, at: leg.to.at ?? null });
   }
   return codes.map((c, i) => {
     const a = airport(c.iata);
@@ -43,6 +48,7 @@ export function routeStops(journey: Journey | null | undefined): RouteStop[] {
       point: airportPoint(c.iata),
       role: i === 0 ? "origin" : i === codes.length - 1 ? "final" : "stop",
       outboundFlight: c.out,
+      at: c.at,
     } as RouteStop;
   });
 }
