@@ -22,7 +22,11 @@ type Props = {
   c: CommitmentLike;
   onChanged?: () => void;
   size?: "sm" | "md";
+  /** Show the outcome in words — Done / Not yet / Drop it — instead of icons.
+      Used where a person is deciding, not scanning. */
+  words?: boolean;
 };
+
 
 /**
  * Shared resolve cluster for a commitment row.
