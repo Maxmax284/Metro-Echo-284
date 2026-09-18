@@ -228,9 +228,9 @@ export function FlightDesk() {
   };
 
   /**
-   * The arithmetic around a flight: when to leave, and what the clock does on
-   * arrival. Every cushion is stated, nothing is invented, and a leg with no
-   * filed time gets no leave-by line at all.
+   * The arithmetic around a flight: when to leave, and one line on what the clock
+   * does on arrival. Two lines at most — nobody needs a lecture on jet lag while
+   * they are working out what time to leave the house.
    */
   const senseLines = (plan: FlightPlan): string[] => {
     const snap = plan.live_status as LiveFlight | null;
@@ -246,9 +246,9 @@ export function FlightDesk() {
     const out: string[] = [];
     if (departAt) out.push(leaveForFlight({ departAt, fromIata: from, toIata: to }, clock).words);
     const shift = clockShift(from, to);
-    if (shift) out.push(shift.words);
-    const note = clockShiftNote(shift);
-    if (note) out.push(note);
+    /* The clock difference, first sentence only. The advice that used to follow
+       it was never asked for. */
+    if (shift && shift.direction !== "same") out.push(`${shift.words.split(". ")[0]}.`);
     return out;
   };
 
