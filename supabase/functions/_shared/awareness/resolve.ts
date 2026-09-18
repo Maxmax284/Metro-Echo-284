@@ -56,7 +56,7 @@ const MOVED_ON_ACTIONS = new Set(["approved", "executed", "audited", "rolled_bac
 const ANSWERED_FINDINGS = new Set(["accepted", "dismissed", "acted", "expired", "snoozed"]);
 
 /** A document past these statuses is no longer waiting on the user. */
-const SETTLED_DOCUMENTS = new Set(["archived", "accepted", "signed", "final", "cancelled"]);
+const SETTLED_DOCUMENTS = new Set(["reviewed", "approved", "failed", "archived", "accepted", "signed", "final", "cancelled"]);
 
 const SILENT_PROJECT_MS = 7 * 24 * 60 * 60 * 1000;
 

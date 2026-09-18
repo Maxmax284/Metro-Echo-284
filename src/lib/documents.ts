@@ -33,7 +33,7 @@ export type DocumentRow = {
   latest_review_id: string | null;
   failure_reason: string | null;
   template_key: string | null;
-  draft_inputs: Record<string, string>;
+  draft_inputs: Record<string, unknown>;
   tone: string | null;
   created_at: string;
   updated_at: string;
@@ -252,13 +252,22 @@ export type DocumentVersion = {
   created_at: string;
 };
 
+export type DraftEvidenceRef = {
+  kind: "note" | "receipt";
+  id: string;
+  label: string;
+  recordedAt: string;
+};
+
+export type EvidenceDraftFormat = "meeting_brief" | "follow_up_memo";
+
 /** Create a new drafted document (no source file). Status starts at 'drafting'. */
 export async function createDraftDocument(opts: {
   userId: string;
   title: string;
   kind: DocumentKind;
   templateKey: string;
-  inputs: Record<string, string>;
+  inputs: Record<string, unknown>;
   tone: string;
   projectId?: string | null;
   organizationId?: string | null;
@@ -295,6 +304,8 @@ export async function runDraft(opts: {
   templateTitle: string;
   userMessage: string;
   revisionPrompt?: string;
+  evidence?: DraftEvidenceRef[];
+  draftFormat?: EvidenceDraftFormat;
 }): Promise<{ ok: boolean; error?: string; version_id?: string }> {
   const { data, error } = await supabase.functions.invoke("documents-draft", {
     body: {
@@ -302,10 +313,38 @@ export async function runDraft(opts: {
       template_title: opts.templateTitle,
       user_message: opts.userMessage,
       revision_prompt: opts.revisionPrompt,
+      evidence: opts.evidence,
+      draft_format: opts.draftFormat,
     },
   });
   if (error) return { ok: false, error: error.message };
   return { ok: !!data?.ok, error: data?.error, version_id: data?.version_id };
+}
+
+/** Reading a ready draft is an acknowledgement, never an approval. */
+export async function acknowledgeDocumentDraft(documentId: string, source: "today" | "work" | "telegram" | "documents" = "documents"): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return;
+  const { data: nudges } = await supabase.from("nudges")
+    .select("id,dedupe_key,status")
+    .eq("user_id", userId)
+    .eq("related_entity_type", "document")
+    .eq("related_entity_id", documentId)
+    .eq("kind", "document_draft_ready")
+    .in("status", ["pending", "seen"]);
+  const ids = (nudges ?? []).map((row) => row.id);
+  if (ids.length) await supabase.from("nudges").update({ status: "seen" }).in("id", ids).eq("user_id", userId);
+  const keys = (nudges ?? []).map((row) => row.dedupe_key).filter((value): value is string => !!value);
+  if (keys.length) await supabase.from("deliveries").update({ acted_status: "seen" }).eq("user_id", userId).in("dedupe_key", keys.map((key) => `nudge:${key}`));
+  await supabase.from("audit_log").insert({
+    user_id: userId,
+    entity_type: "document",
+    entity_id: documentId,
+    event: "document.draft_opened",
+    payload: { source },
+  });
+  window.dispatchEvent(new Event("metro:attention-changed"));
 }
 
 /** Approve the latest draft — locks the document at status 'approved'. */

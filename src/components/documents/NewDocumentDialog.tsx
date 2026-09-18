@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, FilePlus2, Loader2, Sparkles } from "lucide-react";
+import { ChevronLeft, FilePlus2, Loader2, NotebookPen, Sparkles } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -25,6 +25,7 @@ import {
 } from "@/lib/documentTemplates";
 import { createDraftDocument, runDraft } from "@/lib/documents";
 import { DictateButton } from "@/components/ui/dictate-button";
+import { MeetingNotesDraftForm } from "@/components/documents/MeetingNotesDraftForm";
 
 interface Props {
   open: boolean;
@@ -46,6 +47,7 @@ export function NewDocumentDialog({
   /** Guided intake asks one thing at a time; "all" shows the classic form. */
   const [mode, setMode] = useState<"guided" | "all">("guided");
   const [step, setStep] = useState(0);
+  const [sourceMode, setSourceMode] = useState<"templates" | "meeting_notes">("templates");
 
   const template = useMemo(() => getTemplate(templateKey), [templateKey]);
 
@@ -81,6 +83,7 @@ export function NewDocumentDialog({
     setTone("warm");
     setMode("guided");
     setStep(0);
+    setSourceMode("templates");
   }
 
   function handleClose(next: boolean) {
@@ -156,17 +159,39 @@ export function NewDocumentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <FilePlus2 className="h-4 w-4" />
-            {template ? template.label : "New document"}
+            {sourceMode === "meeting_notes" ? "From meeting notes" : template ? template.label : "New document"}
           </DialogTitle>
           <DialogDescription className="text-[12px]">
-            {template
+            {sourceMode === "meeting_notes"
+              ? "Choose the notes and receipts Echo is allowed to use."
+              : template
               ? template.longDescription
               : "Pick a template. Echo drafts it in plain English. You decide what to do with it."}
           </DialogDescription>
         </DialogHeader>
 
-        {!template ? (
+        {sourceMode === "meeting_notes" ? (
+          <MeetingNotesDraftForm
+            projectId={projectId}
+            organizationId={organizationId}
+            onBack={() => setSourceMode("templates")}
+            onCreated={(id) => { onCreated?.(id); handleClose(false); }}
+          />
+        ) : !template ? (
           <ul className="mt-2 space-y-2">
+            <li>
+              <button
+                type="button"
+                onClick={() => setSourceMode("meeting_notes")}
+                className="flex w-full items-start gap-3 rounded-lg border border-primary/35 bg-primary/5 p-3 text-left transition-colors hover:bg-primary/10"
+              >
+                <NotebookPen className="mt-0.5 h-4 w-4 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm font-medium">From meeting notes</span>
+                  <p className="mt-0.5 text-[11.5px] text-muted-foreground">Choose a meeting brief or follow-up memo, then pick the notes and receipts Echo may use.</p>
+                </div>
+              </button>
+            </li>
             {DOCUMENT_TEMPLATES.map((t) => (
               <li key={t.key}>
                 <button

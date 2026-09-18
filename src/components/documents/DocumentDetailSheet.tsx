@@ -19,7 +19,7 @@ import {
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import {
-  DOCUMENT_DISCLAIMER, approveDraft, getDocument, getLatestReview,
+  DOCUMENT_DISCLAIMER, acknowledgeDocumentDraft, approveDraft, getDocument, getLatestReview,
   getLatestVersion, isDraftDocument, kindLabel, runDraft,
   runExtraction, runReview, statusLabel,
   type DocumentObligation, type DocumentReview, type DocumentRisk, type DocumentRow,
@@ -104,7 +104,10 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
   }, [documentId]);
 
   useEffect(() => {
-    if (open && documentId) void refresh();
+    if (open && documentId) {
+      void refresh();
+      void acknowledgeDocumentDraft(documentId, "documents");
+    }
   }, [open, documentId, refresh]);
 
   async function handleExtract() {
@@ -630,6 +633,13 @@ function DraftBody({
 
   const body = version?.body_text ?? "";
   const isLocked = doc.status === "approved";
+  const evidence = Array.isArray(doc.draft_inputs?.evidence)
+    ? doc.draft_inputs.evidence.filter((item): item is { kind: "note" | "receipt"; id: string; label: string; recordedAt: string } => {
+        if (!item || typeof item !== "object") return false;
+        const row = item as Record<string, unknown>;
+        return (row.kind === "note" || row.kind === "receipt") && typeof row.id === "string" && typeof row.label === "string";
+      })
+    : [];
 
   if (!version && (doc.status === "drafting" || doc.status === "failed")) {
     return (
@@ -652,6 +662,19 @@ function DraftBody({
           </p>
         )}
       </Section>
+
+      {evidence.length > 0 && (
+        <Section icon={<Receipt className="h-4 w-4" />} title="Evidence used">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {evidence.map((item) => (
+              <div key={`${item.kind}:${item.id}`} className="rounded-md border border-border/60 bg-surface-elevated/30 p-2.5">
+                <p className="break-words text-xs font-medium">{item.label}</p>
+                <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{item.kind === "note" ? "Note" : "Receipt"}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {!isLocked && (
         <Section icon={<Pencil className="h-4 w-4" />} title="Revise">
