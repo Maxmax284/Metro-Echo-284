@@ -147,6 +147,14 @@ export function FlightLive({
       {ticket?.trim() && ticket.trim().toUpperCase() !== (board ?? live.flight_no).toUpperCase() && (
         <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {ticket.trim()}.</p>
       )}
+      {/* A gate kept from an earlier reading says so, with when it was read. The
+          airline going quiet is not the airline withdrawing a gate. */}
+      {airportBoard.gateSince && (
+        <p className="text-[10.5px] text-muted-foreground/80">
+          That gate is the last one the airline filed, {readingAge(airportBoard.gateSince)}. This reading did not
+          mention it.
+        </p>
+      )}
       {belowBoard}
 
       {/* The track. The marker sits on the aircraft's own fix when there is one,

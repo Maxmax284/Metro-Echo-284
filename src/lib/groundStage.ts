@@ -17,7 +17,7 @@ export const STAGE_LABEL: Record<Exclude<GroundStage, "away">, string> = {
 /** What the tap changed, said back once so it is not a button with no effect. */
 export const STAGE_DONE: Record<Exclude<GroundStage, "away">, string> = {
   airport: "You're at the airport. Check-in comes first.",
-  security: "You're airside. Echo is watching the board for your gate.",
+  security: "You're airside. Echo re-reads the airline every few minutes for a gate — it has no feed from the terminal board, so the board there still gets there first.",
 };
 
 const KEY = "vanta.ground.stage";

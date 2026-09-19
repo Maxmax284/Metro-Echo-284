@@ -339,8 +339,15 @@ export function FlightDesk() {
     const stage = stageOf(plan.id);
     const computed = atThisLeg ? journey.where!.kind : "before";
     const where = stage !== "away" && (computed === "before" || computed === "at_airport") ? "at_airport" : computed;
-    const departAt =
-      snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
+    /* One departure instant for the whole card. A ticket time with no zone is
+       the wall clock at the origin airport, so it is anchored there before any
+       arithmetic — otherwise the countdown reads the device's zone and the
+       cutoffs under the board disagree with the board above them. */
+    const fromIata = (plan.origin ?? "").trim().toUpperCase() || null;
+    const departAt = anchorToZone(
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null,
+      airportZone(fromIata),
+    );
     const depMs = departAt ? Date.parse(departAt) : NaN;
     const read = groundPath({
       where,
@@ -365,7 +372,7 @@ export function FlightDesk() {
        once boarding takes over the card, the pack steps out of the way. */
     const pack = preDeparturePack({
       departAt,
-      fromIata: (plan.origin ?? "").trim().toUpperCase() || null,
+      fromIata,
       toIata: (plan.destination ?? "").trim().toUpperCase() || null,
     });
     return { read, stage, offerStage, pack, where };
@@ -516,7 +523,8 @@ export function FlightDesk() {
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
 
-      <FlightAlertsCard />
+      {/* Settings are not the next move. While a trip is live they sit under it. */}
+      {livePlan ? null : <FlightAlertsCard />}
 
       {/* The trip you are actually on comes before anything you might add — and
           the move comes before the trip. A person reading this is walking. */}
@@ -592,6 +600,8 @@ export function FlightDesk() {
         </details>
         </>
       ) : null}
+
+      {livePlan ? <FlightAlertsCard /> : null}
 
       {/* What a later reading said, and the two honest answers to it. */}
       <FlightEvidenceCard
