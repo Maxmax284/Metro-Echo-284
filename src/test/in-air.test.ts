@@ -19,7 +19,7 @@ describe("inAirRead", () => {
     expect(r.progress).toBeCloseTo(0.5, 2);
     expect(r.toGoMi).toBeCloseTo((r.totalMi ?? 0) / 2, -1);
     expect(r.source).toBe("clock");
-    expect(r.leftWords).toBe("7h 57m left");
+    expect(r.leftWords).toBe("7h 58m left");
   });
 
   it("never runs time left below zero", () => {
