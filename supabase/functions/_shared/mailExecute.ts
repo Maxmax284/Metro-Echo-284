@@ -68,6 +68,7 @@ export async function executeMailProposal(
   });
   if (!res.ok) {
     if (res.reason === "not_connected") throw new Error("Gmail is not switched on for this account.");
+    if (res.reason === "service_off") throw new Error(`${res.detail} Nothing left your account.`);
     if (res.reason === "needs_you") {
       throw new Error("Google has not been given permission to send as you yet. Nothing left your account.");
     }

@@ -26,7 +26,8 @@ const FILE_MAX = 8;
 
 function statusFrom(reason: string | undefined): OutsideStatus {
   if (reason === "not_connected") return "not_connected";
-  if (reason === "needs_you") return "needs_you";
+  /* A switched-off Google service also needs this person, just somewhere else. */
+  if (reason === "needs_you" || reason === "service_off") return "needs_you";
   return "failed";
 }
 
