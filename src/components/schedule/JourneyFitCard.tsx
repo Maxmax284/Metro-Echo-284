@@ -29,12 +29,15 @@ export function JourneyFitCard({
   busy = false,
   onSetRoute,
   onSetTime,
+  steps,
 }: {
   fit: JourneyFit;
   busy?: boolean;
   onSetRoute?: (from: string, to: string) => void | Promise<void>;
   /** The one fact a possible connection is missing: when it leaves, or boards. */
   onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
+  /** Landed-transfer steps for this airport, when the trip is standing in it. */
+  steps?: ReactNode;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
