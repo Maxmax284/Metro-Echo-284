@@ -85,7 +85,10 @@ async function readStack(flight_no: string, flight_date: string): Promise<LiveFl
   }
 }
 
-/** How many paid readings today, across every feature that asks. */
+/** The feeds the ceiling counts. One budget covers both, so a fallback still pays. */
+const FEEDS = ["aeroapi", "aviationstack"];
+
+/** How many paid readings today, across every feature and both feeds. */
 export async function spentToday(sb: {
   from: (t: string) => any;
 }): Promise<number> {
@@ -93,7 +96,7 @@ export async function spentToday(sb: {
   const { count } = await sb
     .from("api_usage_logs")
     .select("id", { count: "exact", head: true })
-    .eq("provider", "aviationstack")
+    .in("provider", FEEDS)
     .eq("cache_hit", false)
     .gte("created_at", `${dayStart}T00:00:00Z`);
   return count ?? 0;
@@ -111,11 +114,11 @@ export async function countedRead(
 ): Promise<{ live: LiveFlight | null; over_budget: boolean }> {
   const spent = await spentToday(sb);
   if (spent >= DAILY_READING_CEILING) return { live: null, over_budget: true };
-  const live = await readFlight(flight_no, flight_date);
+  const { live, feed } = await readFlightWithFeed(flight_no, flight_date);
   await sb.from("api_usage_logs").insert({
     owner_id: where.userId,
     user_id: where.userId,
-    provider: "aviationstack",
+    provider: feed,
     feature: where.feature,
     request_type: "flight_status",
     status: live ? "success" : "failed",
@@ -123,5 +126,6 @@ export async function countedRead(
     related_entity_type: "flight_plan",
     related_entity_id: where.planId ?? null,
   } as never);
+
   return { live, over_budget: false };
 }
