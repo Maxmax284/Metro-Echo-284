@@ -218,8 +218,10 @@ export function FlightLive({
           at={arrIso}
           homeZone={homeZone}
           arrived={phase === "landed"}
+          connection={connection}
         />
       )}
+
     </div>
   );
 }
