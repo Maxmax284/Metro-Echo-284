@@ -35,6 +35,9 @@ import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
+import { TravellerWord } from "./TravellerWord";
+import type { LegStateKind } from "@/lib/journey";
+
 import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
@@ -563,6 +566,13 @@ export function FlightDesk() {
                 <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
                 Check live status
               </Button>
+              {/* The one place your word beats the feed: on it, still at the
+                  airport, down, or did not happen. It records, it never books. */}
+              <TravellerWord
+                yourWord={livePlan.leg_state_source === "you" ? ((livePlan.leg_state as LegStateKind | null) ?? null) : null}
+                onSay={(state) => journey.setLegState(livePlan.id, state)}
+                onClear={() => journey.clearLegState(livePlan.id)}
+              />
               <Button
                 size="sm"
                 variant="ghost"
@@ -574,6 +584,7 @@ export function FlightDesk() {
                 Remove flight
               </Button>
             </div>
+
           </Card>
         ) : null}
         <details className="group">
