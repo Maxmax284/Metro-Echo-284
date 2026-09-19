@@ -712,6 +712,7 @@ export function packDiff(prev: OfflinePack | null | undefined, next: OfflinePack
 export const STATE_WORDS: Record<LegStateKind, string> = {
   not_started: "not started",
   at_airport: "at the airport",
+  boarding: "boarding",
   in_air: "in the air",
   landed: "on the ground",
   did_not_happen: "recorded as not flown",
