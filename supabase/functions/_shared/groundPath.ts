@@ -92,7 +92,7 @@ export function groundPath(input: GroundInput): GroundRead {
     };
   }
 
-  if (input.where === "done" || input.where === "landed" as never) {
+  if (input.where === "done") {
     return {
       step: "landed",
       lead: `Down at ${trimmed(input.toPlace) ?? "your destination"}. Immigration, then bags, then the way out.`,
