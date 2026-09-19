@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { ChevronDown, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -39,7 +39,9 @@ import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
-import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
+import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
+import { terminalPath } from "@/lib/terminalPath";
+import { TerminalMap } from "./TerminalMap";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
