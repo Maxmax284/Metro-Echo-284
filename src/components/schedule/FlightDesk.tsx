@@ -483,7 +483,8 @@ export function FlightDesk() {
             here is still the filed one.
           </p>
         )}
-        {terminalWalk(plan, read, inAir)}
+        {/* On board, the walk is behind you. Offering it again is clutter. */}
+        {onBoard && !inAir ? null : terminalWalk(plan, read, inAir)}
       </div>
     );
   };
