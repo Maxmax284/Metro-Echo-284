@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { JourneyFit } from "@/lib/journeyFit";
+import type { SaidTimeKind } from "@/lib/flightSaidTime";
+
 
 const KIND_WORDS: Record<JourneyFit["kind"], string> = {
   needs_route: "One fact short of a leg",
