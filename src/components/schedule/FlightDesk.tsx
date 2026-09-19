@@ -37,7 +37,7 @@ import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
 import { groundPath } from "@/lib/groundPath";
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
-import { carrierId, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
+import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
