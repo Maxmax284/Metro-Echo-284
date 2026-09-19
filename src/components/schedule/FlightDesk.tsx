@@ -568,10 +568,11 @@ export function FlightDesk() {
               />
             ) : (
               <>
-                {boardAhead(livePlan, activeGround?.read)}
-                {groundAhead(livePlan)}
+                {boardAhead(livePlan, activeGround?.read, activeGround?.where === "in_air")}
+                {groundAhead(livePlan, activeGround?.where === "in_air")}
               </>
             )}
+
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
