@@ -528,6 +528,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           wording as the flight card. Nothing when no flight is close. */}
       <NextMoveLane onOpen={() => onNavigate("schedule")} />
 
+      {/* Landed with another plane to catch: the same transfer checklist as the
+          flight card, and the airport's own page. Quiet otherwise. */}
+      <TransferLane onOpen={() => onNavigate("schedule")} />
+
       {/* Coming back after a real gap: three lines of consequence, never a
           count of unread anything. Quiet when nothing moved. */}
       <WhileYouWereOut onNavigate={onNavigate} />
