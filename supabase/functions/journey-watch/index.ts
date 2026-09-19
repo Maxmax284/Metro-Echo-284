@@ -9,7 +9,8 @@
 //   - It never buys, holds, or checks anyone in, and it never overrides your word.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { normalizeAviationstack, type LiveFlight } from "../_shared/flightStatus.ts";
+import { type LiveFlight } from "../_shared/flightStatus.ts";
+import { askFlight } from "../_shared/flightAsk.ts";
 import type { FlightPlan } from "../_shared/flightPlan.ts";
 import {
   TERMINAL_CAVEAT,
@@ -122,23 +123,18 @@ function asPlan(r: Record<string, unknown>): FlightPlan {
   };
 }
 
+/**
+ * The same question the Flights screen asks, asked the same way — including the
+ * fallback for a plan that refuses a date filter. A failure is logged and read as
+ * nothing on record; it never becomes a guess.
+ */
 async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
-  const url = new URL("https://api.aviationstack.com/v1/flights");
-  url.searchParams.set("access_key", KEY);
-  url.searchParams.set("flight_iata", flight_no);
-  url.searchParams.set("flight_date", flight_date);
-  const res = await fetch(url.toString());
-  const text = await res.text();
-  if (!res.ok) {
-    console.error(`aviationstack failed [${res.status}]: ${text}`);
+  try {
+    return await askFlight(KEY, flight_no, flight_date);
+  } catch (e) {
+    console.error("aviationstack failed", e instanceof Error ? e.message : String(e));
     return null;
   }
-  const payload = JSON.parse(text || "{}");
-  if (payload?.error) {
-    console.error("aviationstack error body", JSON.stringify(payload.error));
-    return null;
-  }
-  return normalizeAviationstack(payload, { flight_no, flight_date });
 }
 
 Deno.serve(async (req) => {
@@ -219,7 +215,7 @@ Deno.serve(async (req) => {
         provider: "aviationstack",
         feature: "journey-watch",
         request_type: "flight_status",
-        status: live ? "ok" : "empty",
+        status: live ? "success" : "failed",
         cache_hit: false,
         related_entity_type: "flight_plan",
         related_entity_id: p.id,
