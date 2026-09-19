@@ -158,10 +158,30 @@ export function normalizeAviationstack(
     ? (rows.find((r) => sameNumber(r) && sameDay(r)) ?? null)
     : (rows.find(sameNumber) ?? null);
   if (!row) return null;
+  /* The codeshare block is the airline that actually flies the aircraft. Keeping
+     it is the difference between "TG6285" and "look for EVA Air BR3 on the
+     board" — and a traveller standing in a departures hall needs the second. */
+  const shared = row?.flight?.codeshared ?? null;
+  const ticket: LiveCarrier = {
+    carrier: str(row?.airline?.name),
+    carrier_code: code(row?.airline?.iata),
+    flight_no: code(row?.flight?.iata) ?? want,
+  };
+  const operating: LiveCarrier | null = shared
+    ? {
+        carrier: str(shared.airline_name),
+        carrier_code: code(shared.airline_iata),
+        flight_no: code(shared.flight_iata),
+      }
+    : null;
+  const differs = !!operating?.flight_no && operating.flight_no !== ticket.flight_no;
   return {
     flight_no: want,
     flight_date: str(row.flight_date) ?? ask.flight_date,
-    airline: str(row?.airline?.name),
+    airline: ticket.carrier,
+    airline_code: ticket.carrier_code,
+    operated_by: differs ? operating : null,
+    marketed_as: differs ? ticket : null,
     status: str(row.flight_status),
     departure: end(row.departure),
     arrival: end(row.arrival),
