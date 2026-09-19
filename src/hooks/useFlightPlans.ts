@@ -31,6 +31,8 @@ import {
   routeFromLive,
 } from "@/lib/flightQuick";
 import { anchorLive, type LiveFlight } from "@/lib/flightStatus";
+import { saidTime, type SaidTimeKind } from "@/lib/flightSaidTime";
+
 
 export type PrepareInput = {
   origin: string;
