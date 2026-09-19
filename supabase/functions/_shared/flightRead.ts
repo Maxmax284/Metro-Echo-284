@@ -52,6 +52,50 @@ export async function flightRead(
   if (journey) {
     const where = whereOnJourney(journey);
     const numbers = bigNumbers(journey);
+    /* "Where do I physically go next" is the only question that matters in a
+       departures hall, so it is answered first, with the airline that actually
+       flies the aircraft — that is what the boards and the counters say. */
+    const leg = journey.legs[where.legIndex] ?? journey.legs[0] ?? null;
+    const plan = leg ? (rows.find((r) => r.id === leg.plan_id) ?? null) : null;
+    const option = plan ? (plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null) : null;
+    const identity = option
+      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
+          marketing:
+            (option.identity as FlightIdentity | null)?.marketing ??
+            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
+        })
+      : null;
+    const snap = (plan?.live_status ?? null) as
+      | {
+          departure?: { terminal?: string | null; gate?: string | null; scheduled?: string | null; estimated?: string | null };
+          arrival?: { terminal?: string | null; gate?: string | null };
+        }
+      | null;
+    const depIso = snap?.departure?.estimated ?? snap?.departure?.scheduled ?? option?.depart_at ?? null;
+    const depMs = depIso ? Date.parse(depIso) : NaN;
+    /* The person's own words are the only thing that can say they are already
+       inside the airport or past security. Echo takes their word and nothing else. */
+    const saidLower = (said ?? "").toLowerCase();
+    const atAirport = /\b(terminal|airport|departures|check[- ]?in|counter|kerb|curb|dropped off|just landed|just got (?:here|in))\b/.test(saidLower);
+    const pastSecurity = /\b(through security|past security|cleared security|airside|at the gate|gate area|duty[- ]free)\b/.test(saidLower);
+    const phase =
+      (atAirport || pastSecurity) && (where.kind === "before" || where.kind === "at_airport") ? "at_airport" : where.kind;
+    const inAir = phase === "in_air";
+    const ground = groundPath({
+      where: phase,
+      identity,
+      fromPlace: leg?.from.iata ? airportWords(leg.from.iata) : null,
+      toPlace: leg?.to.iata ? airportWords(leg.to.iata) : null,
+      terminal: (inAir ? snap?.arrival?.terminal : snap?.departure?.terminal) ?? null,
+      gate: (inAir ? snap?.arrival?.gate : snap?.departure?.gate) ?? null,
+      minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
+      throughSecurity: pastSecurity,
+    });
+    lines.push(groundWords(ground));
+    const op = operatorWords(identity);
+    if (op) lines.push(op);
+    lines.push("");
+    /* The itinerary follows the move. It is context, not the answer. */
     lines.push(`Your journey: ${journey.title}.`);
     lines.push(where.words);
     if (numbers.timeLeft) lines.push(`${numbers.timeLeft} ${numbers.timeLeftLabel}. ${numbers.gate ? `Next gate ${numbers.gate}.` : "No gate filed yet."}`);
@@ -65,36 +109,6 @@ export async function flightRead(
         lines.push(`There is room to leave the airport. Kept notes for ${notes.country}: ${notes.transport[0]?.line ?? ""} (checked ${notes.transport[0]?.checked_on ?? "an unrecorded date"}).`);
       }
     }
-    /* "Where do I physically go next" is the only question that matters in a
-       departures hall, so it is answered before the itinerary is recited — with
-       the airline that actually flies it, because that is what the boards say. */
-    const leg = journey.legs[where.legIndex] ?? journey.legs[0] ?? null;
-    const plan = leg ? (rows.find((r) => r.id === leg.plan_id) ?? null) : null;
-    const option = plan ? (plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null) : null;
-    const identity = option
-      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
-          marketing:
-            (option.identity as FlightIdentity | null)?.marketing ??
-            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
-        })
-      : null;
-    const snap = (plan?.live_status ?? null) as
-      | { departure?: { terminal?: string | null; gate?: string | null; scheduled?: string | null; estimated?: string | null } }
-      | null;
-    const depIso = snap?.departure?.estimated ?? snap?.departure?.scheduled ?? option?.depart_at ?? null;
-    const depMs = depIso ? Date.parse(depIso) : NaN;
-    const ground = groundPath({
-      where: where.kind,
-      identity,
-      fromPlace: leg?.from.iata ? airportWords(leg.from.iata) : null,
-      toPlace: leg?.to.iata ? airportWords(leg.to.iata) : null,
-      terminal: snap?.departure?.terminal ?? null,
-      gate: snap?.departure?.gate ?? null,
-      minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
-    });
-    lines.push(groundWords(ground));
-    const op = operatorWords(identity);
-    if (op) lines.push(op);
     if (ground.needsCheckIn) {
       lines.push(
         "The check-in zone is not on record. Schedule → Flights has a look-it-up tap that reads one official airline page for it; Echo will not name a zone without one.",
