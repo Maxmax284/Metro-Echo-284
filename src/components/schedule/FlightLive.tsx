@@ -37,14 +37,6 @@ const TONE: Record<string, string> = {
   unknown: "bg-muted-foreground/60",
 };
 
-const BOARD_WORDS: Record<string, string> = {
-  waiting: "ON THE GROUND",
-  flying: "EN ROUTE",
-  landed: "LANDED",
-  stopped: "NOT FLYING",
-  unknown: "NO POSITION",
-};
-
 const BOARD_TONE: Record<string, "primary" | "good" | "danger" | "default"> = {
   waiting: "primary",
   flying: "primary",

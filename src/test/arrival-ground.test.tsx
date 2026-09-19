@@ -8,7 +8,7 @@ describe("ArrivalGroundPack", () => {
     expect(screen.getByLabelText("NT$ TWD")).toBeTruthy();
     expect(screen.getByText(/Airport MRT signs/)).toBeTruthy();
     expect(screen.getByText(/nǐ hǎo/)).toBeTruthy();
-    expect(screen.getByText(/Police 110/)).toBeTruthy();
+    expect(screen.getByLabelText("110 · 119")).toBeTruthy();
   });
 
   it("states missing destination facts without guessing", () => {

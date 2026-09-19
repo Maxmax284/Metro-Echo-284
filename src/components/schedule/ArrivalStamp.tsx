@@ -96,12 +96,12 @@ export function ArrivalStamp({
             reads it fresh.
           </p>
         ) : (
-          f.city && <p>Echo does not have the currency for {f.country} on record.</p>
+          <p>Echo does not have the currency for {f.country ?? f.iata} on record.</p>
         )}
         {help ? (
           <p>Emergency: {help}{f.help?.note ? ` ${f.help.note}` : ""} Echo cannot make the call for you.</p>
         ) : (
-          f.city && <p>No published emergency number on record for {f.country} — ask where you are staying.</p>
+          <p>No published emergency number on record for {f.country ?? f.iata} — ask airport staff.</p>
         )}
         <p className="text-muted-foreground/75">Echo keeps your clock until you say switch.</p>
       </div>
