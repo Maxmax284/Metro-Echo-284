@@ -570,8 +570,28 @@ export function FlightDesk() {
               <>
                 {boardAhead(livePlan, activeGround?.read, activeGround?.where === "in_air")}
                 {groundAhead(livePlan, activeGround?.where === "in_air")}
+                {/* On the aircraft with no feed from it: the track, the miles
+                    left, the clock where you land, and what the cabin usually
+                    carries — all off the device, so it holds with no signal. */}
+                {activeGround?.where === "in_air" && (
+                  <InAirPack
+                    fromIata={(livePlan.origin ?? "").trim().toUpperCase() || null}
+                    toIata={(livePlan.destination ?? "").trim().toUpperCase() || null}
+                    departAt={anchorToZone(
+                      livePlan.options.find((o) => o.depart_at)?.depart_at ?? null,
+                      airportZone((livePlan.origin ?? "").trim().toUpperCase() || null),
+                    )}
+                    arriveAt={anchorToZone(
+                      livePlan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+                      airportZone((livePlan.destination ?? "").trim().toUpperCase() || null),
+                    )}
+                    clock={clock}
+                    homeZone={timezone}
+                  />
+                )}
               </>
             )}
+
 
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
