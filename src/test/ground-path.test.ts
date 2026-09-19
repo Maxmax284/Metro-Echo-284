@@ -49,6 +49,14 @@ describe("groundPath", () => {
     expect(groundPath({ ...base, gate: "B49", minsToDeparture: 25 }).step).toBe("boarding");
   });
 
+  it("stops giving check-in advice once the filed time has gone by", () => {
+    const read = groundPath({ ...base, minsToDeparture: -90 });
+    expect(read.step).toBe("gate_pending");
+    expect(read.lead).toContain("gone by");
+    expect(read.lead).not.toContain("Check in");
+    expect(read.needsCheckIn).toBe(false);
+  });
+
   it("keeps out of the way before the airport and in the air", () => {
     expect(groundPath({ ...base, where: "before" }).step).toBe("before_airport");
     expect(groundPath({ ...base, where: "in_air" }).lead).toContain("In the air to Taipei");
