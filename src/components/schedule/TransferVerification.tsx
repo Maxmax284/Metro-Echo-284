@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, CircleHelp, ClipboardCheck, RadioTower, TriangleAlert, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,9 @@ export function TransferVerification({
   const [baggage, setBaggage] = useState<BaggageStatus>(saved?.baggage_status ?? "unknown");
   const [route, setRoute] = useState<TransferRoute>(saved?.transfer_route ?? "unknown");
   const [source, setSource] = useState<LocalFactSource>(saved?.source ?? "departures_board");
+  useEffect(() => {
+    setAcknowledged(readAck(onward.id) === key);
+  }, [key, onward.id]);
   const checklist = useMemo(
     () => transferChecklist({ confirmed, providerGate, local: saved }),
     [confirmed, providerGate, saved],

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TransferVerification } from "@/components/schedule/TransferVerification";
 import { gateProvenance, transferChecklist } from "@/lib/transferVerification";
@@ -41,7 +41,7 @@ describe("local transfer verification", () => {
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByText(/does not book, board, or change/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Confirm and record" }));
-    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ gate: "D4", baggage_status: "through_checked", source: "departures_board" }));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ gate: "D4", baggage_status: "through_checked", source: "departures_board" })));
   });
 
   it("disables recording offline but keeps guidance visible", () => {
@@ -58,5 +58,13 @@ describe("local transfer verification", () => {
     expect(folded).toBeTruthy();
     fireEvent.click(folded);
     expect(screen.getByText(/official departures board/)).toBeTruthy();
+  });
+
+  it("re-surfaces acknowledged guidance when the provider gate changes", async () => {
+    const { rerender } = render(<TransferVerification airport="TPE" onward={plan()} confirmed online providerGate="C6" providerCheckedAt="2026-09-19T22:00:00Z" onConfirm={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
+    expect(screen.getByRole("button", { name: /Transfer steps kept/ })).toBeTruthy();
+    rerender(<TransferVerification airport="TPE" onward={plan()} confirmed online providerGate="D4" providerCheckedAt="2026-09-19T22:10:00Z" onConfirm={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText(/official departures board/)).toBeTruthy());
   });
 });
