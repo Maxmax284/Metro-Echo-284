@@ -136,15 +136,18 @@ export function journeyFit(input: {
     };
   }
 
-  /* Same airport. Now the clock decides whether it is a sit or a stay. */
+  /* Same airport. Now the clock decides whether it is a sit or a stay — and
+     with no time on record Echo says so rather than promising a chain it cannot
+     make: the journey is built from times, and there is no time here yet. */
   if (gap == null) {
     return {
       plan_id: plan.id,
       flight_no: plan.flight_no ?? null,
-      kind: "chains",
-      lead: `${no} leaves from ${endPlace}, where this trip lands, so it joins the same journey as the next leg.`,
+      kind: "needs_time",
+      lead: `${no} leaves from ${endPlace}, where this trip lands — but with no departure time on record Echo cannot tell a connection from an overnight.`,
       detail: [
-        "No departure time is on record yet, so how long the sit is cannot be worked out. It fills in the moment a time arrives.",
+        "It stays its own trip until a time arrives. Ask for it again with “Where is it now”, or put the time in yourself under the longer way.",
+        "Nothing on the flight you are on changes either way.",
       ],
       suggest,
       gap_hours: null,
