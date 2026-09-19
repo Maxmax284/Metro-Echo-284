@@ -29,6 +29,8 @@ export function GoogleAccountSection({
   onChanged?: () => void;
   /** Show only these services — lets mail get its own findable home in settings. */
   only?: GoogleCapability["key"][];
+  /** The booking watch has its own settings home; other rooms can point there instead of repeating the switch. */
+  hideMailSweep?: boolean;
 }) {
   const { orgId } = useScope();
   const [state, setState] = useState<GoogleAccountState>(EMPTY_GOOGLE_STATE);
