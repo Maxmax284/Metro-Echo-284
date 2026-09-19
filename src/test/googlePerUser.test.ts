@@ -112,6 +112,15 @@ describe("health belongs to one service", () => {
     expect(find(rows, "google_drive").failing).toBe(false);
   });
 
+  it("a service Google itself switched off carries the real fix, not 'switch it on again'", () => {
+    const said =
+      "Google has this service switched off for the account you signed in with. " +
+      "Turn the Drive API on in that Google Cloud project, then Echo can read again.";
+    const out = find([row({ connector_id: "google_drive", last_error: said })], "google_drive");
+    expect(out.failing).toBe(true);
+    expect(out.detail).toContain("Turn the Drive API on");
+  });
+
   it("a service nobody switched on is never a failure", () => {
     const rows: ConnectionRow[] = [];
     expect(statuses(rows, "calendar blew up").every((s) => !s.failing)).toBe(true);
