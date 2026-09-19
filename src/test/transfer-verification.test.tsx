@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TransferVerification } from "@/components/schedule/TransferVerification";
+import { humanizeEvent, kindLabel } from "@/lib/plainLabels";
 import { gateProvenance, transferChecklist } from "@/lib/transferVerification";
 import type { FlightPlan } from "@/lib/flightPlan";
 
@@ -12,6 +13,10 @@ const plan = (local: FlightPlan["noticed_from"] = null): FlightPlan => ({
 });
 
 describe("local transfer verification", () => {
+  it("uses clear Receipts wording", () => {
+    expect(humanizeEvent("flight.local_transfer_verified")).toBe("Local transfer details recorded");
+    expect(kindLabel("flight_plan")).toBe("Flight");
+  });
   it("distinguishes candidate and confirmed onward legs", () => {
     expect(transferChecklist({ confirmed: false })[0].detail).toMatch(/proposal/);
     expect(transferChecklist({ confirmed: true })[0].detail).toBe("On your journey");
