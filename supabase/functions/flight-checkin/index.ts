@@ -68,8 +68,7 @@ function officialFirst(hits: Hit[], carrier: string | null, airportName: string 
       return { h, score: (official ? 2 : 0) + hit };
     })
     .sort((a, b) => b.score - a.score);
-  const best = scored[0];
-  return best && best.score > 0 ? best.h : null;
+  return scored.filter((s) => s.score > 0).slice(0, 3).map((s) => s.h);
 }
 
 /** One sentence from the page, or nothing. The gap is an answer. */
