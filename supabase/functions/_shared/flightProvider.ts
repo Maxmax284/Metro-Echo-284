@@ -85,26 +85,30 @@ async function readStack(flight_no: string, flight_date: string): Promise<LiveFl
   }
 }
 
-/** The feeds the ceiling counts. One budget covers both, so a fallback still pays. */
+/** The feeds the ceiling counts. Each one bills separately. */
 const FEEDS = ["aeroapi", "aviationstack"];
 
-/** How many paid readings today, across every feature and both feeds. */
-export async function spentToday(sb: {
-  from: (t: string) => any;
-}): Promise<number> {
+/**
+ * How many paid readings today. One feed when named, otherwise both — the second
+ * form is what a caller asking "how much have I spent today" wants.
+ */
+export async function spentToday(
+  sb: {
+    from: (t: string) => any;
+  },
+  feed?: string,
+): Promise<number> {
   const dayStart = new Date().toISOString().slice(0, 10);
-  const { count } = await sb
-    .from("api_usage_logs")
-    .select("id", { count: "exact", head: true })
-    .in("provider", FEEDS)
-    .eq("cache_hit", false)
-    .gte("created_at", `${dayStart}T00:00:00Z`);
+  let q = sb.from("api_usage_logs").select("id", { count: "exact", head: true });
+  q = feed ? q.eq("provider", feed) : q.in("provider", FEEDS);
+  const { count } = await q.eq("cache_hit", false).gte("created_at", `${dayStart}T00:00:00Z`);
   return count ?? 0;
 }
 
 /**
  * A reading inside the ceiling, with its receipt. `over_budget` is a real answer
- * a caller must be able to say out loud, not an error to swallow.
+ * a caller must be able to say out loud, not an error to swallow. A feed that has
+ * spent its day is skipped rather than silencing the other one.
  */
 export async function countedRead(
   sb: { from: (t: string) => any },
@@ -112,9 +116,12 @@ export async function countedRead(
   flight_no: string,
   flight_date: string,
 ): Promise<{ live: LiveFlight | null; over_budget: boolean }> {
-  const spent = await spentToday(sb);
-  if (spent >= DAILY_READING_CEILING) return { live: null, over_budget: true };
-  const { live, feed } = await readFlightWithFeed(flight_no, flight_date);
+  const allow = {
+    aero: !!AERO && (await spentToday(sb, "aeroapi")) < DAILY_READING_CEILING,
+    stack: !!KEY && (await spentToday(sb, "aviationstack")) < DAILY_READING_CEILING,
+  };
+  if (!allow.aero && !allow.stack) return { live: null, over_budget: true };
+  const { live, feed } = await readFlightWithFeed(flight_no, flight_date, allow);
   await sb.from("api_usage_logs").insert({
     owner_id: where.userId,
     user_id: where.userId,
@@ -129,3 +136,4 @@ export async function countedRead(
 
   return { live, over_budget: false };
 }
+
