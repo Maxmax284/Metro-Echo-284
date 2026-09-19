@@ -25,6 +25,7 @@ import { MailSweepRow } from "@/components/settings/MailSweepRow";
 export function GoogleAccountSection({
   onChanged,
   only,
+  hideMailSweep,
 }: {
   onChanged?: () => void;
   /** Show only these services — lets mail get its own findable home in settings. */
