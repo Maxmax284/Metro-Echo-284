@@ -20,6 +20,7 @@ import {
 import {
   connectGoogleService, disconnectGoogleService, readGoogleAccountStatus,
 } from "@/lib/googleServices";
+import { MailSweepRow } from "@/components/settings/MailSweepRow";
 
 export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) {
   const { orgId } = useScope();
