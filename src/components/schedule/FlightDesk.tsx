@@ -141,6 +141,13 @@ export function FlightDesk() {
   const [live, setLive] = useState<Record<string, string>>({});
   /* Removal is asked once, plainly, and never assumed from a stray tap. */
   const [removing, setRemoving] = useState<FlightPlan | null>(null);
+  /* Where you are standing. This device's word, kept on this device only. */
+  const [stages, setStages] = useState<Record<string, GroundStage>>({});
+  const stageOf = (planId: string): GroundStage => stages[planId] ?? readStage(planId);
+  const setStage = (planId: string, stage: GroundStage) => {
+    writeStage(planId, stage);
+    setStages((prev) => ({ ...prev, [planId]: stage }));
+  };
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
