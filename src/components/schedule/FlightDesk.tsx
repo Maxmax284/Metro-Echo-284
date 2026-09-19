@@ -59,6 +59,7 @@ import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { TransferVerification } from "./TransferVerification";
+import { TransferSteps } from "./TransferSteps";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { airportEndClock, flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
@@ -652,6 +653,11 @@ export function FlightDesk() {
   const transferPlan = confirmedOnwardPlan ?? candidateOnward;
   const transferConfirmed = !!confirmedOnwardPlan;
   const transferSnapshot = transferPlan?.live_status as LiveFlight | null | undefined;
+  /* The airport you are standing in, only once this leg has actually landed. */
+  const landedAt =
+    livePlan && liveSnapshot && flightPhase(liveSnapshot) === "landed"
+      ? (livePlan.destination ?? liveSnapshot?.arrival.iata ?? "").trim().toUpperCase() || null
+      : null;
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
   const settledGroups = useMemo(() => {
     const groups = new Map<string, { plan: FlightPlan; count: number }>();
@@ -1165,6 +1171,16 @@ export function FlightDesk() {
                     <JourneyFitCard
                       fit={fitOf(p) as NonNullable<ReturnType<typeof fitOf>>}
                       busy={busy}
+                      steps={
+                        landedAt && p.id === transferPlan?.id ? (
+                          <TransferSteps
+                            airport={landedAt}
+                            onward={p}
+                            confirmed={transferConfirmed}
+                            providerGate={(p.live_status as LiveFlight | null)?.departure.gate ?? null}
+                          />
+                        ) : undefined
+                      }
                       onSetRoute={async (from, to) => {
                         setBusy(true);
                         try {

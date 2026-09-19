@@ -16,6 +16,7 @@ import { SituationRead } from "@/components/today/SituationRead";
 import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { NextMoveLane } from "@/components/today/NextMoveLane";
+import { TransferLane } from "@/components/today/TransferLane";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
@@ -527,6 +528,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       {/* Travelling today: the one sentence about where to walk next, the same
           wording as the flight card. Nothing when no flight is close. */}
       <NextMoveLane onOpen={() => onNavigate("schedule")} />
+
+      {/* Landed with another plane to catch: the same transfer checklist as the
+          flight card, and the airport's own page. Quiet otherwise. */}
+      <TransferLane onOpen={() => onNavigate("schedule")} />
 
       {/* Coming back after a real gap: three lines of consequence, never a
           count of unread anything. Quiet when nothing moved. */}

@@ -6,7 +6,7 @@
 //   - The one fact it cannot know is asked for, with the airport it would bet on
 //     already typed in — and still yours to change.
 //   - Nothing on the flight you are on is touched by anything here.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { GitMerge } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,15 @@ export function JourneyFitCard({
   busy = false,
   onSetRoute,
   onSetTime,
+  steps,
 }: {
   fit: JourneyFit;
   busy?: boolean;
   onSetRoute?: (from: string, to: string) => void | Promise<void>;
   /** The one fact a possible connection is missing: when it leaves, or boards. */
   onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
+  /** Landed-transfer steps for this airport, when the trip is standing in it. */
+  steps?: ReactNode;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
@@ -56,6 +59,17 @@ export function JourneyFitCard({
           {line}
         </p>
       ))}
+
+      {/* Standing in the transfer airport: what is known, what to check, and the
+          airport's own page. Read-only here — recording a local fact lives on
+          the flight card, behind a review step. */}
+      {steps ? (
+        <div className="space-y-1.5 border-t border-border/60 pt-2">
+          <p className="text-[11.5px] font-medium text-foreground">Transfer steps here</p>
+          {steps}
+        </div>
+      ) : null}
+
 
       {/* The one missing fact, asked for where it is missed. Optional: leaving it
           empty keeps the flight exactly as separate as it already is. */}
