@@ -35,6 +35,8 @@ import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
+import { PreDeparturePack } from "./PreDeparturePack";
+import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath } from "@/lib/groundPath";
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
