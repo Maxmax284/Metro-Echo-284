@@ -9,7 +9,7 @@ type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
 import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
 import { countryNotes } from "./countryNotes.ts";
-import { airport, airportWords } from "./airports.ts";
+import { airport, airportMismatchWords, airportWords } from "./airports.ts";
 import { groundPath, groundWords } from "./groundPath.ts";
 import { carrierId, mergeIdentity, operatorWords, type FlightIdentity } from "./flightIdentity.ts";
 
@@ -21,6 +21,8 @@ function scoped(q: any, userId: string, orgId: string | null) {
 export async function flightRead(
   sb: SupabaseClient,
   scope: { userId: string; orgId: string | null },
+  /** The person's own words, when they named an airport. Used only to ask, never to decide. */
+  said: string | null = null,
 ): Promise<string> {
   const { data } = await scoped(
     sb.from("flight_plans").select("*").order("depart_on", { ascending: true }).limit(20),
@@ -98,7 +100,12 @@ export async function flightRead(
         "The check-in zone is not on record. Schedule → Flights has a look-it-up tap that reads one official airline page for it; Echo will not name a zone without one.",
       );
     }
-    if (leg?.from.iata) {
+    /* A named airport that is not this journey's is a question, not a correction.
+       Dallas and Dulles are one slurred syllable apart and four hundred miles. */
+    const clash = airportMismatchWords(said, leg?.from.iata ?? null);
+    if (clash) {
+      lines.push(clash);
+    } else if (leg?.from.iata) {
       lines.push(
         `This journey leaves from ${airportWords(leg.from.iata)}. If you are standing somewhere else, say which airport — Echo will not guess which one you mean.`,
       );

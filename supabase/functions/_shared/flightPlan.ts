@@ -164,8 +164,19 @@ function defaultClock(iso: string): string {
   return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
+/**
+ * How to name a flight once. "TG TG6285" is a code stuttering into its own
+ * number; the number already carries the code, so the code is dropped.
+ */
+export function whoWords(o: { airline?: string | null; flight_no?: string | null }): string {
+  const code = (o.airline ?? "").trim();
+  const no = (o.flight_no ?? "").trim();
+  if (no && code && no.toUpperCase().startsWith(code.toUpperCase())) return no;
+  return [code, no].filter(Boolean).join(" ");
+}
+
 export function optionWords(o: FlightOption, clock: (iso: string) => string = defaultClock): string {
-  const who = [o.airline, o.flight_no].filter(Boolean).join(" ") || "Flight";
+  const who = whoWords(o) || "Flight";
   /* No departure time on record stays no departure time. Midnight is not a
      stand-in for something nobody wrote down. */
   const when = !o.depart_at
@@ -265,7 +276,7 @@ export function confirmedEntries(
   plan: FlightPlan,
   option: FlightOption,
 ): Array<{ title: string; starts_at: string; ends_at: string | null; location: string | null; description: string }> {
-  const who = [option.airline, option.flight_no].filter(Boolean).join(" ");
+  const who = whoWords(option);
   const from = cleanPlace(plan.origin);
   const to = cleanPlace(plan.destination);
   const priced = priceWords(option);

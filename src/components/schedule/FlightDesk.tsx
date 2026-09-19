@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
+import { ChevronDown, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -36,7 +36,8 @@ import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
 import { groundPath } from "@/lib/groundPath";
-import { carrierId, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
+import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
+import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
@@ -141,6 +142,13 @@ export function FlightDesk() {
   const [live, setLive] = useState<Record<string, string>>({});
   /* Removal is asked once, plainly, and never assumed from a stray tap. */
   const [removing, setRemoving] = useState<FlightPlan | null>(null);
+  /* Where you are standing. This device's word, kept on this device only. */
+  const [stages, setStages] = useState<Record<string, GroundStage>>({});
+  const stageOf = (planId: string): GroundStage => stages[planId] ?? readStage(planId);
+  const setStage = (planId: string, stage: GroundStage) => {
+    writeStage(planId, stage);
+    setStages((prev) => ({ ...prev, [planId]: stage }));
+  };
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
@@ -285,20 +293,39 @@ export function FlightDesk() {
    * emphasis shifts from the clock to the counter, the board and the gate, with
    * no new card and nothing stacked on.
    */
-  const groundBlock = (plan: FlightPlan) => {
+  /** Both names for one flight: the ticket's and the terminal's. */
+  const identityOf = (plan: FlightPlan): FlightIdentity | null => {
+    const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
+    if (!option) return null;
+    return mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
+      marketing:
+        (option.identity as FlightIdentity | null)?.marketing ??
+        carrierId({ carrier: option.airline, flight_no: option.flight_no }),
+    });
+  };
+
+  /**
+   * What the terminal prints, and the ticket number said once. When the ticket
+   * and the aircraft carry the same number there is no second name to mention.
+   */
+  const boardWords_ = (plan: FlightPlan): { board: string | null; ticket: string | null } => {
+    const id = identityOf(plan);
+    const board = boardIdentity(id);
+    const name = board ? [board.carrier, board.flight_no].filter(Boolean).join(" ") : null;
+    return { board: name, ticket: isCodeshare(id) ? (id?.marketing?.flight_no ?? null) : null };
+  };
+
+  const groundBlock = (plan: FlightPlan, lead = false) => {
     const snap = plan.live_status as LiveFlight | null;
     const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
-    const identity: FlightIdentity | null = option
-      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
-          marketing:
-            (option.identity as FlightIdentity | null)?.marketing ??
-            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
-        })
-      : null;
-    /* Where the journey model says this person is, for this flight only. */
+    const identity = identityOf(plan);
+    /* Where the journey model says this person is, for this flight only — unless
+       this device says they are already standing in the terminal. */
     const legIndex = (journey.current?.legs ?? []).findIndex((l) => l.plan_id === plan.id);
     const atThisLeg = legIndex >= 0 && journey.where?.legIndex === legIndex;
-    const where = atThisLeg ? journey.where!.kind : "before";
+    const stage = stageOf(plan.id);
+    const computed = atThisLeg ? journey.where!.kind : "before";
+    const where = stage !== "away" && (computed === "before" || computed === "at_airport") ? "at_airport" : computed;
     const departAt =
       snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
     const depMs = departAt ? Date.parse(departAt) : NaN;
@@ -310,10 +337,14 @@ export function FlightDesk() {
       terminal: snap?.departure.terminal ?? null,
       gate: where === "in_air" ? (snap?.arrival.gate ?? null) : (snap?.departure.gate ?? null),
       minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
+      throughSecurity: stage === "security",
     });
     return (
       <GroundLead
         read={read}
+        lead={lead}
+        stage={where === "in_air" || where === "done" ? undefined : stage}
+        onStage={(s) => setStage(plan.id, s)}
         looking={looking === plan.id}
         onLookUp={async () => {
           setLooking(plan.id);
@@ -378,6 +409,10 @@ export function FlightDesk() {
     return `${statusWords(snapshot, clock)} ${readingAge(plan.live_checked_at)}.`;
   };
 
+  /* The flight the journey says you are on right now. Its move leads the screen. */
+  const liveLeg = journey.current?.legs[journey.where?.legIndex ?? 0] ?? null;
+  const livePlan = liveLeg ? (plans.find((p) => p.id === liveLeg.plan_id) ?? null) : null;
+
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
   return (
@@ -386,20 +421,35 @@ export function FlightDesk() {
 
       <FlightAlertsCard />
 
-      {/* The trip you are actually on comes before anything you might add. */}
+      {/* The trip you are actually on comes before anything you might add — and
+          the move comes before the trip. A person reading this is walking. */}
       {journey.current ? (
         <>
-        <JourneySpine
-          journey={journey.current}
-          where={journey.where}
-          news={journey.news}
-          savedAt={journey.savedAt}
-          onOverride={(planId, state) => journey.setLegState(planId, state)}
-          onClearOverride={(planId) => journey.clearLegState(planId)}
-          onDismissNews={journey.dismissNews}
-        />
-        {/* The same trip as a route you can tap, stop by stop. */}
-        <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+        {livePlan ? groundBlock(livePlan, true) : null}
+        <details className="group">
+          <summary
+            className={cn(
+              "vanta-card flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[12px] text-foreground/80",
+              MOTION_FOCUS,
+            )}
+          >
+            <span>Full journey — legs, times and what changed</span>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="mt-2 space-y-3">
+            <JourneySpine
+              journey={journey.current}
+              where={journey.where}
+              news={journey.news}
+              savedAt={journey.savedAt}
+              onOverride={(planId, state) => journey.setLegState(planId, state)}
+              onClearOverride={(planId) => journey.clearLegState(planId)}
+              onDismissNews={journey.dismissNews}
+            />
+            {/* The same trip as a route you can tap, stop by stop. */}
+            <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+          </div>
+        </details>
         </>
       ) : null}
 
@@ -673,6 +723,8 @@ export function FlightDesk() {
                       clock={clock}
                       homeZone={timezone}
                       reading={busy || readingPlanId === p.id}
+                      board={boardWords_(p).board}
+                      ticket={boardWords_(p).ticket}
                     />
                   )}
                   {groundBlock(p)}
@@ -772,6 +824,8 @@ export function FlightDesk() {
                         clock={clock}
                         homeZone={timezone}
                         reading={readingPlanId === p.id}
+                        board={boardWords_(p).board}
+                        ticket={boardWords_(p).ticket}
                       />
                     )}
                     {groundBlock(p)}

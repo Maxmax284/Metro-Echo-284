@@ -263,8 +263,18 @@ export const ECHO_READ_TOOLS = [
     function: {
       name: "flights_prepared",
       description:
-        "Read-only: the flights this person prepared, their times and recorded prices, and which are still waiting on their yes. Use for 'what flight am I on', 'did I confirm that flight'. Echo never books, buys, or checks in.",
-      parameters: { type: "object", properties: {}, additionalProperties: false },
+        "Read-only: the flights this person prepared, their times and recorded prices, which airline actually flies each one, and what to do next in the terminal. Use for 'what flight am I on', 'where do I go', 'what do I look for on the board'. Echo never books, buys, or checks in.",
+      parameters: {
+        type: "object",
+        properties: {
+          said: {
+            type: "string",
+            description:
+              "The person's own words, verbatim, when they named an airport or terminal — so Echo can say plainly if that is not the airport their journey leaves from.",
+          },
+        },
+        additionalProperties: false,
+      },
     },
   },
   {
@@ -554,7 +564,7 @@ export async function runEchoRead(
       return { name, text, source };
     }
     case "flights_prepared": {
-      const text = await flightRead(sb, scope);
+      const text = await flightRead(sb, scope, a.said ? String(a.said) : null);
       return { name, text, source };
     }
     case "convert_measure": {

@@ -15,6 +15,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { SituationRead } from "@/components/today/SituationRead";
 import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
+import { NextMoveLane } from "@/components/today/NextMoveLane";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
@@ -522,6 +523,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       </header>
 
       <TickRow live={changeSignal} />
+
+      {/* Travelling today: the one sentence about where to walk next, the same
+          wording as the flight card. Nothing when no flight is close. */}
+      <NextMoveLane onOpen={() => onNavigate("schedule")} />
 
       {/* Coming back after a real gap: three lines of consequence, never a
           count of unread anything. Quiet when nothing moved. */}
