@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Rocket, User, CalendarClock, CalendarCheck2, Radar, Sparkles, Plug, Gauge, Receipt,
+  Rocket, User, CalendarClock, CalendarCheck2, Inbox, Radar, Sparkles, Plug, Gauge, Receipt,
   type LucideIcon,
 } from "lucide-react";
 
