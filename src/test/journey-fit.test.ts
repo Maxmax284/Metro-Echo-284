@@ -72,10 +72,10 @@ describe("a flight added by number against a trip underway", () => {
     expect(f.gap_hours).toBeCloseTo(4, 0);
   });
 
-  it("chains on the airport alone when no time is on record, and says the sit is unknown", () => {
+  it("will not promise a chain with no departure time — the journey is built from times", () => {
     const f = fit({ origin: "TPE", destination: "BKK" })!;
-    expect(f.kind).toBe("chains");
-    expect(f.detail.join(" ")).toContain("cannot be worked out");
+    expect(f.kind).toBe("needs_time");
+    expect(f.lead).toContain("cannot tell a connection from an overnight");
   });
 
   it("calls a long gap a stay rather than pretending you sit in the terminal", () => {

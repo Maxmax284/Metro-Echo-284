@@ -16,6 +16,7 @@ import type { JourneyFit } from "@/lib/journeyFit";
 
 const KIND_WORDS: Record<JourneyFit["kind"], string> = {
   needs_route: "One fact short of a leg",
+  needs_time: "A time short of a connection",
   chains: "This joins your trip",
   stay: "A stay, not a connection",
   elsewhere: "Its own trip",
