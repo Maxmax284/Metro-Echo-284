@@ -116,6 +116,9 @@ function filledWords(plan: FlightPlan): string[] {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
+  /* With the doors shut there are no bars. The card says so once and stops
+     asking the airline, rather than throwing connection errors. */
+  const { online } = useNetworkReach();
   const {
     plans,
     loading,
