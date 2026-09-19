@@ -442,15 +442,22 @@ export function FlightDesk() {
 
   /* Before the first provider reading, the board still exists — but every
      operational field says exactly what is not filed instead of disappearing. */
-  const boardAhead = (plan: FlightPlan, read: GroundRead | null | undefined, inAir = false) => {
+  const boardAhead = (
+    plan: FlightPlan,
+    read: GroundRead | null | undefined,
+    inAir = false,
+    onBoard = false,
+  ) => {
     const identity = boardWords_(plan);
     const status = inAir
       ? "IN THE AIR"
-      : read?.step === "find_check_in"
-        ? "CHECK-IN"
-        : read?.step === "boarding"
-          ? "BOARDING TIME NOT FILED"
-          : "GATE PENDING";
+      : onBoard
+        ? "ON BOARD"
+        : read?.step === "find_check_in"
+          ? "CHECK-IN"
+          : read?.step === "boarding"
+            ? "BOARDING TIME NOT FILED"
+            : "GATE PENDING";
     return (
       <div className="space-y-2 border-t border-border/50 pt-3">
         <p className="vanta-machine-label text-foreground/70">{inAir ? "Arrivals board" : "Airport board"}</p>
