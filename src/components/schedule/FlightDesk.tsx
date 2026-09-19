@@ -432,6 +432,44 @@ export function FlightDesk() {
           <SolariBoard text={status} label="Status" tone={status.includes("NOT FILED") ? "warn" : "primary"} />
         </div>
         {identity.ticket && <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {identity.ticket}.</p>}
+        {terminalWalk(plan, read)}
+      </div>
+    );
+  };
+
+  /**
+   * The walk through the terminal, opened from the board row. Order of stops and
+   * what is filed at each one — never a floor plan Echo does not have.
+   */
+  const terminalWalk = (plan: FlightPlan, read: GroundRead | null | undefined) => {
+    const snap = plan.live_status as LiveFlight | null;
+    const phase = snap ? flightPhase(snap) : "waiting";
+    const arrivalSide = phase === "flying" || phase === "landed";
+    const identity = identityOf(plan);
+    const stops = terminalPath({
+      step: read?.step ?? null,
+      carrier: checkInCarrier(identity),
+      zone: checkInWords(identity),
+      terminal: arrivalSide ? (snap?.arrival.terminal ?? null) : (snap?.departure.terminal ?? null),
+      gate: arrivalSide ? (snap?.arrival.gate ?? null) : (snap?.departure.gate ?? null),
+      place: airportWords(((arrivalSide ? plan.destination : plan.origin) ?? "").trim().toUpperCase()) ||
+        (arrivalSide ? plan.destination : plan.origin),
+      arrivalSide,
+    });
+    const open = walk === plan.id;
+    return (
+      <div className="space-y-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-[11.5px]"
+          onClick={() => setWalk(open ? null : plan.id)}
+          aria-expanded={open}
+        >
+          <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
+          {open ? "Hide the terminal walk" : arrivalSide ? "Walk to baggage claim" : "Walk through the terminal"}
+        </Button>
+        {open && <TerminalMap stops={stops} />}
       </div>
     );
   };
