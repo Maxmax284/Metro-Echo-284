@@ -199,7 +199,7 @@ export function normalizeAviationstack(
       }
     : null;
   const differs = !!operating?.flight_no && operating.flight_no !== ticket.flight_no;
-  return {
+  return anchorLive({
     flight_no: want,
     flight_date: str(row.flight_date) ?? ask.flight_date,
     airline: ticket.carrier,
@@ -211,7 +211,7 @@ export function normalizeAviationstack(
     arrival: end(row.arrival),
     position: fix(row.live),
     checked_at: checkedAt,
-  };
+  });
 }
 
 function clockOf(iso: string | null, clock: (iso: string) => string): string | null {
