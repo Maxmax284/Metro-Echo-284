@@ -7,7 +7,7 @@
 //   - The pulse means "this is a live reading", and the reading's age sits right
 //     next to it so nobody mistakes an old check for now.
 //   - Colour is a shortcut, never the message. Every state is also written out.
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   PHASE_WORDS,
   altitudeWords,
@@ -55,6 +55,7 @@ export function FlightLive({
   ticket,
   groundStep,
   embedded = false,
+  belowBoard,
 }: {
   live: LiveFlight;
   checkedAt: string | null;
@@ -74,6 +75,8 @@ export function FlightLive({
   groundStep?: GroundStep | null;
   /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
   embedded?: boolean;
+  /** Sits directly under the board row — the terminal walk opens from there. */
+  belowBoard?: ReactNode;
 }) {
   const phase = flightPhase(live);
   /* Radar first: when the airline filed a fix for the aircraft, the marker sits
@@ -144,6 +147,7 @@ export function FlightLive({
       {ticket?.trim() && ticket.trim().toUpperCase() !== (board ?? live.flight_no).toUpperCase() && (
         <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {ticket.trim()}.</p>
       )}
+      {belowBoard}
 
       {/* The track. The marker sits on the aircraft's own fix when there is one,
           on the clock when there isn't, and nowhere at all when neither holds. */}

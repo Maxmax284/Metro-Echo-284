@@ -39,6 +39,7 @@ const KIND_LABEL: Record<string, string> = {
   journey_moved: "Flight",
   flight_evidence_conflict: "Flight disagrees",
   flight_condition_noticed: "Waiting on a flight",
+  flight_before_you_leave: "Before you leave",
 };
 
 export function NudgesPanel({ collapsed = false }: { collapsed?: boolean }) {
