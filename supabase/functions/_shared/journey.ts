@@ -44,7 +44,14 @@ export type LegEnd = {
   gate: string | null;
 };
 
-export type LegStateKind = "not_started" | "at_airport" | "in_air" | "landed" | "did_not_happen";
+export type LegStateKind =
+  | "not_started"
+  | "at_airport"
+  /** Pass scanned, jet bridge or seat. The aircraft has not pushed back. */
+  | "boarding"
+  | "in_air"
+  | "landed"
+  | "did_not_happen";
 
 export type Leg = {
   plan_id: string;
