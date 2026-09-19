@@ -58,6 +58,7 @@ import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
+import { TransferVerification } from "./TransferVerification";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { airportEndClock, flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
@@ -143,6 +144,7 @@ export function FlightDesk() {
     addByNumber,
     setRoute,
     setSaidTime,
+    setLocalTransferVerification,
 
   } = useFlightPlans();
   /* Which flight is having its check-in area read, so only that card waits. */
@@ -640,6 +642,16 @@ export function FlightDesk() {
     const fit = fitOf(plan);
     return fit?.kind === "needs_time" || fit?.kind === "chains";
   });
+  const candidateOnward = open.find((plan) => {
+    const fit = fitOf(plan);
+    return fit?.kind === "needs_time" || fit?.kind === "chains";
+  }) ?? null;
+  const confirmedOnwardPlan = onward
+    ? plans.find((plan) => plan.id === journey.current?.legs[(journey.where?.legIndex ?? 0) + 1]?.plan_id) ?? null
+    : null;
+  const transferPlan = confirmedOnwardPlan ?? candidateOnward;
+  const transferConfirmed = !!confirmedOnwardPlan;
+  const transferSnapshot = transferPlan?.live_status as LiveFlight | null | undefined;
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
   const settledGroups = useMemo(() => {
     const groups = new Map<string, { plan: FlightPlan; count: number }>();
@@ -706,6 +718,7 @@ export function FlightDesk() {
                    onward ? "connection" : possibleOnward ? "unknown" : "destination",
                  )}
                 connection={onward}
+                 uncertainTransfer={!onward && possibleOnward}
                 embedded
               />
             ) : (
@@ -748,6 +761,26 @@ export function FlightDesk() {
                 {QUIET_SKY}
               </p>
             )}
+
+            {flightPhase(liveSnapshot) === "landed" && transferPlan ? (
+              <TransferVerification
+                airport={(livePlan.destination ?? liveSnapshot.arrival.iata ?? "the connection airport").trim().toUpperCase()}
+                onward={transferPlan}
+                confirmed={transferConfirmed}
+                online={online}
+                providerGate={transferSnapshot?.departure.gate ?? null}
+                providerCheckedAt={transferPlan.live_checked_at ?? null}
+                onConfirm={async (facts) => {
+                  try {
+                    await setLocalTransferVerification(transferPlan, facts);
+                    vantaToast.success("Local transfer details recorded with a receipt.");
+                  } catch (e) {
+                    vantaToast.warning(e instanceof Error ? e.message : "Those local details did not save.");
+                    throw e;
+                  }
+                }}
+              />
+            ) : null}
 
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button

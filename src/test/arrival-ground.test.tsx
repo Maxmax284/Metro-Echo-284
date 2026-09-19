@@ -31,4 +31,11 @@ describe("ArrivalGroundPack", () => {
     fireEvent.click(screen.getByRole("button", { name: /Nothing kept about ZZZ yet/ }));
     expect(screen.getByText(/no kept notes/)).toBeTruthy();
   });
+
+  it("keeps city and baggage advice folded when an onward proposal is unresolved", () => {
+    render(<ArrivalStamp iata="TPE" at="2026-09-20T05:10:00" arrived uncertainTransfer />);
+    expect(screen.getByText(/possible onward flight/)).toBeTruthy();
+    expect(screen.getByText(/Do not head to immigration or baggage claim/)).toBeTruthy();
+    expect(screen.queryByText(/Airport MRT signs/)).toBeNull();
+  });
 });

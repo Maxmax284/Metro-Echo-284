@@ -44,6 +44,7 @@ export function kindLabel(kind: string | null | undefined): string {
     event: "Event",
     field_note: "Field note",
     signal: "Signal",
+    flight_plan: "Flight",
   };
   return map[kind] ?? (kind.charAt(0).toUpperCase() + kind.slice(1).replace(/_/g, " "));
 }
@@ -166,6 +167,7 @@ export function humanizeEvent(event: string): string {
     "research.brief_viewed": "Research brief opened",
     "recap.weekly_created": "Weekly recap ready",
     "recap.monthly_created": "Monthly review ready",
+    "flight.local_transfer_verified": "Local transfer details recorded",
 
 
 
