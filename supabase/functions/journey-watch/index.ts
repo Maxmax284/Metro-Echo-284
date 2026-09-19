@@ -10,7 +10,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { type LiveFlight } from "../_shared/flightStatus.ts";
-import { askFlight, aeroKey } from "../_shared/flightAsk.ts";
+import { askFlightWithFeed, aeroKey } from "../_shared/flightAsk.ts";
 import type { FlightPlan } from "../_shared/flightPlan.ts";
 import {
   TERMINAL_CAVEAT,
@@ -196,12 +196,16 @@ function asPlan(r: Record<string, unknown>): FlightPlan {
  * fallback for a plan that refuses a date filter. A failure is logged and read as
  * nothing on record; it never becomes a guess.
  */
-async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+async function askProvider(
+  flight_no: string,
+  flight_date: string,
+  allow: { aero: boolean; stack: boolean },
+): Promise<{ live: LiveFlight | null; feed: "aeroapi" | "aviationstack" }> {
   try {
-    return await askFlight(KEY, flight_no, flight_date);
+    return await askFlightWithFeed(KEY, flight_no, flight_date, allow);
   } catch (e) {
-    console.error("aviationstack failed", e instanceof Error ? e.message : String(e));
-    return null;
+    console.error("flight feed failed", e instanceof Error ? e.message : String(e));
+    return { live: null, feed: allow.aero ? "aeroapi" : "aviationstack" };
   }
 }
 
@@ -286,7 +290,7 @@ Deno.serve(async (req) => {
         skipped_budget += 1;
         return;
       }
-      const { live, feed } = await askFlightWithFeed(KEY, flightNo, p.depart_on, room);
+      const { live, feed } = await askProvider(flightNo, p.depart_on, room);
       readings += 1;
       spent[feed] = (spent[feed] ?? 0) + 1;
       await sb.from("api_usage_logs").insert({
