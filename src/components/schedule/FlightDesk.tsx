@@ -34,6 +34,9 @@ import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
+import { GroundLead } from "./GroundLead";
+import { groundPath } from "@/lib/groundPath";
+import { carrierId, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
@@ -112,9 +115,12 @@ export function FlightDesk() {
     settleConflict,
     keepCondition,
     checkStatus,
+    lookUpCheckIn,
     noticeText,
     addByNumber,
   } = useFlightPlans();
+  /* Which flight is having its check-in area read, so only that card waits. */
+  const [looking, setLooking] = useState<string | null>(null);
   /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
   const clock = useMemo(() => flightClock(timezone), [timezone]);
 
