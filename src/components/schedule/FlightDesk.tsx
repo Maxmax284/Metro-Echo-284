@@ -59,7 +59,7 @@ import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
-import { flightClock } from "@/lib/flightClock";
+import { airportEndClock, flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
 import {
   FLIGHT_LAW,
@@ -147,6 +147,9 @@ export function FlightDesk() {
   const [walk, setWalk] = useState<string | null>(null);
   /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
   const clock = useMemo(() => flightClock(timezone), [timezone]);
+  /* Each end on its own airport clock: the departure where it leaves, the landing
+     where it lands. */
+  const endClock = useMemo(() => airportEndClock(timezone), [timezone]);
 
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -580,7 +583,7 @@ export function FlightDesk() {
     if (live[plan.id]) return live[plan.id];
     const snapshot = plan.live_status as LiveFlight | null;
     if (!snapshot || !plan.live_checked_at) return null;
-    return `${statusWords(snapshot, clock)} ${readingAge(plan.live_checked_at)}.`;
+    return `${statusWords(snapshot, endClock)} ${readingAge(plan.live_checked_at)}.`;
   };
 
   /* The flight the journey says you are on right now. Its move leads the screen. */
