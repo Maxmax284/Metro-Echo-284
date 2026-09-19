@@ -23,6 +23,8 @@ import {
 } from "@/lib/flightStatus";
 import { airportBoardRead } from "@/lib/airportBoard";
 import type { GroundStep } from "@/lib/groundPath";
+import type { ConnectionRead } from "@/lib/connectionRead";
+
 import { cn } from "@/lib/utils";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
@@ -54,6 +56,7 @@ export function FlightLive({
   board,
   ticket,
   groundStep,
+  connection = null,
   embedded = false,
   belowBoard,
 }: {
@@ -73,11 +76,14 @@ export function FlightLive({
   ticket?: string | null;
   /** The current practical airport step; used only when the provider did not file boarding. */
   groundStep?: GroundStep | null;
+  /** Set when this landing is a connection, so the city pack stands down. */
+  connection?: ConnectionRead | null;
   /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
   embedded?: boolean;
   /** Sits directly under the board row — the terminal walk opens from there. */
   belowBoard?: ReactNode;
 }) {
+
   const phase = flightPhase(live);
   /* Radar first: when the airline filed a fix for the aircraft, the marker sits
      where the aircraft is. Otherwise the clock draws it, and the card says which. */
