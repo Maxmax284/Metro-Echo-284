@@ -44,10 +44,27 @@ export type LivePosition = {
   on_ground: boolean | null;
 };
 
+/** One name a flight answers to, as a provider stated it. */
+export type LiveCarrier = {
+  carrier: string | null;
+  carrier_code: string | null;
+  flight_no: string | null;
+};
+
 export type LiveFlight = {
   flight_no: string;
   flight_date: string;
   airline: string | null;
+  /** Two-letter code of the airline on the row, when the provider carried one. */
+  airline_code?: string | null;
+  /**
+   * The airline that actually flies the aircraft, when the provider's codeshare
+   * block said it is somebody other than the one on the ticket. This is what the
+   * boards, the counters and the gate signs will say.
+   */
+  operated_by?: LiveCarrier | null;
+  /** The identity on the ticket, kept when it differs from the operating one. */
+  marketed_as?: LiveCarrier | null;
   /** The provider's own word: scheduled, active, landed, cancelled, diverted. */
   status: string | null;
   departure: LiveEnd;
