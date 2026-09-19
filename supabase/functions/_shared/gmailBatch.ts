@@ -64,7 +64,9 @@ export function sniffBoundary(text: string): string | null {
  * caller can count it rather than mistake it for silence.
  */
 export function parseBatch(contentType: string | null | undefined, text: string): BatchPart[] {
-  const boundary = boundaryOf(contentType);
+  const named = boundaryOf(contentType);
+  /* Trust the body over the header: the answer carries its own boundary. */
+  const boundary = named && text.includes(`--${named}`) ? named : sniffBoundary(text);
   if (!boundary) return [];
   const chunks = text.split(`--${boundary}`);
   const out: BatchPart[] = [];
