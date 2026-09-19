@@ -1077,7 +1077,18 @@ export function FlightDesk() {
                           setBusy(false);
                         }
                       }}
+                      onSetTime={async (time, kind) => {
+                        setBusy(true);
+                        try {
+                          const res = await setSaidTime(p, time, kind);
+                          if (!res.ok) vantaToast.warning(res.reason ?? "That time did not save.");
+                          else vantaToast.success(res.words ?? "On your word, with a receipt.");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
                     />
+
                   )}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
