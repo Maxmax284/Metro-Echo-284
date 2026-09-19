@@ -22,7 +22,14 @@ import {
 } from "@/lib/googleServices";
 import { MailSweepRow } from "@/components/settings/MailSweepRow";
 
-export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) {
+export function GoogleAccountSection({
+  onChanged,
+  only,
+}: {
+  onChanged?: () => void;
+  /** Show only these services — lets mail get its own findable home in settings. */
+  only?: GoogleCapability["key"][];
+}) {
   const { orgId } = useScope();
   const [state, setState] = useState<GoogleAccountState>(EMPTY_GOOGLE_STATE);
   const [busy, setBusy] = useState<string | null>(null);
