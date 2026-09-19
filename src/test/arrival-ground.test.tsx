@@ -14,7 +14,7 @@ describe("ArrivalGroundPack", () => {
     render(<ArrivalStamp iata="TPE" at="2026-09-20T05:10:00" arrived={false} />);
     fireEvent.click(screen.getByRole("button", { name: /On the ground in Taipei/ }));
     expect(screen.getByText(/nǐ hǎo/)).toBeTruthy();
-    expect(screen.getByText(/EasyCard/)).toBeTruthy();
+    expect(screen.getAllByText(/EasyCard/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Purple Express/)).toBeTruthy();
     expect(screen.getByText(/0800-024-111/)).toBeTruthy();
     expect(screen.getByText(/Sockets A, B/)).toBeTruthy();
