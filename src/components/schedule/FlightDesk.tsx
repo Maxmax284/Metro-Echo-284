@@ -523,7 +523,8 @@ export function FlightDesk() {
     <div className="space-y-3">
       {error && <ErrorState detail={error} onRetry={() => void refresh()} />}
 
-      <FlightAlertsCard />
+      {/* Settings are not the next move. While a trip is live they sit under it. */}
+      {livePlan ? null : <FlightAlertsCard />}
 
       {/* The trip you are actually on comes before anything you might add — and
           the move comes before the trip. A person reading this is walking. */}
