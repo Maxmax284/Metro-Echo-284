@@ -100,7 +100,7 @@ export async function flightRead(
     }
     if (leg?.from.iata) {
       lines.push(
-        `This journey leaves from ${airportWords(leg.from.iata)} (${leg.from.iata}). If you are standing somewhere else, say which airport — Echo will not guess which one you mean.`,
+        `This journey leaves from ${airportWords(leg.from.iata)}. If you are standing somewhere else, say which airport — Echo will not guess which one you mean.`,
       );
     }
     lines.push(TERMINAL_CAVEAT);
