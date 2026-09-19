@@ -63,7 +63,6 @@ import { airportEndClock, flightClock } from "@/lib/flightClock";
 import { vantaToast } from "@/lib/vantaVoice";
 import {
   FLIGHT_LAW,
-  SOURCE_WORDS,
   canConfirm,
   optionWords,
   parseQuote,
@@ -1112,7 +1111,11 @@ export function FlightDesk() {
                         }
                       }}
                     >
-                      {fitOf(p)?.kind === "chains" ? "Yes, add it to my journey" : "Add this flight to my board"}
+                      {fitOf(p)?.kind === "chains"
+                        ? "Yes, add it to my journey"
+                        : fitOf(p)?.kind === "needs_time"
+                          ? "Departure time needed before adding"
+                          : "Add this flight to my board"}
                     </Button>
                     <Button
                       size="sm"

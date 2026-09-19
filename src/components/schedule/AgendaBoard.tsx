@@ -24,7 +24,7 @@ import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useCareNearby } from "@/hooks/useCareNearby";
 import { Button } from "@/components/ui/button";
 import { vantaToast } from "@/lib/vantaVoice";
-import { FLIGHT_LAW, SOURCE_WORDS, optionWords, planTitle, sortOptions } from "@/lib/flightPlan";
+import { FLIGHT_LAW, optionWords, planSourceWords, planTitle, sortOptions } from "@/lib/flightPlan";
 import { dayMoneyLine } from "@/lib/bankPlan";
 import { dosesOn } from "@/lib/bodyLog";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
@@ -320,7 +320,7 @@ export function AgendaBoard() {
               {dayFlights.map((p) => (
                 <li key={p.id} className="space-y-1.5 border-l-2 border-primary/50 pl-2">
                   <p className="text-[12.5px] text-foreground/90">{planTitle(p)}</p>
-                  <p className="text-[11px] text-muted-foreground">{SOURCE_WORDS[p.source]}. {FLIGHT_LAW}</p>
+                  <p className="text-[11px] text-muted-foreground">{planSourceWords(p)} {FLIGHT_LAW}</p>
                   <ul className="space-y-1">
                     {sortOptions(p.options).map((o) => (
                       <li key={o.id} className="flex items-center gap-2">
@@ -343,7 +343,7 @@ export function AgendaBoard() {
                             }
                           }}
                         >
-                          Confirm
+                          Add flight to my board
                         </Button>
                       </li>
                     ))}
