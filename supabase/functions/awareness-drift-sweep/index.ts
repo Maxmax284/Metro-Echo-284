@@ -618,6 +618,7 @@ async function sweepScope(
 
   const result = evaluateAwareness({
     signals,
+    context: noticeContext,
     priors,
     budget,
     deliveryContext: deliveryCtx,
