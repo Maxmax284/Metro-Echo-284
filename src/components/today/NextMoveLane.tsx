@@ -13,6 +13,7 @@ import { groundPath } from "@/lib/groundPath";
 import { readStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { airportWords } from "@/lib/airports";
+import { airportZone, anchorToZone } from "@/lib/travelSense";
 import type { LiveFlight } from "@/lib/flightStatus";
 import { LEAD_BAR, MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import { cn } from "@/lib/utils";
