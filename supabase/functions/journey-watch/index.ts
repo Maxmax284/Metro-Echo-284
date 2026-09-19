@@ -311,13 +311,13 @@ Deno.serve(async (req) => {
 
       const after = journeysFrom(own)[0] ?? null;
       if (!after) continue;
-      /* The errands come before any diff: they are useful even when nothing moved. */
-      const legForPack = own.find((p) => p.id === (after.legs[where.legIndex]?.plan_id ?? "")) ?? null;
-      if (legForPack && (await beforeYouLeave(sb, userId, legForPack))) pinged += 1;
-
       const news = packDiff(beforePack, offlinePack(after, new Date()));
       const where = whereOnJourney(after);
       const landed = arrivalMessage(after);
+
+      /* The errands come before any diff: they are useful even when nothing moved. */
+      const legForPack = own.find((p) => p.id === (after.legs[where.legIndex]?.plan_id ?? "")) ?? null;
+      if (legForPack && (await beforeYouLeave(sb, userId, legForPack))) pinged += 1;
 
       /* One heads-up, and only when something actually moved or you just landed.
          How loud it is comes off the change itself, not off a feeling. */
