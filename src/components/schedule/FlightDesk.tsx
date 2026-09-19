@@ -613,6 +613,11 @@ export function FlightDesk() {
     return null;
   }, [plans, journey.current]);
 
+  const confirmedRoutePlans = useMemo(
+    () => new Set(plans.filter((plan) => plan.status === "confirmed").map((plan) => plan.id)),
+    [plans],
+  );
+
   const liveLine = (plan: FlightPlan): string | null => {
     if (live[plan.id]) return live[plan.id];
     const snapshot = plan.live_status as LiveFlight | null;
@@ -791,7 +796,14 @@ export function FlightDesk() {
             landingAt={cabinLanding}
           />
           {/* The same trip as a route you can tap, stop by stop. */}
-          <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+          <FlightRouteMap
+            journey={journey.current}
+            homeZone={timezone}
+            aircraft={aircraft}
+            activeLegIndex={journey.where?.legIndex ?? null}
+            confirmedPlanIds={confirmedRoutePlans}
+            positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
+          />
         </div>
         </>
       ) : null}
