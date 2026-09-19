@@ -22,7 +22,7 @@ import { airportZone, anchorToZone } from "./travelSense.ts";
 /** Above this, a gap between two legs is a stay, not a sit. Matches groupJourneys. */
 export const CHAIN_HOURS = 24;
 
-export type FitKind = "needs_route" | "chains" | "stay" | "elsewhere";
+export type FitKind = "needs_route" | "needs_time" | "chains" | "stay" | "elsewhere";
 
 export type FitPlan = {
   id: string;
