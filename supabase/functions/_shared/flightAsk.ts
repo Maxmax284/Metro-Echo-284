@@ -83,22 +83,31 @@ export async function askFlight(key: string, flight_no: string, flight_date: str
   return await askStack(key, flight_no, flight_date);
 }
 
-/** The same chain, with the name of the feed that answered, for a receipt. */
+/** Which feeds a caller is still allowed to pay for today. */
+export type FeedAllowance = { aero: boolean; stack: boolean };
+
+/**
+ * The same chain, with the name of the feed that answered, and an allowance so a
+ * caller holding a ledger can shut one feed off without shutting off the other.
+ */
 export async function askFlightWithFeed(
   key: string,
   flight_no: string,
   flight_date: string,
+  allow: FeedAllowance = { aero: true, stack: true },
 ): Promise<{ live: LiveFlight | null; feed: FeedName }> {
   const aero = aeroKey();
-  if (aero) {
+  if (aero && allow.aero) {
     try {
       const live = await askAero(aero, flight_no, flight_date);
       if (live) return { live, feed: "aeroapi" };
+      console.error(`aeroapi carried nothing for ${flight_no} on ${flight_date}`);
     } catch (e) {
       console.error("aeroapi unavailable; falling back", e);
-      if (!key) return { live: null, feed: "aeroapi" };
     }
+    if (!key || !allow.stack) return { live: null, feed: "aeroapi" };
   }
   return { live: await askStack(key, flight_no, flight_date), feed: "aviationstack" };
 }
+
 
