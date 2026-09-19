@@ -184,14 +184,6 @@ export function normalizeAeroApi(
   };
 }
 
-export function aeroKey(): string {
-  return Deno.env.get("AEROAPI_KEY") ?? Deno.env.get("FLIGHTAWARE_API_KEY") ?? "";
-}
-
-export function aeroConfigured(): boolean {
-  return !!aeroKey();
-}
-
 /**
  * One reading for one flight on one day from AeroAPI. Null when the feed carries
  * nothing for it. Throws AeroLimited when the key is refused, so a caller can
