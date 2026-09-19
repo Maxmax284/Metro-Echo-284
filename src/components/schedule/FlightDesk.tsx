@@ -617,16 +617,25 @@ export function FlightDesk() {
             )}
 
 
+            {/* No bars is the normal case with the doors shut. Said once, plainly,
+                instead of a stale-feed warning or a retry nobody asked for. */}
+            {!online && (
+              <p className="flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/20 p-2.5 text-[11px] leading-snug text-muted-foreground">
+                <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                {QUIET_SKY}
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
                 variant="outline"
                 className="h-9 text-[12px]"
-                disabled={busy}
+                disabled={busy || !online}
                 onClick={() => void askLive(livePlan)}
               >
                 <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Check live status
+                {online ? "Check live status" : "No signal to check"}
               </Button>
               {/* The one place your word beats the feed: on it, still at the
                   airport, down, or did not happen. It records, it never books. */}
