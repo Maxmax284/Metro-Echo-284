@@ -562,7 +562,14 @@ export function FlightDesk() {
   const livePlan = liveLeg ? (plans.find((p) => p.id === liveLeg.plan_id) ?? null) : null;
   const liveSnapshot = livePlan?.live_status as LiveFlight | null | undefined;
   const activeGround = livePlan ? groundContext(livePlan) : null;
+  /* When this leg lands somewhere you are only changing planes, the arrival end
+     of the card answers the transfer, not the city. */
+  const onward = useMemo(
+    () => connectionAt(journey.current?.legs ?? [], journey.where?.legIndex ?? 0),
+    [journey.current, journey.where],
+  );
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
+
 
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
