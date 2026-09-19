@@ -83,7 +83,8 @@ export function GoogleAccountSection({
   };
 
   const reach = accountReach(state);
-  const anyOn = GOOGLE_CAPABILITIES.some((c) => isGranted(c, state));
+  const caps = only ? GOOGLE_CAPABILITIES.filter((c) => only.includes(c.key)) : GOOGLE_CAPABILITIES;
+  const anyOn = caps.some((c) => isGranted(c, state));
 
   return (
     <div className="mb-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
