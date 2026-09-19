@@ -51,8 +51,8 @@ async function search(q: string): Promise<Hit[]> {
     .filter((h: Hit) => h.url);
 }
 
-/** An airline's own site or the airport's own site, and nothing else. */
-function officialFirst(hits: Hit[], carrier: string | null, airportName: string | null): Hit | null {
+/** An airline's own site or the airport's own site, best first, nothing else. */
+function officialFirst(hits: Hit[], carrier: string | null, airportName: string | null): Hit[] {
   const words = [carrier, airportName]
     .filter(Boolean)
     .join(" ")
