@@ -19,7 +19,7 @@ import {
   sniffBoundary,
 } from "../../supabase/functions/_shared/gmailBatch";
 import { flightNoticeSignals, hoursUntilDeparture } from "../../supabase/functions/_shared/awareness/flightNoticeSignal";
-import { isDriftKind } from "../../src/lib/drift";
+import { isDriftKind } from "@/lib/drift";
 
 const scope = { userId: "u1", organizationId: null };
 
