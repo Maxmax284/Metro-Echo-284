@@ -245,16 +245,27 @@ Deno.serve(async (req) => {
       byUser.set(uid, [...(byUser.get(uid) ?? []), p]);
     }
 
-    /* The day's ledger of paid readings — the ceiling nothing gets past. */
+    /* The day's ledger of paid readings, kept per feed. Each feed bills
+       separately, so one that has burnt its day cannot silence the other. */
     const dayStart = new Date(now).toISOString().slice(0, 10);
-    const { count: spentToday } = await sb
-      .from("api_usage_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("provider", "aviationstack")
-      .eq("feature", "journey-watch")
-      .eq("cache_hit", false)
-      .gte("created_at", `${dayStart}T00:00:00Z`);
-    let spent = spentToday ?? 0;
+    const spentOn = async (feed: string): Promise<number> => {
+      const { count } = await sb
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("provider", feed)
+        .eq("feature", "journey-watch")
+        .eq("cache_hit", false)
+        .gte("created_at", `${dayStart}T00:00:00Z`);
+      return count ?? 0;
+    };
+    const spent: Record<string, number> = {
+      aeroapi: await spentOn("aeroapi"),
+      aviationstack: await spentOn("aviationstack"),
+    };
+    const allow = () => ({
+      aero: !!aeroKey() && spent.aeroapi < DAILY_BUDGET,
+      stack: !!KEY && spent.aviationstack < DAILY_BUDGET,
+    });
 
     let readings = 0;
     let heads_up = 0;
@@ -269,18 +280,19 @@ Deno.serve(async (req) => {
       if (!worthReading(p, now)) return;
       const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
       if (!flightNo) return;
-      if (spent >= DAILY_BUDGET) {
+      const room = allow();
+      if (!room.aero && !room.stack) {
         /* Budget spent. The journey still reads from the last stamped reading. */
         skipped_budget += 1;
         return;
       }
-      const live = await askProvider(flightNo, p.depart_on);
+      const { live, feed } = await askFlightWithFeed(KEY, flightNo, p.depart_on, room);
       readings += 1;
-      spent += 1;
+      spent[feed] = (spent[feed] ?? 0) + 1;
       await sb.from("api_usage_logs").insert({
         owner_id: userId,
         user_id: userId,
-        provider: "aviationstack",
+        provider: feed,
         feature: "journey-watch",
         request_type: "flight_status",
         status: live ? "success" : "failed",
