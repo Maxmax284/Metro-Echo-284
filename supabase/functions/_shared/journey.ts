@@ -618,7 +618,9 @@ export function bigNumbers(
       ? "the filed departure time has gone by"
       : where.kind === "on_ground"
         ? "left here"
-        : "until you leave",
+        : where.kind === "boarding"
+          ? "until the filed departure"
+          : "until you leave",
     gate: gate ?? term(terminal),
     gateLabel: gate
       ? "departure gate"
