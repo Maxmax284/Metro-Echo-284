@@ -34,6 +34,8 @@ import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
+import { InAirPack } from "./InAirPack";
+
 import { GroundLead } from "./GroundLead";
 import { TravellerWord } from "./TravellerWord";
 import type { LegStateKind } from "@/lib/journey";
