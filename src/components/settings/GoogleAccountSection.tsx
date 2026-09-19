@@ -169,7 +169,12 @@ export function GoogleAccountSection({
               ) : null}
               {/* Reading mail on a tap is one thing. Watching it in the
                   background is a separate, explicit yes. */}
-              {cap.key === "gmail" && granted ? <MailSweepRow /> : null}
+              {cap.key === "gmail" && granted && !hideMailSweep ? <MailSweepRow /> : null}
+              {cap.key === "gmail" && granted && hideMailSweep ? (
+                <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
+                  Watching this inbox for bookings is switched on under Settings → Your inbox.
+                </p>
+              ) : null}
             </li>
           );
         })}
