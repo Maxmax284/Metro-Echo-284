@@ -11,7 +11,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
-import { anchorLive, type LiveFlight } from "@/lib/flightStatus";
 import { createEchoEvent, deleteEchoEvent } from "@/lib/echoCalendar";
 import {
   canConfirm,
@@ -31,7 +30,7 @@ import {
   quickVerdict,
   routeFromLive,
 } from "@/lib/flightQuick";
-import type { LiveFlight } from "@/lib/flightStatus";
+import { anchorLive, type LiveFlight } from "@/lib/flightStatus";
 
 export type PrepareInput = {
   origin: string;

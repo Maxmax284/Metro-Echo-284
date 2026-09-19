@@ -13,7 +13,7 @@
 //     called unknown rather than counted down from the phone's own clock.
 import { afterEach, describe, expect, it } from "vitest";
 import type { FlightPlan } from "@/lib/flightPlan";
-import { anchorLive, isPinned } from "@/lib/flightStatus";
+import { anchorLive, isPinned, type LiveFlight } from "@/lib/flightStatus";
 import { bigNumbers, journeysFrom } from "@/lib/journey";
 
 /* The live flight as the feed actually filed it on the night in question: wall
@@ -102,7 +102,7 @@ describe("the countdown to a landing in another zone", () => {
   });
 
   it("pins a wall clock to the airport it belongs to and leaves a pinned one alone", () => {
-    const pinned = anchorLive(READING as never)!;
+    const pinned = anchorLive(READING as unknown as LiveFlight)!;
     expect(pinned.arrival.estimated).toBe("2026-09-19T21:21:00.000Z");
     expect(pinned.departure.actual).toBe("2026-09-19T05:18:00.000Z");
     expect(anchorLive(pinned).arrival.estimated).toBe(pinned.arrival.estimated);
@@ -111,7 +111,7 @@ describe("the countdown to a landing in another zone", () => {
   });
 
   it("reads the far end on the next calendar day without gaining a day of flying", () => {
-    const pinned = anchorLive(READING as never)!;
+    const pinned = anchorLive(READING as unknown as LiveFlight)!;
     const hours =
       (Date.parse(pinned.arrival.estimated!) - Date.parse(pinned.departure.actual!)) / 3_600_000;
     expect(Math.round(hours)).toBe(16);
