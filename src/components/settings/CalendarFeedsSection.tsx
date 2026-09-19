@@ -190,7 +190,7 @@ export function CalendarFeedsSection() {
         </Button>
       </div>
 
-      <GoogleAccountSection onChanged={() => void load()} />
+      <GoogleAccountSection onChanged={() => void load()} hideMailSweep />
 
       <details className="mt-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
         <summary className="vanta-focus cursor-pointer list-none text-[12px] font-medium">

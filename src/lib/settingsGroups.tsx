@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Rocket, User, CalendarClock, CalendarCheck2, Radar, Sparkles, Plug, Gauge, Receipt,
+  Rocket, User, CalendarClock, CalendarCheck2, Inbox, Radar, Sparkles, Plug, Gauge, Receipt,
   type LucideIcon,
 } from "lucide-react";
 
@@ -10,6 +10,7 @@ import { VerdictDownloadCard } from "@/components/settings/VerdictDownloadCard";
 import { OperatorProfileSection } from "@/components/settings/OperatorProfileSection";
 import { BrandVoiceSection } from "@/components/settings/BrandVoiceSection";
 import { CalendarFeedsSection } from "@/components/settings/CalendarFeedsSection";
+import { MailSection } from "@/components/settings/MailSection";
 import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection";
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
@@ -91,6 +92,13 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     blurb: "Sign in with Google so Echo reads your real calendar — or paste a read-only link.",
     icon: CalendarCheck2,
     render: () => <CalendarFeedsSection />,
+  },
+  {
+    id: "mail",
+    title: "Your inbox",
+    blurb: "Connect Gmail and switch on booking watch — flights Echo reads become drafts you approve.",
+    icon: Inbox,
+    render: () => <MailSection />,
   },
   {
     id: "time",

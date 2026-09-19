@@ -22,7 +22,17 @@ import {
 } from "@/lib/googleServices";
 import { MailSweepRow } from "@/components/settings/MailSweepRow";
 
-export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) {
+export function GoogleAccountSection({
+  onChanged,
+  only,
+  hideMailSweep,
+}: {
+  onChanged?: () => void;
+  /** Show only these services — lets mail get its own findable home in settings. */
+  only?: GoogleCapability["key"][];
+  /** The booking watch has its own settings home; other rooms can point there instead of repeating the switch. */
+  hideMailSweep?: boolean;
+}) {
   const { orgId } = useScope();
   const [state, setState] = useState<GoogleAccountState>(EMPTY_GOOGLE_STATE);
   const [busy, setBusy] = useState<string | null>(null);
@@ -76,7 +86,8 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
   };
 
   const reach = accountReach(state);
-  const anyOn = GOOGLE_CAPABILITIES.some((c) => isGranted(c, state));
+  const caps = only ? GOOGLE_CAPABILITIES.filter((c) => only.includes(c.key)) : GOOGLE_CAPABILITIES;
+  const anyOn = caps.some((c) => isGranted(c, state));
 
   return (
     <div className="mb-3 rounded-lg bg-background/40 p-3 ring-1 ring-border/50">
@@ -101,7 +112,7 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
       </div>
 
       <ul className="mt-3 space-y-1.5">
-        {GOOGLE_CAPABILITIES.map((cap) => {
+        {caps.map((cap) => {
           const capReach = capabilityReach(cap, state);
           const granted = isGranted(cap, state);
           const offerable = !!statusFor(cap, state)?.offerable;
@@ -159,7 +170,12 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
               ) : null}
               {/* Reading mail on a tap is one thing. Watching it in the
                   background is a separate, explicit yes. */}
-              {cap.key === "gmail" && granted ? <MailSweepRow /> : null}
+              {cap.key === "gmail" && granted && !hideMailSweep ? <MailSweepRow /> : null}
+              {cap.key === "gmail" && granted && hideMailSweep ? (
+                <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground/80">
+                  Watching this inbox for bookings is switched on under Settings → Your inbox.
+                </p>
+              ) : null}
             </li>
           );
         })}
