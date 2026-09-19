@@ -71,7 +71,21 @@ export type LiveFlight = {
   arrival: LiveEnd;
   /** The aircraft's fix, when the provider carried one. Null is an answer. */
   position?: LivePosition | null;
+  /**
+   * Facts this reading did not carry that an earlier reading did, kept rather
+   * than erased. A provider going quiet about a gate is not the airline pulling
+   * it, so the last verified value stays with the date it was verified.
+   */
+  carried?: CarriedFact[];
   checked_at: string;
+};
+
+/** One fact kept from an earlier reading because this one did not carry it. */
+export type CarriedFact = {
+  field: "departure.gate" | "departure.terminal" | "arrival.gate" | "arrival.terminal";
+  value: string;
+  /** When the reading that did carry it was taken. */
+  since: string;
 };
 
 function str(v: unknown): string | null {
