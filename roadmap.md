@@ -175,4 +175,4 @@ walk listed above; broader document formats stay behind a fresh approval.
   a forwarded booking picture: one record, no double, receipt left.
 - Proof: the real Telegram screenshots, in order.
 
-- [ ] Keep flight cards visible during live refreshes; update facts in place without full-card dimming.
+- [x] Keep flight cards visible during live refreshes; update facts in place without full-card dimming.

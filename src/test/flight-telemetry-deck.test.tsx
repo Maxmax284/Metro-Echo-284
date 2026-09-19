@@ -73,4 +73,23 @@ describe("the deck with real telemetry", () => {
     );
     expect(screen.getByText(/No radar fix from the airline yet/)).toBeTruthy();
   });
+
+  it("keeps the full deck visible and uses only a small cue while refreshing", () => {
+    const { container } = render(
+      <FlightLive
+        live={reading(null)}
+        checkedAt={new Date().toISOString()}
+        clock={clock}
+        homeZone="America/New_York"
+        reading
+      />,
+    );
+
+    const deck = container.querySelector('[data-reading="true"]');
+    expect(deck).toBeTruthy();
+    expect(deck?.classList.contains("animate-pulse")).toBe(false);
+    expect(screen.getByText("Checking airline")).toBeTruthy();
+    expect(screen.getByText("TG6285")).toBeTruthy();
+    expect(screen.getByText("B49")).toBeTruthy();
+  });
 });
