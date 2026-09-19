@@ -645,8 +645,9 @@ export function useFlightPlans() {
     ): Promise<{ ok: boolean; reason?: string; words?: string }> => {
       if (!user) return { ok: false, reason: "Not signed in." };
       const read = saidTime(raw, plan.depart_on, kind);
-      if (!read.ok) return { ok: false, reason: read.reason };
+      if (!read.ok || !read.said) return { ok: false, reason: read.reason };
       const said = read.said;
+
 
       const target = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
       if (!target) return { ok: false, reason: "This flight has no option to put a time on." };
