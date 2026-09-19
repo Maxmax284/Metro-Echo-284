@@ -126,6 +126,8 @@ export function FlightDesk() {
   } = useFlightPlans();
   /* Which flight is having its check-in area read, so only that card waits. */
   const [looking, setLooking] = useState<string | null>(null);
+  /** Which flight's terminal walk is open, opened from the board row. */
+  const [walk, setWalk] = useState<string | null>(null);
   /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
   const clock = useMemo(() => flightClock(timezone), [timezone]);
 
