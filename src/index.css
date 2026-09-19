@@ -1488,6 +1488,17 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
 .flight-plane-hum {
   animation: flight-plane-hum 3.2s ease-in-out infinite;
 }
+@keyframes flight-route-pulse {
+  0%, 100% { opacity: 0.18; transform: scale(1); }
+  50% { opacity: 0.34; transform: scale(1.025); }
+}
+.flight-route-pulse {
+  transform-origin: center;
+  animation: flight-route-pulse 4.8s ease-in-out infinite;
+}
+.flight-plane-position {
+  transition: left 900ms var(--ease-out), top 900ms var(--ease-out), transform 900ms var(--ease-out);
+}
 
 @keyframes arrival-stamp-land {
   0%   { transform: scale(1.5) rotate(-9deg); opacity: 0; }
@@ -1504,7 +1515,9 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
   .solari-cell,
   .flight-arc-draw,
   .flight-radar-ping,
-  .flight-plane-hum { animation: none !important; }
+  .flight-plane-hum,
+  .flight-route-pulse { animation: none !important; }
+  .flight-plane-position { transition: none !important; }
   .arrival-stamp { transform: none !important; opacity: 1 !important; }
   .solari-cell { transform: none !important; opacity: 1 !important; }
 }

@@ -7,11 +7,11 @@
 //   - The aircraft is drawn only from a filed fix. No fix, no plane — the line
 //     still draws, because the route is on record even when the position isn't.
 //   - Tapping a stop is a read. Nothing on this map writes anything.
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { PlacedStop, RouteStop } from "@/lib/routeMap";
+import { routeLegVisuals, type PlacedStop, type RouteStop } from "@/lib/routeMap";
 
 export type Aircraft = {
   lat: number;
@@ -21,14 +21,14 @@ export type Aircraft = {
   label: string;
 };
 
-function stopIcon(on: boolean, role: RouteStop["role"]): L.DivIcon {
+function stopIcon(on: boolean, role: RouteStop["role"], code: string): L.DivIcon {
   const size = role === "stop" ? 11 : 14;
   return L.divIcon({
     className: "",
-    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:9999px;background:${
+    html: `<span style="position:relative;display:block;width:${size}px;height:${size}px;border-radius:9999px;background:${
       on ? "hsl(var(--primary))" : "hsl(var(--background))"
-    };border:2px solid hsl(var(--primary));box-shadow:0 0 0 ${on ? 5 : 2}px hsl(var(--primary)/0.25)"></span>`,
-    iconSize: [size, size],
+    };border:2px solid hsl(var(--primary));box-shadow:0 0 0 ${on ? 5 : 2}px hsl(var(--primary)/0.25)"><span style="position:absolute;left:50%;top:-18px;transform:translateX(-50%);font:600 10px ui-monospace,monospace;color:hsl(var(--foreground));text-shadow:0 1px 4px hsl(var(--background))">${code}</span></span>`,
+    iconSize: [Math.max(size, 30), size],
     iconAnchor: [size / 2, size / 2],
   });
 }
@@ -38,7 +38,7 @@ function planeIcon(heading: number | null): L.DivIcon {
   const turn = heading === null ? 0 : heading;
   return L.divIcon({
     className: "",
-    html: `<span style="display:block;width:22px;height:22px;transform:rotate(${turn}deg);color:hsl(var(--primary))">
+    html: `<span class="flight-plane-position" style="display:block;width:22px;height:22px;transform:rotate(${turn}deg);color:hsl(var(--primary));filter:drop-shadow(0 0 5px hsl(var(--primary)/.45))">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden>
         <path d="M12 2l2 7 8 3v2l-8-1.5V19l3 2v1l-5-1.5L9 22v-1l3-2v-6.5L4 14v-2l8-3z"/>
       </svg></span>`,
@@ -65,16 +65,21 @@ export function FlightRadarMapInner({
   stops,
   aircraft,
   selected,
+  activeLegIndex,
+  confirmedPlanIds,
   onSelect,
 }: {
   /** Stops with a kept coordinate, in route order. */
   stops: PlacedStop[];
   aircraft: Aircraft | null;
   selected: string | null;
+  activeLegIndex: number | null;
+  confirmedPlanIds: ReadonlySet<string>;
   onSelect: (iata: string) => void;
 }) {
   const line = stops.map((s) => [s.point!.lat, s.point!.lon] as [number, number]);
   const all: Array<[number, number]> = aircraft ? [...line, [aircraft.lat, aircraft.lon]] : line;
+  const legs = useMemo(() => routeLegVisuals(stops, activeLegIndex, confirmedPlanIds), [stops, activeLegIndex, confirmedPlanIds]);
   if (!line.length) return null;
 
   return (
@@ -91,14 +96,24 @@ export function FlightRadarMapInner({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <Fit points={all} />
-      {line.length > 1 && (
-        <Polyline positions={line} pathOptions={{ color: "hsl(var(--primary))", weight: 2, opacity: 0.85 }} />
-      )}
+      {legs.flatMap((leg) => leg.paths.map((path, pathIndex) => (
+        <Polyline
+          key={`${leg.index}-${pathIndex}`}
+          positions={path.map((point) => [point.lat, point.lon] as [number, number])}
+          pathOptions={{
+            color: leg.state === "complete" ? "hsl(var(--signal))" : "hsl(var(--primary))",
+            weight: leg.state === "current" ? 3 : 2,
+            opacity: leg.state === "upcoming" ? 0.48 : 0.92,
+            dashArray: leg.record === "proposed" ? "6 7" : undefined,
+            className: leg.state === "current" ? "flight-arc-draw" : undefined,
+          }}
+        />
+      )))}
       {stops.map((s) => (
         <Marker
           key={s.iata}
           position={[s.point!.lat, s.point!.lon]}
-          icon={stopIcon(s.iata === selected, s.role)}
+          icon={stopIcon(s.iata === selected, s.role, s.iata)}
           eventHandlers={{ click: () => onSelect(s.iata) }}
           alt={s.iata}
         >

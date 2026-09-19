@@ -11,10 +11,13 @@
 //   - Tapping a stop reads that airport's kept facts. Nothing here is fetched.
 import { Component, lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
-import { Map as MapIcon, PenLine } from "lucide-react";
-import { arcPath, placeStops, routeStops } from "@/lib/routeMap";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, CircleDot, Globe2, Map as MapIcon, PenLine, Plane } from "lucide-react";
+import { arcPath, placeStops, routeLegVisuals, routeStops } from "@/lib/routeMap";
 import type { Journey } from "@/lib/journey";
+import type { TrackSource } from "@/lib/flightStatus";
 import type { Aircraft } from "./FlightRadarMapInner";
+import { FlightRouteGlobe } from "./FlightRouteGlobe";
 import { RouteStopPanel } from "./RouteStopPanel";
 import { cn } from "@/lib/utils";
 
@@ -50,17 +53,24 @@ export function FlightRouteMap({
   homeZone,
   /** The aircraft's own filed fix, when the airline posted one. */
   aircraft = null,
+  activeLegIndex = null,
+  confirmedPlanIds = new Set<string>(),
+  positionSource = "none",
   className,
 }: {
   journey: Journey | null | undefined;
   homeZone?: string | null;
   aircraft?: Aircraft | null;
+  activeLegIndex?: number | null;
+  confirmedPlanIds?: ReadonlySet<string>;
+  positionSource?: TrackSource;
   className?: string;
 }) {
   const stops = useMemo(() => routeStops(journey), [journey]);
   const placed = useMemo(() => placeStops(stops, { width: W, height: H }), [stops]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [view, setView] = useState<"map" | "sketch">("map");
+  const legs = useMemo(() => routeLegVisuals(stops, activeLegIndex, confirmedPlanIds), [stops, activeLegIndex, confirmedPlanIds]);
+  const [view, setView] = useState<"map" | "globe" | "sketch">("map");
 
   if (stops.length < 2) return null;
 
@@ -74,29 +84,38 @@ export function FlightRouteMap({
         <MapIcon className="h-4 w-4 text-primary" aria-hidden />
         <p className="text-[13px] font-medium">Your route</p>
         <div className="ml-auto flex overflow-hidden rounded-md ring-1 ring-border/60" role="group" aria-label="Route view">
-          <button
-            type="button"
+          <Button
+            type="button" variant="ghost"
             onClick={() => setView("map")}
             aria-pressed={view === "map"}
             className={cn(
-              "vanta-focus px-2.5 py-1 text-[11px]",
+              "vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground",
               view === "map" ? "bg-primary/20 text-foreground" : "text-muted-foreground",
             )}
           >
             Map
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            type="button" variant="ghost"
+            onClick={() => setView("globe")}
+            aria-pressed={view === "globe"}
+            className={cn("vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground", view === "globe" ? "bg-primary/20 text-foreground" : "text-muted-foreground")}
+          >
+            <Globe2 className="h-3 w-3" aria-hidden />
+            Globe
+          </Button>
+          <Button
+            type="button" variant="ghost"
             onClick={() => setView("sketch")}
             aria-pressed={view === "sketch"}
             className={cn(
-              "vanta-focus flex items-center gap-1 px-2.5 py-1 text-[11px]",
+              "vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground",
               view === "sketch" ? "bg-primary/20 text-foreground" : "text-muted-foreground",
             )}
           >
             <PenLine className="h-3 w-3" aria-hidden />
             Sketch
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -110,10 +129,21 @@ export function FlightRouteMap({
                 stops={placed}
                 aircraft={aircraft}
                 selected={pick.iata}
+                 activeLegIndex={activeLegIndex}
+                 confirmedPlanIds={confirmedPlanIds}
                 onSelect={setSelected}
               />
             </Suspense>
           </MapFence>
+        ) : view === "globe" ? (
+          <FlightRouteGlobe
+            stops={stops}
+            aircraft={aircraft}
+            activeLegIndex={activeLegIndex}
+            confirmedPlanIds={confirmedPlanIds}
+            selected={pick.iata}
+            onSelect={setSelected}
+          />
         ) : (
           <svg viewBox={`0 0 ${W} ${H}`} className="h-[168px] w-full" role="img" aria-label="Your flight route">
             {/* Paper grid. Static, decorative. */}
@@ -124,18 +154,21 @@ export function FlightRouteMap({
               </g>
             ))}
 
-            {placed.slice(0, -1).map((a, i) => (
+            {placed.slice(0, -1).map((a, i) => {
+              const leg = legs.find((item) => item.from.iata === a.iata && item.to.iata === placed[i + 1].iata);
+              return (
               <path
                 key={`${a.iata}-${placed[i + 1].iata}`}
                 d={arcPath(a, placed[i + 1])}
                 fill="none"
-                stroke="hsl(var(--primary))"
-                strokeOpacity="0.75"
-                strokeWidth="1.75"
-                className="flight-arc-draw"
+                stroke={leg?.state === "complete" ? "hsl(var(--signal))" : "hsl(var(--primary))"}
+                strokeOpacity={leg?.state === "upcoming" ? "0.42" : "0.85"}
+                strokeWidth={leg?.state === "current" ? "2.4" : "1.75"}
+                strokeDasharray={leg?.record === "proposed" ? "4 4" : undefined}
+                className={leg?.state === "current" ? "flight-arc-draw" : undefined}
                 aria-hidden
               />
-            ))}
+            );})}
 
             {placed.map((s) => {
               const on = s.iata === pick.iata;
@@ -181,9 +214,25 @@ export function FlightRouteMap({
 
       <p className="text-[10.5px] text-muted-foreground/80">
         {aircraft
-          ? `${aircraft.label} is drawn on the airline's own fix.`
-          : "No filed position — the route is on record, the plane's place on it is not."}
+          ? `${aircraft.label} · provider live fix.`
+          : positionSource === "clock"
+            ? "Estimated position is time-interpolated on the flight strip only. This geographic view shows the route, not a radar claim."
+            : "Route only · no current aircraft position on record."}
       </p>
+
+      <details className="group rounded-md border border-border/50 bg-muted/10 px-2.5 py-2">
+        <summary className="vanta-focus flex cursor-pointer list-none items-center gap-2 text-[11px] text-muted-foreground">
+          <CircleDot className="h-3.5 w-3.5 text-primary" aria-hidden />
+          Route options
+          <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <div className="mt-2 grid gap-1.5 border-t border-border/40 pt-2 text-[10.5px] text-muted-foreground sm:grid-cols-2">
+          <p><span className="mr-1.5 inline-block h-0.5 w-5 bg-signal align-middle" />Completed leg</p>
+          <p><span className="mr-1.5 inline-block h-0.5 w-5 bg-primary align-middle" />Current confirmed leg</p>
+          <p><span className="mr-1.5 inline-block w-5 border-t border-dashed border-primary/60 align-middle" />Proposed or unconfirmed leg</p>
+          <p className="flex items-center gap-1.5"><Plane className="h-3 w-3 text-primary" aria-hidden />Plane requires a current provider fix</p>
+        </div>
+      </details>
 
       {missing.length > 0 && (
         <p className="text-[10.5px] text-muted-foreground/80">
