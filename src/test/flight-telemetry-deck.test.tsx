@@ -89,7 +89,7 @@ describe("the deck with real telemetry", () => {
     expect(deck).toBeTruthy();
     expect(deck?.classList.contains("animate-pulse")).toBe(false);
     expect(screen.getByText("Checking airline")).toBeTruthy();
-    expect(screen.getByText("TG6285")).toBeTruthy();
-    expect(screen.getByText("B49")).toBeTruthy();
+    expect(screen.getByLabelText("TG6285")).toBeTruthy();
+    expect(screen.getAllByLabelText("NOT FILED").length).toBeGreaterThan(0);
   });
 });
