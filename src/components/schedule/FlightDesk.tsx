@@ -404,7 +404,11 @@ export function FlightDesk() {
             }
           }}
         />
-        {where === "in_air" || where === "done" || where === "stopped" ? null : <PreDeparturePack pack={pack} lead={lead} />}
+        {/* Once you are on the aircraft the countdown errands stand down: bag
+            drop, security and check-in cutoffs are behind you. */}
+        {where === "boarding" || where === "in_air" || where === "done" || where === "stopped" ? null : (
+          <PreDeparturePack pack={pack} lead={lead} />
+        )}
       </div>
     );
   };
