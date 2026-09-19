@@ -10,9 +10,10 @@
 import { useMemo } from "react";
 import { arrivalFacts, helpCells, shiftWords } from "@/lib/arrivalFacts";
 import { arrivalGroundPack } from "@/lib/arrivalGround";
-import { Languages, TrainFront } from "lucide-react";
+import { TrainFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SolariBoard } from "./SolariBoard";
+import { GroundPack } from "./GroundPack";
 
 export function ArrivalStamp({
   iata,
