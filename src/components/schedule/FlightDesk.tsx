@@ -293,20 +293,28 @@ export function FlightDesk() {
    * emphasis shifts from the clock to the counter, the board and the gate, with
    * no new card and nothing stacked on.
    */
-  const groundBlock = (plan: FlightPlan) => {
+  /** Both names for one flight: the ticket's and the terminal's. */
+  const identityOf = (plan: FlightPlan): FlightIdentity | null => {
+    const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
+    if (!option) return null;
+    return mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
+      marketing:
+        (option.identity as FlightIdentity | null)?.marketing ??
+        carrierId({ carrier: option.airline, flight_no: option.flight_no }),
+    });
+  };
+
+  const groundBlock = (plan: FlightPlan, lead = false) => {
     const snap = plan.live_status as LiveFlight | null;
     const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
-    const identity: FlightIdentity | null = option
-      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
-          marketing:
-            (option.identity as FlightIdentity | null)?.marketing ??
-            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
-        })
-      : null;
-    /* Where the journey model says this person is, for this flight only. */
+    const identity = identityOf(plan);
+    /* Where the journey model says this person is, for this flight only — unless
+       this device says they are already standing in the terminal. */
     const legIndex = (journey.current?.legs ?? []).findIndex((l) => l.plan_id === plan.id);
     const atThisLeg = legIndex >= 0 && journey.where?.legIndex === legIndex;
-    const where = atThisLeg ? journey.where!.kind : "before";
+    const stage = stageOf(plan.id);
+    const computed = atThisLeg ? journey.where!.kind : "before";
+    const where = stage !== "away" && (computed === "before" || computed === "at_airport") ? "at_airport" : computed;
     const departAt =
       snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
     const depMs = departAt ? Date.parse(departAt) : NaN;
@@ -318,10 +326,14 @@ export function FlightDesk() {
       terminal: snap?.departure.terminal ?? null,
       gate: where === "in_air" ? (snap?.arrival.gate ?? null) : (snap?.departure.gate ?? null),
       minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
+      throughSecurity: stage === "security",
     });
     return (
       <GroundLead
         read={read}
+        lead={lead}
+        stage={where === "in_air" || where === "done" ? undefined : stage}
+        onStage={(s) => setStage(plan.id, s)}
         looking={looking === plan.id}
         onLookUp={async () => {
           setLooking(plan.id);
