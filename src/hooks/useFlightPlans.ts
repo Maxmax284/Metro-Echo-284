@@ -64,7 +64,10 @@ function rowToPlan(r: any): FlightPlan {
     traveller_name: r.traveller_name ?? null,
     booking_ref: r.booking_ref ?? null,
     noticed_from: (r.noticed_from ?? null) as FlightPlan["noticed_from"],
-    live_status: r.live_status ?? null,
+    /* Pinned to each airport's own zone on the way in. A provider's times are
+       airport wall clocks with no zone; parsed raw on a phone still set to the
+       city you left, a Taipei landing reads hours away from where it is. */
+    live_status: anchorLive((r.live_status ?? null) as LiveFlight | null),
     live_checked_at: r.live_checked_at ?? null,
     /* Your own word about this leg. Dropping it here was why "I am on it" never
        reached the card: the journey read the airline's feed and nothing else. */
