@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
+import { ChevronDown, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -397,6 +397,10 @@ export function FlightDesk() {
     if (!snapshot || !plan.live_checked_at) return null;
     return `${statusWords(snapshot, clock)} ${readingAge(plan.live_checked_at)}.`;
   };
+
+  /* The flight the journey says you are on right now. Its move leads the screen. */
+  const liveLeg = journey.current?.legs[journey.where?.legIndex ?? 0] ?? null;
+  const livePlan = liveLeg ? (plans.find((p) => p.id === liveLeg.plan_id) ?? null) : null;
 
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
