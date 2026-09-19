@@ -163,6 +163,11 @@ export function FlightDesk() {
   const [booking, setBooking] = useState("");
   const [quickNo, setQuickNo] = useState("");
   const [quickDate, setQuickDate] = useState(today());
+  /* Optional. A time you have in front of you, on your word — never required,
+     and never invented when you leave it empty. */
+  const [quickTime, setQuickTime] = useState("");
+  const [quickKind, setQuickKind] = useState<SaidTimeKind>("departure");
+
   const [detail, setDetail] = useState(false);
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
