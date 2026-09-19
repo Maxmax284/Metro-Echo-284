@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.web-look]
 verify_jwt = true
+
+[functions.gmail-sweep]
+verify_jwt = false
