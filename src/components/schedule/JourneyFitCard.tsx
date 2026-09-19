@@ -57,6 +57,9 @@ export function JourneyFitCard({
         <p className="vanta-machine-label text-foreground/70">{KIND_WORDS[fit.kind]}</p>
       </div>
       <p className="text-[13px] text-foreground/90">{fit.lead}</p>
+      {/* Where the record came from. Same words as the flight card, so two
+          surfaces cannot disagree about provenance. */}
+      {source ? <p className="text-[11px] text-primary/80">{source}</p> : null}
       {fit.detail.map((line) => (
         <p key={line} className="text-[11.5px] text-muted-foreground">
           {line}
