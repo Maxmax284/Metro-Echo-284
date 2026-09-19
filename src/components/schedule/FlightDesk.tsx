@@ -44,6 +44,8 @@ import type { LegStateKind } from "@/lib/journey";
 import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
+import { connectionAt, type ConnectionRead } from "@/lib/connectionRead";
+
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { terminalPath } from "@/lib/terminalPath";
