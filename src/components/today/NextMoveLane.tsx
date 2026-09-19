@@ -32,7 +32,13 @@ export function NextMoveLane({ onOpen }: { onOpen: () => void }) {
 
   const snap = plan.live_status as LiveFlight | null;
   const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
-  const departAt = snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
+  /* Same anchoring as the flight card: a ticket time with no zone is the wall
+     clock at the origin airport, never the device's. Otherwise Today and Flights
+     count down to two different moments. */
+  const departAt = anchorToZone(
+    snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null,
+    airportZone((plan.origin ?? "").trim().toUpperCase() || null),
+  );
   const depMs = departAt ? Date.parse(departAt) : NaN;
   /* Far from a flight, this is not the next thing anyone is doing. */
   if (where === "before" && (!Number.isFinite(depMs) || depMs - Date.now() > NEAR_MS)) return null;

@@ -14,10 +14,25 @@ const live: LiveFlight = {
 
 describe("airportBoardRead", () => {
   it("keeps terminal, gate and a provider-safe preflight status together", () => {
-    expect(airportBoardRead(live, "gate_posted")).toEqual({ terminal: "Main", gate: "B49", status: "GATE POSTED", arrivalSide: false });
+    expect(airportBoardRead(live, "gate_posted")).toEqual({
+      terminal: "Main",
+      gate: "B49",
+      status: "GATE POSTED",
+      arrivalSide: false,
+      gateSince: null,
+    });
   });
 
-  it("does not invent a boarding time", () => {
-    expect(airportBoardRead(live, "boarding").status).toBe("BOARDING TIME NOT FILED");
+  it("never says boarding from the clock — only the airline says boarding", () => {
+    expect(airportBoardRead(live, "boarding").status).toBe("GATE POSTED");
+    expect(airportBoardRead({ ...live, status: "boarding" }).status).toBe("BOARDING");
+  });
+
+  it("names a gate it kept from an earlier reading", () => {
+    const kept = {
+      ...live,
+      carried: [{ field: "departure.gate" as const, value: "B49", since: "2026-09-19T00:00:00Z" }],
+    };
+    expect(airportBoardRead(kept).gateSince).toBe("2026-09-19T00:00:00Z");
   });
 });
