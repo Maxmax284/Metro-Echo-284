@@ -55,6 +55,79 @@ export function routeStops(journey: Journey | null | undefined): RouteStop[] {
 
 export type PlacedStop = RouteStop & { x: number; y: number };
 
+export type GeoPoint = { lat: number; lon: number };
+
+/**
+ * Points along the shortest path over the earth. This is deliberately pure:
+ * it draws geography, never an aircraft estimate.
+ */
+export function greatCirclePoints(a: GeoPoint, b: GeoPoint, steps = 64): GeoPoint[] {
+  const toRad = (n: number) => (n * Math.PI) / 180;
+  const toDeg = (n: number) => (n * 180) / Math.PI;
+  const lat1 = toRad(a.lat);
+  const lon1 = toRad(a.lon);
+  const lat2 = toRad(b.lat);
+  const lon2 = toRad(b.lon);
+  const dot = Math.min(1, Math.max(-1,
+    Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1),
+  ));
+  const angle = Math.acos(dot);
+  const count = Math.max(2, Math.round(steps));
+  if (angle < 1e-8) return [a, b];
+
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const t = i / count;
+    const sinAngle = Math.sin(angle);
+    const wa = Math.sin((1 - t) * angle) / sinAngle;
+    const wb = Math.sin(t * angle) / sinAngle;
+    const x = wa * Math.cos(lat1) * Math.cos(lon1) + wb * Math.cos(lat2) * Math.cos(lon2);
+    const y = wa * Math.cos(lat1) * Math.sin(lon1) + wb * Math.cos(lat2) * Math.sin(lon2);
+    const z = wa * Math.sin(lat1) + wb * Math.sin(lat2);
+    const lon = ((toDeg(Math.atan2(y, x)) + 540) % 360) - 180;
+    return { lat: toDeg(Math.atan2(z, Math.hypot(x, y))), lon };
+  });
+}
+
+/** Split at the date line so a renderer never closes a Pacific route the long way. */
+export function splitAtDateline(points: GeoPoint[]): GeoPoint[][] {
+  if (!points.length) return [];
+  const lines: GeoPoint[][] = [[points[0]]];
+  for (let i = 1; i < points.length; i += 1) {
+    const previous = points[i - 1];
+    const current = points[i];
+    if (Math.abs(current.lon - previous.lon) > 180) lines.push([current]);
+    else lines[lines.length - 1].push(current);
+  }
+  return lines.filter((line) => line.length > 1);
+}
+
+export type RouteLegVisual = {
+  from: RouteStop & { point: Point };
+  to: RouteStop & { point: Point };
+  index: number;
+  state: "complete" | "current" | "upcoming";
+  paths: GeoPoint[][];
+};
+
+/** Visual state comes from the journey's active leg, never from the wall clock. */
+export function routeLegVisuals(stops: RouteStop[], activeLegIndex: number | null): RouteLegVisual[] {
+  const legs: RouteLegVisual[] = [];
+  for (let i = 0; i < stops.length - 1; i += 1) {
+    const from = stops[i];
+    const to = stops[i + 1];
+    if (!from.point || !to.point) continue;
+    const state = activeLegIndex === null ? "upcoming" : i < activeLegIndex ? "complete" : i === activeLegIndex ? "current" : "upcoming";
+    legs.push({
+      from: from as RouteStop & { point: Point },
+      to: to as RouteStop & { point: Point },
+      index: i,
+      state,
+      paths: splitAtDateline(greatCirclePoints(from.point, to.point)),
+    });
+  }
+  return legs;
+}
+
 /**
  * Stops placed inside a box, equirectangular, fitted to the stops themselves.
  * Longitudes are unwrapped so a Pacific crossing draws as one line instead of
