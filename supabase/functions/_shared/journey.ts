@@ -128,13 +128,15 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
   /* The number a traveller hunts for is the operating one — that is what the
      board, the counter and the gate sign say. The ticket number stays with it
      rather than replacing it, because it is what their booking shows. */
-  const ticketNo = option?.flight_no ?? live?.marketed_as?.flight_no ?? live?.flight_no ?? null;
-  const operatingNo = live?.operated_by?.flight_no ?? null;
+  const filed = (option as { identity?: FlightIdentity | null } | null)?.identity ?? null;
+  const ticketNo = filed?.marketing?.flight_no ?? option?.flight_no ?? live?.marketed_as?.flight_no ?? live?.flight_no ?? null;
+  const operating = filed?.operating ?? live?.operated_by ?? null;
+  const operatingNo = operating?.flight_no ?? null;
   return {
     plan_id: plan.id,
     order,
     flight_no: operatingNo ?? ticketNo,
-    airline: live?.operated_by?.carrier ?? option?.airline ?? live?.airline ?? null,
+    airline: operating?.carrier ?? option?.airline ?? live?.airline ?? null,
     ticket_flight_no: operatingNo && ticketNo && operatingNo !== ticketNo ? ticketNo : null,
     from: {
       iata: fromIata,
