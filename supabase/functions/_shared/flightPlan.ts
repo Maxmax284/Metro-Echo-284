@@ -28,6 +28,12 @@ export type FlightOption = {
   id: string;
   airline: string | null;
   flight_no: string | null;
+  /**
+   * Who flies it, what the ticket calls it, every number it answers to, and
+   * where to check in. Every field optional: a flight with only a ticket number
+   * keeps only a ticket number.
+   */
+  identity?: FlightIdentity | null;
   /** ISO instant, or null when nothing on record carried a departure time. */
   depart_at: string | null;
   /** ISO instant, or null when the quote did not carry one. */
