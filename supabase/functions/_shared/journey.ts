@@ -88,7 +88,10 @@ function str(v: unknown): string | null {
 
 function asLive(raw: unknown): LiveFlight | null {
   const r = raw as LiveFlight | null;
-  return r && typeof r === "object" && "departure" in r ? r : null;
+  if (!(r && typeof r === "object" && "departure" in r)) return null;
+  /* Anchored on the way in, so a reading stored as an airport wall clock becomes
+     a real instant before anything on this trip does arithmetic with it. */
+  return anchorLive(r);
 }
 
 function pickTime(end: { actual?: string | null; estimated?: string | null; scheduled?: string | null } | null): {
