@@ -9,7 +9,9 @@ type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
 import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
 import { countryNotes } from "./countryNotes.ts";
-import { airport } from "./airports.ts";
+import { airport, airportWords } from "./airports.ts";
+import { groundPath, groundWords } from "./groundPath.ts";
+import { carrierId, mergeIdentity, operatorWords, type FlightIdentity } from "./flightIdentity.ts";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const u = q.eq("user_id", userId);
@@ -60,6 +62,46 @@ export async function flightRead(
       if (where.layover.canLeaveAirport && notes) {
         lines.push(`There is room to leave the airport. Kept notes for ${notes.country}: ${notes.transport[0]?.line ?? ""} (checked ${notes.transport[0]?.checked_on ?? "an unrecorded date"}).`);
       }
+    }
+    /* "Where do I physically go next" is the only question that matters in a
+       departures hall, so it is answered before the itinerary is recited — with
+       the airline that actually flies it, because that is what the boards say. */
+    const leg = journey.legs[where.legIndex] ?? journey.legs[0] ?? null;
+    const plan = leg ? (rows.find((r) => r.id === leg.plan_id) ?? null) : null;
+    const option = plan ? (plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null) : null;
+    const identity = option
+      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
+          marketing:
+            (option.identity as FlightIdentity | null)?.marketing ??
+            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
+        })
+      : null;
+    const snap = (plan?.live_status ?? null) as
+      | { departure?: { terminal?: string | null; gate?: string | null; scheduled?: string | null; estimated?: string | null } }
+      | null;
+    const depIso = snap?.departure?.estimated ?? snap?.departure?.scheduled ?? option?.depart_at ?? null;
+    const depMs = depIso ? Date.parse(depIso) : NaN;
+    const ground = groundPath({
+      where: where.kind,
+      identity,
+      fromPlace: leg?.from.iata ? airportWords(leg.from.iata) : null,
+      toPlace: leg?.to.iata ? airportWords(leg.to.iata) : null,
+      terminal: snap?.departure?.terminal ?? null,
+      gate: snap?.departure?.gate ?? null,
+      minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
+    });
+    lines.push(groundWords(ground));
+    const op = operatorWords(identity);
+    if (op) lines.push(op);
+    if (ground.needsCheckIn) {
+      lines.push(
+        "The check-in zone is not on record. Schedule → Flights has a look-it-up tap that reads one official airline page for it; Echo will not name a zone without one.",
+      );
+    }
+    if (leg?.from.iata) {
+      lines.push(
+        `This journey leaves from ${airportWords(leg.from.iata)} (${leg.from.iata}). If you are standing somewhere else, say which airport — Echo will not guess which one you mean.`,
+      );
     }
     lines.push(TERMINAL_CAVEAT);
     lines.push("");
