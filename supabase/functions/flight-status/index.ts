@@ -233,6 +233,22 @@ Deno.serve(async (req) => {
           payload: { flight_no, flight_date, status: live.status, changed: news, auto: !!auto, bought: false },
         } as never);
       }
+
+      /* The airline that actually flies it is the whole answer to "where do I
+         go" in a terminal, so it is kept on the flight rather than thrown away
+         with the rest of the reading. Nothing already on record is erased. */
+      const filled = foldIdentity(plan, live);
+      if (filled) {
+        await asUser.from("flight_plans").update({ options: filled.options as never }).eq("id", plan.id);
+        await asUser.from("audit_log").insert({
+          user_id: user.id,
+          organization_id: plan.organization_id ?? null,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.identity_filled",
+          payload: { flight_no, source: "aviationstack", identity: filled.identity },
+        } as never);
+      }
     }
 
     return json({ live, words: statusWords(live), news, law: STATUS_LAW });
