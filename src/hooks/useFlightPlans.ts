@@ -519,7 +519,7 @@ export function useFlightPlans() {
     async (
       rawNo: string,
       departOn: string,
-    ): Promise<{ ok: boolean; reason?: string; already?: FlightPlan; words?: string }> => {
+    ): Promise<{ ok: boolean; reason?: string; already?: FlightPlan; words?: string; plan?: FlightPlan }> => {
       if (!user) return { ok: false, reason: "Not signed in." };
       const verdict = quickVerdict(rawNo, departOn);
       if (!verdict.ok) return { ok: false, reason: verdict.reason };
@@ -589,7 +589,7 @@ export function useFlightPlans() {
       }
 
       await load();
-      return { ok: true, words };
+      return { ok: true, words, plan };
     },
     [user, plans, withScope, load],
   );
