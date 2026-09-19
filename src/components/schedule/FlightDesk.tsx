@@ -140,6 +140,8 @@ export function FlightDesk() {
     noticeText,
     addByNumber,
     setRoute,
+    setSaidTime,
+
   } = useFlightPlans();
   /* Which flight is having its check-in area read, so only that card waits. */
   const [looking, setLooking] = useState<string | null>(null);
