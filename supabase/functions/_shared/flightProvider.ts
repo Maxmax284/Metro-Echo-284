@@ -20,18 +20,36 @@ export function providerConfigured(): boolean {
   return !!KEY || !!AERO;
 }
 
-/** One reading, AeroAPI first. Null when neither feed carried the flight. */
-export async function readFlight(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+/** Which feed answered, for the receipt. */
+export type FeedName = "aeroapi" | "aviationstack";
+
+/** One reading, AeroAPI first, with the name of the feed that answered. */
+export async function readFlightWithFeed(
+  flight_no: string,
+  flight_date: string,
+): Promise<{ live: LiveFlight | null; feed: FeedName }> {
   if (AERO) {
     try {
       const live = await askAero(AERO, flight_no, flight_date);
-      if (live) return live;
+      if (live) return { live, feed: "aeroapi" };
       console.error(`aeroapi carried nothing for ${flight_no} on ${flight_date}`);
     } catch (e) {
       console.error("aeroapi call failed; falling back to the aggregator", e);
     }
+    if (!KEY) return { live: null, feed: "aeroapi" };
   }
+  return { live: await readStack(flight_no, flight_date), feed: "aviationstack" };
+}
+
+/** One reading. Null when neither feed carried the flight — both are logged. */
+export async function readFlight(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+  return (await readFlightWithFeed(flight_no, flight_date)).live;
+}
+
+/** The older aggregator on its own. */
+async function readStack(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
   if (!KEY) return null;
+
 
 
   const ask = async (withDate: boolean): Promise<{ payload?: unknown; limited?: boolean }> => {
