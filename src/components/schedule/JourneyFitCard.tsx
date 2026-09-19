@@ -30,6 +30,7 @@ export function JourneyFitCard({
   onSetRoute,
   onSetTime,
   steps,
+  source,
 }: {
   fit: JourneyFit;
   busy?: boolean;
@@ -38,6 +39,8 @@ export function JourneyFitCard({
   onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
   /** Landed-transfer steps for this airport, when the trip is standing in it. */
   steps?: ReactNode;
+  /** Where this record came from, in the same words the flight card uses. */
+  source?: string;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
@@ -54,6 +57,9 @@ export function JourneyFitCard({
         <p className="vanta-machine-label text-foreground/70">{KIND_WORDS[fit.kind]}</p>
       </div>
       <p className="text-[13px] text-foreground/90">{fit.lead}</p>
+      {/* Where the record came from. Same words as the flight card, so two
+          surfaces cannot disagree about provenance. */}
+      {source ? <p className="text-[11px] text-primary/80">{source}</p> : null}
       {fit.detail.map((line) => (
         <p key={line} className="text-[11.5px] text-muted-foreground">
           {line}
