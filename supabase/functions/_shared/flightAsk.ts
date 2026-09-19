@@ -1,20 +1,31 @@
 // flightAsk — the one way Echo asks the airline feed a question.
 //
 // Doctrine:
-//   - One provider, read only. Nothing here books, holds or changes anything.
+//   - Two feeds, read only. FlightAware AeroAPI is asked first because it reads
+//     airline dispatch rather than an aggregator; the older feed is the backup.
+//     Nothing here books, holds or changes anything.
+//   - A feed that carries nothing is not a broken feed. Echo tries the backup,
+//     then reports nothing on record — never a filled-in time from the ticket.
 //   - The free plan refuses a date filter outright (403 function_access_restricted).
 //     That is a limit, not a crash: ask plainly instead, and let normalising throw
 //     away any reading whose day is not the day asked about.
-//   - An empty answer is an answer. It is reported as nothing on record, never
-//     filled in from the ticket.
 import { normalizeAviationstack, type LiveFlight } from "./flightStatus.ts";
+import { askAero, AeroLimited } from "./aeroApi.ts";
 
 /** The provider said this plan cannot ask that question. Not a crash — a limit. */
 export class PlanLimited extends Error {}
 
+/** Which feed answered a reading, for the receipt. */
+export type FeedName = "aeroapi" | "aviationstack";
+
+export function aeroKey(): string {
+  return Deno.env.get("AEROAPI_KEY") ?? Deno.env.get("FLIGHTAWARE_API_KEY") ?? "";
+}
+
 function restricted(body: string): boolean {
   return body.includes("function_access_restricted") || body.includes("usage_limit_reached");
 }
+
 
 async function askOnce(key: string, flight_no: string, flight_date: string, withDate: boolean) {
   const url = new URL("https://api.aviationstack.com/v1/flights");
