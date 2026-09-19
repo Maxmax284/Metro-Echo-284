@@ -87,6 +87,14 @@ export async function callGoogle(
       await noteGoogleHealth(userId, connectorId, "Google needs you to sign in again.");
       return { ok: false, reason: "needs_you", detail: "Google needs you to sign in again.", status: res.status };
     }
+    if (res.status === 403 && readsAsServiceOff(detail)) {
+      const said =
+        "Google has this service switched off for the account you signed in with. "
+        + "Turn the Gmail API on in that Google Cloud project, then Echo can read again. "
+        + "Signing in again will not change it.";
+      await noteGoogleHealth(userId, connectorId, said);
+      return { ok: false, reason: "service_off", detail: said, status: res.status };
+    }
     if (res.status === 401 || res.status === 403) {
       const said = "Google refused that with the permission you granted.";
       await noteGoogleHealth(userId, connectorId, said);
