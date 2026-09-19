@@ -66,8 +66,15 @@ function rowToPlan(r: any): FlightPlan {
     noticed_from: (r.noticed_from ?? null) as FlightPlan["noticed_from"],
     live_status: r.live_status ?? null,
     live_checked_at: r.live_checked_at ?? null,
+    /* Your own word about this leg. Dropping it here was why "I am on it" never
+       reached the card: the journey read the airline's feed and nothing else. */
+    leg_state: r.leg_state ?? null,
+    leg_state_source: r.leg_state_source ?? null,
+    leg_state_at: r.leg_state_at ?? null,
+    leg_state_note: r.leg_state_note ?? null,
   };
 }
+
 
 export function useFlightPlans() {
   const { user } = useAuth();
