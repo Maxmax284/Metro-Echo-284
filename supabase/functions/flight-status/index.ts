@@ -7,7 +7,7 @@
 //     nothing. Silence is never dressed up as "on time".
 //   - A reading taken minutes ago is reused rather than paid for twice.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { askFlight, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
+import { askFlightWithFeed, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
@@ -89,10 +89,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
-  return await askFlight(KEY, flight_no, flight_date);
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -165,15 +161,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    /* The day's ledger of paid readings — the ceiling nothing reads past. */
+    /* The day's ledger of paid readings, kept per feed. Each feed bills
+       separately, so an aggregator that has burnt its day does not silence the
+       feed that still has room. */
     const dayStart = new Date().toISOString().slice(0, 10);
-    const { count: spentToday } = await asUser
-      .from("api_usage_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("provider", "aviationstack")
-      .eq("cache_hit", false)
-      .gte("created_at", `${dayStart}T00:00:00Z`);
-    if ((spentToday ?? 0) >= DAILY_BUDGET) {
+    const spentOn = async (feed: string): Promise<number> => {
+      const { count } = await asUser
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("provider", feed)
+        .eq("cache_hit", false)
+        .gte("created_at", `${dayStart}T00:00:00Z`);
+      return count ?? 0;
+    };
+    const allow = {
+      aero: !!aeroKey() && (await spentOn("aeroapi")) < DAILY_BUDGET,
+      stack: !!KEY && (await spentOn("aviationstack")) < DAILY_BUDGET,
+    };
+    if (!allow.aero && !allow.stack) {
       return json({
         live: previous,
         words: previous
@@ -185,19 +190,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const read = await askProvider(flight_no, flight_date);
+    const { live: read, feed } = await askFlightWithFeed(KEY, flight_no, flight_date, allow);
     /* A reading that is quiet about a gate or terminal does not erase one an
        earlier reading verified. Kept values travel with the date they were read. */
     const live = read ? carryFiled(previous, read) : null;
     await asUser.from("api_usage_logs").insert({
       owner_id: user.id,
       user_id: user.id,
-      provider: "aviationstack",
+      provider: feed,
       feature: auto ? "flight-deck-auto" : "flight-status",
       request_type: "flight_status",
       status: live ? "success" : "failed",
       cache_hit: false,
       related_entity_type: plan ? "flight_plan" : null,
+
       related_entity_id: plan?.id ?? null,
     } as never);
     if (!live) {
