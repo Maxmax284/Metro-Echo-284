@@ -31,6 +31,7 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useJourney } from "@/hooks/useJourney";
 import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
+import { useNetworkReach, QUIET_SKY } from "@/hooks/useNetworkReach";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
