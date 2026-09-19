@@ -34,6 +34,9 @@ export function useFlightTelemetry(
       if (stopped) return;
       setNow(Date.now());
       if (document.visibilityState !== "visible") return;
+      /* No bars, no asking. A retry loop at 38,000 feet spends battery to learn
+         nothing, and a failed call is not news worth putting on the card. */
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       if (busy.current) return;
       const now = Date.now();
       const fresh = plansRef.current.filter((p) => now - (asked.current[p.id] ?? 0) >= REREAD_MS);
