@@ -8,6 +8,7 @@ import {
   fastest,
   parseQuote,
   planTitle,
+  planSourceWords,
   planWords,
   priceWords,
   type FlightOption,
@@ -127,6 +128,22 @@ describe("flightPlan", () => {
 
   it("says a dropped plan booked nothing", () => {
     expect(planWords(plan({ status: "dropped" }))).toContain("Nothing was booked");
+  });
+
+  it("describes a flight-number draft without claiming times or prices were typed", () => {
+    const words = planSourceWords(plan({
+      source: "entered",
+      options: [option({ depart_at: null, arrive_at: null, price: null, currency: null })],
+    }));
+    expect(words).toBe("Added by flight number; departure time still needed.");
+    expect(words).not.toMatch(/times|prices/);
+  });
+
+  it("uses recorded recognition provenance when a message supplied the flight", () => {
+    expect(planSourceWords(plan({
+      origin_kind: "recognised",
+      noticed_from: { source: "email", source_words: "your synced Gmail" },
+    }))).toBe("Read from your synced Gmail.");
   });
 
   it("titles a return trip with both dates", () => {

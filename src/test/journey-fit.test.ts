@@ -76,6 +76,8 @@ describe("a flight added by number against a trip underway", () => {
     const f = fit({ origin: "TPE", destination: "BKK" })!;
     expect(f.kind).toBe("needs_time");
     expect(f.lead).toContain("cannot tell a connection from an overnight");
+    expect(f.detail.join(" ")).toContain("No connection duration or risk is being claimed");
+    expect(f.detail.join(" ")).toContain("you confirm it for your journey");
   });
 
   it("calls a long gap a stay rather than pretending you sit in the terminal", () => {

@@ -1015,7 +1015,7 @@ export function FlightDesk() {
                 <li key={p.id} className="space-y-2 border-l-2 border-primary/50 pl-2">
                   <p className="text-[13px] text-foreground/90">{planTitle(p)}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {p.origin_kind === "recognised" ? noticedWords(p) : `${SOURCE_WORDS[p.source]}.`}
+                    {p.origin_kind === "recognised" ? noticedWords(p) : planSourceWords(p)}
                   </p>
                   {/* Which source filled which fact. Recorded lines only. */}
                   {filledWords(p).map((line) => (
@@ -1066,7 +1066,7 @@ export function FlightDesk() {
                   ) : null}
                   {fitOf(p) && (
                     <JourneyFitCard
-                      fit={fitOf(p)!}
+                      fit={fitOf(p) as NonNullable<ReturnType<typeof fitOf>>}
                       busy={busy}
                       onSetRoute={async (from, to) => {
                         setBusy(true);
