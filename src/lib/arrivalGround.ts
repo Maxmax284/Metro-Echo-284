@@ -16,7 +16,7 @@ export type ArrivalNote = { line: string; checked_on: string };
 export type ArrivalGroundPack = {
   iata: string;
   city: string | null;
-  country: string | null
+  country: string | null;
   currency: string | null;
   currencySymbol: string | null;
   phrases: ArrivalPhrase[];
