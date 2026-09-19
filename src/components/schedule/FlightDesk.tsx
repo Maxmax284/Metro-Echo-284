@@ -339,8 +339,15 @@ export function FlightDesk() {
     const stage = stageOf(plan.id);
     const computed = atThisLeg ? journey.where!.kind : "before";
     const where = stage !== "away" && (computed === "before" || computed === "at_airport") ? "at_airport" : computed;
-    const departAt =
-      snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
+    /* One departure instant for the whole card. A ticket time with no zone is
+       the wall clock at the origin airport, so it is anchored there before any
+       arithmetic — otherwise the countdown reads the device's zone and the
+       cutoffs under the board disagree with the board above them. */
+    const fromIata = (plan.origin ?? "").trim().toUpperCase() || null;
+    const departAt = anchorToZone(
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null,
+      airportZone(fromIata),
+    );
     const depMs = departAt ? Date.parse(departAt) : NaN;
     const read = groundPath({
       where,

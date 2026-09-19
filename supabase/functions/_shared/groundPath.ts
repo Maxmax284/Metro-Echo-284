@@ -132,6 +132,22 @@ export function groundPath(input: GroundInput): GroundRead {
      and hands the question to the board rather than hurrying you to a gate. */
   const gone = mins != null && mins < -30;
 
+  /* Once the filed time has gone by, counter advice is worse than no advice.
+     Echo says what it knows — nothing is posted — and hands over to the board. */
+  if (gone && !gate) {
+    const late: string[] = [];
+    if (term) late.push(`${term}, as filed.`);
+    if (board) late.push(board);
+    return {
+      step: "gate_pending",
+      lead: `The filed departure time has gone by and no gate is posted for ${
+        carrier ?? "your flight"
+      }. The board in the terminal is the truth now.`,
+      detail: late.slice(0, 2),
+      needsCheckIn: false,
+    };
+  }
+
   if (gate) {
     const detail: string[] = [];
     if (term) detail.push(`${term}.`);
