@@ -12,8 +12,11 @@ import { arrivalFacts, helpCells, shiftWords } from "@/lib/arrivalFacts";
 import { arrivalGroundPack } from "@/lib/arrivalGround";
 import { TrainFront } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ConnectionRead } from "@/lib/connectionRead";
 import { SolariBoard } from "./SolariBoard";
 import { GroundPack } from "./GroundPack";
+import { ConnectionPack } from "./ConnectionPack";
+
 
 export function ArrivalStamp({
   iata,
