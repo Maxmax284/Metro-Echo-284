@@ -33,13 +33,15 @@ describe("wallAt", () => {
 });
 
 describe("normalizeAeroApi", () => {
+  /* The wall clock is read on the departure airport's own day, then pinned back
+     to a real instant in that airport's zone so arithmetic on it is honest. */
   it("reads the day on the departure airport's clock, not UTC", () => {
     const live = normalizeAeroApi({ flights: [tg] }, { flight_no: "TG637", flight_date: "2026-09-20" });
     expect(live).not.toBeNull();
     expect(live!.departure.iata).toBe("TPE");
-    expect(live!.departure.scheduled).toBe("2026-09-20T07:55:00");
+    expect(live!.departure.scheduled).toBe("2026-09-19T23:55:00.000Z");
     expect(live!.arrival.iata).toBe("BKK");
-    expect(live!.arrival.scheduled).toBe("2026-09-20T10:35:00");
+    expect(live!.arrival.scheduled).toBe("2026-09-20T03:35:00.000Z");
   });
 
   it("keeps the filed gate, terminal and delay as read", () => {
