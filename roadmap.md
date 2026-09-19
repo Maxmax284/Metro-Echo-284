@@ -3,3 +3,10 @@
 - [ ] Compact settled proposals without deleting history
 - [ ] Add focused regression coverage and verify flight suites
 - [ ] Publish after verification
+## Connecting-flight local verification
+- [ ] Inspect landed transfer, provenance, receipts, and notification flows
+- [ ] Add contextual next steps and local fact capture with review
+- [ ] Add one-time acknowledgement and change-aware resurfacing
+- [ ] Add focused regression coverage
+- [ ] Run travel tests, typecheck, build, and mobile verification
+- [ ] Publish only after verification
