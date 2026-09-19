@@ -23,6 +23,72 @@ import {
 import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
 import { reachOnce } from "../_shared/delivery/reach.ts";
+import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_shared/preDeparture.ts";
+
+/**
+ * Before you leave — the countdown errands said once, on the same rail as every
+ * other heads-up. Same module the flight card reads, so the times cannot drift
+ * apart. It reminds; it checks nobody in and it holds nothing.
+ */
+async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<boolean> {
+  const live = (p.live_status ?? null) as LiveFlight | null;
+  const opt = p.options[0] ?? null;
+  const departAt = live?.departure?.estimated ?? live?.departure?.scheduled ?? opt?.depart_at ?? null;
+  if (!departAt) return false;
+  const from = (p.origin ?? "").trim().toUpperCase() || null;
+  const to = (p.destination ?? "").trim().toUpperCase() || null;
+  const pack = preDeparturePack({ departAt, fromIata: from, toIata: to });
+  const notice = preDepartureNotice({
+    pack,
+    minsToDeparture: minutesToDeparture(departAt, from),
+    flightWords: live?.flight_no ?? opt?.flight_no ?? null,
+    fromIata: from,
+  });
+  if (!notice) return false;
+
+  /* Once per leg, ever. The dedupe key is the referee, not a timer. */
+  const dedupe = `before_you_leave:${p.id}`;
+  const { data: seen } = await sb.from("nudges").select("id").eq("user_id", userId).eq("dedupe_key", dedupe).limit(1);
+  if ((seen ?? []).length) return false;
+
+  const orgId = (p as unknown as { organization_id?: string | null }).organization_id ?? null;
+  const { data: row } = await sb.from("nudges").insert({
+    user_id: userId,
+    organization_id: orgId,
+    kind: "flight_before_you_leave",
+    title: notice.title,
+    body: notice.body,
+    priority: 55,
+    status: "pending",
+    related_entity_type: "flight_plan",
+    related_entity_id: p.id,
+    dedupe_key: dedupe,
+  } as never).select("id").maybeSingle();
+  const nudgeId = (row as { id?: string } | null)?.id ?? null;
+  if (!nudgeId) return false;
+
+  const gate = await reachGate(sb, userId, { urgency: "normal" } as JourneyNotice);
+  if (!gate.allowed) return false;
+  const surface = await reachOnce(sb, {
+    userId,
+    organizationId: orgId,
+    nudgeId,
+    title: notice.title,
+    detail: notice.body,
+    url: "/flights",
+    changeKey: dedupe,
+    urgency: "time_sensitive",
+    entityType: "flight_plan",
+    entityId: p.id,
+    source: "journey_watch",
+    situationKind: "nudge.flight_before_you_leave",
+    dedupeKey: `nudge:${dedupe}`,
+    because: "a filed flight is close enough that the cutoffs matter",
+    openKind: "today",
+    messagingAllowed: gate.messagingAllowed,
+  });
+  return !!surface;
+}
 
 /**
  * Consent for a second surface, read once per user.
@@ -245,6 +311,10 @@ Deno.serve(async (req) => {
 
       const after = journeysFrom(own)[0] ?? null;
       if (!after) continue;
+      /* The errands come before any diff: they are useful even when nothing moved. */
+      const legForPack = own.find((p) => p.id === (after.legs[where.legIndex]?.plan_id ?? "")) ?? null;
+      if (legForPack && (await beforeYouLeave(sb, userId, legForPack))) pinged += 1;
+
       const news = packDiff(beforePack, offlinePack(after, new Date()));
       const where = whereOnJourney(after);
       const landed = arrivalMessage(after);
