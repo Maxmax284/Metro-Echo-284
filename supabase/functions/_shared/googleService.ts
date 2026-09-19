@@ -88,9 +88,14 @@ export async function callGoogle(
       return { ok: false, reason: "needs_you", detail: "Google needs you to sign in again.", status: res.status };
     }
     if (res.status === 403 && readsAsServiceOff(detail)) {
+      const apiName: Record<string, string> = {
+        google_mail: "Gmail",
+        google_calendar: "Calendar",
+        google_drive: "Drive",
+      };
       const said =
         "Google has this service switched off for the account you signed in with. "
-        + "Turn the Gmail API on in that Google Cloud project, then Echo can read again. "
+        + `Turn the ${apiName[connectorId] ?? "Google"} API on in that Google Cloud project, then Echo can read again. `
         + "Signing in again will not change it.";
       await noteGoogleHealth(userId, connectorId, said);
       return { ok: false, reason: "service_off", detail: said, status: res.status };

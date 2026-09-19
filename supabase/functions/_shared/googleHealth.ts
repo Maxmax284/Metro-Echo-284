@@ -58,6 +58,9 @@ export function googleServiceStatuses(input: {
       ? own || (input.calendarSyncError ?? null)
       : own;
     const failing = working && !!problem;
+    /* When Google itself has the service switched off, "switch it on again" is
+       the wrong advice — repeat the recorded fix so nobody re-signs-in in vain. */
+    const serviceOff = !!problem && problem.includes("switched off");
     return {
       service,
       connected,
@@ -66,7 +69,7 @@ export function googleServiceStatuses(input: {
       offerable: input.offerable(service),
       account: row?.account_label ?? null,
       failing,
-      detail: failing ? FAILING_LINE[service] : null,
+      detail: failing ? (serviceOff ? problem : FAILING_LINE[service]) : null,
     };
   });
 }
