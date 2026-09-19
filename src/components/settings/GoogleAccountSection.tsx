@@ -156,6 +156,9 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
                   )}
                 </Button>
               ) : null}
+              {/* Reading mail on a tap is one thing. Watching it in the
+                  background is a separate, explicit yes. */}
+              {cap.key === "gmail" && granted ? <MailSweepRow /> : null}
             </li>
           );
         })}
