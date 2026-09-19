@@ -161,39 +161,54 @@ Deno.serve(async (req) => {
       return json({ ok: false, blocked: guarded.reason, answer: "Web lookups are switched off, so Echo did not go looking." });
     }
 
-    const pick = officialFirst(guarded.data as Hit[], carrier, airportName);
-    if (!pick) {
+    const picks = officialFirst(guarded.data as Hit[], carrier, airportName);
+    if (!picks.length) {
       return json({
         ok: false,
         answer: `Echo found nothing official about ${carrier} check-in at ${airportName}, so it is not naming a zone.`,
       });
     }
-    const checked = safeUrl(pick.url);
-    if (!checked.ok) return json({ ok: false, answer: "That page is not one Echo can read." });
 
-    const page = await runGuarded(
-      {
-        owner_id: user.id,
-        user_id: user.id,
-        provider: "web-page",
-        feature: "flight.checkin_read",
-        query: checked.url,
-        cache_ttl_seconds: 6 * 3600,
-      },
-      () => fetchPage(checked.url),
-    );
-    if (!page.ok || !(page.data as any)?.ok) {
-      return json({ ok: false, answer: `Echo could not read ${new URL(checked.url).host} just now.` });
+    /* Airline sites often refuse a plain reader. Echo tries the next official
+       page rather than inventing a zone, and gives up out loud. */
+    let read: { text: string; host: string; url: string } | null = null;
+    let area: string | null = null;
+    const tried: string[] = [];
+    for (const pick of picks) {
+      const checked = safeUrl(pick.url);
+      if (!checked.ok) continue;
+      const page = await runGuarded(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "web-page",
+          feature: "flight.checkin_read",
+          query: checked.url,
+          cache_ttl_seconds: 6 * 3600,
+        },
+        () => fetchPage(checked.url),
+      );
+      const host = new URL(checked.url).host;
+      tried.push(host);
+      if (!page.ok || !(page.data as any)?.ok) continue;
+      const got = (page.data as any).read as { text: string; host: string; url: string };
+      const found = await areaFrom(question, got.text);
+      if (found) {
+        read = got;
+        area = found;
+        break;
+      }
     }
-    const read = (page.data as any).read as { text: string; host: string; url: string };
-    const area = await areaFrom(question, read.text);
-    if (!area) {
+    if (!read || !area) {
       return json({
         ok: false,
-        source_host: read.host,
-        answer: `${read.host} does not say where ${carrier} checks in at ${airportName}, so Echo is not going to name a zone.`,
+        tried,
+        answer:
+          `Echo read ${tried.length ? tried.join(", ") : "nothing"} and none of them state where ${carrier} ` +
+          `checks in at ${airportName}, so it is not going to name a zone. The departures hall signs are the truth here.`,
       });
     }
+
 
     const read_at = new Date().toISOString();
     const next = mergeIdentity(identity, {
