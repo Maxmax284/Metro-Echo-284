@@ -372,7 +372,7 @@ export function FlightDesk() {
        once boarding takes over the card, the pack steps out of the way. */
     const pack = preDeparturePack({
       departAt,
-      fromIata: (plan.origin ?? "").trim().toUpperCase() || null,
+      fromIata,
       toIata: (plan.destination ?? "").trim().toUpperCase() || null,
     });
     return { read, stage, offerStage, pack, where };
