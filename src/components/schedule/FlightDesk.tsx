@@ -406,20 +406,35 @@ export function FlightDesk() {
 
       <FlightAlertsCard />
 
-      {/* The trip you are actually on comes before anything you might add. */}
+      {/* The trip you are actually on comes before anything you might add — and
+          the move comes before the trip. A person reading this is walking. */}
       {journey.current ? (
         <>
-        <JourneySpine
-          journey={journey.current}
-          where={journey.where}
-          news={journey.news}
-          savedAt={journey.savedAt}
-          onOverride={(planId, state) => journey.setLegState(planId, state)}
-          onClearOverride={(planId) => journey.clearLegState(planId)}
-          onDismissNews={journey.dismissNews}
-        />
-        {/* The same trip as a route you can tap, stop by stop. */}
-        <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+        {livePlan ? groundBlock(livePlan, true) : null}
+        <details className="group">
+          <summary
+            className={cn(
+              "vanta-card flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[12px] text-foreground/80",
+              MOTION_FOCUS,
+            )}
+          >
+            <span>Full journey — legs, times and what changed</span>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="mt-2 space-y-3">
+            <JourneySpine
+              journey={journey.current}
+              where={journey.where}
+              news={journey.news}
+              savedAt={journey.savedAt}
+              onOverride={(planId, state) => journey.setLegState(planId, state)}
+              onClearOverride={(planId) => journey.clearLegState(planId)}
+              onDismissNews={journey.dismissNews}
+            />
+            {/* The same trip as a route you can tap, stop by stop. */}
+            <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+          </div>
+        </details>
         </>
       ) : null}
 
