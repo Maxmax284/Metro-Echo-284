@@ -13,7 +13,11 @@ const CY = H / 2;
 function meanCenter(stops: RouteStop[]): GeoPoint {
   const points = stops.flatMap((stop) => stop.point ? [stop.point] : []);
   if (!points.length) return { lat: 0, lon: 0 };
-  const xyz = points.reduce((sum, point) => {
+  /* Centre the full journey's endpoints, not every connection. Repeated stops
+     near the destination would otherwise push a long-haul origin behind the
+     globe even though both ends fit on one hemisphere. */
+  const anchors = points.length > 1 ? [points[0], points[points.length - 1]] : points;
+  const xyz = anchors.reduce((sum, point) => {
     const lat = point.lat * Math.PI / 180;
     const lon = point.lon * Math.PI / 180;
     return {

@@ -89,7 +89,7 @@ export function FlightRouteMap({
             onClick={() => setView("map")}
             aria-pressed={view === "map"}
             className={cn(
-              "vanta-focus h-8 rounded-none px-2 text-[11px]",
+              "vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground",
               view === "map" ? "bg-primary/20 text-foreground" : "text-muted-foreground",
             )}
           >
@@ -99,7 +99,7 @@ export function FlightRouteMap({
             type="button" variant="ghost"
             onClick={() => setView("globe")}
             aria-pressed={view === "globe"}
-            className={cn("vanta-focus h-8 rounded-none px-2 text-[11px]", view === "globe" ? "bg-primary/20 text-foreground" : "text-muted-foreground")}
+            className={cn("vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground", view === "globe" ? "bg-primary/20 text-foreground" : "text-muted-foreground")}
           >
             <Globe2 className="h-3 w-3" aria-hidden />
             Globe
@@ -109,7 +109,7 @@ export function FlightRouteMap({
             onClick={() => setView("sketch")}
             aria-pressed={view === "sketch"}
             className={cn(
-              "vanta-focus h-8 rounded-none px-2 text-[11px]",
+              "vanta-focus h-8 rounded-none px-2 text-[11px] hover:bg-primary/15 hover:text-foreground",
               view === "sketch" ? "bg-primary/20 text-foreground" : "text-muted-foreground",
             )}
           >
