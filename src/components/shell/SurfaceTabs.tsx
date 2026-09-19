@@ -104,7 +104,7 @@ export function SurfaceTabs({
             >
               {signals[key as RoomKey] && <RoomSignal signal={signals[key as RoomKey] as RoomSignalState} />}
               {bubble?.room === key && (
-                <span className="vanta-discovery-bubble absolute bottom-[calc(100%+8px)] left-1/2 w-56 -translate-x-1/2 px-3 py-2 text-left text-[11px] leading-snug text-foreground" role="status">
+                <span className="vanta-discovery-bubble absolute bottom-[calc(100%+4.5rem)] right-0 z-10 w-56 px-3 py-2 text-left text-[11px] leading-snug text-foreground" role="status">
                   {bubble.text}
                 </span>
               )}
