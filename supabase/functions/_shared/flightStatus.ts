@@ -11,6 +11,7 @@
 // Pure module: no IO, no React.
 
 import { airportPoint, distanceKm } from "./airports.ts";
+import { airportZone, anchorToZone } from "./travelSense.ts";
 
 export type LiveEnd = {
   airport: string | null;
@@ -515,4 +516,44 @@ export function carryFiled(previous: LiveFlight | null, live: LiveFlight): LiveF
 /** True when this reading is showing a value it kept rather than one it read. */
 export function isCarried(live: LiveFlight | null, field: CarriedFact["field"]): CarriedFact | null {
   return (live?.carried ?? []).find((c) => c.field === field) ?? null;
+}
+
+/**
+ * Pin every time on a reading to the airport it belongs to.
+ *
+ * A provider hands back airport wall-clock times with no zone on them — "the
+ * board at Taoyuan says 05:21". `wall()` above deliberately strips the fake
+ * "+00:00" so nothing downstream reads a Dulles departure as UTC. The cost of
+ * that honesty is that the string on its own is not an instant: subtracting it
+ * from now uses whatever zone the phone happens to be sitting in, and a phone
+ * that left Washington on an aircraft is still on Washington time. That is how a
+ * landing in Taipei read as twelve hours further away than it was.
+ *
+ * So the reading is anchored once, here, at the seam: each end's times become
+ * real instants in that airport's own zone. Idempotent — a time that already
+ * carries a zone is left exactly as it is, and an airport Echo has no zone for
+ * stays unanchored rather than being guessed at.
+ */
+export function anchorLive<T extends LiveFlight | null | undefined>(live: T): T {
+  if (!live) return live;
+  const pin = (e: LiveEnd): LiveEnd => {
+    const tz = airportZone(e.iata);
+    if (!tz) return e;
+    return {
+      ...e,
+      scheduled: anchorToZone(e.scheduled, tz),
+      estimated: anchorToZone(e.estimated, tz),
+      actual: anchorToZone(e.actual, tz),
+    };
+  };
+  return { ...live, departure: pin(live.departure), arrival: pin(live.arrival) } as T;
+}
+
+/**
+ * True when this time cannot be turned into a real instant: a wall clock with no
+ * zone behind it. Used to say "not pinned" instead of counting down from a
+ * number that quietly assumes the phone's own zone.
+ */
+export function isPinned(at: string | null | undefined): boolean {
+  return !!at && /(?:[Zz]|[+-]\d{2}:?\d{2})$/.test(at) && Number.isFinite(Date.parse(at));
 }
