@@ -55,6 +55,7 @@ export function FlightLive({
   ticket,
   groundStep,
   embedded = false,
+  belowBoard,
 }: {
   live: LiveFlight;
   checkedAt: string | null;
