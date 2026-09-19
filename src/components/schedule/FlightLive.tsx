@@ -21,6 +21,8 @@ import {
   trackProgress,
   type LiveFlight,
 } from "@/lib/flightStatus";
+import { airportBoardRead } from "@/lib/airportBoard";
+import type { GroundStep } from "@/lib/groundPath";
 import { cn } from "@/lib/utils";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
@@ -59,6 +61,8 @@ export function FlightLive({
   reading = false,
   board,
   ticket,
+  groundStep,
+  embedded = false,
 }: {
   live: LiveFlight;
   checkedAt: string | null;
@@ -74,6 +78,10 @@ export function FlightLive({
   board?: string | null;
   /** The ticket number, named once and quietly, when it differs from the board. */
   ticket?: string | null;
+  /** The current practical airport step; used only when the provider did not file boarding. */
+  groundStep?: GroundStep | null;
+  /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
+  embedded?: boolean;
 }) {
   const phase = flightPhase(live);
   /* Radar first: when the airline filed a fix for the aircraft, the marker sits
@@ -102,16 +110,13 @@ export function FlightLive({
     return (t: number) => new Date(a + (b - a) * Math.max(0, Math.min(1, t))).toISOString();
   }, [depIso, arrIso]);
 
-  const gate = live.departure.gate
-    ? `GATE ${live.departure.gate}`
-    : live.departure.terminal
-      ? `TERM ${live.departure.terminal}`
-      : null;
+  const airportBoard = airportBoardRead(live, groundStep);
 
   return (
     <div
       className={cn(
-        "animate-slide-up space-y-2.5 rounded-md border border-border/60 bg-muted/20 p-2.5",
+        "animate-slide-up space-y-2.5",
+        !embedded && "rounded-md border border-border/60 bg-muted/20 p-2.5",
         reading && "animate-pulse",
       )}
     >
@@ -134,10 +139,15 @@ export function FlightLive({
 
       {/* The board: what the terminal prints, status, gate. Flips once when the
           wording changes. The ticket number sits under it, said once. */}
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
-        <SolariBoard text={board?.trim() || live.flight_no} label="On the board" />
-        <SolariBoard text={BOARD_WORDS[phase] ?? "STATUS"} label="Status" tone={BOARD_TONE[phase]} />
-        {gate && <SolariBoard text={gate} label="Gate" tone="primary" />}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+        <SolariBoard text={board?.trim() || live.flight_no} label="Flight" />
+        <SolariBoard text={airportBoard.terminal} label={airportBoard.arrivalSide ? "Arrival terminal" : "Terminal"} />
+        <SolariBoard text={airportBoard.gate} label={airportBoard.arrivalSide ? "Arrival gate" : "Gate"} tone={airportBoard.gate === "NOT FILED" ? "default" : "primary"} />
+        <SolariBoard
+          text={airportBoard.status}
+          label="Status"
+          tone={airportBoard.status === "CANCELLED" || airportBoard.status === "DIVERTED" ? "danger" : airportBoard.status === "LANDED" ? "good" : airportBoard.status.includes("NOT FILED") ? "warn" : BOARD_TONE[phase]}
+        />
       </div>
       {ticket?.trim() && ticket.trim().toUpperCase() !== (board ?? live.flight_no).toUpperCase() && (
         <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {ticket.trim()}.</p>

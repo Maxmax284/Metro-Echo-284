@@ -37,7 +37,7 @@ import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
 import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
-import { groundPath } from "@/lib/groundPath";
+import { groundPath, type GroundRead } from "@/lib/groundPath";
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { FlightRouteMap } from "./FlightRouteMap";
@@ -317,7 +317,13 @@ export function FlightDesk() {
     return { board: name, ticket: isCodeshare(id) ? (id?.marketing?.flight_no ?? null) : null };
   };
 
-  const groundBlock = (plan: FlightPlan, lead = false) => {
+  const groundContext = (plan: FlightPlan): {
+    read: GroundRead;
+    stage: GroundStage;
+    offerStage: boolean;
+    pack: ReturnType<typeof preDeparturePack>;
+    where: string;
+  } => {
     const snap = plan.live_status as LiveFlight | null;
     const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
     const identity = identityOf(plan);
@@ -357,6 +363,11 @@ export function FlightDesk() {
       fromIata: (plan.origin ?? "").trim().toUpperCase() || null,
       toIata: (plan.destination ?? "").trim().toUpperCase() || null,
     });
+    return { read, stage, offerStage, pack, where };
+  };
+
+  const groundBlock = (plan: FlightPlan, lead = false) => {
+    const { read, stage, offerStage, pack, where } = groundContext(plan);
     return (
       <div className="space-y-2">
         <GroundLead
@@ -433,6 +444,9 @@ export function FlightDesk() {
   /* The flight the journey says you are on right now. Its move leads the screen. */
   const liveLeg = journey.current?.legs[journey.where?.legIndex ?? 0] ?? null;
   const livePlan = liveLeg ? (plans.find((p) => p.id === liveLeg.plan_id) ?? null) : null;
+  const liveSnapshot = livePlan?.live_status as LiveFlight | null | undefined;
+  const activeGround = livePlan ? groundContext(livePlan) : null;
+  const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
 
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
@@ -446,7 +460,46 @@ export function FlightDesk() {
           the move comes before the trip. A person reading this is walking. */}
       {journey.current ? (
         <>
-        {livePlan ? groundBlock(livePlan, true) : null}
+        {livePlan ? (
+          <Card className="vanta-card space-y-3 p-3">
+            {groundBlock(livePlan)}
+            {liveSnapshot ? (
+              <FlightLive
+                live={liveSnapshot}
+                checkedAt={livePlan.live_checked_at ?? null}
+                clock={clock}
+                homeZone={timezone}
+                reading={readingPlanId === livePlan.id}
+                board={boardWords_(livePlan).board}
+                ticket={boardWords_(livePlan).ticket}
+                groundStep={activeGround?.read.step}
+                embedded
+              />
+            ) : groundAhead(livePlan)}
+            <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-9 text-[12px]"
+                disabled={busy}
+                onClick={() => void askLive(livePlan)}
+              >
+                <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Check live status
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-9 text-[12px]"
+                disabled={busy}
+                onClick={() => setRemoving(livePlan)}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Remove flight
+              </Button>
+            </div>
+          </Card>
+        ) : null}
         <details className="group">
           <summary
             className={cn(
@@ -827,11 +880,11 @@ export function FlightDesk() {
         </Card>
       )}
 
-      {settled.length > 0 && (
+      {remainingSettled.length > 0 && (
         <Card className="vanta-card space-y-1.5 p-3">
           <p className="vanta-machine-label text-foreground/70">Settled</p>
           <ul className="space-y-1.5">
-            {settled.map((p) => (
+            {remainingSettled.map((p) => (
               <li key={p.id} className="space-y-1">
                 <p className="text-[12px] text-foreground/85">{planWords(p, clock)}</p>
                 {p.status === "confirmed" && (
@@ -845,6 +898,7 @@ export function FlightDesk() {
                         reading={readingPlanId === p.id}
                         board={boardWords_(p).board}
                         ticket={boardWords_(p).ticket}
+                        groundStep={groundContext(p).read.step}
                       />
                     )}
                     {groundBlock(p)}
