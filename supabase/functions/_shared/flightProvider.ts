@@ -27,8 +27,9 @@ export type FeedName = "aeroapi" | "aviationstack";
 export async function readFlightWithFeed(
   flight_no: string,
   flight_date: string,
+  allow: { aero: boolean; stack: boolean } = { aero: true, stack: true },
 ): Promise<{ live: LiveFlight | null; feed: FeedName }> {
-  if (AERO) {
+  if (AERO && allow.aero) {
     try {
       const live = await askAero(AERO, flight_no, flight_date);
       if (live) return { live, feed: "aeroapi" };
@@ -36,10 +37,11 @@ export async function readFlightWithFeed(
     } catch (e) {
       console.error("aeroapi call failed; falling back to the aggregator", e);
     }
-    if (!KEY) return { live: null, feed: "aeroapi" };
+    if (!KEY || !allow.stack) return { live: null, feed: "aeroapi" };
   }
   return { live: await readStack(flight_no, flight_date), feed: "aviationstack" };
 }
+
 
 /** One reading. Null when neither feed carried the flight — both are logged. */
 export async function readFlight(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
