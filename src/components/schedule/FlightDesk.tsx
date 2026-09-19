@@ -417,7 +417,7 @@ export function FlightDesk() {
     );
   };
 
-  const groundAhead = (plan: FlightPlan, inAir = false) => {
+  const groundAhead = (plan: FlightPlan, inAir = false, connection: ConnectionRead | null = null) => {
     if (plan.live_status) return null;
     const from = (plan.origin ?? "").trim().toUpperCase();
     const to = (plan.destination ?? "").trim().toUpperCase();
@@ -433,7 +433,7 @@ export function FlightDesk() {
       />
     ) : null;
     const there = /^[A-Z]{3}$/.test(to) && at ? (
-      <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />
+      <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} connection={connection} />
     ) : null;
     if (!here && !there) return null;
     return (
@@ -443,6 +443,7 @@ export function FlightDesk() {
       </div>
     );
   };
+
 
   /* Before the first provider reading, the board still exists — but every
      operational field says exactly what is not filed instead of disappearing. */
