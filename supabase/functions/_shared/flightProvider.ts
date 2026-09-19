@@ -1,25 +1,38 @@
-// flightProvider — one paid reading from the flight-data provider, counted.
+// flightProvider — one paid reading from the flight-data feeds, counted.
 //
 // Doctrine:
 //   - Every reading is logged before it is used, so the day's ledger is honest
 //     and the ceiling cannot be walked past.
-//   - A provider that carries nothing returns nothing. Silence is never dressed
-//     up as "on time".
+//   - Two feeds, asked in order: FlightAware AeroAPI first because it reads
+//     airline dispatch, the older aggregator as the backup. A feed that carries
+//     nothing returns nothing. Silence is never dressed up as "on time".
 //   - Read only. There is no arm here that buys, holds or checks anyone in.
 import { normalizeAviationstack, type LiveFlight } from "./flightStatus.ts";
+import { askAero } from "./aeroApi.ts";
 
 /** The day's ceiling on paid readings, across every feature. */
 export const DAILY_READING_CEILING = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
+const AERO = Deno.env.get("AEROAPI_KEY") ?? Deno.env.get("FLIGHTAWARE_API_KEY") ?? "";
 
 export function providerConfigured(): boolean {
-  return !!KEY;
+  return !!KEY || !!AERO;
 }
 
-/** One provider call. Null when it failed or carried nothing — both are logged. */
+/** One reading, AeroAPI first. Null when neither feed carried the flight. */
 export async function readFlight(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+  if (AERO) {
+    try {
+      const live = await askAero(AERO, flight_no, flight_date);
+      if (live) return live;
+      console.error(`aeroapi carried nothing for ${flight_no} on ${flight_date}`);
+    } catch (e) {
+      console.error("aeroapi call failed; falling back to the aggregator", e);
+    }
+  }
   if (!KEY) return null;
+
 
   const ask = async (withDate: boolean): Promise<{ payload?: unknown; limited?: boolean }> => {
     const url = new URL("https://api.aviationstack.com/v1/flights");
