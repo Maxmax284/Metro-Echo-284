@@ -467,3 +467,52 @@ export function fixWords(pos: LivePosition | null | undefined, now: Date = new D
   const stale = age !== null && age * 60_000 > FIX_FRESH_MS ? " The track is drawn from the clock until a newer fix lands." : "";
   return `Radar fix ${where} — ${when}.${stale}`;
 }
+
+/**
+ * Keep what an earlier reading verified when this one is simply quiet about it.
+ *
+ * A gate that vanishes from a provider response has not been withdrawn by the
+ * airline — the provider just did not say. Erasing it would make the deck
+ * contradict itself an hour before boarding, so the last verified value is kept
+ * with the moment it was verified, and named as kept.
+ *
+ * Nothing is carried when the airline has cancelled the flight: then a missing
+ * gate is the answer.
+ */
+export function carryFiled(previous: LiveFlight | null, live: LiveFlight): LiveFlight {
+  if (!previous) return live;
+  const provider = (live.status ?? "").trim().toLowerCase();
+  if (provider === "cancelled") return live;
+
+  const since = previous.checked_at;
+  const carried: CarriedFact[] = [];
+  const next: LiveFlight = {
+    ...live,
+    departure: { ...live.departure },
+    arrival: { ...live.arrival },
+  };
+
+  const keep = (
+    end: "departure" | "arrival",
+    key: "gate" | "terminal",
+  ) => {
+    const had = (previous[end]?.[key] ?? "").trim();
+    const has = (next[end][key] ?? "").trim();
+    if (!had || has) return;
+    next[end][key] = had;
+    carried.push({ field: `${end}.${key}` as CarriedFact["field"], value: had, since });
+  };
+
+  keep("departure", "gate");
+  keep("departure", "terminal");
+  keep("arrival", "gate");
+  keep("arrival", "terminal");
+
+  next.carried = carried.length ? carried : undefined;
+  return next;
+}
+
+/** True when this reading is showing a value it kept rather than one it read. */
+export function isCarried(live: LiveFlight | null, field: CarriedFact["field"]): CarriedFact | null {
+  return (live?.carried ?? []).find((c) => c.field === field) ?? null;
+}
