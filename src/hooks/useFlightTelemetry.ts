@@ -60,10 +60,14 @@ export function useFlightTelemetry(
     void tick();
     const onShow = () => void tick();
     document.addEventListener("visibilitychange", onShow);
+    /* Back on a network: read once, straight away, so the first thing you see on
+       the ground is a fresh reading rather than the one from before the doors. */
+    window.addEventListener("online", onShow);
     return () => {
       stopped = true;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("online", onShow);
     };
   }, []);
 
