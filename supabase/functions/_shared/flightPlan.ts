@@ -14,6 +14,8 @@
 //
 // Pure module: no IO, no React.
 
+import type { FlightIdentity } from "./flightIdentity.ts";
+
 export const FLIGHT_LAW =
   "Echo prepares and records. It never buys a ticket, holds a seat, or checks you in — confirming puts the flight on your board.";
 
