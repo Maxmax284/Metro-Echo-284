@@ -1,16 +1,20 @@
-# Keep the flight section steady during updates
+# Connecting-flight context cleanup
 
 ## What will change
-- Treat the loading screen as first-load only. Background airline checks and live updates will keep the current flight card, journey, and controls mounted until the replacement data arrives.
-- Remove the whole-card opacity pulse during a read. A small status cue beside the existing reading age will show that Echo is checking without dimming the content.
-- Preserve the last good flight data if a refresh fails, while showing the existing error state without replacing the card.
+- Keep the active BR3 journey untouched while making TG637’s proposed state explicit: ownership, adding to the journey, and physical arrival remain separate actions.
+- Replace vague missing-time language with “Possible connection — departure time needed” and explain that duration versus overnight is unknown until departure is recorded.
+- Contextualize airport-stage actions to the flight’s origin, and suppress impossible arrival confirmations while the active journey is still in the air.
+- Replace unconditional baggage-claim guidance with a neutral arrival/transfer choice when onward travel or checked-through baggage is not confirmed. Proven connections retain transfer guidance; final arrivals retain entry guidance.
+- Make source copy match the actual record: flight-number-only, pasted, recognized email/message, or manually timed.
+- Collapse settled proposals behind an accessible history control and safely group exact display duplicates without deleting any records or receipts.
+- Align candidate wording with Flights, Today, and the journey spine using shared derived labels only; no live-reading, ETA, notification, or persistence changes.
 
 ## Technical notes
-- Update `useFlightPlans` so refreshes do not reset `loading` after the first completed read.
-- Update `FlightLive` so `reading` affects only a compact live indicator, not the entire panel.
-- Add regression coverage proving a refresh keeps existing plans visible and does not apply a full-panel pulse.
+- Limit edits to existing flight presentation and pure journey-fit/source-copy helpers.
+- Add fixtures for in-air BR3 plus untimed TG637, confirmed onward travel with unknown baggage, and multiple dropped proposals.
+- Preserve the shared timezone/countdown path, stable refresh behavior, provider fallback, user overrides, offline state, gate retention, and all backend records.
 
-## Acceptance
-- At 384px, automatic and manual checks never produce a black/blank flight section.
-- Existing values stay readable while fresh data is requested, then changed fields update in place.
-- Reduced-motion behavior remains respected.
+## Verification
+- Run focused journey-fit, connection, flight-plan, terminal-path, telemetry, countdown, and new UI tests.
+- Run the full automated suite and TypeScript check through the project harness.
+- Verify the flight desk at 384px before publishing, then publish only after checks pass.
