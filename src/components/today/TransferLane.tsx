@@ -42,8 +42,7 @@ export function TransferLane({ onOpen }: { onOpen: () => void }) {
       (p) =>
         p.id !== plan.id &&
         (p.origin ?? "").trim().toUpperCase() === airport &&
-        p.status !== "dropped" &&
-        p.status !== "flown",
+        p.status !== "dropped",
     ) ??
     null;
   if (!candidateOnward) return null;

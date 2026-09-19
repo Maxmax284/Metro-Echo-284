@@ -16,6 +16,7 @@ import { SituationRead } from "@/components/today/SituationRead";
 import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { NextMoveLane } from "@/components/today/NextMoveLane";
+import { TransferLane } from "@/components/today/TransferLane";
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
