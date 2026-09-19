@@ -101,6 +101,21 @@ export function groundPath(input: GroundInput): GroundRead {
     };
   }
 
+  /* On the aircraft with the doors open. Nothing in the terminal is yours any
+     more, so nothing in the terminal is said. Boarding is your word here, never
+     the clock's — a departure time going past is not an airline saying boarding. */
+  if (input.where === "boarding") {
+    const detail: string[] = [];
+    if (gate) detail.push(`Gate ${gate}, as filed.`);
+    if (board) detail.push(board);
+    return {
+      step: "boarding",
+      lead: `On board for ${trimmed(input.toPlace) ?? "your destination"}. Nothing left to do in the terminal.`,
+      detail: detail.slice(0, 2),
+      needsCheckIn: false,
+    };
+  }
+
   if (input.where === "in_air") {
     return {
       step: "in_air",
