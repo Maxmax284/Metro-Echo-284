@@ -16,7 +16,7 @@ describe("ArrivalGroundPack", () => {
     expect(screen.getByText(/nǐ hǎo/)).toBeTruthy();
     expect(screen.getAllByText(/EasyCard/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Purple Express/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/0800-024-111/)).toBeTruthy();
+    expect(screen.getAllByText(/0800-024-111/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Sockets A, B/)).toBeTruthy();
   });
 
