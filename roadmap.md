@@ -174,3 +174,5 @@ walk listed above; broader document formats stay behind a fresh approval.
   text off the picture goes through the same flight reader). DONE — proven with
   a forwarded booking picture: one record, no double, receipt left.
 - Proof: the real Telegram screenshots, in order.
+
+- [x] Keep flight cards visible during live refreshes; update facts in place without full-card dimming.

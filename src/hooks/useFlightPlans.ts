@@ -85,16 +85,27 @@ export function useFlightPlans() {
   const [plans, setPlans] = useState<FlightPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /* Loading owns only the first read. Live airline updates must leave the last
+     good desk mounted while the replacement rows arrive; otherwise every
+     provider check tears the whole flight section down to a dark placeholder. */
+  const hasLoaded = useRef(false);
 
   const load = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     setError(null);
     const { data, error: err } = (await applyScope(
       supabase.from("flight_plans").select("*").order("depart_on", { ascending: true }).limit(200) as never,
     )) as { data: any[] | null; error: { message: string } | null };
-    if (err) setError(err.message);
+    if (err) {
+      /* A failed refresh is not permission to erase a good reading. */
+      setError(err.message);
+      hasLoaded.current = true;
+      setLoading(false);
+      return;
+    }
     setPlans(((data ?? []) as any[]).map(rowToPlan));
+    hasLoaded.current = true;
     setLoading(false);
   }, [user, applyScope]);
 

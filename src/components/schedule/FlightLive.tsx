@@ -67,7 +67,7 @@ export function FlightLive({
   clock: EndClock;
   /** The clock Echo is keeping, so a landing can state the shift honestly. */
   homeZone?: string | null;
-  /** True while a fresh read is in flight — the deck breathes instead of freezing. */
+  /** True while a fresh read is in flight — facts stay still; only the read cue moves. */
   reading?: boolean;
   /**
    * What the terminal prints — the operating airline's number. The board shows
@@ -120,8 +120,8 @@ export function FlightLive({
       className={cn(
         "animate-slide-up space-y-2.5",
         !embedded && "rounded-md border border-border/60 bg-muted/20 p-2.5",
-        reading && "animate-pulse",
       )}
+      data-reading={reading ? "true" : "false"}
     >
       <div className="flex items-center gap-2">
         <span className="relative flex h-2.5 w-2.5 shrink-0" aria-hidden>
@@ -135,9 +135,13 @@ export function FlightLive({
           <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", TONE[phase])} />
         </span>
         <p className="vanta-machine-label text-foreground/70">{PHASE_WORDS[phase]}</p>
-        {checkedAt && (
+        {reading ? (
+          <p className="ml-auto text-[10.5px] text-muted-foreground" aria-live="polite">
+            Checking airline
+          </p>
+        ) : checkedAt ? (
           <p className="ml-auto text-[10.5px] text-muted-foreground/80">{readingAge(checkedAt)}</p>
-        )}
+        ) : null}
       </div>
 
       {/* The board: what the terminal prints, status, gate. Flips once when the
