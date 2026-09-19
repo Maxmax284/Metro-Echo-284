@@ -60,7 +60,7 @@ export function saidTime(
   raw: string | null | undefined,
   depart_on: string | null | undefined,
   kind: SaidTimeKind = "departure",
-): { ok: true; said: SaidTime } | { ok: false; reason: string } {
+): { ok: boolean; said?: SaidTime; reason?: string } {
   const hhmm = readClock(raw);
   if (!hhmm) {
     return {
