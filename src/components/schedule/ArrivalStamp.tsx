@@ -138,7 +138,7 @@ export function ArrivalStamp({
             </div>
           </div>
 
-          <GroundPack iata={f.iata} />
+          <GroundPack iata={f.iata} arrived={arrived} />
         </>
       )}
 
