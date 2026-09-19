@@ -138,7 +138,7 @@ export function TransferVerification({
           {reviewing ? (
             <div className="space-y-1.5 rounded-[3px] border border-primary/40 bg-primary/5 p-2" role="status">
               <p className="text-[11.5px] font-medium">Review before saving</p>
-              <p className="text-[11px] text-muted-foreground">{[gate && `Gate ${gate.toUpperCase()}`, boarding && `boarding ${boarding}`, baggage !== "unknown" && baggage.replace("_", " "), route !== "unknown" && route.replaceAll("_", " ")].filter(Boolean).join(" · ") || "No operational fact entered."} · Source: {LOCAL_SOURCE_WORDS[source]}.</p>
+              <p className="text-[11px] text-muted-foreground">{[gate && `Gate ${gate.toUpperCase()}`, boarding && `boarding ${boarding}`, baggage !== "unknown" && baggage.replace(/_/g, " "), route !== "unknown" && route.replace(/_/g, " ")].filter(Boolean).join(" · ") || "No operational fact entered."} · Source: {LOCAL_SOURCE_WORDS[source]}.</p>
               <p className="text-[10.5px] text-muted-foreground">This records your local verification. It does not book, board, or change the flight's departure time.</p>
               <Button size="sm" className="h-9 w-full text-[12px]" disabled={busy || !online} onClick={() => void save()}>{busy ? "Saving…" : "Confirm and record"}</Button>
             </div>
