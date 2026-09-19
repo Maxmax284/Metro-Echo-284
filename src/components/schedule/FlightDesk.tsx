@@ -48,7 +48,7 @@ import { connectionAt, type ConnectionRead } from "@/lib/connectionRead";
 import { journeyFit, routeOnRecord } from "@/lib/journeyFit";
 import { JourneyFitCard } from "./JourneyFitCard";
 
-import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
+import { airportStageLabel, readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { cabinLandingAt, readCabinEstimate, writeCabinEstimate } from "@/lib/cabinEstimate";
 import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { terminalPath } from "@/lib/terminalPath";
@@ -69,6 +69,7 @@ import {
   parseQuote,
   planTitle,
   planWords,
+  planSourceWords,
   sortOptions,
   type FlightOption,
   type FlightPlan,
@@ -598,6 +599,16 @@ export function FlightDesk() {
     [journey.current, journey.where],
   );
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
+  const settledGroups = useMemo(() => {
+    const groups = new Map<string, { plan: FlightPlan; count: number }>();
+    for (const plan of remainingSettled) {
+      const key = `${plan.status}|${plan.ownership ?? ""}|${planWords(plan, clock)}`;
+      const group = groups.get(key);
+      if (group) group.count += 1;
+      else groups.set(key, { plan, count: 1 });
+    }
+    return [...groups.values()];
+  }, [remainingSettled, clock]);
   /* The filed landing, anchored at the arrival airport — both the fallback for
      the countdown and the day the cabin screen's clock is pinned to. */
   const liveFiledArrival = livePlan
