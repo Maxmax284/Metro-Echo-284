@@ -5,6 +5,7 @@
 //   - A time without its day is a trap: 10:15 PM tonight and 1:15 AM tomorrow
 //     are three hours apart, and the card has to say so.
 //   - The day word comes from the person's own zone, never the browser's.
+import { airportZone } from "@/lib/travelSense";
 import { formatInTimeZone } from "date-fns-tz";
 
 function dayKey(at: Date, timezone: string): string {
@@ -63,4 +64,14 @@ export function flightTimeWords(iso: string | null | undefined, timezone: string
 /** A clock function for the flight surfaces: 12-hour, with the day when it differs. */
 export function flightClock(timezone: string): (iso: string) => string {
   return (iso: string) => flightTimeWords(iso, timezone);
+}
+
+/**
+ * The same clock, but told which end of the leg it is reading. A departure is
+ * said on the departure airport's wall clock and a landing on the arrival
+ * airport's, the way a ticket prints them; the traveller's own zone is only the
+ * fallback for an airport Echo holds no zone for.
+ */
+export function airportEndClock(timezone: string): (iso: string, iata?: string | null) => string {
+  return (iso: string, iata?: string | null) => flightTimeWords(iso, airportZone(iata) ?? timezone);
 }

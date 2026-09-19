@@ -214,11 +214,20 @@ export function normalizeAviationstack(
   });
 }
 
-function clockOf(iso: string | null, clock: (iso: string) => string): string | null {
+/** A time said out loud, on the clock at the airport it belongs to. */
+function clockOf(iso: string | null, iata: string | null, clock: EndClock): string | null {
   if (!iso) return null;
   const t = new Date(iso).getTime();
-  return Number.isFinite(t) ? clock(iso) : null;
+  return Number.isFinite(t) ? clock(iso, iata) : null;
 }
+
+/**
+ * How a time is said. The airport is passed with it, because a departure belongs
+ * to the clock at the departure airport and a landing to the clock where it
+ * lands — printing both on the traveller's own phone zone is how a Taipei
+ * landing came out as an afternoon.
+ */
+export type EndClock = (iso: string, iata?: string | null) => string;
 
 const STATUS_WORDS: Record<string, string> = {
   scheduled: "scheduled",
@@ -230,18 +239,18 @@ const STATUS_WORDS: Record<string, string> = {
 };
 
 /** What the reading says, in plain English, with its age attached by the caller. */
-export function statusWords(live: LiveFlight, clock: (iso: string) => string = (i) => i.slice(11, 16)): string {
+export function statusWords(live: LiveFlight, clock: EndClock = (i) => i.slice(11, 16)): string {
   const bits: string[] = [];
   const state = live.status ? (STATUS_WORDS[live.status] ?? live.status) : null;
   if (state) bits.push(state);
-  const dep = clockOf(live.departure.estimated ?? live.departure.actual ?? live.departure.scheduled, clock);
+  const dep = clockOf(live.departure.estimated ?? live.departure.actual ?? live.departure.scheduled, live.departure.iata, clock);
   if (dep) {
     const late = live.departure.delay_min;
     bits.push(late && late > 0 ? `leaves ${dep}, ${late} min later than planned` : `leaves ${dep}`);
   }
   if (live.departure.gate) bits.push(`gate ${live.departure.gate}`);
   else if (live.departure.terminal) bits.push(`terminal ${live.departure.terminal}`);
-  const arr = clockOf(live.arrival.estimated ?? live.arrival.actual ?? live.arrival.scheduled, clock);
+  const arr = clockOf(live.arrival.estimated ?? live.arrival.actual ?? live.arrival.scheduled, live.arrival.iata, clock);
   if (arr) bits.push(`lands ${arr}`);
   if (live.arrival.gate) bits.push(`arrival gate ${live.arrival.gate}`);
   if (!bits.length) return `${live.flight_no} — the provider carried no times for it.`;
@@ -255,7 +264,7 @@ export function statusWords(live: LiveFlight, clock: (iso: string) => string = (
 export function statusDiff(
   prev: LiveFlight | null | undefined,
   next: LiveFlight,
-  clock: (iso: string) => string = (i) => i.slice(11, 16),
+  clock: EndClock = (i) => i.slice(11, 16),
 ): string | null {
   if (!prev) return null;
   /* A shift bigger than half a day is a different day's flight, not a delay.
@@ -273,8 +282,8 @@ export function statusDiff(
     if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
       news.push(
         moved > 0
-          ? `leaves ${Math.abs(moved)} min later, ${clock(depNext)}`
-          : `leaves ${Math.abs(moved)} min earlier, ${clock(depNext)}`,
+          ? `leaves ${Math.abs(moved)} min later, ${clock(depNext, next.departure.iata)}`
+          : `leaves ${Math.abs(moved)} min earlier, ${clock(depNext, next.departure.iata)}`,
       );
     }
   }
@@ -286,7 +295,7 @@ export function statusDiff(
   if (arrPrev && arrNext && arrPrev !== arrNext) {
     const moved = Math.round((new Date(arrNext).getTime() - new Date(arrPrev).getTime()) / 60_000);
     if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
-      news.push(`lands ${clock(arrNext)}`);
+      news.push(`lands ${clock(arrNext, next.arrival.iata)}`);
     }
   }
   if (!news.length) return null;
