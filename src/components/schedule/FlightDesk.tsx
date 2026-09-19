@@ -587,7 +587,12 @@ export function FlightDesk() {
               />
             ) : (
               <>
-                {boardAhead(livePlan, activeGround?.read, activeGround?.where === "in_air")}
+                {boardAhead(
+                  livePlan,
+                  activeGround?.read,
+                  activeGround?.where === "in_air",
+                  activeGround?.where === "boarding",
+                )}
                 {groundAhead(livePlan, activeGround?.where === "in_air")}
                 {/* On the aircraft with no feed from it: the track, the miles
                     left, the clock where you land, and what the cabin usually
