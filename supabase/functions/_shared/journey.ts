@@ -482,6 +482,24 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     };
   }
 
+  /* On the aircraft, doors open. Not the terminal any more, not the air yet —
+     the countdown is still the filed departure, and the leg you are boarding is
+     the leg ahead, never the one after it. */
+  const boarding = states.findIndex((s) => s.kind === "boarding");
+  if (boarding >= 0) {
+    const leg = journey.legs[boarding];
+    return {
+      kind: "boarding",
+      legIndex: boarding,
+      iata: leg.from.iata || null,
+      place: leg.from.iata ? airportWords(leg.from.iata) : null,
+      words: `On board ${leg.flight_no ?? "your flight"} at ${airportWords(leg.from.iata)}. ${states[boarding].words}`,
+      layover: null,
+      nextLeg: null,
+      checked,
+    };
+  }
+
   const lastLanded = states.reduce((idx, s, i) => (s.kind === "landed" ? i : idx), -1);
   if (lastLanded >= 0) {
     const leg = journey.legs[lastLanded];
