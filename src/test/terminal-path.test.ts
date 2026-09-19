@@ -45,7 +45,8 @@ describe("terminalPath", () => {
       arrivalIntent: "destination",
     });
     expect(stops.map((s) => s.key)).toEqual(["gate", "baggage", "exit"]);
-    expect(stops[1].where).toMatch(/belt number is not on record/i);
+    expect(stops[1].where).toMatch(/If you checked a bag to this airport/i);
+    expect(stops[1].where).toMatch(/No belt is on record/i);
   });
 
   it("does not send an unknown transfer passenger to baggage claim", () => {
