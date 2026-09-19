@@ -68,15 +68,67 @@ export function TodayBodyPanel() {
         </div>
       ) : (
         <div className="space-y-2">
+          {/* Heart rate, live when a strap or watch is broadcasting. The big
+              number is the beat arriving now; the line under it is the last
+              thing actually kept. Connecting takes a tap — nothing reaches for
+              a device on its own. */}
           <div className="vanta-inset px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
-              <HeartPulse className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <HeartPulse
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-primary",
+                  hr.bpm !== null && "animate-pulse",
+                )}
+              />
               <MachineLabel className="text-foreground/70">Heart rate</MachineLabel>
+              {hr.bpm !== null && (
+                <MachineText className="text-[13px] font-semibold text-primary">
+                  {hr.bpm} bpm
+                </MachineText>
+              )}
+              {hr.connected && (
+                <MachineText className="text-[10px] text-muted-foreground">
+                  live · {hr.device}
+                </MachineText>
+              )}
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
-              {readingLine("heart_rate", loop.heartRate, hrOn)}
+              {hr.connected
+                ? hr.bpm === null
+                  ? "Connected. Waiting for the first beat — on most watches you need a workout running."
+                  : "Beats arriving now. One reading a minute is kept while this page stays open."
+                : readingLine("heart_rate", loop.heartRate, hrOn)}
             </p>
+            {hrOn && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {hr.connected ? (
+                  <button type="button" onClick={() => void hr.disconnect()} className={liveBtn}>
+                    <Square className="h-3 w-3" />
+                    Stop reading
+                  </button>
+                ) : hr.supported ? (
+                  <button
+                    type="button"
+                    onClick={() => void hr.connect()}
+                    disabled={hr.connecting}
+                    className={liveBtn}
+                  >
+                    {hr.connecting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Bluetooth className="h-3 w-3" />
+                    )}
+                    {hr.connecting ? "Connecting…" : "Connect a watch"}
+                  </button>
+                ) : (
+                  <MachineText className="text-[10px] text-muted-foreground">
+                    {hr.unsupportedReason}
+                  </MachineText>
+                )}
+              </div>
+            )}
           </div>
+
 
           <div className="vanta-inset px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
