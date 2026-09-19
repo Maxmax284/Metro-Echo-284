@@ -94,6 +94,14 @@ export async function flightRead(
     lines.push(groundWords(ground));
     const op = operatorWords(identity);
     if (op) lines.push(op);
+    /* Landed, the useful facts change: money and the number to call. Kept notes
+       only, with the day they were checked. */
+    if (phase === "done" || phase === "on_ground") {
+      const arriveNotes = countryNotes(airport(leg?.to.iata ?? null)?.cc ?? null);
+      if (arriveNotes) {
+        lines.push(`${arriveNotes.country} spends ${arriveNotes.currency}. Emergency: ${arriveNotes.emergency}.`);
+      }
+    }
     lines.push("");
     /* The itinerary follows the move. It is context, not the answer. */
     lines.push(`Your journey: ${journey.title}.`);
