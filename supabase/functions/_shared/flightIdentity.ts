@@ -54,11 +54,17 @@ function str(v: unknown): string | null {
   return t ? t : null;
 }
 
+/* Airlines whose own name is written in capitals. A traveller matching a sign
+   should see the name the sign uses. Anything not listed is simply title-cased. */
+const SHOUTED = new Set(["eva", "klm", "ana", "jal", "tap", "lot", "sas", "aua", "bra"]);
+
 function tidyName(v: unknown): string | null {
   const t = str(v);
   if (!t) return null;
   /* Providers hand back "eva air". Title-case it so a card does not shout or mumble. */
-  return t.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  return t
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+    .replace(/\b[A-Za-z]{3}\b/g, (w) => (SHOUTED.has(w.toLowerCase()) ? w.toUpperCase() : w));
 }
 
 export function carrierId(raw: {

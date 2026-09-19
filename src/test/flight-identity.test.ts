@@ -59,9 +59,9 @@ describe("identity words", () => {
   it("sends you looking for the operating flight", () => {
     expect(isCodeshare(id)).toBe(true);
     expect(boardIdentity(id)?.flight_no).toBe("BR3");
-    expect(boardWords(id, "Taipei")).toContain("Look for Eva Air BR3 to Taipei");
+    expect(boardWords(id, "Taipei")).toContain("Look for EVA Air BR3 to Taipei");
     expect(boardWords(id, "Taipei")).toContain("TG6285");
-    expect(operatorWords(id)).toContain("Eva Air operates this flight");
+    expect(operatorWords(id)).toContain("EVA Air operates this flight");
   });
 
   it("keeps a displaced identity as an alias instead of losing it", () => {
