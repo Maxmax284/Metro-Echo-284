@@ -44,6 +44,8 @@ export type FlightOption = {
   currency: string | null;
   stops: number | null;
   note: string | null;
+  /** A time the traveller read off their own ticket, when the feed carried none. */
+  said_time?: { kind: "departure" | "boarding"; hhmm: string; by: string; at: string } | null;
 };
 
 export type FlightPlanStatus = "prepared" | "confirmed" | "dropped";

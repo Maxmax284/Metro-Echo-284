@@ -734,5 +734,6 @@ export function useFlightPlans() {
     noticeText,
     addByNumber,
     setRoute,
+    setSaidTime,
   };
 }
