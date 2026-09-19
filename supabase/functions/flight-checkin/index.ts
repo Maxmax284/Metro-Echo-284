@@ -154,7 +154,12 @@ Deno.serve(async (req) => {
         query: question,
         cache_ttl_seconds: 6 * 3600,
       },
-      () => search(`${carrier} check-in counters zone ${airportName} terminal departures`),
+      /* Two angles on the same fact: the airline's own page, and the airport's
+         own airline directory. Either is official; whichever reads, reads. */
+      async () => [
+        ...(await search(`${carrier} check-in counters zone ${airportName} terminal departures`)),
+        ...(await search(`${airportName} airport ${carrier} check-in counters which terminal`)),
+      ],
     );
     if (!guarded.ok) {
       return json({ ok: false, blocked: guarded.reason, answer: "Web lookups are switched off, so Echo did not go looking." });
