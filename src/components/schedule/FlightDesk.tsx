@@ -675,6 +675,7 @@ export function FlightDesk() {
                       reading={busy || readingPlanId === p.id}
                     />
                   )}
+                  {groundBlock(p)}
                   {groundAhead(p)}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
@@ -773,6 +774,7 @@ export function FlightDesk() {
                         reading={readingPlanId === p.id}
                       />
                     )}
+                    {groundBlock(p)}
                     {groundAhead(p)}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
                     {senseLines(p).map((line) => (
