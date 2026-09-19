@@ -275,6 +275,11 @@ Deno.serve(async (req: Request) => {
     for (const row of (rows ?? []) as { user_id: string }[]) {
       try {
         const counts = await sweepUser(sb, row.user_id, null);
+        /* A refusal is kept in the person's own words, so the settings screen
+           says why mail stopped rather than going quiet. */
+        if (counts.said) {
+          await sb.from("mail_sync_state").update({ last_error: counts.said }).eq("user_id", row.user_id);
+        }
         out.push({ user_id: row.user_id, ...counts });
       } catch (e) {
         const detail = e instanceof Error ? e.message : "unknown";
