@@ -655,7 +655,7 @@ export function FlightDesk() {
   const transferSnapshot = transferPlan?.live_status as LiveFlight | null | undefined;
   /* The airport you are standing in, only once this leg has actually landed. */
   const landedAt =
-    livePlan && flightPhase(liveSnapshot ?? ({} as LiveFlight)) === "landed"
+    livePlan && liveSnapshot && flightPhase(liveSnapshot) === "landed"
       ? (livePlan.destination ?? liveSnapshot?.arrival.iata ?? "").trim().toUpperCase() || null
       : null;
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
