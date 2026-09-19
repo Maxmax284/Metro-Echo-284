@@ -49,7 +49,7 @@ export const CHECK_IN_WINDOW_MIN = 4 * 60;
 
 export type GroundInput = {
   /** Where the journey model says you are. */
-  where: "before" | "at_airport" | "in_air" | "on_ground" | "done" | "stopped";
+  where: "before" | "at_airport" | "boarding" | "in_air" | "on_ground" | "done" | "stopped";
   /** Both flight identities for the leg ahead, when on record. */
   identity: FlightIdentity | null;
   /** Airport you are standing in or leaving from, in words. */
