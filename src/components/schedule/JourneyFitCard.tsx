@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { JourneyFit } from "@/lib/journeyFit";
+import type { SaidTimeKind } from "@/lib/flightSaidTime";
+
 
 const KIND_WORDS: Record<JourneyFit["kind"], string> = {
   needs_route: "One fact short of a leg",
@@ -26,14 +28,21 @@ export function JourneyFitCard({
   fit,
   busy = false,
   onSetRoute,
+  onSetTime,
 }: {
   fit: JourneyFit;
   busy?: boolean;
   onSetRoute?: (from: string, to: string) => void | Promise<void>;
+  /** The one fact a possible connection is missing: when it leaves, or boards. */
+  onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
+  const [time, setTime] = useState("");
+  const [kind, setKind] = useState<SaidTimeKind>("departure");
   const ask = fit.kind === "needs_route" && !!onSetRoute;
+  const askTime = fit.kind === "needs_time" && !!onSetTime;
+
 
   return (
     <Card className="vanta-card space-y-2 border-primary/40 p-3">
@@ -47,6 +56,60 @@ export function JourneyFitCard({
           {line}
         </p>
       ))}
+
+      {/* The one missing fact, asked for where it is missed. Optional: leaving it
+          empty keeps the flight exactly as separate as it already is. */}
+      {askTime ? (
+        <div className="space-y-2 border-t border-border/60 pt-2">
+          <p className="text-[12px] text-foreground/85">
+            Got the time on a ticket or boarding pass? Put it in — optional, and it stays your word.
+          </p>
+          <div className="flex items-end gap-2">
+            <div className="min-w-[6rem] flex-1 space-y-1">
+              <Label htmlFor={`fit-time-${fit.plan_id}`} className="text-[11px]">
+                Time on your ticket
+              </Label>
+              <Input
+                id={`fit-time-${fit.plan_id}`}
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                placeholder="07:15"
+                inputMode="numeric"
+                className="h-11 text-[15px] tracking-wide"
+              />
+            </div>
+            <Button
+              className="h-11 min-w-[4.5rem] text-[13px]"
+              disabled={busy || !time.trim()}
+              onClick={() => void onSetTime?.(time, kind)}
+            >
+              Save time
+            </Button>
+          </div>
+          <div className="flex gap-1.5" role="group" aria-label="What kind of time this is">
+            {(["departure", "boarding"] as SaidTimeKind[]).map((k) => (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                variant={kind === k ? "default" : "outline"}
+                className="h-9 text-[12px]"
+                aria-pressed={kind === k}
+                onClick={() => setKind(k)}
+              >
+                {k === "departure" ? "Departure time" : "Boarding time"}
+              </Button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {kind === "boarding"
+              ? "Boarding is kept as boarding. Echo counts from it and does not invent a take-off time the airline has not filed."
+              : "Read as the local clock at the airport it leaves from. Saved as your word, with a receipt."}
+          </p>
+        </div>
+      ) : null}
+
+
 
       {ask ? (
         <div className="space-y-2 border-t border-border/60 pt-2">

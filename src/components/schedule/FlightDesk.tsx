@@ -75,6 +75,8 @@ import {
 } from "@/lib/flightPlan";
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
+import type { SaidTimeKind } from "@/lib/flightSaidTime";
+
 import { flightPhase, readingAge, statusWords, trackProgress, type LiveFlight } from "@/lib/flightStatus";
 import { airportZone, anchorToZone, clockShift, leaveForFlight } from "@/lib/travelSense";
 import { airportWords } from "@/lib/airports";
@@ -140,6 +142,8 @@ export function FlightDesk() {
     noticeText,
     addByNumber,
     setRoute,
+    setSaidTime,
+
   } = useFlightPlans();
   /* Which flight is having its check-in area read, so only that card waits. */
   const [looking, setLooking] = useState<string | null>(null);
@@ -161,6 +165,11 @@ export function FlightDesk() {
   const [booking, setBooking] = useState("");
   const [quickNo, setQuickNo] = useState("");
   const [quickDate, setQuickDate] = useState(today());
+  /* Optional. A time you have in front of you, on your word — never required,
+     and never invented when you leave it empty. */
+  const [quickTime, setQuickTime] = useState("");
+  const [quickKind, setQuickKind] = useState<SaidTimeKind>("departure");
+
   const [detail, setDetail] = useState(false);
   const [busy, setBusy] = useState(false);
   const [chosen, setChosen] = useState<Record<string, string>>({});
@@ -222,7 +231,7 @@ export function FlightDesk() {
     }
   };
 
-  /** The whole manual path: a number and a day. */
+  /** The whole manual path: a number and a day. A time only if you have one. */
   const quickAdd = async () => {
     setBusy(true);
     try {
@@ -231,14 +240,22 @@ export function FlightDesk() {
         vantaToast.warning(res.reason ?? "That flight could not be added.");
         return;
       }
+      let said: string | null = null;
+      if (quickTime.trim() && res.plan) {
+        const timed = await setSaidTime(res.plan, quickTime, quickKind);
+        if (!timed.ok) vantaToast.warning(timed.reason ?? "The flight is on your record; that time did not save.");
+        else said = timed.words ?? null;
+      }
       setQuickNo("");
-      vantaToast.success(res.words ?? "On your record.");
+      setQuickTime("");
+      vantaToast.success(said ?? res.words ?? "On your record.");
     } catch (e) {
       vantaToast.warning(e instanceof Error ? e.message : "That flight could not be added.");
     } finally {
       setBusy(false);
     }
   };
+
 
   const readBooking = async () => {
     if (booking.trim().length < 8) {
@@ -821,11 +838,47 @@ export function FlightDesk() {
               className="h-11 text-[13px]"
             />
           </div>
+          {/* Optional, and it says so. A ticket in your hand often carries a time
+              the provider does not, so there is somewhere to put it. */}
+          <div className="min-w-[6rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-time" className="text-[11px]">
+              Time (optional)
+            </Label>
+            <Input
+              id="fd-quick-time"
+              value={quickTime}
+              onChange={(e) => setQuickTime(e.target.value)}
+              placeholder="07:15"
+              inputMode="numeric"
+              className="h-11 text-[13px]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void quickAdd();
+              }}
+            />
+          </div>
           <Button onClick={() => void quickAdd()} disabled={busy} className="h-11 min-w-[5rem] text-[13px]">
             <PlusCircle className="mr-1 h-4 w-4" aria-hidden />
             Add
           </Button>
         </div>
+        {quickTime.trim() ? (
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="What kind of time this is">
+            {(["departure", "boarding"] as SaidTimeKind[]).map((k) => (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                variant={quickKind === k ? "default" : "outline"}
+                className="h-9 text-[12px]"
+                aria-pressed={quickKind === k}
+                onClick={() => setQuickKind(k)}
+              >
+                {k === "departure" ? "Departure time" : "Boarding time"}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
         <p className="text-[11px] text-muted-foreground">{QUICK_LAW}</p>
         <button
           type="button"
@@ -1077,7 +1130,18 @@ export function FlightDesk() {
                           setBusy(false);
                         }
                       }}
+                      onSetTime={async (time, kind) => {
+                        setBusy(true);
+                        try {
+                          const res = await setSaidTime(p, time, kind);
+                          if (!res.ok) vantaToast.warning(res.reason ?? "That time did not save.");
+                          else vantaToast.success(res.words ?? "On your word, with a receipt.");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
                     />
+
                   )}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (

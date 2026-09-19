@@ -31,6 +31,8 @@ import {
   routeFromLive,
 } from "@/lib/flightQuick";
 import { anchorLive, type LiveFlight } from "@/lib/flightStatus";
+import { saidTime, type SaidTimeKind } from "@/lib/flightSaidTime";
+
 
 export type PrepareInput = {
   origin: string;
@@ -517,7 +519,7 @@ export function useFlightPlans() {
     async (
       rawNo: string,
       departOn: string,
-    ): Promise<{ ok: boolean; reason?: string; already?: FlightPlan; words?: string }> => {
+    ): Promise<{ ok: boolean; reason?: string; already?: FlightPlan; words?: string; plan?: FlightPlan }> => {
       if (!user) return { ok: false, reason: "Not signed in." };
       const verdict = quickVerdict(rawNo, departOn);
       if (!verdict.ok) return { ok: false, reason: verdict.reason };
@@ -587,7 +589,7 @@ export function useFlightPlans() {
       }
 
       await load();
-      return { ok: true, words };
+      return { ok: true, words, plan };
     },
     [user, plans, withScope, load],
   );
@@ -628,6 +630,67 @@ export function useFlightPlans() {
     },
     [user, withScope, load],
   );
+
+  /**
+   * A departure or boarding time the person read off their own ticket, put onto
+   * a flight the provider carries nothing for. It is written as their word, kept
+   * as the kind of time they said it was, and leaves a receipt. A boarding time
+   * is never quietly turned into a take-off time.
+   */
+  const setSaidTime = useCallback(
+    async (
+      plan: FlightPlan,
+      raw: string,
+      kind: SaidTimeKind = "departure",
+    ): Promise<{ ok: boolean; reason?: string; words?: string }> => {
+      if (!user) return { ok: false, reason: "Not signed in." };
+      const read = saidTime(raw, plan.depart_on, kind);
+      if (!read.ok || !read.said) return { ok: false, reason: read.reason };
+      const said = read.said;
+
+
+      const target = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
+      if (!target) return { ok: false, reason: "This flight has no option to put a time on." };
+      const options = plan.options.map((o) =>
+        o.id === target.id
+          ? {
+              ...o,
+              depart_at: said.at,
+              note: said.note,
+              said_time: { kind: said.kind, hhmm: said.hhmm, by: "you", at: new Date().toISOString() },
+            }
+          : o,
+      );
+
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({ options: options as never, chosen_option_id: target.id })
+        .eq("id", plan.id);
+      if (err) return { ok: false, reason: err.message };
+
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.time_said_by_person",
+          payload: {
+            plan_id: plan.id,
+            flight_no: target.flight_no ?? null,
+            kind: said.kind,
+            hhmm: said.hhmm,
+            depart_at: said.at,
+            source: "you",
+            from: "ticket in hand",
+          },
+        }) as never,
+      );
+      await load();
+      return { ok: true, words: said.words };
+    },
+    [user, withScope, load],
+  );
+
 
   /** Hand Echo a booking you have in front of you. It reads; it files nothing on the board. */
   const noticeText = useCallback(
@@ -671,5 +734,6 @@ export function useFlightPlans() {
     noticeText,
     addByNumber,
     setRoute,
+    setSaidTime,
   };
 }

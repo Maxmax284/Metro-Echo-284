@@ -44,6 +44,8 @@ export type FlightOption = {
   currency: string | null;
   stops: number | null;
   note: string | null;
+  /** A time the traveller read off their own ticket, when the feed carried none. */
+  said_time?: { kind: "departure" | "boarding"; hhmm: string; by: string; at: string } | null;
 };
 
 export type FlightPlanStatus = "prepared" | "confirmed" | "dropped";
@@ -261,7 +263,14 @@ export function planSourceWords(plan: FlightPlan): string {
     const source = plan.noticed_from?.source_words?.trim();
     return source ? `Read from ${source}.` : "Read from a message on record.";
   }
+  const said = plan.options.find((option) => option.said_time && option.depart_at)?.said_time ?? null;
+  if (said) {
+    return said.kind === "boarding"
+      ? `Boarding time ${said.hhmm} from your ticket; the airline has not filed a take-off time.`
+      : `Departure ${said.hhmm} read off your own ticket.`;
+  }
   const hasDeparture = plan.options.some((option) => !!option.depart_at);
+
   const hasPrice = plan.options.some((option) => option.price != null && Number.isFinite(option.price));
   if (plan.source === "pasted") {
     if (!hasDeparture) return "Added from pasted details; departure time still needed.";
