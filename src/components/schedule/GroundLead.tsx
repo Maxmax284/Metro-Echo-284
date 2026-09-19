@@ -23,6 +23,7 @@ export function GroundLead({
   looking = false,
   stage,
   onStage,
+  stageLabel,
   lead = false,
 }: {
   read: GroundRead;
@@ -32,6 +33,8 @@ export function GroundLead({
   /** Where this device says you are standing. */
   stage?: GroundStage;
   onStage?: (stage: GroundStage) => void;
+  /** Flight-specific wording for the physical airport confirmation. */
+  stageLabel?: string;
   /** True when this block leads the whole screen and should read larger. */
   lead?: boolean;
 }) {
@@ -82,7 +85,7 @@ export function GroundLead({
                 className={cn("h-8 text-[11px]", MOTION_FOCUS)}
                 onClick={() => onStage(step)}
               >
-                {STAGE_LABEL[step]}
+                {step === "airport" && stageLabel ? stageLabel : STAGE_LABEL[step]}
               </Button>
             )}
             {stage && stage !== "away" && (

@@ -65,9 +65,11 @@ function Block({
  */
 export function GroundPack({
   iata,
+  arrived = true,
   className,
 }: {
   iata: string | null | undefined;
+  arrived?: boolean;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -95,7 +97,11 @@ export function GroundPack({
         )}
       >
         <span>
-          {nothingKept ? `Nothing kept about ${where} yet` : `On the ground in ${where}`}
+          {nothingKept
+            ? `Nothing kept about ${where} yet`
+            : arrived
+              ? `On the ground in ${where}`
+              : `For when you land in ${where}`}
         </span>
         <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-180")} />
       </button>

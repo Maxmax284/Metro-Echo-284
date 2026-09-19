@@ -12,7 +12,7 @@ describe("ArrivalGroundPack", () => {
 
   it("opens the offline ground pack with phrases, routes, money and numbers", () => {
     render(<ArrivalStamp iata="TPE" at="2026-09-20T05:10:00" arrived={false} />);
-    fireEvent.click(screen.getByRole("button", { name: /On the ground in Taipei/ }));
+    fireEvent.click(screen.getByRole("button", { name: /For when you land in Taipei/ }));
     expect(screen.getByText(/nǐ hǎo/)).toBeTruthy();
     expect(screen.getAllByText(/EasyCard/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Purple Express/).length).toBeGreaterThan(0);

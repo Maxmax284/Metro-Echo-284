@@ -42,9 +42,42 @@ describe("terminalPath", () => {
       gate: null,
       place: "Taipei Taoyuan",
       arrivalSide: true,
+      arrivalIntent: "destination",
     });
     expect(stops.map((s) => s.key)).toEqual(["gate", "baggage", "exit"]);
-    expect(stops[1].where).toMatch(/belt number is not on record/i);
+    expect(stops[1].where).toMatch(/If you checked a bag to this airport/i);
+    expect(stops[1].where).toMatch(/No belt is on record/i);
+  });
+
+  it("does not send an unknown transfer passenger to baggage claim", () => {
+    const stops = terminalPath({
+      step: "in_air",
+      carrier: "EVA Air",
+      zone: null,
+      terminal: "2",
+      gate: "C6",
+      place: "Taipei Taoyuan",
+      arrivalSide: true,
+      arrivalIntent: "unknown",
+    });
+    expect(stops.map((s) => s.label)).toEqual(["Off the aircraft", "Your next route", "Checked bags"]);
+    expect(stops[1].where).toMatch(/Flight Connections or Transfer/);
+    expect(stops[2].where).toMatch(/does not have that fact on record/);
+  });
+
+  it("keeps a confirmed connection on the transfer path without assuming immigration", () => {
+    const stops = terminalPath({
+      step: "in_air",
+      carrier: "EVA Air",
+      zone: null,
+      terminal: "2",
+      gate: "C6",
+      place: "Taipei Taoyuan",
+      arrivalSide: true,
+      arrivalIntent: "connection",
+    });
+    expect(stops.map((s) => s.label)).toEqual(["Off the aircraft", "Flight connections", "Onward gate"]);
+    expect(stops[2].where).toMatch(/does not assume you enter the country/);
   });
 });
 

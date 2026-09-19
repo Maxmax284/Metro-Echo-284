@@ -18,7 +18,7 @@ export function TerminalMap({ stops }: { stops: TerminalStop[] }) {
       </p>
       <ol className="space-y-2">
         {stops.map((stop, i) => (
-          <li key={stop.key} className="flex gap-2.5">
+          <li key={`${stop.key}-${i}`} className="flex gap-2.5">
             <div className="flex flex-col items-center pt-0.5">
               <span
                 className={cn(

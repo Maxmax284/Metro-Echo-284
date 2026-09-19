@@ -14,6 +14,15 @@ export const STAGE_LABEL: Record<Exclude<GroundStage, "away">, string> = {
   security: "Confirm I'm through security",
 };
 
+/** A flight-specific label prevents one airport from sounding like every airport. */
+export function airportStageLabel(place: string | null | undefined, iata: string | null | undefined): string {
+  const named = (place ?? "").trim();
+  const code = (iata ?? "").trim().toUpperCase();
+  if (named && code) return `I've arrived at ${named} (${code})`;
+  if (code) return `I've arrived at ${code}`;
+  return STAGE_LABEL.airport;
+}
+
 /** What the tap changed, said back once so it is not a button with no effect. */
 export const STAGE_DONE: Record<Exclude<GroundStage, "away">, string> = {
   airport: "You're at the airport. Check-in comes first.",

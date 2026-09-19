@@ -50,6 +50,8 @@ export type TerminalPathInput = {
   place: string | null;
   /** True once the flight is in the air or down: the arrival walk, not the departure one. */
   arrivalSide?: boolean;
+  /** Whether this landing is known to continue, end, or still needs the person to say. */
+  arrivalIntent?: "connection" | "destination" | "unknown";
 };
 
 export function terminalPath(input: TerminalPathInput): TerminalStop[] {
@@ -65,6 +67,54 @@ export function terminalPath(input: TerminalPathInput): TerminalStop[] {
   const termWords = term ? `Terminal ${term.replace(/^T(?=\w)/i, "")}` : null;
 
   if (input.arrivalSide) {
+    if (input.arrivalIntent === "connection") {
+      return [
+        {
+          key: "gate",
+          label: "Off the aircraft",
+          where: gate
+            ? `Arrival gate ${gate}${termWords ? `, ${termWords}` : ""}.`
+            : "Arrival gate is not filed — follow the crew and the signs off the aircraft.",
+          state: "done",
+        },
+        {
+          key: "security",
+          label: "Flight connections",
+          where: "Follow Flight Connections or Transfer signs. The next terminal and gate lead once they are filed.",
+          state: "now",
+        },
+        {
+          key: "gate",
+          label: "Onward gate",
+          where: "Check the airport departures board. Echo does not assume you enter the country or collect a checked-through bag.",
+          state: "ahead",
+        },
+      ];
+    }
+    if (input.arrivalIntent === "unknown") {
+      return [
+        {
+          key: "gate",
+          label: "Off the aircraft",
+          where: gate
+            ? `Arrival gate ${gate}${termWords ? `, ${termWords}` : ""}.`
+            : "Arrival gate is not filed — follow the crew and the signs off the aircraft.",
+          state: "done",
+        },
+        {
+          key: "exit",
+          label: "Your next route",
+          where: "If you are continuing, follow Flight Connections or Transfer signs. If this trip ends here, follow Arrivals.",
+          state: "now",
+        },
+        {
+          key: "baggage",
+          label: "Checked bags",
+          where: "Whether you collect them here depends on your through-check and onward ticket. Echo does not have that fact on record.",
+          state: "ahead",
+        },
+      ];
+    }
     return [
       {
         key: "gate",
@@ -77,7 +127,7 @@ export function terminalPath(input: TerminalPathInput): TerminalStop[] {
       {
         key: "baggage",
         label: "Baggage claim",
-        where: "The belt number is not on record — the arrivals screens name it after immigration.",
+        where: "If you checked a bag to this airport, the arrivals screens name its belt. No belt is on record.",
         state: "now",
       },
       {

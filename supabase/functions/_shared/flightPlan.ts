@@ -22,7 +22,7 @@ export const FLIGHT_LAW =
 export type FlightSource = "entered" | "pasted";
 
 export const SOURCE_WORDS: Record<FlightSource, string> = {
-  entered: "you typed these times and prices",
+  entered: "manually entered",
   pasted: "read from a quote you pasted",
 };
 
@@ -253,6 +253,22 @@ export function planWords(plan: FlightPlan, clock?: (iso: string) => string): st
   if (cheap) notes.push(`cheapest ${priceWords(cheap)}`);
   if (fast && fast.id !== cheap?.id) notes.push(`fastest ${durationWords(optionDuration(fast))}`);
   return `${head} — ${notes.join(", ")}. ${SOURCE_WORDS[plan.source]}. Waiting on your yes.`;
+}
+
+/** Provenance that matches the facts actually present on this specific record. */
+export function planSourceWords(plan: FlightPlan): string {
+  if (plan.origin_kind === "recognised") {
+    const source = plan.noticed_from?.source_words?.trim();
+    return source ? `Read from ${source}.` : "Read from a message on record.";
+  }
+  const hasDeparture = plan.options.some((option) => !!option.depart_at);
+  const hasPrice = plan.options.some((option) => option.price != null && Number.isFinite(option.price));
+  if (plan.source === "pasted") {
+    if (!hasDeparture) return "Added from pasted details; departure time still needed.";
+    return hasPrice ? "Times and price read from details you pasted." : "Times read from details you pasted; no price recorded.";
+  }
+  if (!hasDeparture) return "Added by flight number; departure time still needed.";
+  return hasPrice ? "Manually entered times and price." : "Manually entered; no price recorded.";
 }
 
 /** Whether this plan may be confirmed, and the honest reason when it may not. */

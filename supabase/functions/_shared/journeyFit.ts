@@ -144,9 +144,9 @@ export function journeyFit(input: {
       plan_id: plan.id,
       flight_no: plan.flight_no ?? null,
       kind: "needs_time",
-      lead: `${no} leaves from ${endPlace}, where this trip lands — but with no departure time on record Echo cannot tell a connection from an overnight.`,
+      lead: `${no} leaves from ${endPlace}, where this trip lands. Its departure time is not on record, so Echo cannot tell a connection from an overnight.`,
       detail: [
-        "It stays its own trip until a time arrives. Ask for it again with “Where is it now”, or put the time in yourself under the longer way.",
+        "No connection duration or risk is being claimed. It stays separate until a departure time arrives and you confirm it for your journey.",
         "Nothing on the flight you are on changes either way.",
       ],
       suggest,
