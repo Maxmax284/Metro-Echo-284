@@ -7,6 +7,7 @@
 //     implies a live fare.
 type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
+import { anchorLive } from "./flightStatus.ts";
 import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
 import { countryNotes } from "./countryNotes.ts";
 import { airport, airportMismatchWords, airportWords } from "./airports.ts";
