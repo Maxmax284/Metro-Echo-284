@@ -49,7 +49,7 @@ export const CHECK_IN_WINDOW_MIN = 4 * 60;
 
 export type GroundInput = {
   /** Where the journey model says you are. */
-  where: "before" | "at_airport" | "in_air" | "on_ground" | "done" | "stopped";
+  where: "before" | "at_airport" | "boarding" | "in_air" | "on_ground" | "done" | "stopped";
   /** Both flight identities for the leg ahead, when on record. */
   identity: FlightIdentity | null;
   /** Airport you are standing in or leaving from, in words. */
@@ -97,6 +97,21 @@ export function groundPath(input: GroundInput): GroundRead {
       step: "landed",
       lead: `Down at ${trimmed(input.toPlace) ?? "your destination"}. Immigration, then bags, then the way out.`,
       detail: [],
+      needsCheckIn: false,
+    };
+  }
+
+  /* On the aircraft with the doors open. Nothing in the terminal is yours any
+     more, so nothing in the terminal is said. Boarding is your word here, never
+     the clock's — a departure time going past is not an airline saying boarding. */
+  if (input.where === "boarding") {
+    const detail: string[] = [];
+    if (gate) detail.push(`Gate ${gate}, as filed.`);
+    if (board) detail.push(board);
+    return {
+      step: "boarding",
+      lead: `On board for ${trimmed(input.toPlace) ?? "your destination"}. Nothing left to do in the terminal.`,
+      detail: detail.slice(0, 2),
       needsCheckIn: false,
     };
   }

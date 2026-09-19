@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -31,6 +31,7 @@ import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useJourney } from "@/hooks/useJourney";
 import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
+import { useNetworkReach, QUIET_SKY } from "@/hooks/useNetworkReach";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
@@ -115,6 +116,9 @@ function filledWords(plan: FlightPlan): string[] {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
+  /* With the doors shut there are no bars. The card says so once and stops
+     asking the airline, rather than throwing connection errors. */
+  const { online } = useNetworkReach();
   const {
     plans,
     loading,
@@ -404,7 +408,11 @@ export function FlightDesk() {
             }
           }}
         />
-        {where === "in_air" || where === "done" || where === "stopped" ? null : <PreDeparturePack pack={pack} lead={lead} />}
+        {/* Once you are on the aircraft the countdown errands stand down: bag
+            drop, security and check-in cutoffs are behind you. */}
+        {where === "boarding" || where === "in_air" || where === "done" || where === "stopped" ? null : (
+          <PreDeparturePack pack={pack} lead={lead} />
+        )}
       </div>
     );
   };
@@ -438,15 +446,22 @@ export function FlightDesk() {
 
   /* Before the first provider reading, the board still exists — but every
      operational field says exactly what is not filed instead of disappearing. */
-  const boardAhead = (plan: FlightPlan, read: GroundRead | null | undefined, inAir = false) => {
+  const boardAhead = (
+    plan: FlightPlan,
+    read: GroundRead | null | undefined,
+    inAir = false,
+    onBoard = false,
+  ) => {
     const identity = boardWords_(plan);
     const status = inAir
       ? "IN THE AIR"
-      : read?.step === "find_check_in"
-        ? "CHECK-IN"
-        : read?.step === "boarding"
-          ? "BOARDING TIME NOT FILED"
-          : "GATE PENDING";
+      : onBoard
+        ? "ON BOARD"
+        : read?.step === "find_check_in"
+          ? "CHECK-IN"
+          : read?.step === "boarding"
+            ? "BOARDING TIME NOT FILED"
+            : "GATE PENDING";
     return (
       <div className="space-y-2 border-t border-border/50 pt-3">
         <p className="vanta-machine-label text-foreground/70">{inAir ? "Arrivals board" : "Airport board"}</p>
@@ -462,7 +477,14 @@ export function FlightDesk() {
             On your word that you are on it. The airline has filed no arrival terminal or gate yet.
           </p>
         )}
-        {terminalWalk(plan, read, inAir)}
+        {onBoard && !inAir && (
+          <p className="text-[10.5px] text-muted-foreground/80">
+            On your word that you are on board. The airline has filed no push-back, so the departure time
+            here is still the filed one.
+          </p>
+        )}
+        {/* On board, the walk is behind you. Offering it again is clutter. */}
+        {onBoard && !inAir ? null : terminalWalk(plan, read, inAir)}
       </div>
     );
   };
@@ -570,7 +592,12 @@ export function FlightDesk() {
               />
             ) : (
               <>
-                {boardAhead(livePlan, activeGround?.read, activeGround?.where === "in_air")}
+                {boardAhead(
+                  livePlan,
+                  activeGround?.read,
+                  activeGround?.where === "in_air",
+                  activeGround?.where === "boarding",
+                )}
                 {groundAhead(livePlan, activeGround?.where === "in_air")}
                 {/* On the aircraft with no feed from it: the track, the miles
                     left, the clock where you land, and what the cabin usually
@@ -595,16 +622,25 @@ export function FlightDesk() {
             )}
 
 
+            {/* No bars is the normal case with the doors shut. Said once, plainly,
+                instead of a stale-feed warning or a retry nobody asked for. */}
+            {!online && (
+              <p className="flex items-start gap-1.5 rounded-lg border border-border/60 bg-muted/20 p-2.5 text-[11px] leading-snug text-muted-foreground">
+                <WifiOff className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                {QUIET_SKY}
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
                 variant="outline"
                 className="h-9 text-[12px]"
-                disabled={busy}
+                disabled={busy || !online}
                 onClick={() => void askLive(livePlan)}
               >
                 <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
-                Check live status
+                {online ? "Check live status" : "No signal to check"}
               </Button>
               {/* The one place your word beats the feed: on it, still at the
                   airport, down, or did not happen. It records, it never books. */}

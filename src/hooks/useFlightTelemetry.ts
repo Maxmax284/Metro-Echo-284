@@ -34,6 +34,9 @@ export function useFlightTelemetry(
       if (stopped) return;
       setNow(Date.now());
       if (document.visibilityState !== "visible") return;
+      /* No bars, no asking. A retry loop at 38,000 feet spends battery to learn
+         nothing, and a failed call is not news worth putting on the card. */
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       if (busy.current) return;
       const now = Date.now();
       const fresh = plansRef.current.filter((p) => now - (asked.current[p.id] ?? 0) >= REREAD_MS);
@@ -57,10 +60,14 @@ export function useFlightTelemetry(
     void tick();
     const onShow = () => void tick();
     document.addEventListener("visibilitychange", onShow);
+    /* Back on a network: read once, straight away, so the first thing you see on
+       the ground is a fresh reading rather than the one from before the doors. */
+    window.addEventListener("online", onShow);
     return () => {
       stopped = true;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("online", onShow);
     };
   }, []);
 

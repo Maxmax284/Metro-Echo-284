@@ -44,7 +44,14 @@ export type LegEnd = {
   gate: string | null;
 };
 
-export type LegStateKind = "not_started" | "at_airport" | "in_air" | "landed" | "did_not_happen";
+export type LegStateKind =
+  | "not_started"
+  | "at_airport"
+  /** Pass scanned, jet bridge or seat. The aircraft has not pushed back. */
+  | "boarding"
+  | "in_air"
+  | "landed"
+  | "did_not_happen";
 
 export type Leg = {
   plan_id: string;
@@ -220,6 +227,7 @@ export function legState(leg: Leg, now: Date = new Date()): LegState {
 export const OVERRIDE_WORDS: Record<LegStateKind, string> = {
   not_started: "You put this back to not started.",
   at_airport: "You said you are at the airport for this one.",
+  boarding: "You said you are boarding this one. The doors are not shut yet.",
   in_air: "You said you are on this one.",
   landed: "You said you are on the ground.",
   did_not_happen: "You said this one did not happen.",
@@ -228,6 +236,7 @@ export const OVERRIDE_WORDS: Record<LegStateKind, string> = {
 export const OVERRIDE_CHOICES: Array<{ value: LegStateKind; label: string; description: string }> = [
   { value: "did_not_happen", label: "I did not make this flight", description: "Missed, bumped, or cancelled on you. The leg stops moving and nothing after it is assumed." },
   { value: "at_airport", label: "Still at the airport", description: "The feed says gone. You are not." },
+  { value: "boarding", label: "Boarding now", description: "Pass scanned, jet bridge or seat. Terminal errands stop and the countdown stands down." },
   { value: "in_air", label: "I am on it", description: "You boarded before the airline filed anything." },
   { value: "landed", label: "I am on the ground", description: "You are down, whatever the feed says." },
 ];
@@ -339,7 +348,7 @@ export type Journey = {
 };
 
 export type JourneyWhere = {
-  kind: "before" | "at_airport" | "in_air" | "on_ground" | "done" | "stopped";
+  kind: "before" | "at_airport" | "boarding" | "in_air" | "on_ground" | "done" | "stopped";
   legIndex: number;
   iata: string | null;
   place: string | null;
@@ -473,6 +482,24 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     };
   }
 
+  /* On the aircraft, doors open. Not the terminal any more, not the air yet —
+     the countdown is still the filed departure, and the leg you are boarding is
+     the leg ahead, never the one after it. */
+  const boarding = states.findIndex((s) => s.kind === "boarding");
+  if (boarding >= 0) {
+    const leg = journey.legs[boarding];
+    return {
+      kind: "boarding",
+      legIndex: boarding,
+      iata: leg.from.iata || null,
+      place: leg.from.iata ? airportWords(leg.from.iata) : null,
+      words: `On board ${leg.flight_no ?? "your flight"} at ${airportWords(leg.from.iata)}. ${states[boarding].words}`,
+      layover: null,
+      nextLeg: null,
+      checked,
+    };
+  }
+
   const lastLanded = states.reduce((idx, s, i) => (s.kind === "landed" ? i : idx), -1);
   if (lastLanded >= 0) {
     const leg = journey.legs[lastLanded];
@@ -591,7 +618,9 @@ export function bigNumbers(
       ? "the filed departure time has gone by"
       : where.kind === "on_ground"
         ? "left here"
-        : "until you leave",
+        : where.kind === "boarding"
+          ? "until the filed departure"
+          : "until you leave",
     gate: gate ?? term(terminal),
     gateLabel: gate
       ? "departure gate"
@@ -683,6 +712,7 @@ export function packDiff(prev: OfflinePack | null | undefined, next: OfflinePack
 export const STATE_WORDS: Record<LegStateKind, string> = {
   not_started: "not started",
   at_airport: "at the airport",
+  boarding: "boarding",
   in_air: "in the air",
   landed: "on the ground",
   did_not_happen: "recorded as not flown",
