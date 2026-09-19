@@ -109,7 +109,7 @@ export function GoogleAccountSection({
       </div>
 
       <ul className="mt-3 space-y-1.5">
-        {GOOGLE_CAPABILITIES.map((cap) => {
+        {caps.map((cap) => {
           const capReach = capabilityReach(cap, state);
           const granted = isGranted(cap, state);
           const offerable = !!statusFor(cap, state)?.offerable;
