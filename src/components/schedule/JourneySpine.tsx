@@ -116,7 +116,7 @@ export function JourneySpine({
           <p className="flex items-center gap-1 text-xs uppercase tracking-widest text-muted-foreground">
             <Clock className="h-3 w-3" aria-hidden /> {numbers.timeLeftLabel}
           </p>
-          <p className="font-street text-3xl tracking-wide">{numbers.timeLeft ?? "not on record"}</p>
+          <p className="font-street text-3xl tracking-wide">{numbers.timeLeft ?? "—"}</p>
         </div>
         <div className="rounded-lg border border-border/60 p-3">
           <p className="flex items-center gap-1 text-xs uppercase tracking-widest text-muted-foreground">
