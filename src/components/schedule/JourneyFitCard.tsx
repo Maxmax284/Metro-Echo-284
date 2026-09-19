@@ -38,6 +38,8 @@ export function JourneyFitCard({
   onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
   /** Landed-transfer steps for this airport, when the trip is standing in it. */
   steps?: ReactNode;
+  /** Where this record came from, in the same words the flight card uses. */
+  source?: string;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
