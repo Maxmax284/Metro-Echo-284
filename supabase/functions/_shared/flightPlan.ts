@@ -276,7 +276,7 @@ export function confirmedEntries(
   plan: FlightPlan,
   option: FlightOption,
 ): Array<{ title: string; starts_at: string; ends_at: string | null; location: string | null; description: string }> {
-  const who = [option.airline, option.flight_no].filter(Boolean).join(" ");
+  const who = whoWords(option);
   const from = cleanPlace(plan.origin);
   const to = cleanPlace(plan.destination);
   const priced = priceWords(option);

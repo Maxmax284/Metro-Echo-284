@@ -128,13 +128,21 @@ export function groundPath(input: GroundInput): GroundRead {
   const boarding = mins != null && mins <= AT_GATE_MIN;
   const between = input.where === "on_ground";
 
+  /* A departure time well past is not boarding. Echo says the clock has run out
+     and hands the question to the board rather than hurrying you to a gate. */
+  const gone = mins != null && mins < -30;
+
   if (gate) {
     const detail: string[] = [];
     if (term) detail.push(`${term}.`);
     if (board) detail.push(board);
     return {
-      step: boarding ? "boarding" : "gate_posted",
-      lead: boarding ? `Gate ${gate}. Boarding is the next thing.` : `Gate ${gate} is posted. Head that way.`,
+      step: gone ? "gate_posted" : boarding ? "boarding" : "gate_posted",
+      lead: gone
+        ? `Gate ${gate}, and the filed departure time has passed. The board in the terminal is the truth now.`
+        : boarding
+          ? `Gate ${gate}. Boarding is the next thing.`
+          : `Gate ${gate} is posted. Head that way.`,
       detail: detail.slice(0, 2),
       needsCheckIn: false,
     };
