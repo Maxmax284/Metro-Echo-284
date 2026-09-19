@@ -609,6 +609,7 @@ export function useFlightPlans() {
     settleConflict,
     keepCondition,
     checkStatus,
+    lookUpCheckIn,
     noticeText,
     addByNumber,
   };
