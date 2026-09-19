@@ -11,6 +11,7 @@
 // Pure module: no IO, no React.
 
 import { airportPoint, distanceKm } from "./airports.ts";
+import { airportZone, anchorToZone } from "./travelSense.ts";
 
 export type LiveEnd = {
   airport: string | null;
@@ -198,7 +199,7 @@ export function normalizeAviationstack(
       }
     : null;
   const differs = !!operating?.flight_no && operating.flight_no !== ticket.flight_no;
-  return {
+  return anchorLive({
     flight_no: want,
     flight_date: str(row.flight_date) ?? ask.flight_date,
     airline: ticket.carrier,
@@ -210,14 +211,23 @@ export function normalizeAviationstack(
     arrival: end(row.arrival),
     position: fix(row.live),
     checked_at: checkedAt,
-  };
+  });
 }
 
-function clockOf(iso: string | null, clock: (iso: string) => string): string | null {
+/** A time said out loud, on the clock at the airport it belongs to. */
+function clockOf(iso: string | null, iata: string | null, clock: EndClock): string | null {
   if (!iso) return null;
   const t = new Date(iso).getTime();
-  return Number.isFinite(t) ? clock(iso) : null;
+  return Number.isFinite(t) ? clock(iso, iata) : null;
 }
+
+/**
+ * How a time is said. The airport is passed with it, because a departure belongs
+ * to the clock at the departure airport and a landing to the clock where it
+ * lands — printing both on the traveller's own phone zone is how a Taipei
+ * landing came out as an afternoon.
+ */
+export type EndClock = (iso: string, iata?: string | null) => string;
 
 const STATUS_WORDS: Record<string, string> = {
   scheduled: "scheduled",
@@ -229,18 +239,18 @@ const STATUS_WORDS: Record<string, string> = {
 };
 
 /** What the reading says, in plain English, with its age attached by the caller. */
-export function statusWords(live: LiveFlight, clock: (iso: string) => string = (i) => i.slice(11, 16)): string {
+export function statusWords(live: LiveFlight, clock: EndClock = (i) => i.slice(11, 16)): string {
   const bits: string[] = [];
   const state = live.status ? (STATUS_WORDS[live.status] ?? live.status) : null;
   if (state) bits.push(state);
-  const dep = clockOf(live.departure.estimated ?? live.departure.actual ?? live.departure.scheduled, clock);
+  const dep = clockOf(live.departure.estimated ?? live.departure.actual ?? live.departure.scheduled, live.departure.iata, clock);
   if (dep) {
     const late = live.departure.delay_min;
     bits.push(late && late > 0 ? `leaves ${dep}, ${late} min later than planned` : `leaves ${dep}`);
   }
   if (live.departure.gate) bits.push(`gate ${live.departure.gate}`);
   else if (live.departure.terminal) bits.push(`terminal ${live.departure.terminal}`);
-  const arr = clockOf(live.arrival.estimated ?? live.arrival.actual ?? live.arrival.scheduled, clock);
+  const arr = clockOf(live.arrival.estimated ?? live.arrival.actual ?? live.arrival.scheduled, live.arrival.iata, clock);
   if (arr) bits.push(`lands ${arr}`);
   if (live.arrival.gate) bits.push(`arrival gate ${live.arrival.gate}`);
   if (!bits.length) return `${live.flight_no} — the provider carried no times for it.`;
@@ -254,7 +264,7 @@ export function statusWords(live: LiveFlight, clock: (iso: string) => string = (
 export function statusDiff(
   prev: LiveFlight | null | undefined,
   next: LiveFlight,
-  clock: (iso: string) => string = (i) => i.slice(11, 16),
+  clock: EndClock = (i) => i.slice(11, 16),
 ): string | null {
   if (!prev) return null;
   /* A shift bigger than half a day is a different day's flight, not a delay.
@@ -272,8 +282,8 @@ export function statusDiff(
     if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
       news.push(
         moved > 0
-          ? `leaves ${Math.abs(moved)} min later, ${clock(depNext)}`
-          : `leaves ${Math.abs(moved)} min earlier, ${clock(depNext)}`,
+          ? `leaves ${Math.abs(moved)} min later, ${clock(depNext, next.departure.iata)}`
+          : `leaves ${Math.abs(moved)} min earlier, ${clock(depNext, next.departure.iata)}`,
       );
     }
   }
@@ -285,7 +295,7 @@ export function statusDiff(
   if (arrPrev && arrNext && arrPrev !== arrNext) {
     const moved = Math.round((new Date(arrNext).getTime() - new Date(arrPrev).getTime()) / 60_000);
     if (Number.isFinite(moved) && moved !== 0 && Math.abs(moved) <= SANE_SHIFT_MIN) {
-      news.push(`lands ${clock(arrNext)}`);
+      news.push(`lands ${clock(arrNext, next.arrival.iata)}`);
     }
   }
   if (!news.length) return null;
@@ -515,4 +525,44 @@ export function carryFiled(previous: LiveFlight | null, live: LiveFlight): LiveF
 /** True when this reading is showing a value it kept rather than one it read. */
 export function isCarried(live: LiveFlight | null, field: CarriedFact["field"]): CarriedFact | null {
   return (live?.carried ?? []).find((c) => c.field === field) ?? null;
+}
+
+/**
+ * Pin every time on a reading to the airport it belongs to.
+ *
+ * A provider hands back airport wall-clock times with no zone on them — "the
+ * board at Taoyuan says 05:21". `wall()` above deliberately strips the fake
+ * "+00:00" so nothing downstream reads a Dulles departure as UTC. The cost of
+ * that honesty is that the string on its own is not an instant: subtracting it
+ * from now uses whatever zone the phone happens to be sitting in, and a phone
+ * that left Washington on an aircraft is still on Washington time. That is how a
+ * landing in Taipei read as twelve hours further away than it was.
+ *
+ * So the reading is anchored once, here, at the seam: each end's times become
+ * real instants in that airport's own zone. Idempotent — a time that already
+ * carries a zone is left exactly as it is, and an airport Echo has no zone for
+ * stays unanchored rather than being guessed at.
+ */
+export function anchorLive<T extends LiveFlight | null | undefined>(live: T): T {
+  if (!live) return live;
+  const pin = (e: LiveEnd): LiveEnd => {
+    const tz = airportZone(e.iata);
+    if (!tz) return e;
+    return {
+      ...e,
+      scheduled: anchorToZone(e.scheduled, tz),
+      estimated: anchorToZone(e.estimated, tz),
+      actual: anchorToZone(e.actual, tz),
+    };
+  };
+  return { ...live, departure: pin(live.departure), arrival: pin(live.arrival) } as T;
+}
+
+/**
+ * True when this time cannot be turned into a real instant: a wall clock with no
+ * zone behind it. Used to say "not pinned" instead of counting down from a
+ * number that quietly assumes the phone's own zone.
+ */
+export function isPinned(at: string | null | undefined): boolean {
+  return !!at && /(?:[Zz]|[+-]\d{2}:?\d{2})$/.test(at) && Number.isFinite(Date.parse(at));
 }

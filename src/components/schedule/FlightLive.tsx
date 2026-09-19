@@ -7,6 +7,7 @@
 //   - The pulse means "this is a live reading", and the reading's age sits right
 //     next to it so nobody mistakes an old check for now.
 //   - Colour is a shortcut, never the message. Every state is also written out.
+import { type EndClock } from "@/lib/flightStatus";
 import { useMemo, type ReactNode } from "react";
 import {
   PHASE_WORDS,
@@ -62,7 +63,8 @@ export function FlightLive({
 }: {
   live: LiveFlight;
   checkedAt: string | null;
-  clock: (iso: string) => string;
+  /** Times are said on the clock at the airport each one belongs to. */
+  clock: EndClock;
   /** The clock Echo is keeping, so a landing can state the shift honestly. */
   homeZone?: string | null;
   /** True while a fresh read is in flight — the deck breathes instead of freezing. */

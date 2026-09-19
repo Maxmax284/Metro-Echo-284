@@ -10,7 +10,7 @@
 //     same number is a different flight, not a delay.
 //
 // Pure apart from one fetch. No React.
-import type { LiveCarrier, LiveEnd, LiveFlight, LivePosition } from "./flightStatus.ts";
+import { anchorLive, type LiveCarrier, type LiveEnd, type LiveFlight, type LivePosition } from "./flightStatus.ts";
 import { airportZone } from "./travelSense.ts";
 
 /** The provider said this key cannot ask that question. A limit, not a crash. */
@@ -169,7 +169,7 @@ export function normalizeAeroApi(
   const differs = !!want && !!operatingNo && want !== operatingNo;
   const ticket: LiveCarrier | null = differs ? { carrier: null, carrier_code: want.slice(0, 2), flight_no: want } : null;
 
-  return {
+  return anchorLive({
     flight_no: want || operatingNo,
     flight_date: day || (depDay(row) ?? ask.flight_date),
     airline: operating.carrier,
@@ -181,7 +181,7 @@ export function normalizeAeroApi(
     arrival: endOf(row, "in"),
     position: fixOf(row),
     checked_at: checkedAt,
-  };
+  });
 }
 
 /**

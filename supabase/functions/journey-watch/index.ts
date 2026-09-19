@@ -9,7 +9,7 @@
 //   - It never buys, holds, or checks anyone in, and it never overrides your word.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { type LiveFlight } from "../_shared/flightStatus.ts";
+import { anchorLive, type LiveFlight } from "../_shared/flightStatus.ts";
 import { askFlightWithFeed, aeroKey } from "../_shared/flightAsk.ts";
 import type { FlightPlan } from "../_shared/flightPlan.ts";
 import {
@@ -31,7 +31,7 @@ import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_sh
  * apart. It reminds; it checks nobody in and it holds nothing.
  */
 async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<boolean> {
-  const live = (p.live_status ?? null) as LiveFlight | null;
+  const live = anchorLive((p.live_status ?? null) as LiveFlight | null);
   const opt = p.options[0] ?? null;
   const departAt = live?.departure?.estimated ?? live?.departure?.scheduled ?? opt?.depart_at ?? null;
   if (!departAt) return false;
@@ -140,7 +140,7 @@ const DAY_ONLY_MS = 26 * 3_600_000;
  * has already said "landed" or "cancelled", there is nothing left to ask.
  */
 function worthReading(p: FlightPlan, now: number): boolean {
-  const live = (p.live_status ?? null) as LiveFlight | null;
+  const live = anchorLive((p.live_status ?? null) as LiveFlight | null);
   const said = (live?.status ?? "").toLowerCase();
   if (said === "landed" && live?.arrival?.actual) {
     /* Landed and stamped — one more reading buys nothing. */

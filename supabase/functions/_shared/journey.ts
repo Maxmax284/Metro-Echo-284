@@ -20,7 +20,7 @@
 import { airport, airportWords, bordersCrossed } from "./airports.ts";
 import { airportZone, anchorToZone } from "./travelSense.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
-import type { LiveFlight } from "./flightStatus.ts";
+import { anchorLive, isPinned, type LiveFlight } from "./flightStatus.ts";
 import type { FlightIdentity } from "./flightIdentity.ts";
 
 export const JOURNEY_LAW =
@@ -88,7 +88,10 @@ function str(v: unknown): string | null {
 
 function asLive(raw: unknown): LiveFlight | null {
   const r = raw as LiveFlight | null;
-  return r && typeof r === "object" && "departure" in r ? r : null;
+  if (!(r && typeof r === "object" && "departure" in r)) return null;
+  /* Anchored on the way in, so a reading stored as an airport wall clock becomes
+     a real instant before anything on this trip does arithmetic with it. */
+  return anchorLive(r);
 }
 
 function pickTime(end: { actual?: string | null; estimated?: string | null; scheduled?: string | null } | null): {
@@ -589,8 +592,11 @@ export function bigNumbers(
   landingAt?: string | null,
 ): { timeLeft: string | null; timeLeftLabel: string; gate: string | null; gateLabel: string } {
   const where = whereOnJourney(journey, now);
+  /* A time with no zone behind it is a wall clock, not an instant: counting down
+     from it silently assumes the phone's own zone, which is how a Taipei landing
+     read twelve hours out over the Pacific. Unpinned means unknown, out loud. */
   const mins = (at: string | null | undefined) =>
-    at ? Math.round((new Date(at).getTime() - now.getTime()) / 60_000) : null;
+    isPinned(at) ? Math.round((new Date(at!).getTime() - now.getTime()) / 60_000) : null;
   const term = (t: string | null) => (t ? `T${t.replace(/^T/i, "")}` : null);
 
   /* In the air, the number is the landing of the flight you are on — a direct
@@ -598,12 +604,18 @@ export function bigNumbers(
      record" while the gate sat printed right below. */
   if (where.kind === "in_air") {
     const flying = journey.legs[where.legIndex];
-    const own = landingAt && Number.isFinite(Date.parse(landingAt)) ? landingAt : null;
-    const left = mins(own ?? flying?.to.at);
+    const own = isPinned(landingAt) ? landingAt! : null;
+    const filed = flying?.to.at ?? null;
+    const left = mins(own ?? filed);
+    const unpinned = !own && !!filed && !isPinned(filed);
     const gate = flying?.to.gate ?? null;
     return {
       timeLeft: left == null || left < 0 ? null : durationWords(left),
-      timeLeftLabel: own ? "until you land, on the cabin screen" : "until you land, on the filed times",
+      timeLeftLabel: own
+        ? "until you land, on the cabin screen"
+        : unpinned
+          ? "landing time not pinned to a timezone"
+          : "until you land, on the filed times",
       gate: gate ?? term(flying?.to.terminal ?? null),
       gateLabel: gate
         ? "arrival gate"

@@ -7,6 +7,7 @@
 //     implies a live fare.
 type SupabaseClient = { from: (table: string) => any };
 import { planWords, type FlightPlan } from "./flightPlan.ts";
+import { anchorLive } from "./flightStatus.ts";
 import { TERMINAL_CAVEAT, bigNumbers, journeysFrom, whereOnJourney } from "./journey.ts";
 import { countryNotes } from "./countryNotes.ts";
 import { airport, airportMismatchWords, airportWords } from "./airports.ts";
@@ -65,7 +66,9 @@ export async function flightRead(
             carrierId({ carrier: option.airline, flight_no: option.flight_no }),
         })
       : null;
-    const snap = (plan?.live_status ?? null) as
+    /* Pinned first: an unpinned wall clock here would put "leave for the airport"
+       hours off for anyone whose phone is not in the departure city. */
+    const snap = anchorLive((plan?.live_status ?? null) as never) as
       | {
           departure?: { terminal?: string | null; gate?: string | null; scheduled?: string | null; estimated?: string | null };
           arrival?: { terminal?: string | null; gate?: string | null };

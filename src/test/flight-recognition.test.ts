@@ -152,7 +152,9 @@ describe("where a flight actually is", () => {
   it("reports a diff when the departure moves", () => {
     const before = normalizeAviationstack(payload, { flight_no: "TG601", flight_date: "2026-10-03" }, "2026-10-03T07:00:00Z")!;
     const after = structuredClone(before);
-    after.departure.estimated = "2026-10-03T10:05:00+00:00";
+    /* Forty minutes on from the reading as pinned, not a fresh wall clock: the
+       two readings have to be compared as instants to be compared at all. */
+    after.departure.estimated = new Date(Date.parse(before.departure.estimated!) + 40 * 60_000).toISOString();
     const news = statusDiff(before, after);
     expect(news).toContain("40 min later");
   });
