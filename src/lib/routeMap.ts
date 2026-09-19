@@ -21,6 +21,8 @@ export type RouteStop = {
   role: "origin" | "stop" | "final";
   /** The leg that leaves this stop, when there is one. */
   outboundFlight: string | null;
+  /** The recorded leg that leaves this stop. */
+  outboundPlanId: string | null;
   /** The filed instant at this stop — leaving it, or landing at it. Null when none. */
   at: string | null;
 };
@@ -28,16 +30,17 @@ export type RouteStop = {
 /** The stops of a journey, in order, without repeats. */
 export function routeStops(journey: Journey | null | undefined): RouteStop[] {
   const legs = journey?.legs ?? [];
-  const codes: Array<{ iata: string; out: string | null; at: string | null }> = [];
+  const codes: Array<{ iata: string; out: string | null; planId: string | null; at: string | null }> = [];
   for (const leg of legs) {
     const from = (leg.from.iata ?? "").trim().toUpperCase();
     const to = (leg.to.iata ?? "").trim().toUpperCase();
     if (from && codes[codes.length - 1]?.iata !== from) {
-      codes.push({ iata: from, out: leg.flight_no ?? null, at: leg.from.at ?? null });
+      codes.push({ iata: from, out: leg.flight_no ?? null, planId: leg.plan_id, at: leg.from.at ?? null });
     } else if (from && codes.length) {
       codes[codes.length - 1].out = leg.flight_no ?? null;
+      codes[codes.length - 1].planId = leg.plan_id;
     }
-    if (to && codes[codes.length - 1]?.iata !== to) codes.push({ iata: to, out: null, at: leg.to.at ?? null });
+    if (to && codes[codes.length - 1]?.iata !== to) codes.push({ iata: to, out: null, planId: null, at: leg.to.at ?? null });
   }
   return codes.map((c, i) => {
     const a = airport(c.iata);
@@ -48,6 +51,7 @@ export function routeStops(journey: Journey | null | undefined): RouteStop[] {
       point: airportPoint(c.iata),
       role: i === 0 ? "origin" : i === codes.length - 1 ? "final" : "stop",
       outboundFlight: c.out,
+      outboundPlanId: c.planId,
       at: c.at,
     } as RouteStop;
   });
@@ -106,11 +110,16 @@ export type RouteLegVisual = {
   to: RouteStop & { point: Point };
   index: number;
   state: "complete" | "current" | "upcoming";
+  record: "confirmed" | "proposed";
   paths: GeoPoint[][];
 };
 
 /** Visual state comes from the journey's active leg, never from the wall clock. */
-export function routeLegVisuals(stops: RouteStop[], activeLegIndex: number | null): RouteLegVisual[] {
+export function routeLegVisuals(
+  stops: RouteStop[],
+  activeLegIndex: number | null,
+  confirmedPlanIds: ReadonlySet<string> = new Set(),
+): RouteLegVisual[] {
   const legs: RouteLegVisual[] = [];
   for (let i = 0; i < stops.length - 1; i += 1) {
     const from = stops[i];
@@ -122,6 +131,7 @@ export function routeLegVisuals(stops: RouteStop[], activeLegIndex: number | nul
       to: to as RouteStop & { point: Point },
       index: i,
       state,
+      record: from.outboundPlanId && confirmedPlanIds.has(from.outboundPlanId) ? "confirmed" : "proposed",
       paths: splitAtDateline(greatCirclePoints(from.point, to.point)),
     });
   }

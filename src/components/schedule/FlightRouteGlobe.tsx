@@ -62,17 +62,19 @@ export function FlightRouteGlobe({
   stops,
   aircraft,
   activeLegIndex,
+  confirmedPlanIds,
   selected,
   onSelect,
 }: {
   stops: RouteStop[];
   aircraft: Aircraft | null;
   activeLegIndex: number | null;
+  confirmedPlanIds: ReadonlySet<string>;
   selected: string | null;
   onSelect: (iata: string) => void;
 }) {
   const center = useMemo(() => meanCenter(stops), [stops]);
-  const legs = useMemo(() => routeLegVisuals(stops, activeLegIndex), [stops, activeLegIndex]);
+  const legs = useMemo(() => routeLegVisuals(stops, activeLegIndex, confirmedPlanIds), [stops, activeLegIndex, confirmedPlanIds]);
   const plane = aircraft ? project({ lat: aircraft.lat, lon: aircraft.lon }, center) : null;
 
   return (
@@ -106,7 +108,7 @@ export function FlightRouteGlobe({
             stroke={leg.state === "complete" ? "hsl(var(--signal))" : "hsl(var(--primary))"}
             strokeOpacity={leg.state === "upcoming" ? 0.38 : 0.95}
             strokeWidth={leg.state === "current" ? 2.4 : 1.6}
-            strokeDasharray={leg.state === "upcoming" ? "4 4" : undefined}
+            strokeDasharray={leg.record === "proposed" ? "4 4" : undefined}
             className={leg.state === "current" ? "flight-arc-draw" : undefined}
           />
         )))}
