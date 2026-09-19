@@ -47,6 +47,18 @@ export function boundaryOf(contentType: string | null | undefined): string | nul
 }
 
 /**
+ * Gmail answers on its own boundary, not the one the request used, and a caller
+ * that only has the body text still has to be able to read it. The first line of
+ * a multipart body is that boundary.
+ */
+export function sniffBoundary(text: string): string | null {
+  const first = (text ?? "").trimStart().split(/\r?\n/, 1)[0] ?? "";
+  const hit = first.match(/^--(\S+?)(--)?$/);
+  return hit ? hit[1] : null;
+}
+
+
+/**
  * Split a multipart/mixed response into its embedded HTTP answers, keeping each
  * status. An unparseable part comes back as status 0 with a null body so the
  * caller can count it rather than mistake it for silence.
