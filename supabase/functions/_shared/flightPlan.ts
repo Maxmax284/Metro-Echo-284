@@ -92,6 +92,16 @@ export type NoticedFrom = {
   /** A sentence around the evidence that makes something wait on this flight.
       Words until the person turns it into a promise. */
   condition?: { words: string; because: string; at: string; kept_at?: string | null } | null;
+  /** Operational facts the traveler verified at the airport. Kept separately
+      from provider readings so neither source impersonates the other. */
+  local_verification?: {
+    gate?: string | null;
+    boarding_time?: string | null;
+    baggage_status?: "through_checked" | "collect_here" | "unknown" | null;
+    transfer_route?: "airside_transfer" | "enter_country" | "unknown" | null;
+    source: "boarding_pass" | "departures_board" | "airline_staff" | "traveler";
+    verified_at: string;
+  } | null;
 };
 
 export type FlightPlan = {

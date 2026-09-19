@@ -32,6 +32,7 @@ import {
 } from "@/lib/flightQuick";
 import { anchorLive, type LiveFlight } from "@/lib/flightStatus";
 import { saidTime, type SaidTimeKind } from "@/lib/flightSaidTime";
+import type { LocalTransferVerification } from "@/lib/transferVerification";
 
 
 export type PrepareInput = {
@@ -691,6 +692,41 @@ export function useFlightPlans() {
     [user, withScope, load],
   );
 
+  /** Keep airport-ground facts beside, never inside, the provider reading. */
+  const setLocalTransferVerification = useCallback(
+    async (plan: FlightPlan, facts: Omit<LocalTransferVerification, "verified_at">): Promise<void> => {
+      if (!user) throw new Error("Not signed in.");
+      const verifiedAt = new Date().toISOString();
+      const noticed = plan.noticed_from ?? { source: "local", source_words: "traveler at the airport" };
+      const local = { ...facts, verified_at: verifiedAt };
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({ noticed_from: { ...noticed, local_verification: local } as never })
+        .eq("id", plan.id);
+      if (err) throw new Error(err.message);
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.local_transfer_verified",
+          payload: {
+            plan_id: plan.id,
+            source: facts.source,
+            gate: facts.gate ?? null,
+            boarding_time: facts.boarding_time ?? null,
+            baggage_status: facts.baggage_status ?? "unknown",
+            transfer_route: facts.transfer_route ?? "unknown",
+            changes_departure_time: false,
+            books_or_boards: false,
+          },
+        }) as never,
+      );
+      await load();
+    },
+    [user, withScope, load],
+  );
+
 
   /** Hand Echo a booking you have in front of you. It reads; it files nothing on the board. */
   const noticeText = useCallback(
@@ -735,5 +771,6 @@ export function useFlightPlans() {
     addByNumber,
     setRoute,
     setSaidTime,
+    setLocalTransferVerification,
   };
 }

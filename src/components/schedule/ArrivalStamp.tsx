@@ -24,6 +24,7 @@ export function ArrivalStamp({
   homeZone,
   arrived = true,
   connection = null,
+  uncertainTransfer = false,
   className,
 }: {
   /** Arrival airport code. */
@@ -43,6 +44,8 @@ export function ArrivalStamp({
    * onward flight takes its place.
    */
   connection?: ConnectionRead | null;
+  /** Suppresses city-entry advice while an onward proposal is unresolved. */
+  uncertainTransfer?: boolean;
   className?: string;
 }) {
   const f = useMemo(() => arrivalFacts(iata, at, homeZone), [iata, at, homeZone]);
@@ -104,6 +107,11 @@ export function ArrivalStamp({
 
       {connection ? (
         <ConnectionPack read={connection} />
+      ) : uncertainTransfer ? (
+        <div className="space-y-1.5 border-t border-border/50 pt-2 text-[11px] leading-snug text-foreground/85">
+          <p>Echo has a possible onward flight from here, but it is not confirmed into this journey.</p>
+          <p className="text-muted-foreground">Follow Transfer or Flight Connections signs while you verify it. Do not head to immigration or baggage claim unless your ticket, the airport board, or airline staff tells you to.</p>
+        </div>
       ) : (
         <>
           <div className="space-y-1 text-[11px] text-foreground/80">

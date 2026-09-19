@@ -58,6 +58,7 @@ export function FlightLive({
   ticket,
   groundStep,
   connection = null,
+  uncertainTransfer = false,
   embedded = false,
   belowBoard,
 }: {
@@ -80,6 +81,8 @@ export function FlightLive({
   groundStep?: GroundStep | null;
   /** Set when this landing is a connection, so the city pack stands down. */
   connection?: ConnectionRead | null;
+  /** A plausible onward leg exists but is not yet confirmed into this journey. */
+  uncertainTransfer?: boolean;
   /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
   embedded?: boolean;
   /** Sits directly under the board row — the terminal walk opens from there. */
@@ -225,6 +228,7 @@ export function FlightLive({
           homeZone={homeZone}
           arrived={phase === "landed"}
           connection={connection}
+          uncertainTransfer={uncertainTransfer}
         />
       )}
 
