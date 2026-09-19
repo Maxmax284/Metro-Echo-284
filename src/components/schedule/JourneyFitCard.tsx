@@ -60,6 +60,17 @@ export function JourneyFitCard({
         </p>
       ))}
 
+      {/* Standing in the transfer airport: what is known, what to check, and the
+          airport's own page. Read-only here — recording a local fact lives on
+          the flight card, behind a review step. */}
+      {steps ? (
+        <div className="space-y-1.5 border-t border-border/60 pt-2">
+          <p className="text-[11.5px] font-medium text-foreground">Transfer steps here</p>
+          {steps}
+        </div>
+      ) : null}
+
+
       {/* The one missing fact, asked for where it is missed. Optional: leaving it
           empty keeps the flight exactly as separate as it already is. */}
       {askTime ? (
