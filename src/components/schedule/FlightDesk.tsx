@@ -473,6 +473,12 @@ export function FlightDesk() {
             On your word that you are on it. The airline has filed no arrival terminal or gate yet.
           </p>
         )}
+        {onBoard && !inAir && (
+          <p className="text-[10.5px] text-muted-foreground/80">
+            On your word that you are on board. The airline has filed no push-back, so the departure time
+            here is still the filed one.
+          </p>
+        )}
         {terminalWalk(plan, read, inAir)}
       </div>
     );
