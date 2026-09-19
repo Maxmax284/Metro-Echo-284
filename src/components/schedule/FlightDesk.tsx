@@ -419,15 +419,18 @@ export function FlightDesk() {
    */
   const fitOf = (plan: FlightPlan) => journeyFit({ journey: journey.current, plan: fitPlan(plan) });
 
-  const groundBlock = (plan: FlightPlan, lead = false) => {
+  const groundBlock = (plan: FlightPlan, lead = false, allowPhysicalStage = true) => {
     const { read, stage, offerStage, pack, where } = groundContext(plan);
+    const originIata = (plan.origin ?? "").trim().toUpperCase() || null;
+    const originPlace = originIata ? airportWords(originIata) : plan.origin;
     return (
       <div className="space-y-2">
         <GroundLead
           read={read}
           lead={lead}
-          stage={offerStage ? stage : undefined}
+          stage={offerStage && allowPhysicalStage ? stage : undefined}
           onStage={(s) => setStage(plan.id, s)}
+          stageLabel={airportStageLabel(originPlace, originIata)}
           looking={looking === plan.id}
           onLookUp={async () => {
             setLooking(plan.id);
@@ -526,7 +529,12 @@ export function FlightDesk() {
    * The walk through the terminal, opened from the board row. Order of stops and
    * what is filed at each one — never a floor plan Echo does not have.
    */
-  const terminalWalk = (plan: FlightPlan, read: GroundRead | null | undefined, inAir = false) => {
+  const terminalWalk = (
+    plan: FlightPlan,
+    read: GroundRead | null | undefined,
+    inAir = false,
+    arrivalIntent: "connection" | "destination" | "unknown" = "destination",
+  ) => {
     const snap = plan.live_status as LiveFlight | null;
     const phase = snap ? flightPhase(snap) : "waiting";
     const arrivalSide = inAir || phase === "flying" || phase === "landed";
@@ -540,6 +548,7 @@ export function FlightDesk() {
       place: airportWords(((arrivalSide ? plan.destination : plan.origin) ?? "").trim().toUpperCase()) ||
         (arrivalSide ? plan.destination : plan.origin),
       arrivalSide,
+      arrivalIntent,
     });
     const open = walk === plan.id;
     return (
@@ -552,7 +561,15 @@ export function FlightDesk() {
           aria-expanded={open}
         >
           <MapPin className="mr-1 h-3.5 w-3.5" aria-hidden />
-          {open ? "Hide the terminal walk" : arrivalSide ? "Walk to baggage claim" : "Walk through the terminal"}
+          {open
+            ? "Hide the terminal path"
+            : arrivalSide
+              ? arrivalIntent === "connection"
+                ? "See the transfer path"
+                : arrivalIntent === "unknown"
+                  ? "Choose arrivals or transfer"
+                  : "See the arrival path"
+              : "Walk through the terminal"}
         </Button>
         {open && <TerminalMap stops={stops} />}
       </div>
@@ -598,6 +615,10 @@ export function FlightDesk() {
     () => connectionAt(journey.current?.legs ?? [], journey.where?.legIndex ?? 0),
     [journey.current, journey.where],
   );
+  const possibleOnward = open.some((plan) => {
+    const fit = fitOf(plan);
+    return fit?.kind === "needs_time" || fit?.kind === "chains";
+  });
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
   const settledGroups = useMemo(() => {
     const groups = new Map<string, { plan: FlightPlan; count: number }>();
@@ -657,7 +678,12 @@ export function FlightDesk() {
                 board={boardWords_(livePlan).board}
                 ticket={boardWords_(livePlan).ticket}
                 groundStep={activeGround?.read.step}
-                belowBoard={terminalWalk(livePlan, activeGround?.read)}
+                 belowBoard={terminalWalk(
+                   livePlan,
+                   activeGround?.read,
+                   activeGround?.where === "in_air",
+                   onward ? "connection" : possibleOnward ? "unknown" : "destination",
+                 )}
                 connection={onward}
                 embedded
               />
@@ -1034,10 +1060,9 @@ export function FlightDesk() {
                       talk about — so it stands down rather than naming a place
                       that is not there, and the fit card asks the one question. */}
                   {routeOnRecord(fitPlan(p)) ? (
-                    <>
-                      {groundBlock(p)}
-                      {groundAhead(p)}
-                    </>
+                    <p className="text-[11px] text-muted-foreground">
+                      This is still a proposal. Saying it is yours or adding it to your journey does not say you have arrived at {airportWords((p.origin ?? "").trim().toUpperCase()) || p.origin}.
+                    </p>
                   ) : null}
                   {fitOf(p) && (
                     <JourneyFitCard
@@ -1061,6 +1086,15 @@ export function FlightDesk() {
                       {line}
                     </p>
                   ))}
+                  {(() => {
+                    const fit = fitOf(p);
+                    const onwardQuestion = fit?.kind === "needs_time" || fit?.kind === "chains";
+                    return onwardQuestion ? (
+                      <p className="text-[12.5px] font-medium text-foreground">
+                        Is {fit.flight_no ?? "this"} your next flight after {fit.suggest?.place ?? "this trip"}?
+                      </p>
+                    ) : null;
+                  })()}
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size="sm"
@@ -1078,7 +1112,7 @@ export function FlightDesk() {
                         }
                       }}
                     >
-                      Confirm this one
+                      {fitOf(p)?.kind === "chains" ? "Yes, add it to my journey" : "Add this flight to my board"}
                     </Button>
                     <Button
                       size="sm"
@@ -1090,9 +1124,18 @@ export function FlightDesk() {
                       <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
                       Where is it now
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-9 text-[12px]" onClick={() => void drop(p)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 text-[12px]"
+                      onClick={() => {
+                        const fit = fitOf(p);
+                        if (fit?.kind === "needs_time" || fit?.kind === "chains") void answerOwnership(p, "not_mine");
+                        else void drop(p);
+                      }}
+                    >
                       <Trash2 className="mr-1 h-3.5 w-3.5" aria-hidden />
-                      Drop it
+                      {fitOf(p)?.kind === "needs_time" || fitOf(p)?.kind === "chains" ? "No, not mine" : "Drop draft"}
                     </Button>
                     {!verdict.ok && verdict.reason && (
                       <span className="text-[11px] text-muted-foreground">{verdict.reason}</span>
@@ -1135,12 +1178,17 @@ export function FlightDesk() {
       )}
 
       {remainingSettled.length > 0 && (
-        <Card className="vanta-card space-y-1.5 p-3">
-          <p className="vanta-machine-label text-foreground/70">Settled</p>
-          <ul className="space-y-1.5">
-            {remainingSettled.map((p) => (
+        <details className="vanta-card group p-3">
+          <summary className="vanta-focus cursor-pointer list-none text-[12px] text-foreground/80">
+            <span className="vanta-machine-label text-foreground/70">Flight history</span>
+            <span className="ml-2 text-muted-foreground">{remainingSettled.length} settled</span>
+          </summary>
+          <ul className="mt-3 space-y-2 border-t border-border/50 pt-3">
+            {settledGroups.map(({ plan: p, count }) => (
               <li key={p.id} className="space-y-1">
-                <p className="text-[12px] text-foreground/85">{planWords(p, clock)}</p>
+                <p className="text-[12px] text-foreground/85">
+                  {planWords(p, clock)}{count > 1 ? ` · ${count} identical records shown together` : ""}
+                </p>
                 {p.status === "confirmed" && (
                   <>
                     {(p.live_status as LiveFlight | null) && (
@@ -1155,7 +1203,7 @@ export function FlightDesk() {
                         groundStep={groundContext(p).read.step}
                       />
                     )}
-                    {groundBlock(p)}
+                    {groundBlock(p, false, !livePlan)}
                     {groundAhead(p)}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
                     {senseLines(p).map((line) => (
@@ -1189,7 +1237,7 @@ export function FlightDesk() {
               </li>
             ))}
           </ul>
-        </Card>
+        </details>
       )}
 
       <AftermathHint text="A confirmed flight becomes departure and landing entries on your Board. Echo records and reads; buying stays yours." />
