@@ -23,7 +23,6 @@ import {
   OVERRIDE_CHOICES,
   OVERRIDE_WORDS,
   STATE_WORDS,
-  TERMINAL_CAVEAT,
   bigNumbers,
   durationWords,
   legState,
