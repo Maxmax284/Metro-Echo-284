@@ -10,7 +10,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { type LiveFlight } from "../_shared/flightStatus.ts";
-import { askFlight } from "../_shared/flightAsk.ts";
+import { askFlight, aeroKey } from "../_shared/flightAsk.ts";
 import type { FlightPlan } from "../_shared/flightPlan.ts";
 import {
   TERMINAL_CAVEAT,
@@ -119,6 +119,8 @@ async function reachGate(
 }
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
+/* Either feed alone is enough to watch a journey. */
+const ANY_FEED = !!KEY || !!aeroKey();
 /** Rows are only pulled for days around now; nothing further out costs anything. */
 const WINDOW_HOURS = 8;
 /** A reading younger than this is reused. */
@@ -205,7 +207,7 @@ async function askProvider(flight_no: string, flight_date: string): Promise<Live
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (!KEY) return json({ error: "no_flight_provider", checked: 0 }, 503);
+  if (!ANY_FEED) return json({ error: "no_flight_provider", checked: 0 }, 503);
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const now = Date.now();

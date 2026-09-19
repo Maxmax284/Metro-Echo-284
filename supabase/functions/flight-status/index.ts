@@ -7,7 +7,7 @@
 //     nothing. Silence is never dressed up as "on time".
 //   - A reading taken minutes ago is reused rather than paid for twice.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { askFlight, PlanLimited } from "../_shared/flightAsk.ts";
+import { askFlight, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
@@ -46,6 +46,9 @@ function foldIdentity(plan: any, live: LiveFlight): { options: any[]; identity: 
 }
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
+/* Either feed on its own is a working provider: AeroAPI reads airline dispatch,
+   the aggregator is the backup. One of them configured is enough to answer. */
+const ANY_FEED = !!KEY || !!aeroKey();
 const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
 /* Automatic readings are only allowed close to the flight. Outside that window
    the deck keeps drawing the last stamped reading rather than paying again. */
@@ -100,9 +103,9 @@ Deno.serve(async (req) => {
 
     /* The app asks once whether a provider exists at all, so the capability
        panel can say live or needs connecting without ever guessing. */
-    if (probe) return json({ configured: !!KEY });
+    if (probe) return json({ configured: ANY_FEED });
 
-    if (!KEY) {
+    if (!ANY_FEED) {
       return json(
         {
           error: "no_flight_provider",
