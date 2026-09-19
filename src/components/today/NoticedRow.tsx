@@ -21,6 +21,8 @@ const DESTINATION: Record<string, SurfaceKey> = {
   commitment: "commitments",
   action: "actions",
   document: "briefs",
+  /* A flight Echo noticed is answered on the desk that owns flights. */
+  flight_plan: "schedule",
 };
 
 export function NoticedRow({

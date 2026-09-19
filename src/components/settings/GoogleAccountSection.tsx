@@ -20,6 +20,7 @@ import {
 import {
   connectGoogleService, disconnectGoogleService, readGoogleAccountStatus,
 } from "@/lib/googleServices";
+import { MailSweepRow } from "@/components/settings/MailSweepRow";
 
 export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) {
   const { orgId } = useScope();
@@ -156,6 +157,9 @@ export function GoogleAccountSection({ onChanged }: { onChanged?: () => void }) 
                   )}
                 </Button>
               ) : null}
+              {/* Reading mail on a tap is one thing. Watching it in the
+                  background is a separate, explicit yes. */}
+              {cap.key === "gmail" && granted ? <MailSweepRow /> : null}
             </li>
           );
         })}

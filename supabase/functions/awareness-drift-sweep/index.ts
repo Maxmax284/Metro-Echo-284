@@ -446,6 +446,42 @@ async function sweepScope(
     if (s) signals.push(s);
   }
 
+  // A flight Echo read in mail or a forwarded message, still waiting on one
+  // answer: is it yours? The recognition already wrote the question — this is
+  // where it earns the right to be said anywhere other than the flight desk.
+  // The dedupe key is the recognition's own, so nothing is asked twice.
+  const noticeContext: Record<string, { hoursUntilDue: number | null }> = {};
+  const { data: noticedFlights } = await scoped(
+    sb.from("flight_plans").select("id, origin, destination, depart_on, ownership, origin_kind, options, noticed_from, created_at"),
+    userId,
+    orgId,
+  )
+    .eq("origin_kind", "recognised")
+    .eq("ownership", "unknown")
+    .gte("depart_on", new Date(nowMs - DAY_MS).toISOString().slice(0, 10))
+    .limit(30);
+  const noticedRows: NoticedFlightRow[] = ((noticedFlights ?? []) as any[]).map((p) => {
+    const option = Array.isArray(p.options) ? (p.options[0] ?? {}) : {};
+    return {
+      id: p.id,
+      flight_no: (option.flight_no as string | null) ?? null,
+      airline: (option.airline as string | null) ?? null,
+      origin: p.origin ?? null,
+      destination: p.destination ?? null,
+      depart_on: p.depart_on ?? null,
+      ownership: p.ownership ?? null,
+      origin_kind: p.origin_kind ?? null,
+      source_words: (p.noticed_from?.source_words as string | null) ?? null,
+      created_at: p.created_at,
+    };
+  });
+  for (const s of flightNoticeSignals(noticedRows, scope, nowMs)) {
+    signals.push(s);
+    const row = noticedRows.find((r) => r.id === s.entityId);
+    noticeContext[s.id] = { hoursUntilDue: row ? hoursUntilDeparture(row, nowMs) : null };
+  }
+
+
   // The calendar sense: what starts soon, and which promise lands mid-meeting.
   // Read-only, scope-filtered, and it only ever supplies facts.
   const { data: calendarRows } = senses.calendar ? await scoped(
@@ -582,6 +618,7 @@ async function sweepScope(
 
   const result = evaluateAwareness({
     signals,
+    context: noticeContext,
     priors,
     budget,
     deliveryContext: deliveryCtx,

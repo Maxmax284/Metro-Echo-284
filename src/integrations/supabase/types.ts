@@ -2696,6 +2696,72 @@ export type Database = {
           },
         ]
       }
+      mail_seen: {
+        Row: {
+          created_at: string
+          from_address: string | null
+          id: string
+          message_id: string
+          outcome: string
+          subject: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          message_id: string
+          outcome?: string
+          subject?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_address?: string | null
+          id?: string
+          message_id?: string
+          outcome?: string
+          subject?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mail_sync_state: {
+        Row: {
+          backfilled_at: string | null
+          connector_id: string
+          created_at: string
+          enabled: boolean
+          history_id: string | null
+          last_error: string | null
+          last_swept_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backfilled_at?: string | null
+          connector_id?: string
+          created_at?: string
+          enabled?: boolean
+          history_id?: string | null
+          last_error?: string | null
+          last_swept_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backfilled_at?: string | null
+          connector_id?: string
+          created_at?: string
+          enabled?: boolean
+          history_id?: string | null
+          last_error?: string | null
+          last_swept_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       medications: {
         Row: {
           active: boolean

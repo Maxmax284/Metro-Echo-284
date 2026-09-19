@@ -43,6 +43,9 @@ export const DRIFT_KINDS = [
   "flight_condition_noticed",
   /* The countdown errands before a flight you are actually on, said once. */
   "flight_before_you_leave",
+  /* A flight read out of your own mail or a forwarded message, still waiting on
+     one answer: is it yours? A question in the same quiet lane. */
+  "flight_noticed",
 ] as const;
 
 export function isDriftKind(kind: string): boolean {
