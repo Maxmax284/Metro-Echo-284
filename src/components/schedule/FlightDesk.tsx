@@ -224,7 +224,7 @@ export function FlightDesk() {
     }
   };
 
-  /** The whole manual path: a number and a day. */
+  /** The whole manual path: a number and a day. A time only if you have one. */
   const quickAdd = async () => {
     setBusy(true);
     try {
@@ -233,14 +233,22 @@ export function FlightDesk() {
         vantaToast.warning(res.reason ?? "That flight could not be added.");
         return;
       }
+      let said: string | null = null;
+      if (quickTime.trim() && res.plan) {
+        const timed = await setSaidTime(res.plan, quickTime, quickKind);
+        if (!timed.ok) vantaToast.warning(timed.reason ?? "The flight is on your record; that time did not save.");
+        else said = timed.words ?? null;
+      }
       setQuickNo("");
-      vantaToast.success(res.words ?? "On your record.");
+      setQuickTime("");
+      vantaToast.success(said ?? res.words ?? "On your record.");
     } catch (e) {
       vantaToast.warning(e instanceof Error ? e.message : "That flight could not be added.");
     } finally {
       setBusy(false);
     }
   };
+
 
   const readBooking = async () => {
     if (booking.trim().length < 8) {
