@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2 } from "lucide-react";
+import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
