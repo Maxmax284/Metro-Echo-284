@@ -227,6 +227,7 @@ export function legState(leg: Leg, now: Date = new Date()): LegState {
 export const OVERRIDE_WORDS: Record<LegStateKind, string> = {
   not_started: "You put this back to not started.",
   at_airport: "You said you are at the airport for this one.",
+  boarding: "You said you are boarding this one. The doors are not shut yet.",
   in_air: "You said you are on this one.",
   landed: "You said you are on the ground.",
   did_not_happen: "You said this one did not happen.",
@@ -235,6 +236,7 @@ export const OVERRIDE_WORDS: Record<LegStateKind, string> = {
 export const OVERRIDE_CHOICES: Array<{ value: LegStateKind; label: string; description: string }> = [
   { value: "did_not_happen", label: "I did not make this flight", description: "Missed, bumped, or cancelled on you. The leg stops moving and nothing after it is assumed." },
   { value: "at_airport", label: "Still at the airport", description: "The feed says gone. You are not." },
+  { value: "boarding", label: "Boarding now", description: "Pass scanned, jet bridge or seat. Terminal errands stop and the countdown stands down." },
   { value: "in_air", label: "I am on it", description: "You boarded before the airline filed anything." },
   { value: "landed", label: "I am on the ground", description: "You are down, whatever the feed says." },
 ];
