@@ -10,7 +10,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { askFlightWithFeed, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
+import { anchorLive, carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
 import { carrierId, mergeIdentity, type FlightIdentity } from "../_shared/flightIdentity.ts";
 
 /**
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       const operating = String(ident?.operating?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
       askNumbers = [...new Set([operating, flight_no].filter(Boolean))];
       flight_date = flight_date || String(data.depart_on ?? "").slice(0, 10);
-      previous = (data.live_status ?? null) as LiveFlight | null;
+      previous = anchorLive((data.live_status ?? null) as LiveFlight | null);
       const age = data.live_checked_at ? Date.now() - new Date(data.live_checked_at).getTime() : Infinity;
       if (previous && age < FRESH_MS) {
         return json({
