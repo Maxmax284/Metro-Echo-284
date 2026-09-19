@@ -26,14 +26,21 @@ export function JourneyFitCard({
   fit,
   busy = false,
   onSetRoute,
+  onSetTime,
 }: {
   fit: JourneyFit;
   busy?: boolean;
   onSetRoute?: (from: string, to: string) => void | Promise<void>;
+  /** The one fact a possible connection is missing: when it leaves, or boards. */
+  onSetTime?: (time: string, kind: SaidTimeKind) => void | Promise<void>;
 }) {
   const [from, setFrom] = useState(fit.suggest?.iata ?? "");
   const [to, setTo] = useState("");
+  const [time, setTime] = useState("");
+  const [kind, setKind] = useState<SaidTimeKind>("departure");
   const ask = fit.kind === "needs_route" && !!onSetRoute;
+  const askTime = fit.kind === "needs_time" && !!onSetTime;
+
 
   return (
     <Card className="vanta-card space-y-2 border-primary/40 p-3">
