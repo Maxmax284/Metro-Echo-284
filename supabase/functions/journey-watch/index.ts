@@ -282,7 +282,11 @@ Deno.serve(async (req) => {
       const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
       if (!force && now - stamp < FRESH_MS) return;
       if (!worthReading(p, now)) return;
-      const flightNo = (p.options[0]?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
+      /* A feed files a flight under the number of the airline that flies it, so
+         the operating number is asked before the ticketed codeshare number. */
+      const option: any = p.options[0] ?? null;
+      const operating = String(option?.identity?.operating?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
+      const flightNo = operating || (option?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
       if (!flightNo) return;
       const room = allow();
       if (!room.aero && !room.stack) {

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FlightPlan } from "@/lib/flightPlan";
 import { REREAD_MS, nextToRead } from "@/lib/flightWatch";
+import { reachNow } from "@/hooks/useNetworkReach";
 
 const TICK_MS = 30_000;
 
@@ -36,7 +37,7 @@ export function useFlightTelemetry(
       if (document.visibilityState !== "visible") return;
       /* No bars, no asking. A retry loop at 38,000 feet spends battery to learn
          nothing, and a failed call is not news worth putting on the card. */
-      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      if (!reachNow().online) return;
       if (busy.current) return;
       const now = Date.now();
       const fresh = plansRef.current.filter((p) => now - (asked.current[p.id] ?? 0) >= REREAD_MS);
@@ -60,14 +61,28 @@ export function useFlightTelemetry(
     void tick();
     const onShow = () => void tick();
     document.addEventListener("visibilitychange", onShow);
-    /* Back on a network: read once, straight away, so the first thing you see on
-       the ground is a fresh reading rather than the one from before the doors. */
-    window.addEventListener("online", onShow);
+    /* Back on a network — airport Wi-Fi or a mobile network, it makes no
+       difference — read once straight away, so the first thing on screen on the
+       ground is a fresh reading rather than the one from before the doors. The
+       wait between readings is dropped for that first ask, because a landing is
+       exactly when the old reading is worth least. */
+    const onReach = () => {
+      if (!reachNow().online) return;
+      asked.current = {};
+      void tick();
+    };
+    window.addEventListener("online", onReach);
+    /* A link that swaps from cabin Wi-Fi to cellular does not always announce
+       itself as going offline and back on. The link change does. */
+    const link = (navigator as unknown as { connection?: { addEventListener?: (t: string, fn: () => void) => void; removeEventListener?: (t: string, fn: () => void) => void } })
+      .connection;
+    link?.addEventListener?.("change", onReach);
     return () => {
       stopped = true;
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onShow);
-      window.removeEventListener("online", onShow);
+      window.removeEventListener("online", onReach);
+      link?.removeEventListener?.("change", onReach);
     };
   }, []);
 

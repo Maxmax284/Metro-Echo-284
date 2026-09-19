@@ -115,6 +115,12 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const asUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+    /* The ledger is written with service rights on purpose. It is a receipt, and a
+       caller must never be able to duck its own reading by lacking write rights —
+       an unrecorded reading is one the ceiling cannot see. */
+    const ledger = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+      auth: { persistSession: false },
+    });
     const { data: who } = await asUser.auth.getUser();
     const user = who?.user;
     if (!user) return json({ error: "unauthorized" }, 401);
@@ -123,6 +129,8 @@ Deno.serve(async (req) => {
     let flight_date = parsed.data.flight_date ?? "";
     let previous: LiveFlight | null = null;
     let plan: any = null;
+    /** The numbers to ask under, operating first. Usually just the one. */
+    let askNumbers: string[] = [];
 
     if (plan_id) {
       const { data } = await asUser.from("flight_plans").select("*").eq("id", plan_id).maybeSingle();
@@ -131,6 +139,12 @@ Deno.serve(async (req) => {
       const options = Array.isArray(data.options) ? (data.options as any[]) : [];
       const chosen = options.find((o) => o.id === data.chosen_option_id) ?? options[0] ?? null;
       flight_no = String(chosen?.flight_no ?? flight_no).replace(/\s+/g, "").toUpperCase();
+      /* A feed files a flight under the number of the airline that flies it. A
+         ticketed codeshare number can be a blank page there, so the operating
+         number is asked first and the ticket number second. */
+      const ident = (chosen?.identity ?? null) as FlightIdentity | null;
+      const operating = String(ident?.operating?.flight_no ?? "").replace(/\s+/g, "").toUpperCase();
+      askNumbers = [...new Set([operating, flight_no].filter(Boolean))];
       flight_date = flight_date || String(data.depart_on ?? "").slice(0, 10);
       previous = (data.live_status ?? null) as LiveFlight | null;
       const age = data.live_checked_at ? Date.now() - new Date(data.live_checked_at).getTime() : Infinity;
@@ -166,7 +180,7 @@ Deno.serve(async (req) => {
        feed that still has room. */
     const dayStart = new Date().toISOString().slice(0, 10);
     const spentOn = async (feed: string): Promise<number> => {
-      const { count } = await asUser
+      const { count } = await ledger
         .from("api_usage_logs")
         .select("id", { count: "exact", head: true })
         .eq("provider", feed)
@@ -190,22 +204,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { live: read, feed } = await askFlightWithFeed(KEY, flight_no, flight_date, allow);
+    const tries = askNumbers.length ? askNumbers : [flight_no];
+    let read: LiveFlight | null = null;
+    let askedAs = tries[0];
+    /** Every paid attempt leaves its own line, so the ceiling sees them all. */
+    const record = async (feed: string, number: string, got: boolean) => {
+      const { error } = await ledger.from("api_usage_logs").insert({
+        owner_id: user.id,
+        user_id: user.id,
+        provider: feed,
+        feature: auto ? "flight-deck-auto" : "flight-status",
+        request_type: "flight_status",
+        status: got ? "success" : "failed",
+        cache_hit: false,
+        related_entity_type: plan ? "flight_plan" : null,
+        related_entity_id: plan?.id ?? null,
+        task_id: `asked:${number}`,
+      } as never);
+      if (error) console.error("reading not recorded in the ledger", error);
+    };
+    for (const number of tries) {
+      const attempt = await askFlightWithFeed(KEY, number, flight_date, allow);
+      askedAs = number;
+      await record(attempt.feed, number, !!attempt.live);
+      if (attempt.live) {
+        read = attempt.live;
+        break;
+      }
+    }
     /* A reading that is quiet about a gate or terminal does not erase one an
        earlier reading verified. Kept values travel with the date they were read. */
     const live = read ? carryFiled(previous, read) : null;
-    await asUser.from("api_usage_logs").insert({
-      owner_id: user.id,
-      user_id: user.id,
-      provider: feed,
-      feature: auto ? "flight-deck-auto" : "flight-status",
-      request_type: "flight_status",
-      status: live ? "success" : "failed",
-      cache_hit: false,
-      related_entity_type: plan ? "flight_plan" : null,
 
-      related_entity_id: plan?.id ?? null,
-    } as never);
     if (!live) {
       /* Stamp the attempt even though it carried nothing, so the deck knows it
          asked and does not pay to ask again a moment later. */
