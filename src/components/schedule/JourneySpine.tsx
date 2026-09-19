@@ -223,15 +223,12 @@ export function JourneySpine({
 
       {/* One caveat, not a wall of doctrine. The terminal board is the only line
           that earns its place on a card you read while walking. */}
-      <div className="space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-        <p>Each time is the local time at that airport, the way your ticket prints it.</p>
-        <p>{TERMINAL_CAVEAT}</p>
-        {savedAt ? (
-          <p className="flex items-center gap-1">
-            <RadioTower className="h-3 w-3" aria-hidden />
-            Saved to this phone {readingWords(savedAt)}, so it reads with no service.
-          </p>
-        ) : null}
+      <div className="flex items-start gap-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+        <RadioTower className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+        <p>
+          Times are local to each airport. The board in the terminal wins.
+          {savedAt ? ` Saved to this phone ${readingWords(savedAt)}, so it reads with no service.` : ""}
+        </p>
       </div>
     </Card>
   );
