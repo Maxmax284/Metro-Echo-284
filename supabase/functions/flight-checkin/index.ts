@@ -68,7 +68,24 @@ function officialFirst(hits: Hit[], carrier: string | null, airportName: string 
       return { h, score: (official ? 2 : 0) + hit };
     })
     .sort((a, b) => b.score - a.score);
-  return scored.filter((s) => s.score > 0).slice(0, 3).map((s) => s.h);
+  /* One try per host: three refusals from the same site is not three sources. */
+  const seen = new Set<string>();
+  const out: Hit[] = [];
+  for (const s of scored) {
+    if (s.score <= 0) continue;
+    const host = (() => {
+      try {
+        return new URL(s.h.url).host;
+      } catch {
+        return s.h.url;
+      }
+    })();
+    if (seen.has(host)) continue;
+    seen.add(host);
+    out.push(s.h);
+    if (out.length === 3) break;
+  }
+  return out;
 }
 
 /** One sentence from the page, or nothing. The gap is an answer. */
