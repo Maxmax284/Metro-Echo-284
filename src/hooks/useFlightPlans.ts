@@ -578,6 +578,43 @@ export function useFlightPlans() {
     [user, plans, withScope, load],
   );
 
+  /**
+   * The two ends of a flight, in your words, when the provider carries none.
+   * This is what turns a bare number into a leg the journey can reason about —
+   * so it is your answer, recorded as yours, and never Echo's guess.
+   */
+  const setRoute = useCallback(
+    async (plan: FlightPlan, from: string, to: string): Promise<{ ok: boolean; reason?: string }> => {
+      if (!user) return { ok: false, reason: "Not signed in." };
+      const code = (v: string) => {
+        const t = (v ?? "").trim().toUpperCase();
+        return /^[A-Z]{3}$/.test(t) ? t : null;
+      };
+      const origin_ = code(from);
+      const destination_ = code(to);
+      if (!origin_ || !destination_) {
+        return { ok: false, reason: "Both ends need a three-letter airport code, like TPE." };
+      }
+      const { error: err } = await supabase
+        .from("flight_plans")
+        .update({ origin: origin_, destination: destination_ })
+        .eq("id", plan.id);
+      if (err) return { ok: false, reason: err.message };
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.route_said_by_person",
+          payload: { plan_id: plan.id, origin: origin_, destination: destination_, source: "you" },
+        }) as never,
+      );
+      await load();
+      return { ok: true };
+    },
+    [user, withScope, load],
+  );
+
   /** Hand Echo a booking you have in front of you. It reads; it files nothing on the board. */
   const noticeText = useCallback(
     async (input: { text: string; sender_name?: string; sender_email?: string }) => {
@@ -619,5 +656,6 @@ export function useFlightPlans() {
     lookUpCheckIn,
     noticeText,
     addByNumber,
+    setRoute,
   };
 }

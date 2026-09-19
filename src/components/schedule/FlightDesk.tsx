@@ -45,6 +45,8 @@ import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
 import { connectionAt, type ConnectionRead } from "@/lib/connectionRead";
+import { journeyFit, routeOnRecord } from "@/lib/journeyFit";
+import { JourneyFitCard } from "./JourneyFitCard";
 
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { cabinLandingAt, readCabinEstimate, writeCabinEstimate } from "@/lib/cabinEstimate";
@@ -137,6 +139,7 @@ export function FlightDesk() {
     lookUpCheckIn,
     noticeText,
     addByNumber,
+    setRoute,
   } = useFlightPlans();
   /* Which flight is having its check-in area read, so only that card waits. */
   const [looking, setLooking] = useState<string | null>(null);
@@ -392,6 +395,25 @@ export function FlightDesk() {
     });
     return { read, stage, offerStage, pack, where };
   };
+
+  /** One flight, reduced to what the journey reasoning actually needs. */
+  const fitPlan = (plan: FlightPlan) => {
+    const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
+    return {
+      id: plan.id,
+      origin: plan.origin ?? null,
+      destination: plan.destination ?? null,
+      depart_on: plan.depart_on ?? null,
+      depart_at: option?.depart_at ?? null,
+      flight_no: option?.flight_no ?? null,
+    };
+  };
+
+  /**
+   * What this flight would mean for the trip already underway: the next leg out
+   * of where you land, a stay, or its own trip. A proposal, never an edit.
+   */
+  const fitOf = (plan: FlightPlan) => journeyFit({ journey: journey.current, plan: fitPlan(plan) });
 
   const groundBlock = (plan: FlightPlan, lead = false) => {
     const { read, stage, offerStage, pack, where } = groundContext(plan);
@@ -994,8 +1016,31 @@ export function FlightDesk() {
                       ticket={boardWords_(p).ticket}
                     />
                   )}
-                  {groundBlock(p)}
-                  {groundAhead(p)}
+                  {/* With no route on record, the ground read has no airport to
+                      talk about — so it stands down rather than naming a place
+                      that is not there, and the fit card asks the one question. */}
+                  {routeOnRecord(fitPlan(p)) ? (
+                    <>
+                      {groundBlock(p)}
+                      {groundAhead(p)}
+                    </>
+                  ) : null}
+                  {fitOf(p) && (
+                    <JourneyFitCard
+                      fit={fitOf(p)!}
+                      busy={busy}
+                      onSetRoute={async (from, to) => {
+                        setBusy(true);
+                        try {
+                          const res = await setRoute(p, from, to);
+                          if (!res.ok) vantaToast.warning(res.reason ?? "That route did not save.");
+                          else vantaToast.success(`${from} → ${to}, on your word.`);
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    />
+                  )}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
                     <p key={line} className="text-[11.5px] text-muted-foreground">
