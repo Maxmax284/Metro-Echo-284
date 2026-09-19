@@ -376,7 +376,7 @@ export function FlightDesk() {
             }
           }}
         />
-        {where === "before" || where === "at_airport" ? <PreDeparturePack pack={pack} lead={lead} /> : null}
+        {where === "in_air" || where === "done" || where === "stopped" ? null : <PreDeparturePack pack={pack} lead={lead} />}
       </div>
     );
   };
