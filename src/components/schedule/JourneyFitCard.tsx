@@ -6,7 +6,7 @@
 //   - The one fact it cannot know is asked for, with the airport it would bet on
 //     already typed in — and still yours to change.
 //   - Nothing on the flight you are on is touched by anything here.
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { GitMerge } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

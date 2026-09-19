@@ -16,6 +16,7 @@ import {
   type LocalTransferVerification,
   type TransferRoute,
 } from "@/lib/transferVerification";
+import { AirportHelpLine } from "./TransferSteps";
 
 const ACK_PREFIX = "vanta.transfer-guidance.ack";
 
@@ -101,6 +102,7 @@ export function TransferVerification({
             Check the official departures board or ask the airline transfer or information desk to confirm your gate,
             boarding time, and required transfer steps. Echo will keep what you confirm here.
           </p>
+          <AirportHelpLine airport={airport} className="mt-1.5" />
         </div>
       </div>
 
