@@ -535,6 +535,7 @@ export function FlightDesk() {
                 board={boardWords_(livePlan).board}
                 ticket={boardWords_(livePlan).ticket}
                 groundStep={activeGround?.read.step}
+                belowBoard={terminalWalk(livePlan, activeGround?.read)}
                 embedded
               />
             ) : (
