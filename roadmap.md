@@ -1,12 +1,12 @@
-- [ ] Clarify connecting-flight context and proposal actions
-- [ ] Make arrival guidance safe for unknown transfer/baggage state
-- [ ] Compact settled proposals without deleting history
-- [ ] Add focused regression coverage and verify flight suites
-- [ ] Publish after verification
+- [x] Clarify connecting-flight context and proposal actions
+- [x] Make arrival guidance safe for unknown transfer/baggage state
+- [x] Compact settled proposals without deleting history
+- [x] Add focused regression coverage and verify flight suites
+- [x] Publish after verification
 ## Connecting-flight local verification
-- [ ] Inspect landed transfer, provenance, receipts, and notification flows
-- [ ] Add contextual next steps and local fact capture with review
-- [ ] Add one-time acknowledgement and change-aware resurfacing
-- [ ] Add focused regression coverage
-- [ ] Run travel tests, typecheck, build, and mobile verification
-- [ ] Publish only after verification
+- [x] Inspect landed transfer, provenance, receipts, and notification flows
+- [x] Add contextual next steps and local fact capture with review
+- [x] Add one-time acknowledgement and change-aware resurfacing
+- [x] Add focused regression coverage
+- [x] Run travel tests, typecheck, build, and mobile verification
+- [x] Publish only after verification
