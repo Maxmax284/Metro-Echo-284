@@ -339,11 +339,20 @@ export function FlightDesk() {
       minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
       throughSecurity: stage === "security",
     });
+    /* The one tap is only offered while it still changes the answer: on the
+       ground, with no gate filed, and near enough to departure to matter. Once a
+       gate is posted the board answers the question, so the tap disappears
+       instead of cycling for nothing. */
+    const gateFiled = !!(snap?.departure.gate ?? "").trim();
+    const mins = Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null;
+    const nearEnough = mins == null || (mins < 12 * 60 && mins > -180);
+    const offerStage =
+      !gateFiled && nearEnough && (where === "before" || where === "at_airport");
     return (
       <GroundLead
         read={read}
         lead={lead}
-        stage={where === "in_air" || where === "done" ? undefined : stage}
+        stage={offerStage ? stage : undefined}
         onStage={(s) => setStage(plan.id, s)}
         looking={looking === plan.id}
         onLookUp={async () => {

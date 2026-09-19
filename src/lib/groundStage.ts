@@ -10,8 +10,14 @@
 export type GroundStage = "away" | "airport" | "security";
 
 export const STAGE_LABEL: Record<Exclude<GroundStage, "away">, string> = {
-  airport: "I'm at the airport",
-  security: "I'm through security",
+  airport: "Confirm I'm at the airport",
+  security: "Confirm I'm through security",
+};
+
+/** What the tap changed, said back once so it is not a button with no effect. */
+export const STAGE_DONE: Record<Exclude<GroundStage, "away">, string> = {
+  airport: "You're at the airport. Check-in comes first.",
+  security: "You're airside. Echo is watching the board for your gate.",
 };
 
 const KEY = "vanta.ground.stage";
