@@ -57,6 +57,8 @@ export function FlightLive({
   clock,
   homeZone,
   reading = false,
+  board,
+  ticket,
 }: {
   live: LiveFlight;
   checkedAt: string | null;
@@ -65,6 +67,13 @@ export function FlightLive({
   homeZone?: string | null;
   /** True while a fresh read is in flight — the deck breathes instead of freezing. */
   reading?: boolean;
+  /**
+   * What the terminal prints — the operating airline's number. The board shows
+   * this, never the ticket number, because the ticket number is not up there.
+   */
+  board?: string | null;
+  /** The ticket number, named once and quietly, when it differs from the board. */
+  ticket?: string | null;
 }) {
   const phase = flightPhase(live);
   /* Radar first: when the airline filed a fix for the aircraft, the marker sits
@@ -123,12 +132,16 @@ export function FlightLive({
         )}
       </div>
 
-      {/* The board: flight, status, gate. Flips once when the wording changes. */}
+      {/* The board: what the terminal prints, status, gate. Flips once when the
+          wording changes. The ticket number sits under it, said once. */}
       <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
-        <SolariBoard text={live.flight_no} label="Flight" />
+        <SolariBoard text={board?.trim() || live.flight_no} label="On the board" />
         <SolariBoard text={BOARD_WORDS[phase] ?? "STATUS"} label="Status" tone={BOARD_TONE[phase]} />
-        {gate && <SolariBoard text={gate} label="Stand" tone="primary" />}
+        {gate && <SolariBoard text={gate} label="Gate" tone="primary" />}
       </div>
+      {ticket?.trim() && ticket.trim().toUpperCase() !== (board ?? live.flight_no).toUpperCase() && (
+        <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {ticket.trim()}.</p>
+      )}
 
       {/* The track. The marker sits on the aircraft's own fix when there is one,
           on the clock when there isn't, and nowhere at all when neither holds. */}
