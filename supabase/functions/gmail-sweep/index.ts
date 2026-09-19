@@ -70,7 +70,9 @@ async function receipt(
   } as never);
 }
 
-type SweepResult = SweepCounts & { reason?: string };
+/* `said` carries the refusal in plain words, so the settings screen can repeat
+   Google's actual reason instead of a shrug. */
+type SweepResult = SweepCounts & { reason?: string; said?: string };
 
 async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | null): Promise<SweepResult> {
   const counts = emptyCounts();
@@ -99,7 +101,7 @@ async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | nul
       `/gmail/v1/users/me/messages?maxResults=${SWEEP_LOOK_MAX}&q=${encodeURIComponent(candidateQuery(14))}`,
     );
     await receipt(sb, userId, res.ok ? "success" : "failed", res.ok ? undefined : res.detail);
-    if (!res.ok) return { ...counts, reason: res.reason };
+    if (!res.ok) return { ...counts, reason: res.reason, said: res.detail };
     ids = (((res.body as { messages?: { id?: string }[] } | null)?.messages) ?? [])
       .map((m) => String(m.id ?? ""))
       .filter(Boolean);
@@ -118,7 +120,7 @@ async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | nul
         await sb.from("mail_sync_state").update({ history_id: null }).eq("user_id", userId);
         return { ...counts, reason: "history_expired" };
       }
-      return { ...counts, reason: res.reason };
+      return { ...counts, reason: res.reason, said: res.detail };
     }
     const body = res.body as { history?: { messagesAdded?: { message?: { id?: string; labelIds?: string[] } }[] }[] } | null;
     const seen = new Set<string>();
@@ -161,7 +163,7 @@ async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | nul
       body,
     });
     await receipt(sb, userId, res.ok ? "success" : "failed", res.ok ? undefined : res.detail);
-    if (!res.ok) return { ...counts, reason: res.reason };
+    if (!res.ok) return { ...counts, reason: res.reason, said: res.detail };
     /* callGoogle hands back the raw text when the answer is not JSON, which a
        multipart answer never is. */
     const parts = parseBatch(contentType, typeof res.body === "string" ? res.body : "");
