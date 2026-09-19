@@ -21,6 +21,7 @@ import { airport, airportWords, bordersCrossed } from "./airports.ts";
 import { airportZone, anchorToZone } from "./travelSense.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
 import type { LiveFlight } from "./flightStatus.ts";
+import type { FlightIdentity } from "./flightIdentity.ts";
 
 export const JOURNEY_LAW =
   "Echo works out where you are from what the airline filed and when it read it. It does not track you, and the board in the terminal always wins.";
