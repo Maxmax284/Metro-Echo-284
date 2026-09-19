@@ -121,6 +121,43 @@ export function airportCount(): number {
   return LIST.length;
 }
 
+/**
+ * Airports a sentence seems to name, from the kept table only: a code, a city,
+ * or a name a person would actually say ("Dulles", "Heathrow"). Never fuzzy —
+ * a word that matches nothing kept matches nothing at all.
+ */
+export function airportsNamed(text: string | null | undefined): Airport[] {
+  const t = (text ?? "").toLowerCase();
+  if (!t.trim()) return [];
+  const out: Airport[] = [];
+  for (const a of LIST) {
+    const words = [
+      ...a.name.toLowerCase().split(/[^a-z]+/),
+      a.city.toLowerCase(),
+    ].filter((w) => w.length > 3);
+    const named =
+      new RegExp(`\\b${a.iata}\\b`, "i").test(text ?? "") ||
+      words.some((w) => new RegExp(`\\b${w}\\b`).test(t));
+    if (named) out.push(a);
+  }
+  return out;
+}
+
+/**
+ * One sentence when the airport a person named is not the airport their journey
+ * leaves from. Echo names both and asks. It never picks, and it never assumes a
+ * slip of the tongue.
+ */
+export function airportMismatchWords(said: string | null | undefined, journeyIata: string | null): string | null {
+  const mine = airport(journeyIata);
+  if (!mine) return null;
+  const named = airportsNamed(said).filter((a) => a.iata !== mine.iata);
+  if (!named.length) return null;
+  /* Two airports in the same city is not a disagreement worth a question. */
+  const other = named.find((a) => a.city !== mine.city) ?? named[0];
+  return `You said ${other.name} (${other.iata}) — your journey leaves from ${mine.name} (${mine.iata}). Which one are you standing in? Echo will not pick for you.`;
+}
+
 /* ---- Where an airport sits ------------------------------------------------
    Kept by hand, same rule as the rest of this table: an airport with no
    coordinate here has none, and a radar fix near it is reported as a fix
