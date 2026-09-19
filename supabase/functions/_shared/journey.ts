@@ -348,7 +348,7 @@ export type Journey = {
 };
 
 export type JourneyWhere = {
-  kind: "before" | "at_airport" | "in_air" | "on_ground" | "done" | "stopped";
+  kind: "before" | "at_airport" | "boarding" | "in_air" | "on_ground" | "done" | "stopped";
   legIndex: number;
   iata: string | null;
   place: string | null;
