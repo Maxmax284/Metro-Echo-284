@@ -30,6 +30,7 @@ export function JourneyFitCard({
   onSetRoute,
   onSetTime,
   steps,
+  source,
 }: {
   fit: JourneyFit;
   busy?: boolean;
