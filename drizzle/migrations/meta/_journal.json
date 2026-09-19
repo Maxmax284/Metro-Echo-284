@@ -267,6 +267,13 @@
       "when": 1789737195962,
       "tag": "0037_widen_wearable_reading_kinds",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1789839163364,
+      "tag": "0038_mail_sweep_state_and_seen",
+      "breakpoints": true
     }
   ]
 }
