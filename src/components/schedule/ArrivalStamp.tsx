@@ -10,9 +10,10 @@
 import { useMemo } from "react";
 import { arrivalFacts, helpCells, shiftWords } from "@/lib/arrivalFacts";
 import { arrivalGroundPack } from "@/lib/arrivalGround";
-import { Languages, TrainFront } from "lucide-react";
+import { TrainFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SolariBoard } from "./SolariBoard";
+import { GroundPack } from "./GroundPack";
 
 export function ArrivalStamp({
   iata,
@@ -106,6 +107,9 @@ export function ArrivalStamp({
         <p className="text-muted-foreground/75">Echo keeps your clock until you say switch.</p>
       </div>
 
+      {/* The first move off the plane stays on the face of the card. Everything
+          else — money, routes, words, numbers, sockets — sits one tap down in
+          the ground pack, which reads with no signal. */}
       <div className="space-y-2 border-t border-border/50 pt-2">
         <div className="flex items-start gap-1.5">
           <TrainFront className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
@@ -114,15 +118,9 @@ export function ArrivalStamp({
             {ground?.transitCheckedOn ? <span className="text-muted-foreground"> Checked {ground.transitCheckedOn}.</span> : null}
           </p>
         </div>
-        <div className="flex items-start gap-1.5">
-          <Languages className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-          <p className="text-[11px] leading-snug text-foreground/85">
-            {ground?.phrases.length
-              ? ground.phrases.map((phrase) => `${phrase.words} — ${phrase.means}`).join(" · ")
-              : `No kept phrase list for ${f.country ?? "this destination"}.`}
-          </p>
-        </div>
       </div>
+
+      <GroundPack iata={f.iata} />
     </div>
   );
 }

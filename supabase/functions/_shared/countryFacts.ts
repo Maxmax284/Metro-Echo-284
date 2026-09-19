@@ -233,8 +233,13 @@ const FACTS: CountryFacts[] = [
     phrases: [
       { words: "nǐ hǎo", means: "hello" },
       { words: "xiè xie", means: "thank you" },
+      { words: "duō shǎo qián?", means: "how much is it?" },
       { words: "qǐng wèn", means: "excuse me / may I ask" },
+      { words: "jié yùn zài nǎ lǐ?", means: "where is the MRT?" },
       { words: "Táiběi chēzhàn", means: "Taipei Main Station" },
+      { words: "bù yòng, xiè xie", means: "no thanks" },
+      { words: "jiù mìng!", means: "help! (emergency)" },
+      { words: "wǒ bù shuō zhōng wén", means: "I don't speak Chinese" },
     ],
   },
   {

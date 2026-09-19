@@ -114,14 +114,23 @@ const NOTES: CountryNotes[] = [
     currency: "TWD",
     emergency: "110 police, 119 ambulance and fire, 0800-024-111 travel hotline",
     transport: [
-      { line: "Taoyuan (TPE): follow Airport MRT signs for trains toward Taipei Main Station; express trains skip more stops than commuter trains.", checked_on: "2026-09-19" },
-      { line: "Airport taxis leave from the signed ranks outside arrivals. Use the official queue rather than an offer inside the terminal.", checked_on: "2026-09-19" },
+      { line: "Taoyuan (TPE): follow Airport MRT signs down from arrivals. Purple Express trains run to Taipei Main Station in roughly 35 to 40 minutes; Blue Commuter trains stop everywhere and take longer for the same fare.", checked_on: "2026-09-19" },
+      { line: "Airport MRT to Taipei Main Station is about 150 TWD. Buy a single-journey token at the machines, or tap an EasyCard straight through the gate.", checked_on: "2026-09-19" },
+      { line: "Airport taxis leave from the signed ranks outside arrivals, metered. Use the official queue rather than an offer made to you inside the terminal.", checked_on: "2026-09-19" },
+      { line: "Airport buses (Kuo-Kuang and others) run through the night when the MRT is closed, from the bus terminals beside arrivals. Slower, but they cover the gap.", checked_on: "2026-09-19" },
+      { line: "Uber works in Taiwan and quotes up front, but airport pickup is at a signed pickup point rather than the arrivals kerb.", checked_on: "2026-09-19" },
     ],
     money: [
-      { line: "EasyCard covers the Airport MRT and most city transit. Cards are common, but small markets may still want cash.", checked_on: "2026-09-19" },
+      { line: "EasyCard covers the Airport MRT, Taipei Metro, buses and most convenience stores. Buy one at the MRT counter or any 7-Eleven and load cash onto it.", checked_on: "2026-09-19" },
+      { line: "Convenience-store ATMs are everywhere and generally take foreign cards — 7-Eleven and FamilyMart machines are the usual fallback.", checked_on: "2026-09-19" },
+      { line: "Airport bank counters in arrivals change cash at a fair rate with a small fixed commission. Changing a little on landing is normal.", checked_on: "2026-09-19" },
+      { line: "Night markets, small noodle shops and temples are cash. Carry small notes and coins.", checked_on: "2026-09-19" },
     ],
     watch_out: [
       { line: "TPE is outside central Taipei. Allow for the airport-to-city trip rather than treating the airport as downtown.", checked_on: "2026-09-19" },
+      { line: "The Airport MRT stops overnight. Landing very late means a bus or a taxi, not a train.", checked_on: "2026-09-19" },
+      { line: "Taoyuan has two terminals joined by a short shuttle. Check which one your onward flight leaves from before you settle in.", checked_on: "2026-09-19" },
+      { line: "Typhoon season runs summer into autumn and shuts transport, not just flights. Check before committing to a day trip.", checked_on: "2026-09-19" },
     ],
   },
   {

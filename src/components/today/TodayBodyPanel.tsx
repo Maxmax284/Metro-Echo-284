@@ -4,7 +4,17 @@
 // measured, says plainly when a sense is off, and never claims a posture Echo
 // wasn't told. Nothing here approves or runs anything.
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Footprints, HeartPulse, Moon, Activity, Timer } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bluetooth,
+  Footprints,
+  HeartPulse,
+  Loader2,
+  Moon,
+  Activity,
+  Square,
+  Timer,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -13,14 +23,24 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { BodyPatternsPanel } from "@/components/wearables/BodyPatternsPanel";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
+import { useLiveHeartRate } from "@/hooks/useLiveHeartRate";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { readingLine, restBalance, workoutList } from "@/lib/wearable";
+
+const liveBtn = cn(
+  "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2",
+  "text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground disabled:opacity-60",
+  MOTION_FOCUS,
+);
 
 export function TodayBodyPanel() {
   const { loop, loading, error, refresh } = useWearableLoop();
   const rest = restBalance(loop.readings);
   const hrOn = loop.consent.heart_rate === true;
   const activityOn = loop.consent.activity === true;
+  /* The same Bluetooth connection the body desk uses, on the day's page. A tap
+     opens it; it stores one reading a minute and nothing else. */
+  const hr = useLiveHeartRate(hrOn, refresh);
 
   return (
     <CollapsibleSection
@@ -57,15 +77,67 @@ export function TodayBodyPanel() {
         </div>
       ) : (
         <div className="space-y-2">
+          {/* Heart rate, live when a strap or watch is broadcasting. The big
+              number is the beat arriving now; the line under it is the last
+              thing actually kept. Connecting takes a tap — nothing reaches for
+              a device on its own. */}
           <div className="vanta-inset px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
-              <HeartPulse className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <HeartPulse
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0 text-primary",
+                  hr.bpm !== null && "animate-pulse",
+                )}
+              />
               <MachineLabel className="text-foreground/70">Heart rate</MachineLabel>
+              {hr.bpm !== null && (
+                <MachineText className="text-[13px] font-semibold text-primary">
+                  {hr.bpm} bpm
+                </MachineText>
+              )}
+              {hr.connected && (
+                <MachineText className="text-[10px] text-muted-foreground">
+                  live · {hr.device}
+                </MachineText>
+              )}
             </div>
             <p className="mt-1 text-[11.5px] leading-snug text-foreground/90">
-              {readingLine("heart_rate", loop.heartRate, hrOn)}
+              {hr.connected
+                ? hr.bpm === null
+                  ? "Connected. Waiting for the first beat — on most watches you need a workout running."
+                  : "Beats arriving now. One reading a minute is kept while this page stays open."
+                : readingLine("heart_rate", loop.heartRate, hrOn)}
             </p>
+            {hrOn && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {hr.connected ? (
+                  <button type="button" onClick={() => void hr.disconnect()} className={liveBtn}>
+                    <Square className="h-3 w-3" />
+                    Stop reading
+                  </button>
+                ) : hr.supported ? (
+                  <button
+                    type="button"
+                    onClick={() => void hr.connect()}
+                    disabled={hr.connecting}
+                    className={liveBtn}
+                  >
+                    {hr.connecting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Bluetooth className="h-3 w-3" />
+                    )}
+                    {hr.connecting ? "Connecting…" : "Connect a watch"}
+                  </button>
+                ) : (
+                  <MachineText className="text-[10px] text-muted-foreground">
+                    {hr.unsupportedReason}
+                  </MachineText>
+                )}
+              </div>
+            )}
           </div>
+
 
           <div className="vanta-inset px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
