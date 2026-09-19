@@ -598,6 +598,7 @@ export function FlightDesk() {
                 ticket={boardWords_(livePlan).ticket}
                 groundStep={activeGround?.read.step}
                 belowBoard={terminalWalk(livePlan, activeGround?.read)}
+                connection={onward}
                 embedded
               />
             ) : (
@@ -608,7 +609,8 @@ export function FlightDesk() {
                   activeGround?.where === "in_air",
                   activeGround?.where === "boarding",
                 )}
-                {groundAhead(livePlan, activeGround?.where === "in_air")}
+                {groundAhead(livePlan, activeGround?.where === "in_air", onward)}
+
                 {/* On the aircraft with no feed from it: the track, the miles
                     left, the clock where you land, and what the cabin usually
                     carries — all off the device, so it holds with no signal. */}
