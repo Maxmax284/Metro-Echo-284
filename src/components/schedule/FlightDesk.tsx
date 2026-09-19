@@ -43,6 +43,7 @@ import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdenti
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
+import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { flightClock } from "@/lib/flightClock";
@@ -414,6 +415,25 @@ export function FlightDesk() {
     );
   };
 
+  /* Before the first provider reading, the board still exists — but every
+     operational field says exactly what is not filed instead of disappearing. */
+  const boardAhead = (plan: FlightPlan, read: GroundRead | null | undefined) => {
+    const identity = boardWords_(plan);
+    const status = read?.step === "find_check_in" ? "CHECK-IN" : read?.step === "boarding" ? "BOARDING TIME NOT FILED" : "GATE PENDING";
+    return (
+      <div className="space-y-2 border-t border-border/50 pt-3">
+        <p className="vanta-machine-label text-foreground/70">Airport board</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
+          <SolariBoard text={identity.board ?? "NOT FILED"} label="Flight" />
+          <SolariBoard text="NOT FILED" label="Terminal" />
+          <SolariBoard text="NOT FILED" label="Gate" />
+          <SolariBoard text={status} label="Status" tone={status.includes("NOT FILED") ? "warn" : "primary"} />
+        </div>
+        {identity.ticket && <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {identity.ticket}.</p>}
+      </div>
+    );
+  };
+
   /* The aircraft is drawn only from a filed fix on a leg of this very trip.
      No fix, no plane — the route still draws, the position is simply not known. */
   const aircraft = useMemo(() => {
@@ -475,7 +495,12 @@ export function FlightDesk() {
                 groundStep={activeGround?.read.step}
                 embedded
               />
-            ) : groundAhead(livePlan)}
+            ) : (
+              <>
+                {boardAhead(livePlan, activeGround?.read)}
+                {groundAhead(livePlan)}
+              </>
+            )}
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
