@@ -147,6 +147,7 @@ export function FlightLive({
       {ticket?.trim() && ticket.trim().toUpperCase() !== (board ?? live.flight_no).toUpperCase() && (
         <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {ticket.trim()}.</p>
       )}
+      {belowBoard}
 
       {/* The track. The marker sits on the aircraft's own fix when there is one,
           on the clock when there isn't, and nowhere at all when neither holds. */}
