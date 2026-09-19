@@ -304,6 +304,17 @@ export function FlightDesk() {
     });
   };
 
+  /**
+   * What the terminal prints, and the ticket number said once. When the ticket
+   * and the aircraft carry the same number there is no second name to mention.
+   */
+  const boardWords_ = (plan: FlightPlan): { board: string | null; ticket: string | null } => {
+    const id = identityOf(plan);
+    const board = boardIdentity(id);
+    const name = board ? [board.carrier, board.flight_no].filter(Boolean).join(" ") : null;
+    return { board: name, ticket: isCodeshare(id) ? (id?.marketing?.flight_no ?? null) : null };
+  };
+
   const groundBlock = (plan: FlightPlan, lead = false) => {
     const snap = plan.live_status as LiveFlight | null;
     const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
@@ -712,6 +723,8 @@ export function FlightDesk() {
                       clock={clock}
                       homeZone={timezone}
                       reading={busy || readingPlanId === p.id}
+                      board={boardWords_(p).board}
+                      ticket={boardWords_(p).ticket}
                     />
                   )}
                   {groundBlock(p)}
@@ -811,6 +824,8 @@ export function FlightDesk() {
                         clock={clock}
                         homeZone={timezone}
                         reading={readingPlanId === p.id}
+                        board={boardWords_(p).board}
+                        ticket={boardWords_(p).ticket}
                       />
                     )}
                     {groundBlock(p)}
