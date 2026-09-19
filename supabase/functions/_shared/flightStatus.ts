@@ -44,10 +44,27 @@ export type LivePosition = {
   on_ground: boolean | null;
 };
 
+/** One name a flight answers to, as a provider stated it. */
+export type LiveCarrier = {
+  carrier: string | null;
+  carrier_code: string | null;
+  flight_no: string | null;
+};
+
 export type LiveFlight = {
   flight_no: string;
   flight_date: string;
   airline: string | null;
+  /** Two-letter code of the airline on the row, when the provider carried one. */
+  airline_code?: string | null;
+  /**
+   * The airline that actually flies the aircraft, when the provider's codeshare
+   * block said it is somebody other than the one on the ticket. This is what the
+   * boards, the counters and the gate signs will say.
+   */
+  operated_by?: LiveCarrier | null;
+  /** The identity on the ticket, kept when it differs from the operating one. */
+  marketed_as?: LiveCarrier | null;
   /** The provider's own word: scheduled, active, landed, cancelled, diverted. */
   status: string | null;
   departure: LiveEnd;
@@ -117,9 +134,16 @@ export function normalizeAviationstack(
   const rows = Array.isArray((payload as any)?.data) ? ((payload as any).data as any[]) : [];
   const want = ask.flight_no.replace(/\s+/g, "").toUpperCase();
   const day = (ask.flight_date ?? "").slice(0, 10);
+  const code = (v: unknown) => str(v)?.replace(/\s+/g, "").toUpperCase() ?? null;
+  /* A codeshare answers to two numbers. A ticket filed under the marketing
+     number must still find the row the provider files under the operating one,
+     and the other way round — otherwise the flight reads as nothing on record
+     while the terminal boards it happily. */
   const sameNumber = (r: any) =>
-    str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want ||
-    str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want;
+    code(r?.flight?.iata) === want ||
+    code(r?.flight?.icao) === want ||
+    code(r?.flight?.codeshared?.flight_iata) === want ||
+    code(r?.flight?.codeshared?.flight_icao) === want;
   /* The day matters as much as the number. A provider that refuses a date filter
      hands back every recent run of this flight; grafting yesterday's run onto
      tomorrow's ticket would invent a departure that already happened. When no
@@ -134,10 +158,30 @@ export function normalizeAviationstack(
     ? (rows.find((r) => sameNumber(r) && sameDay(r)) ?? null)
     : (rows.find(sameNumber) ?? null);
   if (!row) return null;
+  /* The codeshare block is the airline that actually flies the aircraft. Keeping
+     it is the difference between "TG6285" and "look for EVA Air BR3 on the
+     board" — and a traveller standing in a departures hall needs the second. */
+  const shared = row?.flight?.codeshared ?? null;
+  const ticket: LiveCarrier = {
+    carrier: str(row?.airline?.name),
+    carrier_code: code(row?.airline?.iata),
+    flight_no: code(row?.flight?.iata) ?? want,
+  };
+  const operating: LiveCarrier | null = shared
+    ? {
+        carrier: str(shared.airline_name),
+        carrier_code: code(shared.airline_iata),
+        flight_no: code(shared.flight_iata),
+      }
+    : null;
+  const differs = !!operating?.flight_no && operating.flight_no !== ticket.flight_no;
   return {
     flight_no: want,
     flight_date: str(row.flight_date) ?? ask.flight_date,
-    airline: str(row?.airline?.name),
+    airline: ticket.carrier,
+    airline_code: ticket.carrier_code,
+    operated_by: differs ? operating : null,
+    marketed_as: differs ? ticket : null,
     status: str(row.flight_status),
     departure: end(row.departure),
     arrival: end(row.arrival),

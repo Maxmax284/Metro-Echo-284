@@ -469,6 +469,24 @@ export function useFlightPlans() {
   );
 
   /**
+   * One official page read for where this flight checks in. Asked for, never
+   * automatic: a zone is a dated page reading, so Echo only goes looking when a
+   * person taps, and it never names one the page did not state.
+   */
+  const lookUpCheckIn = useCallback(
+    async (plan: FlightPlan): Promise<string> => {
+      const { data, error: err } = await supabase.functions.invoke("flight-checkin", {
+        body: { plan_id: plan.id },
+      });
+      if (err) throw new Error(err.message || "That look-up did not go through.");
+      await load();
+      const body = data as { answer?: string };
+      return body?.answer ?? "Nothing came back from that page.";
+    },
+    [load],
+  );
+
+  /**
    * A flight number and a day — the least a flight can be put in as. It files
    * one card, asks the provider once for the route and the times, and leaves
    * both blank if the provider carries nothing. The same flight on the same day
@@ -591,6 +609,7 @@ export function useFlightPlans() {
     settleConflict,
     keepCondition,
     checkStatus,
+    lookUpCheckIn,
     noticeText,
     addByNumber,
   };

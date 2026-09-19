@@ -34,6 +34,9 @@ import { useFlightTelemetry } from "@/hooks/useFlightTelemetry";
 import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
+import { GroundLead } from "./GroundLead";
+import { groundPath } from "@/lib/groundPath";
+import { carrierId, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
@@ -57,6 +60,7 @@ import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSour
 import { QUICK_LAW } from "@/lib/flightQuick";
 import { readingAge, statusWords, trackProgress, type LiveFlight } from "@/lib/flightStatus";
 import { airportZone, anchorToZone, clockShift, leaveForFlight } from "@/lib/travelSense";
+import { airportWords } from "@/lib/airports";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -112,9 +116,12 @@ export function FlightDesk() {
     settleConflict,
     keepCondition,
     checkStatus,
+    lookUpCheckIn,
     noticeText,
     addByNumber,
   } = useFlightPlans();
+  /* Which flight is having its check-in area read, so only that card waits. */
+  const [looking, setLooking] = useState<string | null>(null);
   /* 12-hour, with the day when it is not today. "Be there by 22:15" is a riddle. */
   const clock = useMemo(() => flightClock(timezone), [timezone]);
 
@@ -272,6 +279,56 @@ export function FlightDesk() {
    * alone, so it does not wait on the airline feed. The live deck inks its own
    * stamp once a reading exists, so this stands in only until then.
    */
+  /**
+   * The practical next move for one flight, derived from what is already on
+   * record. It leads the card and it is one line: closer to the gate the
+   * emphasis shifts from the clock to the counter, the board and the gate, with
+   * no new card and nothing stacked on.
+   */
+  const groundBlock = (plan: FlightPlan) => {
+    const snap = plan.live_status as LiveFlight | null;
+    const option = plan.options.find((o) => o.id === plan.chosen_option_id) ?? plan.options[0] ?? null;
+    const identity: FlightIdentity | null = option
+      ? mergeIdentity((option.identity ?? null) as FlightIdentity | null, {
+          marketing:
+            (option.identity as FlightIdentity | null)?.marketing ??
+            carrierId({ carrier: option.airline, flight_no: option.flight_no }),
+        })
+      : null;
+    /* Where the journey model says this person is, for this flight only. */
+    const legIndex = (journey.current?.legs ?? []).findIndex((l) => l.plan_id === plan.id);
+    const atThisLeg = legIndex >= 0 && journey.where?.legIndex === legIndex;
+    const where = atThisLeg ? journey.where!.kind : "before";
+    const departAt =
+      snap?.departure.estimated ?? snap?.departure.scheduled ?? option?.depart_at ?? null;
+    const depMs = departAt ? Date.parse(departAt) : NaN;
+    const read = groundPath({
+      where,
+      identity,
+      fromPlace: airportWords((plan.origin ?? "").trim().toUpperCase()) || plan.origin,
+      toPlace: airportWords((plan.destination ?? "").trim().toUpperCase()) || plan.destination,
+      terminal: snap?.departure.terminal ?? null,
+      gate: where === "in_air" ? (snap?.arrival.gate ?? null) : (snap?.departure.gate ?? null),
+      minsToDeparture: Number.isFinite(depMs) ? Math.round((depMs - Date.now()) / 60_000) : null,
+    });
+    return (
+      <GroundLead
+        read={read}
+        looking={looking === plan.id}
+        onLookUp={async () => {
+          setLooking(plan.id);
+          try {
+            vantaToast.info(await lookUpCheckIn(plan));
+          } catch (e) {
+            vantaToast.warning(e instanceof Error ? e.message : "That look-up did not go through.");
+          } finally {
+            setLooking(null);
+          }
+        }}
+      />
+    );
+  };
+
   const groundAhead = (plan: FlightPlan) => {
     if (plan.live_status) return null;
     const from = (plan.origin ?? "").trim().toUpperCase();
@@ -618,6 +675,7 @@ export function FlightDesk() {
                       reading={busy || readingPlanId === p.id}
                     />
                   )}
+                  {groundBlock(p)}
                   {groundAhead(p)}
                   {liveLine(p) && <p className="text-[11.5px] text-foreground/85">{liveLine(p)}</p>}
                   {senseLines(p).map((line) => (
@@ -716,6 +774,7 @@ export function FlightDesk() {
                         reading={readingPlanId === p.id}
                       />
                     )}
+                    {groundBlock(p)}
                     {groundAhead(p)}
                     {liveLine(p) && <p className="text-[11.5px] text-foreground/80">{liveLine(p)}</p>}
                     {senseLines(p).map((line) => (

@@ -10,6 +10,39 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
+import { carrierId, mergeIdentity, type FlightIdentity } from "../_shared/flightIdentity.ts";
+
+/**
+ * Fold the provider's carrier names into the flight's own identity. Returns the
+ * rewritten options only when something new was learned, so an unchanged
+ * reading writes nothing and leaves no receipt.
+ */
+function foldIdentity(plan: any, live: LiveFlight): { options: any[]; identity: FlightIdentity } | null {
+  const options = Array.isArray(plan?.options) ? [...(plan.options as any[])] : [];
+  if (!options.length) return null;
+  const at = Math.max(
+    0,
+    options.findIndex((o) => o.id === plan?.chosen_option_id),
+  );
+  const kept = (options[at]?.identity ?? null) as FlightIdentity | null;
+  const marketing =
+    carrierId({
+      carrier: live.marketed_as?.carrier ?? live.airline,
+      carrier_code: live.marketed_as?.carrier_code ?? live.airline_code,
+      flight_no: live.marketed_as?.flight_no ?? live.flight_no,
+    }) ?? null;
+  const operating = live.operated_by
+    ? carrierId({
+        carrier: live.operated_by.carrier,
+        carrier_code: live.operated_by.carrier_code,
+        flight_no: live.operated_by.flight_no,
+      })
+    : null;
+  const identity = mergeIdentity(kept, { marketing, operating });
+  if (JSON.stringify(identity) === JSON.stringify(kept)) return null;
+  options[at] = { ...options[at], identity };
+  return { options, identity };
+}
 
 const KEY = Deno.env.get("AVIATIONSTACK_API_KEY") ?? Deno.env.get("FLIGHT_API_KEY") ?? "";
 const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
@@ -231,6 +264,22 @@ Deno.serve(async (req) => {
           entity_id: plan.id,
           event: "flight.status_read",
           payload: { flight_no, flight_date, status: live.status, changed: news, auto: !!auto, bought: false },
+        } as never);
+      }
+
+      /* The airline that actually flies it is the whole answer to "where do I
+         go" in a terminal, so it is kept on the flight rather than thrown away
+         with the rest of the reading. Nothing already on record is erased. */
+      const filled = foldIdentity(plan, live);
+      if (filled) {
+        await asUser.from("flight_plans").update({ options: filled.options as never }).eq("id", plan.id);
+        await asUser.from("audit_log").insert({
+          user_id: user.id,
+          organization_id: plan.organization_id ?? null,
+          entity_type: "flight_plan",
+          entity_id: plan.id,
+          event: "flight.identity_filled",
+          payload: { flight_no, source: "aviationstack", identity: filled.identity },
         } as never);
       }
     }
