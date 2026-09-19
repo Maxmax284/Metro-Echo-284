@@ -10,7 +10,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { askFlight, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
+import { carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
 import { carrierId, mergeIdentity, type FlightIdentity } from "../_shared/flightIdentity.ts";
 
 /**
@@ -182,7 +182,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const live = await askProvider(flight_no, flight_date);
+    const read = await askProvider(flight_no, flight_date);
+    /* A reading that is quiet about a gate or terminal does not erase one an
+       earlier reading verified. Kept values travel with the date they were read. */
+    const live = read ? carryFiled(previous, read) : null;
     await asUser.from("api_usage_logs").insert({
       owner_id: user.id,
       user_id: user.id,
