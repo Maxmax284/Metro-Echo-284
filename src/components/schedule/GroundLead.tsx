@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { GroundRead } from "@/lib/groundPath";
-import { STAGE_LABEL, nextStage, type GroundStage } from "@/lib/groundStage";
+import { STAGE_DONE, STAGE_LABEL, nextStage, type GroundStage } from "@/lib/groundStage";
 
 export function GroundLead({
   read,
@@ -69,28 +69,33 @@ export function GroundLead({
           {looking ? "Reading an airline page…" : "Look up where to check in"}
         </Button>
       )}
-      {onStage && (step || stage !== "away") && (
-        <div className="flex flex-wrap gap-1.5 pt-0.5">
-          {step && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className={cn("h-8 text-[11px]", MOTION_FOCUS)}
-              onClick={() => onStage(step)}
-            >
-              {STAGE_LABEL[step]}
-            </Button>
-          )}
+      {onStage && (step || (stage && stage !== "away")) && (
+        <div className="space-y-1.5 pt-0.5">
           {stage && stage !== "away" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className={cn("h-8 text-[11px]", MOTION_FOCUS)}
-              onClick={() => onStage("away")}
-            >
-              Not there yet
-            </Button>
+            <p className="text-[11px] leading-snug text-muted-foreground">{STAGE_DONE[stage]}</p>
           )}
+          <div className="flex flex-wrap gap-1.5">
+            {step && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className={cn("h-8 text-[11px]", MOTION_FOCUS)}
+                onClick={() => onStage(step)}
+              >
+                {STAGE_LABEL[step]}
+              </Button>
+            )}
+            {stage && stage !== "away" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn("h-8 text-[11px]", MOTION_FOCUS)}
+                onClick={() => onStage("away")}
+              >
+                Undo
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>
