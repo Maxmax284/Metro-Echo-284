@@ -109,6 +109,22 @@ const NOTES: CountryNotes[] = [
     ],
   },
   {
+    cc: "TW",
+    country: "Taiwan",
+    currency: "TWD",
+    emergency: "110 police, 119 ambulance and fire, 0800-024-111 travel hotline",
+    transport: [
+      { line: "Taoyuan (TPE): follow Airport MRT signs for trains toward Taipei Main Station; express trains skip more stops than commuter trains.", checked_on: "2026-09-19" },
+      { line: "Airport taxis leave from the signed ranks outside arrivals. Use the official queue rather than an offer inside the terminal.", checked_on: "2026-09-19" },
+    ],
+    money: [
+      { line: "EasyCard covers the Airport MRT and most city transit. Cards are common, but small markets may still want cash.", checked_on: "2026-09-19" },
+    ],
+    watch_out: [
+      { line: "TPE is outside central Taipei. Allow for the airport-to-city trip rather than treating the airport as downtown.", checked_on: "2026-09-19" },
+    ],
+  },
+  {
     cc: "AE",
     country: "United Arab Emirates",
     currency: "AED",

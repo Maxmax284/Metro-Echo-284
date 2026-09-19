@@ -9,6 +9,8 @@
 //   - The stamp lands once on arrival. Reduced motion gets the same block, still.
 import { useMemo } from "react";
 import { arrivalFacts, helpCells, shiftWords } from "@/lib/arrivalFacts";
+import { arrivalGroundPack } from "@/lib/arrivalGround";
+import { Languages, TrainFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SolariBoard } from "./SolariBoard";
 
@@ -37,6 +39,7 @@ export function ArrivalStamp({
 
   const shift = shiftWords(f);
   const help = helpCells(f);
+  const ground = arrivalGroundPack(iata);
 
   return (
     <div className={cn("space-y-2.5 rounded-md border border-border/60 bg-muted/15 p-2.5", className)}>
@@ -93,14 +96,32 @@ export function ArrivalStamp({
             reads it fresh.
           </p>
         ) : (
-          f.city && <p>Echo does not have the currency for {f.country} on record.</p>
+          <p>Echo does not have the currency for {f.country ?? f.iata} on record.</p>
         )}
         {help ? (
           <p>Emergency: {help}{f.help?.note ? ` ${f.help.note}` : ""} Echo cannot make the call for you.</p>
         ) : (
-          f.city && <p>No published emergency number on record for {f.country} — ask where you are staying.</p>
+          <p>No published emergency number on record for {f.country ?? f.iata} — ask airport staff.</p>
         )}
         <p className="text-muted-foreground/75">Echo keeps your clock until you say switch.</p>
+      </div>
+
+      <div className="space-y-2 border-t border-border/50 pt-2">
+        <div className="flex items-start gap-1.5">
+          <TrainFront className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          <p className="text-[11px] leading-snug text-foreground/85">
+            {ground?.transit ?? "No verified airport-to-city shortcut is on record."}
+            {ground?.transitCheckedOn ? <span className="text-muted-foreground"> Checked {ground.transitCheckedOn}.</span> : null}
+          </p>
+        </div>
+        <div className="flex items-start gap-1.5">
+          <Languages className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+          <p className="text-[11px] leading-snug text-foreground/85">
+            {ground?.phrases.length
+              ? ground.phrases.map((phrase) => `${phrase.words} — ${phrase.means}`).join(" · ")
+              : `No kept phrase list for ${f.country ?? "this destination"}.`}
+          </p>
+        </div>
       </div>
     </div>
   );
