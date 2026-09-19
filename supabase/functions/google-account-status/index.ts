@@ -8,6 +8,7 @@ import { corsHeaders, jsonResponse, preflight } from "../_shared/http.ts";
 import { resolveUser } from "../_shared/authContext.ts";
 import { adminClient } from "../_shared/appUserConnections.ts";
 import { GOOGLE_CLIENT_KEY_ENV } from "../_shared/appUserScopes.ts";
+import { callGoogle } from "../_shared/googleService.ts";
 import {
   googleServiceStatuses,
   type ConnectionRow,
@@ -31,10 +32,30 @@ Deno.serve(async (req: Request) => {
     if (!user) return jsonResponse({ error: "sign in required" }, 401);
 
     const admin = adminClient();
-    const { data: rows } = await admin
+    const { data: fetched } = await admin
       .from("app_user_connections")
       .select("connector_id, account_label, last_error")
       .eq("user_id", user.id);
+    let rows = fetched;
+
+    /* A red mark is a claim about NOW, not a scar from days ago. Re-ask Google
+       once, cheaply, for any service carrying a recorded error: a healthy
+       answer clears the mark (callGoogle records the OK), a refusal re-stamps
+       it with today's reason. One read-only probe per marked service. */
+    const PROBE: Record<string, string> = {
+      google_calendar: "/calendar/v3/users/me/calendarList?maxResults=1",
+      google_mail: "/gmail/v1/users/me/profile",
+      google_drive: "/drive/v3/about?fields=user",
+    };
+    const marked = (rows ?? []).filter((r) => r.last_error && PROBE[r.connector_id]);
+    if (marked.length > 0) {
+      await Promise.all(marked.map((r) => callGoogle(user.id, r.connector_id as never, PROBE[r.connector_id])));
+      const { data: fresh } = await admin
+        .from("app_user_connections")
+        .select("connector_id, account_label, last_error")
+        .eq("user_id", user.id);
+      rows = fresh;
+    }
 
     /* Calendar keeps its own recorded sync failure. Mail and files record theirs
        on their own connection row, so one refused service never reddens another. */
