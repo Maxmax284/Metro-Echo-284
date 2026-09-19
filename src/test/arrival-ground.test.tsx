@@ -13,7 +13,7 @@ describe("ArrivalGroundPack", () => {
 
   it("states missing destination facts without guessing", () => {
     render(<ArrivalStamp iata="ZZZ" at={null} arrived={false} />);
-    expect(screen.getByText(/currency for .* not on record/i)).toBeTruthy();
+    expect(screen.getByText("Echo does not have the currency for ZZZ on record.")).toBeTruthy();
     expect(screen.getByText(/No verified airport-to-city shortcut/)).toBeTruthy();
   });
 });
