@@ -134,9 +134,16 @@ export function normalizeAviationstack(
   const rows = Array.isArray((payload as any)?.data) ? ((payload as any).data as any[]) : [];
   const want = ask.flight_no.replace(/\s+/g, "").toUpperCase();
   const day = (ask.flight_date ?? "").slice(0, 10);
+  const code = (v: unknown) => str(v)?.replace(/\s+/g, "").toUpperCase() ?? null;
+  /* A codeshare answers to two numbers. A ticket filed under the marketing
+     number must still find the row the provider files under the operating one,
+     and the other way round — otherwise the flight reads as nothing on record
+     while the terminal boards it happily. */
   const sameNumber = (r: any) =>
-    str(r?.flight?.iata)?.replace(/\s+/g, "").toUpperCase() === want ||
-    str(r?.flight?.icao)?.replace(/\s+/g, "").toUpperCase() === want;
+    code(r?.flight?.iata) === want ||
+    code(r?.flight?.icao) === want ||
+    code(r?.flight?.codeshared?.flight_iata) === want ||
+    code(r?.flight?.codeshared?.flight_icao) === want;
   /* The day matters as much as the number. A provider that refuses a date filter
      hands back every recent run of this flight; grafting yesterday's run onto
      tomorrow's ticket would invent a departure that already happened. When no
