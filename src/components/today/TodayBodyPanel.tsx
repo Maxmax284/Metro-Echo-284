@@ -4,7 +4,17 @@
 // measured, says plainly when a sense is off, and never claims a posture Echo
 // wasn't told. Nothing here approves or runs anything.
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Footprints, HeartPulse, Moon, Activity, Timer } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bluetooth,
+  Footprints,
+  HeartPulse,
+  Loader2,
+  Moon,
+  Activity,
+  Square,
+  Timer,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS } from "@/lib/motion";
 import { MachineLabel, MachineText } from "@/components/ui/instrument";
@@ -13,6 +23,7 @@ import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { BodyPatternsPanel } from "@/components/wearables/BodyPatternsPanel";
 import { useWearableLoop } from "@/hooks/useWearableLoop";
+import { useLiveHeartRate } from "@/hooks/useLiveHeartRate";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { readingLine, restBalance, workoutList } from "@/lib/wearable";
 
