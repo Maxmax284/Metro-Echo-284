@@ -27,11 +27,20 @@ import { useLiveHeartRate } from "@/hooks/useLiveHeartRate";
 import { POSTURE_LABEL } from "@/lib/awareness";
 import { readingLine, restBalance, workoutList } from "@/lib/wearable";
 
+const liveBtn = cn(
+  "inline-flex min-h-[32px] items-center gap-1 rounded-[2px] border border-border/60 px-2",
+  "text-[10.5px] text-foreground/85 hover:border-primary/40 hover:text-foreground disabled:opacity-60",
+  MOTION_FOCUS,
+);
+
 export function TodayBodyPanel() {
   const { loop, loading, error, refresh } = useWearableLoop();
   const rest = restBalance(loop.readings);
   const hrOn = loop.consent.heart_rate === true;
   const activityOn = loop.consent.activity === true;
+  /* The same Bluetooth connection the body desk uses, on the day's page. A tap
+     opens it; it stores one reading a minute and nothing else. */
+  const hr = useLiveHeartRate(hrOn, refresh);
 
   return (
     <CollapsibleSection
