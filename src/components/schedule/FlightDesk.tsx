@@ -44,6 +44,8 @@ import type { LegStateKind } from "@/lib/journey";
 import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
+import { connectionAt, type ConnectionRead } from "@/lib/connectionRead";
+
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { terminalPath } from "@/lib/terminalPath";
@@ -417,7 +419,7 @@ export function FlightDesk() {
     );
   };
 
-  const groundAhead = (plan: FlightPlan, inAir = false) => {
+  const groundAhead = (plan: FlightPlan, inAir = false, connection: ConnectionRead | null = null) => {
     if (plan.live_status) return null;
     const from = (plan.origin ?? "").trim().toUpperCase();
     const to = (plan.destination ?? "").trim().toUpperCase();
@@ -433,7 +435,7 @@ export function FlightDesk() {
       />
     ) : null;
     const there = /^[A-Z]{3}$/.test(to) && at ? (
-      <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />
+      <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} connection={connection} />
     ) : null;
     if (!here && !there) return null;
     return (
@@ -443,6 +445,7 @@ export function FlightDesk() {
       </div>
     );
   };
+
 
   /* Before the first provider reading, the board still exists — but every
      operational field says exactly what is not filed instead of disappearing. */
@@ -559,7 +562,14 @@ export function FlightDesk() {
   const livePlan = liveLeg ? (plans.find((p) => p.id === liveLeg.plan_id) ?? null) : null;
   const liveSnapshot = livePlan?.live_status as LiveFlight | null | undefined;
   const activeGround = livePlan ? groundContext(livePlan) : null;
+  /* When this leg lands somewhere you are only changing planes, the arrival end
+     of the card answers the transfer, not the city. */
+  const onward = useMemo(
+    () => connectionAt(journey.current?.legs ?? [], journey.where?.legIndex ?? 0),
+    [journey.current, journey.where],
+  );
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
+
 
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
 
@@ -588,6 +598,7 @@ export function FlightDesk() {
                 ticket={boardWords_(livePlan).ticket}
                 groundStep={activeGround?.read.step}
                 belowBoard={terminalWalk(livePlan, activeGround?.read)}
+                connection={onward}
                 embedded
               />
             ) : (
@@ -598,7 +609,8 @@ export function FlightDesk() {
                   activeGround?.where === "in_air",
                   activeGround?.where === "boarding",
                 )}
-                {groundAhead(livePlan, activeGround?.where === "in_air")}
+                {groundAhead(livePlan, activeGround?.where === "in_air", onward)}
+
                 {/* On the aircraft with no feed from it: the track, the miles
                     left, the clock where you land, and what the cabin usually
                     carries — all off the device, so it holds with no signal. */}
