@@ -14,7 +14,29 @@ export const GATEWAY_BASE = "https://connector-gateway.lovable.dev";
 
 export type GoogleCallOutcome =
   | { ok: true; body: unknown }
-  | { ok: false; reason: "not_connected" | "needs_you" | "failed"; detail: string; status?: number };
+  | {
+    ok: false;
+    /* service_off is Google's own project switch, not a permission this person
+       withheld. Saying "the permission you granted" there sends them to the
+       wrong place, so it is named separately. */
+    reason: "not_connected" | "needs_you" | "service_off" | "failed";
+    detail: string;
+    status?: number;
+  };
+
+/**
+ * Google answers a switched-off API with 403 and says so in the body. That is a
+ * one-time setting in the Google Cloud project behind the sign-in — no amount of
+ * re-granting permission changes it.
+ */
+export function readsAsServiceOff(body: string): boolean {
+  const said = body.toLowerCase();
+  return (
+    said.includes("has not been used in project") ||
+    said.includes("api is disabled") ||
+    (said.includes("accessnotconfigured") && said.includes("enable"))
+  );
+}
 
 /** True when this person has granted this exact Google service. */
 export async function hasGoogleService(userId: string, connectorId: GoogleConnectorId): Promise<boolean> {
