@@ -214,13 +214,13 @@ describe("5 — staleness is said out loud", () => {
         live_status: live({
           from: "IAD",
           to: "TPE",
-          depActual: "2026-09-19T21:20:00",
-          arrScheduled: "2026-09-21T05:10:00",
+          depActual: "2026-09-19T21:20:00-04:00",
+          arrScheduled: "2026-09-21T05:10:00+08:00",
           status: "active",
         }),
       }),
     );
-    const s = legState(leg, new Date("2026-09-21T00:00:00Z"));
+    const s = legState(leg, new Date("2026-09-20T22:00:00Z"));
     expect(s.kind).toBe("in_air");
     expect(s.stale).toBe(true);
     expect(s.words).toContain("not that you have landed");
