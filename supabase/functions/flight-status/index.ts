@@ -7,7 +7,7 @@
 //     nothing. Silence is never dressed up as "on time".
 //   - A reading taken minutes ago is reused rather than paid for twice.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { askFlight, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
+import { askFlightWithFeed, aeroKey, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { carryFiled, normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
@@ -87,10 +87,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
-  return await askFlight(KEY, flight_no, flight_date);
 }
 
 Deno.serve(async (req) => {
