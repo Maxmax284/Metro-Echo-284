@@ -165,15 +165,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    /* The day's ledger of paid readings — the ceiling nothing reads past. */
+    /* The day's ledger of paid readings, kept per feed. Each feed bills
+       separately, so an aggregator that has burnt its day does not silence the
+       feed that still has room. */
     const dayStart = new Date().toISOString().slice(0, 10);
-    const { count: spentToday } = await asUser
-      .from("api_usage_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("provider", "aviationstack")
-      .eq("cache_hit", false)
-      .gte("created_at", `${dayStart}T00:00:00Z`);
-    if ((spentToday ?? 0) >= DAILY_BUDGET) {
+    const spentOn = async (feed: string): Promise<number> => {
+      const { count } = await asUser
+        .from("api_usage_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("provider", feed)
+        .eq("cache_hit", false)
+        .gte("created_at", `${dayStart}T00:00:00Z`);
+      return count ?? 0;
+    };
+    const allow = {
+      aero: !!aeroKey() && (await spentOn("aeroapi")) < DAILY_BUDGET,
+      stack: !!KEY && (await spentOn("aviationstack")) < DAILY_BUDGET,
+    };
+    if (!allow.aero && !allow.stack) {
       return json({
         live: previous,
         words: previous
@@ -185,19 +194,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const read = await askProvider(flight_no, flight_date);
+    const { live: read, feed } = await askFlightWithFeed(KEY, flight_no, flight_date, allow);
     /* A reading that is quiet about a gate or terminal does not erase one an
        earlier reading verified. Kept values travel with the date they were read. */
     const live = read ? carryFiled(previous, read) : null;
     await asUser.from("api_usage_logs").insert({
       owner_id: user.id,
       user_id: user.id,
-      provider: "aviationstack",
+      provider: feed,
       feature: auto ? "flight-deck-auto" : "flight-status",
       request_type: "flight_status",
       status: live ? "success" : "failed",
       cache_hit: false,
       related_entity_type: plan ? "flight_plan" : null,
+
       related_entity_id: plan?.id ?? null,
     } as never);
     if (!live) {
