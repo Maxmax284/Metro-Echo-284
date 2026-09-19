@@ -35,6 +35,8 @@ import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
+import { PreDeparturePack } from "./PreDeparturePack";
+import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath } from "@/lib/groundPath";
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
 import { boardIdentity, carrierId, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
@@ -348,24 +350,34 @@ export function FlightDesk() {
     const nearEnough = mins == null || (mins < 12 * 60 && mins > -180);
     const offerStage =
       !gateFiled && nearEnough && (where === "before" || where === "at_airport");
+    /* The countdown errands sit under the move while they are still useful;
+       once boarding takes over the card, the pack steps out of the way. */
+    const pack = preDeparturePack({
+      departAt,
+      fromIata: (plan.origin ?? "").trim().toUpperCase() || null,
+      toIata: (plan.destination ?? "").trim().toUpperCase() || null,
+    });
     return (
-      <GroundLead
-        read={read}
-        lead={lead}
-        stage={offerStage ? stage : undefined}
-        onStage={(s) => setStage(plan.id, s)}
-        looking={looking === plan.id}
-        onLookUp={async () => {
-          setLooking(plan.id);
-          try {
-            vantaToast.info(await lookUpCheckIn(plan));
-          } catch (e) {
-            vantaToast.warning(e instanceof Error ? e.message : "That look-up did not go through.");
-          } finally {
-            setLooking(null);
-          }
-        }}
-      />
+      <div className="space-y-2">
+        <GroundLead
+          read={read}
+          lead={lead}
+          stage={offerStage ? stage : undefined}
+          onStage={(s) => setStage(plan.id, s)}
+          looking={looking === plan.id}
+          onLookUp={async () => {
+            setLooking(plan.id);
+            try {
+              vantaToast.info(await lookUpCheckIn(plan));
+            } catch (e) {
+              vantaToast.warning(e instanceof Error ? e.message : "That look-up did not go through.");
+            } finally {
+              setLooking(null);
+            }
+          }}
+        />
+        {where === "in_air" || where === "done" || where === "stopped" ? null : <PreDeparturePack pack={pack} lead={lead} />}
+      </div>
     );
   };
 

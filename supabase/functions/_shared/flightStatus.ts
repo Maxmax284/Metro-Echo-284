@@ -83,6 +83,15 @@ function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+/* The provider stamps airport wall-clock times with a fake "+00:00". A 1:15 AM
+   departure out of Dulles comes back as "01:15+00:00", which is not 1:15 AM in
+   Washington — it is the ticket time wearing a UTC costume. Strip the offset so
+   everything downstream reads it as what it is: the clock on the airport wall. */
+function wall(v: unknown): string | null {
+  const t = str(v);
+  return t ? t.replace(/(?:[Zz]|[+-]\d{2}:?\d{2})$/, "") : null;
+}
+
 function end(raw: any): LiveEnd {
   const r = raw ?? {};
   return {
@@ -90,9 +99,9 @@ function end(raw: any): LiveEnd {
     iata: str(r.iata)?.toUpperCase() ?? null,
     terminal: str(r.terminal),
     gate: str(r.gate),
-    scheduled: str(r.scheduled),
-    estimated: str(r.estimated),
-    actual: str(r.actual),
+    scheduled: wall(r.scheduled),
+    estimated: wall(r.estimated),
+    actual: wall(r.actual),
     delay_min: num(r.delay),
   };
 }
