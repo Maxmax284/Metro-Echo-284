@@ -1165,6 +1165,16 @@ export function FlightDesk() {
                     <JourneyFitCard
                       fit={fitOf(p) as NonNullable<ReturnType<typeof fitOf>>}
                       busy={busy}
+                      steps={
+                        landedAt && p.id === transferPlan?.id ? (
+                          <TransferSteps
+                            airport={landedAt}
+                            onward={p}
+                            confirmed={transferConfirmed}
+                            providerGate={(p.live_status as LiveFlight | null)?.departure.gate ?? null}
+                          />
+                        ) : undefined
+                      }
                       onSetRoute={async (from, to) => {
                         setBusy(true);
                         try {
