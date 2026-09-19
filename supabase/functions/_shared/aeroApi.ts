@@ -10,7 +10,7 @@
 //     same number is a different flight, not a delay.
 //
 // Pure apart from one fetch. No React.
-import type { LiveCarrier, LiveEnd, LiveFlight, LivePosition } from "./flightStatus.ts";
+import { anchorLive, type LiveCarrier, type LiveEnd, type LiveFlight, type LivePosition } from "./flightStatus.ts";
 import { airportZone } from "./travelSense.ts";
 
 /** The provider said this key cannot ask that question. A limit, not a crash. */
