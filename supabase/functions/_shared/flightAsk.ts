@@ -47,11 +47,9 @@ async function askOnce(key: string, flight_no: string, flight_date: string, with
   return payload;
 }
 
-/**
- * One reading for one flight on one day, or null when the feed has nothing that
- * matches that day. Throws only on a genuine provider failure.
- */
-export async function askFlight(key: string, flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+/** The older aggregator, on its own. Kept separate so the chain stays readable. */
+async function askStack(key: string, flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+  if (!key) return null;
   let payload: unknown;
   try {
     payload = await askOnce(key, flight_no, flight_date, true);
@@ -62,3 +60,45 @@ export async function askFlight(key: string, flight_no: string, flight_date: str
   }
   return normalizeAviationstack(payload, { flight_no, flight_date });
 }
+
+/**
+ * One reading for one flight on one day, or null when neither feed has anything
+ * that matches that day. AeroAPI is asked first; the aggregator answers when
+ * AeroAPI is unconfigured, refused, blind to the flight, or throws.
+ * Throws only when every configured feed failed for a real reason.
+ */
+export async function askFlight(key: string, flight_no: string, flight_date: string): Promise<LiveFlight | null> {
+  const aero = aeroKey();
+  if (aero) {
+    try {
+      const live = await askAero(aero, flight_no, flight_date);
+      if (live) return live;
+      console.error(`aeroapi carried nothing for ${flight_no} on ${flight_date}; trying the backup feed`);
+    } catch (e) {
+      if (e instanceof AeroLimited) console.error("aeroapi refused this key; trying the backup feed");
+      else console.error("aeroapi call threw; trying the backup feed", e);
+      if (!key) throw e instanceof AeroLimited ? new PlanLimited(e.message) : e;
+    }
+  }
+  return await askStack(key, flight_no, flight_date);
+}
+
+/** The same chain, with the name of the feed that answered, for a receipt. */
+export async function askFlightWithFeed(
+  key: string,
+  flight_no: string,
+  flight_date: string,
+): Promise<{ live: LiveFlight | null; feed: FeedName }> {
+  const aero = aeroKey();
+  if (aero) {
+    try {
+      const live = await askAero(aero, flight_no, flight_date);
+      if (live) return { live, feed: "aeroapi" };
+    } catch (e) {
+      console.error("aeroapi unavailable; falling back", e);
+      if (!key) return { live: null, feed: "aeroapi" };
+    }
+  }
+  return { live: await askStack(key, flight_no, flight_date), feed: "aviationstack" };
+}
+
