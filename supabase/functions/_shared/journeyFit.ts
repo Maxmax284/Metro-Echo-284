@@ -97,7 +97,7 @@ export function journeyFit(input: {
   /* Nothing to work with but a number and a day. Ask the one question. */
   if (!from) {
     const detail = [
-      `Your trip lands at ${endPlace} (${endIata})${endAt ? "" : " on the times on record"}. If ${no} leaves from there, Echo chains it on as the next leg and works out the sit.`,
+      `Your trip lands at ${endPlace}${endAt ? "" : ", on the times on record"}. If ${no} leaves from there, Echo chains it on as the next leg and works out the sit.`,
     ];
     const sameOrNextDay =
       day(endAt) && day(plan.depart_on)
