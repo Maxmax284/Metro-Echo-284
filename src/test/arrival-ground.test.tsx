@@ -1,5 +1,4 @@
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ArrivalStamp } from "@/components/schedule/ArrivalStamp";
 
@@ -11,9 +10,9 @@ describe("ArrivalGroundPack", () => {
     expect(screen.getByLabelText("110 · 119")).toBeTruthy();
   });
 
-  it("opens the offline ground pack with phrases, routes, money and numbers", async () => {
+  it("opens the offline ground pack with phrases, routes, money and numbers", () => {
     render(<ArrivalStamp iata="TPE" at="2026-09-20T05:10:00" arrived={false} />);
-    await userEvent.click(screen.getByRole("button", { name: /On the ground in Taipei/ }));
+    fireEvent.click(screen.getByRole("button", { name: /On the ground in Taipei/ }));
     expect(screen.getByText(/nǐ hǎo/)).toBeTruthy();
     expect(screen.getByText(/EasyCard/)).toBeTruthy();
     expect(screen.getByText(/Purple Express/)).toBeTruthy();
@@ -27,9 +26,9 @@ describe("ArrivalGroundPack", () => {
     expect(screen.getByText(/No verified airport-to-city shortcut/)).toBeTruthy();
   });
 
-  it("says plainly when nothing is kept about the place", async () => {
+  it("says plainly when nothing is kept about the place", () => {
     render(<ArrivalStamp iata="ZZZ" at={null} arrived={false} />);
-    await userEvent.click(screen.getByRole("button", { name: /Nothing kept about ZZZ yet/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Nothing kept about ZZZ yet/ }));
     expect(screen.getByText(/no kept notes/)).toBeTruthy();
   });
 });
