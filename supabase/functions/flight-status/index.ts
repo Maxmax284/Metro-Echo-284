@@ -7,6 +7,7 @@
 //     nothing. Silence is never dressed up as "on time".
 //   - A reading taken minutes ago is reused rather than paid for twice.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { askFlight, PlanLimited } from "../_shared/flightAsk.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { normalizeAviationstack, statusDiff, statusWords, STATUS_LAW, type LiveFlight } from "../_shared/flightStatus.ts";
@@ -85,45 +86,8 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** The provider said this plan cannot ask that question. Not a crash — a limit. */
-class PlanLimited extends Error {}
-
-function restricted(body: string): boolean {
-  return body.includes("function_access_restricted") || body.includes("usage_limit_reached");
-}
-
-async function askOnce(flight_no: string, flight_date: string, withDate: boolean) {
-  const url = new URL("https://api.aviationstack.com/v1/flights");
-  url.searchParams.set("access_key", KEY);
-  url.searchParams.set("flight_iata", flight_no);
-  if (withDate) url.searchParams.set("flight_date", flight_date);
-  const res = await fetch(url.toString());
-  const text = await res.text();
-  if (!res.ok) {
-    if (restricted(text)) throw new PlanLimited(text);
-    throw new Error(`[${res.status}] ${text}`);
-  }
-  const payload = JSON.parse(text || "{}");
-  if (payload?.error) {
-    const body = JSON.stringify(payload.error);
-    if (restricted(body)) throw new PlanLimited(body);
-    throw new Error(`[200] ${body}`);
-  }
-  return payload;
-}
-
 async function askProvider(flight_no: string, flight_date: string): Promise<LiveFlight | null> {
-  let payload: unknown;
-  try {
-    payload = await askOnce(flight_no, flight_date, true);
-  } catch (e) {
-    // The free plan refuses a date filter. Ask for the flight plainly instead;
-    // normalizing still keeps only a reading that matches the day asked about.
-    if (!(e instanceof PlanLimited)) throw e;
-    console.error("aviationstack refused the date filter; asking without it");
-    payload = await askOnce(flight_no, flight_date, false);
-  }
-  return normalizeAviationstack(payload, { flight_no, flight_date });
+  return await askFlight(KEY, flight_no, flight_date);
 }
 
 Deno.serve(async (req) => {
@@ -225,7 +189,7 @@ Deno.serve(async (req) => {
       provider: "aviationstack",
       feature: auto ? "flight-deck-auto" : "flight-status",
       request_type: "flight_status",
-      status: live ? "ok" : "empty",
+      status: live ? "success" : "failed",
       cache_hit: false,
       related_entity_type: plan ? "flight_plan" : null,
       related_entity_id: plan?.id ?? null,

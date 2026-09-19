@@ -87,7 +87,7 @@ export async function countedRead(
     provider: "aviationstack",
     feature: where.feature,
     request_type: "flight_status",
-    status: live ? "ok" : "empty",
+    status: live ? "success" : "failed",
     cache_hit: false,
     related_entity_type: "flight_plan",
     related_entity_id: where.planId ?? null,
