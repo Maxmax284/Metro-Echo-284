@@ -20,6 +20,7 @@ export function ArrivalStamp({
   at,
   homeZone,
   arrived = true,
+  connection = null,
   className,
 }: {
   /** Arrival airport code. */
@@ -33,6 +34,12 @@ export function ArrivalStamp({
    * the place you are heading to, and says so — it never claims you arrived.
    */
   arrived?: boolean;
+  /**
+   * Set when this landing is a connection, not the end of the trip. The city
+   * pack is the wrong answer for a transit passenger, so it stands down and the
+   * onward flight takes its place.
+   */
+  connection?: ConnectionRead | null;
   className?: string;
 }) {
   const f = useMemo(() => arrivalFacts(iata, at, homeZone), [iata, at, homeZone]);
@@ -50,12 +57,15 @@ export function ArrivalStamp({
         <div
           className={cn(
             "rounded-[3px] border-2 border-dashed px-3 py-1.5 text-center",
-            arrived
+            arrived && !connection
               ? "arrival-stamp border-emerald-400/60 text-emerald-400/90"
               : "border-primary/45 text-primary/85",
           )}
         >
-          <p className="vanta-machine-label leading-tight">{arrived ? "★ Arrived" : "Where you land"}</p>
+          <p className="vanta-machine-label leading-tight">
+            {connection ? "Changing planes" : arrived ? "★ Arrived" : "Where you land"}
+          </p>
+
           <p className="font-mono text-[13px] font-semibold leading-tight tracking-[0.12em]">
             {f.iata}
             {f.city ? ` · ${f.city}` : ""}
