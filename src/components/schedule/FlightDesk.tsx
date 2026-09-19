@@ -601,6 +601,8 @@ export function FlightDesk() {
         </>
       ) : null}
 
+      {livePlan ? <FlightAlertsCard /> : null}
+
       {/* What a later reading said, and the two honest answers to it. */}
       <FlightEvidenceCard
         plans={plans}
