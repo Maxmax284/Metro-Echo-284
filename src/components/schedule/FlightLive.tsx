@@ -76,7 +76,7 @@ export function FlightLive({
   /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
   embedded?: boolean;
   /** Sits directly under the board row — the terminal walk opens from there. */
-  belowBoard?: React.ReactNode;
+  belowBoard?: ReactNode;
 }) {
   const phase = flightPhase(live);
   /* Radar first: when the airline filed a fix for the aircraft, the marker sits
