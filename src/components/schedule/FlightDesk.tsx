@@ -64,7 +64,7 @@ import {
 } from "@/lib/flightPlan";
 import { OWNERSHIP_CHOICES, SOURCE_WORDS as NOTICE_SOURCE_WORDS, type NoticeSource } from "@/lib/flightRecognize";
 import { QUICK_LAW } from "@/lib/flightQuick";
-import { readingAge, statusWords, trackProgress, type LiveFlight } from "@/lib/flightStatus";
+import { flightPhase, readingAge, statusWords, trackProgress, type LiveFlight } from "@/lib/flightStatus";
 import { airportZone, anchorToZone, clockShift, leaveForFlight } from "@/lib/travelSense";
 import { airportWords } from "@/lib/airports";
 import { MOTION_FOCUS } from "@/lib/motion";
