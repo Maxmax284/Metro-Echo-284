@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.web-look]
 verify_jwt = true
+
+[functions.flight-feed-check]
+verify_jwt = false
