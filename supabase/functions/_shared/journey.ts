@@ -581,9 +581,17 @@ export function bigNumbers(
   const leftMin = mins(ahead?.from.at);
   const gate = ahead?.from.gate ?? null;
   const terminal = ahead?.from.terminal ?? null;
+  /* A countdown that has run out is not a negative countdown. Once the filed
+     time has gone by, the clock has nothing left to say and the card says that
+     rather than printing "-1h 41m until you leave". */
+  const runOut = leftMin != null && leftMin < 0;
   return {
-    timeLeft: leftMin == null ? null : durationWords(leftMin),
-    timeLeftLabel: where.kind === "on_ground" ? "left here" : "until you leave",
+    timeLeft: leftMin == null || runOut ? null : durationWords(leftMin),
+    timeLeftLabel: runOut
+      ? "the filed departure time has gone by"
+      : where.kind === "on_ground"
+        ? "left here"
+        : "until you leave",
     gate: gate ?? term(terminal),
     gateLabel: gate
       ? "departure gate"
@@ -592,6 +600,7 @@ export function bigNumbers(
         : "gate not filed yet",
   };
 }
+
 
 // ---------------------------------------------------------------------------
 // Reading it with no bars

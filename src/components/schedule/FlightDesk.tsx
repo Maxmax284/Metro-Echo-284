@@ -35,6 +35,9 @@ import { JourneySpine } from "./JourneySpine";
 import { FlightEvidenceCard } from "./FlightEvidenceCard";
 import { FlightLive } from "./FlightLive";
 import { GroundLead } from "./GroundLead";
+import { TravellerWord } from "./TravellerWord";
+import type { LegStateKind } from "@/lib/journey";
+
 import { PreDeparturePack } from "./PreDeparturePack";
 import { preDeparturePack } from "@/lib/preDeparture";
 import { groundPath, type GroundRead } from "@/lib/groundPath";
@@ -404,15 +407,20 @@ export function FlightDesk() {
     );
   };
 
-  const groundAhead = (plan: FlightPlan) => {
+  const groundAhead = (plan: FlightPlan, inAir = false) => {
     if (plan.live_status) return null;
     const from = (plan.origin ?? "").trim().toUpperCase();
     const to = (plan.destination ?? "").trim().toUpperCase();
     const at = anchorToZone(plan.options.find((o) => o.arrive_at)?.arrive_at ?? null, airportZone(to));
     /* The clock at the airport you leave from, live, so the board reads right
-       standing at the gate — not only after the wheels are down. */
+       standing at the gate — not only after the wheels are down. Once you are on
+       the aircraft the same clock is the time where you left, not a gate. */
     const here = /^[A-Z]{3}$/.test(from) ? (
-      <AirportClock iata={from} homeZone={timezone} label="Local time at the gate" />
+      <AirportClock
+        iata={from}
+        homeZone={timezone}
+        label={inAir ? "Time where you left" : "Local time at the gate"}
+      />
     ) : null;
     const there = /^[A-Z]{3}$/.test(to) && at ? (
       <ArrivalStamp iata={to} at={at} homeZone={timezone} arrived={false} />
@@ -428,12 +436,18 @@ export function FlightDesk() {
 
   /* Before the first provider reading, the board still exists — but every
      operational field says exactly what is not filed instead of disappearing. */
-  const boardAhead = (plan: FlightPlan, read: GroundRead | null | undefined) => {
+  const boardAhead = (plan: FlightPlan, read: GroundRead | null | undefined, inAir = false) => {
     const identity = boardWords_(plan);
-    const status = read?.step === "find_check_in" ? "CHECK-IN" : read?.step === "boarding" ? "BOARDING TIME NOT FILED" : "GATE PENDING";
+    const status = inAir
+      ? "IN THE AIR"
+      : read?.step === "find_check_in"
+        ? "CHECK-IN"
+        : read?.step === "boarding"
+          ? "BOARDING TIME NOT FILED"
+          : "GATE PENDING";
     return (
       <div className="space-y-2 border-t border-border/50 pt-3">
-        <p className="vanta-machine-label text-foreground/70">Airport board</p>
+        <p className="vanta-machine-label text-foreground/70">{inAir ? "Arrivals board" : "Airport board"}</p>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4">
           <SolariBoard text={identity.board ?? "NOT FILED"} label="Flight" />
           <SolariBoard text="NOT FILED" label="Terminal" />
@@ -441,7 +455,12 @@ export function FlightDesk() {
           <SolariBoard text={status} label="Status" tone={status.includes("NOT FILED") ? "warn" : "primary"} />
         </div>
         {identity.ticket && <p className="text-[10.5px] text-muted-foreground/80">Your ticket says {identity.ticket}.</p>}
-        {terminalWalk(plan, read)}
+        {inAir && (
+          <p className="text-[10.5px] text-muted-foreground/80">
+            On your word that you are on it. The airline has filed no arrival terminal or gate yet.
+          </p>
+        )}
+        {terminalWalk(plan, read, inAir)}
       </div>
     );
   };
@@ -450,10 +469,10 @@ export function FlightDesk() {
    * The walk through the terminal, opened from the board row. Order of stops and
    * what is filed at each one — never a floor plan Echo does not have.
    */
-  const terminalWalk = (plan: FlightPlan, read: GroundRead | null | undefined) => {
+  const terminalWalk = (plan: FlightPlan, read: GroundRead | null | undefined, inAir = false) => {
     const snap = plan.live_status as LiveFlight | null;
     const phase = snap ? flightPhase(snap) : "waiting";
-    const arrivalSide = phase === "flying" || phase === "landed";
+    const arrivalSide = inAir || phase === "flying" || phase === "landed";
     const identity = identityOf(plan);
     const stops = terminalPath({
       step: read?.step ?? null,
@@ -482,6 +501,7 @@ export function FlightDesk() {
       </div>
     );
   };
+
 
   /* The aircraft is drawn only from a filed fix on a leg of this very trip.
      No fix, no plane — the route still draws, the position is simply not known. */
@@ -548,10 +568,11 @@ export function FlightDesk() {
               />
             ) : (
               <>
-                {boardAhead(livePlan, activeGround?.read)}
-                {groundAhead(livePlan)}
+                {boardAhead(livePlan, activeGround?.read, activeGround?.where === "in_air")}
+                {groundAhead(livePlan, activeGround?.where === "in_air")}
               </>
             )}
+
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
@@ -563,6 +584,13 @@ export function FlightDesk() {
                 <RadioTower className="mr-1 h-3.5 w-3.5" aria-hidden />
                 Check live status
               </Button>
+              {/* The one place your word beats the feed: on it, still at the
+                  airport, down, or did not happen. It records, it never books. */}
+              <TravellerWord
+                yourWord={livePlan.leg_state_source === "you" ? ((livePlan.leg_state as LegStateKind | null) ?? null) : null}
+                onSay={(state) => journey.setLegState(livePlan.id, state)}
+                onClear={() => journey.clearLegState(livePlan.id)}
+              />
               <Button
                 size="sm"
                 variant="ghost"
@@ -574,6 +602,7 @@ export function FlightDesk() {
                 Remove flight
               </Button>
             </div>
+
           </Card>
         ) : null}
         <details className="group">

@@ -331,6 +331,15 @@ describe("where you are on it", () => {
     expect(n.gate).toBe("56");
   });
 
+  it("never counts down past the filed departure time", () => {
+    const [j] = journeysFrom([legOne, legTwo]);
+    /* Two hours after the second leg was filed to leave, with no takeoff filed. */
+    const n = bigNumbers(j, new Date("2026-09-02T10:00:00Z"));
+    expect(n.timeLeft).toBeNull();
+    expect(n.timeLeftLabel).toBe("the filed departure time has gone by");
+  });
+
+
   it("says no gate is filed rather than inventing one", () => {
     const noGate = plan({
       id: "2",
