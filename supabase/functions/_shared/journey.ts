@@ -21,6 +21,7 @@ import { airport, airportWords, bordersCrossed } from "./airports.ts";
 import { airportZone, anchorToZone } from "./travelSense.ts";
 import type { FlightOption, FlightPlan } from "./flightPlan.ts";
 import type { LiveFlight } from "./flightStatus.ts";
+import type { FlightIdentity } from "./flightIdentity.ts";
 
 export const JOURNEY_LAW =
   "Echo works out where you are from what the airline filed and when it read it. It does not track you, and the board in the terminal always wins.";
@@ -56,8 +57,12 @@ export type LegStateKind =
 export type Leg = {
   plan_id: string;
   order: number;
+  /** The number on the boards and the gate signs: the operating one when known. */
   flight_no: string | null;
+  /** The airline that actually flies it, when a source said they differ. */
   airline: string | null;
+  /** The number printed on the ticket, kept only when it is not the one above. */
+  ticket_flight_no?: string | null;
   from: LegEnd;
   to: LegEnd;
   live_checked_at: string | null;
@@ -121,11 +126,19 @@ export function legOf(plan: FlightPlan, order = 0): Leg {
      when the zone is not on record. */
   const departAt = anchorToZone(option?.depart_at ?? null, airportZone(fromIata));
   const arriveAt = anchorToZone(option?.arrive_at ?? null, airportZone(toIata));
+  /* The number a traveller hunts for is the operating one — that is what the
+     board, the counter and the gate sign say. The ticket number stays with it
+     rather than replacing it, because it is what their booking shows. */
+  const filed = (option as { identity?: FlightIdentity | null } | null)?.identity ?? null;
+  const ticketNo = filed?.marketing?.flight_no ?? option?.flight_no ?? live?.marketed_as?.flight_no ?? live?.flight_no ?? null;
+  const operating = filed?.operating ?? live?.operated_by ?? null;
+  const operatingNo = operating?.flight_no ?? null;
   return {
     plan_id: plan.id,
     order,
-    flight_no: option?.flight_no ?? live?.flight_no ?? null,
-    airline: option?.airline ?? live?.airline ?? null,
+    flight_no: operatingNo ?? ticketNo,
+    airline: operating?.carrier ?? option?.airline ?? live?.airline ?? null,
+    ticket_flight_no: operatingNo && ticketNo && operatingNo !== ticketNo ? ticketNo : null,
     from: {
       iata: fromIata,
       at: dep.at ?? departAt,
@@ -562,10 +575,18 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
   };
 }
 
-/** The two numbers that matter at three in the morning. */
+/**
+ * The two numbers that matter at three in the morning.
+ *
+ * `landingAt` is the traveller's own reading of the landing time off the cabin
+ * screen. When it is given it wins the countdown in the air, because the flight
+ * computer knows the wind and the timetable does not — and the label says whose
+ * number it is.
+ */
 export function bigNumbers(
   journey: Journey,
   now: Date = new Date(),
+  landingAt?: string | null,
 ): { timeLeft: string | null; timeLeftLabel: string; gate: string | null; gateLabel: string } {
   const where = whereOnJourney(journey, now);
   const mins = (at: string | null | undefined) =>
@@ -577,11 +598,12 @@ export function bigNumbers(
      record" while the gate sat printed right below. */
   if (where.kind === "in_air") {
     const flying = journey.legs[where.legIndex];
-    const left = mins(flying?.to.at);
+    const own = landingAt && Number.isFinite(Date.parse(landingAt)) ? landingAt : null;
+    const left = mins(own ?? flying?.to.at);
     const gate = flying?.to.gate ?? null;
     return {
-      timeLeft: left == null ? null : durationWords(left),
-      timeLeftLabel: "until you land",
+      timeLeft: left == null || left < 0 ? null : durationWords(left),
+      timeLeftLabel: own ? "until you land, on the cabin screen" : "until you land, on the filed times",
       gate: gate ?? term(flying?.to.terminal ?? null),
       gateLabel: gate
         ? "arrival gate"

@@ -10,7 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
-import { ChevronDown, MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
+import { MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -47,6 +47,7 @@ import { groundPath, type GroundRead } from "@/lib/groundPath";
 import { connectionAt, type ConnectionRead } from "@/lib/connectionRead";
 
 import { readStage, writeStage, type GroundStage } from "@/lib/groundStage";
+import { cabinLandingAt, readCabinEstimate, writeCabinEstimate } from "@/lib/cabinEstimate";
 import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, mergeIdentity, type FlightIdentity } from "@/lib/flightIdentity";
 import { terminalPath } from "@/lib/terminalPath";
 import { TerminalMap } from "./TerminalMap";
@@ -167,6 +168,9 @@ export function FlightDesk() {
     writeStage(planId, stage);
     setStages((prev) => ({ ...prev, [planId]: stage }));
   };
+  /* The landing time off the seat-back screen. Read in a cabin with no signal,
+     so it stays on this device — and it wins the countdown while it is there. */
+  const [cabinReads, setCabinReads] = useState<Record<string, string | null>>({});
 
   const read = useMemo(() => parseQuote(quote, departOn, currency), [quote, departOn, currency]);
 
@@ -569,6 +573,26 @@ export function FlightDesk() {
     [journey.current, journey.where],
   );
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
+  /* The filed landing, anchored at the arrival airport — both the fallback for
+     the countdown and the day the cabin screen's clock is pinned to. */
+  const liveFiledArrival = livePlan
+    ? anchorToZone(
+        livePlan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+        airportZone((livePlan.destination ?? "").trim().toUpperCase() || null),
+      )
+    : null;
+  const cabinLanding = livePlan ? (cabinReads[livePlan.id] ?? readCabinEstimate(livePlan.id)?.at ?? null) : null;
+  const takeCabinRead = (planId: string, destination: string | null, hhmm: string | null) => {
+    if (!hhmm) {
+      writeCabinEstimate(planId, null);
+      setCabinReads((prev) => ({ ...prev, [planId]: null }));
+      return;
+    }
+    const at = cabinLandingAt(hhmm, liveFiledArrival, anchorToZone, airportZone((destination ?? "").trim().toUpperCase() || null));
+    if (!at) return;
+    writeCabinEstimate(planId, at);
+    setCabinReads((prev) => ({ ...prev, [planId]: at }));
+  };
 
 
   if (loading) return <LoadingState label="Reading your prepared flights…" />;
@@ -622,12 +646,11 @@ export function FlightDesk() {
                       livePlan.options.find((o) => o.depart_at)?.depart_at ?? null,
                       airportZone((livePlan.origin ?? "").trim().toUpperCase() || null),
                     )}
-                    arriveAt={anchorToZone(
-                      livePlan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
-                      airportZone((livePlan.destination ?? "").trim().toUpperCase() || null),
-                    )}
+                    arriveAt={liveFiledArrival}
                     clock={clock}
                     homeZone={timezone}
+                    cabinAt={cabinLanding}
+                    onCabinRead={(hhmm) => takeCabinRead(livePlan.id, livePlan.destination, hhmm)}
                   />
                 )}
               </>
@@ -675,28 +698,23 @@ export function FlightDesk() {
 
           </Card>
         ) : null}
-        <details className="group">
-          <summary
-            className={cn(
-              "vanta-card flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[12px] text-foreground/80",
-              MOTION_FOCUS,
-            )}
-          >
-            <span>Full journey — legs, times and what changed</span>
-            <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
-          </summary>
-          <div className="mt-2 space-y-3">
-            <JourneySpine
-              journey={journey.current}
-              where={journey.where}
-              news={journey.news}
-              savedAt={journey.savedAt}
-              onDismissNews={journey.dismissNews}
-            />
-            {/* The same trip as a route you can tap, stop by stop. */}
-            <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
-          </div>
-        </details>
+        {/* The whole journey stands open. Folding the legs, the times and what
+            changed behind a tap hid the one thing a traveller reads twice. */}
+        <div className="space-y-3">
+          <p className="px-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+            Full journey — legs, times and what changed
+          </p>
+          <JourneySpine
+            journey={journey.current}
+            where={journey.where}
+            news={journey.news}
+            savedAt={journey.savedAt}
+            onDismissNews={journey.dismissNews}
+            landingAt={cabinLanding}
+          />
+          {/* The same trip as a route you can tap, stop by stop. */}
+          <FlightRouteMap journey={journey.current} homeZone={timezone} aircraft={aircraft} />
+        </div>
         </>
       ) : null}
 

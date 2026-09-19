@@ -62,8 +62,17 @@ function LegRow({
         <span className="font-street text-lg tracking-wide">{leg.from.iata || "???"}</span>
         <Plane className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         <span className="font-street text-lg tracking-wide">{leg.to.iata || "???"}</span>
-        {leg.flight_no ? <span className="text-sm text-muted-foreground">{leg.flight_no}</span> : null}
+        {/* The operating number leads, because that is what the board says. */}
+        {leg.flight_no ? (
+          <span className="text-sm font-medium text-foreground">
+            {leg.airline ? `${leg.airline} ` : ""}
+            {leg.flight_no}
+          </span>
+        ) : null}
       </div>
+      {leg.ticket_flight_no ? (
+        <p className="text-xs text-muted-foreground">Your ticket says {leg.ticket_flight_no}.</p>
+      ) : null}
       <p className="mt-1 text-sm text-muted-foreground">
         {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)}
         {leg.from.terminal ? ` · terminal ${leg.from.terminal}` : ""}
@@ -87,14 +96,17 @@ export function JourneySpine({
   news,
   savedAt,
   onDismissNews,
+  landingAt = null,
 }: {
   journey: Journey;
   where: { kind: string; legIndex: number; iata: string | null; words: string; checked: string | null } | null;
   news: string[];
   savedAt: string | null;
   onDismissNews: () => void;
+  /** The landing time read off the cabin screen, when the traveller gave one. */
+  landingAt?: string | null;
 }) {
-  const numbers = bigNumbers(journey);
+  const numbers = bigNumbers(journey, new Date(), landingAt);
   const liveIndex = where?.legIndex ?? 0;
   const { timezone } = useUserTimezone();
   /* Times read the way a person says them — 1:15 AM tomorrow, not 01:15 — and in
