@@ -838,11 +838,47 @@ export function FlightDesk() {
               className="h-11 text-[13px]"
             />
           </div>
+          {/* Optional, and it says so. A ticket in your hand often carries a time
+              the provider does not, so there is somewhere to put it. */}
+          <div className="min-w-[6rem] flex-1 space-y-1">
+            <Label htmlFor="fd-quick-time" className="text-[11px]">
+              Time (optional)
+            </Label>
+            <Input
+              id="fd-quick-time"
+              value={quickTime}
+              onChange={(e) => setQuickTime(e.target.value)}
+              placeholder="07:15"
+              inputMode="numeric"
+              className="h-11 text-[13px]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void quickAdd();
+              }}
+            />
+          </div>
           <Button onClick={() => void quickAdd()} disabled={busy} className="h-11 min-w-[5rem] text-[13px]">
             <PlusCircle className="mr-1 h-4 w-4" aria-hidden />
             Add
           </Button>
         </div>
+        {quickTime.trim() ? (
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="What kind of time this is">
+            {(["departure", "boarding"] as SaidTimeKind[]).map((k) => (
+              <Button
+                key={k}
+                type="button"
+                size="sm"
+                variant={quickKind === k ? "default" : "outline"}
+                className="h-9 text-[12px]"
+                aria-pressed={quickKind === k}
+                onClick={() => setQuickKind(k)}
+              >
+                {k === "departure" ? "Departure time" : "Boarding time"}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+
         <p className="text-[11px] text-muted-foreground">{QUICK_LAW}</p>
         <button
           type="button"
