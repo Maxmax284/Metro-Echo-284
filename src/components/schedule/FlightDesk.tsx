@@ -1171,6 +1171,7 @@ export function FlightDesk() {
                     <JourneyFitCard
                       fit={fitOf(p) as NonNullable<ReturnType<typeof fitOf>>}
                       busy={busy}
+                      source={p.origin_kind === "recognised" ? noticedWords(p) : planSourceWords(p)}
                       steps={
                         landedAt && p.id === transferPlan?.id ? (
                           <TransferSteps
