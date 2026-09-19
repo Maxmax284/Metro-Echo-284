@@ -7,28 +7,23 @@
 //     time left here, next gate.
 //   - Every state line says whose word it is and when it was read. Position is
 //     derived, and the card says so.
-//   - "That didn't happen" is always reachable. Your word beats the feed.
-import { useState } from "react";
-import { ChevronDown, Clock, MapPin, Plane, RadioTower, Undo2 } from "lucide-react";
+//   - No manual "I'm on it" buttons. A traveler is not a flight logger; the
+//     clock and the airline's word carry the rail.
+import { Clock, MapPin, Plane, RadioTower } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { vantaToast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { airportWords } from "@/lib/airports";
 import { flightTimeWords } from "@/lib/flightClock";
 import { airportZone } from "@/lib/travelSense";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
-  OVERRIDE_CHOICES,
-  OVERRIDE_WORDS,
   STATE_WORDS,
   bigNumbers,
   durationWords,
   legState,
   type Journey,
   type Leg,
-  type LegStateKind,
   type Segment,
 } from "@/lib/journey";
 import { LayoverCard } from "./LayoverCard";
@@ -47,17 +42,12 @@ function LegRow({
   leg,
   live,
   clock,
-  onOverride,
-  onClearOverride,
 }: {
   leg: Leg;
   live: boolean;
   /** Each end reads in the local time at that airport, the way a ticket does. */
   clock: (at: string | null, iata: string | null) => string;
-  onOverride: (state: LegStateKind) => Promise<void> | void;
-  onClearOverride: () => Promise<void> | void;
 }) {
-  const [open, setOpen] = useState(false);
   const state = legState(leg);
   return (
     <div className={cn("relative pl-6", live ? "opacity-100" : "opacity-60")}>
@@ -73,11 +63,6 @@ function LegRow({
         <Plane className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
         <span className="font-street text-lg tracking-wide">{leg.to.iata || "???"}</span>
         {leg.flight_no ? <span className="text-sm text-muted-foreground">{leg.flight_no}</span> : null}
-        {leg.override ? (
-          <Badge variant="outline" className="text-[11px]">
-            your word
-          </Badge>
-        ) : null}
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
         {clock(leg.from.at, leg.from.iata)} → {clock(leg.to.at, leg.to.iata)}
@@ -85,54 +70,13 @@ function LegRow({
         {leg.from.gate ? ` · gate ${leg.from.gate}` : " · no gate filed"}
       </p>
       <p className={cn("mt-1 text-sm", state.stale ? "text-amber-600 dark:text-amber-400" : "text-foreground/80")}>
-        {leg.override ? OVERRIDE_WORDS[leg.override] : state.words}
+        {state.words}
       </p>
       <p className="mt-0.5 text-xs text-muted-foreground">
         {state.source === "you" ? "Your word" : state.source === "the airline" ? "The airline's word" : "Worked out from the clock"}
         {" · "}
         {readingWords(leg.live_checked_at)}
       </p>
-
-      <div className="mt-2 flex flex-wrap gap-2">
-        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setOpen((v) => !v)}>
-          <Undo2 className="mr-1 h-3.5 w-3.5" aria-hidden />
-          That didn&apos;t happen
-          <ChevronDown className={cn("ml-1 h-3.5 w-3.5 transition-transform", open && "rotate-180")} aria-hidden />
-        </Button>
-        {leg.override ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs"
-            onClick={async () => {
-              await onClearOverride();
-              vantaToast.say("Back to the airline's word on this leg.");
-            }}
-          >
-            Put it back to the airline
-          </Button>
-        ) : null}
-      </div>
-
-      {open ? (
-        <div className="mt-2 space-y-2 rounded-md border border-border/60 bg-muted/30 p-3">
-          {OVERRIDE_CHOICES.map((c) => (
-            <button
-              key={c.value}
-              type="button"
-              className="block w-full min-h-11 rounded-md px-3 py-2 text-left text-sm hover:bg-background"
-              onClick={async () => {
-                await onOverride(c.value);
-                setOpen(false);
-                vantaToast.say(OVERRIDE_WORDS[c.value]);
-              }}
-            >
-              <span className="font-medium">{c.label}</span>
-              <span className="block text-xs text-muted-foreground">{c.description}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -142,16 +86,12 @@ export function JourneySpine({
   where,
   news,
   savedAt,
-  onOverride,
-  onClearOverride,
   onDismissNews,
 }: {
   journey: Journey;
   where: { kind: string; legIndex: number; iata: string | null; words: string; checked: string | null } | null;
   news: string[];
   savedAt: string | null;
-  onOverride: (planId: string, state: LegStateKind) => Promise<void> | void;
-  onClearOverride: (planId: string) => Promise<void> | void;
   onDismissNews: () => void;
 }) {
   const numbers = bigNumbers(journey);
@@ -209,8 +149,6 @@ export function JourneySpine({
               leg={seg.leg}
               live={journey.legs.indexOf(seg.leg) === liveIndex}
               clock={clock}
-              onOverride={(s) => onOverride(seg.leg.plan_id, s)}
-              onClearOverride={() => onClearOverride(seg.leg.plan_id)}
             />
           ) : (
             <div key={`ground-${i}`} className="py-3 pl-6">

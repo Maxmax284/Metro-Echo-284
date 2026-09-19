@@ -451,8 +451,6 @@ export function FlightDesk() {
               where={journey.where}
               news={journey.news}
               savedAt={journey.savedAt}
-              onOverride={(planId, state) => journey.setLegState(planId, state)}
-              onClearOverride={(planId) => journey.clearLegState(planId)}
               onDismissNews={journey.dismissNews}
             />
             {/* The same trip as a route you can tap, stop by stop. */}
