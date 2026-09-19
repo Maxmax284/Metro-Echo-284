@@ -223,14 +223,19 @@ export const WATCH_RECIPES: WatchRecipe[] = [
     title: "Amazfit · Bip, Active, T-Rex, Cheetah",
     app: "Zepp",
     steps: [
-      "Pair the watch to the Zepp app as normal.",
-      "In Zepp: Profile, then Add Accounts — link Health Connect on Android, or Apple Health on iPhone.",
-      "Allow steps, heart rate, resting heart rate, sleep and workouts to be written across.",
+      "Pair the watch to Zepp as normal, and let it finish its first sync before you start.",
+      "Android: install Health Connect from the Play Store first if the phone doesn't already have it.",
+      "Zepp: tap Profile at the bottom right.",
+      "Tap Accounts and Authorization — older builds call it Add Accounts.",
+      "Tap Health Connect on Android, or Apple Health on iPhone, then tap Connect.",
+      "On the permission sheet, tap Allow all — or tick heart rate, resting heart rate, steps, sleep and workouts by hand, then Allow.",
+      "Android only: phone Settings, Health Connect, App permissions, Zepp — check writing is on for those five.",
+      "Zepp: Profile, tap your watch, Health Monitoring — set heart rate to all-day or automatic, or Zepp has hourly gaps to hand over.",
       "Set up the phone hand-off above once. Zepp fills the phone, the phone sends it to Echo.",
       "Tap Check the feed here after the next sync to see the first readings land.",
     ],
     broadcast:
-      "Amazfit watches can also broadcast heart rate during a workout — turn on heart rate sharing on the watch and Echo can read the beats live over Bluetooth from Android Chrome or a computer.",
+      "For beats live rather than hourly: on the watch open Settings, Workout Settings, then turn on Broadcast Heart Rate (some models call it Heart Rate Sharing). Start any workout to keep the sensor awake, then tap Connect a watch on Today or the body desk. Android Chrome or a computer only — iPhone can't do it.",
   },
   {
     key: "garmin",
