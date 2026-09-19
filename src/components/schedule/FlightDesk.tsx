@@ -640,7 +640,7 @@ export function FlightDesk() {
               <FlightLive
                 live={liveSnapshot}
                 checkedAt={livePlan.live_checked_at ?? null}
-                clock={clock}
+                clock={endClock}
                 homeZone={timezone}
                 reading={readingPlanId === livePlan.id}
                 board={boardWords_(livePlan).board}
@@ -1012,7 +1012,7 @@ export function FlightDesk() {
                     <FlightLive
                       live={p.live_status as LiveFlight}
                       checkedAt={p.live_checked_at ?? null}
-                      clock={clock}
+                      clock={endClock}
                       homeZone={timezone}
                       reading={busy || readingPlanId === p.id}
                       board={boardWords_(p).board}
@@ -1136,7 +1136,7 @@ export function FlightDesk() {
                       <FlightLive
                         live={p.live_status as LiveFlight}
                         checkedAt={p.live_checked_at ?? null}
-                        clock={clock}
+                        clock={endClock}
                         homeZone={timezone}
                         reading={readingPlanId === p.id}
                         board={boardWords_(p).board}
