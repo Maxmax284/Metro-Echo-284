@@ -1052,6 +1052,23 @@ export function FlightDesk() {
         </>
       ) : null}
 
+      {/* The clock folds a finished trip on its own after a night. Standing in
+          the hall, your word does it now — and only when nothing is left to
+          fly, so this never hides a live leg. */}
+      {journey.current && !tripOver && journey.where?.kind === "done" && !confirmedOnwardPlan && !candidateOnward && !upcomingElsewhere ? (
+        <Card className="vanta-card space-y-2 p-3">
+          <p className="text-[12.5px] font-medium text-foreground">Done with {journeyRoute}?</p>
+          <p className="text-[11.5px] leading-snug text-muted-foreground">{WRAP_UP_COPY.hint}</p>
+          <Button
+            variant="outline"
+            className="h-9 w-full text-[12.5px]"
+            onClick={() => void sayWrappedUp(true)}
+          >
+            {WRAP_UP_COPY.action}
+          </Button>
+        </Card>
+      ) : null}
+
       {/* Wheels down plus a night at the destination: the trip stops leading
           the desk. One quiet card says so; the spine, the route and every
           record stay one tap away, and Receipts keeps the summary for good. */}
