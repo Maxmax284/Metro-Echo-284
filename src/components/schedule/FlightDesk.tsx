@@ -60,6 +60,8 @@ import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { TransferVerification } from "./TransferVerification";
 import { EntryReadiness } from "./EntryReadiness";
+import { MAX_WINDOW_DAYS } from "@/lib/entryReadiness";
+
 import { OnwardIntent } from "./OnwardIntent";
 import { TransferSteps } from "./TransferSteps";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
