@@ -22,6 +22,14 @@ vi.mock("@/hooks/useUserPreferences", () => ({
   }),
 }));
 
+vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "u1" } }) }));
+vi.mock("@/hooks/useScope", () => ({
+  useScope: () => ({ withScope: (row: Record<string, unknown>) => row }),
+}));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: () => ({ insert: async () => ({ error: null }) }) },
+}));
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
@@ -139,12 +147,12 @@ describe("entry readiness earlier in the trip, and once per entry", () => {
     expect(screen.queryByRole("link", { name: /official Thailand arrival card/i })).toBeNull();
   });
 
-  it("carries one acknowledgment across the legs of a single entry", () => {
+  it("carries one filing across the legs of a single entry", () => {
     mockNationality = "United States";
     window.localStorage.setItem("echo.entry.intent.p8", "enter");
     window.localStorage.setItem("echo.entry.ack.c.TH", `TH:${ENTRY_GUIDES.TH.checkedOn}`);
     render(<EntryReadiness planId="p8" fromIata="TPE" toIata="BKK" />);
-    expect(screen.getByText(/marked done/i)).toBeTruthy();
+    expect(screen.getByText(/on your word/i)).toBeTruthy();
   });
 
   it("says out loud when its vetted words have gone stale", () => {
@@ -222,12 +230,12 @@ describe("the three-country registry and its official windows", () => {
     expect(all).toMatch(/offline/i);
   });
 
-  it("keeps a marked-done card as the traveller's own word, offline", () => {
+  it("keeps a filed card as the traveller's own word, never as admission", () => {
     mockNationality = "United States";
     window.localStorage.setItem("echo.entry.intent.p9", "enter");
     window.localStorage.setItem("echo.entry.ack.c.TH", `TH:${ENTRY_GUIDES.TH.checkedOn}`);
     render(<EntryReadiness planId="p9" fromIata="TPE" toIata="BKK" />);
-    expect(screen.getByText(/not verified with Thailand/i)).toBeTruthy();
+    expect(screen.getByText(/not admission/i)).toBeTruthy();
   });
 
   it("says the window is open on an upcoming leg inside it", () => {

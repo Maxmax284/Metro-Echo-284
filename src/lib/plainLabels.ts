@@ -168,6 +168,7 @@ export function humanizeEvent(event: string): string {
     "recap.weekly_created": "Weekly recap ready",
     "recap.monthly_created": "Monthly review ready",
     "flight.local_transfer_verified": "Local transfer details recorded",
+    "entry.filing_state_said_by_person": "You said where your arrival declaration got to",
 
 
 

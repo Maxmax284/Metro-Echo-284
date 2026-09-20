@@ -5,26 +5,47 @@
 // "are you entering or only changing planes?" and, only when entering a country
 // with a vetted arrival-card system, "which country's passport are you
 // carrying?" A country name, never a document number. Echo never fills in or
-// submits the form; it hands over the official link and keeps a local
-// acknowledgment, held per entry so a later domestic hop does not re-ask.
-import { useEffect, useState } from "react";
+// submits the form.
+//
+// A filing is not a yes or a no. The traveller's word can be: the form blocked
+// me · the site took it · an officer sorted it at the counter. Each is held as
+// the traveller's word, per entry, and none of them is ever read as admission
+// into the country. Two different answers on record are shown as two answers,
+// not resolved behind the scenes.
+import { useCallback, useEffect, useState } from "react";
 import { Check, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { useScope } from "@/hooks/useScope";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
+  accommodationWords,
+  addFilingMark,
   airportCountry,
   entryRead,
   entryWindow,
+  filingConflict,
+  filingHandled,
+  filingLabel,
+  filingLatest,
+  filingWords,
+  FILING_CHOICES,
   guideStale,
-  type EntryIntent,
+  KNOWN_BEFORE_WORDS,
+  parseFilingMarks,
+  serializeFilingMarks,
   type EntryGuide,
+  type EntryIntent,
   type EntryWindow,
+  type FilingMark,
+  type FilingState,
+  type StayPosture,
 } from "@/lib/entryReadiness";
 import { EntryHelp } from "./EntryHelp";
 import { vantaToast } from "@/lib/vantaVoice";
-
 
 const intentKey = (planId: string) => `echo.entry.intent.${planId}`;
 /** Held per country, not per flight: one entry, one filing. */
@@ -58,55 +79,128 @@ function windowLine(window: EntryWindow, guide: EntryGuide): string | null {
   return null;
 }
 
+function shortWhen(at: string): string {
+  const ms = Date.parse(at);
+  if (!Number.isFinite(ms) || ms === 0) return "earlier";
+  return new Date(ms).toISOString().slice(0, 16).replace("T", " ");
+}
+
+/** Two answers on record for one entry, shown as two answers. */
+function ConflictLines({ marks }: { marks: FilingMark[] }) {
+  return (
+    <div className="space-y-1 rounded-lg border border-amber-300/30 bg-amber-300/5 p-2">
+      <p className="text-[11px] font-medium text-amber-200/90">Two answers on record for this entry</p>
+      <ul className="space-y-0.5 text-[11px] leading-snug text-muted-foreground">
+        {marks.map((m) => (
+          <li key={`${m.state}-${m.at}`}>
+            — {filingLabel(m.state)} · {shortWhen(m.at)}
+          </li>
+        ))}
+      </ul>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        Echo keeps both and picks neither. Say at the counter what actually happened.
+      </p>
+    </div>
+  );
+}
+
+function StayChoice({
+  posture,
+  onPick,
+  disabled,
+}: {
+  posture: StayPosture | null;
+  onPick: (next: StayPosture) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Where you stay</p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant={posture === "visiting" ? "default" : "outline"}
+          className="h-10 text-[12px]"
+          disabled={disabled}
+          onClick={() => onPick("visiting")}
+        >
+          Visiting
+        </Button>
+        <Button
+          size="sm"
+          variant={posture === "resident_lease" ? "default" : "outline"}
+          className="h-10 text-[12px]"
+          disabled={disabled}
+          onClick={() => onPick("resident_lease")}
+        >
+          I live here, on a lease
+        </Button>
+      </div>
+      <p className="text-[10.5px] leading-snug text-muted-foreground">
+        Changes the wording only. Echo asks for no address, no lease and no paperwork.
+      </p>
+    </div>
+  );
+}
+
 function GuideCard({
   guide,
   window: entryWin,
   landed,
-  acked,
-  onAck,
+  marks,
+  posture,
+  onMark,
   onResetAck,
+  onPosture,
 }: {
   guide: EntryGuide;
   window: EntryWindow;
   /** The flight is already on the ground: this is catching up, not preparing. */
   landed?: boolean;
-  acked: boolean;
-  onAck: () => void;
+  marks: FilingMark[];
+  posture: StayPosture | null;
+  onMark: (state: FilingState) => void;
   onResetAck: () => void;
+  onPosture: (next: StayPosture) => void;
 }) {
+  const latest = filingLatest(marks);
+  const conflict = filingConflict(marks);
 
-  if (acked) {
+  if (latest && filingHandled(latest.state)) {
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-          <p className="flex items-center gap-1.5 text-[12px] text-foreground/90">
-            <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
-            {guide.cardName} — marked done by you, not verified with {guide.country}.
-          </p>
+        <div className="flex items-start justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+          <div className="min-w-0 space-y-1">
+            <p className="flex items-center gap-1.5 text-[12px] text-foreground/90">
+              <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+              {guide.cardName} — {filingLabel(latest.state).toLowerCase()}, on your word.
+            </p>
+            <p className="text-[11px] leading-snug text-muted-foreground">{filingWords(latest.state)}</p>
+          </div>
           <button
             type="button"
             onClick={onResetAck}
-            className="text-[11px] text-muted-foreground underline underline-offset-2"
+            className="shrink-0 text-[11px] text-muted-foreground underline underline-offset-2"
           >
             Not yet
           </button>
         </div>
+        {conflict ? <ConflictLines marks={conflict} /> : null}
         <p className="text-[11px] leading-snug text-muted-foreground">
           Keep the official QR code or confirmation saved offline — airport data is not a plan.
         </p>
       </div>
     );
   }
+
   const stale = guideStale(guide);
   const opening = windowLine(entryWin, guide);
   return (
     <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-      <p className="text-[12.5px] font-medium text-foreground">
-        Before immigration: {guide.cardName}
-      </p>
+      <p className="text-[12.5px] font-medium text-foreground">Before immigration: {guide.cardName}</p>
       {landed ? (
         <p className="text-[12px] leading-snug text-muted-foreground">
-          Already through, or sorted it at the counter? Mark it done and Echo drops the subject.
+          Already through, or sorted it at the counter? Say which and Echo drops the subject.
         </p>
       ) : null}
 
@@ -124,8 +218,11 @@ function GuideCard({
           {guide.prepWords.map((line) => (
             <li key={line}>— {line}</li>
           ))}
+          <li>— {accommodationWords(posture)}</li>
         </ul>
+        <p className="text-[11px] leading-snug text-muted-foreground">{KNOWN_BEFORE_WORDS}</p>
       </div>
+      <StayChoice posture={posture} onPick={onPosture} />
       <a
         href={guide.officialUrl}
         target="_blank"
@@ -149,8 +246,15 @@ function GuideCard({
           before you rely on them.
         </p>
       ) : null}
+      {latest && latest.state === "blocked" ? (
+        <p className="text-[11.5px] leading-snug text-amber-200/90">
+          On record: the form blocked you, so nothing is filed. That is not the same as not having tried —
+          say it at the counter and ask where to go for assistance.
+        </p>
+      ) : null}
+      {conflict ? <ConflictLines marks={conflict} /> : null}
       <EntryHelp />
-      <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2">
+      <div className="space-y-2 border-t border-border/40 pt-2">
         <p className="text-[10.5px] text-muted-foreground">
           Checked {guide.checkedOn} ·{" "}
           {guide.sources.map((s, i) => (
@@ -162,14 +266,30 @@ function GuideCard({
             </span>
           ))}
         </p>
-        <Button size="sm" variant="outline" className="h-9 shrink-0 text-[12px]" onClick={onAck}>
-          I've filed it
-        </Button>
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Where you got to</p>
+          <div className="flex flex-wrap gap-2">
+            {FILING_CHOICES.map((choice) => (
+              <Button
+                key={choice.state}
+                size="sm"
+                variant="outline"
+                className="h-10 text-[12px]"
+                onClick={() => onMark(choice.state)}
+              >
+                {choice.label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-[10.5px] leading-snug text-muted-foreground">
+            Your word, kept on this device. A site accepting the form is not admission — officers at the
+            border have the final say.
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-
 
 export function EntryReadiness({
   planId,
@@ -187,10 +307,11 @@ export function EntryReadiness({
       official filing window; without it Echo dates nothing. */
   arriveAt?: string | null;
 }) {
-
+  const { user } = useAuth();
+  const { withScope } = useScope();
   const { prefs, loading, update } = useUserPreferences();
   const [intent, setIntent] = useState<EntryIntent | null>(null);
-  const [ack, setAck] = useState<string | null>(null);
+  const [marks, setMarks] = useState<FilingMark[]>([]);
   const [nat, setNat] = useState("");
   const [savingNat, setSavingNat] = useState(false);
 
@@ -199,12 +320,36 @@ export function EntryReadiness({
   useEffect(() => {
     setIntent((readLS(intentKey(planId)) as EntryIntent | null) ?? null);
     const country = airportCountry(toIata);
-    setAck((country ? readLS(entryAckKey(country)) : null) ?? readLS(legacyAckKey(planId)));
+    const raw = (country ? readLS(entryAckKey(country)) : null) ?? readLS(legacyAckKey(planId));
+    setMarks(parseFilingMarks(raw));
   }, [planId, toIata]);
 
   const nationality = prefs.entry?.nationality ?? null;
-  const filedFor = ack ? ack.split(":")[0] : null;
+  const posture = (prefs.entry?.stay as StayPosture | undefined) ?? null;
+  const latest = filingLatest(marks);
+  const filedFor = filingHandled(latest?.state) ? toCountryCode : null;
   const read = entryRead({ fromIata, toIata, intent, nationality, filedFor });
+
+  /** One receipt per word, in plain English, attributed to the person. */
+  const recordMark = useCallback(
+    async (countryCode: string, state: FilingState, at: string) => {
+      if (!user) return;
+      try {
+        await supabase.from("audit_log").insert(
+          withScope({
+            user_id: user.id,
+            entity_type: "entry_filing",
+            entity_id: null,
+            event: "entry.filing_state_said_by_person",
+            payload: { country_code: countryCode, state, at },
+          }) as never,
+        );
+      } catch {
+        /* a receipt that did not land must not block the traveller */
+      }
+    },
+    [user, withScope],
+  );
 
   // A domestic leg with nothing filed, or a route Echo cannot place: stay silent.
   if (read.kind === "domestic" || read.kind === "unknown_route") return null;
@@ -225,6 +370,14 @@ export function EntryReadiness({
       vantaToast.warning("That did not save. Try again in a moment.");
     } finally {
       setSavingNat(false);
+    }
+  };
+
+  const savePosture = async (next: StayPosture) => {
+    try {
+      await update({ entry: { ...(prefs.entry ?? {}), stay: next } });
+    } catch {
+      vantaToast.warning("That did not save. Try again in a moment.");
     }
   };
 
@@ -330,16 +483,18 @@ export function EntryReadiness({
           guide={read.guide}
           window={when === "before" ? entryWindow({ guide: read.guide, arriveAt }) : { kind: "unknown" }}
           landed={landed}
-
-
-          acked={ack === `${read.guide.countryCode}:${read.guide.checkedOn}`}
-          onAck={() => {
-            const stamp = `${read.guide.countryCode}:${read.guide.checkedOn}`;
-            setAck(stamp);
-            writeLS(entryAckKey(read.guide.countryCode), stamp);
+          marks={marks}
+          posture={posture}
+          onPosture={(next) => void savePosture(next)}
+          onMark={(state) => {
+            const at = new Date().toISOString();
+            const next = addFilingMark(marks, state, at);
+            setMarks(next);
+            writeLS(entryAckKey(read.guide.countryCode), serializeFilingMarks(next));
+            void recordMark(read.guide.countryCode, state, at);
           }}
           onResetAck={() => {
-            setAck(null);
+            setMarks([]);
             writeLS(entryAckKey(read.guide.countryCode), null);
             writeLS(legacyAckKey(planId), null);
           }}

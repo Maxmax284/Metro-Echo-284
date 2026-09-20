@@ -195,6 +195,16 @@ export const ENTRY_FIXES: EntryFix[] = [
     ],
   },
   {
+    problem: "The accommodation fields were greyed out and it submitted anyway",
+    steps: [
+      "The website taking your submission is not the same as the declaration being complete — a field it skipped can still be missing at the desk.",
+      "Screenshot the confirmation and the greyed-out screen before you leave the internet.",
+      "Have the address you will actually be at readable on your phone, in the form it appears on your lease or booking.",
+      "Say plainly at the counter that the form would not accept the accommodation details, and ask where to go for assistance. Staff see this.",
+      "Do not assume an address immigration holds from an earlier filing counts as this declaration, and do not put in something false to fill the gap.",
+    ],
+  },
+  {
     problem: "I'm already at immigration with nothing filed",
     steps: [
       "Say so at the counter rather than guessing — staff deal with this daily.",
@@ -324,4 +334,126 @@ export function entryRead(args: {
   if (!nat) return { kind: "needs_nationality", toCountryCode: to!, toCountry: guide.country, guide };
   if (guide.nationalWords.includes(nat)) return { kind: "not_needed_national", guide };
   return { kind: "needed", guide };
+}
+
+// ---------------------------------------------------------------------------
+// What state a filing is in — which is never a yes or a no.
+//
+// A real arrival goes: nothing started · the form refused something · the
+// website accepted it · an officer closed the gap in person. Echo holds the
+// traveller's word for each of those, labelled as the traveller's word, and
+// never upgrades "the website took it" into "the country let you in".
+
+export type FilingState = "not_started" | "blocked" | "submitted" | "officer_resolved";
+
+export type FilingMark = { state: FilingState; at: string };
+
+export const FILING_CHOICES: Array<{ state: FilingState; label: string; words: string }> = [
+  {
+    state: "blocked",
+    label: "The form blocked me",
+    words:
+      "The official form would not take something it asked for, so nothing is filed yet. Keep the screenshot and say it at the counter.",
+  },
+  {
+    state: "submitted",
+    label: "Submitted — the site took it",
+    words:
+      "The official site accepted your submission. That is not admission: an officer at the border decides, and can still find something missing.",
+  },
+  {
+    state: "officer_resolved",
+    label: "An officer sorted it at the counter",
+    words:
+      "An officer closed the gap in person. That is your word about what happened, not a record held by the country.",
+  },
+];
+
+export function filingWords(state: FilingState): string {
+  return FILING_CHOICES.find((c) => c.state === state)?.words ?? "Nothing filed yet.";
+}
+
+export function filingLabel(state: FilingState): string {
+  return FILING_CHOICES.find((c) => c.state === state)?.label ?? "Not started";
+}
+
+/** States where the traveller has done what they can — Echo stops pressing. */
+export function filingHandled(state: FilingState | null | undefined): boolean {
+  return state === "submitted" || state === "officer_resolved";
+}
+
+/** How many of the traveller's own words Echo keeps per entry. */
+export const FILING_MARK_LIMIT = 6;
+
+const FILING_SET = new Set<FilingState>(["not_started", "blocked", "submitted", "officer_resolved"]);
+
+/** Reads what is on the device. An older build's acknowledgment (`TH:2026-09-20`)
+    is read as a submission, so nobody is asked twice. */
+export function parseFilingMarks(raw: string | null | undefined): FilingMark[] {
+  const text = (raw ?? "").trim();
+  if (!text) return [];
+  // Legacy acknowledgment stamp: a country code and the date of the notes.
+  const legacy = /^[A-Za-z]{2}:(\d{4}-\d{2}-\d{2})$/.exec(text);
+  if (legacy) return [{ state: "submitted", at: `${legacy[1]}T00:00:00.000Z` }];
+  if (!text.startsWith("[")) return [];
+  try {
+    const rows = JSON.parse(text) as unknown;
+    if (!Array.isArray(rows)) return [];
+    return rows
+      .filter((r): r is FilingMark => {
+        if (!r || typeof r !== "object") return false;
+        const rec = r as Record<string, unknown>;
+        return (
+          typeof rec.state === "string" &&
+          FILING_SET.has(rec.state as FilingState) &&
+          typeof rec.at === "string" &&
+          Number.isFinite(Date.parse(rec.at))
+        );
+      })
+      .map((r) => ({ state: r.state, at: r.at }))
+      .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  } catch {
+    return [];
+  }
+}
+
+export function serializeFilingMarks(marks: FilingMark[]): string {
+  return JSON.stringify(marks.slice(-FILING_MARK_LIMIT));
+}
+
+/** Adds the traveller's latest word. The same word twice in a row is not news. */
+export function addFilingMark(marks: FilingMark[], state: FilingState, at: string): FilingMark[] {
+  const last = marks[marks.length - 1];
+  if (last && last.state === state) return marks;
+  return [...marks, { state, at }].slice(-FILING_MARK_LIMIT);
+}
+
+export function filingLatest(marks: FilingMark[]): FilingMark | null {
+  return marks.length ? marks[marks.length - 1] : null;
+}
+
+/**
+ * Two different answers on record for one entry. Echo shows both with their
+ * times rather than picking a winner — the same habit as a flight leg whose
+ * traveller word the feed later contradicted.
+ */
+export function filingConflict(marks: FilingMark[]): FilingMark[] | null {
+  const distinct = new Set(marks.map((m) => m.state));
+  return distinct.size > 1 ? marks : null;
+}
+
+// ---------------------------------------------------------------------------
+// Where the traveller actually sleeps. A long-stay tenant is not a hotel guest,
+// and Echo asks for nothing to prove it — no lease, no licence, no address.
+
+export type StayPosture = "visiting" | "resident_lease";
+
+/** Known before is not confirmed now. Said once, on the prep list. */
+export const KNOWN_BEFORE_WORDS =
+  "Anything immigration already holds from an earlier filing is not this declaration. Have the address you will actually be at readable on your phone — Echo does not ask for it, keep it, or send it anywhere.";
+
+export function accommodationWords(posture: StayPosture | null | undefined): string {
+  return posture === "resident_lease"
+    ? "Your own address, worded as it stands on your tenancy. No paperwork is owed here — Echo holds none of it."
+    : "Address of your first night, as booked.";
 }
