@@ -34,7 +34,7 @@ vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/hooks/useScope", () => ({
   useScope: () => ({ withScope: (row: Record<string, unknown>) => row }),
 }));
-const insert = vi.fn(async () => ({ error: null }));
+const insert = vi.fn(async (_row?: unknown) => ({ error: null }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({ insert }) },
 }));
