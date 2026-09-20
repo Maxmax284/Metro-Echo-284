@@ -33,4 +33,4 @@
 - [x] Add the IAD → TPE → BKK → USM development story with bounded immigration and privacy language
 - [x] Add focused regression coverage for route, whole-product framing and claim limits
 - [x] Run full tests, typecheck, build and 384px/desktop visual verification
-- [ ] Publish only after all checks pass
+- [x] Publish only after all checks pass
