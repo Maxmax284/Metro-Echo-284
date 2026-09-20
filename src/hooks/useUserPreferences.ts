@@ -58,6 +58,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   sensor_consent: {},
   body_profile: {},
   intake: {},
+  entry: {},
 };
 
 export function useUserPreferences() {
