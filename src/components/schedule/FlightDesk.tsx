@@ -1112,12 +1112,23 @@ export function FlightDesk() {
               />
             </div>
           </details>
-          <Link
-            to="/?surface=audit"
-            className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-primary underline underline-offset-2"
-          >
-            Open the trip summary in Receipts
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/?surface=audit"
+              className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-primary underline underline-offset-2"
+            >
+              Open the trip summary in Receipts
+            </Link>
+            {wrappedUp ? (
+              <button
+                type="button"
+                className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-muted-foreground underline underline-offset-2"
+                onClick={() => void sayWrappedUp(false)}
+              >
+                {WRAP_UP_COPY.undo}
+              </button>
+            ) : null}
+          </div>
         </Card>
       ) : null}
 

@@ -1,6 +1,7 @@
 // tripStandDown — a finished trip folds, a live one never does.
 import { describe, expect, it } from "vitest";
 import { STAND_DOWN_AFTER_MS, deskStandsDown, landingMs } from "@/lib/tripStandDown";
+import { isWrappedUp, toggleWrapped } from "@/lib/tripWrapUp";
 
 const NOW = Date.parse("2026-09-21T12:00:00Z");
 const LANDED_LONG_AGO = Date.parse("2026-09-20T10:00:00+07:00"); // ~29h before NOW
@@ -63,5 +64,43 @@ describe("deskStandsDown", () => {
 
   it("never folds on an unknown landing time", () => {
     expect(deskStandsDown({ ...base, landedAtMs: null })).toBe(false);
+  });
+});
+
+describe("your word that the trip is over", () => {
+  const base = {
+    landed: true,
+    landedAtMs: LANDED_RECENTLY,
+    now: NOW,
+    onwardConfirmed: false,
+    onwardCandidate: false,
+    upcomingElsewhere: false,
+  };
+
+  it("folds immediately when you say the trip is done", () => {
+    expect(deskStandsDown({ ...base, wrappedUp: true })).toBe(true);
+  });
+
+  it("still folds when the landing time is unknown but you said so", () => {
+    expect(deskStandsDown({ ...base, landedAtMs: null, wrappedUp: true })).toBe(true);
+  });
+
+  it("never folds a leg still in the air, whatever you said", () => {
+    expect(deskStandsDown({ ...base, landed: false, wrappedUp: true })).toBe(false);
+  });
+
+  it("lifts the fold again when a flight is on the books", () => {
+    expect(deskStandsDown({ ...base, wrappedUp: true, onwardCandidate: true })).toBe(false);
+    expect(deskStandsDown({ ...base, wrappedUp: true, upcomingElsewhere: true })).toBe(false);
+  });
+});
+
+describe("toggleWrapped", () => {
+  it("adds and removes without duplicates", () => {
+    expect(toggleWrapped(undefined, "j1", true)).toEqual(["j1"]);
+    expect(toggleWrapped(["j1"], "j1", true)).toEqual(["j1"]);
+    expect(toggleWrapped(["j1", "j2"], "j1", false)).toEqual(["j2"]);
+    expect(isWrappedUp(["j1"], "j1")).toBe(true);
+    expect(isWrappedUp(["j1"], null)).toBe(false);
   });
 });
