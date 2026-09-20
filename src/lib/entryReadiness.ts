@@ -195,6 +195,16 @@ export const ENTRY_FIXES: EntryFix[] = [
     ],
   },
   {
+    problem: "The accommodation fields were greyed out and it submitted anyway",
+    steps: [
+      "The website taking your submission is not the same as the declaration being complete — a field it skipped can still be missing at the desk.",
+      "Screenshot the confirmation and the greyed-out screen before you leave the internet.",
+      "Have the address you will actually be at readable on your phone, in the form it appears on your lease or booking.",
+      "Say plainly at the counter that the form would not accept the accommodation details, and ask where to go for assistance. Staff see this.",
+      "Do not assume an address immigration holds from an earlier filing counts as this declaration, and do not put in something false to fill the gap.",
+    ],
+  },
+  {
     problem: "I'm already at immigration with nothing filed",
     steps: [
       "Say so at the counter rather than guessing — staff deal with this daily.",
