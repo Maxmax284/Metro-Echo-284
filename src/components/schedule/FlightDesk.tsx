@@ -702,37 +702,34 @@ export function FlightDesk() {
      the card stows. Once the leg you were on is down, the flight that matters is
      the onward one — that is the card a person in a terminal is reading. */
   const gateRead = useMemo(() => {
-    const nowIso = new Date().toISOString();
-    const forPlan = (plan: FlightPlan | null, landed: boolean, inAir: boolean) => {
-      if (!plan) return null;
+    const row = (plan: FlightPlan, rank: number) => {
       const originIata = (plan.origin ?? "").trim().toUpperCase() || null;
       const destIata = (plan.destination ?? "").trim().toUpperCase() || null;
-      const departAt = anchorToZone(
-        plan.options.find((o) => o.depart_at)?.depart_at ?? null,
-        airportZone(originIata),
-      );
-      if (!gateMode({ departAt, nowIso, landed, inAir })) return null;
-      const arriveAt = anchorToZone(
-        plan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
-        airportZone(destIata),
-      );
-      return { plan, originIata, destIata, departAt, arriveAt };
+      return {
+        plan,
+        rank,
+        originIata,
+        destIata,
+        departAt: anchorToZone(
+          plan.options.find((o) => o.depart_at)?.depart_at ?? null,
+          airportZone(originIata),
+        ),
+        arriveAt: anchorToZone(
+          plan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+          airportZone(destIata),
+        ),
+        landed: rank === 0 ? landedHere : plan.leg_state === "landed",
+        inAir: rank === 0 ? activeGround?.where === "in_air" : plan.leg_state === "boarded",
+      };
     };
-    const legWord = (plan: FlightPlan | null) =>
-      forPlan(plan, plan?.leg_state === "landed", plan?.leg_state === "boarded");
-    /* Any other flight of yours leaving today and still to go — the one you are
-       standing in a terminal for once the leg behind you is down. */
-    const other = plans
-      .filter((p) => p.status === "confirmed" && p.id !== livePlan?.id && p.id !== confirmedOnwardPlan?.id)
-      .map(legWord)
-      .filter((r): r is NonNullable<typeof r> => !!r)
-      .sort((a, b) => Date.parse(a.departAt ?? "") - Date.parse(b.departAt ?? ""));
-    return (
-      forPlan(livePlan, landedHere, activeGround?.where === "in_air") ??
-      legWord(confirmedOnwardPlan) ??
-      other[0] ??
-      null
-    );
+    const rows = [
+      ...(livePlan ? [row(livePlan, 0)] : []),
+      ...(confirmedOnwardPlan ? [row(confirmedOnwardPlan, 1)] : []),
+      ...plans
+        .filter((p) => p.status === "confirmed" && p.id !== livePlan?.id && p.id !== confirmedOnwardPlan?.id)
+        .map((p) => row(p, 2)),
+    ];
+    return gatePick(rows, new Date().toISOString());
   }, [plans, livePlan, landedHere, activeGround, confirmedOnwardPlan]);
   const gateNow = !!gateRead;
   /* A flight that has not left yet and lands within the filing window of an
