@@ -24,6 +24,21 @@ type LegRow = {
 
 type TripGroup = { key: string; legs: LegRow[]; corrections: number; latest: string };
 
+/** Your word that a trip is closed, read from the receipts themselves. */
+type WrapWord = { at: string; route: string | null } | null;
+
+function whenWords(iso: string): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "";
+  const mins = Math.floor((Date.now() - ms) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 function wordsFor(leg: LegRow): string {
   const from = leg.origin || "?";
   const to = airportWords((leg.destination ?? "").toUpperCase()) || leg.destination || "?";
@@ -36,13 +51,15 @@ function wordsFor(leg: LegRow): string {
 export function JourneySummary() {
   const { user } = useAuth();
   const [trips, setTrips] = useState<TripGroup[]>([]);
+  /* Only ever read from recorded events — never inferred from the legs. */
+  const [wrapped, setWrapped] = useState<WrapWord>(null);
 
   useEffect(() => {
     if (!user) return;
     let alive = true;
     (async () => {
       const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-      const [plansRes, auditRes] = await Promise.all([
+      const [plansRes, auditRes, wrapRes] = await Promise.all([
         supabase
           .from("flight_plans")
           .select("id, origin, destination, status, leg_state, leg_state_source, updated_at")
@@ -55,7 +72,24 @@ export function JourneySummary() {
           .eq("user_id", user.id)
           .like("event", "flight.%")
           .gte("created_at", since),
+        supabase
+          .from("audit_log")
+          .select("event, created_at, payload")
+          .eq("user_id", user.id)
+          .in("event", ["journey.wrapped_up", "journey.wrap_up_reopened"])
+          .order("created_at", { ascending: false })
+          .limit(1),
       ]);
+      if (alive) {
+        const last = wrapRes.data?.[0] as
+          | { event: string; created_at: string; payload: { route?: string } | null }
+          | undefined;
+        setWrapped(
+          last && last.event === "journey.wrapped_up"
+            ? { at: last.created_at, route: last.payload?.route ?? null }
+            : null,
+        );
+      }
       if (!alive || plansRes.error || !plansRes.data?.length) {
         if (alive) setTrips([]);
         return;
@@ -97,8 +131,14 @@ export function JourneySummary() {
           <div key={trip.key} className="space-y-1">
             <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground">
               <Plane className="h-3.5 w-3.5 text-primary" aria-hidden />
-              {done ? `Trip finished — ${title}` : `On the books — ${title}`}
+              {wrapped ? `Closed by you — ${wrapped.route ?? title}` : done ? `Trip finished — ${title}` : `On the books — ${title}`}
             </p>
+            {wrapped ? (
+              <p className="text-[11.5px] leading-snug text-foreground/85">
+                You wrapped this trip up {whenWords(wrapped.at)}. Nothing was deleted — every leg and
+                change below is the record.
+              </p>
+            ) : null}
             <ul className="space-y-0.5">
               {trip.legs.map((leg) => (
                 <li key={leg.id} className="text-[12px] leading-snug text-foreground/90">
