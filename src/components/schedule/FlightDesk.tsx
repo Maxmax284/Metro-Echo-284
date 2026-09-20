@@ -734,6 +734,7 @@ export function FlightDesk() {
       null
     );
   }, [plans, livePlan, landedHere, activeGround, confirmedOnwardPlan]);
+  if (typeof window !== "undefined") console.log("GATEDBG", { live: livePlan?.id, landedHere, gate: gateRead?.plan.id, plans: plans.map((p) => [p.id, p.status, p.options[0]?.depart_at]) });
   const gateNow = !!gateRead;
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
