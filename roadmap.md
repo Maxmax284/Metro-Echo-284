@@ -14,10 +14,10 @@
 - [x] Record landing on TG637 + Bangkok place, retire stale Chantilly cue
 - [x] Fix FlightDesk crash when live leg has no provider snapshot (TG637 case)
 - [ ] Publish landing reflection + crash fix (publish was interrupted — retry)
-- [ ] Verify production shows Bangkok arrival; regression test for no-snapshot live leg
-- [ ] International entry readiness: Thailand TDAC official link, entry vs transit vs domestic follow-on, scam warning, honest fallback for other countries
-- [ ] Onward BKK→USM card with no flight number yet; explicit add path once known
-- [ ] Compact archival summary of completed legs in Receipts (no destructive cleanup)
-- [ ] Verify Gmail booking-watch end-to-end status; report Drive/Gmail API flags honestly; fix only small wiring defects
-- [ ] Regression tests: landing vs immigration vs entry vs transit, missing onward, no snapshot, TDAC applicability, unknown fallback
-- [ ] Tests/typecheck/build, 384px check, publish only after verified
+- [x] Verify production shows Bangkok arrival; regression test for no-snapshot live leg
+- [x] International entry readiness: Thailand TDAC official link, entry vs transit vs domestic follow-on, scam warning, honest fallback for other countries
+- [x] Onward BKK→USM card with no flight number yet; explicit add path once known
+- [x] Compact archival summary of completed legs in Receipts (no destructive cleanup)
+- [x] Verify Gmail booking-watch end-to-end status; report Drive/Gmail API flags honestly; fix only small wiring defects
+- [x] Regression tests: landing vs immigration vs entry vs transit, missing onward, no snapshot, TDAC applicability, unknown fallback
+- [x] Tests/typecheck/build, 384px check, publish only after verified
