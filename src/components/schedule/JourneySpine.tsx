@@ -24,9 +24,11 @@ import {
   legState,
   type Journey,
   type Leg,
+  type LegStateKind,
   type Segment,
 } from "@/lib/journey";
 import { LayoverCard } from "./LayoverCard";
+import { TravellerWord } from "./TravellerWord";
 
 function readingWords(at: string | null): string {
   if (!at) return "no reading from the airline yet";
