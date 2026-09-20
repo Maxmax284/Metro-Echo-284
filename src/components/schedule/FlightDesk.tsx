@@ -10,6 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
@@ -56,6 +57,7 @@ import { TerminalMap } from "./TerminalMap";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { GatePass } from "./GatePass";
 import { gatePick } from "@/lib/gatePass";
+import { deskStandsDown, landingMs } from "@/lib/tripStandDown";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
