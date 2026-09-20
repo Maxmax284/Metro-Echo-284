@@ -115,6 +115,8 @@ export function JourneySpine({
   savedAt,
   onDismissNews,
   landingAt = null,
+  onSay,
+  onClear,
 }: {
   journey: Journey;
   where: { kind: string; legIndex: number; iata: string | null; words: string; checked: string | null } | null;
@@ -123,6 +125,9 @@ export function JourneySpine({
   onDismissNews: () => void;
   /** The landing time read off the cabin screen, when the traveller gave one. */
   landingAt?: string | null;
+  /** Record your word against any leg of the trip, not only the live one. */
+  onSay?: (planId: string, state: LegStateKind) => Promise<void>;
+  onClear?: (planId: string) => Promise<void>;
 }) {
   const numbers = bigNumbers(journey, new Date(), landingAt);
   const liveIndex = where?.legIndex ?? 0;
