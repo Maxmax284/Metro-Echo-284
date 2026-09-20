@@ -45,6 +45,11 @@ export type StandDownArgs = {
   onwardCandidate: boolean;
   /** Another flight on the books — any status that still flies — is ahead. */
   upcomingElsewhere: boolean;
+  /**
+   * Your own word that the trip is over. It skips the wait, never the checks:
+   * anything still to fly keeps the desk standing regardless.
+   */
+  wrappedUp?: boolean;
 };
 
 /**
@@ -56,6 +61,7 @@ export type StandDownArgs = {
 export function deskStandsDown(args: StandDownArgs): boolean {
   if (!args.landed) return false;
   if (args.onwardConfirmed || args.onwardCandidate || args.upcomingElsewhere) return false;
+  if (args.wrappedUp) return true;
   if (args.landedAtMs === null) return false;
   return args.now - args.landedAtMs >= STAND_DOWN_AFTER_MS;
 }
