@@ -103,7 +103,10 @@ function IndexInner() {
   useLayoutEffect(() => {
     const el = surfaceWrapperRef.current?.querySelector<HTMLElement>(".overflow-y-auto");
     if (!el) return;
-    el.scrollTop = scrollMemory.current[surface] ?? 0;
+    // Work is a noticeboard, not a thread: it always opens at the top so the
+    // desk row (flights, money, schedule…) is never hidden below the fold.
+    // The other rooms keep their remembered position.
+    el.scrollTop = surface === "work" ? 0 : (scrollMemory.current[surface] ?? 0);
   }, [surface]);
 
 
