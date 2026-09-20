@@ -166,13 +166,18 @@ export function EntryReadiness({
   fromIata,
   toIata,
   when = "after",
+  arriveAt = null,
 }: {
   planId: string;
   fromIata: string | null | undefined;
   toIata: string | null | undefined;
   /** "before" — the flight has not left yet. "after" — it has landed. */
   when?: "before" | "after";
+  /** The arrival instant, anchored at the arrival airport. Used only to date the
+      official filing window; without it Echo dates nothing. */
+  arriveAt?: string | null;
 }) {
+
   const { prefs, loading, update } = useUserPreferences();
   const [intent, setIntent] = useState<EntryIntent | null>(null);
   const [ack, setAck] = useState<string | null>(null);
