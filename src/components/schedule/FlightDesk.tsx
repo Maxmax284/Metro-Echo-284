@@ -833,6 +833,8 @@ export function FlightDesk() {
             savedAt={journey.savedAt}
             onDismissNews={journey.dismissNews}
             landingAt={cabinLanding}
+            onSay={(planId, state) => journey.setLegState(planId, state)}
+            onClear={(planId) => journey.clearLegState(planId)}
           />
           {/* The same trip as a route you can tap, stop by stop. */}
           <FlightRouteMap

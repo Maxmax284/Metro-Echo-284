@@ -24,9 +24,11 @@ import {
   legState,
   type Journey,
   type Leg,
+  type LegStateKind,
   type Segment,
 } from "@/lib/journey";
 import { LayoverCard } from "./LayoverCard";
+import { TravellerWord } from "./TravellerWord";
 
 function readingWords(at: string | null): string {
   if (!at) return "no reading from the airline yet";
@@ -42,11 +44,16 @@ function LegRow({
   leg,
   live,
   clock,
+  onSay,
+  onClear,
 }: {
   leg: Leg;
   live: boolean;
   /** Each end reads in the local time at that airport, the way a ticket does. */
   clock: (at: string | null, iata: string | null) => string;
+  /** Your word about this leg, not just the one Echo thinks you are on. */
+  onSay?: (planId: string, state: LegStateKind) => Promise<void>;
+  onClear?: (planId: string) => Promise<void>;
 }) {
   const state = legState(leg);
   return (
@@ -86,6 +93,17 @@ function LegRow({
         {" · "}
         {readingWords(leg.live_checked_at)}
       </p>
+      {/* Your word belongs on the leg you are actually on, which is not always the
+          one Echo thinks. One tap per leg, and it says whose word it is on. */}
+      {onSay ? (
+        <div className="mt-1.5">
+          <TravellerWord
+            yourWord={state.source === "you" ? state.kind : null}
+            onSay={(kind) => onSay(leg.plan_id, kind)}
+            onClear={() => onClear?.(leg.plan_id) ?? Promise.resolve()}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -97,6 +115,8 @@ export function JourneySpine({
   savedAt,
   onDismissNews,
   landingAt = null,
+  onSay,
+  onClear,
 }: {
   journey: Journey;
   where: { kind: string; legIndex: number; iata: string | null; words: string; checked: string | null } | null;
@@ -105,6 +125,9 @@ export function JourneySpine({
   onDismissNews: () => void;
   /** The landing time read off the cabin screen, when the traveller gave one. */
   landingAt?: string | null;
+  /** Record your word against any leg of the trip, not only the live one. */
+  onSay?: (planId: string, state: LegStateKind) => Promise<void>;
+  onClear?: (planId: string) => Promise<void>;
 }) {
   const numbers = bigNumbers(journey, new Date(), landingAt);
   const liveIndex = where?.legIndex ?? 0;
@@ -161,6 +184,8 @@ export function JourneySpine({
               leg={seg.leg}
               live={journey.legs.indexOf(seg.leg) === liveIndex}
               clock={clock}
+              onSay={onSay}
+              onClear={onClear}
             />
           ) : (
             <div key={`ground-${i}`} className="py-3 pl-6">

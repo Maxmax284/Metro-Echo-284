@@ -182,11 +182,19 @@ export function basisWords(basis: TimeBasis): string {
  */
 export function legState(leg: Leg, now: Date = new Date()): LegState {
   if (leg.override) {
+    /* Your word still leads. But a word the airline has since contradicted — you
+       said boarding, the airline filed the landing — is said to be older than
+       the feed rather than repeated as now. It is never erased for you. */
+    const contradicted =
+      (leg.override === "boarding" || leg.override === "at_airport" || leg.override === "in_air") &&
+      leg.to.basis === "actual";
     return {
       kind: leg.override,
       source: "you",
-      words: leg.override_note ?? OVERRIDE_WORDS[leg.override],
-      stale: false,
+      words: contradicted
+        ? `${leg.override_note ?? OVERRIDE_WORDS[leg.override]} The airline has since filed this leg as landed, so your word here is older than the feed.`
+        : (leg.override_note ?? OVERRIDE_WORDS[leg.override]),
+      stale: contradicted,
     };
   }
   const filed = leg.filed_status;
@@ -465,7 +473,14 @@ export function journeysFrom(plans: FlightPlan[], now: Date = new Date()): Journ
 
 /** Where you are on this journey, and whose word says so. */
 export function whereOnJourney(journey: Journey, now: Date = new Date()): JourneyWhere {
-  const states = journey.legs.map((l) => legState(l, now));
+  /* A word of yours the airline has since contradicted still shows on its own leg,
+     with the contradiction said out loud — but it no longer decides where you are,
+     because "boarding at Dulles" tapped yesterday is not a place to be standing. */
+  const states = journey.legs.map((l) => {
+    const said = legState(l, now);
+    if (said.source !== "you" || !said.stale) return said;
+    return legState({ ...l, override: null, override_note: null }, now);
+  });
   const checked = journey.legs.map((l) => l.live_checked_at).filter(Boolean).sort().pop() ?? null;
 
   const stopped = states.findIndex((s) => s.kind === "did_not_happen");
@@ -483,7 +498,12 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     };
   }
 
-  const flying = states.findIndex((s) => s.kind === "in_air");
+  /* Furthest along wins. On a two-leg trip your word on the second leg is where
+     you are; the first leg's word is history, and reading the list front to back
+     used to keep a traveller standing in the terminal they left. */
+  const last = (kind: LegStateKind) => states.reduce((idx, s, i) => (s.kind === kind ? i : idx), -1);
+
+  const flying = last("in_air");
   if (flying >= 0) {
     const leg = journey.legs[flying];
     return {
@@ -501,7 +521,7 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
   /* On the aircraft, doors open. Not the terminal any more, not the air yet —
      the countdown is still the filed departure, and the leg you are boarding is
      the leg ahead, never the one after it. */
-  const boarding = states.findIndex((s) => s.kind === "boarding");
+  const boarding = last("boarding");
   if (boarding >= 0) {
     const leg = journey.legs[boarding];
     return {
