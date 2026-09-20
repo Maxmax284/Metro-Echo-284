@@ -97,6 +97,9 @@ export type NoticedFrom = {
   local_verification?: {
     gate?: string | null;
     boarding_time?: string | null;
+    /** Off the pass in the traveller's hand. Never read from a provider feed. */
+    seat?: string | null;
+    zone?: string | null;
     baggage_status?: "through_checked" | "collect_here" | "unknown" | null;
     transfer_route?: "airside_transfer" | "enter_country" | "unknown" | null;
     source: "boarding_pass" | "departures_board" | "airline_staff" | "traveler";

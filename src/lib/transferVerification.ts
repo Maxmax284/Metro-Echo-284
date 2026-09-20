@@ -7,6 +7,9 @@ export type TransferRoute = "airside_transfer" | "enter_country" | "unknown";
 export type LocalTransferVerification = {
   gate?: string | null;
   boarding_time?: string | null;
+  /** Off the pass in the traveller's hand. A feed never carries these. */
+  seat?: string | null;
+  zone?: string | null;
   baggage_status?: BaggageStatus | null;
   transfer_route?: TransferRoute | null;
   source: LocalFactSource;
