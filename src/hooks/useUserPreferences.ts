@@ -34,7 +34,11 @@ export type UserPreferences = {
   body_profile?: Record<string, unknown>;
   intake?: Record<string, unknown>;
   /** Border-crossing context. A country name only — never a document number. */
-  entry?: { nationality?: string };
+  entry?: {
+    nationality?: string;
+    /** Visiting, or living there on a lease. Phrasing only — no paperwork held. */
+    stay?: "visiting" | "resident_lease";
+  };
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
