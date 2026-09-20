@@ -4,7 +4,7 @@
 //   - One card, not a list of flights. Air legs are tight segments; the ground
 //     between them renders wider, because the sit is the story.
 //   - The leg you are in is lit, the rest are dimmed. Two big numbers on top:
-//     time left here, next gate.
+//     until the filed departure, next gate.
 //   - Every state line says whose word it is and when it was read. Position is
 //     derived, and the card says so.
 //   - No manual "I'm on it" buttons. A traveler is not a flight logger; the
