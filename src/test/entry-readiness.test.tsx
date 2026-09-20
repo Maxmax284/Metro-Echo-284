@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { entryRead, airportCountry, ENTRY_GUIDES } from "@/lib/entryReadiness";
+import { entryRead, airportCountry, guideStale, ENTRY_GUIDES } from "@/lib/entryReadiness";
 import { EntryReadiness } from "@/components/schedule/EntryReadiness";
 
 // Nationality comes from the traveller's own settings; tests set it directly.
@@ -102,5 +102,43 @@ describe("EntryReadiness card", () => {
     fireEvent.click(screen.getByRole("button", { name: /I'm entering/i }));
     expect(screen.getByLabelText(/Country of your passport/i)).toBeTruthy();
     expect(screen.queryByText(/passport number/i)).toBeNull();
+  });
+});
+
+describe("entry readiness earlier in the trip, and once per entry", () => {
+  it("asks before departure, not only after landing", () => {
+    render(<EntryReadiness planId="p5" fromIata="TPE" toIata="BKK" when="before" />);
+    expect(screen.getByText(/This flight lands in Thailand/i)).toBeTruthy();
+    expect(screen.queryByText(/You landed in Thailand/i)).toBeNull();
+  });
+
+  it("still says landed when the leg is on the ground", () => {
+    render(<EntryReadiness planId="p6" fromIata="TPE" toIata="BKK" when="after" />);
+    expect(screen.getByText(/You landed in Thailand/i)).toBeTruthy();
+  });
+
+  it("treats a domestic hop as the same entry once the card is filed", () => {
+    const read = entryRead({ fromIata: "BKK", toIata: "USM", filedFor: "TH" });
+    expect(read.kind).toBe("already_filed");
+  });
+
+  it("does not ask for a second card on the domestic hop after filing", () => {
+    window.localStorage.setItem("echo.entry.ack.c.TH", `TH:${ENTRY_GUIDES.TH.checkedOn}`);
+    render(<EntryReadiness planId="p7" fromIata="BKK" toIata="USM" />);
+    expect(screen.getByText(/not a new entry/i)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /official Thailand arrival card/i })).toBeNull();
+  });
+
+  it("carries one acknowledgment across the legs of a single entry", () => {
+    mockNationality = "United States";
+    window.localStorage.setItem("echo.entry.intent.p8", "enter");
+    window.localStorage.setItem("echo.entry.ack.c.TH", `TH:${ENTRY_GUIDES.TH.checkedOn}`);
+    render(<EntryReadiness planId="p8" fromIata="TPE" toIata="BKK" />);
+    expect(screen.getByText(/marked done/i)).toBeTruthy();
+  });
+
+  it("says out loud when its vetted words have gone stale", () => {
+    expect(guideStale(ENTRY_GUIDES.TH, new Date(`${ENTRY_GUIDES.TH.checkedOn}T00:00:00Z`))).toBe(false);
+    expect(guideStale(ENTRY_GUIDES.TH, new Date("2030-01-01T00:00:00Z"))).toBe(true);
   });
 });

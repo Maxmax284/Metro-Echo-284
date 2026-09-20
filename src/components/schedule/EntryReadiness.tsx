@@ -1,10 +1,12 @@
 // EntryReadiness — what the border expects, asked only of people it applies to.
 //
-// Shows on a landed international leg. It asks at most two things — "are you
-// entering or only changing planes?" and, only when entering a country with a
-// vetted arrival-card system, "which country's passport are you carrying?" A
-// country name, never a document number. Echo never fills in or submits the
-// form; it hands over the official link and keeps a local acknowledgment.
+// Shows on an international leg: before departure once the flight is within the
+// filing window, and again once it has landed. It asks at most two things —
+// "are you entering or only changing planes?" and, only when entering a country
+// with a vetted arrival-card system, "which country's passport are you
+// carrying?" A country name, never a document number. Echo never fills in or
+// submits the form; it hands over the official link and keeps a local
+// acknowledgment, held per entry so a later domestic hop does not re-ask.
 import { useEffect, useState } from "react";
 import { Check, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,14 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
+  airportCountry,
   entryRead,
+  guideStale,
   type EntryIntent,
   type EntryGuide,
 } from "@/lib/entryReadiness";
 import { vantaToast } from "@/lib/vantaVoice";
 
 const intentKey = (planId: string) => `echo.entry.intent.${planId}`;
-const ackKey = (planId: string) => `echo.entry.ack.${planId}`;
+/** Held per country, not per flight: one entry, one filing. */
+const entryAckKey = (countryCode: string) => `echo.entry.ack.c.${countryCode}`;
+/** What older builds wrote, still honoured so nobody is asked twice. */
+const legacyAckKey = (planId: string) => `echo.entry.ack.${planId}`;
 
 function readLS(key: string): string | null {
   try {
@@ -66,6 +73,7 @@ function GuideCard({
       </div>
     );
   }
+  const stale = guideStale(guide);
   return (
     <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
       <p className="text-[12.5px] font-medium text-foreground">
@@ -91,6 +99,12 @@ function GuideCard({
         {guide.scamWords}
       </p>
       <p className="text-[11px] leading-snug text-muted-foreground">{guide.visaWords}</p>
+      {stale ? (
+        <p className="text-[11px] leading-snug text-amber-200/90">
+          These words were last checked on {guide.checkedOn} — a while ago now. Read the official page
+          before you rely on them.
+        </p>
+      ) : null}
       <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2">
         <p className="text-[10.5px] text-muted-foreground">
           Checked {guide.checkedOn} ·{" "}
@@ -115,10 +129,13 @@ export function EntryReadiness({
   planId,
   fromIata,
   toIata,
+  when = "after",
 }: {
   planId: string;
   fromIata: string | null | undefined;
   toIata: string | null | undefined;
+  /** "before" — the flight has not left yet. "after" — it has landed. */
+  when?: "before" | "after";
 }) {
   const { prefs, loading, update } = useUserPreferences();
   const [intent, setIntent] = useState<EntryIntent | null>(null);
@@ -126,15 +143,19 @@ export function EntryReadiness({
   const [nat, setNat] = useState("");
   const [savingNat, setSavingNat] = useState(false);
 
+  const toCountryCode = airportCountry(toIata);
+
   useEffect(() => {
     setIntent((readLS(intentKey(planId)) as EntryIntent | null) ?? null);
-    setAck(readLS(ackKey(planId)));
-  }, [planId]);
+    const country = airportCountry(toIata);
+    setAck((country ? readLS(entryAckKey(country)) : null) ?? readLS(legacyAckKey(planId)));
+  }, [planId, toIata]);
 
   const nationality = prefs.entry?.nationality ?? null;
-  const read = entryRead({ fromIata, toIata, intent, nationality });
+  const filedFor = ack ? ack.split(":")[0] : null;
+  const read = entryRead({ fromIata, toIata, intent, nationality, filedFor });
 
-  // Domestic leg, or Echo cannot tell which countries are involved: stay silent.
+  // A domestic leg with nothing filed, or a route Echo cannot place: stay silent.
   if (read.kind === "domestic" || read.kind === "unknown_route") return null;
 
   const setIntentAndKeep = (next: EntryIntent | null) => {
@@ -156,6 +177,8 @@ export function EntryReadiness({
     }
   };
 
+  const landed = when === "after";
+
   return (
     <section
       aria-label="Entering the country"
@@ -166,12 +189,23 @@ export function EntryReadiness({
         At the border
       </p>
 
+      {read.kind === "already_filed" ? (
+        <p className="text-[12.5px] leading-snug text-foreground/90">
+          {read.guide.cardName} already filed for this entry — this hop stays inside{" "}
+          {read.guide.country}, so it is not a new entry and no second card is owed.
+        </p>
+      ) : null}
+
       {read.kind === "needs_intent" ? (
         <div className="space-y-2">
           <p className="text-[12.5px] leading-snug text-foreground/90">
-            {read.toCountry
-              ? `You landed in ${read.toCountry} from another country. Are you going through immigration here, or only changing planes?`
-              : "You landed from another country. Are you going through immigration here, or only changing planes?"}
+            {landed
+              ? read.toCountry
+                ? `You landed in ${read.toCountry} from another country. Are you going through immigration here, or only changing planes?`
+                : "You landed from another country. Are you going through immigration here, or only changing planes?"
+              : read.toCountry
+                ? `This flight lands in ${read.toCountry}. Will you go through immigration there, or only change planes?`
+                : "This flight lands in another country. Will you go through immigration there, or only change planes?"}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" className="h-11 text-[12.5px]" onClick={() => setIntentAndKeep("enter")}>
@@ -247,11 +281,12 @@ export function EntryReadiness({
           onAck={() => {
             const stamp = `${read.guide.countryCode}:${read.guide.checkedOn}`;
             setAck(stamp);
-            writeLS(ackKey(planId), stamp);
+            writeLS(entryAckKey(read.guide.countryCode), stamp);
           }}
           onResetAck={() => {
             setAck(null);
-            writeLS(ackKey(planId), null);
+            writeLS(entryAckKey(read.guide.countryCode), null);
+            writeLS(legacyAckKey(planId), null);
           }}
         />
       ) : null}
@@ -265,8 +300,8 @@ export function EntryReadiness({
 
       {read.kind === "no_guide" ? (
         <p className="text-[12.5px] leading-snug text-foreground/90">
-          {read.toCountry
-            ? `Echo keeps no vetted entry notes for ${read.toCountry} — check the official immigration site before you land, and ignore any site that charges for an "arrival card".`
+          {read.toCountry ?? toCountryCode
+            ? `Echo keeps no vetted entry notes for ${read.toCountry ?? toCountryCode} — check the official immigration site before you land, and ignore any site that charges for an "arrival card".`
             : "Echo cannot tell which country this airport is in — check the official immigration site for where you land, and ignore any site that charges for an \"arrival card\"."}
         </p>
       ) : null}

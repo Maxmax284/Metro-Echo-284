@@ -684,6 +684,27 @@ export function FlightDesk() {
         airportZone((livePlan.destination ?? "").trim().toUpperCase() || null),
       )
     : null;
+  /* A flight that has not left yet and lands within the filing window of an
+     arrival card. The window is the point: a card you can only file three days
+     out is no use the moment you are standing at the desk. Times are anchored
+     at the departure airport, never read in the device's zone. */
+  const entryAhead = useMemo(() => {
+    if (landedHere) return null;
+    const now = Date.now();
+    const horizon = now + 3 * 86_400_000;
+    const rows = plans
+      .filter((plan) => plan.status === "confirmed" || plan.status === "prepared")
+      .map((plan) => {
+        const at = anchorToZone(
+          plan.options.find((o) => o.depart_at)?.depart_at ?? null,
+          airportZone((plan.origin ?? "").trim().toUpperCase() || null),
+        );
+        return { plan, ms: at ? Date.parse(at) : Number.NaN };
+      })
+      .filter((row) => Number.isFinite(row.ms) && row.ms >= now && row.ms <= horizon)
+      .sort((a, b) => a.ms - b.ms);
+    return rows[0]?.plan ?? null;
+  }, [plans, landedHere]);
   const cabinLanding = livePlan ? (cabinReads[livePlan.id] ?? readCabinEstimate(livePlan.id)?.at ?? null) : null;
   const takeCabinRead = (planId: string, destination: string | null, hhmm: string | null) => {
     if (!hhmm) {
@@ -795,14 +816,23 @@ export function FlightDesk() {
               />
             ) : null}
 
-            {/* What the border expects, asked only when the landing was
-                international. Never assumes immigration is cleared, bags are
-                collected, or the next leg is booked. */}
+            {/* What the border expects. Asked while the flight is still ahead —
+                an arrival card you file days early is no use in the hall — and
+                again once it has landed. Never assumes immigration is cleared,
+                bags are collected, or the next leg is booked. */}
             {landedHere && livePlan ? (
               <EntryReadiness
                 planId={livePlan.id}
                 fromIata={liveLeg?.from.iata ?? livePlan.origin}
                 toIata={liveLeg?.to.iata ?? livePlan.destination}
+                when="after"
+              />
+            ) : entryAhead ? (
+              <EntryReadiness
+                planId={entryAhead.id}
+                fromIata={entryAhead.origin}
+                toIata={entryAhead.destination}
+                when="before"
               />
             ) : null}
 

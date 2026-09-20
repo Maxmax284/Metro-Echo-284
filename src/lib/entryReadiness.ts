@@ -91,9 +91,22 @@ export function normalizeNationality(words: string | null | undefined): string {
   return (words ?? "").trim().toLowerCase().replace(/[^a-z]/g, "");
 }
 
+/** How old a hand-vetted note may get before Echo says so out loud. */
+export const GUIDE_STALE_DAYS = 90;
+
+/** True when these words have not been re-read against the official pages in a
+    while. Echo never pretends its paraphrase is fresher than it is. */
+export function guideStale(guide: EntryGuide, now: Date = new Date()): boolean {
+  const checked = Date.parse(`${guide.checkedOn}T00:00:00Z`);
+  if (!Number.isFinite(checked)) return true;
+  return now.getTime() - checked > GUIDE_STALE_DAYS * 86_400_000;
+}
+
 export type EntryRead =
   /** Same country both ends — a domestic leg owes no arrival card. */
   | { kind: "domestic"; countryCode: string }
+  /** A domestic hop inside a country whose card is already filed for this entry. */
+  | { kind: "already_filed"; countryCode: string; guide: EntryGuide }
   /** Echo cannot tell which countries are involved, so it says nothing. */
   | { kind: "unknown_route" }
   /** International arrival, but the traveller's intent is not on record. */
@@ -114,12 +127,19 @@ export function entryRead(args: {
   toIata?: string | null;
   intent?: EntryIntent | null;
   nationality?: string | null;
+  /** Country code whose arrival card the traveller already marked filed for
+      this entry. A later hop inside that country is not a new entry. */
+  filedFor?: string | null;
 }): EntryRead {
   const from = airportCountry(args.fromIata);
   const to = airportCountry(args.toIata);
-  const toIata = (args.toIata ?? "").trim().toUpperCase();
+  const filed = (args.filedFor ?? "").trim().toUpperCase() || null;
   if (!from && !to) return { kind: "unknown_route" };
-  if (from && to && from === to) return { kind: "domestic", countryCode: to };
+  if (from && to && from === to) {
+    const sameGuide = ENTRY_GUIDES[to];
+    if (filed === to && sameGuide) return { kind: "already_filed", countryCode: to, guide: sameGuide };
+    return { kind: "domestic", countryCode: to };
+  }
 
   const guide = to ? ENTRY_GUIDES[to] ?? null : null;
   const toCountry = guide?.country ?? null;

@@ -8,6 +8,8 @@ import { useMailSweep } from "@/hooks/useMailSweep";
 
 export function MailSweepRow() {
   const { enabled, lastSweptAt, lastError, found7d, busy, setEnabled } = useMailSweep();
+  /* Google's own refusal, told apart from an ordinary hiccup. */
+  const blocked = !!lastError && /switched off/i.test(lastError);
 
   return (
     <div className="mt-2 rounded-md bg-background/40 p-2 ring-1 ring-border/30">
@@ -37,7 +39,28 @@ export function MailSweepRow() {
           <span>No message body is kept — only the subject line, so Receipts can say where a flight came from.</span>
         </div>
       ) : null}
-      {lastError ? <p className="mt-1 text-[10.5px] text-destructive">{lastError}</p> : null}
+      {/* A switch that looks armed while Google refuses every read is a lie.
+          When Google itself has the service switched off, say so and give the
+          one thing to click — nothing here can fix it from this side. */}
+      {blocked ? (
+        <div className="mt-1.5 rounded-md bg-destructive/10 p-2 ring-1 ring-destructive/30">
+          <p className="text-[10.5px] leading-snug text-foreground/90">
+            Switched on here, but blocked by Google: the Gmail API is off in the Google Cloud project
+            behind your sign-in, so no mail reaches Echo. Turn it on there and this clears itself on
+            the next look — no reconnect, no signing in again.
+          </p>
+          <a
+            href="https://console.cloud.google.com/apis/library/gmail.googleapis.com"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-block text-[10.5px] underline underline-offset-2"
+          >
+            Open the Gmail API page in Google Cloud
+          </a>
+        </div>
+      ) : lastError ? (
+        <p className="mt-1 text-[10.5px] text-destructive">{lastError}</p>
+      ) : null}
     </div>
   );
 }
