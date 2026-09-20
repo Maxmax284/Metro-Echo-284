@@ -22,6 +22,14 @@ vi.mock("@/hooks/useUserPreferences", () => ({
   }),
 }));
 
+vi.mock("@/lib/auth", () => ({ useAuth: () => ({ user: { id: "u1" } }) }));
+vi.mock("@/hooks/useScope", () => ({
+  useScope: () => ({ withScope: (row: Record<string, unknown>) => row }),
+}));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: () => ({ insert: async () => ({ error: null }) }) },
+}));
+
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
