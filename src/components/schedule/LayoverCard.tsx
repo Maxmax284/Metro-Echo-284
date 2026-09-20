@@ -20,12 +20,67 @@ import { countryNotes, noNotesWords, notesCheckedOn } from "@/lib/countryNotes";
 import { airport } from "@/lib/airports";
 import { useAirportIntel } from "@/hooks/useJourney";
 
-export function LayoverCard({ layover, nextLeg, live }: { layover: Layover; nextLeg: Leg; live: boolean }) {
+export function LayoverCard({
+  layover,
+  nextLeg,
+  live,
+  past = false,
+}: {
+  layover: Layover;
+  nextLeg: Leg;
+  live: boolean;
+  /** The connection is behind you. History, not guidance. */
+  past?: boolean;
+}) {
   const [showMath, setShowMath] = useState(false);
   const [showGround, setShowGround] = useState(false);
+  const [openPast, setOpenPast] = useState(false);
   const { byCategory, busy, look } = useAirportIntel(layover.iata || null);
   const place = airport(layover.iata);
   const notes = place ? countryNotes(place.cc) : null;
+
+  /* A sit you have already sat through says how long it was, and nothing else.
+     Terminals, gates and getting-out advice are no longer anyone's business. */
+  if (past && !live) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5">
+          <Timer className="h-3 w-3 shrink-0" aria-hidden />
+          <span>
+            {durationWords(layover.gapMin) ?? "Time not on record"} at {layover.place} · behind you
+          </span>
+        </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="mt-1 h-7 px-2 text-[11px]"
+          onClick={() => setOpenPast((v) => !v)}
+        >
+          {openPast ? "Hide what was on record" : "What was on record"}
+        </Button>
+        {openPast ? (
+          <ul className="mt-1 space-y-1">
+            <li>
+              {layover.terminalChange === "yes"
+                ? `terminal ${layover.arriveTerminal} → ${layover.departTerminal}`
+                : layover.terminalChange === "no"
+                  ? "same terminal"
+                  : "terminals not on record"}
+            </li>
+            <li>
+              {layover.border === "different"
+                ? "border crossed on the way in"
+                : layover.border === "same"
+                  ? "no border here"
+                  : "immigration not on record"}
+            </li>
+            {nextLeg.from.gate ? <li>gate {nextLeg.from.gate}</li> : null}
+            <li>Yours after deductions: {durationWords(layover.usableMin) ?? "could not be worked out"}</li>
+          </ul>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div
