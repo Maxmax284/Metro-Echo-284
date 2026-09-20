@@ -392,12 +392,10 @@ const FILING_SET = new Set<FilingState>(["not_started", "blocked", "submitted", 
 export function parseFilingMarks(raw: string | null | undefined): FilingMark[] {
   const text = (raw ?? "").trim();
   if (!text) return [];
-  if (!text.startsWith("[")) {
-    // Legacy acknowledgment stamp: a country code and the date of the notes.
-    const at = text.split(":")[1];
-    const when = at && Number.isFinite(Date.parse(`${at}T00:00:00Z`)) ? `${at}T00:00:00.000Z` : new Date(0).toISOString();
-    return [{ state: "submitted", at: when }];
-  }
+  // Legacy acknowledgment stamp: a country code and the date of the notes.
+  const legacy = /^[A-Za-z]{2}:(\d{4}-\d{2}-\d{2})$/.exec(text);
+  if (legacy) return [{ state: "submitted", at: `${legacy[1]}T00:00:00.000Z` }];
+  if (!text.startsWith("[")) return [];
   try {
     const rows = JSON.parse(text) as unknown;
     if (!Array.isArray(rows)) return [];
