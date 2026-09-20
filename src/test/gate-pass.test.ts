@@ -9,6 +9,7 @@ import {
   clockMinutes,
   draftEmpty,
   gateMode,
+  gatePick,
   passCells,
   passConflicts,
   sameLocalDay,
@@ -146,5 +147,27 @@ describe("what a person types or a photo reads", () => {
     });
     expect(cleanDraft({ boarding_time: "nonsense" }).boarding_time).toBeNull();
     expect(draftEmpty(cleanDraft({}))).toBe(true);
+  });
+});
+
+describe("which flight gate mode is about", () => {
+  const NOW = "2026-09-20T07:30:00.000Z"; // 14:30 in Bangkok
+  const rows = [
+    { id: "tg637", rank: 0, departAt: "2026-09-20T08:05:00+07:00", landed: true },
+    { id: "pg165", rank: 1, departAt: "2026-09-20T15:55:00+07:00" },
+    { id: "later", rank: 2, departAt: "2026-09-22T09:00:00+07:00" },
+  ];
+
+  it("hands the card to the onward flight once the leg behind you is down", () => {
+    expect(gatePick(rows, NOW)?.id).toBe("pg165");
+  });
+
+  it("keeps the card on the leg you are on while it is still to go", () => {
+    expect(gatePick([{ ...rows[0], landed: false }, rows[1], rows[2]], NOW)?.id).toBe("tg637");
+  });
+
+  it("stays out of it when nothing of yours leaves today", () => {
+    expect(gatePick([rows[0], rows[2]], NOW)).toBeNull();
+    expect(gatePick([{ id: "no_time", rank: 2, departAt: null }], NOW)).toBeNull();
   });
 });
