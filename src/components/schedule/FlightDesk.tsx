@@ -734,6 +734,41 @@ export function FlightDesk() {
     return gatePick(rows, new Date().toISOString());
   }, [plans, livePlan, landedHere, activeGround, confirmedOnwardPlan]);
   const gateNow = !!gateRead;
+  /* Wheels down plus a night at the destination, with nothing onward — no
+     confirmed next leg, no proposal that could chain, no other flight ahead
+     on the books — and the desk stands down to one quiet finished card. The
+     fold is display only: every record stays, the spine and the route open
+     behind one tap, Receipts keeps the summary, and the fold lifts the moment
+     anything is live again. */
+  const tripLandedAtMs = useMemo(
+    () => (landedHere ? landingMs(liveFiledArrival, livePlan?.leg_state_at ?? null) : null),
+    [landedHere, liveFiledArrival, livePlan],
+  );
+  const upcomingElsewhere = useMemo(
+    () =>
+      plans.some((plan) => {
+        if (plan.id === livePlan?.id) return false;
+        if (plan.status !== "confirmed" && plan.status !== "prepared") return false;
+        if (plan.ownership === "theirs") return false;
+        if (plan.leg_state === "landed") return false;
+        const at = anchorToZone(
+          plan.options.find((o) => o.depart_at)?.depart_at ?? null,
+          airportZone((plan.origin ?? "").trim().toUpperCase() || null),
+        );
+        /* A flight with no time on record is still on the books. */
+        if (!at) return true;
+        return Date.parse(at) > Date.now();
+      }),
+    [plans, livePlan],
+  );
+  const tripOver = deskStandsDown({
+    landed: landedHere,
+    landedAtMs: tripLandedAtMs,
+    now: Date.now(),
+    onwardConfirmed: !!confirmedOnwardPlan,
+    onwardCandidate: !!candidateOnward,
+    upcomingElsewhere,
+  });
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
      out is no use the moment you are standing at the desk. Times are anchored
