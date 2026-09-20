@@ -184,6 +184,8 @@ export function JourneySpine({
               leg={seg.leg}
               live={journey.legs.indexOf(seg.leg) === liveIndex}
               clock={clock}
+              onSay={onSay}
+              onClear={onClear}
             />
           ) : (
             <div key={`ground-${i}`} className="py-3 pl-6">
