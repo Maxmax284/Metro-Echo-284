@@ -93,6 +93,17 @@ function LegRow({
         {" · "}
         {readingWords(leg.live_checked_at)}
       </p>
+      {/* Your word belongs on the leg you are actually on, which is not always the
+          one Echo thinks. One tap per leg, and it says whose word it is on. */}
+      {onSay ? (
+        <div className="mt-1.5">
+          <TravellerWord
+            yourWord={state.source === "you" ? state.kind : null}
+            onSay={(kind) => onSay(leg.plan_id, kind)}
+            onClear={() => onClear?.(leg.plan_id) ?? Promise.resolve()}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
