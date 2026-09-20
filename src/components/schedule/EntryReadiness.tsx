@@ -104,6 +104,12 @@ function GuideCard({
       <p className="text-[12.5px] font-medium text-foreground">
         Before immigration: {guide.cardName}
       </p>
+      {landed ? (
+        <p className="text-[12px] leading-snug text-muted-foreground">
+          Already through, or sorted it at the counter? Mark it done and Echo drops the subject.
+        </p>
+      ) : null}
+
       {opening ? <p className="text-[12px] leading-snug text-primary">{opening}</p> : null}
       <ul className="space-y-1 text-[11.5px] leading-snug text-foreground/85">
         <li>{guide.whoWords}</li>
