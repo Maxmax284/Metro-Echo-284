@@ -67,9 +67,10 @@ describe("entryRead — what the border expects", () => {
   });
 
   it("points at the official immigration site for countries with no vetted notes", () => {
-    const read = entryRead({ fromIata: "TPE", toIata: "SIN", intent: "enter", nationality: "United States" });
+    const read = entryRead({ fromIata: "TPE", toIata: "KUL", intent: "enter", nationality: "United States" });
     expect(read.kind).toBe("no_guide");
   });
+
 
   it("stays silent when it cannot tell the countries apart", () => {
     expect(entryRead({ fromIata: "ZZZ", toIata: "QQQ" }).kind).toBe("unknown_route");
