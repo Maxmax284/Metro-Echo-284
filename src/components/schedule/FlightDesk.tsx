@@ -58,6 +58,8 @@ import { FlightRouteMap } from "./FlightRouteMap";
 import { GatePass } from "./GatePass";
 import { gatePick } from "@/lib/gatePass";
 import { deskStandsDown, landingMs } from "@/lib/tripStandDown";
+import { WRAP_UP_COPY, isWrappedUp, recordTripWrapUp, toggleWrapped } from "@/lib/tripWrapUp";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
