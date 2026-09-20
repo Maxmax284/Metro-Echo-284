@@ -473,7 +473,14 @@ export function journeysFrom(plans: FlightPlan[], now: Date = new Date()): Journ
 
 /** Where you are on this journey, and whose word says so. */
 export function whereOnJourney(journey: Journey, now: Date = new Date()): JourneyWhere {
-  const states = journey.legs.map((l) => legState(l, now));
+  /* A word of yours the airline has since contradicted still shows on its own leg,
+     with the contradiction said out loud — but it no longer decides where you are,
+     because "boarding at Dulles" tapped yesterday is not a place to be standing. */
+  const states = journey.legs.map((l) => {
+    const said = legState(l, now);
+    if (said.source !== "you" || !said.stale) return said;
+    return legState({ ...l, override: null, override_note: null }, now);
+  });
   const checked = journey.legs.map((l) => l.live_checked_at).filter(Boolean).sort().pop() ?? null;
 
   const stopped = states.findIndex((s) => s.kind === "did_not_happen");
