@@ -59,7 +59,7 @@ export function EntryHelp() {
         </ul>
       </Fold>
       <Fold
-        label="Something went wrong on the form"
+        label="If the form fights you"
         icon={<LifeBuoy className="h-3.5 w-3.5 text-primary" aria-hidden />}
       >
         <div className="space-y-2.5">
