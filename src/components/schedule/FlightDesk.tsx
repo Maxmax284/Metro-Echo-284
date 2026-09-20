@@ -653,11 +653,16 @@ export function FlightDesk() {
   const transferPlan = confirmedOnwardPlan ?? candidateOnward;
   const transferConfirmed = !!confirmedOnwardPlan;
   const transferSnapshot = transferPlan?.live_status as LiveFlight | null | undefined;
-  /* The airport you are standing in, only once this leg has actually landed. */
-  const landedAt =
-    livePlan && liveSnapshot && flightPhase(liveSnapshot) === "landed"
-      ? (livePlan.destination ?? liveSnapshot?.arrival.iata ?? "").trim().toUpperCase() || null
-      : null;
+  /* The airport you are standing in, only once this leg has actually landed.
+     The provider's word or your own both count — a leg with no filed data at
+     all (your ticket-stamp flight) still lands when you say so. */
+  const landedHere =
+    !!livePlan &&
+    (!!liveSnapshot && flightPhase(liveSnapshot) === "landed" ||
+      livePlan.leg_state === "landed");
+  const landedAt = landedHere && livePlan
+    ? (livePlan.destination ?? liveSnapshot?.arrival.iata ?? "").trim().toUpperCase() || null
+    : null;
   const remainingSettled = settled.filter((p) => p.id !== livePlan?.id);
   const settledGroups = useMemo(() => {
     const groups = new Map<string, { plan: FlightPlan; count: number }>();
