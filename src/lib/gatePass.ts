@@ -180,7 +180,7 @@ export function gateMode(input: {
 export type PassDraft = {
   boarding_time?: string | null;
   gate?: string | null;
-  seat?: string | null
+  seat?: string | null;
   zone?: string | null;
 };
 
