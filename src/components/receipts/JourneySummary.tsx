@@ -51,13 +51,15 @@ function wordsFor(leg: LegRow): string {
 export function JourneySummary() {
   const { user } = useAuth();
   const [trips, setTrips] = useState<TripGroup[]>([]);
+  /* Only ever read from recorded events — never inferred from the legs. */
+  const [wrapped, setWrapped] = useState<WrapWord>(null);
 
   useEffect(() => {
     if (!user) return;
     let alive = true;
     (async () => {
       const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-      const [plansRes, auditRes] = await Promise.all([
+      const [plansRes, auditRes, wrapRes] = await Promise.all([
         supabase
           .from("flight_plans")
           .select("id, origin, destination, status, leg_state, leg_state_source, updated_at")
@@ -70,7 +72,24 @@ export function JourneySummary() {
           .eq("user_id", user.id)
           .like("event", "flight.%")
           .gte("created_at", since),
+        supabase
+          .from("audit_log")
+          .select("event, created_at, payload")
+          .eq("user_id", user.id)
+          .in("event", ["journey.wrapped_up", "journey.wrap_up_reopened"])
+          .order("created_at", { ascending: false })
+          .limit(1),
       ]);
+      if (alive) {
+        const last = wrapRes.data?.[0] as
+          | { event: string; created_at: string; payload: { route?: string } | null }
+          | undefined;
+        setWrapped(
+          last && last.event === "journey.wrapped_up"
+            ? { at: last.created_at, route: last.payload?.route ?? null }
+            : null,
+        );
+      }
       if (!alive || plansRes.error || !plansRes.data?.length) {
         if (alive) setTrips([]);
         return;
