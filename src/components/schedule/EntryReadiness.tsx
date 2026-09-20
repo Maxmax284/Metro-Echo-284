@@ -329,6 +329,8 @@ export function EntryReadiness({
         <GuideCard
           guide={read.guide}
           window={when === "before" ? entryWindow({ guide: read.guide, arriveAt }) : { kind: "unknown" }}
+          landed={landed}
+
 
           acked={ack === `${read.guide.countryCode}:${read.guide.checkedOn}`}
           onAck={() => {
