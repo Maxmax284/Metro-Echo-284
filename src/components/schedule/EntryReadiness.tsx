@@ -318,6 +318,8 @@ export function EntryReadiness({
       {read.kind === "needed" ? (
         <GuideCard
           guide={read.guide}
+          window={when === "before" ? entryWindow({ guide: read.guide, arriveAt }) : { kind: "unknown" }}
+
           acked={ack === `${read.guide.countryCode}:${read.guide.checkedOn}`}
           onAck={() => {
             const stamp = `${read.guide.countryCode}:${read.guide.checkedOn}`;
