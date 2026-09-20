@@ -10,6 +10,7 @@
 //     is reported as carrying nothing.
 //   - Nothing here buys, holds, or checks anyone in. Confirming records.
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { MapPin, Plane, PlusCircle, RadioTower, ScanLine, Trash2, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
@@ -56,6 +57,7 @@ import { TerminalMap } from "./TerminalMap";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { GatePass } from "./GatePass";
 import { gatePick } from "@/lib/gatePass";
+import { deskStandsDown, landingMs } from "@/lib/tripStandDown";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
@@ -732,6 +734,41 @@ export function FlightDesk() {
     return gatePick(rows, new Date().toISOString());
   }, [plans, livePlan, landedHere, activeGround, confirmedOnwardPlan]);
   const gateNow = !!gateRead;
+  /* Wheels down plus a night at the destination, with nothing onward — no
+     confirmed next leg, no proposal that could chain, no other flight ahead
+     on the books — and the desk stands down to one quiet finished card. The
+     fold is display only: every record stays, the spine and the route open
+     behind one tap, Receipts keeps the summary, and the fold lifts the moment
+     anything is live again. */
+  const tripLandedAtMs = useMemo(
+    () => (landedHere ? landingMs(liveFiledArrival, livePlan?.leg_state_at ?? null) : null),
+    [landedHere, liveFiledArrival, livePlan],
+  );
+  const upcomingElsewhere = useMemo(
+    () =>
+      plans.some((plan) => {
+        if (plan.id === livePlan?.id) return false;
+        if (plan.status !== "confirmed" && plan.status !== "prepared") return false;
+        if (plan.ownership === "theirs") return false;
+        if (plan.leg_state === "landed") return false;
+        const at = anchorToZone(
+          plan.options.find((o) => o.depart_at)?.depart_at ?? null,
+          airportZone((plan.origin ?? "").trim().toUpperCase() || null),
+        );
+        /* A flight with no time on record is still on the books. */
+        if (!at) return true;
+        return Date.parse(at) > Date.now();
+      }),
+    [plans, livePlan],
+  );
+  const tripOver = deskStandsDown({
+    landed: landedHere,
+    landedAtMs: tripLandedAtMs,
+    now: Date.now(),
+    onwardConfirmed: !!confirmedOnwardPlan,
+    onwardCandidate: !!candidateOnward,
+    upcomingElsewhere,
+  });
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
      out is no use the moment you are standing at the desk. Times are anchored
@@ -783,7 +820,7 @@ export function FlightDesk() {
 
       {/* The trip you are actually on comes before anything you might add — and
           the move comes before the trip. A person reading this is walking. */}
-      {journey.current ? (
+      {journey.current && !tripOver ? (
         <>
         {livePlan ? (
           <Card className="vanta-card space-y-3 p-3">
@@ -992,17 +1029,71 @@ export function FlightDesk() {
             />
           )}
         </div>
-        {/* The international trip being over is not the whole journey being
-            over — name the next hop, and no flight is invented for it. */}
-        {journey.where?.kind === "done" ? (
-          <OnwardIntent
-            landedIata={
-              journey.current?.legs[journey.current.legs.length - 1]?.to.iata ?? null
-            }
-            onAddFlight={() => document.getElementById("fd-quick-no")?.focus()}
-          />
-        ) : null}
         </>
+      ) : null}
+
+      {/* Wheels down plus a night at the destination: the trip stops leading
+          the desk. One quiet card says so; the spine, the route and every
+          record stay one tap away, and Receipts keeps the summary for good. */}
+      {journey.current && tripOver ? (
+        <Card className="vanta-card space-y-2.5 p-3">
+          <p className="text-[13px] font-medium text-foreground">
+            Trip finished — {journey.current.legs[0]?.from.iata ?? livePlan?.origin ?? ""}
+            {" → "}
+            {journey.current.legs[journey.current.legs.length - 1]?.to.iata ?? livePlan?.destination ?? ""}
+          </p>
+          <p className="text-[11.5px] leading-snug text-muted-foreground">
+            {tripLandedAtMs
+              ? `Down ${endClock(new Date(tripLandedAtMs).toISOString(), landedAt)}. `
+              : ""}
+            A finished trip does not lead this desk. Nothing was deleted — the legs, the times and
+            what changed all keep.
+          </p>
+          <details className="rounded-md border border-border/60 bg-muted/15 p-2.5">
+            <summary className="cursor-pointer list-none text-[11.5px] text-foreground/85">
+              Full journey — legs, times and what changed
+            </summary>
+            <div className="mt-2 space-y-3">
+              <JourneySpine
+                journey={journey.current}
+                where={journey.where}
+                news={journey.news}
+                savedAt={journey.savedAt}
+                onDismissNews={journey.dismissNews}
+                landingAt={cabinLanding}
+                onSay={(planId, state) => journey.setLegState(planId, state)}
+                onClear={(planId) => journey.clearLegState(planId)}
+              />
+              <FlightRouteMap
+                journey={journey.current}
+                homeZone={timezone}
+                aircraft={aircraft}
+                activeLegIndex={journey.where?.legIndex ?? null}
+                confirmedPlanIds={confirmedRoutePlans}
+                positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
+                quietStops
+              />
+            </div>
+          </details>
+          <Link
+            to="/?surface=audit"
+            className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-primary underline underline-offset-2"
+          >
+            Open the trip summary in Receipts
+          </Link>
+        </Card>
+      ) : null}
+
+      {/* The international trip being over is not the whole journey being
+          over — name the next hop, and no flight is invented for it. Shown
+          while the trip stands and after the desk has stood down. */}
+      {journey.current && journey.where?.kind === "done" ? (
+        <OnwardIntent
+          landedIata={
+            journey.current?.legs[journey.current.legs.length - 1]?.to.iata ?? null
+          }
+          onAddFlight={() => document.getElementById("fd-quick-no")?.focus()}
+        />
       ) : null}
 
       {livePlan ? <FlightAlertsCard /> : null}
