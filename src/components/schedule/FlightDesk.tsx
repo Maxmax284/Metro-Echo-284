@@ -834,11 +834,13 @@ export function FlightDesk() {
               />
             ) : entryAhead ? (
               <EntryReadiness
-                planId={entryAhead.id}
-                fromIata={entryAhead.origin}
-                toIata={entryAhead.destination}
+                planId={entryAhead.plan.id}
+                fromIata={entryAhead.plan.origin}
+                toIata={entryAhead.plan.destination}
+                arriveAt={entryAhead.arriveAt}
                 when="before"
               />
+
             ) : null}
 
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
