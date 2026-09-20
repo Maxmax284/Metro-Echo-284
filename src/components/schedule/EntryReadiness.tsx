@@ -16,11 +16,15 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   airportCountry,
   entryRead,
+  entryWindow,
   guideStale,
   type EntryIntent,
   type EntryGuide,
+  type EntryWindow,
 } from "@/lib/entryReadiness";
+import { EntryHelp } from "./EntryHelp";
 import { vantaToast } from "@/lib/vantaVoice";
+
 
 const intentKey = (planId: string) => `echo.entry.intent.${planId}`;
 /** Held per country, not per flight: one entry, one filing. */
