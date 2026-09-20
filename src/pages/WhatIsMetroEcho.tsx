@@ -8,6 +8,7 @@ import { ChaosField } from "@/components/origin/ChaosField";
 import { SourceWeave } from "@/components/origin/SourceWeave";
 import { CapabilitySequence } from "@/components/origin/CapabilitySequence";
 import { DaySimulator } from "@/components/origin/DaySimulator";
+import { FieldBuilt } from "@/components/origin/FieldBuilt";
 import { Head, Line, Section } from "@/components/origin/Section";
 import { PRODUCT_NAME } from "@/lib/brand";
 
@@ -96,6 +97,8 @@ export default function WhatIsMetroEcho() {
           ))}
         </div>
       </Section>
+
+      <FieldBuilt />
 
       <Section label="What it is">
         <Head>A situational companion for everyday life.</Head>
