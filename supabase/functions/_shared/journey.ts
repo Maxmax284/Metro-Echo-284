@@ -182,11 +182,19 @@ export function basisWords(basis: TimeBasis): string {
  */
 export function legState(leg: Leg, now: Date = new Date()): LegState {
   if (leg.override) {
+    /* Your word still leads. But a word the airline has since contradicted — you
+       said boarding, the airline filed the landing — is said to be older than
+       the feed rather than repeated as now. It is never erased for you. */
+    const contradicted =
+      (leg.override === "boarding" || leg.override === "at_airport" || leg.override === "in_air") &&
+      leg.to.basis === "actual";
     return {
       kind: leg.override,
       source: "you",
-      words: leg.override_note ?? OVERRIDE_WORDS[leg.override],
-      stale: false,
+      words: contradicted
+        ? `${leg.override_note ?? OVERRIDE_WORDS[leg.override]} The airline has since filed this leg as landed, so your word here is older than the feed.`
+        : (leg.override_note ?? OVERRIDE_WORDS[leg.override]),
+      stale: contradicted,
     };
   }
   const filed = leg.filed_status;
