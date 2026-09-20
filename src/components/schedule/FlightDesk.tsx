@@ -55,7 +55,7 @@ import { terminalPath } from "@/lib/terminalPath";
 import { TerminalMap } from "./TerminalMap";
 import { FlightRouteMap } from "./FlightRouteMap";
 import { GatePass } from "./GatePass";
-import { gateMode } from "@/lib/gatePass";
+import { gatePick } from "@/lib/gatePass";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
