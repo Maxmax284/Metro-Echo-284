@@ -67,16 +67,17 @@ export function EntryReadyLane({ onOpen }: { onOpen: () => void }) {
   if (!guide) return null;
 
   const intent = (readLS(`echo.entry.intent.${row.plan.id}`) as EntryIntent | null) ?? null;
-  const ack = readLS(`echo.entry.ack.c.${guide.countryCode}`);
+  const marks = parseFilingMarks(readLS(`echo.entry.ack.c.${guide.countryCode}`));
+  const handled = filingHandled(filingLatest(marks)?.state);
   const read = entryRead({
     fromIata: row.plan.origin,
     toIata: row.plan.destination,
     intent,
     nationality: prefs.entry?.nationality ?? null,
-    filedFor: ack ? ack.split(":")[0] : null,
+    filedFor: handled ? guide.countryCode : null,
   });
   if (read.kind !== "needed" && read.kind !== "needs_intent" && read.kind !== "needs_nationality") return null;
-  if (ack === `${guide.countryCode}:${guide.checkedOn}`) return null;
+  if (handled) return null;
   if (readLS(`echo.entry.quiet.${guide.countryCode}`) === "1") return null;
 
   const filing = entryWindow({ guide, arriveAt: row.arriveAt });
