@@ -24,6 +24,21 @@ type LegRow = {
 
 type TripGroup = { key: string; legs: LegRow[]; corrections: number; latest: string };
 
+/** Your word that a trip is closed, read from the receipts themselves. */
+type WrapWord = { at: string; route: string | null } | null;
+
+function whenWords(iso: string): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "";
+  const mins = Math.floor((Date.now() - ms) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 function wordsFor(leg: LegRow): string {
   const from = leg.origin || "?";
   const to = airportWords((leg.destination ?? "").toUpperCase()) || leg.destination || "?";
