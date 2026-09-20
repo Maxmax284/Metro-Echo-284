@@ -60,6 +60,8 @@ import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { TransferVerification } from "./TransferVerification";
 import { EntryReadiness } from "./EntryReadiness";
+import { MAX_WINDOW_DAYS } from "@/lib/entryReadiness";
+
 import { OnwardIntent } from "./OnwardIntent";
 import { TransferSteps } from "./TransferSteps";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
@@ -691,7 +693,7 @@ export function FlightDesk() {
   const entryAhead = useMemo(() => {
     if (landedHere) return null;
     const now = Date.now();
-    const horizon = now + 3 * 86_400_000;
+    const horizon = now + MAX_WINDOW_DAYS * 86_400_000;
     const rows = plans
       .filter((plan) => plan.status === "confirmed" || plan.status === "prepared")
       .map((plan) => {
@@ -699,12 +701,17 @@ export function FlightDesk() {
           plan.options.find((o) => o.depart_at)?.depart_at ?? null,
           airportZone((plan.origin ?? "").trim().toUpperCase() || null),
         );
-        return { plan, ms: at ? Date.parse(at) : Number.NaN };
+        const arriveAt = anchorToZone(
+          plan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+          airportZone((plan.destination ?? "").trim().toUpperCase() || null),
+        );
+        return { plan, arriveAt, ms: at ? Date.parse(at) : Number.NaN };
       })
       .filter((row) => Number.isFinite(row.ms) && row.ms >= now && row.ms <= horizon)
       .sort((a, b) => a.ms - b.ms);
-    return rows[0]?.plan ?? null;
+    return rows[0] ?? null;
   }, [plans, landedHere]);
+
   const cabinLanding = livePlan ? (cabinReads[livePlan.id] ?? readCabinEstimate(livePlan.id)?.at ?? null) : null;
   const takeCabinRead = (planId: string, destination: string | null, hhmm: string | null) => {
     if (!hhmm) {
@@ -829,11 +836,13 @@ export function FlightDesk() {
               />
             ) : entryAhead ? (
               <EntryReadiness
-                planId={entryAhead.id}
-                fromIata={entryAhead.origin}
-                toIata={entryAhead.destination}
+                planId={entryAhead.plan.id}
+                fromIata={entryAhead.plan.origin}
+                toIata={entryAhead.plan.destination}
+                arriveAt={entryAhead.arriveAt}
                 when="before"
               />
+
             ) : null}
 
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">

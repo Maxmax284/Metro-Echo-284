@@ -16,11 +16,15 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   airportCountry,
   entryRead,
+  entryWindow,
   guideStale,
   type EntryIntent,
   type EntryGuide,
+  type EntryWindow,
 } from "@/lib/entryReadiness";
+import { EntryHelp } from "./EntryHelp";
 import { vantaToast } from "@/lib/vantaVoice";
+
 
 const intentKey = (planId: string) => `echo.entry.intent.${planId}`;
 /** Held per country, not per flight: one entry, one filing. */
@@ -45,46 +49,83 @@ function writeLS(key: string, value: string | null) {
   }
 }
 
+function windowLine(window: EntryWindow, guide: EntryGuide): string | null {
+  if (window.kind === "early") {
+    const day = new Date(window.opensAt).toISOString().slice(0, 10);
+    return `Too early for the official system: the ${guide.country} window opens ${day}. Echo will say so when it does.`;
+  }
+  if (window.kind === "open") return `Your ${guide.country} arrival declaration window is open.`;
+  return null;
+}
+
 function GuideCard({
   guide,
+  window: entryWin,
+  landed,
   acked,
   onAck,
   onResetAck,
 }: {
   guide: EntryGuide;
+  window: EntryWindow;
+  /** The flight is already on the ground: this is catching up, not preparing. */
+  landed?: boolean;
   acked: boolean;
   onAck: () => void;
   onResetAck: () => void;
 }) {
+
   if (acked) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-        <p className="flex items-center gap-1.5 text-[12px] text-foreground/90">
-          <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
-          {guide.cardName} — marked done.
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+          <p className="flex items-center gap-1.5 text-[12px] text-foreground/90">
+            <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+            {guide.cardName} — marked done by you, not verified with {guide.country}.
+          </p>
+          <button
+            type="button"
+            onClick={onResetAck}
+            className="text-[11px] text-muted-foreground underline underline-offset-2"
+          >
+            Not yet
+          </button>
+        </div>
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Keep the official QR code or confirmation saved offline — airport data is not a plan.
         </p>
-        <button
-          type="button"
-          onClick={onResetAck}
-          className="text-[11px] text-muted-foreground underline underline-offset-2"
-        >
-          Not yet
-        </button>
       </div>
     );
   }
   const stale = guideStale(guide);
+  const opening = windowLine(entryWin, guide);
   return (
     <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
       <p className="text-[12.5px] font-medium text-foreground">
         Before immigration: {guide.cardName}
       </p>
+      {landed ? (
+        <p className="text-[12px] leading-snug text-muted-foreground">
+          Already through, or sorted it at the counter? Mark it done and Echo drops the subject.
+        </p>
+      ) : null}
+
+      {opening ? <p className="text-[12px] leading-snug text-primary">{opening}</p> : null}
       <ul className="space-y-1 text-[11.5px] leading-snug text-foreground/85">
         <li>{guide.whoWords}</li>
         <li>{guide.windowWords}</li>
         <li>{guide.doneWords}</li>
         <li className="text-muted-foreground">{guide.exceptionWords}</li>
+        {guide.free ? <li className="text-muted-foreground">Official cost: nothing.</li> : null}
       </ul>
+      <div className="space-y-1">
+        <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Have ready</p>
+        <ul className="space-y-1 text-[11.5px] leading-snug text-foreground/85">
+          {guide.prepWords.map((line) => (
+            <li key={line}>— {line}</li>
+          ))}
+        </ul>
+      </div>
       <a
         href={guide.officialUrl}
         target="_blank"
@@ -99,12 +140,16 @@ function GuideCard({
         {guide.scamWords}
       </p>
       <p className="text-[11px] leading-snug text-muted-foreground">{guide.visaWords}</p>
+      {guide.kioskWords ? (
+        <p className="text-[11px] leading-snug text-muted-foreground">{guide.kioskWords}</p>
+      ) : null}
       {stale ? (
         <p className="text-[11px] leading-snug text-amber-200/90">
           These words were last checked on {guide.checkedOn} — a while ago now. Read the official page
           before you rely on them.
         </p>
       ) : null}
+      <EntryHelp />
       <div className="flex items-center justify-between gap-2 border-t border-border/40 pt-2">
         <p className="text-[10.5px] text-muted-foreground">
           Checked {guide.checkedOn} ·{" "}
@@ -125,18 +170,24 @@ function GuideCard({
   );
 }
 
+
 export function EntryReadiness({
   planId,
   fromIata,
   toIata,
   when = "after",
+  arriveAt = null,
 }: {
   planId: string;
   fromIata: string | null | undefined;
   toIata: string | null | undefined;
   /** "before" — the flight has not left yet. "after" — it has landed. */
   when?: "before" | "after";
+  /** The arrival instant, anchored at the arrival airport. Used only to date the
+      official filing window; without it Echo dates nothing. */
+  arriveAt?: string | null;
 }) {
+
   const { prefs, loading, update } = useUserPreferences();
   const [intent, setIntent] = useState<EntryIntent | null>(null);
   const [ack, setAck] = useState<string | null>(null);
@@ -277,6 +328,10 @@ export function EntryReadiness({
       {read.kind === "needed" ? (
         <GuideCard
           guide={read.guide}
+          window={when === "before" ? entryWindow({ guide: read.guide, arriveAt }) : { kind: "unknown" }}
+          landed={landed}
+
+
           acked={ack === `${read.guide.countryCode}:${read.guide.checkedOn}`}
           onAck={() => {
             const stamp = `${read.guide.countryCode}:${read.guide.checkedOn}`;

@@ -21,3 +21,10 @@
 - [x] Verify Gmail booking-watch end-to-end status; report Drive/Gmail API flags honestly; fix only small wiring defects
 - [x] Regression tests: landing vs immigration vs entry vs transit, missing onward, no snapshot, TDAC applicability, unknown fallback
 - [x] Tests/typecheck/build, 384px check, publish only after verified
+## Travel Readiness Intelligence (foundation + TH/TW/SG)
+- [x] Official-source registry: Thailand TDAC, Taiwan TWAC, Singapore SGAC — rules re-verified against government pages
+- [x] Official filing window logic (window open / too early / undated) driving the border card and a Today cue
+- [x] Prep checklist, kiosk-as-last-resort, free-vs-paid warning, user-reported (not government-verified) confirmation
+- [x] Street Knowledge + form troubleshooter (steps only, no diagnosis, no form filling)
+- [x] Tests for three countries, windows, transit vs entry, Thailand→USM no repeat; full suite green
+- [ ] Remaining: real push/Telegram reminders for window-open (today it is an in-app cue only); more countries only with vetted official sources
