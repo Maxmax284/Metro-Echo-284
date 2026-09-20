@@ -491,7 +491,12 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
     };
   }
 
-  const flying = states.findIndex((s) => s.kind === "in_air");
+  /* Furthest along wins. On a two-leg trip your word on the second leg is where
+     you are; the first leg's word is history, and reading the list front to back
+     used to keep a traveller standing in the terminal they left. */
+  const last = (kind: LegStateKind) => states.reduce((idx, s, i) => (s.kind === kind ? i : idx), -1);
+
+  const flying = last("in_air");
   if (flying >= 0) {
     const leg = journey.legs[flying];
     return {
@@ -509,7 +514,7 @@ export function whereOnJourney(journey: Journey, now: Date = new Date()): Journe
   /* On the aircraft, doors open. Not the terminal any more, not the air yet —
      the countdown is still the filed departure, and the leg you are boarding is
      the leg ahead, never the one after it. */
-  const boarding = states.findIndex((s) => s.kind === "boarding");
+  const boarding = last("boarding");
   if (boarding >= 0) {
     const leg = journey.legs[boarding];
     return {
