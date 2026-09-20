@@ -765,6 +765,10 @@ export function FlightDesk() {
       }),
     [plans, livePlan],
   );
+  const journeyRoute = journey.current
+    ? `${journey.current.legs[0]?.from.iata ?? ""} → ${journey.current.legs[journey.current.legs.length - 1]?.to.iata ?? ""}`
+    : "";
+  const wrappedUp = isWrappedUp(prefs.trips_wrapped, journey.current?.id ?? null);
   const tripOver = deskStandsDown({
     landed: landedHere,
     landedAtMs: tripLandedAtMs,
@@ -772,7 +776,19 @@ export function FlightDesk() {
     onwardConfirmed: !!confirmedOnwardPlan,
     onwardCandidate: !!candidateOnward,
     upcomingElsewhere,
+    wrappedUp,
   });
+  /* Your word, not a deletion: fold the desk now, keep every record, and leave
+     a receipt. Offered only once the journey has nothing left to fly. */
+  const sayWrappedUp = async (on: boolean) => {
+    const id = journey.current?.id;
+    if (!id) return;
+    await updatePrefs({ trips_wrapped: toggleWrapped(prefs.trips_wrapped, id, on) });
+    await recordTripWrapUp(id, journeyRoute, { undo: !on });
+    vantaToast.success(
+      on ? "Wrapped up. The record keeps — Receipts holds the summary." : "Open again. Nothing was ever removed.",
+    );
+  };
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
      out is no use the moment you are standing at the desk. Times are anchored
