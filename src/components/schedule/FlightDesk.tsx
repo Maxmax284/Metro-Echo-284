@@ -135,6 +135,8 @@ function filledWords(plan: FlightPlan): string[] {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
+  /* Journeys you said were over. Carried with you, not kept on one device. */
+  const { prefs, update: updatePrefs } = useUserPreferences();
   /* With the doors shut there are no bars. The card says so once and stops
      asking the airline, rather than throwing connection errors. */
   const { online } = useNetworkReach();
