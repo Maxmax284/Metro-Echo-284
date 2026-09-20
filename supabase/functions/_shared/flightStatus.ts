@@ -324,7 +324,10 @@ export const STATUS_LAW =
 export type FlightPhase = "waiting" | "flying" | "landed" | "stopped" | "unknown";
 
 /** The flight's own arc, from the provider's word first and its times second. */
-export function flightPhase(live: LiveFlight, now: Date = new Date()): FlightPhase {
+export function flightPhase(live: LiveFlight | null | undefined, now: Date = new Date()): FlightPhase {
+  /* A leg the traveller has finished — or any leg with no provider snapshot —
+     must never crash a reader. No reading is an honest "unknown", not an error. */
+  if (!live) return "unknown";
   const s = (live.status ?? "").toLowerCase();
   if (s === "cancelled" || s === "diverted" || s === "incident") return "stopped";
   if (s === "landed") return "landed";

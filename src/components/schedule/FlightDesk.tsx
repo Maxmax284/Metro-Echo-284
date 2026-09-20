@@ -59,6 +59,8 @@ import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
 import { FlightAlertsCard } from "./FlightAlertsCard";
 import { TransferVerification } from "./TransferVerification";
+import { EntryReadiness } from "./EntryReadiness";
+import { OnwardIntent } from "./OnwardIntent";
 import { TransferSteps } from "./TransferSteps";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { airportEndClock, flightClock } from "@/lib/flightClock";
@@ -793,6 +795,17 @@ export function FlightDesk() {
               />
             ) : null}
 
+            {/* What the border expects, asked only when the landing was
+                international. Never assumes immigration is cleared, bags are
+                collected, or the next leg is booked. */}
+            {landedHere && livePlan ? (
+              <EntryReadiness
+                planId={livePlan.id}
+                fromIata={liveLeg?.from.iata ?? livePlan.origin}
+                toIata={liveLeg?.to.iata ?? livePlan.destination}
+              />
+            ) : null}
+
             <div className="flex flex-wrap gap-2 border-t border-border/50 pt-2">
               <Button
                 size="sm"
@@ -851,6 +864,16 @@ export function FlightDesk() {
             positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
           />
         </div>
+        {/* The international trip being over is not the whole journey being
+            over — name the next hop, and no flight is invented for it. */}
+        {journey.where?.kind === "done" ? (
+          <OnwardIntent
+            landedIata={
+              journey.current?.legs[journey.current.legs.length - 1]?.to.iata ?? null
+            }
+            onAddFlight={() => document.getElementById("fd-quick-no")?.focus()}
+          />
+        ) : null}
         </>
       ) : null}
 
