@@ -23,6 +23,7 @@ import { sectionNote } from "@/lib/roomCopy";
 import { ReceiptUnfold, receiptFacts } from "@/components/audit/ReceiptUnfold";
 import { MachineText, SectionRail } from "@/components/ui/instrument";
 import { ReceiptsFront } from "@/components/receipts/ReceiptsFront";
+import { JourneySummary } from "@/components/receipts/JourneySummary";
 import { isQuietRecord, receiptDigest, type ReceiptLine } from "@/lib/receiptDigest";
 
 type AuditRow = {
@@ -261,6 +262,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
       </div>
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
+        <JourneySummary />
         <ReceiptsFront lines={digest} onDrill={drill} />
         {quiet && (
           <p className="px-1 text-[11.5px] text-muted-foreground">
