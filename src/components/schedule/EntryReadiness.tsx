@@ -61,16 +61,20 @@ function windowLine(window: EntryWindow, guide: EntryGuide): string | null {
 function GuideCard({
   guide,
   window: entryWin,
+  landed,
   acked,
   onAck,
   onResetAck,
 }: {
   guide: EntryGuide;
   window: EntryWindow;
+  /** The flight is already on the ground: this is catching up, not preparing. */
+  landed?: boolean;
   acked: boolean;
   onAck: () => void;
   onResetAck: () => void;
 }) {
+
   if (acked) {
     return (
       <div className="space-y-1.5">
