@@ -33,6 +33,8 @@ export type UserPreferences = {
   /** Self-reported body context. Phrasing only — never a target or a score. */
   body_profile?: Record<string, unknown>;
   intake?: Record<string, unknown>;
+  /** Border-crossing context. A country name only — never a document number. */
+  entry?: { nationality?: string };
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
@@ -56,6 +58,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   sensor_consent: {},
   body_profile: {},
   intake: {},
+  entry: {},
 };
 
 export function useUserPreferences() {
