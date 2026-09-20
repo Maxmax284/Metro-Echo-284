@@ -691,7 +691,7 @@ export function FlightDesk() {
   const entryAhead = useMemo(() => {
     if (landedHere) return null;
     const now = Date.now();
-    const horizon = now + 3 * 86_400_000;
+    const horizon = now + MAX_WINDOW_DAYS * 86_400_000;
     const rows = plans
       .filter((plan) => plan.status === "confirmed" || plan.status === "prepared")
       .map((plan) => {
@@ -699,12 +699,17 @@ export function FlightDesk() {
           plan.options.find((o) => o.depart_at)?.depart_at ?? null,
           airportZone((plan.origin ?? "").trim().toUpperCase() || null),
         );
-        return { plan, ms: at ? Date.parse(at) : Number.NaN };
+        const arriveAt = anchorToZone(
+          plan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+          airportZone((plan.destination ?? "").trim().toUpperCase() || null),
+        );
+        return { plan, arriveAt, ms: at ? Date.parse(at) : Number.NaN };
       })
       .filter((row) => Number.isFinite(row.ms) && row.ms >= now && row.ms <= horizon)
       .sort((a, b) => a.ms - b.ms);
-    return rows[0]?.plan ?? null;
+    return rows[0] ?? null;
   }, [plans, landedHere]);
+
   const cabinLanding = livePlan ? (cabinReads[livePlan.id] ?? readCabinEstimate(livePlan.id)?.at ?? null) : null;
   const takeCabinRead = (planId: string, destination: string | null, hhmm: string | null) => {
     if (!hhmm) {
