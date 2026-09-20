@@ -820,7 +820,7 @@ export function FlightDesk() {
 
       {/* The trip you are actually on comes before anything you might add — and
           the move comes before the trip. A person reading this is walking. */}
-      {journey.current ? (
+      {journey.current && !tripOver ? (
         <>
         {livePlan ? (
           <Card className="vanta-card space-y-3 p-3">
