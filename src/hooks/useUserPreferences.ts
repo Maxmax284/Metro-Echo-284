@@ -39,6 +39,8 @@ export type UserPreferences = {
     /** Visiting, or living there on a lease. Phrasing only — no paperwork held. */
     stay?: "visiting" | "resident_lease";
   };
+  /** Journeys you said were over. Display only — no record is removed. */
+  trips_wrapped?: string[];
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
@@ -63,6 +65,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   body_profile: {},
   intake: {},
   entry: {},
+  trips_wrapped: [],
 };
 
 export function useUserPreferences() {

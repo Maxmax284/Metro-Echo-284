@@ -58,6 +58,8 @@ import { FlightRouteMap } from "./FlightRouteMap";
 import { GatePass } from "./GatePass";
 import { gatePick } from "@/lib/gatePass";
 import { deskStandsDown, landingMs } from "@/lib/tripStandDown";
+import { WRAP_UP_COPY, isWrappedUp, recordTripWrapUp, toggleWrapped } from "@/lib/tripWrapUp";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
@@ -133,6 +135,8 @@ function filledWords(plan: FlightPlan): string[] {
 
 export function FlightDesk() {
   const { timezone } = useUserTimezone();
+  /* Journeys you said were over. Carried with you, not kept on one device. */
+  const { prefs, update: updatePrefs } = useUserPreferences();
   /* With the doors shut there are no bars. The card says so once and stops
      asking the airline, rather than throwing connection errors. */
   const { online } = useNetworkReach();
@@ -761,6 +765,10 @@ export function FlightDesk() {
       }),
     [plans, livePlan],
   );
+  const journeyRoute = journey.current
+    ? `${journey.current.legs[0]?.from.iata ?? ""} → ${journey.current.legs[journey.current.legs.length - 1]?.to.iata ?? ""}`
+    : "";
+  const wrappedUp = isWrappedUp(prefs.trips_wrapped, journey.current?.id ?? null);
   const tripOver = deskStandsDown({
     landed: landedHere,
     landedAtMs: tripLandedAtMs,
@@ -768,7 +776,19 @@ export function FlightDesk() {
     onwardConfirmed: !!confirmedOnwardPlan,
     onwardCandidate: !!candidateOnward,
     upcomingElsewhere,
+    wrappedUp,
   });
+  /* Your word, not a deletion: fold the desk now, keep every record, and leave
+     a receipt. Offered only once the journey has nothing left to fly. */
+  const sayWrappedUp = async (on: boolean) => {
+    const id = journey.current?.id;
+    if (!id) return;
+    await updatePrefs({ trips_wrapped: toggleWrapped(prefs.trips_wrapped, id, on) });
+    await recordTripWrapUp(id, journeyRoute, { undo: !on });
+    vantaToast.success(
+      on ? "Wrapped up. The record keeps — Receipts holds the summary." : "Open again. Nothing was ever removed.",
+    );
+  };
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
      out is no use the moment you are standing at the desk. Times are anchored
@@ -1032,6 +1052,23 @@ export function FlightDesk() {
         </>
       ) : null}
 
+      {/* The clock folds a finished trip on its own after a night. Standing in
+          the hall, your word does it now — and only when nothing is left to
+          fly, so this never hides a live leg. */}
+      {journey.current && !tripOver && journey.where?.kind === "done" && !confirmedOnwardPlan && !candidateOnward && !upcomingElsewhere ? (
+        <Card className="vanta-card space-y-2 p-3">
+          <p className="text-[12.5px] font-medium text-foreground">Done with {journeyRoute}?</p>
+          <p className="text-[11.5px] leading-snug text-muted-foreground">{WRAP_UP_COPY.hint}</p>
+          <Button
+            variant="outline"
+            className="h-9 w-full text-[12.5px]"
+            onClick={() => void sayWrappedUp(true)}
+          >
+            {WRAP_UP_COPY.action}
+          </Button>
+        </Card>
+      ) : null}
+
       {/* Wheels down plus a night at the destination: the trip stops leading
           the desk. One quiet card says so; the spine, the route and every
           record stay one tap away, and Receipts keeps the summary for good. */}
@@ -1075,12 +1112,23 @@ export function FlightDesk() {
               />
             </div>
           </details>
-          <Link
-            to="/?surface=audit"
-            className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-primary underline underline-offset-2"
-          >
-            Open the trip summary in Receipts
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/?surface=audit"
+              className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-primary underline underline-offset-2"
+            >
+              Open the trip summary in Receipts
+            </Link>
+            {wrappedUp ? (
+              <button
+                type="button"
+                className="vanta-focus inline-flex h-8 items-center text-[11.5px] text-muted-foreground underline underline-offset-2"
+                onClick={() => void sayWrappedUp(false)}
+              >
+                {WRAP_UP_COPY.undo}
+              </button>
+            ) : null}
+          </div>
         </Card>
       ) : null}
 
