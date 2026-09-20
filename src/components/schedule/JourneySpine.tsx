@@ -42,11 +42,16 @@ function LegRow({
   leg,
   live,
   clock,
+  onSay,
+  onClear,
 }: {
   leg: Leg;
   live: boolean;
   /** Each end reads in the local time at that airport, the way a ticket does. */
   clock: (at: string | null, iata: string | null) => string;
+  /** Your word about this leg, not just the one Echo thinks you are on. */
+  onSay?: (planId: string, state: LegStateKind) => Promise<void>;
+  onClear?: (planId: string) => Promise<void>;
 }) {
   const state = legState(leg);
   return (
