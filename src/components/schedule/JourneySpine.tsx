@@ -189,7 +189,12 @@ export function JourneySpine({
             />
           ) : (
             <div key={`ground-${i}`} className="py-3 pl-6">
-              <LayoverCard layover={seg.layover} nextLeg={seg.before} live={journey.legs.indexOf(seg.after) === liveIndex} />
+              <LayoverCard
+                layover={seg.layover}
+                nextLeg={seg.before}
+                live={journey.legs.indexOf(seg.after) === liveIndex}
+                past={journey.legs.indexOf(seg.after) < liveIndex}
+              />
             </div>
           ),
         )}
