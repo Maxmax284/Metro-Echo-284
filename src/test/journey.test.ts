@@ -327,7 +327,7 @@ describe("where you are on it", () => {
     const [j] = journeysFrom([legOne, legTwo]);
     const n = bigNumbers(j, new Date("2026-09-02T03:00:00Z"));
     expect(n.timeLeft).toBe(durationWords(300));
-    expect(n.timeLeftLabel).toBe("left here");
+    expect(n.timeLeftLabel).toBe("until the filed departure");
     expect(n.gate).toBe("56");
   });
 

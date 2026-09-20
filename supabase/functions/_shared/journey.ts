@@ -671,7 +671,7 @@ export function bigNumbers(
     timeLeftLabel: runOut
       ? "the filed departure time has gone by"
       : where.kind === "on_ground"
-        ? "left here"
+        ? "until the filed departure"
         : where.kind === "boarding"
           ? "until the filed departure"
           : "until you leave",
