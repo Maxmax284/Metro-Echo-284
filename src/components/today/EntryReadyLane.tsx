@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, X } from "lucide-react";
 import { useFlightPlans } from "@/hooks/useFlightPlans";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { airportZone, anchorToZone } from "@/lib/flightTime";
+import { airportZone, anchorToZone } from "@/lib/travelSense";
 import {
   ENTRY_GUIDES,
   MAX_WINDOW_DAYS,
@@ -79,9 +79,10 @@ export function EntryReadyLane({ onOpen }: { onOpen: () => void }) {
   if (ack === `${guide.countryCode}:${guide.checkedOn}`) return null;
   if (readLS(`echo.entry.quiet.${guide.countryCode}`) === "1") return null;
 
-  const window = entryWindow({ guide, arriveAt: row.arriveAt });
-  if (window.kind === "early") return null;
+  const filing = entryWindow({ guide, arriveAt: row.arriveAt });
+  if (filing.kind === "early") return null;
   void tick;
+
 
   return (
     <section className={cn("vanta-card space-y-2 px-3 py-3", LEAD_BAR, "text-primary/50")}>
