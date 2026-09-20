@@ -131,8 +131,14 @@ export function JourneySummary() {
           <div key={trip.key} className="space-y-1">
             <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-muted-foreground">
               <Plane className="h-3.5 w-3.5 text-primary" aria-hidden />
-              {done ? `Trip finished — ${title}` : `On the books — ${title}`}
+              {wrapped ? `Closed by you — ${wrapped.route ?? title}` : done ? `Trip finished — ${title}` : `On the books — ${title}`}
             </p>
+            {wrapped ? (
+              <p className="text-[11.5px] leading-snug text-foreground/85">
+                You wrapped this trip up {whenWords(wrapped.at)}. Nothing was deleted — every leg and
+                change below is the record.
+              </p>
+            ) : null}
             <ul className="space-y-0.5">
               {trip.legs.map((leg) => (
                 <li key={leg.id} className="text-[12px] leading-snug text-foreground/90">
