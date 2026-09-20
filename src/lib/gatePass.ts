@@ -177,10 +177,25 @@ export function gateMode(input: {
   return sameLocalDay(input.departAt, input.nowIso);
 }
 
+/**
+ * Which flight gate mode is about. The leg you are on wins; once it is down, the
+ * onward leg does; after that, any other flight of yours leaving today. A flight
+ * with no filed departure time is never guessed into gate mode.
+ */
+export function gatePick<T extends { departAt: string | null; landed?: boolean; inAir?: boolean; rank: number }>(
+  rows: readonly T[],
+  nowIso: string,
+): T | null {
+  const live = rows
+    .filter((r) => gateMode({ departAt: r.departAt, nowIso, landed: r.landed, inAir: r.inAir }))
+    .sort((a, b) => a.rank - b.rank || Date.parse(a.departAt ?? "") - Date.parse(b.departAt ?? ""));
+  return live[0] ?? null;
+}
+
 export type PassDraft = {
   boarding_time?: string | null;
   gate?: string | null;
-  seat?: string | null
+  seat?: string | null;
   zone?: string | null;
 };
 

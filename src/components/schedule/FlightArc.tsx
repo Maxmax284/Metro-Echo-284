@@ -38,6 +38,7 @@ export function FlightArc({
   clock,
   live: fromRadar = false,
   heading = null,
+  scrubbable = true,
 }: {
   from: string;
   to: string;
@@ -50,6 +51,11 @@ export function FlightArc({
   live?: boolean;
   /** The aircraft's filed heading, used to turn the marker. Null leaves it on the track. */
   heading?: number | null;
+  /**
+   * The read-along slider. Stowed in gate mode: nobody walking to a gate scrubs
+   * a timeline. The track itself is untouched.
+   */
+  scrubbable?: boolean;
 }) {
   const [scrub, setScrub] = useState<number | null>(null);
   const holdRef = useRef<number | null>(null);
@@ -58,7 +64,7 @@ export function FlightArc({
 
   const live = progress;
   const shown = scrub ?? live;
-  const canScrub = live !== null && instantAt !== undefined;
+  const canScrub = scrubbable && live !== null && instantAt !== undefined;
   const marker = shown === null ? null : pointAt(shown);
   /* A filed heading turns the aircraft the way it is actually pointing. Without
      one it lies along the track, which is a drawing, not a claim. */

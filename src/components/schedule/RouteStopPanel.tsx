@@ -20,17 +20,24 @@ const ROLE_WORDS: Record<RouteStop["role"], string> = {
 export function RouteStopPanel({
   stop,
   homeZone,
+  quiet = false,
   className,
 }: {
   stop: RouteStop;
   /** The clock Echo is keeping, so the stop can state the difference. */
   homeZone?: string | null;
+  /**
+   * The arrival panel on the card already said the clock difference, the money
+   * and the emergency number for this stop. Saying them twice on one screen is
+   * noise, so the quiet panel keeps the stop and the times only.
+   */
+  quiet?: boolean;
   className?: string;
 }) {
   const facts = arrivalFacts(stop.iata, stop.at, homeZone);
   const wall = wallFor({ city: stop.city, country: stop.country });
-  const shift = facts ? shiftWords(facts) : null;
-  const help = facts ? helpCells(facts) : null;
+  const shift = quiet ? null : facts ? shiftWords(facts) : null;
+  const help = quiet ? null : facts ? helpCells(facts) : null;
 
   return (
     <div className={cn("relative overflow-hidden rounded-md border border-border/60 bg-muted/15 p-2.5", className)}>
@@ -60,7 +67,7 @@ export function RouteStopPanel({
             <p className="text-muted-foreground/85">No filed time for this stop yet.</p>
           )}
           {shift && <p>{shift}</p>}
-          {facts?.currency ? (
+          {quiet ? null : facts?.currency ? (
             <p>
               Money here is {facts.currencySymbol ? `${facts.currencySymbol} ` : ""}
               {facts.currency}. No rate shown — ask Echo and it reads one fresh.
@@ -68,7 +75,7 @@ export function RouteStopPanel({
           ) : (
             facts?.city && <p>Echo does not have the currency for {facts.country} on record.</p>
           )}
-          {help ? (
+          {quiet ? null : help ? (
             <p>Emergency: {help}. Echo cannot make the call for you.</p>
           ) : (
             facts?.city && <p>No published emergency number on record for {facts.country}.</p>

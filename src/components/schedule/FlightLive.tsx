@@ -60,6 +60,7 @@ export function FlightLive({
   connection = null,
   uncertainTransfer = false,
   embedded = false,
+  compact = false,
   belowBoard,
 }: {
   live: LiveFlight;
@@ -85,6 +86,12 @@ export function FlightLive({
   uncertainTransfer?: boolean;
   /** Removes the surrounding panel when the deck already sits inside the active-flight card. */
   embedded?: boolean;
+  /**
+   * Gate mode. The board and the words stay; the track scrubber, the aircraft
+   * telemetry and the two city panels stow into "Route & arrival details" on the
+   * card. Nothing is removed from the product.
+   */
+  compact?: boolean;
   /** Sits directly under the board row — the terminal walk opens from there. */
   belowBoard?: ReactNode;
 }) {
@@ -117,6 +124,75 @@ export function FlightLive({
   }, [depIso, arrIso]);
 
   const airportBoard = airportBoardRead(live, groundStep);
+
+  /* The track, the aircraft's own numbers, the words and the two city panels.
+     Shown straight through normally; folded once behind "Route & arrival
+     details" in gate mode, so a person walking reads the gate first. */
+  const extras = (
+    <>
+      {/* The track. The marker sits on the aircraft's own fix when there is one,
+          on the clock when there isn't, and nowhere at all when neither holds. */}
+      <FlightArc
+        from={from}
+        to={to}
+        progress={progress}
+        phase={phase}
+        instantAt={instantAt}
+        clock={clock}
+        live={track.source === "radar"}
+        heading={pos?.heading_deg ?? null}
+        scrubbable={!compact}
+      />
+      {progress === null && (
+        <p className="text-[10.5px] text-muted-foreground/80">
+          No position drawn — the airline filed no fix and no times for both ends.
+        </p>
+      )}
+
+      {/* The aircraft's own numbers. Only what the airline filed, never filled in. */}
+      {telemetry.length > 0 && (
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
+          {telemetry.map((c) => (
+            <SolariBoard key={c.label} text={c.text} label={c.label} tone="primary" />
+          ))}
+          {climb && <SolariBoard text={climb.toUpperCase()} label="Vertical" />}
+        </div>
+      )}
+      {fixWords(pos) && <p className="text-[10.5px] text-muted-foreground/80">{fixWords(pos)}</p>}
+      {!pos && phase === "flying" && (
+        <p className="text-[10.5px] text-muted-foreground/80">
+          No radar fix from the airline yet — the track is worked out from the filed times.
+        </p>
+      )}
+
+      <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
+
+      {/* The ground you are standing on: the clock at this flight's own departure
+          airport, live, from the moment the trip is on until you have landed.
+          It states the difference from your clock; it never switches it. */}
+      {live.departure.iata && phase !== "landed" && (
+        <AirportClock
+          iata={live.departure.iata}
+          homeZone={homeZone}
+          label={phase === "flying" ? "Time where you left" : "Local time at the gate"}
+        />
+      )}
+
+      {/* The ground you are heading for — its clock, its money, its number —
+          read from this flight's own arrival airport. Inked only once landed. */}
+      {live.arrival.iata && (
+        <ArrivalStamp
+          iata={live.arrival.iata}
+          at={arrIso}
+          homeZone={homeZone}
+          arrived={phase === "landed"}
+          connection={connection}
+          uncertainTransfer={uncertainTransfer}
+        />
+      )}
+    </>
+  );
+
 
   return (
     <div
@@ -172,64 +248,16 @@ export function FlightLive({
       )}
       {belowBoard}
 
-      {/* The track. The marker sits on the aircraft's own fix when there is one,
-          on the clock when there isn't, and nowhere at all when neither holds. */}
-      <FlightArc
-        from={from}
-        to={to}
-        progress={progress}
-        phase={phase}
-        instantAt={instantAt}
-        clock={clock}
-        live={track.source === "radar"}
-        heading={pos?.heading_deg ?? null}
-      />
-      {progress === null && (
-        <p className="text-[10.5px] text-muted-foreground/80">
-          No position drawn — the airline filed no fix and no times for both ends.
-        </p>
-      )}
-
-      {/* The aircraft's own numbers. Only what the airline filed, never filled in. */}
-      {telemetry.length > 0 && (
-        <div className="flex flex-wrap items-end gap-x-3 gap-y-1.5">
-          {telemetry.map((c) => (
-            <SolariBoard key={c.label} text={c.text} label={c.label} tone="primary" />
-          ))}
-          {climb && <SolariBoard text={climb.toUpperCase()} label="Vertical" />}
-        </div>
-      )}
-      {fixWords(pos) && <p className="text-[10.5px] text-muted-foreground/80">{fixWords(pos)}</p>}
-      {!pos && phase === "flying" && (
-        <p className="text-[10.5px] text-muted-foreground/80">
-          No radar fix from the airline yet — the track is worked out from the filed times.
-        </p>
-      )}
-
-      <p className="text-[11.5px] text-foreground/85">{statusWords(live, clock)}</p>
-
-      {/* The ground you are standing on: the clock at this flight's own departure
-          airport, live, from the moment the trip is on until you have landed.
-          It states the difference from your clock; it never switches it. */}
-      {live.departure.iata && phase !== "landed" && (
-        <AirportClock
-          iata={live.departure.iata}
-          homeZone={homeZone}
-          label={phase === "flying" ? "Time where you left" : "Local time at the gate"}
-        />
-      )}
-
-      {/* The ground you are heading for — its clock, its money, its number —
-          read from this flight's own arrival airport. Inked only once landed. */}
-      {live.arrival.iata && (
-        <ArrivalStamp
-          iata={live.arrival.iata}
-          at={arrIso}
-          homeZone={homeZone}
-          arrived={phase === "landed"}
-          connection={connection}
-          uncertainTransfer={uncertainTransfer}
-        />
+      {/* In gate mode the same pieces sit behind one fold. Nothing is dropped. */}
+      {compact ? (
+        <details className="rounded-md border border-border/60 bg-muted/15 p-2.5">
+          <summary className="cursor-pointer list-none text-[11.5px] text-foreground/85">
+            Route &amp; arrival details
+          </summary>
+          <div className="mt-2 space-y-2.5">{extras}</div>
+        </details>
+      ) : (
+        extras
       )}
 
     </div>

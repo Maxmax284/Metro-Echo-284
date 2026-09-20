@@ -715,6 +715,8 @@ export function useFlightPlans() {
             source: facts.source,
             gate: facts.gate ?? null,
             boarding_time: facts.boarding_time ?? null,
+            seat: facts.seat ?? null,
+            zone: facts.zone ?? null,
             baggage_status: facts.baggage_status ?? "unknown",
             transfer_route: facts.transfer_route ?? "unknown",
             changes_departure_time: false,

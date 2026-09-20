@@ -54,6 +54,8 @@ import { boardIdentity, carrierId, checkInCarrier, checkInWords, isCodeshare, me
 import { terminalPath } from "@/lib/terminalPath";
 import { TerminalMap } from "./TerminalMap";
 import { FlightRouteMap } from "./FlightRouteMap";
+import { GatePass } from "./GatePass";
+import { gatePick } from "@/lib/gatePass";
 import { AirportClock } from "./AirportClock";
 import { ArrivalStamp } from "./ArrivalStamp";
 import { SolariBoard } from "./SolariBoard";
@@ -686,6 +688,50 @@ export function FlightDesk() {
         airportZone((livePlan.destination ?? "").trim().toUpperCase() || null),
       )
     : null;
+  /* The filed departure, anchored at the airport it leaves from. Gate mode and
+     the boarding window are both read against it — never against the device. */
+  const liveFiledDeparture = livePlan
+    ? anchorToZone(
+        livePlan.options.find((o) => o.depart_at)?.depart_at ?? null,
+        airportZone((livePlan.origin ?? "").trim().toUpperCase() || null),
+      )
+    : null;
+  const liveOriginIata = (livePlan?.origin ?? "").trim().toUpperCase() || null;
+  /* Gate mode: the flight you are about to board leaves today and has not gone.
+     While that holds, boarding time, gate, seat and zone lead and the rest of
+     the card stows. Once the leg you were on is down, the flight that matters is
+     the onward one — that is the card a person in a terminal is reading. */
+  const gateRead = useMemo(() => {
+    const row = (plan: FlightPlan, rank: number) => {
+      const originIata = (plan.origin ?? "").trim().toUpperCase() || null;
+      const destIata = (plan.destination ?? "").trim().toUpperCase() || null;
+      return {
+        plan,
+        rank,
+        originIata,
+        destIata,
+        departAt: anchorToZone(
+          plan.options.find((o) => o.depart_at)?.depart_at ?? null,
+          airportZone(originIata),
+        ),
+        arriveAt: anchorToZone(
+          plan.options.find((o) => o.arrive_at)?.arrive_at ?? null,
+          airportZone(destIata),
+        ),
+        landed: rank === 0 ? landedHere : plan.leg_state === "landed",
+        inAir: rank === 0 ? activeGround?.where === "in_air" : plan.leg_state === "boarded",
+      };
+    };
+    const rows = [
+      ...(livePlan ? [row(livePlan, 0)] : []),
+      ...(confirmedOnwardPlan ? [row(confirmedOnwardPlan, 1)] : []),
+      ...plans
+        .filter((p) => p.status === "confirmed" && p.id !== livePlan?.id && p.id !== confirmedOnwardPlan?.id)
+        .map((p) => row(p, 2)),
+    ];
+    return gatePick(rows, new Date().toISOString());
+  }, [plans, livePlan, landedHere, activeGround, confirmedOnwardPlan]);
+  const gateNow = !!gateRead;
   /* A flight that has not left yet and lands within the filing window of an
      arrival card. The window is the point: a card you can only file three days
      out is no use the moment you are standing at the desk. Times are anchored
@@ -741,6 +787,28 @@ export function FlightDesk() {
         <>
         {livePlan ? (
           <Card className="vanta-card space-y-3 p-3">
+            {/* Gate mode leads on a departure day: the boarding time, the gate,
+                the seat and the zone, before anything else on the card. */}
+            {gateRead ? (
+              <GatePass
+                plan={gateRead.plan}
+                flightLabel={
+                  boardWords_(gateRead.plan).board ??
+                  `${gateRead.originIata ?? gateRead.plan.origin} → ${gateRead.destIata ?? gateRead.plan.destination}`
+                }
+                providerGate={
+                  (gateRead.plan.live_status as LiveFlight | null)?.departure.gate ?? null
+                }
+                departAt={gateRead.departAt}
+                departLocal={gateRead.departAt ? endClock(gateRead.departAt, gateRead.originIata) : null}
+                arriveLocal={gateRead.arriveAt ? endClock(gateRead.arriveAt, gateRead.destIata) : null}
+                fmt={(iso) => endClock(iso, gateRead.originIata)}
+                online={online}
+                onSave={async (facts) => {
+                  await setLocalTransferVerification(gateRead.plan, facts);
+                }}
+              />
+            ) : null}
             {groundBlock(livePlan)}
             {liveSnapshot ? (
               <FlightLive
@@ -760,6 +828,7 @@ export function FlightDesk() {
                  )}
                 connection={onward}
                  uncertainTransfer={!onward && possibleOnward}
+                compact={gateNow}
                 embedded
               />
             ) : (
@@ -893,15 +962,35 @@ export function FlightDesk() {
             onSay={(planId, state) => journey.setLegState(planId, state)}
             onClear={(planId) => journey.clearLegState(planId)}
           />
-          {/* The same trip as a route you can tap, stop by stop. */}
-          <FlightRouteMap
-            journey={journey.current}
-            homeZone={timezone}
-            aircraft={aircraft}
-            activeLegIndex={journey.where?.legIndex ?? null}
-            confirmedPlanIds={confirmedRoutePlans}
-            positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
-          />
+          {/* The same trip as a route you can tap, stop by stop. On a boarding
+              day it waits behind one tap; the picture and every view are kept. */}
+          {gateNow ? (
+            <details className="rounded-md border border-border/60 bg-muted/15 p-2.5">
+              <summary className="cursor-pointer list-none text-[11.5px] text-foreground/85">
+                Route &amp; arrival details
+              </summary>
+              <div className="mt-2">
+                <FlightRouteMap
+                  journey={journey.current}
+                  homeZone={timezone}
+                  aircraft={aircraft}
+                  activeLegIndex={journey.where?.legIndex ?? null}
+                  confirmedPlanIds={confirmedRoutePlans}
+                  positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
+                  quietStops
+                />
+              </div>
+            </details>
+          ) : (
+            <FlightRouteMap
+              journey={journey.current}
+              homeZone={timezone}
+              aircraft={aircraft}
+              activeLegIndex={journey.where?.legIndex ?? null}
+              confirmedPlanIds={confirmedRoutePlans}
+              positionSource={liveSnapshot ? trackProgress(liveSnapshot).source : "none"}
+            />
+          )}
         </div>
         {/* The international trip being over is not the whole journey being
             over — name the next hop, and no flight is invented for it. */}

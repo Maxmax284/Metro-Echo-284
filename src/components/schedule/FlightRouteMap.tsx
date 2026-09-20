@@ -56,6 +56,7 @@ export function FlightRouteMap({
   activeLegIndex = null,
   confirmedPlanIds = new Set<string>(),
   positionSource = "none",
+  quietStops = false,
   className,
 }: {
   journey: Journey | null | undefined;
@@ -64,6 +65,8 @@ export function FlightRouteMap({
   activeLegIndex?: number | null;
   confirmedPlanIds?: ReadonlySet<string>;
   positionSource?: TrackSource;
+  /** The card already said the clock, money and emergency number for this stop. */
+  quietStops?: boolean;
   className?: string;
 }) {
   const stops = useMemo(() => routeStops(journey), [journey]);
@@ -243,7 +246,7 @@ export function FlightRouteMap({
       )}
 
       {/* The stop you tapped, read against its own wall. */}
-      <RouteStopPanel stop={pick} homeZone={homeZone} />
+      <RouteStopPanel stop={pick} homeZone={homeZone} quiet={quietStops} />
     </Card>
   );
 }
