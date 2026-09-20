@@ -773,9 +773,9 @@ export function FlightDesk() {
               </p>
             )}
 
-            {flightPhase(liveSnapshot) === "landed" && transferPlan ? (
+            {landedHere && transferPlan ? (
               <TransferVerification
-                airport={(livePlan.destination ?? liveSnapshot.arrival.iata ?? "the connection airport").trim().toUpperCase()}
+                airport={landedAt ?? "the connection airport"}
                 onward={transferPlan}
                 confirmed={transferConfirmed}
                 online={online}
