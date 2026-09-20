@@ -28,3 +28,9 @@
 - [x] Street Knowledge + form troubleshooter (steps only, no diagnosis, no form filling)
 - [x] Tests for three countries, windows, transit vs entry, Thailand→USM no repeat; full suite green
 - [ ] Remaining: real push/Telegram reminders for window-open (today it is an in-app cue only); more countries only with vetted official sources
+## Info/About field-built origin
+- [x] Audit and preserve every existing Info-page section, link and factual claim
+- [x] Add the IAD → TPE → BKK → USM development story with bounded immigration and privacy language
+- [x] Add focused regression coverage for route, whole-product framing and claim limits
+- [x] Run full tests, typecheck, build and 384px/desktop visual verification
+- [ ] Publish only after all checks pass
