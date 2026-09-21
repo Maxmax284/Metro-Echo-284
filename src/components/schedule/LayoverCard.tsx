@@ -19,6 +19,7 @@ import { CATEGORIES, INTEL_LAW, emptyWords, placeWords, readingAgeWords } from "
 import { countryNotes, noNotesWords, notesCheckedOn } from "@/lib/countryNotes";
 import { airport } from "@/lib/airports";
 import { useAirportIntel } from "@/hooks/useJourney";
+import { AirportLayoverMap } from "./AirportLayoverMap";
 
 export function LayoverCard({
   layover,
@@ -129,6 +130,8 @@ export function LayoverCard({
           </li>
         </ul>
       ) : null}
+
+      <AirportLayoverMap layover={layover} nextLeg={nextLeg} />
 
       {/* What is around you, only when you ask for it. */}
       {live ? (
