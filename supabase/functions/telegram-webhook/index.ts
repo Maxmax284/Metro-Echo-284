@@ -1380,7 +1380,20 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
   });
-  if (r && !r.ok) throw new Error(`ai gateway ${r.status}`);
+  if (r && !r.ok) {
+    if (r.status === 402) {
+      /* Delivery is healthy and the capture is already recorded above. A spent
+         workspace AI allowance is not a Telegram jam, so name the real boundary
+         and never invite retry loops or unlinking. */
+      return {
+        reply: "I saved that in Metro Echo, but the workspace AI allowance is used up, so I can't interpret it here right now. Nothing executed. Open Metro Echo to review the capture, or try again after the allowance resets or is topped up.",
+        detectedType: "capture",
+        routedTo: "inbox",
+        readOnly: true,
+      };
+    }
+    throw new Error(`ai gateway ${r.status}`);
+  }
   const j = r ? await r.json() : null;
   const choice = j?.choices?.[0]?.message;
   if (!reply) reply = choice?.content?.trim() ?? "";

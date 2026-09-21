@@ -35,11 +35,11 @@
 - [x] Run full tests, typecheck, build and 384px/desktop visual verification
 - [x] Publish only after all checks pass
 ## Real airport maps in layovers
-- [ ] Add an on-demand real airport map to active/upcoming layover cards
-- [ ] Show filed terminal/gate facts without invented indoor pins or distances
-- [ ] Label walking and taxi-out distance unavailable when geometry is absent
-- [ ] Verify flight/journey tests, typecheck, build, and 384px behavior
+- [x] Add an on-demand real airport map to active/upcoming layover cards
+- [x] Show filed terminal/gate facts without invented indoor pins or distances
+- [x] Label walking and taxi-out distance unavailable when geometry is absent
+- [x] Verify flight/journey tests, typecheck, build, and 384px behavior
 ## Telegram jam/reset audit
-- [ ] Inspect Telegram connection, queue, recent failures, and current phone UI
-- [ ] Clear or reset only stale/broken delivery state; preserve captures, links, and receipts
-- [ ] Verify send/receive path and report any user action still required
+- [x] Inspect Telegram connection, queue, recent failures, and current phone UI
+- [x] Clear or reset only stale/broken delivery state; preserve captures, links, and receipts
+- [ ] Verify send/receive path and report any user action still required (blocked until AI allowance resets or is topped up)
