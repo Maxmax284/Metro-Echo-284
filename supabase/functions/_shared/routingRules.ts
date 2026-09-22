@@ -17,6 +17,7 @@ export const ROUTING_RULES = `Tool routing rules (apply identically across chann
 - "Analyze this" / "what am I missing" / "what risks" / "critique" / "what's wrong with…" → call run_sherlock if available; otherwise acknowledge it as something worth a closer look.
 - Location/place question (where / nearby / safe / how do I get to…) → call query_awareness if available.
 - "What's on today" / "what's due" / "schedule" / "next up" / "what's next" → call query_schedule if available.
+- ANY question about a flight, gate, terminal, boarding, delay, layover, connection, landing or "where do I go next" → call flights_prepared FIRST and answer from what it returns. The journey the person is on is already on record: read it before asking anything. Only ask for a flight number, airline or date when flights_prepared comes back with nothing prepared, and say plainly that nothing is on record instead of interrogating them.
 - If a detail is missing (like the time for a reminder), ask ONE short clarifying question instead of refusing.
 - NEVER tell the user "I can't directly set reminders" or "I'm unable to add notes". If a supported tool fits, call it.`;
 
