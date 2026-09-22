@@ -42,4 +42,6 @@
 ## Telegram jam/reset audit
 - [x] Inspect Telegram connection, queue, recent failures, and current phone UI
 - [x] Clear or reset only stale/broken delivery state; preserve captures, links, and receipts
-- [ ] Verify send/receive path and report any user action still required (blocked until AI allowance resets or is topped up)
+- [x] Replace the generic "something jammed / send it again" fallback with honest, per-cause replies (allowance spent, rate limited, provider fault, unknown) that never ask for a re-send
+- [x] One tail line per reply — a triage read or a provenance line, never both stacked
+- [ ] Verify send/receive path with a live message (blocked until AI allowance resets or is topped up)

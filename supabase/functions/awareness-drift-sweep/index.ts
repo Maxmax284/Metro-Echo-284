@@ -744,7 +744,17 @@ async function sweepScope(
   // One event, one delivery: the ledger claim below is what stops the same
   // change buzzing on the phone and arriving on Telegram as if they were two
   // separate pieces of news.
-  const surface = decision.delivery.recommendedChannel;
+  /* Telegram is a pocket, not a bulletin board. A body reading or a promise
+     that drifted belongs in Today, where it can be read when the person
+     chooses to look. Only news that is genuinely time-bound — a reminder they
+     set, something starting, a signed heads-up, or anything critical — earns
+     the buzz. Everything else keeps its Today nudge and stops there. */
+  const leadKind = String(decision.bundle.lead.signal.type ?? "");
+  const messagingEarned = decision.urgency === "critical"
+    || /^reminder|flight|travel|starting_soon|inbound_needs_you|security_event/.test(leadKind);
+  const surface = decision.delivery.recommendedChannel === "messaging" && !messagingEarned
+    ? "today"
+    : decision.delivery.recommendedChannel;
   if (surface === "phone" || surface === "messaging") {
     const claimed = await claimDelivery(sb, userId, scopeCols, {
       situationKind: `nudge.${decision.bundle.lead.signal.type}`,

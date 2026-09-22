@@ -1381,15 +1381,31 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
   });
   if (r && !r.ok) {
-    if (r.status === 402) {
-      /* Delivery is healthy and the capture is already recorded above. A spent
-         workspace AI allowance is not a Telegram jam, so name the real boundary
-         and never invite retry loops or unlinking. */
+    /* Delivery is healthy and the capture is already recorded above. Each
+       boundary gets its own honest sentence — a spent allowance, a busy
+       moment and a provider fault are three different truths, and none of
+       them is "something jammed". Nothing here invites a retry loop. */
+    const kept = {
+      detectedType: "capture",
+      routedTo: "inbox",
+      readOnly: true,
+    } as const;
+    if (r.status === 402 || r.status === 403) {
       return {
-        reply: "I saved that in Metro Echo, but the workspace AI allowance is used up, so I can't interpret it here right now. Nothing executed. Open Metro Echo to review the capture, or try again after the allowance resets or is topped up.",
-        detectedType: "capture",
-        routedTo: "inbox",
-        readOnly: true,
+        reply: "Saved in Metro Echo. I can't read into it here right now — the workspace AI allowance is used up. Nothing executed. It's waiting in your inbox whenever you open the app.",
+        ...kept,
+      };
+    }
+    if (r.status === 429) {
+      return {
+        reply: "Saved in Metro Echo. Too many requests at once to think it through here — nothing was lost, and nothing executed. It's in your inbox.",
+        ...kept,
+      };
+    }
+    if (r.status >= 500) {
+      return {
+        reply: "Saved in Metro Echo. The model that reads your messages is having a moment, so I'm not going to guess at this one. It's in your inbox, unchanged.",
+        ...kept,
       };
     }
     throw new Error(`ai gateway ${r.status}`);
@@ -1485,6 +1501,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   // suggestion and cache it against the captured message so the in-app
   // Capture Inbox surfaces the suggestion chip immediately. Doctrine:
   // messaging never executes; Sherlock only drafts a recommendation.
+  let triageLine: string | null = null;
   if (!routedTo && !readOnly && userMsgId) {
     try {
       const finding = await runSherlockSuggest({
@@ -1498,10 +1515,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
       });
       if (finding && finding.suggested_route !== "ignore") {
         const lane = ROUTE_LABEL[finding.suggested_route] ?? finding.suggested_route;
-        reply = `${reply}\n\nReads like ${lane}. Nothing has changed yet.`.trim();
+        triageLine = `Filed for review — looks like ${lane}.`;
       }
     } catch { /* best-effort */ }
   }
+
 
   /* The same "why this" the screen shows, one line, from recorded outcomes
      only. Chat is a conversation: a plain read of the person's own desks does
@@ -1519,7 +1537,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     usedRecords: readOnly && evidenceBacked ? ["your own records in Metro Echo"] : [],
     at: new Date().toISOString(),
   });
-  if (whyLine) reply = `${reply}\n\n${whyLine}`;
+  /* One tail line, never two. Stacking a triage read on top of a provenance
+     line is what made replies read like a form letter. The triage read already
+     says where it went and that nothing changed, so it wins when both exist. */
+  const tail = triageLine ?? whyLine;
+  if (tail) reply = `${reply}\n\n${tail}`;
 
   // One deep link, at most one action button. Fixed vocabulary only.
   const markup = toolMarkup
@@ -2435,7 +2457,14 @@ Deno.serve(async (req) => {
       markup = out.markup;
       calendarActionId = out.calendarActionId ?? null;
     } catch (e) {
-      reply = VANTA_PHRASES.telegram.snag();
+      /* The message itself already landed. A failure here is about reading it,
+         not receiving it, and the reply has to say which one — "send it again"
+         was asking people to re-send things Echo already had. */
+      const why = e instanceof Error ? e.message : String(e ?? "");
+      const gateway = /ai gateway (\d+)/.exec(why)?.[1];
+      reply = gateway
+        ? "Saved in Metro Echo. I couldn't read into it here just now — nothing executed, and it's waiting in your inbox."
+        : "Saved in Metro Echo. Something on my side failed while working it out, so I've left it untouched in your inbox rather than guess.";
       console.error("aiRespond error", e);
     }
     await logTgMessage(admin, {
