@@ -2457,7 +2457,14 @@ Deno.serve(async (req) => {
       markup = out.markup;
       calendarActionId = out.calendarActionId ?? null;
     } catch (e) {
-      reply = VANTA_PHRASES.telegram.snag();
+      /* The message itself already landed. A failure here is about reading it,
+         not receiving it, and the reply has to say which one — "send it again"
+         was asking people to re-send things Echo already had. */
+      const why = e instanceof Error ? e.message : String(e ?? "");
+      const gateway = /ai gateway (\d+)/.exec(why)?.[1];
+      reply = gateway
+        ? "Saved in Metro Echo. I couldn't read into it here just now — nothing executed, and it's waiting in your inbox."
+        : "Saved in Metro Echo. Something on my side failed while working it out, so I've left it untouched in your inbox rather than guess.";
       console.error("aiRespond error", e);
     }
     await logTgMessage(admin, {
