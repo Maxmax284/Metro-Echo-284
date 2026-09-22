@@ -348,78 +348,172 @@ Deno.serve(async (req) => {
       /* Refresh the legs that are actually near a filed time. */
       for (const p of own) await readLeg(userId, p);
 
+      /* The journey heads-up: a diff, never a status. Wrapped so its early
+         exits never skip the touchdown note below. */
+      await (async () => {
+        const after = journeysFrom(own)[0] ?? null;
+        if (!after) return;
+        const news = packDiff(beforePack, offlinePack(after, new Date()));
+        const where = whereOnJourney(after);
+        const landed = arrivalMessage(after);
 
-      const after = journeysFrom(own)[0] ?? null;
-      if (!after) continue;
-      const news = packDiff(beforePack, offlinePack(after, new Date()));
-      const where = whereOnJourney(after);
-      const landed = arrivalMessage(after);
+        /* The errands come before any diff: they are useful even when nothing moved. */
+        const legForPack = own.find((p) => p.id === (after.legs[where.legIndex]?.plan_id ?? "")) ?? null;
+        if (legForPack && (await beforeYouLeave(sb, userId, legForPack))) pinged += 1;
 
-      /* The errands come before any diff: they are useful even when nothing moved. */
-      const legForPack = own.find((p) => p.id === (after.legs[where.legIndex]?.plan_id ?? "")) ?? null;
-      if (legForPack && (await beforeYouLeave(sb, userId, legForPack))) pinged += 1;
+        /* One heads-up, and only when something actually moved or you just landed.
+           How loud it is comes off the change itself, not off a feeling. */
+        const notice = journeyNotice({ news, whereWords: where.words, landed, caveat: TERMINAL_CAVEAT });
+        if (!notice) return;
+        const body = notice.body;
 
-      /* One heads-up, and only when something actually moved or you just landed.
-         How loud it is comes off the change itself, not off a feeling. */
-      const notice = journeyNotice({ news, whereWords: where.words, landed, caveat: TERMINAL_CAVEAT });
-      if (!notice) continue;
-      const body = notice.body;
+        const orgId = (own[0] as unknown as { organization_id?: string | null }).organization_id ?? null;
+        /* Don't stack the same heads-up twice. */
+        const { data: pending } = await sb
+          .from("nudges")
+          .select("id, body")
+          .eq("user_id", userId)
+          .eq("kind", "journey_moved")
+          .eq("status", "pending")
+          .limit(5);
+        if ((pending ?? []).some((n) => (n as { body?: string }).body === body)) return;
 
-      const orgId = (own[0] as unknown as { organization_id?: string | null }).organization_id ?? null;
-      /* Don't stack the same heads-up twice. */
-      const { data: pending } = await sb
-        .from("nudges")
-        .select("id, body")
-        .eq("user_id", userId)
-        .eq("kind", "journey_moved")
-        .eq("status", "pending")
-        .limit(5);
-      if ((pending ?? []).some((n) => (n as { body?: string }).body === body)) continue;
+        const planId = after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null;
+        const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
+        const { data: nudgeRow } = await sb.from("nudges").insert({
+          user_id: userId,
+          organization_id: orgId,
+          kind: "journey_moved",
+          title: notice.title,
+          body,
+          priority: notice.priority,
+          status: "pending",
+          related_entity_type: "flight_plan",
+          related_entity_id: planId,
+          dedupe_key: dedupe,
+        } as never).select("id").maybeSingle();
+        heads_up += 1;
 
-      const planId = after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null;
-      const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
-      const { data: nudgeRow } = await sb.from("nudges").insert({
-        user_id: userId,
-        organization_id: orgId,
-        kind: "journey_moved",
-        title: notice.title,
-        body,
-        priority: notice.priority,
-        status: "pending",
-        related_entity_type: "flight_plan",
-        related_entity_id: planId,
-        dedupe_key: dedupe,
-      } as never).select("id").maybeSingle();
-      heads_up += 1;
-
-      /* A second surface for the same note, never a second brain. Phone first
-         when a device is registered, Telegram when it is not; one claim stops
-         both firing for one gate change. The buttons only acknowledge, and they
-         settle the same nudge Today reads, so the signal clears from the chat. */
-      const nudgeId = (nudgeRow as { id?: string } | null)?.id ?? null;
-      if (notice.reachMessaging && nudgeId) {
-        const gate = await reachGate(sb, userId, notice);
-        if (gate.allowed) {
-          const surface = await reachOnce(sb, {
-            userId,
-            organizationId: orgId,
-            nudgeId,
-            title: notice.title,
-            detail: body,
-            url: "/?room=today",
-            changeKey: dedupe,
-            urgency: notice.urgency === "critical" ? "critical" : "time_sensitive",
-            entityType: "flight_plan",
-            entityId: planId,
-            source: "journey_watch",
-            situationKind: "nudge.journey_moved",
-            dedupeKey: `nudge:${dedupe}`,
-            because: "a filed leg moved and the person asked to be reachable",
-            openKind: "today",
-            messagingAllowed: gate.messagingAllowed,
-          });
-          if (surface) pinged += 1;
+        /* A second surface for the same note, never a second brain. Phone first
+           when a device is registered, Telegram when it is not; one claim stops
+           both firing for one gate change. The buttons only acknowledge, and they
+           settle the same nudge Today reads, so the signal clears from the chat. */
+        const nudgeId = (nudgeRow as { id?: string } | null)?.id ?? null;
+        if (notice.reachMessaging && nudgeId) {
+          const gate = await reachGate(sb, userId, notice);
+          if (gate.allowed) {
+            const surface = await reachOnce(sb, {
+              userId,
+              organizationId: orgId,
+              nudgeId,
+              title: notice.title,
+              detail: body,
+              url: "/?room=today",
+              changeKey: dedupe,
+              urgency: notice.urgency === "critical" ? "critical" : "time_sensitive",
+              entityType: "flight_plan",
+              entityId: planId,
+              source: "journey_watch",
+              situationKind: "nudge.journey_moved",
+              dedupeKey: `nudge:${dedupe}`,
+              because: "a filed leg moved and the person asked to be reachable",
+              openKind: "today",
+              messagingAllowed: gate.messagingAllowed,
+            });
+            if (surface) pinged += 1;
+          }
         }
+      })();
+
+      /* Wheels down, said once per touchdown. The final airport gets the same
+         voice as every layover: time off the airline's record, gate and
+         terminal as filed. A layover the journey heads-up already spoke for
+         stays with that one note. */
+      const journeyNow = journeysFrom(own)[0] ?? null;
+      const whereNow = journeyNow ? whereOnJourney(journeyNow, new Date(now)) : null;
+      const layoverPlanId =
+        whereNow?.kind === "on_ground" && whereNow.layover && whereNow.nextLeg
+          ? journeyNow?.legs[whereNow.legIndex]?.plan_id ?? null
+          : null;
+
+      for (const p of own) {
+        if (p.status !== "confirmed") continue;
+        const live = anchorLive((p.live_status ?? null) as LiveFlight | null);
+        const opt: any = p.options[0] ?? null;
+        const alert = landedAlert({
+          planId: p.id,
+          flightNo: live?.flight_no ?? opt?.flight_no ?? null,
+          destinationIata: (p.destination ?? "").trim().toUpperCase() || null,
+          live,
+          checkedAt: p.live_checked_at,
+          now: new Date(now),
+        });
+        if (!alert) continue;
+
+        if (layoverPlanId === p.id) {
+          /* The layover heads-up speaks for this touchdown — provided it was
+             actually written. If a dedupe kept it from landing, this touchdown
+             still earns its own note. */
+          const { data: lay } = await sb.from("nudges").select("id")
+            .eq("user_id", userId).eq("kind", "journey_moved")
+            .eq("related_entity_id", p.id).ilike("body", "You are on the ground%").limit(1);
+          if ((lay ?? []).length) continue;
+        }
+
+        const dedupe = alert.dedupeKey;
+        const orgId = (p as unknown as { organization_id?: string | null }).organization_id ?? null;
+
+        /* Told already, on any surface? Then this touchdown has been announced. */
+        const { data: told } = await sb.from("deliveries").select("id")
+          .eq("user_id", userId).eq("dedupe_key", `nudge:${dedupe}`).eq("status", "sent").limit(1);
+        if ((told ?? []).length) continue;
+
+        /* The nudge Today reads — written once, reached until it lands somewhere. */
+        let nudgeId: string | null = null;
+        const { data: seenNudge } = await sb.from("nudges").select("id")
+          .eq("user_id", userId).eq("dedupe_key", dedupe).limit(1);
+        if ((seenNudge ?? []).length) {
+          nudgeId = (seenNudge[0] as { id: string }).id;
+        } else {
+          const { data: row } = await sb.from("nudges").insert({
+            user_id: userId,
+            organization_id: orgId,
+            kind: "flight_landed",
+            title: alert.title,
+            body: alert.detail,
+            priority: 60,
+            status: "pending",
+            related_entity_type: "flight_plan",
+            related_entity_id: p.id,
+            dedupe_key: dedupe,
+          } as never).select("id").maybeSingle();
+          nudgeId = (row as { id?: string } | null)?.id ?? null;
+        }
+        if (!nudgeId) continue;
+
+        /* Quiet hours hold the note, never lose it: no claim is made while they
+           run, so the next sweep tries again until it reaches a surface. */
+        const gate = await reachGate(sb, userId, { urgency: "high" } as JourneyNotice);
+        if (!gate.allowed) continue;
+        const surface = await reachOnce(sb, {
+          userId,
+          organizationId: orgId,
+          nudgeId,
+          title: alert.title,
+          detail: alert.detail,
+          url: "/flights",
+          changeKey: dedupe,
+          urgency: "time_sensitive",
+          entityType: "flight_plan",
+          entityId: p.id,
+          source: "journey_watch",
+          situationKind: "nudge.flight_landed",
+          dedupeKey: `nudge:${dedupe}`,
+          because: "a confirmed flight touched down and the person asked to hear about it",
+          openKind: "today",
+          messagingAllowed: gate.messagingAllowed,
+        });
+        if (surface) pinged += 1;
       }
     }
 
