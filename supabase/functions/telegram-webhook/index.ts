@@ -1537,7 +1537,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     usedRecords: readOnly && evidenceBacked ? ["your own records in Metro Echo"] : [],
     at: new Date().toISOString(),
   });
-  if (whyLine) reply = `${reply}\n\n${whyLine}`;
+  /* One tail line, never two. Stacking a triage read on top of a provenance
+     line is what made replies read like a form letter. The triage read already
+     says where it went and that nothing changed, so it wins when both exist. */
+  const tail = triageLine ?? whyLine;
+  if (tail) reply = `${reply}\n\n${tail}`;
 
   // One deep link, at most one action button. Fixed vocabulary only.
   const markup = toolMarkup
