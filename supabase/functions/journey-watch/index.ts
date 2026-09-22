@@ -24,6 +24,7 @@ import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_
 import { isInQuietHours } from "../_shared/drift.ts";
 import { reachOnce } from "../_shared/delivery/reach.ts";
 import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_shared/preDeparture.ts";
+import { landedAlert } from "../_shared/landedAlert.ts";
 
 /**
  * Before you leave — the countdown errands said once, on the same rail as every
@@ -125,8 +126,10 @@ const ANY_FEED = !!KEY || !!aeroKey();
 const WINDOW_HOURS = 8;
 /** A reading younger than this is reused. */
 const FRESH_MS = 20 * 60_000;
+/** Around touchdown the truth changes by the minute, so the cadence tightens. */
+const LANDING_FRESH_MS = 5 * 60_000;
 /** Hard ceiling on provider readings per calendar day, across everyone. */
-const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "40");
+const DAILY_BUDGET = Number(Deno.env.get("FLIGHT_DAILY_BUDGET") ?? "80");
 /** How early before a filed departure a leg becomes worth reading. */
 const BEFORE_DEPART_MIN = 180;
 /** How long after a filed arrival a leg stays worth reading. */
