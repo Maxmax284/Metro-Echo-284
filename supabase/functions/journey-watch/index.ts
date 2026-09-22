@@ -182,6 +182,21 @@ function worthReading(p: FlightPlan, now: number): boolean {
   return now >= from && now <= to;
 }
 
+/**
+ * How fresh a reading must be. Fifteen minutes out from a filed arrival until
+ * three quarters of an hour past it, the answer can change every sweep — that
+ * window reads tighter. Everywhere else the regular cadence is plenty.
+ */
+function freshMs(p: FlightPlan, now: number): number {
+  const live = anchorLive((p.live_status ?? null) as LiveFlight | null);
+  if (!live || live.arrival?.actual) return FRESH_MS;
+  const arr = live?.arrival?.estimated ?? live?.arrival?.scheduled ?? null;
+  const to = (p.destination ?? "").trim().toUpperCase() || live?.arrival?.iata || null;
+  if (!arr || !to) return FRESH_MS;
+  const eta = minutesToDeparture(arr, to, new Date(now));
+  return eta != null && eta <= 15 && eta >= -45 ? LANDING_FRESH_MS : FRESH_MS;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
@@ -283,7 +298,7 @@ Deno.serve(async (req) => {
        travel window are checked here so no caller can spend around them. */
     const readLeg = async (userId: string, p: FlightPlan, force = false) => {
       const stamp = p.live_checked_at ? new Date(p.live_checked_at).getTime() : 0;
-      if (!force && now - stamp < FRESH_MS) return;
+      if (!force && now - stamp < freshMs(p, now)) return;
       if (!worthReading(p, now)) return;
       /* A feed files a flight under the number of the airline that flies it, so
          the operating number is asked before the ticketed codeshare number. */
