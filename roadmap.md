@@ -44,4 +44,6 @@
 - [x] Clear or reset only stale/broken delivery state; preserve captures, links, and receipts
 - [x] Replace the generic "something jammed / send it again" fallback with honest, per-cause replies (allowance spent, rate limited, provider fault, unknown) that never ask for a re-send
 - [x] One tail line per reply — a triage read or a provenance line, never both stacked
-- [ ] Verify send/receive path with a live message (blocked until AI allowance resets or is topped up)
+- [x] Verify send/receive path with a live message — flight question answered from the real journey (IAD → TPE → BKK → USM), no snag reply
+- [x] Root cause of "it doesn't know": Telegram advertised the whole shared read catalog but only executed a few reads by name; every other read fell through to "On it." Now runs the same executor the app uses, and a tool that comes back empty says so instead of faking a done
+- [x] Arrival alerts: landedAlert module + journey-watch pass sends one timed Telegram message per landing with gate, terminal and the board caveat

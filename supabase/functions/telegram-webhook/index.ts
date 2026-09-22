@@ -188,7 +188,7 @@ import {
   whatsWaiting,
   whereYouStand,
 } from "../_shared/workReads.ts";
-import { ECHO_READ_TOOLS } from "../_shared/echoReads.ts";
+import { ECHO_READ_TOOLS, isEchoRead, runEchoRead } from "../_shared/echoReads.ts";
 
 
 
@@ -814,6 +814,23 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
       : { reply: "Couldn't file that. Open Metro Echo and attach it there.", detectedType: null, routedTo: null, readOnly: true };
   }
 
+  /* ---- Every other shared read. Telegram advertised the whole read catalog
+     but only executed a handful of them by name, so a flight, body, money or
+     local question came back as "On it." — an answer that answered nothing.
+     One fallthrough to the same executor the app uses closes that gap. */
+  if (isEchoRead(name)) {
+    const got = await runEchoRead(sb as never, name, args ?? {}, { userId, orgId, tz: defaults.timezone });
+    if (got) {
+      return {
+        reply: got.text,
+        detectedType: null,
+        routedTo: null,
+        readOnly: true,
+        linkKind: (name === "flights_prepared" ? "schedule" : "today") as VantaLinkKind,
+      };
+    }
+  }
+
   return null;
 }
 
@@ -1412,7 +1429,20 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   }
   const j = r ? await r.json() : null;
   const choice = j?.choices?.[0]?.message;
+  if (r && !choice?.content?.trim() && !(choice?.tool_calls ?? []).length) {
+    /* An answerless turn is a fault, not an answer. Record what came back so a
+       silent model never masquerades as "On it." again. */
+    console.error("ai empty turn", JSON.stringify({
+      finish: j?.choices?.[0]?.finish_reason ?? null,
+      native: j?.choices?.[0]?.native_finish_reason ?? null,
+      err: j?.error ?? null,
+      keys: Object.keys(j ?? {}),
+    }));
+  }
   if (!reply) reply = choice?.content?.trim() ?? "";
+  /* A tool that was asked for and did not answer is a fact worth saying out
+     loud. Silence used to come back as "On it.", which read like a job done. */
+  let unanswered = 0;
   for (const tc of choice?.tool_calls ?? []) {
     try {
       const args = JSON.parse(tc.function.arguments || "{}");
@@ -1436,10 +1466,20 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         const nextMarkup = (res as any).markup as TgReplyMarkup | undefined;
         if (!calendarActionId || (res as any).calendarActionId) toolMarkup = nextMarkup ?? toolMarkup;
         calendarActionId = ((res as any).calendarActionId as string | null | undefined) ?? calendarActionId;
+      } else {
+        unanswered += 1;
+        console.error("telegram tool unhandled", tc.function?.name);
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      unanswered += 1;
+      console.error("telegram tool failed", tc.function?.name, e instanceof Error ? e.message : e);
+    }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
+  if (!reply && unanswered) {
+    reply = "I went looking for that and came back with nothing I can stand behind. Your message is saved in Metro Echo and nothing was actioned — ask me again in a moment, or open the app to look yourself.";
+    readOnly = true;
+  }
   if (!reply) reply = VANTA_PHRASES.gotIt();
 
   if (calendarActionId && conv?.id) {
