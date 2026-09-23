@@ -40,7 +40,7 @@ export async function flightRead(
       }) as FlightPlan,
   );
   if (!rows.length) {
-    return "No flight is prepared. Schedule → Flights takes a route, the dates and the flight lines you paste, and holds it as a draft until you confirm it on the Board. If a booking turns up in something Echo already reads, it files it there too and asks whose it is. Echo never buys a ticket.";
+    return "Nothing on the board right now. Paste the route, dates and flight lines into Schedule → Flights and I'll hold it as a draft until you confirm it. If a booking shows up in mail I already read, I'll file it there too and ask whose it is. I don't buy tickets.";
   }
   const asked = rows.filter((r) => r.status === "prepared" && r.ownership === "unknown");
   const waiting = rows.filter((r) => r.status === "prepared" && r.ownership !== "unknown" && r.ownership !== "theirs");
