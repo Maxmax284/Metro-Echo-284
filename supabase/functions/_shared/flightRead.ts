@@ -113,6 +113,39 @@ export async function flightRead(
       throughSecurity: pastSecurity,
     });
     lines.push(groundWords(ground));
+    /* The board itself: terminal, gate, how late, when it lands. Same facts the
+       layover card shows, said out loud, and only where they exist. */
+    const board = gateBoardWords(
+      {
+        flightNo: option?.flight_no ?? null,
+        status: snap?.status ?? null,
+        departure: {
+          iata: snap?.departure?.iata ?? leg?.from.iata ?? null,
+          terminal: snap?.departure?.terminal ?? leg?.from.terminal ?? null,
+          gate: snap?.departure?.gate ?? null,
+          at: snap?.departure?.estimated ?? snap?.departure?.actual ?? snap?.departure?.scheduled ?? option?.depart_at ?? null,
+          delayMin: snap?.departure?.delay_min ?? null,
+        },
+        arrival: {
+          iata: snap?.arrival?.iata ?? leg?.to.iata ?? null,
+          terminal: snap?.arrival?.terminal ?? leg?.to.terminal ?? null,
+          gate: snap?.arrival?.gate ?? null,
+          at: snap?.arrival?.actual ?? snap?.arrival?.estimated ?? snap?.arrival?.scheduled ?? option?.arrive_at ?? null,
+          delayMin: snap?.arrival?.delay_min ?? null,
+          landed: Boolean(snap?.arrival?.actual),
+        },
+        layover: where.layover
+          ? {
+              iata: where.layover.iata,
+              arriveTerminal: where.layover.arriveTerminal,
+              departTerminal: where.layover.departTerminal,
+              terminalChange: where.layover.terminalChange,
+            }
+          : null,
+      },
+      new Date(),
+    );
+    for (const line of board) lines.push(line);
     const op = operatorWords(identity);
     if (op) lines.push(op);
     /* Landed, the useful facts change: money and the number to call. Kept notes
