@@ -70,10 +70,28 @@ export async function flightRead(
        hours off for anyone whose phone is not in the departure city. */
     const snap = anchorLive((plan?.live_status ?? null) as never) as
       | {
-          departure?: { terminal?: string | null; gate?: string | null; scheduled?: string | null; estimated?: string | null };
-          arrival?: { terminal?: string | null; gate?: string | null };
+          status?: string | null;
+          departure?: {
+            iata?: string | null;
+            terminal?: string | null;
+            gate?: string | null;
+            scheduled?: string | null;
+            estimated?: string | null;
+            actual?: string | null;
+            delay_min?: number | null;
+          };
+          arrival?: {
+            iata?: string | null;
+            terminal?: string | null;
+            gate?: string | null;
+            scheduled?: string | null;
+            estimated?: string | null;
+            actual?: string | null;
+            delay_min?: number | null;
+          };
         }
       | null;
+
     const depIso = snap?.departure?.estimated ?? snap?.departure?.scheduled ?? option?.depart_at ?? null;
     const depMs = depIso ? Date.parse(depIso) : NaN;
     /* The person's own words are the only thing that can say they are already
