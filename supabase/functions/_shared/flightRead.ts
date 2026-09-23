@@ -13,6 +13,7 @@ import { countryNotes } from "./countryNotes.ts";
 import { airport, airportMismatchWords, airportWords } from "./airports.ts";
 import { groundPath, groundWords } from "./groundPath.ts";
 import { carrierId, mergeIdentity, operatorWords, type FlightIdentity } from "./flightIdentity.ts";
+import { gateBoardWords } from "./gateBoard.ts";
 
 function scoped(q: any, userId: string, orgId: string | null) {
   const u = q.eq("user_id", userId);
