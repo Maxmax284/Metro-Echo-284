@@ -174,7 +174,7 @@ export async function flightRead(
     }
     if (ground.needsCheckIn) {
       lines.push(
-        "The check-in zone is not on record. Schedule → Flights has a look-it-up tap that reads one official airline page for it; Echo will not name a zone without one.",
+        "Check-in zone isn't on record. Schedule → Flights has a tap that reads one official airline page for it — I won't name a zone without that.",
       );
     }
     /* A named airport that is not this journey's is a question, not a correction.
@@ -184,7 +184,7 @@ export async function flightRead(
       lines.push(clash);
     } else if (leg?.from.iata) {
       lines.push(
-        `This journey leaves from ${airportWords(leg.from.iata)}. If you are standing somewhere else, say which airport — Echo will not guess which one you mean.`,
+        `This one leaves from ${airportWords(leg.from.iata)}. If you're standing somewhere else, tell me which airport — I'm not going to guess.`,
       );
     }
     lines.push(TERMINAL_CAVEAT);
@@ -200,7 +200,7 @@ export async function flightRead(
       const from = p.noticed_from?.sender?.name ?? p.noticed_from?.sender?.email ?? null;
       lines.push(`• ${planWords(p)}${who}${from ? `, sent by ${from}` : ""}`);
     }
-    lines.push("Schedule → Flights is where you say mine, mine too, theirs, or not mine. It asks once.");
+    lines.push("Say mine, mine too, theirs, or not mine over in Schedule → Flights. I only ask once.");
   }
   if (waiting.length) {
     lines.push(`${waiting.length} ${waiting.length === 1 ? "flight is" : "flights are"} waiting on your yes:`);
@@ -216,6 +216,6 @@ export async function flightRead(
       lines.push(`• ${planWords(p)}${p.traveller_name ? ` · ${p.traveller_name}` : ""}`);
     }
   }
-  lines.push("Confirming happens on the Board, by your tap. Echo records the flight; it never buys it.");
+  lines.push("Confirming is your tap on the Board. I keep the record; I don't buy the ticket.");
   return lines.join("\n");
 }
