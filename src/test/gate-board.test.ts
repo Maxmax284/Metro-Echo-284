@@ -73,3 +73,20 @@ describe("the board, said out loud", () => {
     ).toEqual([]);
   });
 });
+
+describe("a finished leg beats a stale reading", () => {
+  it("never says in the air when the journey says the leg is done", () => {
+    const said = gateBoardWords(
+      {
+        flightNo: "PG165",
+        status: "active",
+        settled: true,
+        departure: { iata: "BKK", terminal: "1", gate: "B7", at: "2026-09-20T15:55:00", delayMin: null },
+        arrival: { iata: "USM", terminal: null, gate: null, at: "2026-09-20T17:08:00", delayMin: 24 },
+      },
+      new Date("2026-09-23T02:00:00Z"),
+    ).join(" ");
+    expect(said).not.toContain("in the air");
+    expect(said).toContain("is down");
+  });
+});
