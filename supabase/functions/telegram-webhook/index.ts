@@ -1477,7 +1477,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
   if (!reply && unanswered) {
-    reply = "I went looking for that and came back with nothing I can stand behind. Your message is saved in Metro Echo and nothing was actioned — ask me again in a moment, or open the app to look yourself.";
+    reply = "I looked and came up empty — nothing on record I'd stand behind. Your message is saved in Metro Echo, nothing got actioned. Ask me again in a minute or take a look in the app yourself.";
     readOnly = true;
   }
   if (!reply) reply = VANTA_PHRASES.gotIt();
