@@ -32,6 +32,8 @@ export type BoardFacts = {
   status: string | null;
   departure: BoardEnd;
   arrival: BoardEnd;
+  /** The journey already says this leg is finished. Beats any stale reading. */
+  settled?: boolean;
   layover?: BoardLayover | null;
 };
 
@@ -70,8 +72,8 @@ export function gateBoardWords(facts: BoardFacts, now: Date = new Date()): strin
 
   const flight = facts.flightNo ? facts.flightNo : "This flight";
   const out: string[] = [];
-  const flying = facts.status === "active";
-  const landed = arr.landed || facts.status === "landed";
+  const landed = facts.settled === true || arr.landed || facts.status === "landed";
+  const flying = !landed && facts.status === "active";
 
   if (landed) {
     const at = clockAt(arr.at, arr.iata, now);
@@ -84,7 +86,7 @@ export function gateBoardWords(facts: BoardFacts, now: Date = new Date()): strin
 
   if (flying) {
     const at = clockAt(arr.at, arr.iata, now);
-    out.push(`${flight} is in the air${at ? `, due in ${at} local` : ""}.`);
+    out.push(`${flight} is in the air${at ? `, due ${at} local` : ""}.`);
     out.push(...place(arr));
     const late = lateWords(arr.delayMin ?? dep.delayMin ?? null);
     if (late) out.push(late);

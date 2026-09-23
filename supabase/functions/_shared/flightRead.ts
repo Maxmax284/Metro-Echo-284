@@ -135,6 +135,7 @@ export async function flightRead(
           delayMin: snap?.arrival?.delay_min ?? null,
           landed: Boolean(snap?.arrival?.actual),
         },
+        settled: phase === "done" || phase === "on_ground",
         layover: where.layover
           ? {
               iata: where.layover.iata,
