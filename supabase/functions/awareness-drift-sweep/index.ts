@@ -55,6 +55,7 @@ import {
 } from "../_shared/awareness/index.ts";
 import { appointmentReminderSignals, eventKey } from "../_shared/awareness/reminders.ts";
 import { appointmentWeather, type ForecastHour } from "../_shared/awareness/appointmentWeather.ts";
+import { flightNoticeSignals, hoursUntilDeparture } from "../_shared/awareness/flightNoticeSignal.ts";
 
 /**
  * The hours of forecast for where this person is, or nothing at all.
