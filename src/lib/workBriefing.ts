@@ -30,6 +30,10 @@ export type BriefingItem = {
   lastAt?: string | null;
   /** Optional deep link, e.g. /projects/<id>. */
   href?: string | null;
+  /** Arrivals only: what kind of record, so filing attaches the right thing. */
+  itemType?: "note" | "capture";
+  /** Arrivals only: where it probably belongs. Null means "not sure". */
+  suggestion?: { projectId: string; title: string } | null;
 };
 
 export type BriefingSection = {
