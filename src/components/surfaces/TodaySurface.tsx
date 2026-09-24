@@ -20,7 +20,6 @@ import { TransferLane } from "@/components/today/TransferLane";
 import { EntryReadyLane } from "@/components/today/EntryReadyLane";
 
 import { TypeOnLine } from "@/components/today/TypeOnLine";
-import { SolariBoard } from "@/components/schedule/SolariBoard";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
 import { useTodayPlaceBoard } from "@/hooks/useTodayPlaceBoard";
 import { useSituation } from "@/hooks/useSituation";
