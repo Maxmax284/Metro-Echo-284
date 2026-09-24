@@ -11,7 +11,7 @@ const KEY = "vanta.sound.v1";
 export const SOUND_EVENT = "vanta:sound";
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
-let lastAt = 0;
+let lastClackAt = 0;
 
 export function soundOn(): boolean {
   try {
@@ -51,6 +51,7 @@ function audio(): AudioContext | null {
 /* Real recorded-style samples in /sounds. Decoded once, played from memory;
    the synth below only covers the moment before they finish loading. */
 const FILES: StreetSound[] = ["clack", "spray", "stamp", "snap", "tick", "turnstile", "zippo", "solari"];
+const live = new Set<AudioBufferSourceNode>();
 const buffers = new Map<StreetSound, AudioBuffer>();
 let loading = false;
 function loadSamples(a: AudioContext) {
@@ -72,7 +73,10 @@ function sample(a: AudioContext, kind: StreetSound): boolean {
   // A touch of pitch drift so twenty flaps never sound like one loop.
   src.playbackRate.value = 0.94 + Math.random() * 0.12;
   src.connect(out(a));
-  src.start();
+  // Hold a reference until it ends so nothing collects it mid-play.
+  live.add(src);
+  src.onended = () => live.delete(src);
+  src.start(a.currentTime + 0.005);
   return true;
 }
 
@@ -128,11 +132,23 @@ export function play(kind: StreetSound, { force = false }: { force?: boolean } =
   if (!force && !soundOn()) return;
   const now = performance.now();
   // Rate limit: a burst of flaps is one clatter, not a machine gun.
-  if (kind === "clack" && now - lastAt < 28) return;
-  lastAt = now;
+  if (kind === "clack") {
+    if (now - lastClackAt < 28) return;
+    lastClackAt = now;
+  }
   const a = audio();
   if (!a) return;
   loadSamples(a);
+  // A sleeping context would start the sound "in the past" and chop its head
+  // off mid-slide. Wait for it to wake, then play from the top.
+  if (a.state !== "running") {
+    void a.resume().then(() => render(a, kind)).catch(() => {});
+    return;
+  }
+  render(a, kind);
+}
+
+function render(a: AudioContext, kind: StreetSound) {
   if (sample(a, kind)) return;
   const t = a.currentTime;
   switch (kind) {
