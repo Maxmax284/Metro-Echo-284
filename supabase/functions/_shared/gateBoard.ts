@@ -35,6 +35,8 @@ export type BoardFacts = {
   /** The journey already says this leg is finished. Beats any stale reading. */
   settled?: boolean;
   layover?: BoardLayover | null;
+  /** The onward flight, when the person is sitting at a connection. */
+  next?: { flightNo: string | null; departure: BoardEnd } | null;
 };
 
 function clockAt(iso: string | null, iata: string | null, now: Date): string | null {
@@ -81,6 +83,15 @@ export function gateBoardWords(facts: BoardFacts, now: Date = new Date()): strin
     out.push(...place(arr));
     const late = lateWords(arr.delayMin ?? null);
     if (late) out.push(late);
+    if (facts.layover) out.push(...layoverWords(facts.layover));
+    if (facts.next) {
+      const nd = facts.next.departure;
+      const off = clockAt(nd.at, nd.iata, now);
+      out.push(`Next up: ${facts.next.flightNo ?? "your onward flight"} leaves ${off ? `${off} local` : "at a time nobody has filed yet"}.`);
+      out.push(...place(nd));
+      const nlate = lateWords(nd.delayMin);
+      if (nlate) out.push(nlate);
+    }
     return out;
   }
 
@@ -103,15 +114,14 @@ export function gateBoardWords(facts: BoardFacts, now: Date = new Date()): strin
   if (arr.terminal || arr.gate) {
     out.push(`On arrival: ${[arr.terminal ? `terminal ${arr.terminal}` : null, arr.gate ? `gate ${arr.gate}` : null].filter(Boolean).join(", ")}.`);
   }
-  if (facts.layover) {
-    const l = facts.layover;
-    if (l.terminalChange === "yes" && l.arriveTerminal && l.departTerminal) {
-      out.push(`At ${l.iata} you switch terminals — in at ${l.arriveTerminal}, out of ${l.departTerminal}. Leave yourself room.`);
-    } else if (l.terminalChange === "no" && l.arriveTerminal) {
-      out.push(`At ${l.iata} you stay in terminal ${l.arriveTerminal}.`);
-    } else {
-      out.push(`At ${l.iata} nobody has filed which terminals you are using.`);
-    }
-  }
+  if (facts.layover) out.push(...layoverWords(facts.layover));
   return out;
+}
+
+function layoverWords(l: BoardLayover): string[] {
+  if (l.terminalChange === "yes" && l.arriveTerminal && l.departTerminal) {
+    return [`At ${l.iata} you switch terminals — in at ${l.arriveTerminal}, out of ${l.departTerminal}. Leave yourself room.`];
+  }
+  if (l.terminalChange === "no" && l.arriveTerminal) return [`At ${l.iata} you stay in terminal ${l.arriveTerminal}.`];
+  return [`At ${l.iata} nobody has filed which terminals you are using.`];
 }
