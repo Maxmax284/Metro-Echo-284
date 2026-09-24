@@ -172,6 +172,19 @@ export function ConversationDock({
   }, [initialText]);
 
   const [listening, setListening] = useState(false);
+  /* The can rattles before the paint comes out: one shot on pickup and one on
+     send. Presentation only — the shake never gates the message. */
+  const [shaking, setShaking] = useState(false);
+  const shakeTimer = useRef<number | null>(null);
+  const shakeCan = () => {
+    unlockAudio();
+    play("spray");
+    setShaking(false);
+    if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
+    requestAnimationFrame(() => setShaking(true));
+    shakeTimer.current = window.setTimeout(() => setShaking(false), 500);
+  };
+  useEffect(() => () => { if (shakeTimer.current) window.clearTimeout(shakeTimer.current); }, []);
   const [paletteIdx, setPaletteIdx] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const recRef = useRef<SR | null>(null);
@@ -220,6 +233,7 @@ export function ConversationDock({
     if (!t || busy) return;
     setV("");
     if (listening) stopListening();
+    shakeCan();
     void onSend(t);
   };
 
@@ -313,7 +327,15 @@ export function ConversationDock({
         <div className="mx-auto mb-1.5 w-full max-w-3xl">{aboveComposer}</div>
       )}
 
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass bg-background/85 px-3 py-2 shadow-lg backdrop-blur-xl">
+      <div
+        data-thinking={busy ? "true" : undefined}
+        className={cn(
+          "mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass bg-background/85 px-3 py-2 shadow-lg backdrop-blur-xl",
+          /* Ask is the lit room: the composer carries the neon tube. */
+          surface === "conversation" || surface === "ask" ? "vanta-neon-rim" : null,
+          shaking && "vanta-can-shake",
+        )}
+      >
         {onAttach && (
           <>
             <input
@@ -395,10 +417,7 @@ export function ConversationDock({
           value={v}
           /* Picking up the can: two rattles of the mixing ball before you spray.
              Opt-in sound only, and the first touch is what wakes audio up. */
-          onFocus={() => {
-            unlockAudio();
-            play("spray");
-          }}
+          onFocus={shakeCan}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => {
             // Slash palette navigation
