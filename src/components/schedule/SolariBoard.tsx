@@ -1,13 +1,22 @@
 // SolariBoard — a split-flap departure board, one character per cell.
 //
 // Doctrine:
-//   - The flip is an event, never a loop. Cells turn over once when the words
-//     genuinely change, then hold.
-//   - Nothing is invented: the board renders exactly the text it is handed.
-//   - Reduced motion gets the same words with no movement (handled in index.css).
+//   - The flip is an event, never a loop. When the words genuinely change,
+//     each changed cell riffles through a few flaps and lands on its real
+//     character, then holds. One clack per flap that lands.
+//   - Nothing is invented: intermediate flaps are motion only (aria-hidden);
+//     the board's accessible text is always the real value.
+//   - Reduced motion gets the final words at once, no riffle, no sound.
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+
+const DRUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const STEP_MS = 55;
+
+function reducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
 
 export function SolariBoard({
   text,
@@ -15,31 +24,60 @@ export function SolariBoard({
   tone = "default",
   className,
 }: {
-  /** The words to show. Rendered uppercase, one cell per character. */
   text: string;
-  /** Screen-reader / machine label shown above the cells. */
   label?: string;
   tone?: "default" | "primary" | "warn" | "danger" | "good";
   className?: string;
 }) {
-  const chars = text.toUpperCase().split("");
-  const prev = useRef(text);
-  /* A generation counter re-keys the cells so the flip animation replays only
-     when the wording actually changed. */
-  const [gen, setGen] = useState(0);
+  const target = text.toUpperCase();
+  const prev = useRef(target);
+  const [shown, setShown] = useState(target);
+  const [flipGen, setFlipGen] = useState<number[]>(() => target.split("").map(() => 0));
 
   useEffect(() => {
-    if (prev.current !== text) {
-      prev.current = text;
-      setGen((g) => g + 1);
-      // The clatter follows the flaps, one clack per settled cell.
-      const n = Math.min(text.replace(/\s/g, "").length, 13);
-      const timers = Array.from({ length: n }, (_, i) =>
-        window.setTimeout(() => play("clack"), i * 32 + 120),
-      );
-      return () => timers.forEach(clearTimeout);
+    const from = prev.current;
+    prev.current = target;
+    if (from === target) return;
+    if (reducedMotion()) {
+      setShown(target);
+      return;
     }
-  }, [text]);
+    const len = target.length;
+    // How many flaps each cell riffles before landing: unchanged cells stay put.
+    const flaps = Array.from({ length: len }, (_, i) =>
+      from[i] === target[i] || target[i] === " " ? 0 : 3 + Math.min(i, 8),
+    );
+    const maxSteps = Math.max(0, ...flaps);
+    const timers: number[] = [];
+    let cur = from.padEnd(len, " ").slice(0, len).split("");
+    const gens = Array(len).fill(0);
+    for (let s = 1; s <= maxSteps; s++) {
+      timers.push(
+        window.setTimeout(() => {
+          let landed = 0;
+          cur = cur.map((c, i) => {
+            if (flaps[i] === 0) return target[i];
+            if (s < flaps[i]) {
+              gens[i]++;
+              return DRUM[(DRUM.indexOf(c) + 1 + ((i + s) % 5)) % DRUM.length] ?? DRUM[s % DRUM.length];
+            }
+            if (s === flaps[i]) {
+              gens[i]++;
+              landed++;
+              return target[i];
+            }
+            return c;
+          });
+          setShown(cur.join(""));
+          setFlipGen([...gens]);
+          // Sound tracks motion: a flurry while riffling, a clack as cells land.
+          if (landed > 0) play("clack");
+          else if (s === 1) play("solari");
+        }, s * STEP_MS),
+      );
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [target]);
 
   const toneClass =
     tone === "primary"
@@ -52,20 +90,20 @@ export function SolariBoard({
             ? "text-emerald-400 border-emerald-400/40"
             : "text-foreground/85 border-border/60";
 
+  const chars = shown.split("");
   return (
     <div className={cn("space-y-1", className)}>
       {label && <p className="vanta-machine-label text-muted-foreground/80">{label}</p>}
       <div className="flex flex-wrap gap-[2px]" aria-label={text}>
         {chars.map((c, i) => (
           <span
-            key={`${gen}-${i}`}
+            key={`${i}-${flipGen[i] ?? 0}`}
             aria-hidden
             className={cn(
-              "solari-cell inline-flex h-5 min-w-[13px] items-center justify-center rounded-[1px] border bg-muted/30 font-mono text-[11px] leading-none",
+              "solari-cell relative inline-flex h-5 min-w-[13px] items-center justify-center overflow-hidden rounded-[1px] border bg-muted/30 font-mono text-[11px] leading-none",
               toneClass,
               c === " " && "border-transparent bg-transparent",
             )}
-            style={{ animationDelay: `${Math.min(i, 12) * 32}ms` }}
           >
             {c === " " ? "\u00A0" : c}
           </span>
