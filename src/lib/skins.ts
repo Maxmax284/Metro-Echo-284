@@ -89,8 +89,24 @@ export function applySkinPrefs(): void {
 export function setRoom(room: string): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  if (root.getAttribute("data-room") === room) return;
+  const prev = root.getAttribute("data-room");
+  if (prev === room) return;
   root.setAttribute("data-room", room);
+  // Turnstile click on a real room change; zippo when Ask opens. Opt-in only.
+  if (prev) play(room === "ask" ? "zippo" : "turnstile");
+  // Dawn shutter: first Today of the local day, once per device.
+  if (room === "today") {
+    try {
+      const day = new Date().toDateString();
+      if (localStorage.getItem("vanta.shutter.day") !== day) {
+        localStorage.setItem("vanta.shutter.day", day);
+        root.setAttribute("data-shutter", "lift");
+        window.setTimeout(() => root.removeAttribute("data-shutter"), 1200);
+      }
+    } catch {
+      /* storage blocked — skip the lift */
+    }
+  }
 }
 
 /**

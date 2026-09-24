@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { OperationalState } from "@/lib/operationalState";
 import { Compass, MapPin, Moon, Sun } from "lucide-react";
 import { PostureGlyph } from "@/components/shell/PostureGlyph";
+import { SoundToggle } from "@/components/shell/SoundToggle";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +103,7 @@ export function AmbientHeader({
             <Time className="h-3 w-3" />
             {time}
           </span>
+          <SoundToggle />
           {right}
         </div>
       </div>
