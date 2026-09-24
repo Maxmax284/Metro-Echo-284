@@ -1097,8 +1097,11 @@ html.vanta-exhale-once body {
 
   .vanta-hero,
   .motion-surface-out,
+  .vanta-can-shake,
   .motion-surface-in { animation: none; }
   .motion-surface-out { display: none; }
+  /* The tube still marks Ask — it just stops flickering. */
+  .vanta-neon-rim::after { animation: none; opacity: 0.5; }
 
   /* Rails still draw fully, rows still show their status bar, markers still
      mark — nothing moves to get there. */
