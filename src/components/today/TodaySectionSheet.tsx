@@ -179,13 +179,21 @@ export function TodaySectionSheet({
           />
         );
       }
+      // One line per kind of thing, not one row per receipt.
+      const grouped = new Map<string, { label: string; count: number; latest: string }>();
+      for (const e of events) {
+        const label = humanizeEvent(e.event);
+        const g = grouped.get(label);
+        if (g) g.count += 1;
+        else grouped.set(label, { label, count: 1, latest: e.created_at });
+      }
       return (
         <div className="space-y-1.5">
-          {events.map((e) => (
+          {[...grouped.values()].sort((a, b) => b.count - a.count).map((g) => (
             <DrillRow
-              key={e.id}
-              label={humanizeEvent(e.event)}
-              meta={formatDistanceToNow(new Date(e.created_at), { addSuffix: true })}
+              key={g.label}
+              label={g.count > 1 ? `${g.label} · ${g.count}×` : g.label}
+              meta={`latest ${formatDistanceToNow(new Date(g.latest), { addSuffix: true })}`}
               onClick={() => go("receipts")}
             />
           ))}
