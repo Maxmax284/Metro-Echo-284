@@ -30,7 +30,7 @@ export function ReceiptsFront({
           <>
             <div className="flex items-center gap-2">
               <StatusDot tone={tone(line)} />
-              <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{line.label}</span>
+              <span className="sticker-slap bg-muted/40 px-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{line.label}</span>
               {line.at && (
                 <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/80">
                   {formatDistanceToNow(new Date(line.at), { addSuffix: true })}

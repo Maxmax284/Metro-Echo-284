@@ -84,7 +84,7 @@ export function AmbientHeader({
               {awareness && (
                 <span
                   className={cn(
-                    "ml-1 rounded-full px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
+                    "sticker-slap ml-1 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
                     freshnessTone[awareness.freshness]
                   )}
                 >
