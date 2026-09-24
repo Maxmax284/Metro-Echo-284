@@ -10,6 +10,7 @@ import {
   Paperclip,
   Square,
 } from "lucide-react";
+import { play, unlockAudio } from "@/lib/streetSound";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
@@ -392,6 +393,12 @@ export function ConversationDock({
         <textarea
           ref={ref}
           value={v}
+          /* Picking up the can: two rattles of the mixing ball before you spray.
+             Opt-in sound only, and the first touch is what wakes audio up. */
+          onFocus={() => {
+            unlockAudio();
+            play("spray");
+          }}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => {
             // Slash palette navigation

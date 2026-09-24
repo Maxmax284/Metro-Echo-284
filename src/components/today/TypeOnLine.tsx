@@ -6,10 +6,14 @@
 // and with motion turned down the text is simply there.
 import { useEffect, useRef, useState } from "react";
 import { feelK } from "@/lib/motion";
+import { play } from "@/lib/streetSound";
 import { cn } from "@/lib/utils";
 
-const CHAR_MS = 14;
-const MAX_MS = 900;
+/* Teletype cadence: a strike you can actually read, not a blur. A number gets a
+   held beat after it lands so a count carries weight. */
+const CHAR_MS = 38;
+const MAX_MS = 2600;
+const NUMBER_HOLD_MS = 120;
 
 function motionOff(): boolean {
   if (typeof window === "undefined") return true;
@@ -44,21 +48,27 @@ export function TypeOnLine({
       return;
     }
     typed.current.add(text);
-    const step = Math.max(6, Math.min(CHAR_MS / (feelK() || 1), MAX_MS / text.length));
+    const step = Math.max(14, Math.min(CHAR_MS / (feelK() || 1), MAX_MS / text.length));
     let i = 0;
+    let timer = 0;
     setShown("");
     setWriting(true);
-    const timer = window.setInterval(() => {
-      i += Math.max(1, Math.round(text.length / (MAX_MS / step)));
+    /* One character per strike so the cadence is even, with a held beat once a
+       number finishes landing and a dry printer tick every few strikes. */
+    const strike = () => {
+      i += 1;
       if (i >= text.length) {
         setShown(text);
         setWriting(false);
-        window.clearInterval(timer);
         return;
       }
       setShown(text.slice(0, i));
-    }, step);
-    return () => window.clearInterval(timer);
+      const justFinishedNumber = /\d/.test(text[i - 1] ?? "") && !/\d/.test(text[i] ?? "");
+      if (i % 4 === 0) play("tick");
+      timer = window.setTimeout(strike, step + (justFinishedNumber ? NUMBER_HOLD_MS : 0));
+    };
+    timer = window.setTimeout(strike, step);
+    return () => window.clearTimeout(timer);
   }, [text]);
 
   return (
