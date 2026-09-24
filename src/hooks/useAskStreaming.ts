@@ -15,5 +15,12 @@ export function useAskStreaming(threadId: string | null | undefined): boolean {
     return subscribeAskSession(threadId, (s) => setStreaming(s.streaming));
   }, [threadId]);
 
+  /* The alley neon leans in while Echo is working. Light only. */
+  useEffect(() => {
+    if (!streaming) return;
+    document.documentElement.setAttribute("data-thinking", "1");
+    return () => document.documentElement.removeAttribute("data-thinking");
+  }, [streaming]);
+
   return streaming;
 }

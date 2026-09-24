@@ -1,3 +1,4 @@
+import { ProjectSticker } from "@/components/projects/ProjectSticker";
 import { useCallback, useEffect, useState } from "react";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { useAuth } from "@/lib/auth";
@@ -182,9 +183,7 @@ export function ProjectsSurface() {
                     <div className="flex items-center gap-2">
                       {p.pinned && <Pin className="h-3.5 w-3.5 text-primary" />}
                       <h2 className="truncate text-base font-medium">{p.title}</h2>
-                      {p.status !== "active" && (
-                        <Badge variant="outline" className="text-[10px] capitalize">{p.status}</Badge>
-                      )}
+                      <ProjectSticker project={p} />
                     </div>
                     {p.summary && (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.summary}</p>
