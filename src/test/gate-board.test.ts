@@ -90,3 +90,19 @@ describe("a finished leg beats a stale reading", () => {
     expect(said).toContain("is down");
   });
 });
+
+describe("gate board at a connection", () => {
+  it("names the onward flight's terminal and gate after landing", async () => {
+    const { gateBoardWords } = await import("../../supabase/functions/_shared/gateBoard");
+    const out = gateBoardWords({
+      flightNo: "BR3", status: "landed", settled: true,
+      departure: { iata: "IAD", terminal: null, gate: null, at: null, delayMin: null },
+      arrival: { iata: "TPE", terminal: "2", gate: "D5", at: null, delayMin: null, landed: true },
+      layover: { iata: "TPE", arriveTerminal: "2", departTerminal: "1", terminalChange: "yes" },
+      next: { flightNo: "TG637", departure: { iata: "TPE", terminal: "1", gate: "A7", at: null, delayMin: null } },
+    }).join(" ");
+    expect(out).toContain("switch terminals");
+    expect(out).toContain("Next up: TG637");
+    expect(out).toContain("Terminal 1, gate A7.");
+  });
+});
