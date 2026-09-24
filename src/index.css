@@ -971,6 +971,34 @@ html.vanta-exhale-once body {
   animation: vanta-slip-stamp 260ms var(--ease-out) 220ms both;
 }
 
+/* Ticket tear: a fresh receipt arrives with its stub still attached along a
+   perforated line; the stub rips off and falls away once, then the edge stays
+   perforated. Only new receipts; old ones never replay. */
+.vanta-ticket-tear { position: relative; }
+.vanta-ticket-tear::before {
+  content: "";
+  position: absolute; left: 6px; right: 6px; top: -1px; height: 2px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, hsl(var(--border) / 0.8) 0 4px, transparent 4px 8px);
+}
+.vanta-ticket-tear::after {
+  content: "";
+  position: absolute; left: 0; right: 0; top: -14px; height: 14px;
+  pointer-events: none;
+  border-radius: 4px 4px 0 0;
+  background:
+    radial-gradient(circle at 4px 100%, transparent 0 2.5px, hsl(var(--muted)) 3px) repeat-x;
+  background-size: 8px 14px;
+  transform-origin: 12% 100%;
+  animation: vanta-ticket-rip 620ms cubic-bezier(0.5, 0, 0.8, 0.4) 380ms both;
+}
+@keyframes vanta-ticket-rip {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); clip-path: inset(0 0 0 0); }
+  18%  { opacity: 1; transform: translate3d(0, -1px, 0) rotate(-1.5deg); clip-path: inset(0 0 0 0); }
+  45%  { opacity: 1; transform: translate3d(6px, -6px, 0) rotate(-7deg); }
+  100% { opacity: 0; transform: translate3d(28px, 34px, 0) rotate(-18deg); }
+}
+
 
 
 
@@ -1011,6 +1039,7 @@ html.vanta-exhale-once body {
   .vanta-glyph-ping,
   .vanta-slip-line,
   .vanta-slip-stamp,
+  .vanta-ticket-tear::after,
   .vanta-room-led-context,
   .vanta-room-led-attention,
   .vanta-room-led-critical,
