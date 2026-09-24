@@ -87,6 +87,17 @@ export function roomForSurface(id: SurfaceId): RoomKey {
 }
 
 /**
+ * The rooms sit on one line — Today, Work, Ask, Receipts — so a room change has
+ * a direction. Used by the shell to slide the incoming room in from the side you
+ * are travelling toward, like a platform watching the next car pull in.
+ */
+export function roomOrder(id: string): number {
+  const room = isSurfaceId(id) ? roomForSurface(id) : "today";
+  const i = PRIMARY_ROOMS.indexOf(room);
+  return i < 0 ? 0 : i;
+}
+
+/**
  * Backward compatibility: old links used `?surface=`/`?tab=` and some legacy
  * keys are now rooms. Returns the surface to open, or null when the URL says
  * nothing about navigation.
