@@ -6,7 +6,7 @@
 //     answer is "not connected", never a silent fallback to somebody else's
 //     account.
 //   - A failure is reported as a failure. No empty list pretending to be calm.
-import { callAsAppUser, appUserReconnectRequired } from "./appUserConnector.ts";
+import { callAsAppUser } from "./appUserConnector.ts";
 import { getConnectionKeyForUser, adminClient } from "./appUserConnections.ts";
 import type { GoogleConnectorId } from "./appUserScopes.ts";
 
