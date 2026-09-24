@@ -50,6 +50,7 @@ function audio(): AudioContext | null {
 
 /** Phones keep audio asleep until a real touch. Call from a gesture. */
 export function unlockAudio() {
+  if (!soundOn()) return;
   const a = audio();
   if (!a || !master) return;
   // A silent one-sample buffer wakes iOS Safari.
