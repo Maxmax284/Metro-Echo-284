@@ -11,11 +11,11 @@
 // Nothing here reads or writes app data. Reduced motion is handled in CSS and
 // by skipping the visual work below. Sound is its own opt-in.
 import { useEffect } from "react";
-import { play } from "@/lib/streetSound";
+import { play, unlockAudio } from "@/lib/streetSound";
 import { playHaptic } from "@/lib/haptics";
 
 const PULSE_MS = 320;
-const SPRAY_MS = 520;
+const SPRAY_MS = 900;
 
 function reducedMotion() {
   return (
@@ -25,12 +25,12 @@ function reducedMotion() {
 }
 
 function spray(x: number, y: number) {
-  const n = 14;
+  const n = 24;
   for (let i = 0; i < n; i++) {
     const dot = document.createElement("span");
     dot.className = "vanta-spray";
     const ang = Math.random() * Math.PI * 2;
-    const dist = 10 + Math.random() * 26;
+    const dist = 14 + Math.random() * 44;
     dot.style.left = `${x}px`;
     dot.style.top = `${y}px`;
     dot.style.setProperty("--sx", `${Math.cos(ang) * dist}px`);
@@ -50,6 +50,7 @@ export function useAmbientInteractions() {
     const onPointerDown = (e: PointerEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
+      unlockAudio();
       const control = target.closest(
         'button, a, [role="button"], [role="tab"], [role="menuitem"], .vanta-card',
       ) as HTMLElement | null;
