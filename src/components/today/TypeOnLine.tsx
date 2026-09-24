@@ -6,10 +6,14 @@
 // and with motion turned down the text is simply there.
 import { useEffect, useRef, useState } from "react";
 import { feelK } from "@/lib/motion";
+import { play } from "@/lib/streetSound";
 import { cn } from "@/lib/utils";
 
-const CHAR_MS = 14;
-const MAX_MS = 900;
+/* Teletype cadence: a strike you can actually read, not a blur. A number gets a
+   held beat after it lands so a count carries weight. */
+const CHAR_MS = 38;
+const MAX_MS = 2600;
+const NUMBER_HOLD_MS = 120;
 
 function motionOff(): boolean {
   if (typeof window === "undefined") return true;
