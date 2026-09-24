@@ -172,6 +172,19 @@ export function ConversationDock({
   }, [initialText]);
 
   const [listening, setListening] = useState(false);
+  /* The can rattles before the paint comes out: one shot on pickup and one on
+     send. Presentation only — the shake never gates the message. */
+  const [shaking, setShaking] = useState(false);
+  const shakeTimer = useRef<number | null>(null);
+  const shakeCan = () => {
+    unlockAudio();
+    play("spray");
+    setShaking(false);
+    if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
+    requestAnimationFrame(() => setShaking(true));
+    shakeTimer.current = window.setTimeout(() => setShaking(false), 500);
+  };
+  useEffect(() => () => { if (shakeTimer.current) window.clearTimeout(shakeTimer.current); }, []);
   const [paletteIdx, setPaletteIdx] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const recRef = useRef<SR | null>(null);
