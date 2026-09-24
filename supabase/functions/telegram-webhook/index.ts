@@ -1192,7 +1192,10 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      reminder path so the model can't answer it with the board. set_reminder
      asks for the missing time itself. */
   if (!intents.length && /\b(remind(er)?|nudge me)\b/i.test(text) && !wantsReminderCancellation(text) && !wantsRecentReminderOnCalendar(text)) {
-    const res = await applyIntent(sb, userId, "set_reminder", { summary: text, when: text }, defaults, orgId);
+    const res = await applyIntent(sb, userId, "set_reminder", {
+      summary: text.replace(/^\s*(hey\s+)?(please\s+)?(i need you to\s+|can you\s+|could you\s+)?(set\s+(me\s+)?(a\s+)?reminder|remind me)\s*(to\s+|about\s+|for\s+)?/i, "").trim() || text,
+      when: text,
+    }, defaults, orgId);
     if (res) {
       intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
       linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
