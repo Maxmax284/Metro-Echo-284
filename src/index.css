@@ -1444,13 +1444,15 @@ html[data-ambient="off"] .vanta-bd-grain,
   background: hsl(var(--background) / var(--bd-scrim, 0.3));
   pointer-events: none;
 }
-html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.48; }
 html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.4; }
 @media (max-width: 640px) {
   .vanta-bd-scrim { --bd-scrim: 0.44; }
-  html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.6; }
 }
 html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
+/* Today and Ask show the full wall: no flat scrim, only grain and light.
+   Cards carry their own surface, so text keeps its contrast. */
+html[data-room="today"] .vanta-bd-scrim,
+html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0; }
 
 
 /* ---- Flight deck --------------------------------------------------------
@@ -1459,13 +1461,18 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
    the flight waits on the ground. Every one of these is event-driven or a
    single slow loop, and all of them degrade to the same words at rest. */
 @keyframes solari-flap {
-  0%   { transform: perspective(240px) rotateX(-88deg); opacity: 0.25; }
-  55%  { transform: perspective(240px) rotateX(12deg); opacity: 1; }
-  100% { transform: perspective(240px) rotateX(0deg); opacity: 1; }
+  0%   { transform: perspective(240px) rotateX(-88deg); filter: brightness(.6); }
+  60%  { transform: perspective(240px) rotateX(10deg); filter: brightness(1.1); }
+  100% { transform: perspective(240px) rotateX(0deg); filter: none; }
 }
 .solari-cell {
-  animation: solari-flap calc(220ms * var(--feel-k, 1)) var(--ease-out) both;
+  animation: solari-flap calc(90ms * var(--feel-k, 1)) var(--ease-out) both;
   transform-origin: center top;
+}
+/* The hinge line every split-flap card has across its middle. */
+.solari-cell::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+  background: hsl(var(--background) / 0.7); pointer-events: none;
 }
 @keyframes flight-arc-draw {
   from { stroke-dasharray: 600; stroke-dashoffset: 600; }
