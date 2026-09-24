@@ -190,6 +190,8 @@ import {
   whereYouStand,
 } from "../_shared/workReads.ts";
 import { ECHO_READ_TOOLS, isEchoRead, runEchoRead } from "../_shared/echoReads.ts";
+/** Reminders set during the current message, so one calendar offer can follow. */
+const REMINDERS_THIS_TURN = new Map<string, { id: string; summary: string; due_at: string; when: string }[]>();
 
 
 
@@ -1106,6 +1108,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* "What can you see?" is answered from what is actually switched on and
      actually connected — never from the model's guess. It is a read: nothing
      is captured, routed or executed. */
+  REMINDERS_THIS_TURN.delete(userId);
   const intents: string[] = [];
   let detectedType: string | null = null;
   let routedTo: string | null = null;
