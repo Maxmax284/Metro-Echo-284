@@ -122,7 +122,7 @@ export function FlightRouteMap({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-border/60 bg-muted/15">
+      <div className={cn("overflow-hidden rounded-md border border-border/60 bg-muted/15", aircraft && "radar-sweep")}>
         {view === "map" && drawn.length > 0 ? (
           <MapFence onBroken={() => undefined}>
             <Suspense
