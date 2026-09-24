@@ -6,7 +6,7 @@
 //     answer is "not connected", never a silent fallback to somebody else's
 //     account.
 //   - A failure is reported as a failure. No empty list pretending to be calm.
-import { callAsAppUser, appUserReconnectRequired } from "./appUserConnector.ts";
+import { callAsAppUser } from "./appUserConnector.ts";
 import { getConnectionKeyForUser, adminClient } from "./appUserConnections.ts";
 import type { GoogleConnectorId } from "./appUserScopes.ts";
 
@@ -48,6 +48,17 @@ export async function hasGoogleService(userId: string, connectorId: GoogleConnec
   }
 }
 
+/* The body is already read by then, so decide from the text, not a clone. */
+function reconnectFromText(status: number, text: string): boolean {
+  if (status !== 401) return false;
+  try {
+    const t = (JSON.parse(text) as { type?: unknown })?.type;
+    return typeof t === "string" && t.startsWith("credential_");
+  } catch {
+    return false;
+  }
+}
+
 export async function callGoogle(
   userId: string,
   connectorId: GoogleConnectorId,
@@ -83,7 +94,7 @@ export async function callGoogle(
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     console.error(`[google:${connectorId}] ${path} -> ${res.status}: ${detail.slice(0, 400)}`);
-    if (await appUserReconnectRequired(res)) {
+    if (reconnectFromText(res.status, detail)) {
       await noteGoogleHealth(userId, connectorId, "Google needs you to sign in again.");
       return { ok: false, reason: "needs_you", detail: "Google needs you to sign in again.", status: res.status };
     }
