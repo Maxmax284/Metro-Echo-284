@@ -364,7 +364,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      deduped, so nothing is reported twice. */
   const liveIds = new Set(live.map((e) => e.id));
   const changedRows = [...live, ...events.filter((e) => !liveIds.has(e.id))];
-  const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  const { tone, headline } = todayHeadline({ attention, changedCount: allEvents.length });
   /* One section opens by default — the one that actually deserves the first
      look. The rest collapse to a line that says whether opening is worth it. */
   /* Arrivals are the read's job, and it counts them from the arrival records
@@ -374,7 +374,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     overdue: digest.overdue.length,
     waitingOnYou: digest.actions.length,
     dueToday: dueToday.length,
-    changed: events.length,
+    changed: allEvents.length,
     noticed: !!noticed,
   });
 
