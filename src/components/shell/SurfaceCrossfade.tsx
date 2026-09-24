@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { readRoomSwapPrefs } from "@/lib/motionPrefs";
+import { roomOrder } from "@/lib/navigation";
 
 /**
  * Room-to-room crossfade with matched layout.
