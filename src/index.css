@@ -498,6 +498,55 @@
   will-change: opacity, transform;
 }
 
+/* Spray can agitator: picking up the can rattles the mixing ball. Short, dry,
+   one shot — the box shakes on its own axis and settles. */
+@keyframes vanta-can-shake {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+  12%  { transform: translate3d(-2.5px, -1px, 0) rotate(-0.5deg); }
+  26%  { transform: translate3d(2.5px, 1px, 0) rotate(0.5deg); }
+  40%  { transform: translate3d(-2px, 1px, 0) rotate(-0.4deg); }
+  56%  { transform: translate3d(2px, -1px, 0) rotate(0.35deg); }
+  72%  { transform: translate3d(-1px, 0, 0) rotate(-0.2deg); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+.vanta-can-shake {
+  animation: vanta-can-shake 460ms cubic-bezier(0.32, 0.9, 0.3, 1) both;
+}
+
+/* Ask neon: a tube along the composer edge. It hums, and it surges brighter
+   while Echo is actually working — never as decoration on an idle room. */
+@keyframes vanta-neon-hum {
+  0%, 100% { opacity: 0.55; }
+  6%       { opacity: 0.18; }
+  9%       { opacity: 0.7; }
+  47%      { opacity: 0.44; }
+  52%      { opacity: 0.26; }
+  54%      { opacity: 0.66; }
+}
+.vanta-neon-rim {
+  position: relative;
+}
+.vanta-neon-rim::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid hsl(var(--accent) / 0.55);
+  box-shadow:
+    0 0 6px hsl(var(--accent) / 0.4),
+    inset 0 0 10px hsl(var(--accent) / 0.16);
+  animation: vanta-neon-hum 5.2s steps(1, end) infinite;
+}
+.vanta-neon-rim[data-thinking="true"]::after {
+  border-color: hsl(var(--accent) / 0.85);
+  box-shadow:
+    0 0 14px hsl(var(--accent) / 0.6),
+    0 0 30px hsl(var(--accent) / 0.28),
+    inset 0 0 16px hsl(var(--accent) / 0.26);
+  animation-duration: 1.6s;
+}
+
 /* Arrival: a row that just showed up because real new data landed. One time.
    Duration and travel both ride the Feel knobs so the setting is honest. */
 @keyframes vanta-arrival {
