@@ -1196,6 +1196,29 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
   }
 
+  /* A correction to a pending proposal ("the title is X, the time is 1 PM")
+     is written to the stored proposal here, before the model. The model once
+     answered "I'll update it" without calling the tool, and the next "Yes"
+     approved the stale "Reminder" instead. */
+  if (!intents.length && !calendarDraft) {
+    const fields = parseCalendarRefinement(text);
+    if (fields.length) {
+      const changes: any[] = fields.map((f) => ({ field: f.field, label: calendarFieldLabel(f.field), before: null, after: f.after }));
+      if (/\btime\s+(?:is|should be|to)\b/i.test(text)) {
+        const parsed = parseReminderHint(text, defaults);
+        if (parsed.status === "ok") changes.push({ field: "time", label: calendarFieldLabel("time"), before: null, after: parsed.due_at });
+      }
+      const res = await applyIntent(sb, userId, "refine_calendar_change", {
+        changes, _conversation_id: conv?.id ?? null, _telegram_chat_id: chatId,
+      }, defaults, orgId);
+      /* Only take over when a proposal was actually there to adjust. */
+      if (res && res.calendarActionId) {
+        intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
+        toolMarkup = res.markup; calendarActionId = res.calendarActionId;
+      }
+    }
+  }
+
   /* "Set a reminder…" is a write, never a status read. Route it straight to the
      reminder path so the model can't answer it with the board. set_reminder
      asks for the missing time itself. */
