@@ -106,10 +106,12 @@ export function useTodayDigest(): TodayDigest {
     try {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const [e, n] = await Promise.all([
+        // Background housekeeping (sync ticks, hourly checks) is not news.
         applyScope(supabase.from("audit_log").select("id, event, entity_type, created_at"))
           .gte("created_at", since)
+          .not("event", "in", "(calendar.synced,awareness.evaluated,awareness.swept,mail.swept,capture.toast_shown)")
           .order("created_at", { ascending: false })
-          .limit(30),
+          .limit(200),
         applyScope(supabase.from("notes").select("id")).gte("created_at", since).limit(50),
       ]);
       if (e.error) throw e.error;
