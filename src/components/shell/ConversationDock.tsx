@@ -220,6 +220,7 @@ export function ConversationDock({
     if (!t || busy) return;
     setV("");
     if (listening) stopListening();
+    shakeCan();
     void onSend(t);
   };
 
