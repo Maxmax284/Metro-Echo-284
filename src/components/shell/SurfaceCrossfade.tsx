@@ -35,6 +35,8 @@ export function SurfaceCrossfade({
 
   useLayoutEffect(() => {
     if (prevKey.current === surfaceKey) return;
+    const from = roomOrder(prevKey.current);
+    const to = roomOrder(surfaceKey);
     prevKey.current = surfaceKey;
 
     const reduced =
@@ -46,6 +48,13 @@ export function SurfaceCrossfade({
     const outgoing = liveRef.current;
     const ghostHost = ghostHostRef.current;
     if (reduced || !prefs.enabled || !outgoing || !ghostHost) return;
+
+    /* Which way the line runs. Forward (Today → Work) brings the room in from
+       the right; stepping back brings it in from the left. Same room order as
+       the tab bar, so the motion agrees with what you tapped. */
+    const dir = to === from ? 0 : to > from ? 1 : -1;
+    hostRef.current?.style.setProperty("--swap-x", `${dir * 26}px`);
+
 
     // Snapshot the outgoing surface at its current size and scroll position.
     const rect = outgoing.getBoundingClientRect();
