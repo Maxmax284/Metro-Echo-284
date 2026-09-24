@@ -116,6 +116,7 @@ import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shar
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
+import { parseCalendarRefinement } from "../_shared/calendarRefineParse.ts";
 import {
   reminderLocation,
   reminderOffsetsMinutes,
@@ -1190,6 +1191,29 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         _conversation_id: conv?.id ?? null,
       }, defaults, orgId);
       if (res) {
+        intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
+        toolMarkup = res.markup; calendarActionId = res.calendarActionId;
+      }
+    }
+  }
+
+  /* A correction to a pending proposal ("the title is X, the time is 1 PM")
+     is written to the stored proposal here, before the model. The model once
+     answered "I'll update it" without calling the tool, and the next "Yes"
+     approved the stale "Reminder" instead. */
+  if (!intents.length && !calendarDraft) {
+    const fields = parseCalendarRefinement(text);
+    if (fields.length) {
+      const changes: any[] = fields.map((f) => ({ field: f.field, label: calendarFieldLabel(f.field), before: null, after: f.after }));
+      if (/\btime\s+(?:is|should be|to)\b/i.test(text)) {
+        const parsed = parseReminderHint(text, defaults);
+        if (parsed.status === "ok") changes.push({ field: "time", label: calendarFieldLabel("time"), before: null, after: parsed.due_at });
+      }
+      const res = await applyIntent(sb, userId, "refine_calendar_change", {
+        changes, _conversation_id: conv?.id ?? null, _telegram_chat_id: chatId,
+      }, defaults, orgId);
+      /* Only take over when a proposal was actually there to adjust. */
+      if (res && res.calendarActionId) {
         intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
         toolMarkup = res.markup; calendarActionId = res.calendarActionId;
       }
