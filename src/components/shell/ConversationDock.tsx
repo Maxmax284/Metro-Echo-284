@@ -10,6 +10,7 @@ import {
   Paperclip,
   Square,
 } from "lucide-react";
+import { play, unlockAudio } from "@/lib/streetSound";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
