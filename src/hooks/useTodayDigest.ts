@@ -230,8 +230,18 @@ export function useTodayDigest(): TodayDigest {
     }),
     noticed,
     dismissNoticed: async (id: string) => {
+      const current = noticed;
       setNoticed(null);
       await supabase.from("nudges").update({ status: "dismissed" }).eq("id", id);
+      /* "Noted" clears the whole pile of the same notice, not one copy of it. */
+      if (current?.id === id && current.related_entity_id) {
+        await supabase
+          .from("nudges")
+          .update({ status: "dismissed" })
+          .eq("kind", (current as NoticedSignal & { kind: string }).kind)
+          .eq("related_entity_id", current.related_entity_id)
+          .eq("status", "pending");
+      }
       if (session?.user?.id) {
         await supabase.from("audit_log").insert(
           withScope({
