@@ -49,6 +49,8 @@ export function AmbientBackdrop() {
       <div className="vanta-bd-streaks" />
       <div className="vanta-bd-traces" />
       <div className="vanta-bd-sheen" />
+      {/* Light on the wall — per room, drifts slowly, leans toward pointer/tilt. */}
+      <div className="vanta-bd-light" />
       <div className="vanta-bd-grain" />
       {/* Contrast floor for operational text — artwork stays, readability wins. */}
       <div className="vanta-bd-scrim" />
