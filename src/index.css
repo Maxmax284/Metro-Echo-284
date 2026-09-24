@@ -490,7 +490,7 @@
    the swap reads as one continuous move instead of a hard cut. */
 @keyframes vanta-surface-out {
   from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-  45%  { opacity: 1; }
+  55%  { opacity: 0; }
   to   { opacity: 0; transform: translate3d(calc(var(--swap-x, 0px) * -1.1), calc(var(--room-swap-drift, 4px) * -0.6), 0) scale(0.992); }
 }
 .motion-surface-out {
