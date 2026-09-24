@@ -10,14 +10,18 @@ import { MachineLabel } from "@/components/ui/instrument";
 import { MOTION_FOCUS, MOTION_HOVER_LIFT, MOTION_ROW } from "@/lib/motion";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { WorkBodyNote } from "@/components/work/WorkBodyNote";
+import { ArrivalHomes } from "@/components/work/ArrivalHomes";
 
 export function WorkBriefingPanel({
   briefing,
   onNavigate,
+  onChanged,
 }: {
   briefing: Briefing;
   onNavigate: (k: SurfaceKey) => void;
+  onChanged?: () => void;
 }) {
+  const arrived = briefing.sections.find((s) => s.lane === "arrived")?.items ?? [];
   const go = (surface: string, href?: string | null) => {
     if (href) {
       window.location.href = href;
@@ -52,7 +56,11 @@ export function WorkBriefingPanel({
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{CALM_LINE}</p>
       )}
 
-      <p className="mt-2 text-[11px] text-muted-foreground">Open it to handle it. Nothing runs from this page.</p>
+      {arrived.length > 0 ? (
+        <ArrivalHomes items={arrived} onOpenInbox={() => onNavigate("inbox" as SurfaceKey)} onChanged={onChanged} />
+      ) : null}
+
+      <p className="mt-2 text-[11px] text-muted-foreground">Echo only suggests. Nothing gets filed or run until you tap.</p>
     </section>
   );
 }

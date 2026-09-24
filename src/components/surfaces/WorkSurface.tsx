@@ -108,7 +108,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
   /* When Echo last actually looked. Shown as a real stamp, never faked. */
   const [lastRead, setLastRead] = useState<number | null>(null);
   const { timezone } = useUserTimezone();
-  const { briefing, loading: briefingLoading } = useWorkBriefing();
+  const { briefing, loading: briefingLoading, refresh: refreshBriefing } = useWorkBriefing();
   const trace = useHandoffTrace();
 
 
@@ -160,27 +160,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </span>
         </header>
 
-        {/* Go straight there. The desks below still hold the records; this row
-            exists because on a phone the thing you came for should be one tap
-            from the top of the room, not somewhere down a shelf. */}
-        <nav aria-label="Go straight there" className="vanta-card p-2.5">
-          <MachineLabel className="px-1 text-foreground/70">Go straight there</MachineLabel>
-          <div className="mt-2 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            <JumpTile label="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
-            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
-            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
-            <JumpTile label="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
-            <JumpTile label="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
-            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
-            <JumpTile label="Documents" line="Drafts and exports" Icon={FileText} href="/documents" />
-          </div>
-          <p className="mt-2 px-1 text-[11px] text-muted-foreground">
-            Schedule keeps time only. Every desk lives here.
-          </p>
-        </nav>
 
-        {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} />}
+        {!briefingLoading && <WorkBriefingPanel briefing={briefing} onNavigate={onNavigate} onChanged={refreshBriefing} />}
 
         {/* Three stable shelves instead of ten equal choices: what is coming
             in, what is in motion, and what Echo noticed. Presentation only —
@@ -235,7 +216,6 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
             {counts.commitments > 0 ? (
               <Desk deskKey="commitments" label="Promises" Icon={CheckSquare} count={counts.commitments} recommended={recommendedStep("commitments", counts, projects.length)} onOpen={() => onNavigate("commitments")} />
             ) : null}
-            <Desk deskKey="documents" label="Documents" Icon={FileText} href="/documents" />
             {counts.actions === 0 && counts.commitments === 0 ? (
               <QuietShelfLine line="Nothing waiting on you, nothing promised." />
             ) : null}
@@ -270,6 +250,27 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         </CollapsibleSection>
 
 
+
+        {/* More desks. Every route is unchanged; the front page just carries
+            less. Documents lives here once, and inside each project. */}
+        <CollapsibleSection
+          title="More desks"
+          storageKey="work.more"
+          icon={<LayoutGrid className="h-3.5 w-3.5" />}
+          defaultOpen={false}
+          summary="More desks · documents, schedule, flights, money, body"
+        >
+          <div className="mt-2.5 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
+            <JumpTile label="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
+            <JumpTile label="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
+            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
+            <JumpTile label="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
+            <JumpTile label="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
+            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
+          </div>
+        </CollapsibleSection>
 
         <SurfaceAftermath surface="work" />
       </div>

@@ -182,6 +182,7 @@ import {
   attachToProject,
   findProject,
   listProjects,
+  // suggestHome imported below
   projectStatus,
   whatsChanged,
   whatsDue,
@@ -2464,7 +2465,13 @@ Deno.serve(async (req) => {
 
       // One deep link back to the Inbox, plus a filing shortcut when there is
       // an obvious project to put it under. Neither button executes anything.
-      const suggestions = await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 2);
+      const pool = await listProjects(admin, { userId: link.user_id, orgId: routeOrgId }, 20);
+      const home = suggestHome(`${page.name ?? ""} ${caption ?? ""}`, pool);
+      const homeProject = home ? pool.find((p) => p.id === home.projectId) : null;
+      const suggestions = homeProject
+        ? [homeProject, ...pool.filter((p) => p.id !== homeProject.id)].slice(0, 2)
+        : pool.slice(0, 2);
+      if (homeProject) reply = `${reply}\n\nLooks like it goes under ${homeProject.title} — your call, tap below or file it in the app.`;
       await logTgMessage(admin, {
         user_id: link.user_id, organization_id: routeOrgId, chat_id: chatId,
         direction: "out", text: reply, kind: "page_reply", sent_by: "vanta",

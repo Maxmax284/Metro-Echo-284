@@ -16,7 +16,7 @@ import {
   Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History, FileSearch,
 } from "lucide-react";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
-import { treatFileAsDocument, type DocumentKind } from "@/lib/documents";
+import { treatFileAsDocument, runExtraction, type DocumentKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { objectIntentFor, kindForObject, nextStepsLine, readSummaryLine } from "@/lib/objectIntent";
@@ -515,8 +515,12 @@ export function FileAftermathTray({
                   filename: row.filename,
                   kind: detectedToDocKind(row.detected_doc_type),
                 });
+                /* The words were already pulled when the file arrived, so the
+                   read is a copy, not an AI call. Land on a document that is
+                   ready for review instead of one more button. */
+                const read = await runExtraction(doc.id).catch(() => ({ ok: false }));
                 setOpenDocumentId(doc.id);
-                toast.success("Opened in Documents.");
+                toast.success(read.ok ? "Read and ready for review." : "Opened in Documents. Tap Read to try again.");
               } catch (e) {
                 toast.fromError?.(e);
               } finally {

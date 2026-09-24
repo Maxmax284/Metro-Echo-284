@@ -337,7 +337,7 @@ export function DocumentDetailSheet({ documentId, open, onOpenChange, onChanged 
                   Read document
                 </Button>
               )}
-              {!isDraft && (doc.status === "extracted" || doc.status === "reviewed" || doc.status === "failed") && (
+              {!isDraft && (doc.status === "extracted" || doc.status === "reviewed") && (
                 <Button
                   size="sm"
                   onClick={handleReview}
