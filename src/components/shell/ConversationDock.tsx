@@ -417,10 +417,7 @@ export function ConversationDock({
           value={v}
           /* Picking up the can: two rattles of the mixing ball before you spray.
              Opt-in sound only, and the first touch is what wakes audio up. */
-          onFocus={() => {
-            unlockAudio();
-            play("spray");
-          }}
+          onFocus={shakeCan}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => {
             // Slash palette navigation
