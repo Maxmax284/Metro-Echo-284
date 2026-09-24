@@ -44,7 +44,7 @@ export function SurfaceCrossfade({
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     // Per-device knob from Settings > Room switching. Off = plain swap.
     const prefs = readRoomSwapPrefs();
-    ghostMs.current = Math.round(prefs.durationMs * 0.9) + 40;
+    ghostMs.current = Math.round(prefs.durationMs * 1.35) + 60;
     const outgoing = liveRef.current;
     const ghostHost = ghostHostRef.current;
     if (reduced || !prefs.enabled || !outgoing || !ghostHost) return;
