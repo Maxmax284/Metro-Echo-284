@@ -327,7 +327,15 @@ export function ConversationDock({
         <div className="mx-auto mb-1.5 w-full max-w-3xl">{aboveComposer}</div>
       )}
 
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass bg-background/85 px-3 py-2 shadow-lg backdrop-blur-xl">
+      <div
+        data-thinking={busy ? "true" : undefined}
+        className={cn(
+          "mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-2xl glass bg-background/85 px-3 py-2 shadow-lg backdrop-blur-xl",
+          /* Ask is the lit room: the composer carries the neon tube. */
+          surface === "conversation" || surface === "ask" ? "vanta-neon-rim" : null,
+          shaking && "vanta-can-shake",
+        )}
+      >
         {onAttach && (
           <>
             <input
