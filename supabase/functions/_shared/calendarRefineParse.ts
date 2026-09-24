@@ -4,7 +4,7 @@
 // These phrases are read here, before the model, so the write always lands.
 export type RefineField = { field: "title" | "description" | "location"; after: string };
 
-const STOP = String.raw`(?=\s*(?:,|;|\.(?:\s|$)|\band\s+(?:the\s+)?(?:time|title|name|description|event|location|place)\b|$))`;
+const STOP = String.raw`(?=\s*(?:,|;|\.(?:\s|$)|\s+(?:and\s+)?(?:the\s+)?(?:time|title|name|description|details|event|location|place)\s+(?:is|should be)\b|$))`;
 
 function grab(text: string, re: RegExp): string | null {
   const m = text.match(re);
