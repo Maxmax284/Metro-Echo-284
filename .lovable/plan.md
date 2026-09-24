@@ -1,35 +1,34 @@
-# Real airport maps in layover cards
+# Work intake: fewer desks, sorted arrivals, lighter documents
 
-## Goal
-Add an optional real map to active and upcoming layover cards without pretending Metro Echo knows gate geometry, indoor walking distance, or an aircraft’s taxi path when providers do not supply them.
+Scope: Telegram + in-app upload. Echo only suggests. Nothing gets filed without your tap.
 
-## Build
-- Add a compact **Airport map** expander to active/upcoming layovers; completed layovers stay collapsed history.
-- Reuse the existing Leaflet/OpenStreetMap renderer and the airport coordinates Metro Echo already keeps. Center closely on the actual airport footprint with terminal buildings, roads, and runways visible.
-- Overlay only source-supported facts beside the map:
-  - arrival and onward terminal;
-  - arrival and onward gate;
-  - airline/provider or traveler-confirmed source and freshness where available.
-- Do not place a terminal or gate pin unless coordinates exist. Text-only gate facts remain clearly separated from map geometry.
-- Replace estimated transfer-distance language in this view with explicit states:
-  - **Walking distance unavailable** when no indoor route geometry exists;
-  - **Taxi-out distance unavailable** when no provider ground track exists;
-  - keep any existing time deductions labeled as planning allowances, not measured distance.
-- Preserve the current “What’s around you,” connection math, past-layover collapse, route/globe views, and offline text fallback.
+## 1. Arrivals come with a suggested home
+- Every new capture or file in "Just arrived" gets one line saying where it probably goes: "Looks like it goes in **Lamai Camp** — File it / Somewhere else / Leave it".
+- The suggestion uses the project matcher that already exists (the one behind "Attach items"), so projects, notes, Telegram files and uploads are all matched the same way. No new AI call and no new scoring.
+- If nothing matches well, it says "Not sure where this goes" and gives you a project picker. It doesn't guess.
+- "File it" attaches the item and writes a receipt, with undo. "Leave it" uses the dismissal that already exists, so the item stops asking.
+- Telegram: after a file lands, the reply names the suggested project in one line ("Saved. Looks like Lamai Camp — file it in the app."). It never files from chat.
+- Fix a gap: text sent in Telegram reaches the arrivals lane the same way files do. Today only notes get counted there.
 
-## Safety and performance
-- Lazy-load the map only when opened; no polling and no new paid API calls.
-- Keep the last factual text visible if tiles fail or airport Wi-Fi drops.
-- No map remount or card blackout during flight refreshes.
-- Do not alter journey records, gates, times, traveler overrides, Receipts, or live flight state.
+## 2. Fewer desks
+The Work front page drops to three shelves:
+- **Needs you**: approvals and promises that are due.
+- **Arrived**: unsorted items, now with suggestions.
+- **Projects**: each project's card shows its own documents, briefs and files.
 
-## Tests and release
-- Add focused tests for active/upcoming/past layovers, known/unknown airport coordinates, filed/missing terminal and gate, unavailable walking/taxi geometry, failed/offline map fallback, and no invented pins.
-- Run relevant flight/journey suites, full tests, typecheck, production build, and a 384px browser check.
-- Publish only if all release checks are safe; report preview versus production explicitly.
+Documents, Briefs, Schedule, Sherlock and Awareness move to one small "More desks" row. The pages stay where they are, only the front page gets lighter. The duplicate Documents link in the "Jump" row goes away.
+
+## 3. Documents in one tap instead of four
+- "Treat as document" now also reads the file straight away, because its text was already pulled out when it arrived. You land on a document that's ready to review.
+- The review and draft steps show up as one "Next step" button that changes with where the document is, not three buttons side by side.
+- Sensitive files still never get the document option. The BETA banner stays honest.
 
 ## Technical details
-- New small `AirportLayoverMap` presentation component plus pure airport-map fact helpers.
-- `LayoverCard` supplies the existing `Layover` and onward `Leg`; no schema or migration.
-- The existing airport coordinate table remains the map anchor. Leaflet/OpenStreetMap remains the renderer, avoiding a second mapping stack.
-- True taxi distance requires provider ground-track points; the current feeds expose neither a taxi route nor gate coordinates, so this release will not manufacture one.
+- `useWorkBriefing` / `workBriefing.ts`: attach `suggestion {projectId, title, score}` per arrived item via `loadProjectSuggestions` inverted per item (threshold; below it returns null → "not sure").
+- Include Telegram-captured `messages` (inbound, unfiled, 7d) in arrived, deduped against `project_items` + `intake_dismissals` through `intakeLifecycle`.
+- File-it path reuses existing `project_items` insert + audit event. Dismiss reuses `project_suggestion_dismissals`.
+- telegram-webhook file branch: append the suggestion line using the shared matcher. It's read-only and adds no tool.
+- `WorkSurface.tsx`: regroup the shelves and collapse the rest into "More desks". Routes and `navigation.ts` stay the same.
+- `treatFileAsDocument` → call `runExtraction` in the same flow. `DocumentDetailSheet` gets a single status-driven primary action.
+- Tests: suggestion threshold and null case, arrived including Telegram messages, file-it receipt, shelf grouping, auto-extract. Then the full suite, typecheck, build, and a check at 384px wide. Publish only after all of that passes.
+- No database changes.
