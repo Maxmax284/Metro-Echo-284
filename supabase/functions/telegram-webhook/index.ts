@@ -116,6 +116,7 @@ import { brandVoiceDirective, readBrandVoice, type VoiceContext } from "../_shar
 import { depthDirective } from "../_shared/responseDepth.ts";
 import { detectSensitive } from "../_shared/sensitive.ts";
 import { parseReminderHint, looksLikeAppointment } from "../_shared/reminderParse.ts";
+import { parseCalendarRefinement } from "../_shared/calendarRefineParse.ts";
 import {
   reminderLocation,
   reminderOffsetsMinutes,
