@@ -152,7 +152,7 @@ export function todayHeadline(input: {
     if (changed > 0) {
       return {
         tone: "calm",
-        headline: changed === 1 ? "One thing changed" : `${changed} things changed`,
+        headline: changed === 1 ? "One thing moved since yesterday" : `${changed} things moved since yesterday`,
       };
     }
     return { tone: "calm", headline: "Quiet right now" };

@@ -474,6 +474,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
         </p>
+        {/* A count is never the answer — the headline number opens the list. */}
+        {!loadingCritical && attention.length === 0 && events.length > 0 ? (
+          <button
+            type="button"
+            onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
+            className={cn("mt-1.5 inline-flex min-h-[44px] items-center gap-1 text-xs text-primary", MOTION_FOCUS)}
+          >
+            Show me what moved <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
         {/* Where the clock came from. A browser guess is never presented as
             settled truth. */}
         <TimeSourceLine
