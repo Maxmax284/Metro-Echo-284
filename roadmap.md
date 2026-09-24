@@ -47,3 +47,5 @@
 - [x] Verify send/receive path with a live message — flight question answered from the real journey (IAD → TPE → BKK → USM), no snag reply
 - [x] Root cause of "it doesn't know": Telegram advertised the whole shared read catalog but only executed a few reads by name; every other read fell through to "On it." Now runs the same executor the app uses, and a tool that comes back empty says so instead of faking a done
 - [x] Arrival alerts: landedAlert module + journey-watch pass sends one timed Telegram message per landing with gate, terminal and the board caveat
+
+- [ ] Google Calendar connect failing ("failed, Lovable notified") — diagnose
