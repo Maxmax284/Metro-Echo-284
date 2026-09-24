@@ -379,6 +379,14 @@ Deno.serve(async (req) => {
         if ((pending ?? []).some((n) => (n as { body?: string }).body === body)) return;
 
         const planId = after.legs[where.legIndex]?.plan_id ?? after.legs[0]?.plan_id ?? null;
+        /* Same heads-up with a fresher countdown is an edit, not a new notice. */
+        const { data: sameTitle } = await sb.from("nudges").select("id")
+          .eq("user_id", userId).eq("kind", "journey_moved").eq("status", "pending")
+          .eq("title", notice.title).eq("related_entity_id", planId).limit(1);
+        if (sameTitle && sameTitle.length) {
+          await sb.from("nudges").update({ body } as never).eq("id", (sameTitle[0] as { id: string }).id);
+          return;
+        }
         const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
         const { data: nudgeRow } = await sb.from("nudges").insert({
           user_id: userId,

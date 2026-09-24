@@ -107,18 +107,22 @@ export function useTodayDigest(): TodayDigest {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const [e, n] = await Promise.all([
         applyScope(supabase.from("audit_log").select("id, event, entity_type, created_at"))
+          .gte("created_at", since)
           .order("created_at", { ascending: false })
           .limit(30),
         applyScope(supabase.from("notes").select("id")).gte("created_at", since).limit(50),
       ]);
       if (e.error) throw e.error;
-      // One proactive signal, scope-filtered, highest priority first.
+      // One proactive signal, scope-filtered, highest priority first. Anything
+      // pending for more than two days is stale, not news.
+      const staleCut = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const { data: nudgeRows } = await applyScope(
         supabase
           .from("nudges")
           .select("id, kind, title, body, related_entity_type, related_entity_id, priority, status, created_at"),
       )
         .eq("status", "pending")
+        .gte("created_at", staleCut)
         .order("priority", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(10);
@@ -226,8 +230,18 @@ export function useTodayDigest(): TodayDigest {
     }),
     noticed,
     dismissNoticed: async (id: string) => {
+      const current = noticed;
       setNoticed(null);
       await supabase.from("nudges").update({ status: "dismissed" }).eq("id", id);
+      /* "Noted" clears the whole pile of the same notice, not one copy of it. */
+      if (current?.id === id && current.related_entity_id) {
+        await supabase
+          .from("nudges")
+          .update({ status: "dismissed" })
+          .eq("kind", (current as NoticedSignal & { kind: string }).kind)
+          .eq("related_entity_id", current.related_entity_id)
+          .eq("status", "pending");
+      }
       if (session?.user?.id) {
         await supabase.from("audit_log").insert(
           withScope({
