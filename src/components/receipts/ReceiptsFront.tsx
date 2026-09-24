@@ -4,6 +4,9 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { StatusDot } from "@/components/ui/status-dot";
 import type { ReceiptLine } from "@/lib/receiptDigest";
+import { useEffect, useState } from "react";
+import { play } from "@/lib/streetSound";
+import { isFreshReceipt, markReceiptsSeen, readReceiptsSeen } from "@/lib/tactile";
 
 function tone(line: ReceiptLine): "primary" | "accent" | "destructive" | "muted" {
   if (line.count === 0) return "muted";
@@ -22,6 +25,14 @@ export function ReceiptsFront({
   onDrill?: (line: ReceiptLine) => void;
   className?: string;
 }) {
+  /* Read once per visit: what landed since you last looked gets inked. */
+  const [seen] = useState(() => readReceiptsSeen());
+  const anyFresh = lines.some((l) => l.count > 0 && isFreshReceipt(l.at, seen));
+  useEffect(() => {
+    if (anyFresh) window.setTimeout(() => play("stamp"), 180);
+    const t = window.setTimeout(() => markReceiptsSeen(), 1500);
+    return () => window.clearTimeout(t);
+  }, [anyFresh]);
   return (
     <ul className={cn("divide-y divide-border/40", className)}>
       {lines.filter((line) => line.count > 0).map((line) => {
@@ -30,7 +41,7 @@ export function ReceiptsFront({
           <>
             <div className="flex items-center gap-2">
               <StatusDot tone={tone(line)} />
-              <span className="sticker-slap bg-muted/40 px-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{line.label}</span>
+              <span className={cn(isFreshReceipt(line.at, seen) ? "receipt-stamp-heavy" : "sticker-slap", "bg-muted/40 px-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground")}>{line.label}</span>
               {line.at && (
                 <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/80">
                   {formatDistanceToNow(new Date(line.at), { addSuffix: true })}

@@ -65,6 +65,7 @@ import { markFlipOriginFromEvent } from "@/lib/flip";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
+import { SolariBoard } from "@/components/schedule/SolariBoard";
 
 
 
@@ -363,7 +364,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      deduped, so nothing is reported twice. */
   const liveIds = new Set(live.map((e) => e.id));
   const changedRows = [...live, ...events.filter((e) => !liveIds.has(e.id))];
-  const { tone, headline } = todayHeadline({ attention, changedCount: events.length });
+  const { tone, headline } = todayHeadline({ attention, changedCount: allEvents.length });
   /* One section opens by default — the one that actually deserves the first
      look. The rest collapse to a line that says whether opening is worth it. */
   /* Arrivals are the read's job, and it counts them from the arrival records
@@ -373,7 +374,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     overdue: digest.overdue.length,
     waitingOnYou: digest.actions.length,
     dueToday: dueToday.length,
-    changed: events.length,
+    changed: allEvents.length,
     noticed: !!noticed,
   });
 
@@ -759,6 +760,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                   action={<Button size="sm" variant="ghost" className="h-9 text-xs" onClick={() => onNavigate("inbox")}>Open</Button>}
                 >
                   {arrivalLines.length > 0 ? (
+                    <>
+                    <SolariBoard text={arrivalLines.length === 1 ? "JUST IN" : `${arrivalLines.length} LANDED`} tone="primary" className="mb-2" />
                     <ul className="space-y-2">
                       {arrivalLines.map((item) => {
                         const r = readArrival(item.arrival);
@@ -769,6 +772,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
                       })}
                       {arrivals.held ? <li className="text-[11px] text-muted-foreground">{arrivals.held}</li> : null}
                     </ul>
+                    </>
                   ) : <p className="text-xs text-muted-foreground">{captureCount} new {captureCount === 1 ? "thing" : "things"} came in.</p>}
                 </Section>
               ) : null}

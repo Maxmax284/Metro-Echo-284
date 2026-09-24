@@ -13,6 +13,7 @@ import { vantaToast } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
 import { MOTION_FOCUS, MOTION_ROW } from "@/lib/motion";
 import type { BriefingItem } from "@/lib/workBriefing";
+import { SolariBoard } from "@/components/schedule/SolariBoard";
 
 type Filed = { projectId: string; title: string };
 
@@ -105,6 +106,10 @@ export function ArrivalHomes({
 
   return (
     <div className="mt-3 space-y-1.5" aria-label="Arrived, with where it probably goes">
+      <SolariBoard
+        text={(() => { const n = items.filter((it) => !left.has(it.id)).length; return n === 1 ? "JUST IN" : `${n} LANDED`; })()}
+        tone="primary"
+      />
       {items
         .filter((it) => !left.has(it.id))
         .map((it) => {
