@@ -144,6 +144,25 @@ export async function flightRead(
               terminalChange: where.layover.terminalChange,
             }
           : null,
+        /* Sitting at a connection, the board that matters is the onward one. */
+        next: (() => {
+          if (!where.layover) return null;
+          const nl = journey.legs[where.legIndex + 1] ?? null;
+          const np = nl ? (rows.find((r) => r.id === nl.plan_id) ?? null) : null;
+          if (!np) return null;
+          const no = np.options.find((o) => o.id === np.chosen_option_id) ?? np.options[0] ?? null;
+          const ns = anchorLive((np.live_status ?? null) as never) as any;
+          return {
+            flightNo: no?.flight_no ?? null,
+            departure: {
+              iata: ns?.departure?.iata ?? nl?.from.iata ?? null,
+              terminal: ns?.departure?.terminal ?? nl?.from.terminal ?? null,
+              gate: ns?.departure?.gate ?? null,
+              at: ns?.departure?.estimated ?? ns?.departure?.scheduled ?? no?.depart_at ?? null,
+              delayMin: ns?.departure?.delay_min ?? null,
+            },
+          };
+        })(),
       },
       new Date(),
     );
