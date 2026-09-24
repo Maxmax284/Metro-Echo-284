@@ -1003,7 +1003,12 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
 
   let history: any[] = [];
   if (conv?.id) {
-    const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id).order("created_at", { ascending: true }).limit(20);
+    /* A /reset draws a line: the model only rereads what came after it, so a
+       jammed thread stops echoing its own last answer. Records stay intact. */
+    const since = typeof conv.state?.history_since === "string" ? conv.state.history_since as string : "1970-01-01T00:00:00Z";
+    const { data: m } = await sb.from("messages").select("role, content").eq("conversation_id", conv.id)
+      .gt("created_at", since).order("created_at", { ascending: false }).limit(12);
+    m?.reverse();
     history = (m ?? []).filter((x: any) => x.role === "user" || x.role === "assistant");
   }
 
@@ -1180,6 +1185,21 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
         toolMarkup = res.markup; calendarActionId = res.calendarActionId;
       }
+    }
+  }
+
+  /* "Set a reminder…" is a write, never a status read. Route it straight to the
+     reminder path so the model can't answer it with the board. set_reminder
+     asks for the missing time itself. */
+  if (!intents.length && /\b(remind(er)?|nudge me)\b/i.test(text) && !wantsReminderCancellation(text) && !wantsRecentReminderOnCalendar(text)) {
+    const res = await applyIntent(sb, userId, "set_reminder", {
+      summary: text.replace(/^\s*(hey\s+)?(please\s+)?(i need you to\s+|can you\s+|could you\s+)?(set\s+(me\s+)?(a\s+)?reminder|remind me)\s*(to\s+|about\s+|for\s+)?/i, "").trim() || text,
+      when: text,
+    }, defaults, orgId);
+    if (res) {
+      intents.push(res.reply); detectedType = res.detectedType; routedTo = res.routedTo;
+      linkKind = ((res as any).linkKind as VantaLinkKind | undefined) ?? linkKind;
+      commitmentId = ((res as any).commitmentId as string | undefined) ?? commitmentId;
     }
   }
 
@@ -2190,12 +2210,12 @@ Deno.serve(async (req) => {
       const conv = await telegramConversation(admin, link.user_id, null, chatId, text);
       if (conv) {
         await admin.from("conversations")
-          .update({ state: resetTelegramCalendarState(conv.state) })
+          .update({ state: { ...resetTelegramCalendarState(conv.state), history_since: new Date().toISOString() } })
           .eq("id", conv.id).eq("user_id", link.user_id);
       }
       await tg("sendMessage", {
         chat_id: chatId,
-        text: "Calendar draft cleared. Your events, reminders, messages, and receipts are untouched.",
+        text: "Fresh start. I dropped the chat thread and any half-built draft. Your events, reminders, projects, flights and receipts are all still here.",
       });
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     }
