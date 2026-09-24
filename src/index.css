@@ -519,9 +519,9 @@
 /* Stamp: recorded history landing. Heavier, shorter travel, a single press
    inward as if pressed onto paper. Never used for live rows. */
 @keyframes vanta-stamp {
-  from { opacity: 0; transform: scale(1.012); }
-  70%  { opacity: 1; transform: scale(0.997); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(1.06) rotate(-1.4deg); box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  55%  { opacity: 1; transform: scale(0.99) rotate(0.3deg); box-shadow: 0 0 0 3px hsl(var(--primary) / 0.28); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
 }
 .motion-stamp {
   animation: vanta-stamp calc(var(--motion-base) * var(--feel-k, 1)) var(--ease-out) both;
@@ -1441,14 +1441,14 @@ html[data-ambient="off"] .vanta-bd-grain,
 .vanta-bd-scrim {
   position: absolute;
   inset: 0;
-  background: hsl(var(--background) / var(--bd-scrim, 0.42));
+  background: hsl(var(--background) / var(--bd-scrim, 0.3));
   pointer-events: none;
 }
-html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.62; }
-html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.52; }
+html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.48; }
+html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.4; }
 @media (max-width: 640px) {
-  .vanta-bd-scrim { --bd-scrim: 0.56; }
-  html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.72; }
+  .vanta-bd-scrim { --bd-scrim: 0.44; }
+  html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.6; }
 }
 html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
 
@@ -1537,7 +1537,7 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
   pointer-events: none;
   background: hsl(var(--primary) / 0.8);
   filter: blur(0.4px);
-  animation: vanta-spray-out 520ms var(--ease-out) 1 both;
+  animation: vanta-spray-out 900ms var(--ease-out) 1 both;
 }
 @keyframes vanta-spray-out {
   from { transform: translate(0, 0) scale(0.6); opacity: 0.95; }
@@ -1580,4 +1580,60 @@ html[data-ambient="off"] .vanta-bd-light { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .vanta-spray { display: none !important; }
   .vanta-bd-light, html[data-room="ask"] .vanta-bd-sheen { animation: none !important; transition: none !important; }
+}
+
+/* ---- Tactile pass: shutter, sticker, radar ------------------------------ */
+/* Dawn shutter — first Today of the day. Slats roll up once, orange bleeds
+   through, then the layer is gone. Sits over the wall, never over text. */
+html[data-shutter="lift"] .vanta-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    linear-gradient(0deg, hsl(28 94% 56% / 0.35), transparent 22%),
+    repeating-linear-gradient(180deg, hsl(var(--muted)) 0 10px, hsl(var(--background)) 10px 13px);
+  animation: vanta-shutter-lift 900ms cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+@keyframes vanta-shutter-lift {
+  0%   { transform: translateY(0); opacity: 0.92; }
+  18%  { transform: translateY(-2%); }
+  26%  { transform: translateY(-1%); }
+  100% { transform: translateY(-104%); opacity: 0.6; }
+}
+
+/* Sticker slap — badges land like vinyl slapped on a pole, once. */
+.sticker-slap {
+  position: relative;
+  border-radius: 2px;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+  animation: vanta-slap 360ms var(--ease-out) both;
+}
+@keyframes vanta-slap {
+  from { transform: scale(1.35) rotate(-6deg); opacity: 0; }
+  60%  { transform: scale(0.96) rotate(1deg); opacity: 1; }
+  to   { transform: scale(1) rotate(-0.6deg); }
+}
+
+/* Radar sweep — one pass over the map, only when a live fix is shown. */
+.radar-sweep { position: relative; overflow: hidden; }
+.radar-sweep::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  pointer-events: none;
+  z-index: 500;
+  background: conic-gradient(from 0deg, transparent 0 300deg, hsl(var(--primary) / 0.22) 350deg, transparent 360deg);
+  animation: vanta-radar 2.4s linear 1 both;
+}
+@keyframes vanta-radar {
+  from { transform: rotate(0deg); opacity: 1; }
+  to   { transform: rotate(360deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-shutter="lift"] .vanta-backdrop::after { display: none; }
+  .sticker-slap { animation: none !important; transform: rotate(-0.6deg); }
+  .radar-sweep::after { display: none; }
 }
