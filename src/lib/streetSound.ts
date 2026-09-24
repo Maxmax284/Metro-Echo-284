@@ -5,7 +5,7 @@
 //  - A sound is always an echo of something readable, never the only signal.
 //  - Short and dry: flap clack, spray hiss, stamp thud, turnstile, zippo.
 //  - Reduced motion does not mute sound; the toggle does.
-export type StreetSound = "clack" | "spray" | "stamp" | "snap" | "tick" | "turnstile" | "zippo";
+export type StreetSound = "clack" | "spray" | "stamp" | "snap" | "tick" | "turnstile" | "zippo" | "solari";
 
 const KEY = "vanta.sound.v1";
 export const SOUND_EVENT = "vanta:sound";
@@ -48,6 +48,34 @@ function audio(): AudioContext | null {
   return ctx;
 }
 
+/* Real recorded-style samples in /sounds. Decoded once, played from memory;
+   the synth below only covers the moment before they finish loading. */
+const FILES: StreetSound[] = ["clack", "spray", "stamp", "snap", "tick", "turnstile", "zippo", "solari"];
+const buffers = new Map<StreetSound, AudioBuffer>();
+let loading = false;
+function loadSamples(a: AudioContext) {
+  if (loading) return;
+  loading = true;
+  for (const k of FILES) {
+    fetch(`/sounds/${k}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+      .then((b) => a.decodeAudioData(b))
+      .then((buf) => buffers.set(k, buf))
+      .catch(() => {});
+  }
+}
+function sample(a: AudioContext, kind: StreetSound): boolean {
+  const buf = buffers.get(kind);
+  if (!buf) return false;
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  // A touch of pitch drift so twenty flaps never sound like one loop.
+  src.playbackRate.value = 0.94 + Math.random() * 0.12;
+  src.connect(out(a));
+  src.start();
+  return true;
+}
+
 /** Phones keep audio asleep until a real touch. Call from a gesture. */
 export function unlockAudio() {
   if (!soundOn()) return;
@@ -58,6 +86,7 @@ export function unlockAudio() {
   src.buffer = a.createBuffer(1, 1, a.sampleRate);
   src.connect(master);
   src.start(0);
+  loadSamples(a);
 }
 
 function out(a: AudioContext): AudioNode {
@@ -103,8 +132,11 @@ export function play(kind: StreetSound, { force = false }: { force?: boolean } =
   lastAt = now;
   const a = audio();
   if (!a) return;
+  loadSamples(a);
+  if (sample(a, kind)) return;
   const t = a.currentTime;
   switch (kind) {
+    case "solari":
     case "clack":
       noiseBurst(a, t, 0.045, 2400, 3, 0.32);
       tone(a, t, 900, 500, 0.02, 0.06);
