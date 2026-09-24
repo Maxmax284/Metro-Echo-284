@@ -190,6 +190,8 @@ import {
   whereYouStand,
 } from "../_shared/workReads.ts";
 import { ECHO_READ_TOOLS, isEchoRead, runEchoRead } from "../_shared/echoReads.ts";
+/** Reminders set during the current message, so one calendar offer can follow. */
+const REMINDERS_THIS_TURN = new Map<string, { id: string; summary: string; due_at: string; when: string }[]>();
 
 
 
@@ -444,6 +446,11 @@ async function applyIntentCore(sb: SupabaseClient, userId: string, name: string,
     if (data?.id) linkEntities({ sb, userId, source_kind: "commitment", source_id: data.id, text: args.summary ?? "" }).catch(() => {});
     await sb.from("audit_log").insert({ user_id: userId, organization_id: orgId, entity_type: "reminder", entity_id: data?.id, event: "reminder.scheduled", payload: { source: "telegram", summary: args.summary, due_at: parsed.due_at, timezone: parsed.timezone } });
     const appointmentShaped = looksLikeAppointment(String(args.summary ?? ""));
+    if (!appointmentShaped && data?.id && parsed.due_at) {
+      const list = REMINDERS_THIS_TURN.get(userId) ?? [];
+      list.push({ id: data.id, summary: String(args.summary ?? ""), due_at: parsed.due_at, when: String(args.when ?? "") });
+      REMINDERS_THIS_TURN.set(userId, list);
+    }
     if (appointmentShaped) {
       /* A nudge alone leaves the calendar untouched, and a nudge that already
          exists must never become a reason to do nothing. Stage the calendar
@@ -1101,6 +1108,7 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
   /* "What can you see?" is answered from what is actually switched on and
      actually connected — never from the model's guess. It is a read: nothing
      is captured, routed or executed. */
+  REMINDERS_THIS_TURN.delete(userId);
   const intents: string[] = [];
   let detectedType: string | null = null;
   let routedTo: string | null = null;
@@ -1494,6 +1502,37 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     } catch (e) {
       unanswered += 1;
       console.error("telegram tool failed", tc.function?.name, e instanceof Error ? e.message : e);
+    }
+  }
+  /* A reminder alone never reaches Google. Offer it once as a calendar entry
+     with Yes/No — one proposal per message even when the model set several
+     nudges ("the day before and an hour before") for the same appointment. */
+  const madeReminders = REMINDERS_THIS_TURN.get(userId) ?? [];
+  REMINDERS_THIS_TURN.delete(userId);
+  if (!calendarActionId && madeReminders.length) {
+    try {
+      const offsets = [...new Set(madeReminders.flatMap((r) => reminderOffsetsMinutes(`${r.when} ${text}`)))];
+      const latest = Math.max(...madeReminders.map((r) => new Date(r.due_at).getTime()));
+      const eventAt = new Date(latest + (offsets.length ? Math.min(...offsets) : 0) * 60_000).toISOString();
+      const title = madeReminders[0].summary;
+      const location = reminderLocation(title);
+      const staged = await applyIntentCore(sb, userId, "stage_calendar_change", {
+        changes: [
+          { field: "existence", after: title },
+          { field: "title", after: title },
+          { field: "time", after: eventAt },
+          ...(location ? [{ field: "location", after: location }] : []),
+          ...(offsets.length ? [{ field: "reminder", after: offsets.join(",") }] : []),
+        ],
+        source_kind: "reminder", _trusted_source_id: madeReminders[0].id, source_note: "your reminder in this chat",
+        _conversation_id: conv?.id ?? null, _telegram_chat_id: chatId,
+      }, defaults, orgId);
+      if (staged?.calendarActionId) {
+        intents.push(`Want it on Google Calendar too?\n${staged.reply}`);
+        toolMarkup = staged.markup; calendarActionId = staged.calendarActionId;
+      }
+    } catch (e) {
+      console.error("reminder calendar offer failed", e instanceof Error ? e.message : e);
     }
   }
   if (intents.length) reply = `${reply ? reply + "\n\n" : ""}${intents.join("\n")}`.trim();
