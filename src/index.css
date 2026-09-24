@@ -1521,3 +1521,63 @@ html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
   .arrival-stamp { transform: none !important; opacity: 1 !important; }
   .solari-cell { transform: none !important; opacity: 1 !important; }
 }
+
+/* ---- Street hardware: spray burst + living light -----------------------
+   Spray: capture and submit controls mist instead of pulse. Dies in place.
+   Light: the wall never moves; the light on it drifts slowly per room and
+   leans toward the pointer or device tilt. Calm-day dimming still applies
+   through the scrim above it. */
+.vanta-spray {
+  position: fixed;
+  z-index: 60;
+  width: var(--ss, 3px);
+  height: var(--ss, 3px);
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: hsl(var(--primary) / 0.8);
+  filter: blur(0.4px);
+  animation: vanta-spray-out 520ms var(--ease-out) 1 both;
+}
+@keyframes vanta-spray-out {
+  from { transform: translate(0, 0) scale(0.6); opacity: 0.95; }
+  to   { transform: translate(var(--sx), var(--sy)) scale(1.4); opacity: 0; }
+}
+
+.vanta-bd-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  --light-hue: 194;
+  background: radial-gradient(38% 30% at var(--light-x, 50%) var(--light-y, 30%),
+    hsl(var(--light-hue) 90% 60% / 0.14), transparent 70%);
+  transition: background-position 1.6s var(--ease-out);
+  animation: vanta-light-breathe 18s ease-in-out infinite;
+}
+html[data-room="today"] .vanta-bd-light { --light-hue: 28; }   /* sodium dawn */
+html[data-room="work"] .vanta-bd-light { --light-hue: 44; opacity: 0.4; } /* yard floods */
+html[data-room="ask"] .vanta-bd-light { --light-hue: 282; }   /* one lamp */
+html[data-room="receipts"] .vanta-bd-light { --light-hue: 38; opacity: 0.35; }
+html[data-room="settings"] .vanta-bd-light { opacity: 0.25; }
+@keyframes vanta-light-breathe {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.62; }
+}
+
+/* Ask — the puddle under the lamp shimmers, slowly. Sheen only, never the wall. */
+html[data-room="ask"] .vanta-bd-sheen {
+  --bd-sheen: 0.45; --bd-sheen-hue: 282;
+  animation: vanta-puddle 9s ease-in-out infinite;
+}
+@keyframes vanta-puddle {
+  0%, 100% { transform: scaleX(1) translateY(0); filter: blur(0); }
+  50%      { transform: scaleX(1.04) translateY(-3px); filter: blur(1.5px); }
+}
+
+html[data-ambient="off"] .vanta-bd-light { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .vanta-spray { display: none !important; }
+  .vanta-bd-light, html[data-room="ask"] .vanta-bd-sheen { animation: none !important; transition: none !important; }
+}

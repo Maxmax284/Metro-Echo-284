@@ -23,12 +23,14 @@ import {
   type Feel,
   type RoomSwapPrefs,
 } from "@/lib/motionPrefs";
+import { setSoundOn, soundOn } from "@/lib/streetSound";
 
 const PRESETS: Exclude<Feel, "custom">[] = ["minimal", "standard", "expressive"];
 
 export function RoomMotionSection() {
   const [prefs, setPrefs] = useState<RoomSwapPrefs>(() => readRoomSwapPrefs());
   const [replayKey, setReplayKey] = useState(0);
+  const [sound, setSound] = useState(() => soundOn());
   const reduced =
     typeof window !== "undefined" &&
     (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
@@ -97,6 +99,22 @@ export function RoomMotionSection() {
             </button>
           );
         })}
+      </div>
+      <div className="mt-3 flex items-start justify-between gap-3 rounded-lg bg-muted/20 p-3 ring-1 ring-border/60">
+        <div>
+          <p className="text-[12px] font-medium">Street sound</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            Board clacks, spray hiss on capture, a thud when a receipt lands. Off unless you turn it on.
+          </p>
+        </div>
+        <Switch
+          checked={sound}
+          onCheckedChange={(v) => {
+            setSoundOn(v);
+            setSound(v);
+          }}
+          aria-label="Street sound on this device"
+        />
       </div>
       {prefs.feel === "custom" ? (
         <p className="mt-2 text-[11px] text-muted-foreground">

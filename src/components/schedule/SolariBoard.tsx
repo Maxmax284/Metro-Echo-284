@@ -7,6 +7,7 @@
 //   - Reduced motion gets the same words with no movement (handled in index.css).
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { play } from "@/lib/streetSound";
 
 export function SolariBoard({
   text,
@@ -31,6 +32,12 @@ export function SolariBoard({
     if (prev.current !== text) {
       prev.current = text;
       setGen((g) => g + 1);
+      // The clatter follows the flaps, one clack per settled cell.
+      const n = Math.min(text.replace(/\s/g, "").length, 13);
+      const timers = Array.from({ length: n }, (_, i) =>
+        window.setTimeout(() => play("clack"), i * 32 + 120),
+      );
+      return () => timers.forEach(clearTimeout);
     }
   }, [text]);
 
