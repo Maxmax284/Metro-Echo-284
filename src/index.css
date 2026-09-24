@@ -187,7 +187,9 @@
   /* Press physics: a card takes the press like stamped sheet metal against a
      wall — it compresses, the rim tightens, then it comes back. Only cards you
      can actually press react. */
-  .vanta-card:active {
+  .vanta-card:is(button, a, [role="button"], [tabindex]):active,
+  button:active > .vanta-card,
+  a:active > .vanta-card {
     transform: scale(0.986);
     box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.7);
   }
