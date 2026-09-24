@@ -53,7 +53,11 @@ export function SurfaceCrossfade({
        the right; stepping back brings it in from the left. Same room order as
        the tab bar, so the motion agrees with what you tapped. */
     const dir = to === from ? 0 : to > from ? 1 : -1;
-    hostRef.current?.style.setProperty("--swap-x", `${dir * 26}px`);
+    /* 26px reads on a phone and vanishes on a monitor. Scale the travel with
+       the glass so the room arrives with the same weight on both. */
+    const vw = typeof window !== "undefined" ? window.innerWidth : 384;
+    const travel = vw >= 1280 ? 72 : vw >= 768 ? 52 : 26;
+    hostRef.current?.style.setProperty("--swap-x", `${dir * travel}px`);
 
 
     // Snapshot the outgoing surface at its current size and scroll position.
