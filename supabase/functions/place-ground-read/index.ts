@@ -1,6 +1,11 @@
-// place-ground-read — Echo's plain read of where you are, plus a real photo.
-// Tap-only. Photo + summary come from Wikipedia (free, no AI). The AI read is
-// grounded in that summary and the resolved place names only. 6 reads a day.
+// place-ground-read — Echo's plain read of where you are, plus real photos and
+// a short dossier on the area itself.
+//
+// Doctrine:
+//   - Photos, the local-language name, the history and the "what this place is"
+//     text all come from Wikipedia. Free, no AI, no invention.
+//   - The AI read is tap-only, grounded in that reference text and the resolved
+//     place names, day part and weather. 6 reads a day.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { corsHeaders } from "../_shared/http.ts";
@@ -12,29 +17,89 @@ const Body = z.object({
   region: z.string().max(80).nullable(),
   country: z.string().max(80).nullable(),
   localTime: z.string().max(40).nullable(),
+  /** "morning" | "afternoon" | "evening" | "night" — from the device clock. */
+  dayPart: z.string().max(20).nullable().default(null),
+  /** Plain weather line already on file, e.g. "partly cloudy, 29C". */
+  weather: z.string().max(120).nullable().default(null),
+  /** Local language code for the second name line, e.g. "th". */
+  lang: z.string().max(8).nullable().default(null),
   nearby: z.array(z.string().max(80)).max(8),
   withRead: z.boolean().default(true),
 });
 
+const UA = { "User-Agent": "MetroEcho/1.0 (metroecho.lovable.app)" };
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function wiki(title: string) {
+async function getJson(url: string) {
   try {
-    const r = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`,
-      { headers: { "User-Agent": "MetroEcho/1.0 (metroecho.lovable.app)" } },
-    );
+    const r = await fetch(url, { headers: UA });
     if (!r.ok) return null;
-    const j = await r.json();
-    if (j.type === "disambiguation") return null;
-    return {
-      title: j.title as string,
-      extract: String(j.extract ?? "").slice(0, 900),
-      photo: (j.originalimage?.source ?? j.thumbnail?.source ?? null) as string | null,
-      url: (j.content_urls?.desktop?.page ?? null) as string | null,
-    };
+    return await r.json();
   } catch { return null; }
+}
+
+async function summary(title: string) {
+  const j = await getJson(
+    `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}`,
+  );
+  if (!j || j.type === "disambiguation") return null;
+  return {
+    title: String(j.title ?? title),
+    extract: String(j.extract ?? "").slice(0, 900),
+    photo: (j.originalimage?.source ?? j.thumbnail?.source ?? null) as string | null,
+    url: (j.content_urls?.desktop?.page ?? null) as string | null,
+  };
+}
+
+/** Plain-text article, split into the sections worth reading on a phone. */
+async function dossier(title: string, lang: string | null) {
+  const j = await getJson(
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts|langlinks|pageimages&explaintext=1&redirects=1` +
+      `&lllang=${encodeURIComponent(lang ?? "th")}&piprop=original&titles=${encodeURIComponent(title)}`,
+  );
+  const pages = j?.query?.pages ?? {};
+  const page: any = Object.values(pages)[0];
+  if (!page || page.missing !== undefined) return null;
+  const text = String(page.extract ?? "");
+  const localName = (page.langlinks?.[0]?.["*"] as string | undefined) ?? null;
+
+  /** Pull one plain section by heading name. */
+  const section = (names: string[]) => {
+    for (const n of names) {
+      const re = new RegExp(`\\n==+\\s*${n}[^=]*=+\\s*\\n`, "i");
+      const m = re.exec(text);
+      if (!m) continue;
+      const rest = text.slice(m.index + m[0].length);
+      const end = rest.search(/\n==+[^=]+=+\n/);
+      const body = (end === -1 ? rest : rest.slice(0, end)).trim();
+      if (body.length > 80) return body.replace(/\n{2,}/g, "\n").slice(0, 1200);
+    }
+    return null;
+  };
+
+  const intro = text.split(/\n==+[^=]+=+\n/)[0].trim().slice(0, 900);
+  return {
+    localName,
+    intro,
+    history: section(["History", "Etymology and history", "Origins"]),
+    geography: section(["Geography", "Geography and climate", "Districts", "Administration", "Economy", "Tourism"]),
+    photo: (page.original?.source as string | undefined) ?? null,
+  };
+}
+
+/** A few more real photographs of the same article, for the taped strip. */
+async function gallery(title: string) {
+  const j = await getJson(
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=images&gimlimit=12&redirects=1` +
+      `&prop=imageinfo&iiprop=url&iiurlwidth=640&titles=${encodeURIComponent(title)}`,
+  );
+  const pages = Object.values(j?.query?.pages ?? {}) as any[];
+  return pages
+    .map((p) => ({ name: String(p.title ?? ""), url: p.imageinfo?.[0]?.thumburl as string | undefined }))
+    .filter((p) => p.url && /\.(jpe?g|png)$/i.test(p.name) && !/(logo|icon|flag|seal|map|locator|svg|commons)/i.test(p.name))
+    .slice(0, 5)
+    .map((p) => ({ caption: p.name.replace(/^File:/, "").replace(/\.[a-z]+$/i, "").replace(/[_-]+/g, " "), url: p.url! }));
 }
 
 Deno.serve(async (req) => {
@@ -49,22 +114,42 @@ Deno.serve(async (req) => {
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
     const b = parsed.data;
 
-    const page = (await wiki(b.city)) ?? (b.region ? await wiki(b.region) : null);
-    if (!b.withRead) return json({ page, read: null });
+    let page = await summary(b.city);
+    let sourceTitle = page?.title ?? b.city;
+    if (!page && b.region) {
+      page = await summary(b.region);
+      sourceTitle = page?.title ?? b.region;
+    }
+    const [dos, pics] = await Promise.all([
+      dossier(sourceTitle, b.lang),
+      gallery(sourceTitle),
+    ]);
+    const photos = [page?.photo ?? dos?.photo, ...pics.map((p) => p.url)]
+      .filter((u, i, a): u is string => Boolean(u) && a.indexOf(u) === i)
+      .slice(0, 5);
+    const area = dos
+      ? { localName: dos.localName, intro: dos.intro, history: dos.history, geography: dos.geography }
+      : null;
+
+    if (!b.withRead) return json({ page, area, photos, read: null });
 
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
     const { count } = await client.from("audit_log").select("id", { count: "exact", head: true })
       .eq("event", "ground_read.composed").gte("created_at", dayAgo);
-    if ((count ?? 0) >= 6) return json({ page, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
+    if ((count ?? 0) >= 6) {
+      return json({ page, area, photos, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
+    }
 
     const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) return json({ page, error: "Echo's local read isn't set up yet." }, 500);
+    if (!key) return json({ page, area, photos, error: "Echo's local read isn't set up yet." }, 500);
 
     const facts = [
       `Place: ${[b.city, b.region, b.country].filter(Boolean).join(", ")}`,
-      b.localTime ? `Local time: ${b.localTime}` : null,
+      b.localTime ? `Local time: ${b.localTime}${b.dayPart ? ` (${b.dayPart})` : ""}` : null,
+      b.weather ? `Weather on file: ${b.weather}` : null,
       b.nearby.length ? `Nearby: ${b.nearby.join(", ")}` : null,
       page?.extract ? `Reference: ${page.extract}` : null,
+      dos?.history ? `History reference: ${dos.history.slice(0, 500)}` : null,
     ].filter(Boolean).join("\n");
 
     const { text } = await streamAstraText({
@@ -74,7 +159,10 @@ Deno.serve(async (req) => {
         {
           role: "system",
           content:
-            "You are Echo, a calm field companion. Give the person a read of where they are, East Coast calm: direct, warm, a little dry, never robotic. Write in English. Reply as 4 short lines, each starting with a label: 'The vibe:', 'Getting around:', 'Money & plugs:', 'If it goes sideways:'. Under 90 words total. Use general, well-known facts about the place and country; never invent specific businesses, prices or times. No exclamation marks.",
+            "You are Echo, a calm field companion. Give the person a read of where they are, East Coast calm: direct, warm, a little dry, never robotic. Write in English. " +
+            "Reply as 4 short lines, each starting with a label: 'The vibe:', 'Getting around:', 'Money & plugs:', 'If it goes sideways:'. Under 100 words total. " +
+            "Write for the hour and the weather you are given: what is open or closed now, what the light and heat are doing, what that means for moving around. " +
+            "Use general, well-known facts about the place and country; never invent specific businesses, prices or times. No exclamation marks.",
         },
         { role: "user", content: facts },
       ],
@@ -83,7 +171,7 @@ Deno.serve(async (req) => {
     await client.from("audit_log").insert({
       user_id: user.id, event: "ground_read.composed", entity_type: "place", payload: { city: b.city },
     } as any);
-    return json({ page, read: text || null });
+    return json({ page, area, photos, read: text || null });
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;
     return json({ error: e instanceof Error ? e.message : "Echo couldn't read the place." }, status);
