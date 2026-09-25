@@ -157,12 +157,12 @@ export function SignalBeacon({
                 gps.on ? (locked ? "border-primary/50 text-primary" : "border-warn/50 text-warn") : "border-border/60",
               )}
             >
-              {/* The pulse fires once per real fix from the phone, never on a timer. */}
+              {/* When the watch is live the sonar scope carries the heartbeat,
+                  so the button keeps a plain lamp. */}
               <span className="relative inline-flex h-2 w-2">
-                {gps.on && gps.beats > 0 ? <span key={gps.beats} aria-hidden className="gps-beat absolute inset-0 rounded-full bg-current" /> : null}
                 <span className={cn("relative h-2 w-2 rounded-full", gps.on ? "bg-current" : "bg-muted-foreground/40")} />
               </span>
-              {gps.on ? "live gps" : "go live"}
+              {gps.on ? (locked ? "live gps" : "acquiring") : "go live"}
             </button>
           ) : null}
           <span>{clear ? "on watch · no conflicts" : "one thing wants you"}</span>
