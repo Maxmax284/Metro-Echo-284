@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { beginDeskTransit } from "@/lib/deskTransit";
+import { requestScheduleTab } from "@/lib/scheduleTab";
 import {
   FolderKanban,
   Inbox,
@@ -274,14 +277,14 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           summary="More desks · documents, schedule, flights, money, body"
         >
           <div className="mt-2.5 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            <JumpTile label="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
-            <JumpTile label="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
-            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
-            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
-            <JumpTile label="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
-            <JumpTile label="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
-            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
+            <JumpTile label="Documents" word="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
+            <JumpTile label="Schedule" word="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Agenda board" word="Agenda" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Flights" word="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Money" word="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Body" word="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Wearables" word="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
+            <JumpTile label="Local help" word="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" onOpen={() => onNavigate("schedule")} />
           </div>
         </CollapsibleSection>
 
@@ -297,17 +300,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
  */
 function JumpTile({
   label,
+  word,
   line,
   Icon,
   href,
   onOpen,
 }: {
   label: string;
+  /** Short destination word for the transfer drum. Defaults to the label. */
+  word?: string;
   line: string;
   Icon: typeof Inbox;
   href?: string;
   onOpen?: () => void;
 }) {
+  const navigate = useNavigate();
   const className = cn(
     "flex min-h-[60px] w-full flex-col justify-center gap-0.5 vanta-inset vanta-cut px-3 py-2 text-left touch-manipulation hover:bg-surface-elevated/70",
     MOTION_ROW,
@@ -323,10 +330,30 @@ function JumpTile({
       <span className="block text-[11px] leading-snug text-muted-foreground">{line}</span>
     </>
   );
-  return href ? (
-    <a href={href} className={className}>{body}</a>
-  ) : (
-    <button type="button" onClick={onOpen} className={className}>{body}</button>
+  /* Every desk is reached inside the running app. The cover goes up first so
+     the gap while the desk builds itself reads as a transfer, not a blackout. */
+  const open = () => {
+    beginDeskTransit({ word: word ?? label, line });
+    if (!href) {
+      onOpen?.();
+      return;
+    }
+    const url = new URL(href, window.location.origin);
+    const surface = url.searchParams.get("surface");
+    const tab = url.searchParams.get("tab");
+    if (url.pathname === "/" && surface === "schedule") {
+      if (tab) requestScheduleTab(tab);
+      onOpen?.();
+      window.setTimeout(() => {
+        if (tab) requestScheduleTab(tab);
+      }, 0);
+      return;
+    }
+    navigate(url.pathname + url.search);
+  };
+
+  return (
+    <button type="button" onClick={open} className={className}>{body}</button>
   );
 }
 
@@ -385,9 +412,12 @@ function Desk({
 
   /* Both shapes of tile open the same place, so the quick actions below can
      share one handler without knowing which shape it sits under. */
+  const navigate = useNavigate();
   const open = () => {
+    beginDeskTransit({ word: label, line: DESK_VERB[deskKey] });
     if (href) {
-      window.location.href = href;
+      const url = new URL(href, window.location.origin);
+      navigate(url.pathname + url.search);
       return;
     }
     onOpen?.();
