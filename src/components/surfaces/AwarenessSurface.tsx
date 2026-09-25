@@ -362,6 +362,25 @@ export function AwarenessSurface() {
   const confTone = overall.confidence ? CONFIDENCE_TONE[overall.confidence] : "bg-muted/40 text-muted-foreground ring-border/60";
   const generatedAt = snapshot?.generated_at ?? overall.newest_at;
 
+  /* The board can read any place you keep, not only the one you're standing in.
+     Switching is a reading choice: it never moves your fix and never writes.
+     Only named places can be read — a bare pin has nothing to say yet. */
+  const readable = places.filter((p) => Boolean((p.geo as any)?.city || p.region || p.country));
+  const liveId = place?.id ?? null;
+  const switchable = [
+    ...(place && readable.some((p) => p.id === place.id) ? [place] : place ? [place] : []),
+    ...readable.filter((p) => p.id !== place?.id),
+  ].map((p) => ({
+    id: p.id,
+    label: placeDisplayLabel(p.label),
+    city: ((p.geo as any)?.city as string) ?? null,
+    region: p.region ?? null,
+    country: p.country ?? null,
+  }));
+  const boardPlace = (boardPlaceId ? places.find((p) => p.id === boardPlaceId) : null) ?? place ?? null;
+  const boardIsLive = !boardPlaceId || boardPlaceId === liveId;
+  const boardGeo = (boardPlace?.geo ?? {}) as Record<string, unknown>;
+
   return (
     <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
       <div className="px-4 pt-3 pb-2 min-w-0">
