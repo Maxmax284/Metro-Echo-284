@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { reduceSituation, type SituationEvent } from "@/lib/situationReducer";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { SignalBeacon } from "@/components/today/SignalBeacon";
+
 
 const ACK_KEY = "vanta.today.ack";
 const TAKE_KEY = "vanta.today.take";
