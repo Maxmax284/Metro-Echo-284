@@ -57,10 +57,19 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
      so /flights is one tap from anywhere. */
   const [tab, setTab] = useState<TabKey>(() => {
     if (typeof window === "undefined") return "today";
-    const wanted = new URLSearchParams(window.location.search).get("tab");
-    const known: TabKey[] = ["today", "upcoming", "week", "board", "body", "money", "help", "flights", "month", "calendar"];
-    return known.includes(wanted as TabKey) ? (wanted as TabKey) : "today";
+    const wanted = takeScheduleTab() ?? new URLSearchParams(window.location.search).get("tab");
+    return KNOWN_TABS.includes(wanted as TabKey) ? (wanted as TabKey) : "today";
   });
+
+  /* A Work tile can ask for a desk while this room is already open. */
+  useEffect(() => {
+    const h = (e: Event) => {
+      const wanted = (e as CustomEvent<string>).detail;
+      if (KNOWN_TABS.includes(wanted as TabKey)) setTab(wanted as TabKey);
+    };
+    window.addEventListener(SCHEDULE_TAB_EVENT, h);
+    return () => window.removeEventListener(SCHEDULE_TAB_EVENT, h);
+  }, []);
 
   const [commits, setCommits] = useState<Commitment[]>([]);
   const [reviewCaptures, setReviewCaptures] = useState<number>(0);

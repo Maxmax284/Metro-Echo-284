@@ -24,6 +24,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { PlaceSkin } from "@/components/shell/PlaceSkin";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
+import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { useDeliveryAck } from "@/hooks/useDeliveryAck";
 import Index from "./pages/Index.tsx";
@@ -73,6 +74,7 @@ const App = () => {
         <Sonner />
         <AmbientBackdrop />
         <AmbientInteractions />
+        <DeskTransitOverlay />
         <BrowserRouter>
           <AuthProvider>
             <DeliveryAck />
