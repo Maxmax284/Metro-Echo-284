@@ -160,7 +160,7 @@ function labelPatch(place: any, city: string | null, region: string | null): { l
   const norm = (x: string) => x.toLowerCase().replace(/[^a-z]/g, "");
   if (!label) return { label: city };
   if (norm(label) === norm(city)) return null;
-  const autoish = /^(current|here|spot |pin|unknown|location)/i.test(label) || place.kind === "current";
+  const autoish = /^(current|here|spot |pin|unknown|location)/i.test(label) || place.category === "current";
   const looksLikeCity = /^[A-Za-z .'-]{2,40}$/.test(label) && label.split(" ").length <= 3;
   if (autoish || (looksLikeCity && region && !norm(region).includes(norm(label)))) return { label: city };
   return null;
@@ -190,7 +190,7 @@ Deno.serve(async (req: Request) => {
       ? { data: null, error: null }
       : await supabase
       .from("awareness_places")
-      .select("id, user_id, geo, country, region, label, kind")
+      .select("id, user_id, geo, country, region, label, category")
       .eq("id", place_id)
       .maybeSingle();
     if (pErr) throw pErr;
