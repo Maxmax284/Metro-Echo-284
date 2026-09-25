@@ -381,7 +381,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     overdue: digest.overdue.length,
     waitingOnYou: digest.actions.length,
     dueToday: dueToday.length,
-    changed: allEvents.length,
+    changed: todayMoved,
     noticed: !!noticed,
   });
 
@@ -487,7 +487,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         {attention.length === 0 ? (
           <TodayBriefing
             events={allEvents}
-            place={destination ?? null}
+            place={null}
             overdue={digest.overdue.length}
             waiting={digest.actions.length}
             dueToday={dueToday.length}

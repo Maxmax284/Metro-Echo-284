@@ -83,7 +83,7 @@ export function TodayBriefing(props: {
       <div className="today-allclear relative mt-2 overflow-hidden rounded-md border border-border/50 bg-card/40 px-3 py-2.5">
         <span aria-hidden className="today-allclear-sweep" />
         <div className="relative flex items-center gap-2">
-          <span className="die-sticker sticker-slap inline-flex items-center gap-1 rounded-sm border-2 border-background bg-success px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-success-foreground shadow-md">
+          <span className="die-sticker sticker-slap inline-flex items-center gap-1 rounded-sm border-2 border-background bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-primary-foreground shadow-md">
             <Check className="h-3 w-3" /> All clear
           </span>
           <span className="text-[12px] text-muted-foreground">Nothing's moved today that needs you.</span>
