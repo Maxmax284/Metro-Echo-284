@@ -11,6 +11,7 @@
 //   - Mobile is the battlefield: 44px cells, one column, no sideways scroll.
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Pencil, Users, BedDouble } from "lucide-react";
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { Card } from "@/components/ui/card";
 import { LoadingState, ErrorState } from "@/components/ui/state-views";
 import { EchoEventSheet } from "@/components/schedule/EchoEventSheet";
@@ -143,6 +144,7 @@ export function AgendaBoard() {
 
   return (
     <div className="space-y-3">
+      <FlowRail beats={FLOWS.agenda} className="mb-1" />
       {stay && (
         <Card className="vanta-card flex items-start gap-2 p-3">
           <BedDouble className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />

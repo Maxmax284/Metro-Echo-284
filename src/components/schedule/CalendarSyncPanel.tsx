@@ -51,6 +51,22 @@ const CHANGE_TONE: Record<string, DotTone> = {
   cancelled: "muted",
 };
 
+/* One change repeated by every sync pass is one news item, not a pile.
+   Folds identical title+kind+time rows into one line with a count. */
+function foldChanges(list: Change[]): Array<{ key: string; first: Change; times: number }> {
+  const out: Array<{ key: string; first: Change; times: number }> = [];
+  for (const c of list) {
+    const signature = `${c.title ?? ""}|${c.change}|${c.new_starts_at ?? ""}|${c.old_starts_at ?? ""}`;
+    const found = out.find((f) => f.key === signature);
+    if (found) {
+      found.times += 1;
+    } else {
+      out.push({ key: signature, first: c, times: 1 });
+    }
+  }
+  return out;
+}
+
 export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const { session } = useAuth();
   const { applyScope, key } = useScope();
@@ -196,14 +212,18 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
               </p>
             ) : (
               <ul className="mt-1 space-y-1">
-                {changes.map((c) => (
-                  <li key={c.id} className="flex items-start gap-2 text-[12px] leading-relaxed">
-                    <StatusDot tone={CHANGE_TONE[c.change] ?? "muted"} className="mt-1.5" />
+                {/* Identical repeats of one change are one news item, not 19. */}
+                {foldChanges(changes).map((c) => (
+                  <li key={c.key} className="flex items-start gap-2 text-[12px] leading-relaxed">
+                    <StatusDot tone={CHANGE_TONE[c.first.change] ?? "muted"} className="mt-1.5" />
                     <span className="min-w-0 flex-1">
-                      {changeLine(c)}
-                      {c.was_filed && <span className="text-muted-foreground"> You had this filed under a project.</span>}
+                      {changeLine(c.first)}
+                      {c.times > 1 && (
+                        <span className="text-muted-foreground"> · {c.times}× {checkedLabel(c.first.detected_at).replace("checked ", "").trim() ? `latest ${checkedLabel(c.first.detected_at).replace("checked ", "")}` : ""}</span>
+                      )}
+                      {c.first.was_filed && <span className="text-muted-foreground"> You had this filed under a project.</span>}
                     </span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{checkedLabel(c.detected_at).replace("checked ", "")}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{checkedLabel(c.first.detected_at).replace("checked ", "")}</span>
                   </li>
                 ))}
               </ul>
