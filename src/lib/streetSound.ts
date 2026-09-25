@@ -12,13 +12,32 @@ export const SOUND_EVENT = "vanta:sound";
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let lastClackAt = 0;
+let armed = false;
 
+/* Sound is on unless the device explicitly muted it. Browsers still refuse to
+   make noise before a real gesture, so the first tap anywhere wakes the audio
+   (see armAudioOnFirstGesture) — no button to find, no switch to remember. */
 export function soundOn(): boolean {
   try {
-    return localStorage.getItem(KEY) === "on";
+    return localStorage.getItem(KEY) !== "off";
   } catch {
-    return false;
+    return true;
   }
+}
+
+/** One-shot: the first real interaction unlocks audio and preloads samples. */
+export function armAudioOnFirstGesture() {
+  if (typeof window === "undefined" || armed) return;
+  armed = true;
+  const wake = () => {
+    unlockAudio();
+    window.removeEventListener("pointerdown", wake);
+    window.removeEventListener("keydown", wake);
+    window.removeEventListener("touchstart", wake);
+  };
+  window.addEventListener("pointerdown", wake, { once: true, passive: true });
+  window.addEventListener("keydown", wake, { once: true });
+  window.addEventListener("touchstart", wake, { once: true, passive: true });
 }
 
 export function setSoundOn(on: boolean) {
