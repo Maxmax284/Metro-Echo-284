@@ -519,6 +519,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           waiting={digest.actions.length}
           dueToday={dueToday.length}
           loading={loadingCritical}
+          telemetry={liveTelemetry}
           onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
         />
 
