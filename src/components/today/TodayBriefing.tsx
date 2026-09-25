@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { reduceSituation, type SituationEvent } from "@/lib/situationReducer";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
-import { SignalBeacon } from "@/components/today/SignalBeacon";
+import { SignalBeacon, type GpsLive } from "@/components/today/SignalBeacon";
 
 
 const ACK_KEY = "vanta.today.ack";
@@ -32,6 +32,7 @@ export function TodayBriefing(props: {
   loading: boolean;
   /** Real sensor readings for the beacon flaps. Absent when nothing is known. */
   telemetry?: Array<{ word: string; tone?: "live" | "hold" }>;
+  gps?: GpsLive;
   onOpenMoved: (e: React.MouseEvent) => void;
 }) {
   const brief = useMemo(() => reduceSituation(props.events), [props.events]);
@@ -89,7 +90,7 @@ export function TodayBriefing(props: {
       <div className="today-allclear relative mt-2 overflow-hidden rounded-md border border-border/50 bg-card/40 px-3 py-2.5">
         <span aria-hidden className="today-allclear-sweep" />
         <div className="relative flex flex-wrap items-center gap-2.5">
-          <SignalBeacon state={needs > 0 ? "attention" : "clear"} label={needs > 0 ? "hold" : "steady"} where={props.place} telemetry={props.telemetry} />
+          <SignalBeacon state={needs > 0 ? "attention" : "clear"} label={needs > 0 ? "hold" : "steady"} where={props.place} telemetry={props.telemetry} gps={props.gps} />
           <span className="die-sticker sticker-slap inline-flex items-center gap-1 rounded-sm border-2 border-background bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-primary-foreground shadow-md">
             <Check className="h-3 w-3" /> All clear
           </span>
@@ -123,6 +124,7 @@ export function TodayBriefing(props: {
           label={needs > 0 ? "hold" : "moved"}
           where={props.place}
           telemetry={props.telemetry}
+          gps={props.gps}
         />
       </div>
       <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">

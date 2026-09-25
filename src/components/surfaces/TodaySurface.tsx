@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLiveGps } from "@/hooks/useLiveGps";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
@@ -355,10 +356,28 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const liveTown = (((liveAware?.place?.geo as any)?.city as string) ?? liveAware?.place?.label ?? null)?.split(",")[0] ?? null;
   /* Beacon telemetry: only readings the place record actually holds. How the
      fix was got, how tight it is, how old it is. Nothing invented. */
+  const gps = useLiveGps();
   const liveTelemetry = useMemo(() => {
+    type Flap = { word: string; tone?: "live" | "hold" };
+    /* Live watch on: every flap is read straight off the phone's GPS. */
+    if (gps.on) {
+      const out: Flap[] = [];
+      const lockWord = { lock: "GPS LOCK", search: "SEARCHING", lost: "NO SIGNAL", denied: "BLOCKED", unsupported: "NO GPS", off: "GPS OFF" }[gps.lock];
+      out.push({ word: lockWord, tone: gps.lock === "lock" ? "live" : "hold" });
+      if (gps.fix) {
+        const acc = gps.fix.acc;
+        if (acc != null) out.push({ word: `${acc >= 1000 ? `${Math.round(acc / 1000)}KM` : `${Math.round(acc)}M`} ACC`, tone: acc > 500 ? "hold" : "live" });
+        const ns = gps.fix.lat >= 0 ? "N" : "S";
+        const ew = gps.fix.lon >= 0 ? "E" : "W";
+        out.push({ word: `${Math.abs(gps.fix.lat).toFixed(4)}${ns}` });
+        out.push({ word: `${Math.abs(gps.fix.lon).toFixed(4)}${ew}` });
+        if (gps.ageS != null) out.push({ word: gps.ageS < 60 ? `FIX ${gps.ageS}S` : `FIX ${Math.round(gps.ageS / 60)}M`, tone: gps.ageS > 30 ? "hold" : "live" });
+      }
+      return out;
+    }
     const geo = (liveAware?.place?.geo ?? null) as any;
-    if (!geo) return [] as Array<{ word: string; tone?: "live" | "hold" }>;
-    const out: Array<{ word: string; tone?: "live" | "hold" }> = [];
+    if (!geo) return [] as Flap[];
+    const out: Flap[] = [];
     const src = String(geo.source ?? "").toLowerCase();
     if (src) {
       const word = src.includes("device") || src.includes("gps") ? "GPS FIX"
@@ -377,7 +396,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       out.push({ word, tone: mins > 720 ? "hold" : "live" });
     }
     return out.slice(0, 3);
-  }, [liveAware?.place?.geo, liveAware?.place?.updated_at]);
+  }, [liveAware?.place?.geo, liveAware?.place?.updated_at, gps.on, gps.lock, gps.fix, gps.ageS]);
+  const gpsLive = { on: gps.on, lock: gps.lock, beats: gps.beats, onToggle: gps.toggle };
   /* What actually landed — Telegram messages, files, voice notes — read through
      the same lane rules Inbox and the Telegram reply use. Today shows the top
      few lines; filing still happens in Inbox. */
@@ -521,6 +541,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           dueToday={dueToday.length}
           loading={loadingCritical}
           telemetry={liveTelemetry}
+          gps={gpsLive}
           onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
         />
 

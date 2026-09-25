@@ -75,12 +75,21 @@ export function SolariWord({ word, tone = "live" }: { word: string; tone?: "live
   );
 }
 
+export type GpsLive = {
+  on: boolean;
+  lock: "off" | "search" | "lock" | "lost" | "denied" | "unsupported";
+  /** Increments once per real fix from the phone — drives the pulse. */
+  beats: number;
+  onToggle: () => void;
+};
+
 /** Twin-aspect signal head. Lit lamp = the honest state, the other stands dark. */
 export function SignalBeacon({
   state,
   label,
   where,
   telemetry,
+  gps,
   className,
 }: {
   /** Live town from the device fix — flips on the drum when you actually move. */
@@ -90,10 +99,12 @@ export function SignalBeacon({
   label: string;
   /** Extra flaps read off real sensor state. Empty when nothing is known. */
   telemetry?: Array<{ word: string; tone?: "live" | "hold" }>;
+  gps?: GpsLive;
   className?: string;
 }) {
   const clear = state === "clear";
   const flaps = (telemetry ?? []).filter((t) => t.word);
+  const locked = gps?.on && gps.lock === "lock";
   return (
     <div
       className={cn(
@@ -114,17 +125,33 @@ export function SignalBeacon({
           <SolariWord word={label} tone={clear ? "live" : "hold"} />
           {where ? <SolariWord word={where.replace(/[^A-Za-z ]/g, "").trim().slice(0, 12) || "HERE"} tone="live" /> : null}
         </span>
-        {/* Telemetry flaps: fix source, accuracy, age of the fix. Only what the
-            sensors actually reported — no filler words. */}
         {flaps.length > 0 ? (
           <span className="flex flex-wrap items-center gap-1.5">
-            {flaps.map((t) => (
-              <SolariWord key={t.word} word={t.word} tone={t.tone ?? "live"} />
+            {flaps.map((t, i) => (
+              <SolariWord key={`${i}-${t.word.split(" ")[1] ?? i}`} word={t.word} tone={t.tone ?? "live"} />
             ))}
           </span>
         ) : null}
-        <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-          {clear ? "on watch · no conflicts" : "one thing wants you"}
+        <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+          {gps ? (
+            <button
+              type="button"
+              onClick={gps.onToggle}
+              aria-pressed={gps.on}
+              className={cn(
+                "inline-flex min-h-[32px] items-center gap-1.5 rounded-sm border px-1.5",
+                gps.on ? (locked ? "border-primary/50 text-primary" : "border-warn/50 text-warn") : "border-border/60",
+              )}
+            >
+              {/* The pulse fires once per real fix from the phone, never on a timer. */}
+              <span className="relative inline-flex h-2 w-2">
+                {gps.on && gps.beats > 0 ? <span key={gps.beats} aria-hidden className="gps-beat absolute inset-0 rounded-full bg-current" /> : null}
+                <span className={cn("relative h-2 w-2 rounded-full", gps.on ? "bg-current" : "bg-muted-foreground/40")} />
+              </span>
+              {gps.on ? "live gps" : "go live"}
+            </button>
+          ) : null}
+          <span>{clear ? "on watch · no conflicts" : "one thing wants you"}</span>
         </span>
       </span>
     </div>
