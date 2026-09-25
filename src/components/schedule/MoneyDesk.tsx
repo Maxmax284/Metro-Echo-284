@@ -6,6 +6,7 @@
 //   - Currencies are never summed across each other.
 //   - A refused bank is named as refused. A missing balance is not a zero.
 //   - No bank linked is a teaching state, not an error.
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { useMemo, useState } from "react";
 import { Banknote, Landmark, Link2, RefreshCw, Unlink } from "lucide-react";
 import { Card } from "@/components/ui/card";
