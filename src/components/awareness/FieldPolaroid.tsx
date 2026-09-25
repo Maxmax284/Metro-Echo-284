@@ -197,13 +197,18 @@ export function FieldPolaroid({
         <SignalBeacon state="clear" label={drumWord} />
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight text-foreground">
-            {city}{region ? ` · ${region.replace(/ Province$/, "")}` : ""}
+            {city}
+            {(() => {
+              // A city that is its own province shouldn't say its name twice.
+              const r = region?.replace(/ Province$/, "").trim();
+              return r && r.toLowerCase() !== city.trim().toLowerCase() ? ` · ${r}` : "";
+            })()}
           </p>
           <p className="truncate text-[11.5px] text-muted-foreground">
             {area?.localName ? <span className="text-foreground/70">{area.localName}</span> : null}
             {area?.localName ? " · " : ""}
             {localTime ? `${localTime} local, ${part}` : part}
-            {weather ? ` · ${weather}` : ""}
+            {weatherLine ? ` · ${weatherLine}` : ""}
           </p>
         </div>
       </div>
@@ -295,9 +300,9 @@ export function FieldPolaroid({
         )}
         {err ? <p className="mt-2 text-[12px] text-warn">{err}</p> : null}
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={onRead} disabled={busy} className="min-h-[40px]">
+          <Button size="sm" variant={readStale ? "default" : "outline"} onClick={onRead} disabled={busy} className="min-h-[40px]">
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            {read ? "Fresh read for now" : "Echo's local read"}
+            {busy ? "Reading the ground…" : readStale ? `It's ${part} now, fresh read` : read ? "Fresh read for now" : "Echo's local read"}
           </Button>
           {data?.page?.url ? (
             <a href={data.page.url} target="_blank" rel="noreferrer" className="text-[11px] text-muted-foreground underline-offset-2 hover:underline">
