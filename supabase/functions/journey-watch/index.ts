@@ -416,7 +416,7 @@ Deno.serve(async (req) => {
               nudgeId,
               title: notice.title,
               detail: body,
-              url: "/?room=today",
+              url: "/?surface=schedule&tab=flights",
               changeKey: dedupe,
               urgency: notice.urgency === "critical" ? "critical" : "time_sensitive",
               entityType: "flight_plan",
