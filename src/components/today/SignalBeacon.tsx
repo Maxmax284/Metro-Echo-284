@@ -65,7 +65,7 @@ export function SolariWord({ word, tone = "live" }: { word: string; tone?: "live
           aria-hidden
           className={cn(
             "solari-digit relative inline-flex h-[19px] min-w-[13px] items-center justify-center overflow-hidden rounded-[1px] border bg-background/80 font-mono text-[11px] font-bold leading-none",
-            tone === "live" ? "border-success/45 text-success" : "border-warn/45 text-warn",
+            tone === "live" ? "border-primary/45 text-primary" : "border-warn/45 text-warn",
           )}
         >
           {c}
@@ -91,7 +91,7 @@ export function SignalBeacon({
     <div
       className={cn(
         "echo-signal relative inline-flex items-center gap-2.5 rounded-md border px-2.5 py-1.5",
-        clear ? "border-success/30" : "border-warn/40",
+        clear ? "border-primary/30" : "border-warn/40",
         className,
       )}
       role="status"
