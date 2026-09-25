@@ -120,6 +120,20 @@ export function SignalBeacon({
         <span className={cn("echo-lens", clear ? "echo-lens-live is-lit" : "echo-lens-dark")} />
         <span className={cn("echo-lens", clear ? "echo-lens-dark" : "echo-lens-warn is-lit")} />
       </span>
+      {/* Live watch: a sonar scope instead of coordinates. The sweep arm turns
+          while the watch is on; a ring pushes out once per real fix. */}
+      {gps?.on ? (
+        <span
+          aria-hidden
+          className={cn("echo-sonar", locked ? "is-locked" : "is-searching")}
+          title="live gps"
+        >
+          <span className="echo-sonar-grid" />
+          <span className="echo-sonar-sweep" />
+          {gps.beats > 0 ? <span key={gps.beats} className="echo-sonar-ping" /> : null}
+          <span className="echo-sonar-core" />
+        </span>
+      ) : null}
       <span className="relative flex flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-1.5">
           <SolariWord word={label} tone={clear ? "live" : "hold"} />
