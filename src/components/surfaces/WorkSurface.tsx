@@ -221,6 +221,18 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
               <QuietShelfLine line="Nothing waiting on you, nothing promised." />
             ) : null}
           </div>
+          {/* Nothing filed yet still shows the board's own language, so the
+              tags are recognisable the first time a real one lands. */}
+          {!loading && !error && projects.length === 0 ? (
+            <p className="flex flex-wrap items-center gap-1.5 px-1 text-[11px] leading-snug text-muted-foreground">
+              <span>Every project here wears a tag:</span>
+              <span className="die-sticker px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em]" data-blank="true">Active</span>
+              <span className="die-sticker px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em]" data-blank="true">Quiet</span>
+              <span className="die-sticker px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em]" data-blank="true">Needs you</span>
+              <span>— slapped on when you start one.</span>
+            </p>
+          ) : null}
+
         </section>
 
         {/* What Echo noticed. Real findings are never hidden; with nothing to
