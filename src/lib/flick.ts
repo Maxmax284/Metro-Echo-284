@@ -8,8 +8,10 @@
 // Reduced motion: the listener is never installed, so --flick stays unset and
 // every card sits still.
 
-const MAX_V = 46; // px per frame that counts as a full-strength flick
-const DECAY = 0.86;
+/* A throw has to register, and it has to keep ringing for a moment after your
+   finger leaves the glass — that afterglow is the whole sensation of weight. */
+const MAX_V = 30; // px per frame that counts as a full-strength flick
+const DECAY = 0.93;
 
 function reducedMotion(): boolean {
   return (
@@ -55,8 +57,11 @@ export function startFlickInertia(): () => void {
     lastTop.set(el, top);
     if (prev === undefined) return;
     const v = Math.max(-1, Math.min(1, (top - prev) / MAX_V));
-    if (Math.abs(v) < 0.04) return;
-    level.set(el, v);
+    if (Math.abs(v) < 0.02) return;
+    /* Keep the strongest recent impulse rather than the latest frame, so a fast
+       fling is not flattened by the slower frames at the end of the gesture. */
+    const held = level.get(el) ?? 0;
+    level.set(el, Math.abs(v) > Math.abs(held) ? v : held);
     if (!frame) frame = window.requestAnimationFrame(tick);
   };
 
