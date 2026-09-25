@@ -4,12 +4,14 @@
 // This sheet is where the full underlying list lives — every overdue promise,
 // every staged action, every dated commitment, every recorded event — with each
 // row handing off to the surface that owns its review → approve → execute path.
+import { useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/ui/state-views";
 import { Badge } from "@/components/ui/badge";
 import { BUCKETS, bucketEvents } from "@/lib/changeBuckets";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CornerDownRight, ChevronDown } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { MOTION_SHEET } from "@/lib/motion";
 import { useFlipEntry } from "@/hooks/useFlipEntry";
