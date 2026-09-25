@@ -18,6 +18,8 @@ import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { NextMoveLane } from "@/components/today/NextMoveLane";
 import { TransferLane } from "@/components/today/TransferLane";
 import { EntryReadyLane } from "@/components/today/EntryReadyLane";
+import { TodayBriefing } from "@/components/today/TodayBriefing";
+import { reduceSituation } from "@/lib/situationReducer";
 
 import { TypeOnLine } from "@/components/today/TypeOnLine";
 import { useTodayPlaceCue } from "@/hooks/useTodayPlaceCue";
@@ -365,7 +367,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      deduped, so nothing is reported twice. */
   const liveIds = new Set(live.map((e) => e.id));
   const changedRows = [...live, ...events.filter((e) => !liveIds.has(e.id))];
-  const { tone, headline } = todayHeadline({ attention, changedCount: allEvents.length });
+  const todayMoved = reduceSituation(allEvents).situations.length;
+  const { tone, headline: rawHeadline } = todayHeadline({ attention, changedCount: 0 });
+  const headline = attention.length === 0
+    ? todayMoved === 0 ? "All clear" : todayMoved === 1 ? "One thing moved today" : `${todayMoved} things moved today`
+    : rawHeadline;
   /* One section opens by default — the one that actually deserves the first
      look. The rest collapse to a line that says whether opening is worth it. */
   /* Arrivals are the read's job, and it counts them from the arrival records
@@ -375,7 +381,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
     overdue: digest.overdue.length,
     waitingOnYou: digest.actions.length,
     dueToday: dueToday.length,
-    changed: allEvents.length,
+    changed: todayMoved,
     noticed: !!noticed,
   });
 
@@ -476,18 +482,18 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         <p className="mt-2 text-[12.5px] leading-snug text-muted-foreground">
           {loadingCritical ? "" : dayLine}
         </p>
-        {/* A count is never the answer — the headline number opens the list. */}
-        {!loadingCritical && attention.length === 0 && events.length > 0 ? (
-          <button
-            type="button"
-            onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
-            className={cn("mt-1.5 inline-flex min-h-[44px] items-center gap-2 text-xs text-primary", MOTION_FOCUS)}
-          >
-            {/* The count rides a split-flap drum: when the number genuinely
-                changes the digits riffle and land, like a terminal display. */}
-            <SolariNumber value={allEvents.length} tone="primary" size="lg" />
-            Show me what moved <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+        {/* The debrief: today's meaningful moves only, Echo's take on top,
+            plumbing folded away. The full list is one tap behind it. */}
+        {attention.length === 0 ? (
+          <TodayBriefing
+            events={allEvents}
+            place={null}
+            overdue={digest.overdue.length}
+            waiting={digest.actions.length}
+            dueToday={dueToday.length}
+            loading={loadingCritical}
+            onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
+          />
         ) : null}
         {/* Where the clock came from. A browser guess is never presented as
             settled truth. */}
