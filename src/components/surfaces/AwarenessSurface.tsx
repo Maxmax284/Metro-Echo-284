@@ -522,17 +522,6 @@ export function AwarenessSurface() {
           );
         })()}
 
-        {/* The field board sits in plain sight: photos, the local name, what
-            this place is, and Echo's read of the hour. */}
-        <FieldPolaroid
-          city={((place?.geo as any)?.city as string) ?? place?.label ?? null}
-          region={place?.region ?? null}
-          country={place?.country ?? null}
-          timeZone={((place?.geo as any)?.time_zone as string) ?? null}
-          lat={Number.isFinite(Number((place?.geo as any)?.lat)) ? Number((place?.geo as any)?.lat) : null}
-          lon={Number.isFinite(Number((place?.geo as any)?.lon)) ? Number((place?.geo as any)?.lon) : null}
-          nearby={nearbyTowns.map((t: any) => t.name).filter(Boolean)}
-        />
 
 
 
