@@ -327,10 +327,30 @@ function JumpTile({
       <span className="block text-[11px] leading-snug text-muted-foreground">{line}</span>
     </>
   );
-  return href ? (
-    <a href={href} className={className}>{body}</a>
-  ) : (
-    <button type="button" onClick={onOpen} className={className}>{body}</button>
+  /* Every desk is reached inside the running app. The cover goes up first so
+     the gap while the desk builds itself reads as a transfer, not a blackout. */
+  const open = () => {
+    beginDeskTransit({ word: word ?? label, line });
+    if (!href) {
+      onOpen?.();
+      return;
+    }
+    const url = new URL(href, window.location.origin);
+    const surface = url.searchParams.get("surface");
+    const tab = url.searchParams.get("tab");
+    if (url.pathname === "/" && surface === "schedule") {
+      if (tab) requestScheduleTab(tab);
+      onOpen?.();
+      window.setTimeout(() => {
+        if (tab) requestScheduleTab(tab);
+      }, 0);
+      return;
+    }
+    navigate(url.pathname + url.search);
+  };
+
+  return (
+    <button type="button" onClick={open} className={className}>{body}</button>
   );
 }
 
