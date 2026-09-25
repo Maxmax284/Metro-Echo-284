@@ -1,3 +1,4 @@
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { useEffect, useState } from "react";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,6 +149,8 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <h2 className="text-lg font-semibold tracking-tight">Schedule</h2>
           <span className="ml-auto text-[10.5px] text-muted-foreground">{timezone}</span>
         </div>
+
+        {tab === "today" && <FlowRail beats={FLOWS.schedule} />}
 
         {/* Schedule is time only: the day, what's next, the week. The desks
             (Board, Body, Money, Flights, Local help) live in Work under "Go

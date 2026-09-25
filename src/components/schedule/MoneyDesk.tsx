@@ -66,6 +66,7 @@ export function MoneyDesk() {
   return (
     <div className="space-y-3">
       <p className="vanta-machine-label text-foreground/60">{MONEY_LAW}</p>
+      {!linked && <FlowRail beats={FLOWS.money} />}
 
       {!linked ? (
         <Card className="vanta-card space-y-3 p-4">

@@ -17,6 +17,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { formatDistanceToNow } from "date-fns";
 import { ProjectBriefView } from "@/components/projects/ProjectBriefView";
 import { DeskIntro } from "@/components/work/DeskIntro";
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 
 /**
  * ProjectsSurface — in-shell list of projects (Living Briefs).
@@ -116,23 +117,39 @@ export function ProjectsSurface() {
               <Plus className="h-4 w-4" /> New
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>New project</DialogTitle>
+              <DialogTitle>Start a project</DialogTitle>
+              <p className="text-[12.5px] text-muted-foreground">
+                A project is a folder with a memory. Everything about one thing lives here, and Echo keeps a running brief.
+              </p>
             </DialogHeader>
+            <FlowRail beats={FLOWS.projects} className="sm:grid-cols-1" />
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-muted-foreground">Title</label>
+                <label className="mb-1 block text-xs text-muted-foreground">What is it called?</label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Lamai Q3 rollout"
                   autoFocus
                 />
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {["Trip to Bangkok", "Client onboarding", "Gym rollout", "Home move"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setTitle(s)}
+                      className="min-h-[32px] rounded-[2px] border border-border/60 px-2 text-[11px] text-foreground/85 hover:border-primary/40"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs text-muted-foreground">
-                  Summary <span className="opacity-60">(optional)</span>
+                  What's it about? <span className="opacity-60">(optional)</span>
                 </label>
                 <Textarea
                   value={summary}
@@ -140,6 +157,14 @@ export function ProjectsSurface() {
                   placeholder="The running brief in your own words. You can edit this any time."
                   rows={3}
                 />
+              </div>
+              <div className="rounded-[3px] border border-primary/30 bg-primary/5 p-2.5 text-[11.5px] leading-snug">
+                <p className="vanta-machine-label mb-1 text-foreground/70">When you tap Create</p>
+                <ul className="list-disc space-y-0.5 pl-4 text-muted-foreground">
+                  <li>The project opens straight away, empty and ready.</li>
+                  <li>You can attach captures, notes, files and flights to it.</li>
+                  <li>Echo writes nothing and sends nothing on its own.</li>
+                </ul>
               </div>
             </div>
             <DialogFooter>
@@ -151,6 +176,8 @@ export function ProjectsSurface() {
           </DialogContent>
         </Dialog>
       </header>
+
+      {(projects?.length ?? 0) === 0 && <FlowRail beats={FLOWS.projects} className="mb-3" />}
 
       <DeskIntro
         deskKey="projects"
