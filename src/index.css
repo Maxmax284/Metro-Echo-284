@@ -2248,3 +2248,30 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   .field-shot { animation: none; }
   .field-tab { transition: none; }
 }
+
+/* ---- Weather gauge: CRT glyph on the place board ---- */
+.wx-glyph { position: relative; display: inline-block; width: 30px; height: 30px; flex-shrink: 0; overflow: hidden; border-radius: 3px; border: 1px solid hsl(var(--border) / 0.6); background: hsl(var(--background) / 0.8); }
+.wx-orb { position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 9999px; background: hsl(var(--warn)); box-shadow: 0 0 8px hsl(var(--warn) / 0.7); }
+.wx-moon .wx-orb { background: hsl(var(--foreground) / 0.85); box-shadow: inset -3px -1px 0 hsl(var(--background)), 0 0 6px hsl(var(--foreground) / 0.35); animation: wx-glow 5s ease-in-out infinite; }
+.wx-rays { position: absolute; inset: 4px; border-radius: 9999px; background: repeating-conic-gradient(hsl(var(--warn) / 0.8) 0 8deg, transparent 8deg 45deg); -webkit-mask: radial-gradient(circle, transparent 7px, #000 8px); mask: radial-gradient(circle, transparent 7px, #000 8px); animation: wx-spin 14s linear infinite; }
+.wx-cloud { position: absolute; left: 5px; top: 9px; width: 18px; height: 8px; border-radius: 9999px; background: hsl(var(--foreground) / 0.7); box-shadow: 4px -4px 0 1px hsl(var(--foreground) / 0.7); animation: wx-drift 6s ease-in-out infinite alternate; z-index: 1; }
+.wx-cloud-back { left: 10px; top: 14px; opacity: 0.45; animation-duration: 9s; animation-direction: alternate-reverse; z-index: 0; }
+.wx-drop { position: absolute; top: 17px; width: 1.5px; height: 5px; border-radius: 1px; background: hsl(var(--primary)); animation: wx-fall 0.8s linear infinite; }
+.wx-flake { position: absolute; top: 17px; width: 3px; height: 3px; border-radius: 9999px; background: hsl(var(--foreground) / 0.9); animation: wx-flake 2s linear infinite; }
+.wx-bolt { position: absolute; left: 13px; top: 15px; width: 6px; height: 11px; background: hsl(var(--warn)); clip-path: polygon(50% 0, 0 60%, 45% 60%, 30% 100%, 100% 40%, 55% 40%); opacity: 0; animation: wx-flash 4.5s steps(1) infinite; z-index: 2; }
+.wx-fogline { position: absolute; left: 4px; right: 4px; top: 21px; height: 1.5px; background: hsl(var(--foreground) / 0.5); animation: wx-drift 5s ease-in-out infinite alternate; }
+.wx-fogline-2 { top: 25px; left: 8px; animation-direction: alternate-reverse; }
+.wx-scan { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, hsl(var(--background) / 0.35) 0 1px, transparent 1px 3px); z-index: 3; }
+.wx-led { width: 6px; height: 6px; border-radius: 9999px; }
+.wx-led.is-ok { background: hsl(var(--primary)); box-shadow: 0 0 5px hsl(var(--primary) / 0.7); }
+.wx-led.is-warn { background: hsl(var(--warn)); box-shadow: 0 0 6px hsl(var(--warn) / 0.8); animation: wx-glow 1.6s ease-in-out infinite; }
+@keyframes wx-spin { to { transform: rotate(360deg); } }
+@keyframes wx-drift { from { transform: translateX(-2px); } to { transform: translateX(2px); } }
+@keyframes wx-fall { from { transform: translateY(-4px); opacity: 1; } to { transform: translateY(12px); opacity: 0; } }
+@keyframes wx-flake { from { transform: translate(0, -3px); } 50% { transform: translate(2px, 5px); } to { transform: translate(-1px, 12px); opacity: 0; } }
+@keyframes wx-flash { 0%, 88%, 94%, 100% { opacity: 0; } 90%, 96% { opacity: 1; } }
+@keyframes wx-glow { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) {
+  .wx-rays, .wx-cloud, .wx-drop, .wx-flake, .wx-fogline, .wx-led, .wx-moon .wx-orb { animation: none !important; }
+  .wx-bolt { animation: none !important; opacity: 1; }
+}
