@@ -462,6 +462,34 @@ export function AwarenessSurface() {
           );
         })()}
 
+        {/* The field board leads the room: which place you're reading, its real
+            photographs, what it is, where it came from, the local hour and
+            weather, and Echo's read on tap. Switching is reading, not moving. */}
+        <PlaceSwitcherRail
+          places={switchable}
+          activeId={boardPlaceId}
+          liveId={liveId}
+          onSelect={(id) => setBoardPlaceId(id === liveId ? null : id)}
+        />
+
+        {!boardIsLive && boardPlace ? (
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Reading {placeDisplayLabel(boardPlace.label)} from your saved places. You are still in{" "}
+            {placeDisplayLabel(place?.label ?? "your current spot")}.
+          </p>
+        ) : null}
+
+        <FieldPolaroid
+          key={boardPlace?.id ?? "live"}
+          city={((boardGeo.city as string) ?? boardPlace?.label) ?? null}
+          region={boardPlace?.region ?? null}
+          country={boardPlace?.country ?? null}
+          timeZone={(boardGeo.time_zone as string) ?? null}
+          lat={Number.isFinite(Number(boardGeo.lat)) ? Number(boardGeo.lat) : null}
+          lon={Number.isFinite(Number(boardGeo.lon)) ? Number(boardGeo.lon) : null}
+          nearby={boardIsLive ? nearbyTowns.map((t: any) => t.name).filter(Boolean) : []}
+        />
+
         {/* Bad Location Recovery — primary path when pin is unusable. */}
         {place && badness.bad && recoveryOpen && (
           <BadLocationRecoveryPanel
