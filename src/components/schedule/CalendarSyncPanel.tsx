@@ -51,6 +51,22 @@ const CHANGE_TONE: Record<string, DotTone> = {
   cancelled: "muted",
 };
 
+/* One change repeated by every sync pass is one news item, not a pile.
+   Folds identical title+kind+time rows into one line with a count. */
+function foldChanges(list: Change[]): Array<{ key: string; first: Change; times: number }> {
+  const out: Array<{ key: string; first: Change; times: number }> = [];
+  for (const c of list) {
+    const signature = `${c.title ?? ""}|${c.change}|${c.new_starts_at ?? ""}|${c.old_starts_at ?? ""}`;
+    const found = out.find((f) => f.key === signature);
+    if (found) {
+      found.times += 1;
+    } else {
+      out.push({ key: signature, first: c, times: 1 });
+    }
+  }
+  return out;
+}
+
 export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const { session } = useAuth();
   const { applyScope, key } = useScope();
