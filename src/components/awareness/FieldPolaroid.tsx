@@ -12,6 +12,7 @@ import { BookOpen, Compass, Landmark, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SignalBeacon } from "@/components/today/SignalBeacon";
+import { WeatherGauge, type LiveWeather } from "@/components/awareness/WeatherGauge";
 import { play } from "@/lib/streetSound";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +85,7 @@ export function FieldPolaroid({
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("about");
   const [shot, setShot] = useState(0);
-  const [liveWx, setLiveWx] = useState<string | null>(null);
+  const [wx, setWx] = useState<LiveWeather | null>(null);
   const [tick, setTick] = useState(0);
   const cacheKey = `vanta.groundread.${city}`;
 
@@ -96,15 +97,23 @@ export function FieldPolaroid({
 
   // Live weather at the actual fix — Open-Meteo, free, no AI, refreshed on move and every 30 min.
   useEffect(() => {
-    if (lat == null || lon == null) { setLiveWx(null); return; }
+    if (lat == null || lon == null) { setWx(null); return; }
     let dead = false;
     const load = () =>
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,weather_code,precipitation`)
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,weather_code,precipitation,apparent_temperature,relative_humidity_2m,is_day`)
         .then((r) => r.json())
         .then((j) => {
           if (dead || !j?.current) return;
           const c = j.current;
-          setLiveWx(`${Math.round(c.temperature_2m)}° ${wxLabel(c.weather_code)}${c.precipitation > 0 ? ", wet out" : ""}`);
+          setWx({
+            temp: c.temperature_2m,
+            feels: typeof c.apparent_temperature === "number" ? c.apparent_temperature : null,
+            humidity: typeof c.relative_humidity_2m === "number" ? c.relative_humidity_2m : null,
+            code: c.weather_code,
+            precip: c.precipitation ?? 0,
+            isDay: c.is_day !== 0,
+            label: wxLabel(c.weather_code),
+          });
         })
         .catch(() => {});
     load();
@@ -112,6 +121,7 @@ export function FieldPolaroid({
     return () => { dead = true; window.clearInterval(t); };
   }, [lat == null ? null : lat.toFixed(2), lon == null ? null : lon.toFixed(2)]);
 
+  const liveWx = wx ? `${Math.round(wx.temp)}° ${wx.label}${wx.precip > 0 ? ", wet out" : ""}` : null;
   const weatherLine = liveWx ?? weather ?? null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const { part, light } = useMemo(() => dayPartFor(timeZone), [timeZone, tick]);
@@ -208,9 +218,10 @@ export function FieldPolaroid({
             {area?.localName ? <span className="text-foreground/70">{area.localName}</span> : null}
             {area?.localName ? " · " : ""}
             {localTime ? `${localTime} local, ${part}` : part}
-            {weatherLine ? ` · ${weatherLine}` : ""}
+            {!wx && weatherLine ? ` · ${weatherLine}` : ""}
           </p>
         </div>
+        {wx && <WeatherGauge wx={wx} />}
       </div>
 
       {/* The taped photo strip — real pictures of the area, tap to change. */}
