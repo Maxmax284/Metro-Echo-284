@@ -1904,17 +1904,27 @@ html[data-weather="calm"] .vanta-bd-scrim::after { opacity: .5; animation: none;
 
 /* Flick inertia: a thrown list leans, then settles. The scroller hands the
    velocity down as --flick; only cards read it. The lean is deliberately larger
-   than feels safe on paper — at 2px nobody can tell it is happening. */
+   than feels safe on paper — at 2px nobody can tell it is happening.
+
+   These use the individual translate/rotate/scale properties, not the transform
+   shorthand, for two reasons: the press compression on .vanta-card owns
+   `transform` and would wipe the lean out, and `transition: transform` on that
+   same rule would smooth every per-frame update into nothing. The lean must
+   land on the exact frame the scroller reports it. */
 .vanta-card,
 .vanta-inset {
-  transform: translate3d(0, calc(var(--flick, 0) * 9px), 0)
-    rotate(calc(var(--flick, 0) * 0.55deg))
-    scale(calc(1 - var(--flick-abs, 0) * 0.008));
+  translate: 0 calc(var(--flick, 0) * 9px);
+  rotate: calc(var(--flick, 0) * 0.55deg);
+  scale: calc(1 - var(--flick-abs, 0) * 0.008);
   transform-origin: 50% 0%;
+  transition-property: transform, box-shadow;
 }
 /* Cards deeper in a thrown list trail the ones above them, so the whole stack
    reads as one weighted object rather than a grid of independent tiles. */
-.vanta-card:nth-child(even) { transform: translate3d(0, calc(var(--flick, 0) * 12px), 0) rotate(calc(var(--flick, 0) * -0.4deg)); }
+.vanta-card:nth-child(even) {
+  translate: 0 calc(var(--flick, 0) * 12px);
+  rotate: calc(var(--flick, 0) * -0.4deg);
+}
 
 /* ---- Ask: the alley is a cathode room ---------------------------------- */
 /* Idle Ask already hums: faint phosphor lines crawl slowly over the wall and the
