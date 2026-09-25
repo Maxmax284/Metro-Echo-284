@@ -124,7 +124,7 @@ export function FieldPolaroid({
   async function call(withRead: boolean) {
     if (!city) return;
     const { data: res, error } = await supabase.functions.invoke("place-ground-read", {
-      body: { city, region, country, localTime, dayPart: part, weather: weatherLine, lang, nearby: (nearby ?? []).slice(0, 6), withRead },
+      body: { city, region, country, localTime, dayPart: part, weather: weatherLine, lang, nearby: (nearby ?? []).slice(0, 6).map((n) => n.slice(0, 80)), withRead },
     });
     if (error) {
       const d = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
