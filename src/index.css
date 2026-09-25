@@ -1941,9 +1941,83 @@ html[data-daypart="night"][data-room="today"] .vanta-bd-light {
     radial-gradient(90% 60% at 18% 2%, hsl(220 50% 30% / 0.3), transparent 70%);
 }
 
+/* ==== Board housing, heavier paper, sticker language ================== */
+
+/* The drum sits in a housing: dark case, inset rails either side, and a
+   permanent gloss across the top half so the flap reads as plastic. */
+.solari-drum {
+  padding: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, hsl(var(--background) / 0.96), hsl(var(--background) / 0.7));
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--foreground) / 0.16),
+    inset 0 2px 5px -2px hsl(0 0% 0% / 0.85),
+    0 1px 0 hsl(var(--foreground) / 0.06);
+}
+.solari-drum[data-size="lg"] {
+  padding: 5px 6px;
+  border-radius: 4px;
+}
+.solari-digit {
+  background: linear-gradient(180deg, hsl(var(--background) / 0.55) 0 49%, hsl(0 0% 0% / 0.5) 50% 100%);
+  text-shadow: 0 1px 0 hsl(0 0% 0% / 0.8);
+}
+/* Gloss on the upper flap only — the lower flap stays in shadow. */
+.solari-digit::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0; height: 50%;
+  background: linear-gradient(180deg, hsl(var(--foreground) / 0.1), transparent);
+  pointer-events: none;
+}
+/* The hinge gets a real shadow lip under it. */
+.solari-digit::after {
+  height: 2px;
+  background: linear-gradient(180deg, hsl(0 0% 0% / 0.9), hsl(var(--foreground) / 0.08));
+}
+
+/* Thermal paper, read properly: warm stock, printed rails, a curl of shadow
+   at the head of the roll. It should look like a slip, not a panel. */
+.thermal-roll {
+  background:
+    repeating-linear-gradient(90deg, hsl(var(--foreground) / 0.04) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, hsl(40 22% 90% / 0.12), hsl(38 16% 84% / 0.06) 70%, hsl(38 14% 78% / 0.1));
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border) / 0.5),
+    inset 0 9px 14px -12px hsl(0 0% 0% / 0.9),
+    inset 0 -9px 14px -12px hsl(0 0% 0% / 0.8);
+}
+.thermal-slip { border-top-style: dashed; }
+/* Register ink fades along the slip the way heat printing does. */
+.thermal-slip .thermal-ink {
+  background: none !important;
+  color: hsl(var(--foreground) / 0.88);
+}
+.thermal-slip[data-aged="true"] .thermal-ink { color: hsl(var(--foreground) / 0.6); }
+.thermal-slip[data-aged="true"] { opacity: 0.9; }
+/* Perforation dots down the dashed seam, so the tear is believable. */
+.thermal-slip:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: -2px;
+  height: 3px;
+  background: repeating-radial-gradient(circle at 2px 50%, hsl(var(--background) / 0.9) 0 1.2px, transparent 1.2px 6px);
+  pointer-events: none;
+}
+
+/* Nothing filed yet still wears the sticker language: a blank die-cut tag so
+   the room reads as a board with an empty slot, not an empty page. */
+.die-sticker[data-blank="true"] {
+  border: 1px dashed hsl(var(--foreground) / 0.4);
+  box-shadow: none;
+  opacity: 0.75;
+}
+.die-sticker[data-blank="true"]::before { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .solari-digit,
   .thermal-slip[data-fresh="true"] { animation: none !important; transform: none !important; opacity: 1 !important; }
   .vanta-card, .vanta-inset { transform: none !important; }
   html[data-room="ask"][data-thinking] .vanta-bd-sheen { animation: none !important; }
 }
+
