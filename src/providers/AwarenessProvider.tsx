@@ -124,7 +124,8 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     const { data: p } = await supabase
       .from("awareness_places")
       .select("id,label,geo,country,region,address,category,notes,updated_at")
-      .or("category.is.null,category.not.in.(care,nearby)")
+      // "reading" places are kept to read about, never to stand in for your fix.
+      .or("category.is.null,category.not.in.(care,nearby,reading)")
       .is("archived_at", null)
       .order("updated_at", { ascending: false })
       .limit(1)
