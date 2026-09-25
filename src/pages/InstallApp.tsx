@@ -29,6 +29,8 @@ export default function InstallApp() {
 
       <InstallVantaSection alwaysShow />
 
+      <PushPrompt className="mt-4" />
+
       <section className="mt-6 space-y-3">
         <h2 className="text-[11px] uppercase tracking-wider text-muted-foreground">Steps by phone</h2>
 
