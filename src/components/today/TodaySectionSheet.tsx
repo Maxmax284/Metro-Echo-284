@@ -50,7 +50,75 @@ function whenLabel(due: string | null) {
   return format(d, "d MMM HH:mm");
 }
 
+/** One plain read of the day's shelves — counted, never guessed. */
+function debriefLine(buckets: ReturnType<typeof bucketEvents>["buckets"], hidden: number) {
+  const parts = buckets.map((b) => `${b.total} ${BUCKETS[b.key].title.toLowerCase()}`);
+  const total = buckets.reduce((s, b) => s + b.total, 0);
+  const head = total === 1 ? "One thing moved today" : `${total} things moved today`;
+  const body = parts.length ? `: ${parts.join(", ")}.` : ".";
+  const tail = hidden > 0 ? ` ${hidden} routine background check${hidden === 1 ? "" : "s"} folded at the bottom.` : "";
+  return `${head}${body}${tail}`;
+}
+
+/** The housekeeping drawer: counted, foldable, never mixed into the human shelves. */
+function PlumbingFold({
+  hidden,
+  lines,
+  onOpenRoll,
+}: {
+  hidden: number;
+  lines: { label: string; count: number; latest: string; raw: string }[];
+  onOpenRoll: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (hidden === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onOpenRoll}
+        className="flex min-h-[44px] w-full items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+      >
+        Open the full roll <ArrowRight className="h-3 w-3" />
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex min-h-[40px] w-full items-center gap-2 px-1 text-left text-[11px] text-muted-foreground hover:text-foreground"
+      >
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+        <span className="min-w-0 flex-1">
+          {open ? "Hide" : "Show"} {hidden} routine background receipt{hidden === 1 ? "" : "s"}
+        </span>
+      </button>
+      {open ? (
+        <div className="animate-accordion-down space-y-1.5 overflow-hidden pt-1.5">
+          {lines.map((l) => (
+            <DrillRow
+              key={l.label}
+              label={l.count > 1 ? `${l.label} · ${l.count}×` : l.label}
+              meta={formatDistanceToNow(new Date(l.latest), { addSuffix: true })}
+              provenance={{ raw: l.raw, count: l.count, latest: l.latest }}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={onOpenRoll}
+            className="flex min-h-[40px] w-full items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Open the full roll <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /** The raw record behind a row, folded away until asked for. */
+
 function PeelTab({ raw, count, latest }: { raw: string; count: number; latest: string }) {
   const [open, setOpen] = useState(false);
   return (
