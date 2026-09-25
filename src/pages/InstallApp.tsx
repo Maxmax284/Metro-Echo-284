@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Smartphone, Apple } from "lucide-react";
 import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
+import { PushPrompt } from "@/components/schedule/PushPrompt";
 import { HOME_ADDRESS, installBlockedHere } from "@/lib/pwaInstall";
 
 /**
