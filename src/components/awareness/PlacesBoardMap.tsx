@@ -7,6 +7,12 @@ import "leaflet/dist/leaflet.css";
 
 export type MapSpot = { id: string; name: string; lat: number; lon: number };
 
+const MAPBOX_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+// Mapbox dark basemap when the token is linked; Carto dark as the fallback.
+const TILE_URL = MAPBOX_TOKEN
+  ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+  : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
 const pin = (active: boolean, live: boolean) =>
   L.divIcon({
     className: "",
@@ -40,7 +46,7 @@ export function PlacesBoardMap({
     <div className="field-polaroid relative overflow-hidden rounded-md border border-border/60">
       <div className="h-[200px] w-full">
         <MapContainer center={[active.lat, active.lon]} zoom={9} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+          <TileLayer url={TILE_URL} {...(MAPBOX_TOKEN ? { tileSize: 512, zoomOffset: -1 } : {})} />
           <Fly spot={active} />
           {spots.map((s) => (
             <Marker
@@ -56,6 +62,7 @@ export function PlacesBoardMap({
       </div>
       <p className="px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
         Tap a pin to read that spot · your location stays put
+        {MAPBOX_TOKEN ? " · © Mapbox © OpenStreetMap" : ""}
       </p>
     </div>
   );
