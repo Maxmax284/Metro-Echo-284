@@ -115,9 +115,16 @@ export function TodayBriefing(props: {
           Seen
         </span>
       ) : null}
+      <div className="mb-2 flex flex-wrap items-center gap-2.5">
+        <SignalBeacon
+          state={needs > 0 ? "attention" : "clear"}
+          label={needs > 0 ? "hold" : "moved"}
+        />
+      </div>
       <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
         <Sparkles className={cn("h-3.5 w-3.5 text-accent", busy && "animate-pulse")} /> Echo's take
       </div>
+
       <p className="mt-1.5 pr-14 text-[14px] leading-snug text-foreground animate-fade-in" key={fresh ? take!.at : "none"}>
         {busy ? "Reading your day…" : fresh ? take!.text : err ?? "Tap refresh for Echo's read of today."}
       </p>
