@@ -34,6 +34,7 @@ import { useTodayDigest } from "@/hooks/useTodayDigest";
 import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
+import { FieldPolaroid } from "@/components/awareness/FieldPolaroid";
 import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
@@ -672,6 +673,7 @@ export function AwarenessSurface() {
         })()}
 
         {showMore && (<div className="space-y-4">
+        <FieldPolaroid className="mt-4" city={((place?.geo as any)?.city as string) ?? null} region={place?.region ?? null} country={place?.country ?? null} />
         <WhatVantaSees className="mt-4" />
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
