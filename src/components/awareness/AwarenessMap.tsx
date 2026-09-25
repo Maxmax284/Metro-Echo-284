@@ -21,6 +21,8 @@ import { placeTruth, placeSourceBadge, type PlaceLike } from "@/lib/placeTruth";
 import { fieldRead } from "@/lib/fieldRead";
 import { formatDistance } from "@/lib/trips";
 
+const MAPBOX_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+
 const markerIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -186,9 +188,18 @@ export function AwarenessMap({
         </div>
         <div className="mt-2 h-[220px] w-full">
           <MapContainer center={startRef.current} zoom={12} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
+            {/* Same dark basemap as the board above, so the room reads as one
+                surface instead of two unrelated maps. */}
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution={
+                MAPBOX_TOKEN
+                  ? '&copy; Mapbox &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                  : '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              }
+              url={MAPBOX_TOKEN
+                ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+                : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"}
+              {...(MAPBOX_TOKEN ? { tileSize: 512, zoomOffset: -1 } : {})}
             />
             <Recenter center={center} />
             {lines.map((line, i) => (
