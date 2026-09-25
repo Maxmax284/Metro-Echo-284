@@ -196,14 +196,18 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
               </p>
             ) : (
               <ul className="mt-1 space-y-1">
-                {changes.map((c) => (
-                  <li key={c.id} className="flex items-start gap-2 text-[12px] leading-relaxed">
+                {/* Identical repeats of one change are one news item, not 19. */}
+                {foldChanges(changes).map((c) => (
+                  <li key={c.key} className="flex items-start gap-2 text-[12px] leading-relaxed">
                     <StatusDot tone={CHANGE_TONE[c.change] ?? "muted"} className="mt-1.5" />
                     <span className="min-w-0 flex-1">
-                      {changeLine(c)}
-                      {c.was_filed && <span className="text-muted-foreground"> You had this filed under a project.</span>}
+                      {changeLine(c.first)}
+                      {c.times > 1 && (
+                        <span className="text-muted-foreground"> · {c.times}× {checkedLabel(c.first.detected_at).replace("checked ", "").trim() ? `latest ${checkedLabel(c.first.detected_at).replace("checked ", "")}` : ""}</span>
+                      )}
+                      {c.first.was_filed && <span className="text-muted-foreground"> You had this filed under a project.</span>}
                     </span>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">{checkedLabel(c.detected_at).replace("checked ", "")}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{checkedLabel(c.first.detected_at).replace("checked ", "")}</span>
                   </li>
                 ))}
               </ul>
