@@ -11,6 +11,7 @@ import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
 import { setRoom, throwFrom } from "@/lib/skins";
+import { beginRoomSwap } from "@/lib/roomSwap";
 import { RoomSignal } from "@/components/shell/RoomSignal";
 import type { RoomKey } from "@/lib/navigation";
 import type { RoomSignal as RoomSignalState } from "@/lib/roomSignals";
@@ -62,7 +63,13 @@ export function SurfaceTabs({
       window.location.assign(signal.href);
       return;
     }
-    onChange(signal?.target ?? key);
+    const target = signal?.target ?? key;
+    /* Tell the shell where we are going before the room state changes. Building
+       a room blocks the main thread long enough to swallow the whole transition,
+       so the outgoing room has to be photographed and set moving first, then
+       handed over a frame later. */
+    beginRoomSwap(target);
+    requestAnimationFrame(() => onChange(target));
     if (signal?.situationId) {
       window.setTimeout(() => document.getElementById(
         signal.target === "actions" ? `action-${signal.situationId}` :
