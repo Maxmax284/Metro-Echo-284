@@ -166,7 +166,7 @@ export function SurfaceCrossfade({
     };
     fadeOut.finished.then(retire).catch(() => {});
     // Belt and braces: a cancelled or discarded animation must not leave a ghost.
-    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.35 + 200);
+    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.55 + 240);
   }, [surfaceKey]);
 
   useEffect(
@@ -198,6 +198,9 @@ export function SurfaceCrossfade({
   );
 }
 
+/** One curve for the whole transit: quick release, long coast, soft landing. */
+const SWAP_EASE = "cubic-bezier(0.12, 0.98, 0.16, 1)";
+
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -207,16 +210,16 @@ function prefersReducedMotion(): boolean {
  * How far the room travels, and from which side.
  *
  * Forward along the line (Today to Work) arrives from the right; stepping back
- * arrives from the left, so the motion agrees with the tab you pressed. 26px
- * reads on a phone and disappears on a monitor, so the distance scales with the
- * glass and the room lands with the same weight on both.
+ * arrives from the left, so the motion agrees with the tab you pressed. A short
+ * hop reads as a twitch, so the distance is generous and scales with the glass:
+ * the room visibly arrives from off to one side on both a phone and a monitor.
  */
 function travelFor(fromKey: string, toKey: string): number {
   const from = roomOrder(fromKey);
   const to = roomOrder(toKey);
   const dir = to === from ? 0 : to > from ? 1 : -1;
   const vw = typeof window === "undefined" ? 384 : window.innerWidth;
-  const travel = vw >= 1280 ? 72 : vw >= 768 ? 52 : 26;
+  const travel = vw >= 1280 ? 132 : vw >= 768 ? 96 : 52;
   return dir * travel;
 }
 
