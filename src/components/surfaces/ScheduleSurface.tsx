@@ -27,8 +27,10 @@ import { CommitmentActions } from "@/components/commitments/CommitmentActions";
 import { AgendaRow } from "@/components/calendar/AgendaRow";
 import { useAgenda } from "@/hooks/useAgenda";
 import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
+import { SCHEDULE_TAB_EVENT, takeScheduleTab } from "@/lib/scheduleTab";
 
 type TabKey = "today" | "upcoming" | "week" | "board" | "body" | "money" | "help" | "flights" | "month" | "calendar";
+const KNOWN_TABS: TabKey[] = ["today", "upcoming", "week", "board", "body", "money", "help", "flights", "month", "calendar"];
 
 /* Desks that used to sit in this tab strip. They still render here so an old
    link lands where it always did, but they belong to Work now. */
