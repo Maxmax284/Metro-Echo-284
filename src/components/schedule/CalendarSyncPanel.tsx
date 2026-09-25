@@ -215,7 +215,7 @@ export function CalendarSyncPanel({ onOpenSettings }: { onOpenSettings?: () => v
                 {/* Identical repeats of one change are one news item, not 19. */}
                 {foldChanges(changes).map((c) => (
                   <li key={c.key} className="flex items-start gap-2 text-[12px] leading-relaxed">
-                    <StatusDot tone={CHANGE_TONE[c.change] ?? "muted"} className="mt-1.5" />
+                    <StatusDot tone={CHANGE_TONE[c.first.change] ?? "muted"} className="mt-1.5" />
                     <span className="min-w-0 flex-1">
                       {changeLine(c.first)}
                       {c.times > 1 && (
