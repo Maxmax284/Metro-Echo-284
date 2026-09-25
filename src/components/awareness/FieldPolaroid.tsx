@@ -64,13 +64,42 @@ export function FieldPolaroid({
 }) {
   const [data, setData] = useState<Payload | null>(null);
   const [read, setRead] = useState<string | null>(null);
+  const [readPart, setReadPart] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("about");
   const [shot, setShot] = useState(0);
+  const [liveWx, setLiveWx] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
   const cacheKey = `vanta.groundread.${city}`;
 
-  const { part, light } = useMemo(() => dayPartFor(timeZone), [timeZone]);
+  // Re-read the clock every 5 minutes so day part follows the real hour.
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((n) => n + 1), 5 * 60_000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  // Live weather at the actual fix — Open-Meteo, free, no AI, refreshed on move and every 30 min.
+  useEffect(() => {
+    if (lat == null || lon == null) { setLiveWx(null); return; }
+    let dead = false;
+    const load = () =>
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,weather_code,precipitation`)
+        .then((r) => r.json())
+        .then((j) => {
+          if (dead || !j?.current) return;
+          const c = j.current;
+          setLiveWx(`${Math.round(c.temperature_2m)}° ${wxLabel(c.weather_code)}${c.precipitation > 0 ? ", wet out" : ""}`);
+        })
+        .catch(() => {});
+    load();
+    const t = window.setInterval(load, 30 * 60_000);
+    return () => { dead = true; window.clearInterval(t); };
+  }, [lat == null ? null : lat.toFixed(2), lon == null ? null : lon.toFixed(2)]);
+
+  const weatherLine = liveWx ?? weather ?? null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { part, light } = useMemo(() => dayPartFor(timeZone), [timeZone, tick]);
   const lang = LANG_BY_COUNTRY[(country ?? "").trim().toLowerCase()] ?? null;
   const localTime = (() => {
     try { return new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: timeZone ?? undefined }); }
@@ -80,7 +109,7 @@ export function FieldPolaroid({
   async function call(withRead: boolean) {
     if (!city) return;
     const { data: res, error } = await supabase.functions.invoke("place-ground-read", {
-      body: { city, region, country, localTime, dayPart: part, weather: weather ?? null, lang, nearby: [], withRead },
+      body: { city, region, country, localTime, dayPart: part, weather: weatherLine, lang, nearby: (nearby ?? []).slice(0, 6), withRead },
     });
     if (error) {
       const d = error instanceof FunctionsHttpError ? await error.context.json().catch(() => null) : null;
@@ -96,8 +125,9 @@ export function FieldPolaroid({
     try {
       const c = JSON.parse(localStorage.getItem(cacheKey) ?? "null");
       setRead(c?.read ?? null);
+      setReadPart(c?.readPart ?? null);
       if (c?.page || c?.photos) setData(c);
-    } catch { setRead(null); }
+    } catch { setRead(null); setReadPart(null); }
     if (!city) return;
     call(false).then((d) => d && setData(d)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,13 +138,15 @@ export function FieldPolaroid({
     try {
       const d = await call(true);
       if (d) {
-        setRead(d.read); setData(d);
-        localStorage.setItem(cacheKey, JSON.stringify(d));
+        setRead(d.read); setData(d); setReadPart(part);
+        localStorage.setItem(cacheKey, JSON.stringify({ ...d, readPart: part }));
         play("stamp", { gain: 0.5 });
       }
     } catch (e) { setErr((e as Error).message); }
     finally { setBusy(false); }
   }
+  const readStale = !!read && !!readPart && readPart !== part;
+
 
   if (!city) return null;
 
