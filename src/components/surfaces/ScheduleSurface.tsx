@@ -1,4 +1,5 @@
 import { FlowRail, FLOWS } from "@/components/work/FlowRail";
+import { PushPrompt } from "@/components/schedule/PushPrompt";
 import { useEffect, useState } from "react";
 import { useCalendarOpenRefresh } from "@/hooks/useCalendarOpenRefresh";
 import { supabase } from "@/integrations/supabase/client";
