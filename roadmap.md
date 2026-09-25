@@ -49,3 +49,8 @@
 - [x] Arrival alerts: landedAlert module + journey-watch pass sends one timed Telegram message per landing with gate, terminal and the board caveat
 
 - [ ] Google Calendar connect failing ("failed, Lovable notified") — diagnose
+
+## Ask background stabilization
+- [x] Remove legacy CRT crawl, stepped neon flicker, voltage jitter, and pulsing Ask backdrop layers
+- [x] Keep one static alley wall with a steady lamp while preserving Ask content and transitions
+- [ ] Verify Ask at desktop and phone sizes, including room switching and an active response
