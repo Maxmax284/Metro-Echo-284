@@ -297,17 +297,21 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
  */
 function JumpTile({
   label,
+  word,
   line,
   Icon,
   href,
   onOpen,
 }: {
   label: string;
+  /** Short destination word for the transfer drum. Defaults to the label. */
+  word?: string;
   line: string;
   Icon: typeof Inbox;
   href?: string;
   onOpen?: () => void;
 }) {
+  const navigate = useNavigate();
   const className = cn(
     "flex min-h-[60px] w-full flex-col justify-center gap-0.5 vanta-inset vanta-cut px-3 py-2 text-left touch-manipulation hover:bg-surface-elevated/70",
     MOTION_ROW,
