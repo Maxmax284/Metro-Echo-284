@@ -484,17 +484,16 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         </p>
         {/* The debrief: today's meaningful moves only, Echo's take on top,
             plumbing folded away. The full list is one tap behind it. */}
-        {attention.length === 0 ? (
-          <TodayBriefing
-            events={allEvents}
-            place={null}
-            overdue={digest.overdue.length}
-            waiting={digest.actions.length}
-            dueToday={dueToday.length}
-            loading={loadingCritical}
-            onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
-          />
-        ) : null}
+        <TodayBriefing
+          events={allEvents}
+          place={null}
+          overdue={digest.overdue.length}
+          waiting={digest.actions.length}
+          dueToday={dueToday.length}
+          loading={loadingCritical}
+          onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
+        />
+
         {/* Where the clock came from. A browser guess is never presented as
             settled truth. */}
         <TimeSourceLine
