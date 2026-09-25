@@ -22,16 +22,20 @@ function reducedMotion() {
 export function SolariNumber({
   value,
   tone = "primary",
+  size = "sm",
   className,
 }: {
   value: number | string;
   tone?: "primary" | "default" | "warn" | "danger";
+  /** sm = inline badge. lg = a real board drum, for headline counts. */
+  size?: "sm" | "lg";
   className?: string;
 }) {
   const target = String(value);
   const prev = useRef(target);
   const [shown, setShown] = useState(target);
   const [gen, setGen] = useState(0);
+
 
   useEffect(() => {
     const from = prev.current;
