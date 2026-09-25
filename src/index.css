@@ -478,45 +478,21 @@
    tapped (--swap-x, set by the shell) and decelerates into place like a car
    pulling into a station. */
 /* Rooms are transparent by design — the graffiti wall shows through them. So the
-   two layers have to hand over with their opacities adding up to roughly one at
-   every frame, or you read both rooms' text at once (the flicker) or neither and
-   the bare wall flashes. Hence the matched, deliberately short cross-over: both
-   fades finish at 40% of the slide, one rising exactly as the other falls, and
-   the rest of the duration is pure movement with no blending at all. */
-/* Movement and fade are separate animations on purpose. The slide wants a heavy
-   deceleration curve; the fade must stay linear, because easing the two fades
-   differently is what breaks the "adds up to one" rule and brings the flicker
-   back. Keep them apart. */
+   two layers have to hand over with their opacities adding up to one at every
+   frame, or you read both rooms' text at once, or neither and the bare wall
+   flashes through. Both of those read as flicker.
+   The fade is therefore NOT done here. It is paired in JS (see
+   shell/SurfaceCrossfade) so the two layers start their fades on the very same
+   frame even when building the incoming room stalls the main thread. A CSS fade
+   on each layer independently is what caused the flicker: on a slow frame the
+   outgoing fade had finished while the incoming one had not started. This class
+   owns the movement only. */
 @keyframes vanta-surface-slide-in {
   from { transform: translate3d(var(--swap-x, 0px), var(--room-swap-drift, 4px), 0) scale(0.996); }
   to   { transform: translate3d(0, 0, 0) scale(1); }
 }
-@keyframes vanta-surface-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
 .motion-surface-in {
-  /* No start delay: a delay leaves a frame with nothing on it. */
-  animation:
-    vanta-surface-slide-in calc(var(--room-swap-ms, 200ms) * 1.35) cubic-bezier(0.16, 0.9, 0.2, 1) both,
-    vanta-surface-fade-in calc(var(--room-swap-ms, 200ms) * 0.54) linear both;
-  will-change: opacity, transform;
-}
-
-/* Outgoing room snapshot: clears out the far side of the line as the incoming
-   room takes its place. One continuous move instead of a hard cut. */
-@keyframes vanta-surface-slide-out {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(calc(var(--swap-x, 0px) * -1.1), calc(var(--room-swap-drift, 4px) * -0.6), 0) scale(0.992); }
-}
-@keyframes vanta-surface-fade-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-.motion-surface-out {
-  animation:
-    vanta-surface-slide-out calc(var(--room-swap-ms, 200ms) * 1.35) cubic-bezier(0.16, 0.9, 0.2, 1) both,
-    vanta-surface-fade-out calc(var(--room-swap-ms, 200ms) * 0.54) linear both;
+  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 200ms) * 1.35) cubic-bezier(0.16, 0.9, 0.2, 1) both;
   will-change: opacity, transform;
 }
 
