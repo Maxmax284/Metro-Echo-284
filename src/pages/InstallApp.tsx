@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, Smartphone, Apple } from "lucide-react";
 import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
+import { PushPrompt } from "@/components/schedule/PushPrompt";
 import { HOME_ADDRESS, installBlockedHere } from "@/lib/pwaInstall";
 
 /**
@@ -28,6 +29,8 @@ export default function InstallApp() {
       </header>
 
       <InstallVantaSection alwaysShow />
+
+      <PushPrompt className="mt-4" />
 
       <section className="mt-6 space-y-3">
         <h2 className="text-[11px] uppercase tracking-wider text-muted-foreground">Steps by phone</h2>
