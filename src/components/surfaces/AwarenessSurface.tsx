@@ -470,6 +470,7 @@ export function AwarenessSurface() {
           activeId={boardPlaceId}
           liveId={liveId}
           onSelect={(id) => setBoardPlaceId(id === liveId ? null : id)}
+          onAdd={addReadingPlace}
         />
 
         {!boardIsLive && boardPlace ? (
