@@ -38,11 +38,11 @@ import {
 } from "@/components/ui/instrument";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
-  PROJECT_STATUS_LABEL,
   PROJECT_STATUS_TONE,
   projectStatus,
   projectTimeLabel,
 } from "@/lib/workLabels";
+import { ProjectSticker } from "@/components/projects/ProjectSticker";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
