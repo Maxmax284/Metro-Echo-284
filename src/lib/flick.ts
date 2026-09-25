@@ -41,8 +41,15 @@ export function startFlickInertia(): () => void {
   };
 
   const onScroll = (e: Event) => {
-    const el = e.target as HTMLElement | null;
-    if (!el || !(el instanceof HTMLElement)) return;
+    /* The page itself scrolls as the document; a room scroller as an element. */
+    const raw = e.target;
+    const el =
+      raw instanceof HTMLElement
+        ? raw
+        : raw === document || raw === window
+          ? document.documentElement
+          : null;
+    if (!el) return;
     const top = el.scrollTop;
     const prev = lastTop.get(el);
     lastTop.set(el, top);
