@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
 
 const STEP_MS = 62;
+const STEP_MS_LG = 88;
 
 function reducedMotion() {
   return (
@@ -67,13 +68,14 @@ export function SolariNumber({
           });
           setShown(cur.join(""));
           setGen((g) => g + 1);
-          if (landed > 0) play("clack");
-          else if (s === 1) play("solari");
-        }, s * STEP_MS),
+          const loud = size === "lg" ? 1.9 : 1;
+          if (landed > 0) { play("clack", { gain: loud }); if (size === "lg") play("stamp", { gain: 0.35 }); }
+          else play(s === 1 ? "solari" : "tick", { gain: size === "lg" ? 1.4 : s === 1 ? 1 : 0 });
+        }, s * (size === "lg" ? STEP_MS_LG : STEP_MS)),
       );
     }
     return () => timers.forEach((t) => window.clearTimeout(t));
-  }, [target]);
+  }, [target, size]);
 
   const toneClass =
     tone === "warn"
@@ -86,7 +88,7 @@ export function SolariNumber({
 
   const sizeClass =
     size === "lg"
-      ? "h-[40px] min-w-[27px] text-[26px] rounded-[2px]"
+      ? "h-[52px] min-w-[36px] text-[34px] rounded-[3px] border-2"
       : "h-[22px] min-w-[15px] text-[13px] rounded-[1px]";
 
   return (

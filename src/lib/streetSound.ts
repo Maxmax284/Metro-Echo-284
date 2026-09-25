@@ -84,14 +84,18 @@ function loadSamples(a: AudioContext) {
       .catch(() => {});
   }
 }
-function sample(a: AudioContext, kind: StreetSound): boolean {
+function sample(a: AudioContext, kind: StreetSound, gain = 1): boolean {
   const buf = buffers.get(kind);
   if (!buf) return false;
   const src = a.createBufferSource();
   src.buffer = buf;
   // A touch of pitch drift so twenty flaps never sound like one loop.
   src.playbackRate.value = 0.94 + Math.random() * 0.12;
-  src.connect(out(a));
+  if (gain !== 1) {
+    const g = a.createGain();
+    g.gain.value = gain;
+    src.connect(g).connect(out(a));
+  } else src.connect(out(a));
   // Hold a reference until it ends so nothing collects it mid-play.
   live.add(src);
   src.onended = () => live.delete(src);
@@ -147,7 +151,7 @@ function tone(a: AudioContext, t: number, from: number, to: number, dur: number,
   o.stop(t + dur + 0.02);
 }
 
-export function play(kind: StreetSound, { force = false }: { force?: boolean } = {}) {
+export function play(kind: StreetSound, { force = false, gain = 1 }: { force?: boolean; gain?: number } = {}) {
   if (!force && !soundOn()) return;
   const now = performance.now();
   // Rate limit: a burst of flaps is one clatter, not a machine gun.
@@ -161,14 +165,14 @@ export function play(kind: StreetSound, { force = false }: { force?: boolean } =
   // A sleeping context would start the sound "in the past" and chop its head
   // off mid-slide. Wait for it to wake, then play from the top.
   if (a.state !== "running") {
-    void a.resume().then(() => render(a, kind)).catch(() => {});
+    void a.resume().then(() => render(a, kind, gain)).catch(() => {});
     return;
   }
-  render(a, kind);
+  render(a, kind, gain);
 }
 
-function render(a: AudioContext, kind: StreetSound) {
-  if (sample(a, kind)) return;
+function render(a: AudioContext, kind: StreetSound, gain = 1) {
+  if (sample(a, kind, gain)) return;
   const t = a.currentTime;
   switch (kind) {
     case "solari":
