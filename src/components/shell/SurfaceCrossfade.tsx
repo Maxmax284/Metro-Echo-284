@@ -98,41 +98,75 @@ export function SurfaceCrossfade({
     }
   }
 
-  // The incoming room has painted. Hand over.
+  // The incoming room has landed. Hand over.
   useLayoutEffect(() => {
     const ghostHost = ghostHostRef.current;
+    const liveEl = liveRef.current;
     if (!ghostHost) return;
     if (clearTimer.current) window.clearTimeout(clearTimer.current);
 
     const prefs = readRoomSwapPrefs();
     const fallback = pendingFallback.current;
     pendingFallback.current = null;
-    const active = armed.current;
+    const active = armed.current?.key === surfaceKey ? armed.current : null;
     armed.current = null;
 
-    let fadeMs = 0;
-    if (active?.key === surfaceKey) {
-      // Already sliding — just dissolve it out against the room that just landed.
+    let clone: HTMLElement;
+    let fadeMs: number;
+    if (active) {
+      // Already sliding from the nav press. Only the dissolve is left.
+      clone = active.clone;
       fadeMs = active.fadeMs;
-      active.clone.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: fadeMs,
-        easing: "linear",
-        fill: "forwards",
-      });
     } else if (fallback) {
+      // Room changed from somewhere other than the nav: slide and dissolve here.
       hostRef.current?.style.setProperty("--swap-x", `${fallback.x}px`);
       ghostHost.replaceChildren(fallback.clone);
-      fallback.clone.classList.add("motion-surface-out");
-      fadeMs = prefs.durationMs * 1.35;
+      clone = fallback.clone;
+      fadeMs = Math.max(80, prefs.durationMs * 0.54);
+      clone.animate(
+        [
+          { transform: "translate3d(0, 0, 0) scale(1)" },
+          {
+            transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+          },
+        ],
+        { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+      );
     } else {
       ghostHost.replaceChildren();
       return;
     }
 
-    clearTimer.current = window.setTimeout(() => {
-      ghostHostRef.current?.replaceChildren();
-      clearTimer.current = null;
-    }, fadeMs + 40);
+    /* Both fades are created here, together, so they share one start time on the
+       document timeline. That is the whole point: if the next frame is late
+       because the browser is still building the room, both are late by the same
+       amount and their opacities still add up to one. Fading each layer on its
+       own schedule is what let the wall flash through. */
+    const fadeOut = clone.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: fadeMs,
+      easing: "linear",
+      fill: "forwards",
+    });
+    liveEl?.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: fadeMs,
+      easing: "linear",
+      fill: "backwards",
+    });
+
+    // Retire the photograph when its fade has actually finished, not on a guess.
+    let retired = false;
+    const retire = () => {
+      if (retired) return;
+      retired = true;
+      if (ghostHostRef.current?.firstElementChild === clone) {
+        ghostHostRef.current.replaceChildren();
+      } else {
+        clone.remove();
+      }
+    };
+    fadeOut.finished.then(retire).catch(() => {});
+    // Belt and braces: a cancelled or discarded animation must not leave a ghost.
+    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.35 + 200);
   }, [surfaceKey]);
 
   useEffect(
