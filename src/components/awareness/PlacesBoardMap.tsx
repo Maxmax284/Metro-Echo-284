@@ -7,6 +7,12 @@ import "leaflet/dist/leaflet.css";
 
 export type MapSpot = { id: string; name: string; lat: number; lon: number };
 
+const MAPBOX_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+// Mapbox dark basemap when the token is linked; Carto dark as the fallback.
+const TILE_URL = MAPBOX_TOKEN
+  ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+  : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
 const pin = (active: boolean, live: boolean) =>
   L.divIcon({
     className: "",
