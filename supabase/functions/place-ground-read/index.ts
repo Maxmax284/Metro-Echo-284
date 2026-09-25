@@ -75,7 +75,7 @@ async function dossier(title: string, lang: string | null) {
       // End at the next heading of the same or higher level, so subsections stay.
       const next = new RegExp(`\\n={2,${level}}[^=\\n]+={2,${level}}\\s*\\n`).exec(rest);
       const body = (next ? rest.slice(0, next.index) : rest)
-        .replace(/\n=+\s*([^=\n]+?)\s*=+\s*\n/g, "\n$1: ")
+        .replace(/^=+\s*([^=\n]+?)\s*=+$/gm, "$1:")
         .replace(/\n{2,}/g, "\n")
         .trim();
       if (body.length > 80) return body.slice(0, 1400);
