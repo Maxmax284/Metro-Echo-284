@@ -352,6 +352,31 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const placeBoard = useTodayPlaceBoard();
   const liveAware = useAwarenessOptional();
   const liveTown = (((liveAware?.place?.geo as any)?.city as string) ?? liveAware?.place?.label ?? null)?.split(",")[0] ?? null;
+  /* Beacon telemetry: only readings the place record actually holds. How the
+     fix was got, how tight it is, how old it is. Nothing invented. */
+  const liveTelemetry = useMemo(() => {
+    const geo = (liveAware?.place?.geo ?? null) as any;
+    if (!geo) return [] as Array<{ word: string; tone?: "live" | "hold" }>;
+    const out: Array<{ word: string; tone?: "live" | "hold" }> = [];
+    const src = String(geo.source ?? "").toLowerCase();
+    if (src) {
+      const word = src.includes("device") || src.includes("gps") ? "GPS FIX"
+        : src.includes("named") || src.includes("manual") || src.includes("you") ? "SET BY YOU"
+        : "MAP FIX";
+      out.push({ word, tone: word === "GPS FIX" ? "live" : "hold" });
+    }
+    const acc = Number(geo.accuracy ?? geo.acc);
+    if (Number.isFinite(acc) && acc > 0) {
+      out.push({ word: `${acc >= 1000 ? `${Math.round(acc / 1000)}KM` : `${Math.round(acc)}M`} ACC`, tone: acc > 500 ? "hold" : "live" });
+    }
+    const at = liveAware?.place?.updated_at ? new Date(liveAware.place.updated_at).getTime() : NaN;
+    if (Number.isFinite(at)) {
+      const mins = Math.max(0, Math.round((Date.now() - at) / 60000));
+      const word = mins < 1 ? "FIX NOW" : mins < 60 ? `FIX ${mins}M` : mins < 1440 ? `FIX ${Math.round(mins / 60)}H` : `FIX ${Math.round(mins / 1440)}D`;
+      out.push({ word, tone: mins > 720 ? "hold" : "live" });
+    }
+    return out.slice(0, 3);
+  }, [liveAware?.place?.geo, liveAware?.place?.updated_at]);
   /* What actually landed — Telegram messages, files, voice notes — read through
      the same lane rules Inbox and the Telegram reply use. Today shows the top
      few lines; filing still happens in Inbox. */
