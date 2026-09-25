@@ -1,19 +1,31 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { readRoomSwapPrefs } from "@/lib/motionPrefs";
 import { roomOrder } from "@/lib/navigation";
+import { registerRoomSwap } from "@/lib/roomSwap";
 
 /**
- * Room-to-room crossfade with matched layout.
+ * Room-to-room handoff.
  *
- * React unmounts the outgoing surface the instant the room key changes, which
- * reads as a snap. Instead of keeping two live surfaces mounted (double
- * fetches, double subscriptions), we take a cheap DOM snapshot of the outgoing
- * surface, park it in an absolutely positioned ghost layer over the same box,
- * and fade that out while the incoming surface lifts in. Scroll offsets are
- * copied onto the ghost's scroller so the two layers line up pixel-for-pixel
- * during the handoff.
+ * Two things were making this read as a flicker rather than a move, and both had
+ * to be fixed:
  *
- * Everything degrades to an instant swap under prefers-reduced-motion.
+ * 1. The outgoing room was being photographed in a layout effect, which runs
+ *    *after* React has already swapped the DOM — so the photograph was of the
+ *    incoming room. Two copies of the same room slid opposite ways while the
+ *    graffiti wall flashed through the gap between them.
+ *
+ * 2. Rendering a room costs real main-thread time. Starting the slide only after
+ *    that render means the stall eats the motion and you get a snap.
+ *
+ * So: the nav announces the destination on press (see lib/roomSwap), we take the
+ * photograph and start it sliding on the compositor right then, and React
+ * changes rooms a frame later. The photograph holds full opacity through the
+ * render stall — no bare frames — and cross-dissolves with the incoming room
+ * once that room is actually on screen.
+ *
+ * The ghost layer is driven imperatively on purpose. Routing it through React
+ * state would batch it into the same commit as the expensive room render, which
+ * is exactly the stall we are trying to get out in front of.
  */
 export function SurfaceCrossfade({
   surfaceKey,
@@ -29,77 +41,114 @@ export function SurfaceCrossfade({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const liveRef = useRef<HTMLDivElement | null>(null);
   const ghostHostRef = useRef<HTMLDivElement | null>(null);
-  const prevKey = useRef(surfaceKey);
-  const [ghosting, setGhosting] = useState(false);
-  const ghostMs = useRef(180);
+  const keyRef = useRef(surfaceKey);
+  /** Ghost that the nav press already put on screen and started sliding. */
+  const armed = useRef<{ key: string; clone: HTMLElement; fadeMs: number } | null>(null);
+  const clearTimer = useRef<number | null>(null);
+  /** Snapshot taken during render when the swap arrived without warning. */
+  const pendingFallback = useRef<{ clone: HTMLElement; x: number } | null>(null);
 
+  // Announced swap: photograph and start moving before the room state changes.
+  useEffect(
+    () =>
+      registerRoomSwap((nextKey) => {
+        if (nextKey === keyRef.current) return;
+        const prefs = readRoomSwapPrefs();
+        if (!prefs.enabled || prefersReducedMotion()) return;
+        const outgoing = liveRef.current;
+        const ghostHost = ghostHostRef.current;
+        if (!outgoing || !ghostHost) return;
+
+        const x = travelFor(keyRef.current, nextKey);
+        const clone = snapshot(outgoing);
+        ghostHost.replaceChildren(clone);
+        hostRef.current?.style.setProperty("--swap-x", `${x}px`);
+
+        /* Transform only for now. The photograph stays fully opaque until the
+           incoming room has actually painted, otherwise the wall shows through
+           while React is still busy building it. */
+        clone.animate(
+          [
+            { transform: "translate3d(0, 0, 0) scale(1)" },
+            {
+              transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+            },
+          ],
+          { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+        );
+        armed.current = { key: nextKey, clone, fadeMs: Math.max(80, prefs.durationMs * 0.54) };
+      }),
+    [],
+  );
+
+  /* Render phase for the new key: React has not touched the DOM yet, so if no
+     ghost was armed (a room change from somewhere other than the nav) this is
+     the last moment the outgoing room is still reachable.
+     Nothing here may clear `armed` — this block can run twice for one commit,
+     and throwing away a ghost that is already sliding leaves blank frames. */
+  if (keyRef.current !== surfaceKey) {
+    const from = keyRef.current;
+    keyRef.current = surfaceKey;
+    if (armed.current?.key !== surfaceKey) {
+      const prefs = readRoomSwapPrefs();
+      const outgoing = liveRef.current;
+      if (prefs.enabled && !prefersReducedMotion() && outgoing) {
+        pendingFallback.current = { clone: snapshot(outgoing), x: travelFor(from, surfaceKey) };
+      }
+    }
+  }
+
+  // The incoming room has painted. Hand over.
   useLayoutEffect(() => {
-    if (prevKey.current === surfaceKey) return;
-    const from = roomOrder(prevKey.current);
-    const to = roomOrder(surfaceKey);
-    prevKey.current = surfaceKey;
-
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    // Per-device knob from Settings > Room switching. Off = plain swap.
-    const prefs = readRoomSwapPrefs();
-    ghostMs.current = Math.round(prefs.durationMs * 1.35) + 60;
-    const outgoing = liveRef.current;
     const ghostHost = ghostHostRef.current;
-    if (reduced || !prefs.enabled || !outgoing || !ghostHost) return;
+    if (!ghostHost) return;
+    if (clearTimer.current) window.clearTimeout(clearTimer.current);
 
-    /* Which way the line runs. Forward (Today → Work) brings the room in from
-       the right; stepping back brings it in from the left. Same room order as
-       the tab bar, so the motion agrees with what you tapped. */
-    const dir = to === from ? 0 : to > from ? 1 : -1;
-    /* 26px reads on a phone and vanishes on a monitor. Scale the travel with
-       the glass so the room arrives with the same weight on both. */
-    const vw = typeof window !== "undefined" ? window.innerWidth : 384;
-    const travel = vw >= 1280 ? 72 : vw >= 768 ? 52 : 26;
-    hostRef.current?.style.setProperty("--swap-x", `${dir * travel}px`);
+    const prefs = readRoomSwapPrefs();
+    const fallback = pendingFallback.current;
+    pendingFallback.current = null;
+    const active = armed.current;
+    armed.current = null;
 
+    let fadeMs = 0;
+    if (active?.key === surfaceKey) {
+      // Already sliding — just dissolve it out against the room that just landed.
+      fadeMs = active.fadeMs;
+      active.clone.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: fadeMs,
+        easing: "linear",
+        fill: "forwards",
+      });
+    } else if (fallback) {
+      hostRef.current?.style.setProperty("--swap-x", `${fallback.x}px`);
+      ghostHost.replaceChildren(fallback.clone);
+      fallback.clone.classList.add("motion-surface-out");
+      fadeMs = prefs.durationMs * 1.35;
+    } else {
+      ghostHost.replaceChildren();
+      return;
+    }
 
-    // Snapshot the outgoing surface at its current size and scroll position.
-    const rect = outgoing.getBoundingClientRect();
-    const clone = outgoing.cloneNode(true) as HTMLElement;
-    clone.style.height = `${rect.height}px`;
-    clone.style.width = `${rect.width}px`;
-    clone.classList.remove("motion-surface-in");
-    clone.setAttribute("aria-hidden", "true");
-    clone.querySelectorAll("input, textarea, button, a, select").forEach((n) =>
-      (n as HTMLElement).setAttribute("tabindex", "-1"),
-    );
-
-    const srcScrollers = outgoing.querySelectorAll<HTMLElement>(".overflow-y-auto");
-    const cloneScrollers = clone.querySelectorAll<HTMLElement>(".overflow-y-auto");
-    srcScrollers.forEach((src, i) => {
-      const dest = cloneScrollers[i];
-      if (dest) dest.scrollTop = src.scrollTop;
-    });
-
-    ghostHost.replaceChildren(clone);
-    setGhosting(true);
+    clearTimer.current = window.setTimeout(() => {
+      ghostHostRef.current?.replaceChildren();
+      clearTimer.current = null;
+    }, fadeMs + 40);
   }, [surfaceKey]);
 
-  // Retire the ghost once its fade has played out.
-  useEffect(() => {
-    if (!ghosting) return;
-    const t = window.setTimeout(() => {
-      ghostHostRef.current?.replaceChildren();
-      setGhosting(false);
-    }, ghostMs.current);
-    return () => window.clearTimeout(t);
-  }, [ghosting, surfaceKey]);
+  useEffect(
+    () => () => {
+      if (clearTimer.current) window.clearTimeout(clearTimer.current);
+    },
+    [],
+  );
 
   return (
     <div ref={hostRef} className={`relative flex flex-1 min-h-0 flex-col ${className ?? ""}`}>
+      {/* Stable and empty when idle, so React never re-paints over a live ghost. */}
       <div
         ref={ghostHostRef}
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 z-10 overflow-hidden ${
-          ghosting ? "motion-surface-out" : "hidden"
-        }`}
+        className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
       />
       <div
         key={surfaceKey}
@@ -113,4 +162,52 @@ export function SurfaceCrossfade({
       </div>
     </div>
   );
+}
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+/**
+ * How far the room travels, and from which side.
+ *
+ * Forward along the line (Today to Work) arrives from the right; stepping back
+ * arrives from the left, so the motion agrees with the tab you pressed. 26px
+ * reads on a phone and disappears on a monitor, so the distance scales with the
+ * glass and the room lands with the same weight on both.
+ */
+function travelFor(fromKey: string, toKey: string): number {
+  const from = roomOrder(fromKey);
+  const to = roomOrder(toKey);
+  const dir = to === from ? 0 : to > from ? 1 : -1;
+  const vw = typeof window === "undefined" ? 384 : window.innerWidth;
+  const travel = vw >= 1280 ? 72 : vw >= 768 ? 52 : 26;
+  return dir * travel;
+}
+
+/** Frozen copy of a surface at its current size and scroll position. */
+function snapshot(outgoing: HTMLElement): HTMLElement {
+  const rect = outgoing.getBoundingClientRect();
+  const clone = outgoing.cloneNode(true) as HTMLElement;
+  clone.style.height = `${rect.height}px`;
+  clone.style.width = `${rect.width}px`;
+  clone.classList.remove("motion-surface-in");
+  clone.style.animation = "none";
+  clone.style.willChange = "opacity, transform";
+  clone.setAttribute("aria-hidden", "true");
+  // Nothing inside a photograph should be reachable by keyboard or screen reader.
+  clone.querySelectorAll("input, textarea, button, a, select").forEach((n) =>
+    (n as HTMLElement).setAttribute("tabindex", "-1"),
+  );
+  // Duplicate ids would collide with the live room for the length of the slide.
+  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+
+  const srcScrollers = outgoing.querySelectorAll<HTMLElement>(".overflow-y-auto");
+  const cloneScrollers = clone.querySelectorAll<HTMLElement>(".overflow-y-auto");
+  srcScrollers.forEach((src, i) => {
+    const dest = cloneScrollers[i];
+    if (dest) dest.scrollTop = src.scrollTop;
+  });
+  return clone;
 }
