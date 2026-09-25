@@ -17,11 +17,16 @@ export const BUCKETS: Record<BucketKey, { title: string; hint: string; target: S
 
 export const BUCKET_ORDER: BucketKey[] = ["inbound", "schedule", "actions", "insights"];
 
-/** Housekeeping — excluded from the human summary. */
+/** Housekeeping — excluded from the human shelves, folded away and countable. */
 const NOISE = [
   /patterns?[_ ]scanned/i, /nudge[_ ]dismissed/i, /health/i, /heartbeat/i, /sync(ed)?[_ ]ok/i,
   /cache/i, /^calendar[_ ]sync/i, /synchroni[sz]ed/i,
+  /push[_ .]/i, /diagnos/i, /[_ .]test/i, /^test/i, /subscription/i, /service[_ ]?worker/i,
+  /token[_ ]refresh/i, /oauth/i, /sweep/i, /scan/i, /embedding/i, /autolink/i, /viewed/i, /opened/i,
+  /prefs?[_ .]/i, /preference/i, /settings?[_ .]/i, /acknowledg/i, /today[_ ]take/i,
+  /brief(ing)?[_ ](generated|composed|read)/i,
 ];
+
 
 const PLAIN: Array<[RegExp, string]> = [
   [/transition:?\s*staged\s*->\s*approved/i, "Action approved"],
