@@ -74,7 +74,7 @@ export function SurfaceCrossfade({
               transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
             },
           ],
-          { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
+          { duration: prefs.durationMs * 1.4, easing: SWAP_EASE, fill: "forwards" },
         );
         armed.current = { key: nextKey, clone, fadeMs: Math.max(140, prefs.durationMs * 0.7) };
       }),
@@ -130,7 +130,7 @@ export function SurfaceCrossfade({
             transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
           },
         ],
-        { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
+        { duration: prefs.durationMs * 1.4, easing: SWAP_EASE, fill: "forwards" },
       );
     } else {
       ghostHost.replaceChildren();
@@ -166,7 +166,7 @@ export function SurfaceCrossfade({
     };
     fadeOut.finished.then(retire).catch(() => {});
     // Belt and braces: a cancelled or discarded animation must not leave a ghost.
-    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.55 + 240);
+    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.4 + 240);
   }, [surfaceKey]);
 
   useEffect(
@@ -199,7 +199,7 @@ export function SurfaceCrossfade({
 }
 
 /** One curve for the whole transit: quick release, long coast, soft landing. */
-const SWAP_EASE = "cubic-bezier(0.12, 0.98, 0.16, 1)";
+const SWAP_EASE = "cubic-bezier(0.22, 0.8, 0.24, 1)";
 
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;

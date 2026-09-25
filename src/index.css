@@ -495,7 +495,7 @@
    last few pixels take their time, which is what reads as a carriage coasting
    into a station rather than a page swapping. */
 .motion-surface-in {
-  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 420ms) * 1.55) cubic-bezier(0.12, 0.98, 0.16, 1) both;
+  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 380ms) * 1.4) cubic-bezier(0.22, 0.8, 0.24, 1) both;
   will-change: opacity, transform;
 }
 

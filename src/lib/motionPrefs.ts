@@ -39,7 +39,7 @@ export const ROOM_SWAP_LIMITS = {
 /** The three presets. Order is the order they are offered. */
 export const FEEL_PRESETS: Record<Exclude<Feel, "custom">, Omit<RoomSwapPrefs, "feel">> = {
   minimal: { enabled: true, durationMs: 200, driftPx: 0, blockStaggerMs: 0 },
-  standard: { enabled: true, durationMs: 420, driftPx: 7, blockStaggerMs: 90 },
+  standard: { enabled: true, durationMs: 380, driftPx: 7, blockStaggerMs: 90 },
   expressive: { enabled: true, durationMs: 620, driftPx: 14, blockStaggerMs: 150 },
 };
 
@@ -157,9 +157,9 @@ export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   root.style.setProperty("--room-swap-out-ms", `${Math.round(ms * 0.9)}ms`);
   root.style.setProperty("--room-swap-drift", `${prefs.enabled ? prefs.driftPx : 0}px`);
   root.style.setProperty("--block-stagger", `${prefs.enabled ? prefs.blockStaggerMs : 0}ms`);
-  /* 420ms is the new standard beat, so Standard resolves to k=1 and the
+  /* 380ms is the new standard beat, so Standard resolves to k=1 and the
      one-shot motifs (stamps, slips, flaps) keep their calibrated timing. */
-  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 420) * 100) / 100) : "0");
+  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 380) * 100) / 100) : "0");
   root.dataset.roomSwap = prefs.enabled ? "on" : "off";
   root.dataset.feel = prefs.feel;
 }
