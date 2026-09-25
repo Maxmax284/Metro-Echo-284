@@ -29,7 +29,7 @@ const freshnessLabel: Record<AwarenessHeaderState["freshness"], string> = {
   fresh: "fresh",
   aging: "aging",
   stale: "stale",
-  missing: "no brief",
+  missing: "new ground",
 };
 
 export function AmbientHeader({

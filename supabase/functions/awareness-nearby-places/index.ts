@@ -23,6 +23,7 @@ const BodySchema = z.object({
 
 type NearbyPlace = {
   name: string;
+  local_name?: string | null;
   kind: string; // city|town|village|suburb|hamlet|island
   lat: number;
   lon: number;
