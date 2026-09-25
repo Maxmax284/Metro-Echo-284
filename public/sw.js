@@ -31,7 +31,9 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body || "",
     icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    // Android draws `badge` in the status bar and it must be a monochrome
+    // alpha mask — a full-colour icon there flattens to a white blob.
+    badge: "/badge-monochrome.png",
     tag: payload.tag || "metro-echo",
     data: { url: payload.url || "/", ...(payload.data || {}) },
     actions,
