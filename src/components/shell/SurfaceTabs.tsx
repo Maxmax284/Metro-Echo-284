@@ -84,7 +84,7 @@ export function SurfaceTabs({
        handed over a frame later. */
     const nextRoom = roomForSurface(target);
     if (nextRoom !== activeRoom) {
-      beginDeskTransit({ word: ROOM_WORD[nextRoom], line: ROOM_LINE[nextRoom], holdMs: 420 });
+      beginDeskTransit({ word: ROOM_WORD[nextRoom], line: ROOM_LINE[nextRoom], holdMs: 760 });
     }
     beginRoomSwap(target);
     requestAnimationFrame(() => onChange(target));

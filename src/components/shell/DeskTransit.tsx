@@ -24,7 +24,7 @@ export function DeskTransitOverlay() {
         setLeaving(false);
         setTransit(t);
         play("turnstile", { gain: 0.7 });
-        const hold = feelMs(t.holdMs ?? 620, { min: 260 });
+        const hold = feelMs(t.holdMs ?? 980, { min: 420 });
         timers.current.push(window.setTimeout(() => setLeaving(true), hold));
         timers.current.push(
           window.setTimeout(() => {

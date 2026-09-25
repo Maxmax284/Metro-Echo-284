@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -28,31 +29,31 @@ import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { useDeliveryAck } from "@/hooks/useDeliveryAck";
 import Index from "./pages/Index.tsx";
-import GoogleCalendarReturn from "./pages/oauth/GoogleCalendarReturn";
-import GoogleReturn from "./pages/oauth/GoogleReturn";
-import Auth from "./pages/Auth.tsx";
-import Settings from "./pages/Settings.tsx";
-import InstallApp from "./pages/InstallApp.tsx";
-import SettingsGroup from "./pages/SettingsGroup.tsx";
-import IntegrationsSettings from "./pages/IntegrationsSettings.tsx";
-import ReconciliationView from "./pages/ReconciliationView.tsx";
-import ConnectedAccounts from "./pages/ConnectedAccounts.tsx";
-import WorkspaceStructure from "./pages/WorkspaceStructure.tsx";
-import ProjectsPage from "./pages/Projects.tsx";
-import FlightsPage from "./pages/Flights.tsx";
-import ProjectBriefPage from "./pages/ProjectBrief.tsx";
-import DocumentsPage from "./pages/Documents.tsx";
-import RoomMapPage from "./pages/RoomMap.tsx";
-import WearableLoopPage from "./pages/WearableLoop.tsx";
-import WatchPage from "./pages/Watch.tsx";
+const GoogleCalendarReturn = lazy(() => import("./pages/oauth/GoogleCalendarReturn"));
+const GoogleReturn = lazy(() => import("./pages/oauth/GoogleReturn"));
+const Auth = lazy(() => import("./pages/Auth.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
+const InstallApp = lazy(() => import("./pages/InstallApp.tsx"));
+const SettingsGroup = lazy(() => import("./pages/SettingsGroup.tsx"));
+const IntegrationsSettings = lazy(() => import("./pages/IntegrationsSettings.tsx"));
+const ReconciliationView = lazy(() => import("./pages/ReconciliationView.tsx"));
+const ConnectedAccounts = lazy(() => import("./pages/ConnectedAccounts.tsx"));
+const WorkspaceStructure = lazy(() => import("./pages/WorkspaceStructure.tsx"));
+const ProjectsPage = lazy(() => import("./pages/Projects.tsx"));
+const FlightsPage = lazy(() => import("./pages/Flights.tsx"));
+const ProjectBriefPage = lazy(() => import("./pages/ProjectBrief.tsx"));
+const DocumentsPage = lazy(() => import("./pages/Documents.tsx"));
+const RoomMapPage = lazy(() => import("./pages/RoomMap.tsx"));
+const WearableLoopPage = lazy(() => import("./pages/WearableLoop.tsx"));
+const WatchPage = lazy(() => import("./pages/Watch.tsx"));
 
-import GlancePage from "./pages/Glance.tsx";
-import PhysicalLoopPage from "./pages/PhysicalLoop.tsx";
-import TelegramSetupPage from "./pages/TelegramSetup.tsx";
-import TelegramGuidePage from "./pages/TelegramGuidePage.tsx";
-import LocationSetupPage from "./pages/LocationSetup.tsx";
-import WhatIsMetroEcho from "./pages/WhatIsMetroEcho.tsx";
-import NotFound from "./pages/NotFound.tsx";
+const GlancePage = lazy(() => import("./pages/Glance.tsx"));
+const PhysicalLoopPage = lazy(() => import("./pages/PhysicalLoop.tsx"));
+const TelegramSetupPage = lazy(() => import("./pages/TelegramSetup.tsx"));
+const TelegramGuidePage = lazy(() => import("./pages/TelegramGuidePage.tsx"));
+const LocationSetupPage = lazy(() => import("./pages/LocationSetup.tsx"));
+const WhatIsMetroEcho = lazy(() => import("./pages/WhatIsMetroEcho.tsx"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 
 const queryClient = new QueryClient();
@@ -90,7 +91,8 @@ const App = () => {
                         <CompanionProvider>
                           <ActivityProvider>
                             <TutorialProvider>
-                              <Routes>
+                              <Suspense fallback={null}>
+<Routes>
                                 <Route path="/" element={<Index />} />
                                 {/* A flight number is put in standing in a line.
                                     It gets its own address so it is one tap. */}
@@ -129,6 +131,7 @@ const App = () => {
                                 <Route path="/settings/workspaces" element={<WorkspaceStructure />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
+</Suspense>
                               <CompanionWidget />
                               <SherlockOverlay />
                               <EntityDetailSheet />
