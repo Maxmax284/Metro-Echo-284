@@ -46,6 +46,7 @@ import { AddPlaceForm } from "@/components/awareness/AddPlaceForm";
 import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 import { placeDisplayLabel } from "@/lib/placeLabels";
+import { PlacesBoardMap } from "@/components/awareness/PlacesBoardMap";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -523,6 +524,16 @@ export function AwarenessSurface() {
           onSelect={(id) => setBoardPlaceId(id === liveId ? null : id)}
           onAdd={addReadingPlace}
         />
+
+        <PlacesBoardMap
+          spots={[...(place ? [place] : []), ...readable.filter((p) => p.id !== place?.id)]
+            .map((p) => ({ id: p.id, name: placeDisplayLabel(p.label), lat: Number((p.geo as any)?.lat), lon: Number((p.geo as any)?.lon) }))
+            .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon) && !(s.lat === 0 && s.lon === 0))}
+          activeId={boardPlaceId}
+          liveId={liveId}
+          onSelect={(id) => setBoardPlaceId(id === liveId ? null : id)}
+        />
+
 
         {!boardIsLive && boardPlace ? (
           <p className="text-[11px] leading-snug text-muted-foreground">

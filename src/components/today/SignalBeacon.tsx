@@ -79,8 +79,11 @@ export function SolariWord({ word, tone = "live" }: { word: string; tone?: "live
 export function SignalBeacon({
   state,
   label,
+  where,
   className,
 }: {
+  /** Live town from the device fix — flips on the drum when you actually move. */
+  where?: string | null;
   state: "clear" | "attention";
   /** The word on the drum — read off the real state, never decorative. */
   label: string;
@@ -103,7 +106,10 @@ export function SignalBeacon({
         <span className={cn("echo-lens", clear ? "echo-lens-dark" : "echo-lens-warn is-lit")} />
       </span>
       <span className="relative flex flex-col gap-0.5">
-        <SolariWord word={label} tone={clear ? "live" : "hold"} />
+        <span className="flex flex-wrap items-center gap-1.5">
+          <SolariWord word={label} tone={clear ? "live" : "hold"} />
+          {where ? <SolariWord word={where.replace(/[^A-Za-z ]/g, "").trim().slice(0, 12) || "HERE"} tone="live" /> : null}
+        </span>
         <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
           {clear ? "on watch · no conflicts" : "one thing wants you"}
         </span>

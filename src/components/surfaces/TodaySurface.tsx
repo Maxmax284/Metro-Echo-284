@@ -19,6 +19,7 @@ import { NextMoveLane } from "@/components/today/NextMoveLane";
 import { TransferLane } from "@/components/today/TransferLane";
 import { EntryReadyLane } from "@/components/today/EntryReadyLane";
 import { TodayBriefing } from "@/components/today/TodayBriefing";
+import { useAwarenessOptional } from "@/providers/AwarenessProvider";
 import { reduceSituation } from "@/lib/situationReducer";
 
 import { TypeOnLine } from "@/components/today/TypeOnLine";
@@ -349,6 +350,8 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
      changes what the day means. No card, and nothing at all on a quiet day.
      What's on file about this spot sits behind that line, one tap in. */
   const placeBoard = useTodayPlaceBoard();
+  const liveAware = useAwarenessOptional();
+  const liveTown = (((liveAware?.place?.geo as any)?.city as string) ?? liveAware?.place?.label ?? null)?.split(",")[0] ?? null;
   /* What actually landed — Telegram messages, files, voice notes — read through
      the same lane rules Inbox and the Telegram reply use. Today shows the top
      few lines; filing still happens in Inbox. */
@@ -486,7 +489,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             plumbing folded away. The full list is one tap behind it. */}
         <TodayBriefing
           events={allEvents}
-          place={null}
+          place={liveTown}
           overdue={digest.overdue.length}
           waiting={digest.actions.length}
           dueToday={dueToday.length}
