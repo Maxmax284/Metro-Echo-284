@@ -183,13 +183,13 @@ import {
   attachToProject,
   findProject,
   listProjects,
-  // suggestHome imported below
   projectStatus,
   whatsChanged,
   whatsDue,
   whatsWaiting,
   whereYouStand,
 } from "../_shared/workReads.ts";
+import { suggestHome } from "../_shared/arrivalHome.ts";
 import { ECHO_READ_TOOLS, isEchoRead, runEchoRead } from "../_shared/echoReads.ts";
 /** Reminders set during the current message, so one calendar offer can follow. */
 const REMINDERS_THIS_TURN = new Map<string, { id: string; summary: string; due_at: string; when: string }[]>();
