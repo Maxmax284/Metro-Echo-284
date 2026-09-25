@@ -114,6 +114,15 @@ export function SignalBeacon({
           <SolariWord word={label} tone={clear ? "live" : "hold"} />
           {where ? <SolariWord word={where.replace(/[^A-Za-z ]/g, "").trim().slice(0, 12) || "HERE"} tone="live" /> : null}
         </span>
+        {/* Telemetry flaps: fix source, accuracy, age of the fix. Only what the
+            sensors actually reported — no filler words. */}
+        {flaps.length > 0 ? (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {flaps.map((t) => (
+              <SolariWord key={t.word} word={t.word} tone={t.tone ?? "live"} />
+            ))}
+          </span>
+        ) : null}
         <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
           {clear ? "on watch · no conflicts" : "one thing wants you"}
         </span>
