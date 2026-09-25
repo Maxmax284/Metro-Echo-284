@@ -2106,7 +2106,12 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   .solari-digit,
   .thermal-slip[data-fresh="true"] { animation: none !important; transform: none !important; opacity: 1 !important; }
   .vanta-card, .vanta-inset,
-  .vanta-card:nth-child(even) { transform: none !important; }
+  .vanta-card:nth-child(even) {
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+    scale: none !important;
+  }
   /* The cathode room keeps its glow and loses its nerves. */
   html[data-room="ask"] .vanta-bd-sheen,
   html[data-room="ask"][data-thinking] .vanta-bd-sheen,
