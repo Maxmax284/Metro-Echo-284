@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { DeskIntro } from "@/components/work/DeskIntro";
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
 import { useActivity } from "@/components/workstatus/ActivityStore";
@@ -217,6 +218,8 @@ export default function DocumentsPage() {
           ))}
         </div>
       )}
+
+      {(docs?.length ?? 0) === 0 && <FlowRail beats={FLOWS.documents} className="mb-3" />}
 
       <DeskIntro
         deskKey="documents"

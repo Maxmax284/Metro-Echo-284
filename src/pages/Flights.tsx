@@ -5,6 +5,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { FlightDesk } from "@/components/schedule/FlightDesk";
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 
 export default function FlightsPage() {
   return (
@@ -25,6 +26,7 @@ export default function FlightsPage() {
         </div>
       </header>
 
+      <FlowRail beats={FLOWS.flights} className="mb-4" />
       <FlightDesk />
 
       <p className="mt-4 text-[11.5px] leading-snug text-muted-foreground">

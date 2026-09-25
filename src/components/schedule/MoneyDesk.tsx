@@ -6,6 +6,7 @@
 //   - Currencies are never summed across each other.
 //   - A refused bank is named as refused. A missing balance is not a zero.
 //   - No bank linked is a teaching state, not an error.
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { useMemo, useState } from "react";
 import { Banknote, Landmark, Link2, RefreshCw, Unlink } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -66,6 +67,7 @@ export function MoneyDesk() {
   return (
     <div className="space-y-3">
       <p className="vanta-machine-label text-foreground/60">{MONEY_LAW}</p>
+      {!linked && <FlowRail beats={FLOWS.money} />}
 
       {!linked ? (
         <Card className="vanta-card space-y-3 p-4">
