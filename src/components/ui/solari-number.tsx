@@ -84,14 +84,24 @@ export function SolariNumber({
           ? "text-foreground/90 border-border/60"
           : "text-primary border-primary/50";
 
+  const sizeClass =
+    size === "lg"
+      ? "h-[40px] min-w-[27px] text-[26px] rounded-[2px]"
+      : "h-[22px] min-w-[15px] text-[13px] rounded-[1px]";
+
   return (
-    <span className={cn("inline-flex gap-[2px] align-middle", className)} aria-label={target}>
+    <span
+      className={cn("solari-drum inline-flex gap-[3px] align-middle", className)}
+      data-size={size}
+      aria-label={target}
+    >
       {shown.split("").map((c, i) => (
         <span
           key={`${i}-${gen}`}
           aria-hidden
           className={cn(
-            "solari-digit relative inline-flex h-[22px] min-w-[15px] items-center justify-center overflow-hidden rounded-[1px] border bg-background/70 font-mono text-[13px] font-semibold leading-none",
+            "solari-digit relative inline-flex items-center justify-center overflow-hidden border bg-background/70 font-mono font-semibold leading-none",
+            sizeClass,
             toneClass,
           )}
         >
@@ -101,3 +111,4 @@ export function SolariNumber({
     </span>
   );
 }
+
