@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { isNoise, plainLabel } from "@/lib/changeBuckets";
 
 type Row = { id: string; event: string; entity_type: string; created_at: string };
+type Line = Row & { times: number };
+const quiet = (r: Row) => isNoise(r.event) || isNoise(`${r.entity_type}_${r.event}`) || /calendar[_ ]?feed/i.test(r.entity_type) && /sync/i.test(r.event);
 type Status = "failed" | "held" | "approved" | "done" | "waiting";
 
 const STATUS: Record<Status, { label: string; cls: string }> = {
@@ -40,16 +42,19 @@ function dayLabel(d: Date) {
 export function ReceiptsLedger({ rows, className }: { rows: Row[]; className?: string }) {
   const [showAll, setShowAll] = useState(false);
   const [limit, setLimit] = useState(40);
-  const visible = useMemo(() => rows.filter((r) => showAll || !isNoise(r.event)), [rows, showAll]);
-  const hidden = rows.length - rows.filter((r) => !isNoise(r.event)).length;
+  const visible = useMemo(() => rows.filter((r) => showAll || !quiet(r)), [rows, showAll]);
+  const hidden = rows.length - rows.filter((r) => !quiet(r)).length;
 
   const days = useMemo(() => {
-    const out: { label: string; rows: Row[] }[] = [];
+    const out: { label: string; rows: Line[] }[] = [];
     for (const r of visible.slice(0, limit)) {
       const label = dayLabel(new Date(r.created_at));
       const last = out[out.length - 1];
-      if (last && last.label === label) last.rows.push(r);
-      else out.push({ label, rows: [r] });
+      const prev = last?.label === label ? last.rows[last.rows.length - 1] : undefined;
+      // Back-to-back repeats fold into one line with a count.
+      if (prev && prev.event === r.event && prev.entity_type === r.entity_type) prev.times += 1;
+      else if (last && last.label === label) last.rows.push({ ...r, times: 1 });
+      else out.push({ label, rows: [{ ...r, times: 1 }] });
     }
     return out;
   }, [visible, limit]);
@@ -65,7 +70,7 @@ export function ReceiptsLedger({ rows, className }: { rows: Row[]; className?: s
         <div key={d.label}>
           <div className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border/40 bg-surface-elevated px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/80">
             {d.label}
-            <span className="text-muted-foreground">· {d.rows.length}</span>
+            <span className="text-muted-foreground">· {d.rows.reduce((n, r) => n + r.times, 0)}</span>
           </div>
           <ul>
             {d.rows.map((r) => {
@@ -78,7 +83,7 @@ export function ReceiptsLedger({ rows, className }: { rows: Row[]; className?: s
                   <span className="font-mono text-[11px] text-muted-foreground">{format(new Date(r.created_at), "HH:mm")}</span>
                   <span className="hidden truncate text-[11px] text-muted-foreground sm:block">{typeOf(r.entity_type)}</span>
                   <span className="min-w-0">
-                    <span className="block truncate text-foreground/95">{plainLabel(r.event)}</span>
+                    <span className="block truncate text-foreground/95">{plainLabel(r.event)}{r.times > 1 ? <span className="text-muted-foreground"> · {r.times}×</span> : null}</span>
                     <span className="block truncate text-[10.5px] text-muted-foreground sm:hidden">{typeOf(r.entity_type)}</span>
                   </span>
                   <span className={cn("justify-self-end rounded-sm border px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em]", s.cls)}>
