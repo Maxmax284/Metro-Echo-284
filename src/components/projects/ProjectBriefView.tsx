@@ -39,6 +39,7 @@ import { AttachItemsDialog } from "@/components/projects/AttachItemsDialog";
 import { BriefExportsList } from "@/components/briefs/BriefExportsList";
 import { BriefComposerSheet } from "@/components/briefs/BriefComposerSheet";
 import { ProjectDocumentsSection } from "@/components/documents/ProjectDocumentsSection";
+import { ProjectDashboard } from "@/components/projects/ProjectDashboard";
 import { useCanvas } from "@/components/entities/CanvasContext";
 import { useScope } from "@/hooks/useScope";
 
@@ -342,6 +343,8 @@ export function ProjectBriefView({ id, onBack, onDeleted }: ProjectBriefViewProp
         onOpenChange={setAddOpen}
         onAttached={refreshAttached}
       />
+
+      <ProjectDashboard projectId={project.id} />
 
       {/* Living brief */}
       <section id="living-brief" className="mb-6 space-y-4 rounded-2xl border border-border/60 bg-surface-elevated p-4 scroll-mt-20">
