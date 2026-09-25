@@ -12,11 +12,14 @@ import { cn } from "@/lib/utils";
 export type NearbyRow = {
   key: string;
   name: string;
+  /** The local-script name, when it differs from the English one. Quiet second line. */
+  localName?: string | null;
   detail?: string | null;
   distanceM?: number | null;
   /** Where the row came from, said plainly under the name. */
   source: "map" | "scan";
 };
+
 
 export function NearbyPlacesPanel({
   rows,
@@ -63,6 +66,10 @@ export function NearbyPlacesPanel({
                   </span>
                 ) : null}
               </div>
+              {r.localName?.trim() && r.localName.trim() !== r.name.trim() ? (
+                <p className="truncate text-[11.5px] leading-snug text-foreground/60">{r.localName}</p>
+              ) : null}
+
               <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                 {r.detail?.trim()
                   ? r.detail
