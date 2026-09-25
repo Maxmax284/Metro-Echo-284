@@ -92,7 +92,7 @@ export function AwarenessSurface() {
      search, and it feeds the "Around you" shelf so that shelf is about ground
      rather than about search results. */
   const [nearbyTowns, setNearbyTowns] = useState<
-    Array<{ name: string; kind: string | null; distanceM: number; lat?: number | null; lon?: number | null }>
+    Array<{ name: string; localName: string | null; kind: string | null; distanceM: number; lat?: number | null; lon?: number | null }>
   >([]);
 
   const fixLat = Number((place?.geo as any)?.lat);
@@ -106,6 +106,7 @@ export function AwarenessSurface() {
         if (!live) return;
         const rows = ((data as any)?.places ?? []) as Array<{
           name?: string;
+          local_name?: string | null;
           kind?: string;
           distance_m?: number;
           lat?: number;
@@ -116,6 +117,7 @@ export function AwarenessSurface() {
             .filter((r) => r.name && Number.isFinite(Number(r.distance_m)))
             .map((r) => ({
               name: String(r.name),
+              localName: r.local_name ?? null,
               kind: r.kind ?? null,
               distanceM: Number(r.distance_m),
               lat: Number.isFinite(Number(r.lat)) ? Number(r.lat) : null,
@@ -123,6 +125,7 @@ export function AwarenessSurface() {
             })),
         );
       })
+
       .catch(() => { /* a missing nearby read stays missing; the shelf says so */ });
     return () => { live = false; };
   }, [fixLat, fixLon]);
@@ -519,6 +522,17 @@ export function AwarenessSurface() {
           );
         })()}
 
+        {/* The field board sits in plain sight: photos, the local name, what
+            this place is, and Echo's read of the hour. */}
+        <FieldPolaroid
+          city={((place?.geo as any)?.city as string) ?? place?.label ?? null}
+          region={place?.region ?? null}
+          country={place?.country ?? null}
+          timeZone={((place?.geo as any)?.time_zone as string) ?? null}
+        />
+
+
+
         <button
           type="button"
           onClick={() => setShowMore((v) => !v)}
@@ -623,10 +637,12 @@ export function AwarenessSurface() {
             ...nearbyTowns.map((t) => ({
               key: `town:${t.name}`,
               name: t.name,
+              localName: t.localName,
               detail: t.kind ? `${t.kind}, from map data.` : null,
               distanceM: t.distanceM,
               source: "map" as const,
             })),
+
             ...(((snapshot?.full_data as any)?.local_signals ?? []) as Array<{ title?: string; snippet?: string; kind?: string; distance_m?: number }>)
               .filter((s) => s.kind === "place" && s.title)
               .map((s) => ({
@@ -673,8 +689,8 @@ export function AwarenessSurface() {
         })()}
 
         {showMore && (<div className="space-y-4">
-        <FieldPolaroid className="mt-4" city={((place?.geo as any)?.city as string) ?? null} region={place?.region ?? null} country={place?.country ?? null} />
         <WhatVantaSees className="mt-4" />
+
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
           <div className="relative">
