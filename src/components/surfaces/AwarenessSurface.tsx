@@ -685,7 +685,7 @@ export function AwarenessSurface() {
 
         {showMore && (<div className="space-y-4">
         <WhatVantaSees className="mt-4" />
-        <WhatVantaSees className="mt-4" />
+
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
           <div className="relative">
