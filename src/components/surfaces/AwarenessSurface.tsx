@@ -529,6 +529,9 @@ export function AwarenessSurface() {
           region={place?.region ?? null}
           country={place?.country ?? null}
           timeZone={((place?.geo as any)?.time_zone as string) ?? null}
+          lat={Number.isFinite(Number((place?.geo as any)?.lat)) ? Number((place?.geo as any)?.lat) : null}
+          lon={Number.isFinite(Number((place?.geo as any)?.lon)) ? Number((place?.geo as any)?.lon) : null}
+          nearby={nearbyTowns.map((t: any) => t.name).filter(Boolean)}
         />
 
 
