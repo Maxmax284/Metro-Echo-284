@@ -31,11 +31,15 @@ export function startFlickInertia(): () => void {
     frame = 0;
     let alive = false;
     level.forEach((v, el) => {
-      const next = Math.abs(v) < 0.02 ? 0 : v * DECAY;
+      const next = Math.abs(v) < 0.006 ? 0 : v * DECAY;
       level.set(el, next);
       el.style.setProperty("--flick", next.toFixed(3));
+      /* Signed value drives the lean; the unsigned one drives compression,
+         which has to squash the same way in both directions. */
+      el.style.setProperty("--flick-abs", Math.abs(next).toFixed(3));
       if (next === 0) {
         el.style.removeProperty("--flick");
+        el.style.removeProperty("--flick-abs");
         level.delete(el);
       } else alive = true;
     });
