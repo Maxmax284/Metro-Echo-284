@@ -62,6 +62,7 @@ export function PlacesBoardMap({
       </div>
       <p className="px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
         Tap a pin to read that spot · your location stays put
+        {MAPBOX_TOKEN ? " · © Mapbox © OpenStreetMap" : ""}
       </p>
     </div>
   );
