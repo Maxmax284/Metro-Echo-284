@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
@@ -70,6 +70,7 @@ import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
 import { SolariNumber } from "@/components/ui/solari-number";
+import { TodayLiveMap } from "@/components/today/TodayLiveMap";
 
 
 
@@ -352,6 +353,31 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const placeBoard = useTodayPlaceBoard();
   const liveAware = useAwarenessOptional();
   const liveTown = (((liveAware?.place?.geo as any)?.city as string) ?? liveAware?.place?.label ?? null)?.split(",")[0] ?? null;
+  /* Beacon telemetry: only readings the place record actually holds. How the
+     fix was got, how tight it is, how old it is. Nothing invented. */
+  const liveTelemetry = useMemo(() => {
+    const geo = (liveAware?.place?.geo ?? null) as any;
+    if (!geo) return [] as Array<{ word: string; tone?: "live" | "hold" }>;
+    const out: Array<{ word: string; tone?: "live" | "hold" }> = [];
+    const src = String(geo.source ?? "").toLowerCase();
+    if (src) {
+      const word = src.includes("device") || src.includes("gps") ? "GPS FIX"
+        : src.includes("named") || src.includes("manual") || src.includes("you") ? "SET BY YOU"
+        : "MAP FIX";
+      out.push({ word, tone: word === "GPS FIX" ? "live" : "hold" });
+    }
+    const acc = Number(geo.accuracy ?? geo.acc);
+    if (Number.isFinite(acc) && acc > 0) {
+      out.push({ word: `${acc >= 1000 ? `${Math.round(acc / 1000)}KM` : `${Math.round(acc)}M`} ACC`, tone: acc > 500 ? "hold" : "live" });
+    }
+    const at = liveAware?.place?.updated_at ? new Date(liveAware.place.updated_at).getTime() : NaN;
+    if (Number.isFinite(at)) {
+      const mins = Math.max(0, Math.round((Date.now() - at) / 60000));
+      const word = mins < 1 ? "FIX NOW" : mins < 60 ? `FIX ${mins}M` : mins < 1440 ? `FIX ${Math.round(mins / 60)}H` : `FIX ${Math.round(mins / 1440)}D`;
+      out.push({ word, tone: mins > 720 ? "hold" : "live" });
+    }
+    return out.slice(0, 3);
+  }, [liveAware?.place?.geo, liveAware?.place?.updated_at]);
   /* What actually landed — Telegram messages, files, voice notes — read through
      the same lane rules Inbox and the Telegram reply use. Today shows the top
      few lines; filing still happens in Inbox. */
@@ -494,6 +520,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           waiting={digest.actions.length}
           dueToday={dueToday.length}
           loading={loadingCritical}
+          telemetry={liveTelemetry}
           onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
         />
 
@@ -549,6 +576,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       </header>
 
       <TickRow live={changeSignal} />
+
+      {/* Where you are, drawn from the same place record the beacon reads. It is
+          a glance, not the place desk: tapping a pin never moves your fix. */}
+      <TodayLiveMap onOpenPlaces={() => onNavigate("awareness")} />
 
       {/* Travelling today: the one sentence about where to walk next, the same
           wording as the flight card. Nothing when no flight is close. */}

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
@@ -648,6 +649,16 @@ export function AwarenessSurface() {
 
         {/* The map is the useful center of the deeper place view. */}
 
+        {/* Two maps on one screen makes no sense, so this one is folded away.
+            It is the working map: drag the pin to correct a bad fix, recentre,
+            see trip lines and scanned ground. The board above is the glance. */}
+        <CollapsibleSection
+          title="Fix the pin · nearby ground"
+          storageKey="awareness.groundmap"
+          defaultOpen={false}
+          icon={<Crosshair className="h-3.5 w-3.5" />}
+          summary="Open this to drag your pin to the right spot, or see scanned ground on the map."
+        >
         <AwarenessMapPanel
           places={places as any}
           onMoved={loadList}
@@ -689,6 +700,7 @@ export function AwarenessSurface() {
             void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
           }}
         />
+        </CollapsibleSection>
 
         {showMore ? <>
         <ArrivalsLane />
