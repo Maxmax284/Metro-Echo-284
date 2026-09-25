@@ -102,12 +102,25 @@ export function detectFeel(prefs: Omit<RoomSwapPrefs, "feel">): Feel {
   return "custom";
 }
 
+/** Timings a previous build wrote for each named preset. A device that chose a
+ *  preset chose its meaning, so it follows the preset when the numbers change —
+ *  only hand-tuned ("custom") settings keep their own figures. */
+const LEGACY_PRESET_DURATIONS: Record<Exclude<Feel, "custom">, number[]> = {
+  minimal: [120],
+  standard: [200],
+  expressive: [300],
+};
+
 export function readRoomSwapPrefs(): RoomSwapPrefs {
   if (typeof window === "undefined") return ROOM_SWAP_DEFAULTS;
   try {
     const raw = window.localStorage.getItem(STORE_KEY);
     if (!raw) return ROOM_SWAP_DEFAULTS;
-    return normalizeRoomSwapPrefs(JSON.parse(raw));
+    const prefs = normalizeRoomSwapPrefs(JSON.parse(raw));
+    if (prefs.feel !== "custom" && LEGACY_PRESET_DURATIONS[prefs.feel].includes(prefs.durationMs)) {
+      return { ...FEEL_PRESETS[prefs.feel], enabled: prefs.enabled, feel: prefs.feel };
+    }
+    return prefs;
   } catch {
     return ROOM_SWAP_DEFAULTS;
   }
