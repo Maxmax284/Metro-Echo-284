@@ -197,7 +197,12 @@ export function FieldPolaroid({
         <SignalBeacon state="clear" label={drumWord} />
         <div className="min-w-0">
           <p className="truncate text-[15px] font-semibold leading-tight text-foreground">
-            {city}{region ? ` · ${region.replace(/ Province$/, "")}` : ""}
+            {city}
+            {(() => {
+              // A city that is its own province shouldn't say its name twice.
+              const r = region?.replace(/ Province$/, "").trim();
+              return r && r.toLowerCase() !== city.trim().toLowerCase() ? ` · ${r}` : "";
+            })()}
           </p>
           <p className="truncate text-[11.5px] text-muted-foreground">
             {area?.localName ? <span className="text-foreground/70">{area.localName}</span> : null}
