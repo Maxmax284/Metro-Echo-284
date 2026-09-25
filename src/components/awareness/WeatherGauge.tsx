@@ -59,20 +59,35 @@ function Glyph({ kind }: { kind: WxKind }) {
 }
 
 export function WeatherGauge({ wx, className }: { wx: LiveWeather; className?: string }) {
+  const [unit, setUnit] = useState<TempUnit>(readUnit);
   const kind = wxKind(wx.code, wx.isDay);
   const rough = kind === "rain" || kind === "storm";
   const hot = (wx.feels ?? wx.temp) >= 33;
+  const show = (c: number) => Math.round(unit === "f" ? toF(c) : c);
   const field = [
-    wx.feels != null && Math.round(wx.feels) !== Math.round(wx.temp) ? `feels ${Math.round(wx.feels)}°` : null,
+    wx.feels != null && Math.round(wx.feels) !== Math.round(wx.temp) ? `feels ${show(wx.feels)}°` : null,
     wx.humidity != null ? `humidity ${Math.round(wx.humidity)}%` : null,
     rough ? "roads slick" : hot ? "find shade" : null,
   ].filter(Boolean).join(" · ");
+  const flipUnit = () => {
+    const next: TempUnit = unit === "c" ? "f" : "c";
+    setUnit(next);
+    try { localStorage.setItem(UNIT_KEY, next); } catch { /* private mode */ }
+  };
   return (
-    <div className={cn("wx-gauge inline-flex items-center gap-2.5 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5", className)} role="status" aria-label={`${Math.round(wx.temp)} degrees, ${wx.label}${field ? `, ${field}` : ""}`}>
+    <div className={cn("wx-gauge inline-flex items-center gap-2.5 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5", className)} role="status" aria-label={`${show(wx.temp)} degrees ${unit === "f" ? "Fahrenheit" : "Celsius"}, ${wx.label}${field ? `, ${field}` : ""}`}>
       <Glyph kind={kind} />
       <span className="flex flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
-          <SolariWord word={`${Math.round(wx.temp)}°`} tone={rough || hot ? "hold" : "live"} />
+          <SolariWord word={`${show(wx.temp)}°`} tone={rough || hot ? "hold" : "live"} />
+          <button
+            type="button"
+            onClick={flipUnit}
+            aria-label={`Showing ${unit === "f" ? "Fahrenheit" : "Celsius"}. Tap to switch.`}
+            className="wx-unit font-mono text-[10px] uppercase tracking-[0.12em]"
+          >
+            °{unit}
+          </button>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/80">{wx.label}</span>
           <span aria-hidden className={cn("wx-led", rough ? "is-warn" : "is-ok")} />
         </span>
