@@ -80,7 +80,7 @@ async function fetchOverpassSanity(lat: number, lon: number, admin: any): Promis
     if (!Number.isFinite(plat) || !Number.isFinite(plon)) continue;
     const d = dist(plat, plon);
     if (!nearest || d < nearest.distance_m) {
-      nearest = { name: p.tags.name ?? p.tags.place, type: p.tags.place, distance_m: Math.round(d) };
+      nearest = { name: p.tags["name:en"] ?? p.tags.int_name ?? p.tags.name ?? p.tags.place, type: p.tags.place, distance_m: Math.round(d) };
     }
   }
 
@@ -150,6 +150,22 @@ function pickCity(a: NominatimResp["address"]): string | null {
   );
 }
 
+/* A label that names a different town than the lookup just returned is a
+   leftover from before a move ("Bangkok" over a Ko Samui pin). Replace it with
+   the resolved town. Labels the person clearly chose (home, work, a spot they
+   named) are left alone unless they are just an old city name. */
+function labelPatch(place: any, city: string | null, region: string | null): { label: string } | null {
+  if (!place || !city) return null;
+  const label = String(place.label ?? "").trim();
+  const norm = (x: string) => x.toLowerCase().replace(/[^a-z]/g, "");
+  if (!label) return { label: city };
+  if (norm(label) === norm(city)) return null;
+  const autoish = /^(current|here|spot |pin|unknown|location)/i.test(label) || place.category === "current";
+  const looksLikeCity = /^[A-Za-z .'-]{2,40}$/.test(label) && label.split(" ").length <= 3;
+  if (autoish || (looksLikeCity && region && !norm(region).includes(norm(label)))) return { label: city };
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -174,7 +190,7 @@ Deno.serve(async (req: Request) => {
       ? { data: null, error: null }
       : await supabase
       .from("awareness_places")
-      .select("id, user_id, geo, country, region")
+      .select("id, user_id, geo, country, region, label, category")
       .eq("id", place_id)
       .maybeSingle();
     if (pErr) throw pErr;
@@ -210,7 +226,7 @@ Deno.serve(async (req: Request) => {
 
     // Nominatim usage policy requires a real User-Agent. Header values must be
     // ASCII, or the request fails before it ever leaves.
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=12&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=12&addressdetails=1&accept-language=en`;
     let nomi: NominatimResp | null = null;
     let fetchError: string | null = null;
     let lookupSource = "nominatim";
@@ -313,6 +329,7 @@ Deno.serve(async (req: Request) => {
           country: country ?? place!.country,
           region: region ?? place!.region,
           geo: nextGeo,
+          ...(labelPatch(place, city, region) ?? {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", place_id!);

@@ -46,7 +46,7 @@ async function geocode(query: string, admin: any): Promise<{ lat: number; lon: n
   let point: { lat: number; lon: number; label: string } | null = null;
   try {
     const url =
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=en&limit=1&q=${encodeURIComponent(query)}`;
     const r = await fetch(url, { headers: placeLookupHeaders(), signal: ctrl.signal });
     if (r.ok) {
       const rows = await r.json();

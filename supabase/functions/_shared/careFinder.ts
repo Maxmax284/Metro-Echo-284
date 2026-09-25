@@ -146,7 +146,7 @@ export function normalizeCare(elements: unknown[], lat: number, lon: number): Ca
   for (const raw of elements ?? []) {
     const el = raw as Record<string, any>;
     const tags = (el?.tags ?? {}) as Record<string, string>;
-    const name = (tags.name ?? "").trim();
+    const name = (tags["name:en"] ?? tags.int_name ?? tags.name ?? "").trim();
     const kind = kindOf(tags);
     if (!name || !kind) continue;
     const plat = Number(el.lat ?? el.center?.lat);

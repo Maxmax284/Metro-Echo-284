@@ -2219,3 +2219,11 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   .echo-signal-raster { animation: none; opacity: 0; }
   .echo-lens-live.is-lit, .echo-lens-warn.is-lit { animation: none; }
 }
+
+/* Field polaroid — taped street print */
+.field-polaroid { padding: 6px 6px 4px; background: hsl(var(--card)); box-shadow: 0 6px 18px -8px hsl(var(--foreground) / 0.45), 0 0 0 1px hsl(var(--border)); transform: rotate(-2.2deg); transition: transform 380ms cubic-bezier(0.22, 0.8, 0.24, 1); }
+.field-polaroid:hover { transform: rotate(0deg) scale(1.02); }
+.field-tape { position: absolute; top: -8px; left: 50%; width: 56px; height: 16px; transform: translateX(-50%) rotate(3deg); background: hsl(var(--primary) / 0.28); clip-path: polygon(3% 0, 97% 8%, 100% 92%, 0 100%); z-index: 1; }
+.ground-line { opacity: 0; animation: ground-in 520ms cubic-bezier(0.22, 0.8, 0.24, 1) forwards; }
+@keyframes ground-in { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ground-line { animation: none; opacity: 1; } .field-polaroid { transform: none; } }

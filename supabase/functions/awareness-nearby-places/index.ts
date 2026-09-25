@@ -23,6 +23,7 @@ const BodySchema = z.object({
 
 type NearbyPlace = {
   name: string;
+  local_name?: string | null;
   kind: string; // city|town|village|suburb|hamlet|island
   lat: number;
   lon: number;
@@ -104,14 +105,16 @@ async function fetchNearby(lat: number, lon: number, admin: any): Promise<Nearby
 
   // Discover containing island/region from any nearby island element, used as admin hint.
   const islandHit = elements.find((e) => e.tags?.place === "island" && e.tags?.name);
-  const islandName: string | null = islandHit?.tags?.name ?? null;
+  const islandName: string | null = islandHit?.tags?.["name:en"] ?? islandHit?.tags?.name ?? null;
 
   const seen = new Set<string>();
   const places: NearbyPlace[] = [];
   for (const el of elements) {
     const tags = el.tags ?? {};
     const kind = tags.place;
-    const name = tags.name;
+    const local = tags.name;
+    // English first; the local script stays as a quiet second line.
+    const name = tags["name:en"] || tags.int_name || tags["name:latin"] || tags.name;
     if (!name || !KIND_RANK.hasOwnProperty(kind)) continue;
     const plat = el.lat ?? el.center?.lat;
     const plon = el.lon ?? el.center?.lon;
@@ -127,6 +130,7 @@ async function fetchNearby(lat: number, lon: number, admin: any): Promise<Nearby
       null;
     places.push({
       name,
+      local_name: local && local !== name ? local : null,
       kind,
       lat: plat,
       lon: plon,
