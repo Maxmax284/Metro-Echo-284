@@ -368,7 +368,11 @@ export function AwarenessSurface() {
   /* The board can read any place you keep, not only the one you're standing in.
      Switching is a reading choice: it never moves your fix and never writes.
      Only named places can be read — a bare pin has nothing to say yet. */
-  const readable = places.filter((p) => Boolean((p.geo as any)?.city || p.region || p.country));
+  const readable = places.filter(
+    (p) =>
+      !["care", "nearby"].includes(p.category ?? "") &&
+      Boolean((p.geo as any)?.city || p.region || p.country),
+  );
   const liveId = place?.id ?? null;
   const switchable = [
     ...(place && readable.some((p) => p.id === place.id) ? [place] : place ? [place] : []),
