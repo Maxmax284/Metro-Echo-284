@@ -46,7 +46,7 @@ export function PlacesBoardMap({
     <div className="field-polaroid relative overflow-hidden rounded-md border border-border/60">
       <div className="h-[200px] w-full">
         <MapContainer center={[active.lat, active.lon]} zoom={9} scrollWheelZoom={false} className="h-full w-full" attributionControl={false}>
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+          <TileLayer url={TILE_URL} {...(MAPBOX_TOKEN ? { tileSize: 512, zoomOffset: -1 } : {})} />
           <Fly spot={active} />
           {spots.map((s) => (
             <Marker
