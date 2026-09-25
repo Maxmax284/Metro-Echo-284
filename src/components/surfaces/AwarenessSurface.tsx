@@ -35,6 +35,7 @@ import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { FieldPolaroid } from "@/components/awareness/FieldPolaroid";
+import { PlaceSwitcherRail } from "@/components/awareness/PlaceSwitcherRail";
 import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
 import { placeTruth, placeSourceBadge, accuracyMetres, type PlaceLike } from "@/lib/placeTruth";
@@ -74,6 +75,8 @@ export function AwarenessSurface() {
   const { read: situation } = useSituation(digest);
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
+  /* Which place the field board is reading. null = wherever you are now. */
+  const [boardPlaceId, setBoardPlaceId] = useState<string | null>(null);
   /* Pins you cleared off the desk. Read-only here until you restore one. */
   const [archivedPlaces, setArchivedPlaces] = useState<ArchivedPlaceRow[]>([]);
   
