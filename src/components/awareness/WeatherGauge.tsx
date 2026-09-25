@@ -2,8 +2,22 @@
 // A split-flap temperature, a CRT-style animated glyph, and one honest
 // field line (feels-like, humidity). Motion is ambient only; reduced motion
 // gets the still glyph and the same words.
+import { useState } from "react";
 import { SolariWord } from "@/components/today/SignalBeacon";
 import { cn } from "@/lib/utils";
+
+const UNIT_KEY = "vanta.tempunit";
+type TempUnit = "c" | "f";
+
+function readUnit(): TempUnit {
+  try {
+    return localStorage.getItem(UNIT_KEY) === "f" ? "f" : "c";
+  } catch {
+    return "c";
+  }
+}
+
+const toF = (c: number) => c * 9 / 5 + 32;
 
 export type LiveWeather = {
   temp: number;
