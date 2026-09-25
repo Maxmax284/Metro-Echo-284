@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLiveGps } from "@/hooks/useLiveGps";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/state-views";
@@ -540,6 +541,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           dueToday={dueToday.length}
           loading={loadingCritical}
           telemetry={liveTelemetry}
+          gps={gpsLive}
           onOpenMoved={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
         />
 
