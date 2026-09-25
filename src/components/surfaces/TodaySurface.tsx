@@ -70,6 +70,7 @@ import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
 import { SolariNumber } from "@/components/ui/solari-number";
+import { TodayLiveMap } from "@/components/today/TodayLiveMap";
 
 
 
@@ -575,6 +576,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       </header>
 
       <TickRow live={changeSignal} />
+
+      {/* Where you are, drawn from the same place record the beacon reads. It is
+          a glance, not the place desk: tapping a pin never moves your fix. */}
+      <TodayLiveMap onOpenPlaces={() => onNavigate("awareness")} />
 
       {/* Travelling today: the one sentence about where to walk next, the same
           wording as the flight card. Nothing when no flight is close. */}
