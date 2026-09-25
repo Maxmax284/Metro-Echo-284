@@ -218,18 +218,22 @@ export function TodaySectionSheet({
           />
         );
       }
-      // Four human shelves; housekeeping stays in Receipts.
-      const { buckets, hidden } = bucketEvents(events);
+      // Four human shelves; housekeeping folds away at the bottom.
+      const { buckets, hidden, hiddenLines } = bucketEvents(events);
       if (buckets.length === 0) {
         return (
-          <EmptyState
-            title="Only housekeeping so far"
-            hint="Background checks ran, nothing you need to read. Notes, reminders and approvals show up here."
-          />
+          <div className="space-y-3">
+            <EmptyState
+              title="Only housekeeping so far"
+              hint="Background checks ran, nothing you need to read. Notes, reminders and approvals show up here."
+            />
+            <PlumbingFold hidden={hidden} lines={hiddenLines} onOpenRoll={() => go("receipts")} />
+          </div>
         );
       }
       return (
         <div className="space-y-4">
+          <p className="text-[12.5px] leading-snug text-foreground/90">{debriefLine(buckets, hidden)}</p>
           {buckets.map((b) => {
             const def = BUCKETS[b.key];
             return (
@@ -253,21 +257,17 @@ export function TodaySectionSheet({
                       label={l.count > 1 ? `${l.label} · ${l.count}×` : l.label}
                       meta={formatDistanceToNow(new Date(l.latest), { addSuffix: true })}
                       onClick={() => go(def.target)}
+                      provenance={{ raw: l.raw, count: l.count, latest: l.latest }}
                     />
                   ))}
                 </div>
               </section>
             );
           })}
-          <button
-            type="button"
-            onClick={() => go("receipts")}
-            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-          >
-            {hidden > 0 ? `${hidden} background checks kept in Receipts · ` : ""}Open the full roll <ArrowRight className="h-3 w-3" />
-          </button>
+          <PlumbingFold hidden={hidden} lines={hiddenLines} onOpenRoll={() => go("receipts")} />
         </div>
       );
+
     }
 
     return null;
