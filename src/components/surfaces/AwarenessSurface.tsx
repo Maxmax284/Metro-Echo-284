@@ -384,6 +384,53 @@ export function AwarenessSurface() {
   const boardIsLive = !boardPlaceId || boardPlaceId === liveId;
   const boardGeo = (boardPlace?.geo ?? {}) as Record<string, unknown>;
 
+  /* Keep a place purely to read about it. The town is named by the person and
+     resolved by a free public gazetteer, so the board has real coordinates for
+     weather and a real name for the reference page. This never touches the
+     device fix, and the row is marked as a reading place so nothing downstream
+     mistakes it for somewhere you have been. */
+  const addReadingPlace = async (name: string): Promise<string | null> => {
+    if (!session?.user?.id) return "Sign in first and Echo can keep places for you.";
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`,
+      );
+      const body = await res.json().catch(() => null);
+      const hit = body?.results?.[0];
+      if (!hit) return `Echo couldn't find a town called "${name}". Try the spelling in English.`;
+      const already = places.find(
+        (p) => (((p.geo as any)?.city as string) ?? p.label).toLowerCase() === String(hit.name).toLowerCase(),
+      );
+      if (already) { setBoardPlaceId(already.id === liveId ? null : already.id); return null; }
+      const { data, error } = await supabase
+        .from("awareness_places")
+        .insert({
+          user_id: session.user.id,
+          label: String(hit.name),
+          region: (hit.admin1 as string) ?? null,
+          country: (hit.country as string) ?? null,
+          category: "reading",
+          geo: {
+            lat: Number(hit.latitude),
+            lon: Number(hit.longitude),
+            city: String(hit.name),
+            time_zone: (hit.timezone as string) ?? null,
+            source: "named",
+            geocode_source: "open-meteo",
+            geocoded_at: new Date().toISOString(),
+          },
+        })
+        .select("id")
+        .single();
+      if (error || !data) return "Echo couldn't keep that place just now.";
+      await loadList();
+      setBoardPlaceId(data.id);
+      return null;
+    } catch {
+      return "The town lookup didn't answer. Try again in a moment.";
+    }
+  };
+
   return (
     <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
       <div className="px-4 pt-3 pb-2 min-w-0">
