@@ -359,21 +359,11 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
   const gps = useLiveGps();
   const liveTelemetry = useMemo(() => {
     type Flap = { word: string; tone?: "live" | "hold" };
-    /* Live watch on: every flap is read straight off the phone's GPS. */
+    /* Live watch on: one calm word only. The radar sweep carries the proof of
+       life — raw coordinates and a per-second age ticker are noise on a phone. */
     if (gps.on) {
-      const out: Flap[] = [];
-      const lockWord = { lock: "GPS LOCK", search: "SEARCHING", lost: "NO SIGNAL", denied: "BLOCKED", unsupported: "NO GPS", off: "GPS OFF" }[gps.lock];
-      out.push({ word: lockWord, tone: gps.lock === "lock" ? "live" : "hold" });
-      if (gps.fix) {
-        const acc = gps.fix.acc;
-        if (acc != null) out.push({ word: `${acc >= 1000 ? `${Math.round(acc / 1000)}KM` : `${Math.round(acc)}M`} ACC`, tone: acc > 500 ? "hold" : "live" });
-        const ns = gps.fix.lat >= 0 ? "N" : "S";
-        const ew = gps.fix.lon >= 0 ? "E" : "W";
-        out.push({ word: `${Math.abs(gps.fix.lat).toFixed(4)}${ns}` });
-        out.push({ word: `${Math.abs(gps.fix.lon).toFixed(4)}${ew}` });
-        if (gps.ageS != null) out.push({ word: gps.ageS < 60 ? `FIX ${gps.ageS}S` : `FIX ${Math.round(gps.ageS / 60)}M`, tone: gps.ageS > 30 ? "hold" : "live" });
-      }
-      return out;
+      const lockWord = { lock: "TRACKING", search: "SEARCHING", lost: "NO SIGNAL", denied: "BLOCKED", unsupported: "NO GPS", off: "GPS OFF" }[gps.lock];
+      return [{ word: lockWord, tone: gps.lock === "lock" ? "live" : "hold" }] as Flap[];
     }
     const geo = (liveAware?.place?.geo ?? null) as any;
     if (!geo) return [] as Flap[];
