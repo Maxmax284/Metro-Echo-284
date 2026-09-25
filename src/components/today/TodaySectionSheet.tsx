@@ -48,12 +48,40 @@ function whenLabel(due: string | null) {
   return format(d, "d MMM HH:mm");
 }
 
+/** The raw record behind a row, folded away until asked for. */
+function PeelTab({ raw, count, latest }: { raw: string; count: number; latest: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="ml-auto flex min-h-[32px] items-center gap-1 px-1 text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70 hover:text-foreground"
+      >
+        <CornerDownRight className={cn("h-3 w-3 transition-transform", open && "rotate-90")} />
+        {open ? "Hide the record" : "Why am I seeing this?"}
+      </button>
+      {open ? (
+        <div className="animate-accordion-down overflow-hidden">
+          <dl className="mt-1 space-y-0.5 rounded-sm border border-dashed border-border/60 bg-background/60 px-2.5 py-2 font-mono text-[10.5px] text-muted-foreground">
+            <div className="flex gap-2"><dt className="w-16 shrink-0 opacity-70">record</dt><dd className="min-w-0 break-all text-foreground/80">{raw}</dd></div>
+            <div className="flex gap-2"><dt className="w-16 shrink-0 opacity-70">times</dt><dd>{count}×</dd></div>
+            <div className="flex gap-2"><dt className="w-16 shrink-0 opacity-70">latest</dt><dd>{format(new Date(latest), "d MMM HH:mm:ss")}</dd></div>
+            <div className="flex gap-2"><dt className="w-16 shrink-0 opacity-70">source</dt><dd>recorded by Echo · no edits</dd></div>
+          </dl>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function DrillRow({
   label,
   meta,
   tone,
   onClick,
   trailing,
+  provenance,
 }: {
   label: string;
   meta?: string;
@@ -62,30 +90,39 @@ function DrillRow({
   /* Rows that can be resolved here carry their own controls; those controls
      always stop for a consequence preview before anything is written. */
   trailing?: React.ReactNode;
+  provenance?: { raw: string; count: number; latest: string };
 }) {
   const clickable = onClick && !trailing;
-  const Tag = clickable ? "button" : "div";
+  const Tag = clickable && !provenance ? "button" : "div";
   return (
-    <Tag
-      onClick={clickable ? onClick : undefined}
+    <div
       className={cn(
-        "flex w-full min-h-[44px] items-center gap-2 rounded-lg border border-border/50 bg-surface-elevated px-3 py-2 text-left",
-        clickable && "transition-colors hover:border-primary/40",
+        "rounded-lg border border-border/50 bg-surface-elevated px-3 py-2",
         tone === "warn" && "border-warn/40",
       )}
     >
-      {trailing && onClick ? (
-        <button onClick={onClick} className="min-w-0 flex-1 text-left text-xs leading-snug text-foreground/90">
-          {label}
-        </button>
-      ) : (
-        <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
-      )}
-      {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
-      {trailing ?? (onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null)}
-    </Tag>
+      <Tag
+        onClick={clickable ? onClick : undefined}
+        className={cn(
+          "flex w-full min-h-[40px] items-center gap-2 text-left",
+          clickable && "transition-colors hover:text-primary",
+        )}
+      >
+        {trailing && onClick ? (
+          <button onClick={onClick} className="min-w-0 flex-1 text-left text-xs leading-snug text-foreground/90">
+            {label}
+          </button>
+        ) : (
+          <span className="min-w-0 flex-1 text-xs leading-snug text-foreground/90">{label}</span>
+        )}
+        {meta ? <span className="shrink-0 text-[11px] text-muted-foreground">{meta}</span> : null}
+        {trailing ?? (onClick ? <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null)}
+      </Tag>
+      {provenance ? <PeelTab {...provenance} /> : null}
+    </div>
   );
 }
+
 
 export function TodaySectionSheet({
   section,
