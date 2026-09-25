@@ -121,11 +121,14 @@ async function encryptPayloadAes128Gcm(
   const aesKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, padded));
 
-  // aes128gcm content coding header:
-  // salt (16) || rs (4, big-endian) || idlen (1) || keyid (idlen=0 here) || ciphertext
+  // aes128gcm content coding header (RFC 8188 §2.1):
+  // salt (16) || rs (4, big-endian) || idlen (1) || keyid (idlen bytes) || ciphertext
+  // The keyid MUST carry the ephemeral server public key — the receiver derives the
+  // ECDH secret from it. Omitting it leaves the payload undecryptable and the push
+  // service silently drops the notification after accepting it.
   const rs = new Uint8Array(4);
   new DataView(rs.buffer).setUint32(0, 4096);
-  const header = concat(salt, rs, new Uint8Array([0]));
+  const header = concat(salt, rs, new Uint8Array([serverPublicRaw.length]), serverPublicRaw);
   const ciphertext = concat(header, ct);
 
   return { ciphertext, salt, serverPublicRaw };
@@ -160,6 +163,7 @@ export async function sendWebPush(
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
         "TTL": String(opts.ttl ?? 60),
+        "Urgency": "high",
       },
       body: ciphertext,
     });
