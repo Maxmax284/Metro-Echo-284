@@ -66,6 +66,7 @@ import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
+import { SolariNumber } from "@/components/ui/solari-number";
 
 
 
