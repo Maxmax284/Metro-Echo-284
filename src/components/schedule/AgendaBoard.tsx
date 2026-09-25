@@ -143,6 +143,7 @@ export function AgendaBoard() {
 
   return (
     <div className="space-y-3">
+      <FlowRail beats={FLOWS.agenda} className="mb-1" />
       {stay && (
         <Card className="vanta-card flex items-start gap-2 p-3">
           <BedDouble className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />

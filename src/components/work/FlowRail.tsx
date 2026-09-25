@@ -46,6 +46,11 @@ export const FLOWS = {
     { k: "Echo checks the airline", d: "Times, gate and delays from real sources, in local time." },
     { k: "Get told of changes", d: "Gate or delay updates show here, and on Telegram if you opted in." },
   ],
+  agenda: [
+    { k: "Read the month", d: "Every day is a button. Tap one to see what's on it." },
+    { k: "Everything lands here", d: "Feeds Echo reads, plus entries you add — doubled ones shown once." },
+    { k: "Change it", d: "Echo's own entries can be edited here. Subscribed calendars stay read-only." },
+  ],
   money: [
     { k: "Connect a bank", d: "Read-only. Echo can see, never move money." },
     { k: "Echo reads", d: "Balances and recent spending, summarised in plain words." },
