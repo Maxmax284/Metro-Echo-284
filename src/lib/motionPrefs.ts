@@ -144,7 +144,9 @@ export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   root.style.setProperty("--room-swap-out-ms", `${Math.round(ms * 0.9)}ms`);
   root.style.setProperty("--room-swap-drift", `${prefs.enabled ? prefs.driftPx : 0}px`);
   root.style.setProperty("--block-stagger", `${prefs.enabled ? prefs.blockStaggerMs : 0}ms`);
-  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 200) * 100) / 100) : "0");
+  /* 420ms is the new standard beat, so Standard resolves to k=1 and the
+     one-shot motifs (stamps, slips, flaps) keep their calibrated timing. */
+  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 420) * 100) / 100) : "0");
   root.dataset.roomSwap = prefs.enabled ? "on" : "off";
   root.dataset.feel = prefs.feel;
 }

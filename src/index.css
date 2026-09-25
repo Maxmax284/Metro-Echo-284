@@ -488,11 +488,14 @@
    outgoing fade had finished while the incoming one had not started. This class
    owns the movement only. */
 @keyframes vanta-surface-slide-in {
-  from { transform: translate3d(var(--swap-x, 0px), var(--room-swap-drift, 4px), 0) scale(0.996); }
+  from { transform: translate3d(var(--swap-x, 0px), var(--room-swap-drift, 7px), 0) scale(0.992); }
   to   { transform: translate3d(0, 0, 0) scale(1); }
 }
+/* Long, heavily decelerated glide: most of the distance is covered early and the
+   last few pixels take their time, which is what reads as a carriage coasting
+   into a station rather than a page swapping. */
 .motion-surface-in {
-  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 200ms) * 1.35) cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 420ms) * 1.55) cubic-bezier(0.12, 0.98, 0.16, 1) both;
   will-change: opacity, transform;
 }
 
