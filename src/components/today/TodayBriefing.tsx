@@ -30,6 +30,8 @@ export function TodayBriefing(props: {
   waiting: number;
   dueToday: number;
   loading: boolean;
+  /** Real sensor readings for the beacon flaps. Absent when nothing is known. */
+  telemetry?: Array<{ word: string; tone?: "live" | "hold" }>;
   onOpenMoved: (e: React.MouseEvent) => void;
 }) {
   const brief = useMemo(() => reduceSituation(props.events), [props.events]);
