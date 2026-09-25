@@ -67,6 +67,16 @@ export function normalizeRoomSwapPrefs(raw: unknown): RoomSwapPrefs {
     r.feel === "minimal" || r.feel === "standard" || r.feel === "expressive" || r.feel === "custom"
       ? r.feel
       : ROOM_SWAP_DEFAULTS.feel;
+  /* A device that picked a named preset keeps that preset's meaning, not the
+     numbers it happened to resolve to on an older build. Only hand-tuning
+     ("custom") owns its own numbers. */
+  if (feel !== "custom") {
+    return {
+      ...FEEL_PRESETS[feel],
+      enabled: typeof r.enabled === "boolean" ? r.enabled : FEEL_PRESETS[feel].enabled,
+      feel,
+    };
+  }
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : ROOM_SWAP_DEFAULTS.enabled,
     durationMs: num(r.durationMs, ROOM_SWAP_DEFAULTS.durationMs, ROOM_SWAP_LIMITS.durationMs),
