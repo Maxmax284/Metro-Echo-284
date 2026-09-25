@@ -149,51 +149,71 @@ export function GotSomethingChooser({
         <DialogHeader>
           <DialogTitle className="text-[15px]">I've got something</DialogTitle>
           <DialogDescription className="text-[12px]">
-            Write it plainly, then pick where it goes. You do not need to know Echo's words for it.
+            Write it and drop it. Filing is not your job — you can move it later.
           </DialogDescription>
         </DialogHeader>
 
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            /* One gesture files it: Enter drops it in, Shift+Enter is a newline. */
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void file("park");
+            }
+          }}
           placeholder="Nikki needs the coach schedule by Friday"
           rows={3}
           className="text-[12.5px]"
           aria-label="What have you got?"
         />
 
-        <div className="space-y-1.5">
-          {INTAKE_DOORS.map((d) => {
+        {/* One tap is the whole flow. No category, no date, no tags. It lands in
+            Inbox as a capture and nothing runs. */}
+        <button
+          type="button"
+          disabled={busy !== null || !trimmed}
+          onClick={() => void file("park")}
+          className={cn(
+            "flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[2px] border border-primary/50",
+            "bg-primary/15 px-3 text-[13px] font-medium text-foreground hover:bg-primary/25 disabled:opacity-50",
+            MOTION_FOCUS,
+          )}
+        >
+          <Inbox className="h-4 w-4 text-primary" aria-hidden="true" />
+          {busy === "park" ? "Dropping it in…" : "Drop it in"}
+        </button>
+
+        {/* The other two doors stay available, quietly, for when you already
+            know what it is. Never required. */}
+        <div className="flex flex-wrap gap-1.5">
+          <span className="w-full text-[10.5px] text-muted-foreground/80">
+            Already know what it is?
+          </span>
+          {INTAKE_DOORS.filter((d) => d.key !== "park").map((d) => {
             const Icon = d.Icon;
             return (
               <button
                 key={d.key}
                 type="button"
-                disabled={busy !== null}
+                disabled={busy !== null || !trimmed}
                 onClick={() => void file(d.key)}
+                title={d.lands}
                 className={cn(
-                  "flex w-full items-start gap-2 rounded-[2px] border border-border/60 px-2.5 py-2 text-left",
-                  "hover:border-primary/40 disabled:opacity-60",
+                  "inline-flex min-h-[34px] items-center gap-1.5 rounded-[2px] border border-border/60 px-2.5",
+                  "text-[11.5px] text-foreground/85 hover:border-primary/40 disabled:opacity-50",
                   MOTION_FOCUS,
                 )}
               >
-                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                <span className="min-w-0">
-                  <span className="block text-[12px] font-medium text-foreground">
-                    {busy === d.key ? "Filing…" : d.label}
-                  </span>
-                  <span className="block text-[10.5px] leading-snug text-muted-foreground">{d.says}</span>
-                  <span className="block text-[10.5px] leading-snug text-muted-foreground/80">{d.lands}</span>
-                </span>
+                <Icon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                {busy === d.key ? "Filing…" : d.label}
               </button>
             );
           })}
         </div>
 
-        <p className="text-[10.5px] leading-snug text-muted-foreground/80">
-          Not sure which one? Park it. Echo would rather ask you later than file it wrong.
-        </p>
-        <AftermathHint text="Whatever you pick becomes a record you can read · nothing runs without your approval" />
+        <AftermathHint text="Everything you drop becomes a record you can read and move · nothing runs without your approval" />
       </DialogContent>
     </Dialog>
   );

@@ -38,11 +38,11 @@ import {
 } from "@/components/ui/instrument";
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import {
-  PROJECT_STATUS_LABEL,
   PROJECT_STATUS_TONE,
   projectStatus,
   projectTimeLabel,
 } from "@/lib/workLabels";
+import { ProjectSticker } from "@/components/projects/ProjectSticker";
 import type { SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { DESK_TILE_HINT, DESK_VERB, type DeskKey } from "@/lib/deskRoles";
 import { WorkBriefingPanel } from "@/components/work/WorkBriefing";
@@ -201,7 +201,8 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
                   const st = projectStatus({ status: (p as { status?: string | null }).status ?? null, updatedAt: p.updated_at });
                   return <li key={p.id}><a href={`/projects/${p.id}`} onClick={() => void trace({ step: `opened ${p.title}`, label: p.title, surface: "projects", projectId: p.id })} className={cn("flex min-h-[44px] items-center gap-2 vanta-inset px-3 py-2", MOTION_ROW, MOTION_HOVER_LIFT, MOTION_FOCUS, LEAD_BAR, PROJECT_STATUS_TONE[st])}>
                     <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{p.title}</span><MachineText className="block text-[10px] text-muted-foreground">{projectTimeLabel({ updatedAt: p.updated_at })}</MachineText></span>
-                    <span className={cn("vanta-machine-label shrink-0", PROJECT_STATUS_TONE[st])}>{PROJECT_STATUS_LABEL[st]}</span>
+                    {/* Vinyl, not a pill: the state gets slapped on the card. */}
+                    <ProjectSticker project={{ id: p.id, status: (p as { status?: string | null }).status ?? null, updated_at: p.updated_at }} />
                     <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                   </a></li>;
                 })}

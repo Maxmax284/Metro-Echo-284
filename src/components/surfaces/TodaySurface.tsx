@@ -66,6 +66,7 @@ import { SurfaceAftermath } from "@/components/aftermath/SurfaceAftermath";
 import { useArrivals } from "@/hooks/useArrivals";
 import { readArrival } from "@/lib/arrivalRead";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
+import { SolariNumber } from "@/components/ui/solari-number";
 
 
 
@@ -482,9 +483,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
             onClick={(e) => { markFlipOriginFromEvent(e); setDrill("changed"); }}
             className={cn("mt-1.5 inline-flex min-h-[44px] items-center gap-2 text-xs text-primary", MOTION_FOCUS)}
           >
-            {/* The count rides a split-flap board: when the number genuinely
+            {/* The count rides a split-flap drum: when the number genuinely
                 changes the digits riffle and land, like a terminal display. */}
-            <SolariBoard text={`${allEvents.length}`} tone="primary" />
+            <SolariNumber value={allEvents.length} tone="primary" />
             Show me what moved <ArrowRight className="h-3.5 w-3.5" />
           </button>
         ) : null}

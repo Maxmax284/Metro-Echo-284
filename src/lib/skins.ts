@@ -1,4 +1,5 @@
 import { play } from "@/lib/streetSound";
+import { applyDaylight } from "@/lib/daylight";
 // Skins — the background is a surface, not wallpaper.
 //
 // Doctrine:
@@ -93,9 +94,8 @@ export function setRoom(room: string): void {
   const prev = root.getAttribute("data-room");
   if (prev === room) return;
   root.setAttribute("data-room", room);
-  /* Today's light follows the clock: 0 at dawn, 1 at dusk. Set, never animated here. */
-  const h = new Date().getHours() + new Date().getMinutes() / 60;
-  root.style.setProperty("--tod", String(Math.max(0, Math.min(1, (h - 5) / 15)).toFixed(2)));
+  /* Today's light follows the clock: position and colour, re-read on arrival. */
+  applyDaylight();
   // Turnstile click on a real room change; zippo when Ask opens. Opt-in only.
   if (prev) play(room === "ask" ? "zippo" : "turnstile");
   // Dawn shutter: first Today of the local day, once per device.
