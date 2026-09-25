@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ChevronDown, ChevronRight, Loader2, MapPin, Pencil, Pin, Plus } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
+import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { aftermathLine } from "@/lib/vantaNouns";
 import { formatDistanceToNow } from "date-fns";
