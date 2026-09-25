@@ -71,12 +71,12 @@ export function SurfaceCrossfade({
           [
             { transform: "translate3d(0, 0, 0) scale(1)" },
             {
-              transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+              transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
             },
           ],
-          { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+          { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
         );
-        armed.current = { key: nextKey, clone, fadeMs: Math.max(80, prefs.durationMs * 0.54) };
+        armed.current = { key: nextKey, clone, fadeMs: Math.max(140, prefs.durationMs * 0.7) };
       }),
     [],
   );
@@ -122,15 +122,15 @@ export function SurfaceCrossfade({
       hostRef.current?.style.setProperty("--swap-x", `${fallback.x}px`);
       ghostHost.replaceChildren(fallback.clone);
       clone = fallback.clone;
-      fadeMs = Math.max(80, prefs.durationMs * 0.54);
+      fadeMs = Math.max(140, prefs.durationMs * 0.7);
       clone.animate(
         [
           { transform: "translate3d(0, 0, 0) scale(1)" },
           {
-            transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+            transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
           },
         ],
-        { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+        { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
       );
     } else {
       ghostHost.replaceChildren();
