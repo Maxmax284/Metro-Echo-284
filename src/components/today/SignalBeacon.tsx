@@ -80,6 +80,7 @@ export function SignalBeacon({
   state,
   label,
   where,
+  telemetry,
   className,
 }: {
   /** Live town from the device fix — flips on the drum when you actually move. */
@@ -87,9 +88,12 @@ export function SignalBeacon({
   state: "clear" | "attention";
   /** The word on the drum — read off the real state, never decorative. */
   label: string;
+  /** Extra flaps read off real sensor state. Empty when nothing is known. */
+  telemetry?: Array<{ word: string; tone?: "live" | "hold" }>;
   className?: string;
 }) {
   const clear = state === "clear";
+  const flaps = (telemetry ?? []).filter((t) => t.word);
   return (
     <div
       className={cn(
