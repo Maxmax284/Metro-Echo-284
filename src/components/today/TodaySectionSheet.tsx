@@ -7,7 +7,7 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/ui/state-views";
 import { Badge } from "@/components/ui/badge";
-import { humanizeEvent } from "@/lib/plainLabels";
+import { BUCKETS, bucketEvents } from "@/lib/changeBuckets";
 import { formatDistanceToNow, format, isToday, isTomorrow } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -179,24 +179,54 @@ export function TodaySectionSheet({
           />
         );
       }
-      // One line per kind of thing, not one row per receipt.
-      const grouped = new Map<string, { label: string; count: number; latest: string }>();
-      for (const e of events) {
-        const label = humanizeEvent(e.event);
-        const g = grouped.get(label);
-        if (g) g.count += 1;
-        else grouped.set(label, { label, count: 1, latest: e.created_at });
+      // Four human shelves; housekeeping stays in Receipts.
+      const { buckets, hidden } = bucketEvents(events);
+      if (buckets.length === 0) {
+        return (
+          <EmptyState
+            title="Only housekeeping so far"
+            hint="Background checks ran, nothing you need to read. Notes, reminders and approvals show up here."
+          />
+        );
       }
       return (
-        <div className="space-y-1.5">
-          {[...grouped.values()].sort((a, b) => b.count - a.count).map((g) => (
-            <DrillRow
-              key={g.label}
-              label={g.count > 1 ? `${g.label} · ${g.count}×` : g.label}
-              meta={`latest ${formatDistanceToNow(new Date(g.latest), { addSuffix: true })}`}
-              onClick={() => go("receipts")}
-            />
-          ))}
+        <div className="space-y-4">
+          {buckets.map((b) => {
+            const def = BUCKETS[b.key];
+            return (
+              <section key={b.key} className="vanta-inset p-2.5">
+                <button
+                  type="button"
+                  onClick={() => go(def.target)}
+                  className="mb-2 flex w-full min-h-[44px] items-center gap-2 text-left"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-mono text-[11px] uppercase tracking-[0.14em] text-foreground">{def.title}</span>
+                    <span className="block text-[11px] text-muted-foreground">{def.hint}</span>
+                  </span>
+                  <Badge variant="outline" className="font-mono">{b.total}</Badge>
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                </button>
+                <div className="space-y-1.5">
+                  {b.lines.map((l) => (
+                    <DrillRow
+                      key={l.label}
+                      label={l.count > 1 ? `${l.label} · ${l.count}×` : l.label}
+                      meta={formatDistanceToNow(new Date(l.latest), { addSuffix: true })}
+                      onClick={() => go(def.target)}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => go("receipts")}
+            className="flex min-h-[44px] w-full items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            {hidden > 0 ? `${hidden} background checks kept in Receipts · ` : ""}Open the full roll <ArrowRight className="h-3 w-3" />
+          </button>
         </div>
       );
     }
