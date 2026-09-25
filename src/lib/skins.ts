@@ -1,4 +1,5 @@
 import { play } from "@/lib/streetSound";
+import { applyDaylight } from "@/lib/daylight";
 // Skins — the background is a surface, not wallpaper.
 //
 // Doctrine:
