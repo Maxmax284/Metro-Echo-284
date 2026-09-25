@@ -104,7 +104,7 @@ export function RoomMotionSection() {
         <div>
           <p className="text-[12px] font-medium">Street sound</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Board clacks, spray hiss on capture, a thud when a receipt lands. Off unless you turn it on.
+            Board clacks, spray hiss on capture, a thud when a receipt lands. On by default — switch it off for silence.
           </p>
         </div>
         <Switch
