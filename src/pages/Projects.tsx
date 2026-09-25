@@ -278,7 +278,7 @@ export default function ProjectsPage() {
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : projects.length === 0 ? (
-        <EmptyState onNew={() => setOpen(true)} />
+        <FlowRail beats={FLOWS.projects} className="mb-3" />
       ) : (
         <ul className="space-y-2">
           {projects.map((p) => (
