@@ -51,8 +51,19 @@ function trim(text: string | null, max = 560): string | null {
   return cut.slice(0, cut.lastIndexOf(". ") + 1 || max).trim() || `${cut}…`;
 }
 
+function wxLabel(code: number): string {
+  if (code === 0) return "clear";
+  if (code <= 2) return "partly cloudy";
+  if (code === 3) return "overcast";
+  if (code <= 48) return "fog";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 82) return "showers";
+  return "thunderstorms";
+}
+
 export function FieldPolaroid({
-  city, region, country, timeZone, weather, className,
+  city, region, country, timeZone, weather, lat, lon, nearby, className,
 }: {
   city: string | null;
   region: string | null;
@@ -60,6 +71,10 @@ export function FieldPolaroid({
   timeZone?: string | null;
   /** Plain weather line already on file, if any — shapes Echo's read. */
   weather?: string | null;
+  lat?: number | null;
+  lon?: number | null;
+  /** Names of real spots nearby, fed to Echo's read as grounding. */
+  nearby?: string[];
   className?: string;
 }) {
   const [data, setData] = useState<Payload | null>(null);
