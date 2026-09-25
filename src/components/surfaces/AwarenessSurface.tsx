@@ -519,6 +519,17 @@ export function AwarenessSurface() {
           );
         })()}
 
+        {/* The field board sits in plain sight: photos, the local name, what
+            this place is, and Echo's read of the hour. */}
+        <FieldPolaroid
+          city={((place?.geo as any)?.city as string) ?? place?.label ?? null}
+          region={place?.region ?? null}
+          country={place?.country ?? null}
+          timeZone={((place?.geo as any)?.time_zone as string) ?? null}
+        />
+
+
+
         <button
           type="button"
           onClick={() => setShowMore((v) => !v)}
@@ -673,7 +684,7 @@ export function AwarenessSurface() {
         })()}
 
         {showMore && (<div className="space-y-4">
-        <FieldPolaroid className="mt-4" city={((place?.geo as any)?.city as string) ?? null} region={place?.region ?? null} country={place?.country ?? null} />
+        <WhatVantaSees className="mt-4" />
         <WhatVantaSees className="mt-4" />
         {/* HUD: radar hero — hidden by default on mobile, expandable. */}
         {(!isMobile || showRadar) ? (
