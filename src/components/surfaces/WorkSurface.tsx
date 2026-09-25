@@ -274,14 +274,14 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           summary="More desks · documents, schedule, flights, money, body"
         >
           <div className="mt-2.5 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            <JumpTile label="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
-            <JumpTile label="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
-            <JumpTile label="Agenda board" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
-            <JumpTile label="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
-            <JumpTile label="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
-            <JumpTile label="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
-            <JumpTile label="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
-            <JumpTile label="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
+            <JumpTile label="Documents" word="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
+            <JumpTile label="Schedule" word="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
+            <JumpTile label="Agenda board" word="Agenda" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" />
+            <JumpTile label="Flights" word="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
+            <JumpTile label="Money" word="Money" line="Balances, read-only" Icon={Wallet} href="/?surface=schedule&tab=money" />
+            <JumpTile label="Body" word="Body" line="Readings, patterns, medication" Icon={HeartPulse} href="/?surface=schedule&tab=body" />
+            <JumpTile label="Wearables" word="Wearables" line="Link a watch, band or ring" Icon={Watch} href="/how/watch" />
+            <JumpTile label="Local help" word="Local help" line="Care and emergency numbers" Icon={LifeBuoy} href="/?surface=schedule&tab=help" />
           </div>
         </CollapsibleSection>
 
