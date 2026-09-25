@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { reduceSituation, type SituationEvent } from "@/lib/situationReducer";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { SignalBeacon } from "@/components/today/SignalBeacon";
+
 
 const ACK_KEY = "vanta.today.ack";
 const TAKE_KEY = "vanta.today.take";
@@ -78,16 +80,23 @@ export function TodayBriefing(props: {
 
   if (props.loading) return null;
 
+  const needs = props.overdue + props.waiting;
+
   if (clear) {
     return (
       <div className="today-allclear relative mt-2 overflow-hidden rounded-md border border-border/50 bg-card/40 px-3 py-2.5">
         <span aria-hidden className="today-allclear-sweep" />
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex flex-wrap items-center gap-2.5">
+          <SignalBeacon state={needs > 0 ? "attention" : "clear"} label={needs > 0 ? "hold" : "steady"} />
           <span className="die-sticker sticker-slap inline-flex items-center gap-1 rounded-sm border-2 border-background bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-primary-foreground shadow-md">
             <Check className="h-3 w-3" /> All clear
           </span>
-          <span className="text-[12px] text-muted-foreground">Nothing's moved today that needs you.</span>
         </div>
+        <p className="relative mt-1.5 text-[12px] text-muted-foreground">
+          {needs > 0
+            ? "Nothing new moved today. What's waiting is still waiting below."
+            : "Nothing's moved today that needs you."}
+        </p>
         {brief.plumbing > 0 ? (
           <button type="button" onClick={props.onOpenMoved} className="relative mt-1 min-h-[36px] text-[11px] text-muted-foreground/80 underline-offset-2 hover:underline">
             {brief.plumbing} routine background receipts, folded away
@@ -97,6 +106,7 @@ export function TodayBriefing(props: {
     );
   }
 
+
   const fresh = take && take.signature === brief.signature;
   return (
     <div className={cn("relative mt-2 rounded-md border border-border/50 bg-card/40 px-3 py-3", acked && "opacity-80")}>
@@ -105,9 +115,16 @@ export function TodayBriefing(props: {
           Seen
         </span>
       ) : null}
+      <div className="mb-2 flex flex-wrap items-center gap-2.5">
+        <SignalBeacon
+          state={needs > 0 ? "attention" : "clear"}
+          label={needs > 0 ? "hold" : "moved"}
+        />
+      </div>
       <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.16em] text-muted-foreground">
         <Sparkles className={cn("h-3.5 w-3.5 text-accent", busy && "animate-pulse")} /> Echo's take
       </div>
+
       <p className="mt-1.5 pr-14 text-[14px] leading-snug text-foreground animate-fade-in" key={fresh ? take!.at : "none"}>
         {busy ? "Reading your day…" : fresh ? take!.text : err ?? "Tap refresh for Echo's read of today."}
       </p>

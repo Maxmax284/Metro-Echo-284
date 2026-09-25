@@ -2161,3 +2161,61 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
 }
 @keyframes today-sweep { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .today-allclear-sweep { animation: none; opacity: 0; } }
+
+/* ── Trackside signal head (Today) ─────────────────────────────────────────
+   A cast housing with two lenses. The lit lens breathes like a filament; the
+   dark one stays dark. A slow raster sweep crosses the case every 10s so the
+   card reads as "on watch" instead of asleep. Both stop under reduced motion. */
+.echo-signal {
+  background:
+    linear-gradient(180deg, hsl(var(--card) / 0.9), hsl(var(--background) / 0.85)),
+    repeating-linear-gradient(0deg, hsl(var(--foreground) / 0.03) 0 1px, transparent 1px 3px);
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.06), 0 1px 2px hsl(0 0% 0% / 0.25);
+  overflow: hidden;
+}
+.echo-signal-head {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 3px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, hsl(220 8% 16%), hsl(220 10% 8%));
+  border: 1px solid hsl(var(--foreground) / 0.12);
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.1);
+}
+.echo-lens {
+  width: 9px; height: 9px; border-radius: 9999px;
+  background: hsl(220 10% 12%);
+  box-shadow: inset 0 0 2px hsl(0 0% 0% / 0.8);
+}
+.echo-lens-dark { opacity: 0.55; }
+.echo-lens-live.is-lit {
+  background: radial-gradient(circle at 40% 35%, hsl(var(--primary) / 0.95), hsl(var(--primary) / 0.5) 70%);
+  animation: echo-filament 3.4s ease-in-out infinite;
+}
+.echo-lens-warn.is-lit {
+  background: radial-gradient(circle at 40% 35%, hsl(var(--warn) / 0.95), hsl(var(--warn) / 0.5) 70%);
+  animation: echo-filament 2.2s ease-in-out infinite;
+}
+@keyframes echo-filament {
+  0%, 100% { box-shadow: 0 0 3px 0 currentColor, inset 0 0 2px hsl(0 0% 0% / 0.5); filter: brightness(0.9); }
+  50%      { box-shadow: 0 0 9px 2px currentColor, inset 0 0 2px hsl(0 0% 0% / 0.5); filter: brightness(1.25); }
+}
+.echo-lens-live.is-lit { color: hsl(var(--primary) / 0.5); }
+.echo-lens-warn.is-lit { color: hsl(var(--warn) / 0.5); }
+.echo-signal-raster {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 42%, hsl(var(--primary) / 0.14) 50%, transparent 58%);
+  transform: translateX(-110%);
+  animation: echo-raster 10s linear infinite;
+}
+@keyframes echo-raster {
+  0% { transform: translateX(-110%); }
+  22% { transform: translateX(110%); }
+  100% { transform: translateX(110%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .echo-signal-raster { animation: none; opacity: 0; }
+  .echo-lens-live.is-lit, .echo-lens-warn.is-lit { animation: none; }
+}

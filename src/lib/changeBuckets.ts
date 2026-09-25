@@ -17,11 +17,16 @@ export const BUCKETS: Record<BucketKey, { title: string; hint: string; target: S
 
 export const BUCKET_ORDER: BucketKey[] = ["inbound", "schedule", "actions", "insights"];
 
-/** Housekeeping — excluded from the human summary. */
+/** Housekeeping — excluded from the human shelves, folded away and countable. */
 const NOISE = [
   /patterns?[_ ]scanned/i, /nudge[_ ]dismissed/i, /health/i, /heartbeat/i, /sync(ed)?[_ ]ok/i,
   /cache/i, /^calendar[_ ]sync/i, /synchroni[sz]ed/i,
+  /push[_ .]/i, /diagnos/i, /[_ .]test/i, /^test/i, /subscription/i, /service[_ ]?worker/i,
+  /token[_ ]refresh/i, /oauth/i, /sweep/i, /scan/i, /embedding/i, /autolink/i, /viewed/i, /opened/i,
+  /prefs?[_ .]/i, /preference/i, /settings?[_ .]/i, /acknowledg/i, /today[_ ]take/i,
+  /brief(ing)?[_ ](generated|composed|read)/i,
 ];
+
 
 const PLAIN: Array<[RegExp, string]> = [
   [/transition:?\s*staged\s*->\s*approved/i, "Action approved"],
@@ -56,25 +61,40 @@ export function bucketFor(event: string): BucketKey {
   return "inbound";
 }
 
-export type BucketLine = { label: string; count: number; latest: string };
+export type BucketLine = { label: string; count: number; latest: string; raw: string };
 export type Bucket = { key: BucketKey; total: number; lines: BucketLine[] };
 
-export function bucketEvents(events: { event: string; created_at: string }[]): { buckets: Bucket[]; hidden: number } {
+export function bucketEvents(events: { event: string; created_at: string }[]): {
+  buckets: Bucket[];
+  hidden: number;
+  /** The folded housekeeping, grouped — shown inside the sheet on request. */
+  hiddenLines: BucketLine[];
+} {
   const map = new Map<BucketKey, Map<string, BucketLine>>();
+  const back = new Map<string, BucketLine>();
   let hidden = 0;
   for (const ev of events) {
-    if (isNoise(ev.event)) { hidden += 1; continue; }
+    if (isNoise(ev.event)) {
+      hidden += 1;
+      const label = plainLabel(ev.event);
+      const h = back.get(label);
+      if (h) { h.count += 1; if (ev.created_at > h.latest) h.latest = ev.created_at; }
+      else back.set(label, { label, count: 1, latest: ev.created_at, raw: ev.event });
+      continue;
+    }
     const b = bucketFor(ev.event);
     const label = plainLabel(ev.event);
     const lines = map.get(b) ?? new Map<string, BucketLine>();
     const l = lines.get(label);
     if (l) { l.count += 1; if (ev.created_at > l.latest) l.latest = ev.created_at; }
-    else lines.set(label, { label, count: 1, latest: ev.created_at });
+    else lines.set(label, { label, count: 1, latest: ev.created_at, raw: ev.event });
     map.set(b, lines);
   }
   const buckets = BUCKET_ORDER.filter((k) => map.has(k)).map((k) => {
     const lines = [...map.get(k)!.values()].sort((a, b) => b.count - a.count || b.latest.localeCompare(a.latest));
     return { key: k, total: lines.reduce((s, l) => s + l.count, 0), lines };
   });
-  return { buckets, hidden };
+  const hiddenLines = [...back.values()].sort((a, b) => b.count - a.count || b.latest.localeCompare(a.latest));
+  return { buckets, hidden, hiddenLines };
 }
+
