@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Crosshair, Loader2, MapPin, Sparkles, Wrench, X } from "lucide-react";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useAwareness, type AwarenessPlace } from "@/providers/AwarenessProvider";
 import { AwarenessHUD } from "@/components/shell/AwarenessHUD";
