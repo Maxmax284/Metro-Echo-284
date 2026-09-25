@@ -33,17 +33,20 @@ export function ReceiptsFront({
     const t = window.setTimeout(() => markReceiptsSeen(), 1500);
     return () => window.clearTimeout(t);
   }, [anyFresh]);
+  /* The record comes off a roll: every line is a slip on continuous thermal
+     paper, torn at both ends, inked in register type. */
   return (
-    <ul className={cn("divide-y divide-border/40", className)}>
+    <ul className={cn("thermal-roll relative", className)}>
       {lines.filter((line) => line.count > 0).map((line) => {
         const drillable = line.count > 0 && Boolean(onDrill);
+        const fresh = isFreshReceipt(line.at, seen);
         const body = (
           <>
             <div className="flex items-center gap-2">
               <StatusDot tone={tone(line)} />
-              <span className={cn(isFreshReceipt(line.at, seen) ? "receipt-stamp-heavy" : "sticker-slap", "bg-muted/40 px-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground")}>{line.label}</span>
+              <span className={cn(fresh ? "receipt-stamp-heavy" : "sticker-slap", "thermal-ink bg-muted/40 px-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground")}>{line.label}</span>
               {line.at && (
-                <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/80">
+                <span className="thermal-ink ml-auto shrink-0 text-[10px] text-muted-foreground/80">
                   {formatDistanceToNow(new Date(line.at), { addSuffix: true })}
                 </span>
               )}
@@ -55,7 +58,12 @@ export function ReceiptsFront({
         );
 
         return (
-          <li key={line.key}>
+          <li
+            key={line.key}
+            className="thermal-slip"
+            data-fresh={fresh ? "true" : undefined}
+            data-aged={!fresh ? "true" : undefined}
+          >
             {drillable ? (
               <button
                 type="button"
