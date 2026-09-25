@@ -2223,6 +2223,85 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
 @keyframes gps-beat { 0% { transform: scale(1); opacity: 0.85; } 100% { transform: scale(3.2); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .gps-beat { animation: none; opacity: 0; } }
 
+/* ── Sonar scope ───────────────────────────────────────────────────────────
+   The live-GPS readout. A turning sweep arm proves the watch is running; a
+   ring pushes out once per real fix from the phone. No numbers, no fake data. */
+.echo-sonar {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9999px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / 0.35);
+  background:
+    radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.12), transparent 70%),
+    hsl(var(--background) / 0.7);
+  box-shadow: inset 0 0 8px hsl(var(--primary) / 0.18);
+  color: hsl(var(--primary));
+}
+.echo-sonar.is-searching { border-color: hsl(var(--warn) / 0.45); color: hsl(var(--warn)); }
+.echo-sonar-grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    linear-gradient(to right, currentColor 0 1px, transparent 1px) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(to bottom, currentColor 0 1px, transparent 1px) 0 50% / 100% 1px no-repeat;
+  opacity: 0.2;
+}
+.echo-sonar-grid::after {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  opacity: 0.45;
+}
+.echo-sonar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, hsl(var(--primary) / 0.55), transparent 42%);
+  animation: echo-sonar-turn 2.8s linear infinite;
+}
+.echo-sonar.is-searching .echo-sonar-sweep {
+  background: conic-gradient(from 0deg, hsl(var(--warn) / 0.5), transparent 42%);
+  animation-duration: 1.4s;
+}
+.echo-sonar-ping {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  animation: echo-sonar-ping 1.6s cubic-bezier(0.22, 0.8, 0.24, 1) forwards;
+}
+.echo-sonar-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+@keyframes echo-sonar-turn { to { transform: rotate(360deg); } }
+@keyframes echo-sonar-ping {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(5.2); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .echo-sonar-sweep { animation: none; opacity: 0.35; }
+  .echo-sonar-ping { animation: none; opacity: 0; }
+}
+
 /* ── Desk transfer cover ───────────────────────────────────────────────────
    Held over the gap while a specialist desk builds itself. A dimmed alley
    scrim plus a lit signal box, so a desk handoff never reads as a black frame.
