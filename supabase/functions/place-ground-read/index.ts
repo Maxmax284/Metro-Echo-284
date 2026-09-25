@@ -64,16 +64,21 @@ async function dossier(title: string, lang: string | null) {
   const text = String(page.extract ?? "");
   const localName = (page.langlinks?.[0]?.["*"] as string | undefined) ?? null;
 
-  /** Pull one plain section by heading name. */
+  /** Pull one plain section (with its subsections) by heading name. */
   const section = (names: string[]) => {
     for (const n of names) {
-      const re = new RegExp(`\\n==+\\s*${n}[^=]*=+\\s*\\n`, "i");
+      const re = new RegExp(`\\n(=+)\\s*${n}[^=\\n]*=+\\s*\\n`, "i");
       const m = re.exec(text);
       if (!m) continue;
+      const level = m[1].length;
       const rest = text.slice(m.index + m[0].length);
-      const end = rest.search(/\n==+[^=]+=+\n/);
-      const body = (end === -1 ? rest : rest.slice(0, end)).trim();
-      if (body.length > 80) return body.replace(/\n{2,}/g, "\n").slice(0, 1200);
+      // End at the next heading of the same or higher level, so subsections stay.
+      const next = new RegExp(`\\n={2,${level}}[^=\\n]+={2,${level}}\\s*\\n`).exec(rest);
+      const body = (next ? rest.slice(0, next.index) : rest)
+        .replace(/\n=+\s*([^=\n]+?)\s*=+\s*\n/g, "\n$1: ")
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+      if (body.length > 80) return body.slice(0, 1400);
     }
     return null;
   };
