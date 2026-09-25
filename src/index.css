@@ -488,11 +488,14 @@
    outgoing fade had finished while the incoming one had not started. This class
    owns the movement only. */
 @keyframes vanta-surface-slide-in {
-  from { transform: translate3d(var(--swap-x, 0px), var(--room-swap-drift, 4px), 0) scale(0.996); }
+  from { transform: translate3d(var(--swap-x, 0px), var(--room-swap-drift, 7px), 0) scale(0.992); }
   to   { transform: translate3d(0, 0, 0) scale(1); }
 }
+/* Long, heavily decelerated glide: most of the distance is covered early and the
+   last few pixels take their time, which is what reads as a carriage coasting
+   into a station rather than a page swapping. */
 .motion-surface-in {
-  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 200ms) * 1.35) cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  animation: vanta-surface-slide-in calc(var(--room-swap-ms, 420ms) * 1.55) cubic-bezier(0.12, 0.98, 0.16, 1) both;
   will-change: opacity, transform;
 }
 
@@ -1900,45 +1903,130 @@ html[data-weather="calm"] .vanta-bd-scrim::after { opacity: .5; animation: none;
 }
 
 /* Flick inertia: a thrown list leans, then settles. The scroller hands the
-   velocity down as --flick; only cards read it. */
+   velocity down as --flick; only cards read it. The lean is deliberately larger
+   than feels safe on paper — at 2px nobody can tell it is happening.
+
+   These use the individual translate/rotate/scale properties, not the transform
+   shorthand, for two reasons: the press compression on .vanta-card owns
+   `transform` and would wipe the lean out, and `transition: transform` on that
+   same rule would smooth every per-frame update into nothing. The lean must
+   land on the exact frame the scroller reports it. */
 .vanta-card,
 .vanta-inset {
-  transform: translate3d(0, calc(var(--flick, 0) * 2.5px), 0)
-    rotate(calc(var(--flick, 0) * 0.12deg));
+  translate: 0 calc(var(--flick, 0) * 9px);
+  rotate: calc(var(--flick, 0) * 0.55deg);
+  scale: calc(1 - var(--flick-abs, 0) * 0.008);
+  transform-origin: 50% 0%;
+  transition-property: transform, box-shadow;
+}
+/* Cards deeper in a thrown list trail the ones above them, so the whole stack
+   reads as one weighted object rather than a grid of independent tiles. */
+.vanta-card:nth-child(even) {
+  translate: 0 calc(var(--flick, 0) * 12px);
+  rotate: calc(var(--flick, 0) * -0.4deg);
 }
 
-/* Ask, while Echo is working: phosphor scanlines crawl over the alley wall and
-   the neon takes a surge. Idle Ask stays still. */
+/* ---- Ask: the alley is a cathode room ---------------------------------- */
+/* Idle Ask already hums: faint phosphor lines crawl slowly over the wall and the
+   tube edges glow. It is a live screen with nobody typing at it, not a picture. */
+html[data-room="ask"] .vanta-bd-sheen {
+  background-image:
+    repeating-linear-gradient(0deg, hsl(var(--accent) / 0.05) 0 2px, transparent 2px 5px);
+  animation: vanta-crt-crawl 5.5s linear infinite, vanta-puddle 9s ease-in-out infinite;
+}
+/* The tube itself: brighter at the edges, darker in the middle, like glass. */
+html[data-room="ask"] .vanta-bd-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 50%, transparent 46%, hsl(282 80% 58% / 0.14) 86%, hsl(282 90% 62% / 0.22));
+  opacity: 0.7;
+  animation: vanta-crt-breathe 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* While Echo is working the voltage climbs: the lines tighten and crawl fast,
+   the tube surges, and the beam jitters the way a driven CRT does. */
 html[data-room="ask"][data-thinking] .vanta-bd-sheen {
   background-image:
-    repeating-linear-gradient(0deg, hsl(var(--accent) / 0.07) 0 2px, transparent 2px 4px);
-  opacity: 0.9;
-  animation: vanta-crt-crawl 1.1s linear infinite;
+    repeating-linear-gradient(0deg, hsl(var(--accent) / 0.1) 0 2px, transparent 2px 4px);
+  opacity: 0.95;
+  animation: vanta-crt-crawl 0.9s linear infinite, vanta-crt-jitter 2.6s steps(1, end) infinite;
+}
+html[data-room="ask"][data-thinking] .vanta-bd-sheen::after {
+  opacity: 1;
+  animation: vanta-crt-surge 1.4s ease-in-out infinite;
 }
 @keyframes vanta-crt-crawl {
   from { background-position-y: 0; }
-  to   { background-position-y: 4px; }
+  to   { background-position-y: 100px; }
+}
+@keyframes vanta-crt-breathe {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 0.8; }
+}
+/* Voltage sag: a held frame of dimming, not a smooth pulse. */
+@keyframes vanta-crt-jitter {
+  0%, 84%   { transform: translate3d(0, 0, 0); filter: none; }
+  86%       { transform: translate3d(-1px, 1px, 0); filter: brightness(1.5); }
+  88%       { transform: translate3d(1px, -1px, 0); filter: brightness(0.75); }
+  90%, 100% { transform: translate3d(0, 0, 0); filter: none; }
+}
+@keyframes vanta-crt-surge {
+  0%, 100% { filter: brightness(1) saturate(1.1); }
+  45%      { filter: brightness(1.85) saturate(1.45); }
 }
 
-/* Time-of-day light on Today's concrete. Position comes from --tod; colour and
-   weight come from the daypart. Cool and raking at dawn, hard overhead at
-   midday, amber late, sodium-vapour at night. */
+/* ---- Today: the light on the concrete follows the real clock ------------- */
+/* Position comes from --tod, colour and weight from the daypart. The wall never
+   moves; only the light over it does. Weights are pushed up from the first pass
+   because the concrete swallowed anything subtler. */
+html[data-room="today"] .vanta-bd-light {
+  opacity: 0.85;
+  mix-blend-mode: screen;
+  /* The generic breathe would fight the daypart weights set below. */
+  animation: none;
+  transition: background-image 2.4s var(--ease-out), opacity 2.4s var(--ease-out);
+}
+/* Dawn: a cold, low, raking slit across the top of the wall. */
 html[data-daypart="dawn"][data-room="today"] .vanta-bd-light {
-  background-image: radial-gradient(120% 70% at calc(10% + var(--tod, 0.2) * 70%) -8%, hsl(205 70% 62% / 0.2), transparent 62%);
+  background-image:
+    linear-gradient(calc(96deg + var(--tod, 0.2) * 12deg), transparent 34%, hsl(205 80% 70% / 0.2) 46%, transparent 58%),
+    radial-gradient(120% 70% at calc(6% + var(--tod, 0.2) * 74%) -10%, hsl(205 76% 64% / 0.34), transparent 62%);
 }
+/* Midday: hard overhead wash, almost colourless, high contrast. */
 html[data-daypart="day"][data-room="today"] .vanta-bd-light {
-  background-image: radial-gradient(150% 80% at 50% -20%, hsl(48 40% 88% / 0.16), transparent 58%);
+  background-image:
+    radial-gradient(160% 90% at 50% -24%, hsl(48 34% 92% / 0.3), transparent 58%),
+    linear-gradient(180deg, hsl(0 0% 100% / 0.07), transparent 38%);
 }
+/* Golden hour: a copper beam from the side, catching the seams. */
 html[data-daypart="golden"][data-room="today"] .vanta-bd-light {
-  background-image: radial-gradient(130% 75% at calc(20% + var(--tod, 0.8) * 70%) -6%, hsl(28 92% 58% / 0.24), transparent 60%);
+  background-image:
+    linear-gradient(calc(76deg + var(--tod, 0.8) * 16deg), transparent 26%, hsl(30 96% 62% / 0.2) 44%, transparent 64%),
+    radial-gradient(130% 78% at calc(14% + var(--tod, 0.8) * 76%) -4%, hsl(26 94% 58% / 0.4), transparent 62%);
 }
+/* Dusk: violet twilight with neon bleeding up from street level. */
 html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
-  background-image: radial-gradient(120% 70% at calc(30% + var(--tod, 0.9) * 60%) 0%, hsl(276 62% 56% / 0.22), transparent 62%);
+  background-image:
+    radial-gradient(120% 70% at calc(24% + var(--tod, 0.9) * 64%) 0%, hsl(276 70% 60% / 0.36), transparent 62%),
+    radial-gradient(90% 44% at 50% 112%, hsl(196 84% 56% / 0.16), transparent 66%);
 }
+/* Night: one sodium lamp in the corner, everything else cold and deep. */
 html[data-daypart="night"][data-room="today"] .vanta-bd-light {
   background-image:
-    radial-gradient(60% 40% at 78% 8%, hsl(40 90% 60% / 0.16), transparent 64%),
-    radial-gradient(90% 60% at 18% 2%, hsl(220 50% 30% / 0.3), transparent 70%);
+    radial-gradient(52% 34% at 80% 4%, hsl(38 94% 60% / 0.32), transparent 66%),
+    radial-gradient(100% 66% at 16% 0%, hsl(220 56% 32% / 0.42), transparent 72%);
+}
+/* The lamp is a real lamp: it never holds perfectly steady. */
+html[data-daypart="night"][data-room="today"] .vanta-bd-light,
+html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
+  animation: vanta-lamp-waver 11s ease-in-out infinite;
+}
+@keyframes vanta-lamp-waver {
+  0%, 100% { opacity: 0.74; }
+  38%      { opacity: 0.92; }
+  62%      { opacity: 0.8; }
 }
 
 /* ==== Board housing, heavier paper, sticker language ================== */
@@ -2017,7 +2105,19 @@ html[data-daypart="night"][data-room="today"] .vanta-bd-light {
 @media (prefers-reduced-motion: reduce) {
   .solari-digit,
   .thermal-slip[data-fresh="true"] { animation: none !important; transform: none !important; opacity: 1 !important; }
-  .vanta-card, .vanta-inset { transform: none !important; }
-  html[data-room="ask"][data-thinking] .vanta-bd-sheen { animation: none !important; }
+  .vanta-card, .vanta-inset,
+  .vanta-card:nth-child(even) {
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+    scale: none !important;
+  }
+  /* The cathode room keeps its glow and loses its nerves. */
+  html[data-room="ask"] .vanta-bd-sheen,
+  html[data-room="ask"][data-thinking] .vanta-bd-sheen,
+  html[data-room="ask"] .vanta-bd-sheen::after,
+  html[data-room="ask"][data-thinking] .vanta-bd-sheen::after,
+  html[data-daypart="night"][data-room="today"] .vanta-bd-light,
+  html[data-daypart="dusk"][data-room="today"] .vanta-bd-light { animation: none !important; }
 }
 

@@ -71,12 +71,12 @@ export function SurfaceCrossfade({
           [
             { transform: "translate3d(0, 0, 0) scale(1)" },
             {
-              transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+              transform: `translate3d(${-x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
             },
           ],
-          { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+          { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
         );
-        armed.current = { key: nextKey, clone, fadeMs: Math.max(80, prefs.durationMs * 0.54) };
+        armed.current = { key: nextKey, clone, fadeMs: Math.max(140, prefs.durationMs * 0.7) };
       }),
     [],
   );
@@ -122,15 +122,15 @@ export function SurfaceCrossfade({
       hostRef.current?.style.setProperty("--swap-x", `${fallback.x}px`);
       ghostHost.replaceChildren(fallback.clone);
       clone = fallback.clone;
-      fadeMs = Math.max(80, prefs.durationMs * 0.54);
+      fadeMs = Math.max(140, prefs.durationMs * 0.7);
       clone.animate(
         [
           { transform: "translate3d(0, 0, 0) scale(1)" },
           {
-            transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.992)`,
+            transform: `translate3d(${-fallback.x * 1.1}px, ${-prefs.driftPx * 0.6}px, 0) scale(0.988)`,
           },
         ],
-        { duration: prefs.durationMs * 1.35, easing: "cubic-bezier(0.16, 0.9, 0.2, 1)", fill: "forwards" },
+        { duration: prefs.durationMs * 1.55, easing: SWAP_EASE, fill: "forwards" },
       );
     } else {
       ghostHost.replaceChildren();
@@ -166,7 +166,7 @@ export function SurfaceCrossfade({
     };
     fadeOut.finished.then(retire).catch(() => {});
     // Belt and braces: a cancelled or discarded animation must not leave a ghost.
-    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.35 + 200);
+    clearTimer.current = window.setTimeout(retire, fadeMs + prefs.durationMs * 1.55 + 240);
   }, [surfaceKey]);
 
   useEffect(
@@ -198,6 +198,9 @@ export function SurfaceCrossfade({
   );
 }
 
+/** One curve for the whole transit: quick release, long coast, soft landing. */
+const SWAP_EASE = "cubic-bezier(0.12, 0.98, 0.16, 1)";
+
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
@@ -207,16 +210,16 @@ function prefersReducedMotion(): boolean {
  * How far the room travels, and from which side.
  *
  * Forward along the line (Today to Work) arrives from the right; stepping back
- * arrives from the left, so the motion agrees with the tab you pressed. 26px
- * reads on a phone and disappears on a monitor, so the distance scales with the
- * glass and the room lands with the same weight on both.
+ * arrives from the left, so the motion agrees with the tab you pressed. A short
+ * hop reads as a twitch, so the distance is generous and scales with the glass:
+ * the room visibly arrives from off to one side on both a phone and a monitor.
  */
 function travelFor(fromKey: string, toKey: string): number {
   const from = roomOrder(fromKey);
   const to = roomOrder(toKey);
   const dir = to === from ? 0 : to > from ? 1 : -1;
   const vw = typeof window === "undefined" ? 384 : window.innerWidth;
-  const travel = vw >= 1280 ? 72 : vw >= 768 ? 52 : 26;
+  const travel = vw >= 1280 ? 132 : vw >= 768 ? 96 : 52;
   return dir * travel;
 }
 

@@ -29,22 +29,24 @@ export type RoomSwapPrefs = {
 };
 
 export const ROOM_SWAP_LIMITS = {
-  durationMs: { min: 80, max: 420, step: 20 },
-  driftPx: { min: 0, max: 12, step: 1 },
-  blockStaggerMs: { min: 0, max: 180, step: 10 },
+  /* A room change is a transit, not a blink. The ceiling is deliberately high
+     so "slower than you think" is actually reachable from the Feel sliders. */
+  durationMs: { min: 120, max: 900, step: 20 },
+  driftPx: { min: 0, max: 20, step: 1 },
+  blockStaggerMs: { min: 0, max: 260, step: 10 },
 };
 
 /** The three presets. Order is the order they are offered. */
 export const FEEL_PRESETS: Record<Exclude<Feel, "custom">, Omit<RoomSwapPrefs, "feel">> = {
-  minimal: { enabled: true, durationMs: 120, driftPx: 0, blockStaggerMs: 0 },
-  standard: { enabled: true, durationMs: 200, driftPx: 4, blockStaggerMs: 60 },
-  expressive: { enabled: true, durationMs: 300, driftPx: 10, blockStaggerMs: 110 },
+  minimal: { enabled: true, durationMs: 200, driftPx: 0, blockStaggerMs: 0 },
+  standard: { enabled: true, durationMs: 420, driftPx: 7, blockStaggerMs: 90 },
+  expressive: { enabled: true, durationMs: 620, driftPx: 14, blockStaggerMs: 150 },
 };
 
 export const FEEL_COPY: Record<Exclude<Feel, "custom">, { label: string; hint: string }> = {
   minimal: { label: "Minimal", hint: "Almost nothing moves. Fastest to read." },
-  standard: { label: "Standard", hint: "Movement where it means something." },
-  expressive: { label: "Expressive", hint: "Rooms and answers take a beat to settle." },
+  standard: { label: "Standard", hint: "Rooms glide in and settle." },
+  expressive: { label: "Expressive", hint: "Rooms and answers take a long beat to settle." },
 };
 
 export const ROOM_SWAP_DEFAULTS: RoomSwapPrefs = { ...FEEL_PRESETS.standard, feel: "standard" };
@@ -100,12 +102,25 @@ export function detectFeel(prefs: Omit<RoomSwapPrefs, "feel">): Feel {
   return "custom";
 }
 
+/** Timings a previous build wrote for each named preset. A device that chose a
+ *  preset chose its meaning, so it follows the preset when the numbers change —
+ *  only hand-tuned ("custom") settings keep their own figures. */
+const LEGACY_PRESET_DURATIONS: Record<Exclude<Feel, "custom">, number[]> = {
+  minimal: [120],
+  standard: [200],
+  expressive: [300],
+};
+
 export function readRoomSwapPrefs(): RoomSwapPrefs {
   if (typeof window === "undefined") return ROOM_SWAP_DEFAULTS;
   try {
     const raw = window.localStorage.getItem(STORE_KEY);
     if (!raw) return ROOM_SWAP_DEFAULTS;
-    return normalizeRoomSwapPrefs(JSON.parse(raw));
+    const prefs = normalizeRoomSwapPrefs(JSON.parse(raw));
+    if (prefs.feel !== "custom" && LEGACY_PRESET_DURATIONS[prefs.feel].includes(prefs.durationMs)) {
+      return { ...FEEL_PRESETS[prefs.feel], enabled: prefs.enabled, feel: prefs.feel };
+    }
+    return prefs;
   } catch {
     return ROOM_SWAP_DEFAULTS;
   }
@@ -142,7 +157,9 @@ export function applyRoomSwapPrefs(prefs: RoomSwapPrefs = readRoomSwapPrefs()) {
   root.style.setProperty("--room-swap-out-ms", `${Math.round(ms * 0.9)}ms`);
   root.style.setProperty("--room-swap-drift", `${prefs.enabled ? prefs.driftPx : 0}px`);
   root.style.setProperty("--block-stagger", `${prefs.enabled ? prefs.blockStaggerMs : 0}ms`);
-  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 200) * 100) / 100) : "0");
+  /* 420ms is the new standard beat, so Standard resolves to k=1 and the
+     one-shot motifs (stamps, slips, flaps) keep their calibrated timing. */
+  root.style.setProperty("--feel-k", prefs.enabled ? String(Math.round((ms / 420) * 100) / 100) : "0");
   root.dataset.roomSwap = prefs.enabled ? "on" : "off";
   root.dataset.feel = prefs.feel;
 }
