@@ -114,7 +114,7 @@ export function TodayBriefing(props: {
   return (
     <div className={cn("relative mt-2 rounded-md border border-border/50 bg-card/40 px-3 py-3", acked && "opacity-80")}>
       {acked ? (
-        <span aria-hidden className={cn("pointer-events-none absolute right-3 top-2 rotate-[-8deg] rounded-sm border-2 border-primary px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary", justStamped && "receipt-stamp-heavy")}>
+        <span aria-hidden className={cn("pointer-events-none absolute right-3 top-2 z-30 rotate-[-8deg] rounded-sm border-2 border-primary bg-card/80 px-2 py-0.5 text-[11px] font-black uppercase tracking-[0.2em] text-primary backdrop-blur-sm", justStamped && "receipt-stamp-heavy")}>
           Seen
         </span>
       ) : null}
