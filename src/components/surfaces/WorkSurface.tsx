@@ -412,9 +412,12 @@ function Desk({
 
   /* Both shapes of tile open the same place, so the quick actions below can
      share one handler without knowing which shape it sits under. */
+  const navigate = useNavigate();
   const open = () => {
+    beginDeskTransit({ word: label, line: DESK_VERB[deskKey] });
     if (href) {
-      window.location.href = href;
+      const url = new URL(href, window.location.origin);
+      navigate(url.pathname + url.search);
       return;
     }
     onOpen?.();
