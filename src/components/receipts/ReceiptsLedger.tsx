@@ -66,6 +66,9 @@ export function ReceiptsLedger({ rows, className }: { rows: Row[]; className?: s
       <div className="hidden grid-cols-[56px_110px_1fr_92px] gap-2 border-b border-border/50 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground sm:grid">
         <span>Time</span><span>Type</span><span>What happened</span><span className="text-right">Status</span>
       </div>
+      {days.length === 0 && (
+        <p className="px-3 py-3 text-[12px] text-muted-foreground">Only background checks in this stretch — calendar syncs and scans. Anything you save, approve or run shows up here with a time on it.</p>
+      )}
       {days.map((d) => (
         <div key={d.label}>
           <div className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border/40 bg-surface-elevated px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-foreground/80">
