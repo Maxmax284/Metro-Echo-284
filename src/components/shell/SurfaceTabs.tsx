@@ -12,6 +12,20 @@ import { MOTION_FOCUS, MOTION_MICRO, MOTION_ROW } from "@/lib/motion";
 import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation";
 import { setRoom, throwFrom } from "@/lib/skins";
 import { beginRoomSwap } from "@/lib/roomSwap";
+import { beginDeskTransit } from "@/lib/deskTransit";
+
+const ROOM_WORD: Record<RoomKey, string> = {
+  today: "TODAY",
+  work: "WORK",
+  ask: "ASK",
+  receipts: "RECEIPTS",
+};
+const ROOM_LINE: Record<RoomKey, string> = {
+  today: "What matters now, where you are.",
+  work: "Projects, desks, and what landed.",
+  ask: "Talk it through with Echo.",
+  receipts: "Every change, on the record.",
+};
 import { RoomSignal } from "@/components/shell/RoomSignal";
 import type { RoomKey } from "@/lib/navigation";
 import type { RoomSignal as RoomSignalState } from "@/lib/roomSignals";
@@ -68,6 +82,10 @@ export function SurfaceTabs({
        a room blocks the main thread long enough to swallow the whole transition,
        so the outgoing room has to be photographed and set moving first, then
        handed over a frame later. */
+    const nextRoom = roomForSurface(target);
+    if (nextRoom !== activeRoom) {
+      beginDeskTransit({ word: ROOM_WORD[nextRoom], line: ROOM_LINE[nextRoom], holdMs: 420 });
+    }
     beginRoomSwap(target);
     requestAnimationFrame(() => onChange(target));
     if (signal?.situationId) {
