@@ -150,6 +150,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
           <span className="ml-auto text-[10.5px] text-muted-foreground">{timezone}</span>
         </div>
 
+        {tab === "today" && <PushPrompt />}
         {tab === "today" && <FlowRail beats={FLOWS.schedule} />}
 
         {/* Schedule is time only: the day, what's next, the week. The desks
