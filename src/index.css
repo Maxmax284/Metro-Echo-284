@@ -2265,6 +2265,8 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
 .wx-led { width: 6px; height: 6px; border-radius: 9999px; }
 .wx-led.is-ok { background: hsl(var(--primary)); box-shadow: 0 0 5px hsl(var(--primary) / 0.7); }
 .wx-led.is-warn { background: hsl(var(--warn)); box-shadow: 0 0 6px hsl(var(--warn) / 0.8); animation: wx-glow 1.6s ease-in-out infinite; }
+.wx-unit { color: hsl(var(--muted-foreground)); border: 1px solid hsl(var(--border) / 0.6); border-radius: 3px; padding: 0 4px; line-height: 1.4; background: hsl(var(--background) / 0.5); cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease; }
+.wx-unit:hover, .wx-unit:focus-visible { color: hsl(var(--primary)); border-color: hsl(var(--primary) / 0.6); }
 @keyframes wx-spin { to { transform: rotate(360deg); } }
 @keyframes wx-drift { from { transform: translateX(-2px); } to { transform: translateX(2px); } }
 @keyframes wx-fall { from { transform: translateY(-4px); opacity: 1; } to { transform: translateY(12px); opacity: 0; } }
