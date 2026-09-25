@@ -1974,6 +1974,8 @@ html[data-room="ask"][data-thinking] .vanta-bd-sheen::after {
 html[data-room="today"] .vanta-bd-light {
   opacity: 0.85;
   mix-blend-mode: screen;
+  /* The generic breathe would fight the daypart weights set below. */
+  animation: none;
   transition: background-image 2.4s var(--ease-out), opacity 2.4s var(--ease-out);
 }
 /* Dawn: a cold, low, raking slit across the top of the wall. */
