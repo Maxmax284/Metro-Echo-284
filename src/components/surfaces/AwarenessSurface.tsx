@@ -699,6 +699,7 @@ export function AwarenessSurface() {
             void setActivePlace(id).then(() => toast.success(vantaSay.switchedPlace(row?.label ?? "that place")));
           }}
         />
+        </CollapsibleSection>
 
         {showMore ? <>
         <ArrivalsLane />
