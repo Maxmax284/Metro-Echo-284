@@ -485,7 +485,7 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           >
             {/* The count rides a split-flap drum: when the number genuinely
                 changes the digits riffle and land, like a terminal display. */}
-            <SolariNumber value={allEvents.length} tone="primary" />
+            <SolariNumber value={allEvents.length} tone="primary" size="lg" />
             Show me what moved <ArrowRight className="h-3.5 w-3.5" />
           </button>
         ) : null}
