@@ -29,22 +29,24 @@ export type RoomSwapPrefs = {
 };
 
 export const ROOM_SWAP_LIMITS = {
-  durationMs: { min: 80, max: 420, step: 20 },
-  driftPx: { min: 0, max: 12, step: 1 },
-  blockStaggerMs: { min: 0, max: 180, step: 10 },
+  /* A room change is a transit, not a blink. The ceiling is deliberately high
+     so "slower than you think" is actually reachable from the Feel sliders. */
+  durationMs: { min: 120, max: 900, step: 20 },
+  driftPx: { min: 0, max: 20, step: 1 },
+  blockStaggerMs: { min: 0, max: 260, step: 10 },
 };
 
 /** The three presets. Order is the order they are offered. */
 export const FEEL_PRESETS: Record<Exclude<Feel, "custom">, Omit<RoomSwapPrefs, "feel">> = {
-  minimal: { enabled: true, durationMs: 120, driftPx: 0, blockStaggerMs: 0 },
-  standard: { enabled: true, durationMs: 200, driftPx: 4, blockStaggerMs: 60 },
-  expressive: { enabled: true, durationMs: 300, driftPx: 10, blockStaggerMs: 110 },
+  minimal: { enabled: true, durationMs: 200, driftPx: 0, blockStaggerMs: 0 },
+  standard: { enabled: true, durationMs: 420, driftPx: 7, blockStaggerMs: 90 },
+  expressive: { enabled: true, durationMs: 620, driftPx: 14, blockStaggerMs: 150 },
 };
 
 export const FEEL_COPY: Record<Exclude<Feel, "custom">, { label: string; hint: string }> = {
   minimal: { label: "Minimal", hint: "Almost nothing moves. Fastest to read." },
-  standard: { label: "Standard", hint: "Movement where it means something." },
-  expressive: { label: "Expressive", hint: "Rooms and answers take a beat to settle." },
+  standard: { label: "Standard", hint: "Rooms glide in and settle." },
+  expressive: { label: "Expressive", hint: "Rooms and answers take a long beat to settle." },
 };
 
 export const ROOM_SWAP_DEFAULTS: RoomSwapPrefs = { ...FEEL_PRESETS.standard, feel: "standard" };
