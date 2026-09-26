@@ -191,15 +191,22 @@ Deno.serve(async (req) => {
       : null;
 
     /* Attribution is not optional decoration — the photo licenses require
-       it, so artist + license are resolved for every photo we ship. */
+       it, so artist + license are resolved for every photo we ship, and a
+       photo whose credit cannot be resolved does not ship at all. */
     const leadUrl = (page?.photo ?? dos?.photo ?? null) as string | null;
-    const galleryFiles = pics.filter((p) => photos.includes(p.url)).map((p) => ({ name: p.file, url: p.url }));
+    const galleryFiles = pics.filter((p) => photosAll.includes(p.url)).map((p) => ({ name: p.file, url: p.url }));
     const leadName = fileNameFromUrl(leadUrl);
-    const needsLead = Boolean(leadUrl && photos.includes(leadUrl) && leadName && !galleryFiles.some((f) => f.url === leadUrl));
-    const credits = await creditsFor([
+    const needsLead = Boolean(leadUrl && photosAll.includes(leadUrl) && leadName && !galleryFiles.some((f) => f.url === leadUrl));
+    const resolved = await creditsFor([
       ...(needsLead ? [{ name: leadName!, url: leadUrl! }] : []),
       ...galleryFiles,
     ]);
+    const byUrl = new Map(resolved.map((c) => [c.url, c]));
+    const photos = photosAll.filter((u) => {
+      const c = byUrl.get(u);
+      return c && (c.artist || c.license);
+    });
+    const credits = photos.map((u) => byUrl.get(u)!);
 
     if (!b.withRead) return json({ page, area, photos, credits, read: null });
 
