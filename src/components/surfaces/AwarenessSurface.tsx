@@ -176,6 +176,20 @@ export function AwarenessSurface() {
     travelTargets,
   );
 
+  /* The cabinet's about-you dials. Home is the place you marked Home; the
+     travel counter is the board, counted. No route history anywhere. */
+  const homePlace = useMemo(
+    () => places.find((p) => (p.category ?? "").trim().toLowerCase() === "home") ?? null,
+    [places],
+  );
+  const cabinetCounts = useMemo(
+    () => ({
+      places: places.length,
+      countries: new Set(places.map((p) => p.country).filter((c): c is string => !!c)).size,
+    }),
+    [places],
+  );
+
   /* The read before the newest one, per layer. Recorded history only — this is
      what lets the "Changed" shelf say what moved instead of that a scan ran. */
   const previousBySection = (() => {
@@ -573,6 +587,16 @@ export function AwarenessSurface() {
           lat={Number.isFinite(Number(boardGeo.lat)) ? Number(boardGeo.lat) : null}
           lon={Number.isFinite(Number(boardGeo.lon)) ? Number(boardGeo.lon) : null}
           timeZone={(boardGeo.time_zone as string) ?? (boardIsLive ? deviceTimeZone() : null)}
+          home={
+            homePlace
+              ? {
+                  label: placeDisplayLabel(homePlace.label),
+                  timeZone: ((homePlace.geo as any)?.time_zone as string) ?? null,
+                  atHome: boardPlace?.id === homePlace.id,
+                }
+              : null
+          }
+          counts={cabinetCounts}
         />
 
         {/* Bad Location Recovery — primary path when pin is unusable. */}

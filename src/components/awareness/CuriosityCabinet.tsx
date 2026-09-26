@@ -1,30 +1,46 @@
-// CuriosityCabinet — three dials about the sky over the place you're reading.
+// CuriosityCabinet — small dials about the sky over the place you're reading,
+// and the ground under you.
 //
-// Moon, daylight, season. Every one is figured on this device from the date
-// and the fix — no feed, no AI, no network — so the cabinet works with no
-// signal at all, and says where each reading comes from when you tap a dial.
+// Moon, daylight, season — plus three about-you dials: the hour at home, the
+// line the device claims, and how many places you've kept. Every one is
+// figured on this device from the date, the fix, the zone database and the
+// board — no feed, no AI, no network — so the cabinet works with no signal
+// at all, and says where each reading comes from when you tap a dial.
 //
 // Doctrine:
-//   - No widget pile: one card, three dials, one caption line.
+//   - No widget pile: one card, six dials, one caption line.
 //   - A season read is a generalization and is labelled as one — the usual
 //     pattern for a band of the world, never a forecast.
 //   - No coordinates, no cabinet claims: the empty state teaches how the
 //     dials get their sky.
+//   - The travel counter counts the board. No route history, no breadcrumbs.
 import { useEffect, useMemo, useState } from "react";
-import { Moon, Sun, CalendarDays } from "lucide-react";
+import { CalendarDays, Home, MapPinned, Moon, Signal, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { connectionRead, type ConnectionRead } from "@/lib/connectionRead";
 import {
   clockFromMinutes,
+  dateKeyDiff,
   hoursFromMinutes,
   seasonFor,
   stationRead,
   sunFraction,
+  zoneClock,
   type Hemisphere,
   type SeasonKey,
 } from "@/lib/station";
 
-type DialId = "moon" | "light" | "season";
+type DialId = "moon" | "light" | "season" | "home" | "signal" | "travel";
+
+export type CabinetHome = {
+  label: string;
+  timeZone: string | null;
+  /** True when the board is reading the home place itself. */
+  atHome?: boolean;
+};
+
+export type CabinetCounts = { places: number; countries: number };
 
 const SEASON_TOKEN: Record<SeasonKey, string> = {
   spring: "--cab-spring",
@@ -81,26 +97,63 @@ function SeasonRing({ lat, now }: { lat: number; now: Date }) {
   );
 }
 
+/** The device's own claim about the line. Never a probe. */
+function readDeviceLine(): ConnectionRead {
+  try {
+    const nav = navigator as Navigator & { connection?: { effectiveType?: string; rtt?: number } };
+    return connectionRead(nav.onLine !== false, nav.connection?.effectiveType ?? null, nav.connection?.rtt ?? null);
+  } catch {
+    return connectionRead(true, null, null);
+  }
+}
+
+/** "tomorrow there" / "yesterday there" / "+2d there" — 0 stays quiet. */
+function shiftWord(days: number): string | null {
+  if (days === 1) return "tomorrow there";
+  if (days === -1) return "yesterday there";
+  if (days !== 0) return `${days > 0 ? "+" : ""}${days}d there`;
+  return null;
+}
+
 export function CuriosityCabinet({
   city,
   lat,
   lon,
   timeZone,
+  home = null,
+  counts = null,
   className,
 }: {
   city: string | null;
   lat: number | null;
   lon: number | null;
   timeZone?: string | null;
+  home?: CabinetHome | null;
+  counts?: CabinetCounts | null;
   className?: string;
 }) {
   const [tick, setTick] = useState(0);
   const [src, setSrc] = useState<DialId | null>(null);
+  const [conn, setConn] = useState<ConnectionRead>(() => readDeviceLine());
 
-  // The sun moves; re-figure every five minutes.
+  // The sun and the clocks move; re-figure every minute.
   useEffect(() => {
-    const t = window.setInterval(() => setTick((n) => n + 1), 5 * 60_000);
+    const t = window.setInterval(() => setTick((n) => n + 1), 60_000);
     return () => window.clearInterval(t);
+  }, []);
+
+  // The line changes when the device says so — online, offline, 4g to 2g.
+  useEffect(() => {
+    const update = () => setConn(readDeviceLine());
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    const c = (navigator as Navigator & { connection?: EventTarget }).connection;
+    c?.addEventListener?.("change", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+      c?.removeEventListener?.("change", update);
+    };
   }, []);
 
   const ready = lat != null && lon != null && Number.isFinite(lat) && Number.isFinite(lon);
@@ -116,6 +169,15 @@ export function CuriosityCabinet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [ready, lat, lon, timeZone, now],
   );
+
+  /* Home hour, and how many days apart home's calendar is from the place
+     being read (device zone when the place carries none). */
+  const homeClock = home?.timeZone ? zoneClock(now, home.timeZone) : null;
+  const hereDateKey = useMemo(() => {
+    if (timeZone) return zoneClock(now, timeZone)?.dateKey ?? null;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, [now, timeZone]);
+  const homeShift = homeClock && hereDateKey ? shiftWord(dateKeyDiff(hereDateKey, homeClock.dateKey)) : null;
 
   const flip = (d: DialId) => {
     play("tick", { gain: 0.35 });
@@ -152,10 +214,25 @@ export function CuriosityCabinet({
       ? "this far from the equator, this time of year"
       : null;
 
+  const homeAria = home?.atHome
+    ? `Home: you're home — ${home.label}.`
+    : home && homeClock
+      ? `Home: ${homeClock.hhmm} at ${home.label}${homeShift ? `, ${homeShift}` : ""}.`
+      : home
+        ? "Home is pinned but its clock zone isn't on file."
+        : "No home pinned yet.";
+
+  const travelCount = counts && counts.places > 0 ? counts : null;
+
   const PROVENANCE: Record<DialId, string> = {
     moon: "Lunar math from the date — the same cycle everywhere, good to about a day. The lit side flips below the equator.",
     light: "From the latitude and the day of the year. Times are approximate — terrain and clock rules both argue.",
     season: season.note,
+    home: home
+      ? "Home is the place you marked Home on your board. The hour comes from that place's clock zone — figured here, never fetched."
+      : "Mark a saved place as Home and this dial keeps its hour while you're away.",
+    signal: "Your device's own report — its word, not a test. Echo doesn't spend a packet to check the line.",
+    travel: "Counted from the places on your board — nothing else. No route history, no breadcrumb trail.",
   };
 
   return (
@@ -216,6 +293,98 @@ export function CuriosityCabinet({
           <SeasonRing lat={lat!} now={now} />
           <span className="cab-dial-word">{season.label}</span>
           <span className="cab-dial-sub">{read.hemisphere === "south" ? "southern" : "northern"} {read.band}</span>
+        </button>
+      </div>
+
+      <div className="cabinet-row mt-2 grid grid-cols-3 gap-2">
+        {/* Home — the hour at the place you marked Home. */}
+        <button
+          type="button"
+          onClick={() => flip("home")}
+          aria-pressed={src === "home"}
+          aria-label={`${homeAria} Tap for where this reading comes from.`}
+          className="cab-dial"
+        >
+          <span className="cab-dial-icon"><Home className="h-3 w-3" /> home</span>
+          {home?.atHome ? (
+            <>
+              <span className="cab-home-mark" aria-hidden>■</span>
+              <span className="cab-dial-word">You're home</span>
+              <span className="cab-dial-sub">{home.label}</span>
+            </>
+          ) : home && homeClock ? (
+            <>
+              <span className="cab-clockface font-mono" aria-hidden>
+                {homeClock.hhmm.split(":")[0]}
+                <span className="cab-blink">:</span>
+                {homeClock.hhmm.split(":")[1]}
+              </span>
+              <span className="cab-dial-word">At home</span>
+              <span className="cab-dial-sub">{homeShift ? `${home.label} · ${homeShift}` : home.label}</span>
+            </>
+          ) : home ? (
+            <>
+              <span className="cab-home-mark" aria-hidden>■</span>
+              <span className="cab-dial-word">Home</span>
+              <span className="cab-dial-sub">its clock zone isn't on file</span>
+            </>
+          ) : (
+            <>
+              <span className="cab-home-mark" aria-hidden>■</span>
+              <span className="cab-dial-word">No home pinned</span>
+              <span className="cab-dial-sub">mark a saved place Home</span>
+            </>
+          )}
+        </button>
+
+        {/* Signal — the line the device claims. */}
+        <button
+          type="button"
+          onClick={() => flip("signal")}
+          aria-pressed={src === "signal"}
+          aria-label={`Signal: ${conn.word}. ${conn.sub}. Tap for where this reading comes from.`}
+          className="cab-dial"
+        >
+          <span className="cab-dial-icon"><Signal className="h-3 w-3" /> signal</span>
+          <span className="cab-bars" aria-hidden>
+            {[1, 2, 3, 4].map((b) => (
+              <span key={b} className={cn("cab-bar", b <= conn.bars && "on")} />
+            ))}
+          </span>
+          <span className="cab-dial-word">{conn.word}</span>
+          <span className="cab-dial-sub">{conn.sub}</span>
+        </button>
+
+        {/* Travel — the board, counted. */}
+        <button
+          type="button"
+          onClick={() => flip("travel")}
+          aria-pressed={src === "travel"}
+          aria-label={
+            travelCount
+              ? `Travel: ${travelCount.places} places kept across ${travelCount.countries} countries. Tap for where this reading comes from.`
+              : "Travel: no places kept yet. Tap for where this reading comes from."
+          }
+          className="cab-dial"
+        >
+          <span className="cab-dial-icon"><MapPinned className="h-3 w-3" /> travel</span>
+          {travelCount ? (
+            <>
+              <span className="cab-count font-mono" aria-hidden>{travelCount.places}</span>
+              <span className="cab-dial-word">{travelCount.places === 1 ? "Place kept" : "Places kept"}</span>
+              <span className="cab-dial-sub">
+                {travelCount.countries === 0
+                  ? "one country's worth"
+                  : `${travelCount.countries} ${travelCount.countries === 1 ? "country" : "countries"}`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="cab-count font-mono" aria-hidden>0</span>
+              <span className="cab-dial-word">No places yet</span>
+              <span className="cab-dial-sub">save one and the count starts</span>
+            </>
+          )}
         </button>
       </div>
 
