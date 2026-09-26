@@ -8,6 +8,7 @@ import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { classifyTier, type LocationTier } from "@/lib/awarenessPlainTalk";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 
 type Props = {
   className?: string;
@@ -40,6 +41,7 @@ const TIER_LABEL: Record<LocationTier, string> = {
 export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
   const { place, snapshot, snapshotLoading, refreshSnapshot, overall } = useAwareness();
   const { controls } = useSystemControls();
+  const [tempUnit] = useTempUnit();
 
   // Aware bubble is seasoning, not the meal. Collapsed by default; remembered
   // per device. The full Aware tab remains the deep intelligence room.
@@ -181,7 +183,7 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
       {weather && (weather.tempC != null || weather.condition) && (
         <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
           <Thermometer className="h-3 w-3" />
-          {weather.tempC != null ? `${Math.round(weather.tempC)}°C` : "—"}
+          {weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}
           {weather.condition && <span>· {weather.condition}</span>}
         </div>
       )}

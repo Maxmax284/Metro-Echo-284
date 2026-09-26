@@ -9,6 +9,7 @@ import { useSystemControls } from "@/hooks/useSystemControls";
 import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { classifyTier, tierScanCopy, normalizeAwarenessSignal, type LocationTier } from "@/lib/awarenessPlainTalk";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 
 type Props = {
   className?: string;
@@ -34,6 +35,7 @@ const TIER_TONE: Record<LocationTier, string> = {
 export function MiniRadarStrip({ className, onOpenAwareness }: Props) {
   const { place, snapshot, snapshotLoading, refreshSnapshot, overall, latestBySection } = useAwareness();
   const { controls } = useSystemControls();
+  const [tempUnit] = useTempUnit();
 
   const compactData = snapshot?.compact;
   const weather = compactData?.weather;
@@ -113,7 +115,7 @@ export function MiniRadarStrip({ className, onOpenAwareness }: Props) {
       {weather && (
         <div className="flex items-center gap-2 text-[12px] text-foreground/80">
           <Thermometer className="h-3 w-3 text-muted-foreground" />
-          {weather.tempC != null ? `${Math.round(weather.tempC)}°C` : "—"}
+          {weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}
           {weather.condition && <span className="text-muted-foreground">· {weather.condition}</span>}
         </div>
       )}

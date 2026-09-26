@@ -15,6 +15,7 @@ import { SignalBeacon } from "@/components/today/SignalBeacon";
 import { WeatherGauge, type LiveWeather } from "@/components/awareness/WeatherGauge";
 import { play } from "@/lib/streetSound";
 import { cn } from "@/lib/utils";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 
 type Page = { title: string; extract: string; photo: string | null; url: string | null };
 type Area = { localName: string | null; intro: string | null; history: string | null; geography: string | null };
@@ -91,6 +92,7 @@ export function FieldPolaroid({
   const [shot, setShot] = useState(0);
   const [wx, setWx] = useState<LiveWeather | null>(null);
   const [tick, setTick] = useState(0);
+  const [tempUnit] = useTempUnit();
   const cacheKey = `vanta.groundread.${city}`;
 
   // Re-read the clock every 5 minutes so day part follows the real hour.
@@ -125,7 +127,7 @@ export function FieldPolaroid({
     return () => { dead = true; window.clearInterval(t); };
   }, [lat == null ? null : lat.toFixed(2), lon == null ? null : lon.toFixed(2)]);
 
-  const liveWx = wx ? `${Math.round(wx.temp)}° ${wx.label}${wx.precip > 0 ? ", wet out" : ""}` : null;
+  const liveWx = wx ? `${formatTemp(wx.temp, tempUnit)} ${wx.label}${wx.precip > 0 ? ", wet out" : ""}` : null;
   const weatherLine = liveWx ?? weather ?? null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const { part, light } = useMemo(() => dayPartFor(timeZone), [timeZone, tick]);

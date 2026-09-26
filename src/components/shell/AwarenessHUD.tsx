@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 
@@ -115,6 +116,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [serpBusy, setSerpBusy] = useState(false);
   const [pinned, setPinned] = useState<string[]>([]);
+  const [tempUnit] = useTempUnit();
   const [tierFilter, setTierFilter] = useState<SourceTier | null>(null);
   const tierTimer = useRef<number | null>(null);
   useEffect(() => () => { if (tierTimer.current) window.clearTimeout(tierTimer.current); }, []);
@@ -270,7 +272,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
         key: "weather",
         icon: Thermometer,
         label: "Weather",
-        value: `${weather.tempC != null ? Math.round(weather.tempC) + "°C" : "—"}${weather.condition ? " · " + weather.condition : ""}`,
+        value: `${weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}${weather.condition ? " · " + weather.condition : ""}`,
       });
     }
     if (summary) {
@@ -286,7 +288,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
       });
     }
     return items.slice(0, 3);
-  }, [weather, summary, overall.briefings]);
+  }, [weather, summary, overall.briefings, tempUnit]);
 
   const terrainMode = useMemo(() => terrainModeFor(place), [place]);
   const terrainActive = activeLayer === "terrain";
@@ -816,7 +818,7 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
               <div className="rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Weather</div>
                 <div className="mt-1">
-                  {weather.tempC != null ? `${Math.round(weather.tempC)}°C` : "—"}
+                  {weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}
                   {weather.condition ? ` · ${weather.condition}` : ""}
                 </div>
               </div>
