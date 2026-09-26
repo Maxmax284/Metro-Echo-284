@@ -179,7 +179,7 @@ export const OCCASIONS: Occasion[] = [
     note: "A run of national holidays — the country is on the move.",
     tone: "celebration",
     countries: ["JP"],
-    window: fixed(4, 29, 5 * 0 + 5) /* Apr 29 – May 5 */,
+    window: () => ({ start: [4, 29], end: [5, 5] }),
   },
   {
     id: "carnival",
