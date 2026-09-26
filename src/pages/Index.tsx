@@ -55,6 +55,7 @@ import { useCurrentContext } from "@/providers/CurrentContextProvider";
 import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
 import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
+import { BootSequence } from "@/components/shell/BootSequence";
 import { useEffect } from "react";
 import { useRoomSignals } from "@/hooks/useRoomSignals";
 
@@ -186,6 +187,8 @@ function IndexInner() {
 
   return (
     <div className="relative flex min-h-dvh flex-col">
+      {/* The roll call covers first paint only; the rooms render regardless. */}
+      <BootSequence />
       <AmbientHeader
 
         state={state}

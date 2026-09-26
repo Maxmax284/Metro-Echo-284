@@ -10,16 +10,10 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { reducedMotion } from "@/lib/reducedMotion";
 
 const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const STEP_MS = 74;
-
-function reducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
 
 /** A short word on a split-flap drum. Turns only when the word really changes. */
 export function SolariWord({ word, tone = "live" }: { word: string; tone?: "live" | "hold" }) {

@@ -13,16 +13,10 @@
 import { useEffect } from "react";
 import { play, unlockAudio } from "@/lib/streetSound";
 import { playHaptic } from "@/lib/haptics";
+import { reducedMotion } from "@/lib/reducedMotion";
 
 const PULSE_MS = 320;
 const SPRAY_MS = 900;
-
-function reducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
 
 function spray(x: number, y: number) {
   const n = 24;

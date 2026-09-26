@@ -24,6 +24,7 @@ import { ActivityProvider } from "@/components/workstatus/ActivityStore";
 import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { PlaceSkin } from "@/components/shell/PlaceSkin";
+import { SkyChannel } from "@/components/shell/SkyChannel";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
@@ -86,6 +87,7 @@ const App = () => {
                    <VantaContextProvider>
                     <AwarenessProvider>
                       <PlaceSkin />
+                      <SkyChannel />
                       <WorkspaceProvider>
                        <AskThreadProvider>
                         <CompanionProvider>
