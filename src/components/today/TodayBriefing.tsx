@@ -153,12 +153,12 @@ export function TodayBriefing(props: {
         <Sparkles className={cn("h-3.5 w-3.5 text-accent", busy && "animate-pulse")} /> Echo's take
       </div>
 
-      <p className="mt-1.5 pr-14 text-[14px] leading-snug text-foreground animate-fade-in" key={fresh ? take!.at : "none"}>
+      <p className={cn("mt-1.5 pr-14 text-[14px] leading-snug text-foreground", MOTION_FADE)} key={fresh ? take!.at : "none"}>
         {busy ? "Reading your day…" : fresh ? take!.text : err ?? "Tap refresh for Echo's read of today."}
       </p>
       <ul className="mt-2 space-y-1">
         {brief.situations.slice(0, 4).map((s, i) => (
-          <li key={s.key} className="flex items-center gap-2 text-[12.5px] animate-fade-in" style={{ animationDelay: `${i * 70}ms` }}>
+          <li key={s.key} className={cn("flex items-center gap-2 text-[12.5px]", MOTION_FADE)} style={{ animationDelay: `${i * 70}ms` }}>
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
             <span className="truncate">{s.label}</span>
             {s.count > 1 ? <span className="vanta-machine text-muted-foreground">· {s.count}×</span> : null}
