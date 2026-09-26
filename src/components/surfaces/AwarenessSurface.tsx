@@ -50,6 +50,7 @@ import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 import { placeDisplayLabel } from "@/lib/placeLabels";
 import { PlacesBoardMap } from "@/components/awareness/PlacesBoardMap";
 import { WelcomeStamp } from "@/components/awareness/WelcomeStamp";
+import { LocalHelpCard } from "@/components/awareness/LocalHelpCard";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -607,6 +608,17 @@ export function AwarenessSurface() {
               : null
           }
           counts={cabinetCounts}
+        />
+
+        {/* Help and care for the ground being read: the published number for
+            this country first, the nearest care around the live fix, and the
+            care pins you kept. Reading a saved place keeps the numbers but
+            never borrows the care of where you happen to be standing. */}
+        <LocalHelpCard
+          key={`help-${boardPlace?.id ?? "none"}-${boardIsLive ? "live" : "saved"}`}
+          country={boardPlace?.country ?? null}
+          boardLabel={boardPlace ? placeDisplayLabel(boardPlace.label) : null}
+          boardIsLive={boardIsLive}
         />
 
         {/* Bad Location Recovery — primary path when pin is unusable. */}

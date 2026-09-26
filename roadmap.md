@@ -58,3 +58,9 @@
 ## Header place chip (new ground)
 - [x] Stack place name over the freshness stamp so both are readable at 384px; keep the whole chip tappable to the place board
 - [x] Verify live at phone size with a signed-in session
+
+## Local help on the Place board
+- [x] Emergency-number strip keyed to the board place's country (fixed table, named country, no dialing)
+- [x] Nearest care glance (ER/hospital/clinic/pharmacy) around the live fix with expander, kind chips, search, keep/forget
+- [x] Saved-place boards keep the numbers and kept pins but never borrow the live care list
+- [x] Verify live at 384px with a signed-in session
