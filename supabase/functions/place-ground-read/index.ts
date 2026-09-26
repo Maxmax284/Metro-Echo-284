@@ -93,6 +93,48 @@ async function dossier(title: string, lang: string | null) {
   };
 }
 
+/** Who made a photo and how it may be used — the license terms require this
+ *  to travel with the image, so credits are fetched with the photos and
+ *  rendered under each one. */
+type Credit = { url: string; artist: string | null; license: string | null; page: string | null };
+
+function stripHtml(s: string) {
+  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function creditFrom(ii: any, url: string): Credit {
+  const em = ii?.extmetadata ?? {};
+  const artist = em.Artist?.value ? stripHtml(String(em.Artist.value)).slice(0, 120) : null;
+  const license = em.LicenseShortName?.value ? String(em.LicenseShortName.value).slice(0, 60) : null;
+  const page = typeof ii?.descriptionurl === "string" ? ii.descriptionurl : null;
+  return { url, artist: artist || null, license, page };
+}
+
+/** The File: name a Wikimedia image URL ends in (thumb URLs carry a width prefix). */
+function fileNameFromUrl(u: string | null): string | null {
+  if (!u) return null;
+  try {
+    const last = new URL(u).pathname.split("/").pop() ?? "";
+    return decodeURIComponent(last.replace(/^\d+px-/, "")) || null;
+  } catch { return null; }
+}
+
+/** One batched lookup of artist + license for a set of File: names. */
+async function creditsFor(files: { name: string; url: string }[]): Promise<Credit[]> {
+  if (!files.length) return [];
+  const titles = files.map((f) => `File:${f.name}`).join("|");
+  const j = await getJson(
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata` +
+      `&titles=${encodeURIComponent(titles)}`,
+  );
+  const byName = new Map<string, any>();
+  for (const p of Object.values(j?.query?.pages ?? {}) as any[]) {
+    const name = String(p.title ?? "").replace(/^File:/, "");
+    if (name) byName.set(name, p.imageinfo?.[0]);
+  }
+  return files.map((f) => creditFrom(byName.get(f.name), f.url));
+}
+
 /** A few more real photographs of the same article, for the taped strip. */
 async function gallery(title: string) {
   const j = await getJson(
@@ -104,7 +146,11 @@ async function gallery(title: string) {
     .map((p) => ({ name: String(p.title ?? ""), url: p.imageinfo?.[0]?.thumburl as string | undefined }))
     .filter((p) => p.url && /\.(jpe?g|png)$/i.test(p.name) && !/(logo|icon|flag|seal|map|locator|svg|commons)/i.test(p.name))
     .slice(0, 5)
-    .map((p) => ({ caption: p.name.replace(/^File:/, "").replace(/\.[a-z]+$/i, "").replace(/[_-]+/g, " "), url: p.url! }));
+    .map((p) => ({
+      file: p.name.replace(/^File:/, ""),
+      caption: p.name.replace(/^File:/, "").replace(/\.[a-z]+$/i, "").replace(/[_-]+/g, " "),
+      url: p.url!,
+    }));
 }
 
 Deno.serve(async (req) => {
