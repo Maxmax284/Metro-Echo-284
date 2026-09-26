@@ -168,8 +168,8 @@ describe("station framing", () => {
 describe("bootHoldMs", () => {
   it("gives the full roll call at least ~4.4s so the drums can be read", () => {
     const hold = bootHoldMs("full", false);
-    expect(hold).toBeGreaterThanOrEqual(4400);
-    expect(hold).toBeLessThanOrEqual(5200);
+    expect(hold).toBeGreaterThanOrEqual(6200);
+    expect(hold).toBeLessThanOrEqual(7000);
   });
 
   it("is a nod, not a ceremony, on reopen", () => {
