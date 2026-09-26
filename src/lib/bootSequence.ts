@@ -70,6 +70,9 @@ export type BootFacts = {
   daypart?: Daypart | null;
   /** The station's season as an inline word ("wet season"), or null. */
   seasonLabel?: string | null;
+  /** A kept occasion holding today where the person stands, or null. Opt-in
+   *  only; arrives as provenance on the place line and a stamp, never a drum. */
+  occasion?: { name: string; tone: "celebration" | "observance" | "remembrance" } | null;
 };
 
 /** How the boot addresses this turn of the day. The default is the original
@@ -114,6 +117,7 @@ function drum(text: string): string {
 export function buildRollCall(facts: BootFacts): BootCall[] {
   const calls: BootCall[] = [];
   const seasonBit = facts.seasonLabel ? ` · ${facts.seasonLabel}` : "";
+  const occasionBit = facts.occasion ? ` · ${facts.occasion.name}` : "";
 
   calls.push({
     word: "METRO ECHO",
@@ -125,7 +129,7 @@ export function buildRollCall(facts: BootFacts): BootCall[] {
       word: drum(facts.placeStale ? "LAST KNOWN" : facts.placeName),
       line: facts.placeStale
         ? `${facts.placeName} — last place Echo knew${facts.placeAge ? `, ${facts.placeAge}` : ""}${seasonBit}.`
-        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}.`,
+        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}${occasionBit}.`,
     });
   } else {
     calls.push({

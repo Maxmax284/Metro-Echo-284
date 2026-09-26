@@ -15,6 +15,7 @@ import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
+import { OccasionsSection } from "@/components/settings/OccasionsSection";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
@@ -131,6 +132,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         />
         <PostureSection />
         <SensorConsentSection />
+        <OccasionsSection />
         <DeviceSignalsSection />
         <PushReadinessSection />
       </>

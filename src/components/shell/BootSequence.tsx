@@ -19,6 +19,7 @@ import { play } from "@/lib/streetSound";
 import { feelMs } from "@/lib/motion";
 import { daypartInZone } from "@/lib/daylight";
 import { seasonFor } from "@/lib/station";
+import { OCCASIONS_KEY, occasionFor } from "@/lib/occasions";
 import {
   buildRollCall,
   bootHoldMs,
@@ -109,9 +110,23 @@ export function BootSequence() {
         : null;
     /* The station layer: the turn of day and the season come off the fix and
        the calendar — the device's own clock answers when the fix names no zone. */
-    const geo = ((place?.geo ?? {}) as { lat?: unknown; time_zone?: unknown });
+    const geo = ((place?.geo ?? {}) as { lat?: unknown; time_zone?: unknown; country_code?: unknown });
     const lat = Number(geo.lat);
     const tz = typeof geo.time_zone === "string" ? geo.time_zone : null;
+    /* Kept occasions: opt-in per device, and only where the fix is fresh —
+       a stale place never earns a stamp it might not be standing in. */
+    const occasionsOn = (() => {
+      try {
+        return localStorage.getItem(OCCASIONS_KEY) === "1";
+      } catch {
+        return false;
+      }
+    })();
+    const country =
+      (typeof place?.country === "string" && place.country) ||
+      (typeof geo.country_code === "string" ? geo.country_code : null);
+    const occasion =
+      occasionsOn && !truth.stale ? occasionFor(new Date(), country) : null;
     return {
       placeName: truth.name,
       placeStale: truth.stale,
@@ -122,11 +137,22 @@ export function BootSequence() {
       online: reachNow().online,
       daypart: daypartInZone(tz),
       seasonLabel: Number.isFinite(lat) ? seasonFor(new Date(), lat).short : null,
+      occasion: occasion ? { name: occasion.name, tone: occasion.tone } : null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place, snapshot]);
 
   const roll = useMemo(() => buildRollCall(facts), [facts]);
+
+  /* The stamp lands the moment the occasion arrives, with its own sound —
+     once, never on a re-render loop. */
+  const stamped = useRef(false);
+  const hasOccasion = !!facts.occasion;
+  useEffect(() => {
+    if (!hasOccasion || stamped.current || mode === "skip") return;
+    stamped.current = true;
+    if (!reducedMotion()) play("stamp", { gain: 0.35 });
+  }, [hasOccasion, mode]);
 
   useEffect(() => {
     if (mode === "skip") return;
@@ -199,8 +225,16 @@ export function BootSequence() {
 
         <div className="mt-3 space-y-2.5">
           {roll.map((call, i) => (
-            <div key={`${call.word}-${i}`}>
+            <div key={`${call.word}-${i}`} className="relative">
               <SolariWord word={call.word} tone={call.word === "ALL CLEAR" ? "live" : call.word === "NEEDS YOU" || call.word === "NEEDS A LOOK" || call.word === "NO SIGNAL" ? "hold" : undefined} />
+              {i === 1 && facts.occasion && (
+                <span
+                  className={cn("boot-stamp", `boot-stamp-${facts.occasion.tone}`)}
+                  aria-label={`Kept occasion today: ${facts.occasion.name}`}
+                >
+                  {facts.occasion.name}
+                </span>
+              )}
               <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{call.line}</p>
             </div>
           ))}
