@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { OperationalState } from "@/lib/operationalState";
-import { Compass, MapPin, Moon, Sun } from "lucide-react";
+import { ChevronRight, Compass, MapPin, Moon, Sun } from "lucide-react";
 import { PostureGlyph } from "@/components/shell/PostureGlyph";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
@@ -75,22 +75,35 @@ export function AmbientHeader({
             <button
               type="button"
               onClick={onAwarenessClick}
-              className="inline-flex items-center gap-1 truncate rounded-full px-1.5 py-0.5 hover:bg-surface-elevated/60"
-              title="Awareness"
+              aria-label={`Where Echo is reading from: ${place}${
+                awareness
+                  ? ` — ${freshnessLabel[awareness.freshness]}${awareness.confidence ? `, ${awareness.confidence} confidence` : ""}`
+                  : ""
+              }. Open the place board.`}
+              title="Open the place board"
+              className="group inline-flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-surface-elevated/60"
             >
-              <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[88px] sm:max-w-[140px]">{place}</span>
-              {awareness && (
-                <span
-                  className={cn(
-                    "sticker-slap ml-1 px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider ring-1",
-                    freshnessTone[awareness.freshness]
-                  )}
-                >
-                  {freshnessLabel[awareness.freshness]}
-                  <span className="hidden sm:inline">{awareness.confidence ? ` · ${awareness.confidence}` : ""}</span>
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              {/* Stacked, not squeezed: the name gets its own full line and the
+                  freshness stamp rides underneath, so both stay readable at
+                  384px. The whole chip is one tap to the place board. */}
+              <span className="flex min-w-0 flex-col items-start gap-1 leading-none">
+                <span className="max-w-[150px] truncate text-[11.5px] leading-tight text-foreground/90 sm:max-w-[220px]">
+                  {place}
                 </span>
-              )}
+                {awareness && (
+                  <span
+                    className={cn(
+                      "sticker-slap px-1 py-px text-[9px] uppercase tracking-wider ring-1",
+                      freshnessTone[awareness.freshness]
+                    )}
+                  >
+                    {freshnessLabel[awareness.freshness]}
+                    {awareness.confidence ? ` · ${awareness.confidence}` : ""}
+                  </span>
+                )}
+              </span>
+              <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
             </button>
           )}
         </div>
