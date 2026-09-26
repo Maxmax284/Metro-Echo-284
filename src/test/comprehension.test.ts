@@ -358,6 +358,6 @@ describe("ask -> work round trip", () => {
     // as words, not as the token.
     expect(resolveProvenance("companion")).toBe("ask");
     expect(resolveProvenance("ask")).toBe("ask");
-    expect(PROVENANCE_LABEL.ask).toBe("Drafted in Ask");
+    expect(PROVENANCE_LABEL.ask).toBe("Drafted with Echo");
   });
 });

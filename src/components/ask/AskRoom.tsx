@@ -10,23 +10,36 @@
 // viewport. From there the room is a fixed frame: the thread list holds still,
 // the transcript scrolls inside it, and the floating jump control has a bottom
 // edge to sit on. Nothing else in the shell changes.
+//
+// Sizing follows the visual viewport, not the layout one. On Android the
+// keyboard shrinks what you can actually see, and the room must shrink with
+// it — dock above the keys, transcript scrolling in the space that's left —
+// instead of the whole room being squashed under the keyboard.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 export function AskRoom({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [top, setTop] = useState<number | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
 
   useEffect(() => {
     const measure = () => {
       const el = ref.current;
       if (!el) return;
-      setTop(Math.round(el.getBoundingClientRect().top + window.scrollY));
+      const top = el.getBoundingClientRect().top;
+      const view = window.visualViewport?.height ?? window.innerHeight;
+      setHeight(Math.max(280, Math.round(view - Math.max(0, top))));
     };
     measure();
     window.addEventListener("resize", measure);
+    /* visualViewport is the one that moves when the keyboard opens. */
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", measure);
+    vv?.addEventListener("scroll", measure);
     const t = window.setTimeout(measure, 250); // after the room's own header settles
     return () => {
       window.removeEventListener("resize", measure);
+      vv?.removeEventListener("resize", measure);
+      vv?.removeEventListener("scroll", measure);
       window.clearTimeout(t);
     };
   }, []);
@@ -38,11 +51,11 @@ export function AskRoom({ children }: { children: ReactNode }) {
     <div
       ref={ref}
       className={
-        top === null
+        height === null
           ? "flex min-h-0 flex-1 overflow-hidden"
           : "flex min-h-0 flex-none overflow-hidden"
       }
-      style={top === null ? undefined : { height: `calc(100dvh - ${top}px)` }}
+      style={height === null ? { height: "100dvh" } : { height: `${height}px` }}
     >
       {children}
     </div>

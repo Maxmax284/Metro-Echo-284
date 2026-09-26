@@ -58,8 +58,8 @@ export function useRoomSignals() {
   }, [user, scopeKey, matches, load]);
 
   const contextLabel = edge.where
-    ? `${edge.where} context is ready in Ask`
-    : sources.length > 0 ? "Context is ready in Ask" : null;
+    ? `${edge.where} context is ready with Echo`
+    : sources.length > 0 ? "Context is ready with Echo" : null;
   const signals = useMemo(() => deriveRoomSignals({
     nudges,
     actions,

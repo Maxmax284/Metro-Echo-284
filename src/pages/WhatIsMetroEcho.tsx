@@ -30,7 +30,7 @@ const NOT = [
 const ROOMS = [
   { k: "Today", d: "What matters now." },
   { k: "Work", d: "Where ongoing work lives." },
-  { k: "Ask", d: "Talk to Echo with your context already loaded." },
+  { k: "Echo", d: "Your context, already loaded." },
   { k: "Receipts", d: "What happened and why." },
 ];
 
@@ -138,7 +138,7 @@ export default function WhatIsMetroEcho() {
 
       <Section label="Not another chatbot">
         <div className="rounded-xl border border-border/60 bg-card/70 p-4">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Ask</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Echo</p>
           <p className="mt-1 text-lg font-semibold">“What actually needs me today?”</p>
           <div className="mt-4 space-y-2 border-l-2 border-primary/50 pl-3">
             <p className="text-[14px]">Approve the refund note — the customer is waiting on you, not the system.</p>

@@ -286,7 +286,7 @@ export function eventWhere(entityType: string | null | undefined): { label: stri
   const map: Record<string, { label: string; surface: SurfaceId }> = {
     note: { label: "Memory", surface: "memory" },
     capture: { label: "Inbox", surface: "inbox" },
-    message: { label: "Ask", surface: "ask" },
+    message: { label: "Echo", surface: "ask" },
     commitment: { label: "Promises", surface: "commitments" },
     action: { label: "Actions", surface: "actions" },
     project: { label: "Projects", surface: "projects" },

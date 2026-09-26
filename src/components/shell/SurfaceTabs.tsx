@@ -17,13 +17,13 @@ import { beginDeskTransit } from "@/lib/deskTransit";
 const ROOM_WORD: Record<RoomKey, string> = {
   today: "TODAY",
   work: "WORK",
-  ask: "ASK",
+  ask: "ECHO",
   receipts: "RECEIPTS",
 };
 const ROOM_LINE: Record<RoomKey, string> = {
   today: "What matters now, where you are.",
   work: "Projects, desks, and what landed.",
-  ask: "Talk it through with Echo.",
+  ask: "Talk it through.",
   receipts: "Every change, on the record.",
 };
 import { RoomSignal } from "@/components/shell/RoomSignal";
@@ -36,7 +36,7 @@ const items: { key: SurfaceKey; label: string; Icon: typeof MessageSquare }[] = 
   // Primary rooms
   { key: "today", label: "Today", Icon: Sun },
   { key: "work", label: "Work", Icon: Briefcase },
-  { key: "ask", label: "Ask", Icon: Sparkles },
+  { key: "ask", label: "Echo", Icon: Sparkles },
   { key: "receipts", label: "Receipts", Icon: Receipt },
 ];
 

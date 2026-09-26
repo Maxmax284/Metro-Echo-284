@@ -386,14 +386,16 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
               <div key={i} id={`ask-msg-${i}`} className="group/msg flex flex-col gap-0.5">
                 <div className="flex w-full items-start gap-1.5 motion-fade">
                   {/* Echo does not speak in a bubble. It speaks off a painted
-                      left edge — the wall, not a chat app. The user's own words
-                      stay a bubble on the right so the two are never confused. */}
+                      left edge — the wall, not a chat app — but on a solid card,
+                      so a long answer never fights the artwork behind it. The
+                      user's own words stay a bubble on the right so the two are
+                      never confused. */}
                   <div
                     className={cn(
                       "text-[15px] leading-relaxed",
                       isEcho
-                        ? "mr-auto max-w-[92%] border-l-2 border-primary/45 pl-3 text-foreground/95"
-                        : "ml-auto max-w-[88%] whitespace-pre-wrap rounded-2xl bg-primary/10 px-3.5 py-2 text-foreground ring-1 ring-primary/20"
+                        ? "mr-auto max-w-[92%] rounded-xl border-l-2 border-primary/45 bg-surface-elevated/85 px-3.5 py-2.5 ring-1 ring-border/70 text-foreground/95"
+                        : "ml-auto max-w-[88%] whitespace-pre-wrap rounded-2xl bg-primary/20 px-3.5 py-2 text-foreground ring-1 ring-primary/30"
                     )}
                   >
                     {isEcho && (

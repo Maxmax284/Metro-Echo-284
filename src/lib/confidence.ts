@@ -29,7 +29,7 @@ const SOURCE_PHRASE: Record<string, string> = {
   upload: "From an upload",
   website: "From a form",
   you: "Added by you",
-  ask: "Created in Ask",
+  ask: "Created with Echo",
   sherlock: "Found by Sherlock",
   vanta: "Prepared by Echo",
 };

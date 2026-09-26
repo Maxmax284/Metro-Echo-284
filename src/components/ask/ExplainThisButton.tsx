@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 const ROOM_LABEL: Record<RoomKey, string> = {
   today: "Today",
   work: "Work",
-  ask: "Ask",
+  ask: "Echo",
   receipts: "Receipts",
   settings: "Settings",
 };

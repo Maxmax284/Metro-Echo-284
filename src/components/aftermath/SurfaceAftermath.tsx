@@ -50,7 +50,7 @@ const LINE: Record<AftermathSurfaceKey, string> = {
   work:
     "Work is the map · desks hold the records, and every change you make writes a receipt",
   ask:
-    "Ask can draft and suggest · saving sends it to a desk, and nothing executes from this room",
+    "Echo can draft and suggest · saving sends it to a desk, and nothing executes from this room",
   documents:
     "Drafts stay drafts until you export · exports appear in Receipts with what went into them",
   files:

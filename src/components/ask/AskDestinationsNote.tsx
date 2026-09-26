@@ -31,7 +31,7 @@ export function AskDestinationsNote({ className }: { className?: string }) {
         className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
       >
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-        Where things from Ask end up
+        Where things from Echo end up
       </button>
       {open && (
         <ul className="mt-1.5 space-y-1 pl-4">
@@ -45,7 +45,7 @@ export function AskDestinationsNote({ className }: { className?: string }) {
             </li>
           ))}
           <li className="pt-0.5 text-[10px] italic text-muted-foreground/70">
-            Ask only drafts. Approving and executing happens in Actions.
+            Echo only drafts. Approving and executing happens in Actions.
           </li>
         </ul>
       )}

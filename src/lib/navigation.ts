@@ -25,7 +25,7 @@ export const DEFAULT_SURFACE: SurfaceId = "today";
 export const ROOM_LABEL: Record<RoomKey, string> = {
   today: "Today",
   work: "Work",
-  ask: "Ask",
+  ask: "Echo",
   receipts: "Receipts",
 };
 
