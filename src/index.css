@@ -2419,3 +2419,104 @@ html[data-sky="wind"]  { --sky-dim: 0.04; --sky-chill: 0.04; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Curiosity cabinet ---------- */
+/* Season dials speak in their own small palette; the tokens live here so the
+   theme can move them. */
+:root {
+  --cab-spring: 150 45% 55%;
+  --cab-summer: 42 85% 55%;
+  --cab-autumn: 22 75% 52%;
+  --cab-winter: 205 45% 62%;
+  --cab-wet: 200 60% 52%;
+  --cab-dry: 38 70% 55%;
+  --cab-eq: 165 40% 50%;
+  --cab-moon: 48 55% 88%;
+  --cab-sun: 45 95% 60%;
+}
+
+.cab-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 6px 9px;
+  border: 1px solid hsl(var(--border) / 0.6);
+  border-radius: 6px;
+  background: hsl(var(--surface-elevated, --background) / 0.25);
+  text-align: center;
+  transition: border-color 240ms var(--ease-out, ease), background 240ms var(--ease-out, ease);
+}
+.cab-dial:hover { border-color: hsl(var(--border)); }
+.cab-dial[aria-pressed="true"] {
+  border-color: hsl(var(--primary) / 0.55);
+  background: hsl(var(--primary) / 0.08);
+}
+.cab-dial-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: hsl(var(--muted-foreground));
+}
+.cab-dial-word {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: hsl(var(--foreground));
+}
+.cab-dial-sub {
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: hsl(var(--muted-foreground));
+}
+
+.cab-moon { width: 44px; height: 44px; }
+.cab-moon-dark { fill: hsl(var(--muted) / 0.5); }
+.cab-moon-lit {
+  fill: hsl(var(--cab-moon));
+  filter: drop-shadow(0 0 5px hsl(var(--cab-moon) / 0.45));
+  animation: cab-breathe 7s ease-in-out infinite;
+}
+
+.cab-arc { width: 100%; max-width: 120px; height: 44px; }
+.cab-horizon { stroke: hsl(var(--border)); stroke-width: 1; }
+.cab-arc-track {
+  fill: none;
+  stroke: hsl(var(--border) / 0.8);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+.cab-sun {
+  fill: hsl(var(--cab-sun));
+  filter: drop-shadow(0 0 6px hsl(var(--cab-sun) / 0.55));
+  transition: transform 900ms var(--ease-out, ease);
+  animation: cab-breathe 5s ease-in-out infinite;
+}
+.cab-sun-down { fill: hsl(var(--muted-foreground) / 0.5); filter: none; animation: none; }
+
+.cab-ring { width: 52px; height: 52px; }
+.cab-needle {
+  fill: hsl(var(--foreground));
+  stroke: hsl(var(--background));
+  stroke-width: 1.5;
+  transition: transform 600ms var(--ease-out, ease);
+}
+
+@keyframes cab-breathe {
+  0%, 100% { opacity: 0.88; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cab-moon-lit,
+  .cab-sun { animation: none; }
+  .cab-sun,
+  .cab-needle { transition: none; }
+}

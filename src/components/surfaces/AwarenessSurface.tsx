@@ -36,6 +36,7 @@ import { WhatVantaSees } from "@/components/awareness/WhatVantaSees";
 import { neverReadLine, readShelves } from "@/lib/awarenessShelves";
 import { AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { FieldPolaroid } from "@/components/awareness/FieldPolaroid";
+import { CuriosityCabinet } from "@/components/awareness/CuriosityCabinet";
 import { PlaceSwitcherRail } from "@/components/awareness/PlaceSwitcherRail";
 import { AwarenessMapPanel } from "@/components/awareness/AwarenessMapPanel";
 import { ArrivalsLane } from "@/components/awareness/ArrivalsLane";
@@ -63,6 +64,15 @@ function freshLabel(generated: string | null): string {
 }
 
 /** "never scanned" → "Never scanned". Wording stays, the sentence starts right. */
+/** The device's own zone, offered only when the board is reading the live place. */
+function deviceTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function sentenceCase(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -552,6 +562,17 @@ export function AwarenessSurface() {
           lat={Number.isFinite(Number(boardGeo.lat)) ? Number(boardGeo.lat) : null}
           lon={Number.isFinite(Number(boardGeo.lon)) ? Number(boardGeo.lon) : null}
           nearby={boardIsLive ? nearbyTowns.map((t: any) => t.name).filter(Boolean) : []}
+        />
+
+        {/* The cabinet: moon, daylight and season for the place being read —
+            on-device math only, so it holds with no signal. Reading a saved
+            spot shows that spot's sky; your fix stays untouched. */}
+        <CuriosityCabinet
+          key={`cab-${boardPlace?.id ?? "live"}`}
+          city={((boardGeo.city as string) ?? boardPlace?.label) ?? null}
+          lat={Number.isFinite(Number(boardGeo.lat)) ? Number(boardGeo.lat) : null}
+          lon={Number.isFinite(Number(boardGeo.lon)) ? Number(boardGeo.lon) : null}
+          timeZone={(boardGeo.time_zone as string) ?? (boardIsLive ? deviceTimeZone() : null)}
         />
 
         {/* Bad Location Recovery — primary path when pin is unusable. */}

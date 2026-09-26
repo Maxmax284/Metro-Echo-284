@@ -13,6 +13,8 @@
 //   - Offline never claims ALL CLEAR. Unknown is said as unknown.
 //   - A quick reopen gets a nod, not the full roll call.
 
+import type { Daypart } from "./daylight";
+
 export type BootMode = "skip" | "micro" | "full";
 
 export type BootDecision = { mode: BootMode; reason: string };
@@ -64,7 +66,32 @@ export type BootFacts = {
   operational: "calm" | "drift" | "pressure" | null;
   /** Browser reach. Offline changes what may be claimed. */
   online: boolean;
+  /** The turn of day on the clock where the person is — frames the ceremony. */
+  daypart?: Daypart | null;
+  /** The station's season as an inline word ("wet season"), or null. */
+  seasonLabel?: string | null;
 };
+
+/** How the boot addresses this turn of the day. The default is the original
+ *  boarding call, so a missing daypart changes nothing. */
+export type BootTurn = { header: string; lead: string };
+
+const TURNS: Record<Daypart, BootTurn> = {
+  dawn: { header: "Early boarding", lead: "First light. The board lights up with what Echo can verify." },
+  day: { header: "Now boarding", lead: "Midday turn. The board lights up with what Echo can verify." },
+  golden: { header: "Now boarding", lead: "Golden hour. The board lights up with what Echo can verify." },
+  dusk: { header: "Evening boarding", lead: "Evening turn. The board lights up with what Echo can verify." },
+  night: { header: "Late boarding", lead: "Late turn. The board lights up with what Echo can verify." },
+};
+
+const DEFAULT_TURN: BootTurn = {
+  header: "Now boarding",
+  lead: "The board lights up with what Echo can verify.",
+};
+
+export function bootTurn(daypart: Daypart | null | undefined): BootTurn {
+  return daypart ? TURNS[daypart] : DEFAULT_TURN;
+}
 
 export type BootCall = {
   /** Big drum word, uppercase, kept short for the split-flap. */
@@ -86,18 +113,19 @@ function drum(text: string): string {
  */
 export function buildRollCall(facts: BootFacts): BootCall[] {
   const calls: BootCall[] = [];
+  const seasonBit = facts.seasonLabel ? ` · ${facts.seasonLabel}` : "";
 
   calls.push({
     word: "METRO ECHO",
-    line: "The board lights up with what Echo can verify.",
+    line: bootTurn(facts.daypart).lead,
   });
 
   if (facts.placeName) {
     calls.push({
       word: drum(facts.placeStale ? "LAST KNOWN" : facts.placeName),
       line: facts.placeStale
-        ? `${facts.placeName} — last place Echo knew${facts.placeAge ? `, ${facts.placeAge}` : ""}.`
-        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}.`,
+        ? `${facts.placeName} — last place Echo knew${facts.placeAge ? `, ${facts.placeAge}` : ""}${seasonBit}.`
+        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}.`,
     });
   } else {
     calls.push({
