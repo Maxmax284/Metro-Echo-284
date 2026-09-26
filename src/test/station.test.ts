@@ -20,7 +20,8 @@ describe("latBand / hemisphere", () => {
     expect(latBand(9.5)).toBe("tropical"); // Ko Samui
     expect(latBand(25.8)).toBe("subtropical"); // Miami
     expect(latBand(38.9)).toBe("temperate"); // Washington
-    expect(latBand(-33.9)).toBe("temperate"); // Sydney
+    expect(latBand(-33.9)).toBe("subtropical"); // Sydney
+    expect(latBand(51.5)).toBe("temperate"); // London
     expect(latBand(60)).toBe("subpolar"); // Oslo
     expect(latBand(78)).toBe("polar"); // Svalbard
   });
