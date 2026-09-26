@@ -3,6 +3,7 @@ import {
   BOOT_COLD_MS,
   BOOT_JUST_NOW_MS,
   bootHoldMs,
+  bootTurn,
   buildRollCall,
   decideBoot,
   type BootFacts,
@@ -129,6 +130,38 @@ describe("buildRollCall", () => {
         expect(call.word.length).toBeLessThanOrEqual(14);
       }
     }
+  });
+});
+
+describe("station framing", () => {
+  it("frames the ceremony for the turn of day without inventing anything", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, daypart: "dawn" });
+    expect(roll[0].line).toContain("First light");
+    const night = buildRollCall({ ...BASE_FACTS, daypart: "night" });
+    expect(night[0].line).toContain("Late turn");
+  });
+
+  it("keeps the original boarding call when the daypart is unknown", () => {
+    const roll = buildRollCall(BASE_FACTS);
+    expect(roll[0].line).toBe("The board lights up with what Echo can verify.");
+    expect(bootTurn(null).header).toBe("Now boarding");
+  });
+
+  it("names the boarding turn per daypart", () => {
+    expect(bootTurn("dawn").header).toBe("Early boarding");
+    expect(bootTurn("dusk").header).toBe("Evening boarding");
+    expect(bootTurn("night").header).toBe("Late boarding");
+  });
+
+  it("drops the season into the place line as provenance, not a drum", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, seasonLabel: "wet season" });
+    expect(roll[1].line).toContain("wet season");
+    expect(roll.map((c) => c.word)).not.toContain("WET SEASON");
+  });
+
+  it("says no season when the fix carries no latitude", () => {
+    const roll = buildRollCall(BASE_FACTS);
+    expect(roll[1].line).not.toContain("season");
   });
 });
 
