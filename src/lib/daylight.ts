@@ -43,6 +43,11 @@ function localHour(timezone?: string): number {
   return now.getHours() + now.getMinutes() / 60;
 }
 
+/** The daypart on the clock at the place — the device's own when no zone is given. */
+export function daypartInZone(timeZone?: string | null): Daypart {
+  return daypartFor(localHour(timeZone ?? undefined));
+}
+
 /** Apply the current light once. Safe to call as often as you like. */
 export function applyDaylight(timezone?: string): void {
   if (typeof document === "undefined") return;
