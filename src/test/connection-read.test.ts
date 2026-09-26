@@ -1,71 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { connectionAt, connectionRead } from "@/lib/connectionRead";
-import type { Leg } from "@/lib/journey";
-
-function leg(over: Partial<Leg> & { from: Leg["from"]; to: Leg["to"] }): Leg {
-  return {
-    plan_id: over.plan_id ?? "p",
-    order: over.order ?? 0,
-    flight_no: over.flight_no ?? null,
-    airline: over.airline ?? null,
-    live_checked_at: null,
-    filed_status: null,
-    override: null,
-    override_note: null,
-    ...over,
-  } as Leg;
-}
-
-const end = (iata: string, at: string | null, terminal: string | null = null, gate: string | null = null) => ({
-  iata,
-  at,
-  basis: "scheduled" as const,
-  terminal,
-  gate,
-});
+import { connectionRead } from "@/lib/connectionRead";
 
 describe("connectionRead", () => {
-  const landing = leg({
-    plan_id: "a",
-    flight_no: "BR3",
-    airline: "EVA Air",
-    from: end("IAD", "2026-09-19T22:00:00Z"),
-    to: end("TPE", "2026-09-20T18:00:00Z", "2"),
-  });
-  const onward = leg({
-    plan_id: "b",
-    order: 1,
-    flight_no: "BR67",
-    airline: "EVA Air",
-    from: end("TPE", "2026-09-20T22:00:00Z", "2"),
-    to: end("BKK", "2026-09-21T01:00:00Z"),
+  it("offline reads as no bars, and says the cabinet still works", () => {
+    const r = connectionRead(false, "4g", 40);
+    expect(r.bars).toBe(0);
+    expect(r.word).toBe("Offline");
+    expect(r.sub).toMatch(/on-device/);
   });
 
-  it("leads with the onward flight, not the city", () => {
-    const read = connectionRead(landing, onward, new Date("2026-09-20T18:10:00Z"));
-    expect(read.lead).toContain("Connecting at");
-    expect(read.lead).toContain("EVA Air BR67");
-    expect(read.detail.join(" ")).toContain("No gate filed");
+  it("2g is a thin line", () => {
+    expect(connectionRead(true, "2g", 800).bars).toBe(1);
+    expect(connectionRead(true, "slow-2g").word).toBe("Thin line");
   });
 
-  it("calls a short sit tight", () => {
-    const tightOnward = leg({ ...onward, from: end("TPE", "2026-09-20T19:00:00Z", "2") });
-    expect(connectionRead(landing, tightOnward, new Date("2026-09-20T18:10:00Z")).tight).toBe(true);
+  it("3g is a fair line", () => {
+    expect(connectionRead(true, "3g", 300).bars).toBe(2);
   });
 
-  it("names a filed gate and never invents one", () => {
-    const gated = leg({ ...onward, from: end("TPE", "2026-09-20T22:00:00Z", "2", "A5") });
-    const read = connectionRead(landing, gated, new Date("2026-09-20T18:10:00Z"));
-    expect(read.detail.join(" ")).toContain("Gate A5");
+  it("4g is a good line and shows the round trip when known", () => {
+    const r = connectionRead(true, "4g", 86);
+    expect(r.bars).toBe(4);
+    expect(r.sub).toBe("4g · ~86ms");
   });
 
-  it("is null when the landing ends the journey", () => {
-    expect(connectionAt([landing], 0)).toBeNull();
-    expect(connectionAt([landing, onward], 0)).not.toBeNull();
-  });
-
-  it("is null when the next leg leaves from somewhere else", () => {
-    const elsewhere = leg({ ...onward, from: end("HKG", "2026-09-20T22:00:00Z") });
-    expect(connectionAt([landing, elsewhere], 0)).toBeNull();
+  it("online without details admits whose word it is", () => {
+    const r = connectionRead(true, null, null);
+    expect(r.word).toBe("Online");
+    expect(r.sub).toMatch(/device's word/);
   });
 });
