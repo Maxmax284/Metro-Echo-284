@@ -127,6 +127,10 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
       // "reading" places are kept to read about, never to stand in for your fix.
       .or("category.is.null,category.not.in.(care,nearby,reading)")
       .is("archived_at", null)
+      // Only a device fix can be "where you are". Saved places (Home, Work,
+      // a named reading) are rows too, and editing one bumps updated_at —
+      // without this, marking a place Home would teleport the whole app.
+      .filter("geo->>source", "eq", "device")
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
