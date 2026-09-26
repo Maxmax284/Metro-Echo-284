@@ -14,6 +14,7 @@
 //   - A quick reopen gets a nod, not the full roll call.
 
 import type { Daypart } from "./daylight";
+import { STAMP_COPY } from "./welcomeStamp";
 
 export type BootMode = "skip" | "micro" | "full";
 
@@ -79,6 +80,10 @@ export type BootFacts = {
   /** A kept occasion holding today where the person stands, or null. Opt-in
    *  only; arrives as provenance on the place line and a stamp, never a drum. */
   occasion?: { name: string; tone: "celebration" | "observance" | "remembrance" } | null;
+  /** Your own welcome stamp. "here" — the place you stand in is stamped;
+   *  "near" — you're back within earshot of ground you stamped before.
+   *  Never set for a stale fix. */
+  stamp?: { word: string; spoken: string; kind: "here" | "near"; label?: string | null } | null;
 };
 
 /** How the boot addresses this turn of the day. The default is the original
@@ -124,6 +129,11 @@ export function buildRollCall(facts: BootFacts): BootCall[] {
   const calls: BootCall[] = [];
   const seasonBit = facts.seasonLabel ? ` · ${facts.seasonLabel}` : "";
   const occasionBit = facts.occasion ? ` · ${facts.occasion.name}` : "";
+  const stampBit = facts.stamp
+    ? ` · ${facts.stamp.kind === "here"
+        ? STAMP_COPY.onFile(facts.stamp.spoken)
+        : STAMP_COPY.stampedGround(facts.stamp.label ?? "this ground", facts.stamp.spoken)}`
+    : "";
 
   calls.push({
     word: "METRO ECHO",
@@ -135,7 +145,7 @@ export function buildRollCall(facts: BootFacts): BootCall[] {
       word: drum(facts.placeStale ? "LAST KNOWN" : facts.placeName),
       line: facts.placeStale
         ? `${facts.placeName} — last place Echo knew${facts.placeAge ? `, ${facts.placeAge}` : ""}${seasonBit}.`
-        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}${occasionBit}.`,
+        : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}${occasionBit}${stampBit}.`,
     });
   } else {
     calls.push({

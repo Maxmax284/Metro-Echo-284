@@ -47,5 +47,8 @@ export const STAMP_COPY = {
   /** Boot line provenance, appended to the place line. */
   onFile: (spoken: string) => `on file since ${spoken}`,
   /** Returning to ground near a place you stamped before. */
-  stampedGround: "ground you've stamped before",
+  stampedGround: (label: string, spoken: string) => `stamped ground — ${label}, since ${spoken}`,
 } as const;
+
+/** How close the fix must be to stamped ground for the boot to echo it. */
+export const STAMP_ECHO_M = 30_000;
