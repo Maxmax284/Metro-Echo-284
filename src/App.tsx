@@ -25,6 +25,7 @@ import { ActivityTray } from "@/components/workstatus/ActivityTray";
 import { AmbientBackdrop } from "@/components/shell/AmbientBackdrop";
 import { PlaceSkin } from "@/components/shell/PlaceSkin";
 import { SkyChannel } from "@/components/shell/SkyChannel";
+import { RegionTintChannel } from "@/components/shell/RegionTintChannel";
 import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
@@ -88,6 +89,7 @@ const App = () => {
                     <AwarenessProvider>
                       <PlaceSkin />
                       <SkyChannel />
+                      <RegionTintChannel />
                       <WorkspaceProvider>
                        <AskThreadProvider>
                         <CompanionProvider>
