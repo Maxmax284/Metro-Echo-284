@@ -10,6 +10,8 @@ export function MailSweepRow() {
   const { enabled, lastSweptAt, lastError, found7d, busy, setEnabled } = useMailSweep();
   /* Google's own refusal, told apart from an ordinary hiccup. */
   const blocked = !!lastError && /switched off/i.test(lastError);
+  /* The grant itself died — the way back is the button above, not this switch. */
+  const needsSignIn = !!lastError && !blocked && /sign in again/i.test(lastError);
 
   return (
     <div className="mt-2 rounded-md bg-background/40 p-2 ring-1 ring-border/30">

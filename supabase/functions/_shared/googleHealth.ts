@@ -30,8 +30,8 @@ export type ConnectionRow = {
 
 const FAILING_LINE: Record<GoogleConnectorId, string> = {
   google_calendar: "Google stopped answering for your calendar.",
-  google_mail: "Google stopped answering for your mail. Switch it on again.",
-  google_drive: "Google stopped answering for your files. Switch it on again.",
+  google_mail: "Google stopped answering for your mail. Tap Sign in again — the button is right below.",
+  google_drive: "Google stopped answering for your files. Tap Sign in again — the button is right below.",
 };
 
 /**
