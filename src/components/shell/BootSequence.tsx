@@ -101,7 +101,7 @@ export function BootSequence() {
         : null;
     /* The station layer: the turn of day and the season come off the fix and
        the calendar — the device's own clock answers when the fix names no zone. */
-    const geo = ((place?.geo ?? {}) as { lat?: unknown; time_zone?: unknown; country_code?: unknown });
+    const geo = ((place?.geo ?? {}) as { lat?: unknown; lon?: unknown; time_zone?: unknown; country_code?: unknown });
     const lat = Number(geo.lat);
     const tz = typeof geo.time_zone === "string" ? geo.time_zone : null;
     /* Kept occasions: opt-in per device, and only where the fix is fresh —
