@@ -96,6 +96,10 @@ export default function Settings() {
       {/* One plain read on the connections Echo relies on. */}
       <SystemHealthLine />
 
+      {/* A dead personal Google grant gets its own loud door — the health line
+          above only watches platform plumbing. */}
+      <GoogleAttentionLine />
+
       {/* Telegram is the field interface — it gets its own door, not a nested one. */}
       <TelegramQuickConnect />
 
