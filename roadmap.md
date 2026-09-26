@@ -56,5 +56,5 @@
 - [ ] Verify Ask at desktop and phone sizes, including room switching and an active response
 
 ## Header place chip (new ground)
-- [ ] Stack place name over the freshness stamp so both are readable at 384px; keep the whole chip tappable to the place board
-- [ ] Verify live at phone size with a signed-in session
+- [x] Stack place name over the freshness stamp so both are readable at 384px; keep the whole chip tappable to the place board
+- [x] Verify live at phone size with a signed-in session
