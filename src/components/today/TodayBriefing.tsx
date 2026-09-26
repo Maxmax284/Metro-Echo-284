@@ -11,6 +11,7 @@ import { reduceSituation, type SituationEvent } from "@/lib/situationReducer";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
 import { SignalBeacon, type GpsLive } from "@/components/today/SignalBeacon";
+import { MOTION_FADE } from "@/lib/motion";
 
 
 const ACK_KEY = "vanta.today.ack";
