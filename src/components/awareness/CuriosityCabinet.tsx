@@ -98,12 +98,12 @@ function SeasonRing({ lat, now }: { lat: number; now: Date }) {
 }
 
 /** The device's own claim about the line. Never a probe. */
-function readDeviceLine(): ConnectionRead {
+function readDeviceLine(): SignalRead {
   try {
     const nav = navigator as Navigator & { connection?: { effectiveType?: string; rtt?: number } };
-    return connectionRead(nav.onLine !== false, nav.connection?.effectiveType ?? null, nav.connection?.rtt ?? null);
+    return signalRead(nav.onLine !== false, nav.connection?.effectiveType ?? null, nav.connection?.rtt ?? null);
   } catch {
-    return connectionRead(true, null, null);
+    return signalRead(true, null, null);
   }
 }
 
@@ -134,7 +134,7 @@ export function CuriosityCabinet({
 }) {
   const [tick, setTick] = useState(0);
   const [src, setSrc] = useState<DialId | null>(null);
-  const [conn, setConn] = useState<ConnectionRead>(() => readDeviceLine());
+  const [conn, setConn] = useState<SignalRead>(() => readDeviceLine());
 
   // The sun and the clocks move; re-figure every minute.
   useEffect(() => {
