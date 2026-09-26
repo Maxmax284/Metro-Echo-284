@@ -147,26 +147,50 @@ export function GoogleAccountSection({
                 </p>
               ) : null}
               {cap.wired && (granted || offerable) ? (
-                <Button
-                  size="sm"
-                  variant={granted ? "ghost" : "default"}
-                  className="vanta-focus mt-1.5 h-8 text-[11.5px]"
-                  disabled={busy === cap.key}
-                  onClick={() => void (granted ? disconnect(cap) : connect(cap))}
-                >
-                  {granted ? (
-                    <>
-                      <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                      Disconnect
-                    </>
-                  ) : busy === cap.key ? (
-                    "Opening Google…"
-                  ) : isSharedGrant(cap, state) ? (
-                    "Use my own Google"
-                  ) : (
-                    `Connect ${cap.label}`
-                  )}
-                </Button>
+                /* A dead grant is not "connected with a Disconnect button".
+                   It is one loud way back in, and a quiet way out. */
+                statusFor(cap, state)?.failing ? (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="vanta-focus h-9 px-4 text-[12px] font-semibold"
+                      disabled={busy === cap.key}
+                      onClick={() => void connect(cap)}
+                    >
+                      {busy === cap.key ? "Opening Google…" : "Sign in again"}
+                    </Button>
+                    <button
+                      type="button"
+                      className="vanta-focus text-[10.5px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      disabled={busy === cap.key}
+                      onClick={() => void disconnect(cap)}
+                    >
+                      Disconnect instead
+                    </button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={granted ? "ghost" : "default"}
+                    className="vanta-focus mt-1.5 h-8 text-[11.5px]"
+                    disabled={busy === cap.key}
+                    onClick={() => void (granted ? disconnect(cap) : connect(cap))}
+                  >
+                    {granted ? (
+                      <>
+                        <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                        Disconnect
+                      </>
+                    ) : busy === cap.key ? (
+                      "Opening Google…"
+                    ) : isSharedGrant(cap, state) ? (
+                      "Use my own Google"
+                    ) : (
+                      `Connect ${cap.label}`
+                    )}
+                  </Button>
+                )
               ) : null}
               {/* Reading mail on a tap is one thing. Watching it in the
                   background is a separate, explicit yes. */}

@@ -10,6 +10,8 @@ export function MailSweepRow() {
   const { enabled, lastSweptAt, lastError, found7d, busy, setEnabled } = useMailSweep();
   /* Google's own refusal, told apart from an ordinary hiccup. */
   const blocked = !!lastError && /switched off/i.test(lastError);
+  /* The grant itself died — the way back is the button above, not this switch. */
+  const needsSignIn = !!lastError && !blocked && /sign in again/i.test(lastError);
 
   return (
     <div className="mt-2 rounded-md bg-background/40 p-2 ring-1 ring-border/30">
@@ -57,6 +59,14 @@ export function MailSweepRow() {
           >
             Open the Gmail API page in Google Cloud
           </a>
+        </div>
+      ) : needsSignIn ? (
+        <div className="mt-1.5 rounded-md bg-destructive/10 p-2 ring-1 ring-destructive/30">
+          <p className="text-[10.5px] leading-snug text-foreground/90">
+            The watch is still on here, but Google isn't answering — your sign-in expired. Hit
+            <span className="font-medium"> Sign in again </span>
+            just above and this clears itself on the next look. This switch stays exactly as you left it.
+          </p>
         </div>
       ) : lastError ? (
         <p className="mt-1 text-[10.5px] text-destructive">{lastError}</p>
