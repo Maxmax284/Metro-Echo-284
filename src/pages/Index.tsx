@@ -56,6 +56,8 @@ import { OPEN_RECEIPTS_EVENT } from "@/lib/receipts";
 import { OPEN_ASK_EVENT } from "@/lib/askPromotion";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { BootSequence } from "@/components/shell/BootSequence";
+import { IntroSequence } from "@/components/shell/IntroSequence";
+import { useIntroGate } from "@/hooks/useIntroGate";
 import { useEffect } from "react";
 import { useRoomSignals } from "@/hooks/useRoomSignals";
 
@@ -118,6 +120,9 @@ function IndexInner() {
   const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
   const { overall: awareness, place } = useAwareness();
+  /* The once-per-account welcome gates the boot: while it's checking or
+     showing, the roll call stands down so the two never overlap. */
+  const { gate: introGate, finishIntro } = useIntroGate(user?.id);
   const roomSignals = useRoomSignals();
   const openRoomSignal = (signal: import("@/lib/roomSignals").RoomSignal) => {
     if (signal.target === "actions") setFocusActionId(signal.situationId ?? null);
@@ -187,8 +192,10 @@ function IndexInner() {
 
   return (
     <div className="relative flex min-h-dvh flex-col">
-      {/* The roll call covers first paint only; the rooms render regardless. */}
-      <BootSequence />
+      {/* The roll call covers first paint only; the rooms render regardless.
+          The once-per-account intro outranks it and never replays. */}
+      {introGate === "show" && user && <IntroSequence userId={user.id} onFinished={finishIntro} />}
+      {introGate === "done" && <BootSequence />}
       <AmbientHeader
 
         state={state}

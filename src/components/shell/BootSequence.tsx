@@ -29,32 +29,11 @@ import {
   type BootFacts,
   type BootMode,
 } from "@/lib/bootSequence";
-
-const KEY_AT = "vanta.boot.at";
-const KEY_DAY = "vanta.boot.day";
-
-function localDay(d = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function readLastBoot(): { at: number | null; day: string | null } {
-  try {
-    const raw = localStorage.getItem(KEY_AT);
-    const at = raw ? Number(raw) : null;
-    return { at: at != null && Number.isFinite(at) ? at : null, day: localStorage.getItem(KEY_DAY) };
-  } catch {
-    return { at: null, day: null };
-  }
-}
-
-function recordBoot() {
-  try {
-    localStorage.setItem(KEY_AT, String(Date.now()));
-    localStorage.setItem(KEY_DAY, localDay());
-  } catch {
-    /* a private window still gets its boot; it just forgets it happened */
-  }
-}
+/* The boot's memory of itself lives in bootStorage — bootSequence.ts stays
+   pure, and the intro writes through the same module. */
+import { localDay, readLastBoot, recordBoot } from "@/lib/bootStorage";
+import { metresApart } from "@/lib/placeMove";
+import { STAMP_ECHO_M, stampSpoken, stampWord } from "@/lib/welcomeStamp";
 
 /** A notification tap or saved room link asked for something specific. */
 function isDeepLink(): boolean {
@@ -76,7 +55,7 @@ function clockLabel(): string {
 }
 
 export function BootSequence() {
-  const { place, snapshot } = useAwareness();
+  const { place, snapshot, stampedPlaces } = useAwareness();
   const timers = useRef<number[]>([]);
 
   /* The decision is made once, at mount, from what is true right then. */
@@ -139,6 +118,37 @@ export function BootSequence() {
       (typeof geo.country_code === "string" ? geo.country_code : null);
     const occasion =
       occasionsOn && !truth.stale ? occasionFor(new Date(), country) : null;
+    /* The welcome stamp echoes only where the fix is fresh — the same law
+       the kept occasions hold. "here" when the live row itself is stamped;
+       "near" when you're back within earshot of ground you stamped before. */
+    let stamp: BootFacts["stamp"] = null;
+    if (!truth.stale) {
+      const own = typeof place?.stamped_at === "string" ? place.stamped_at : null;
+      const ownWord = own ? stampWord(own) : null;
+      const ownSpoken = own ? stampSpoken(own) : null;
+      if (own && ownWord && ownSpoken) {
+        stamp = { word: ownWord, spoken: ownSpoken, kind: "here" };
+      } else if (Number.isFinite(lat)) {
+        const lon = Number(geo.lon);
+        if (Number.isFinite(lon)) {
+          let best: { p: (typeof stampedPlaces)[number]; d: number } | null = null;
+          for (const p of stampedPlaces ?? []) {
+            if (p.id === place?.id) continue;
+            const plat = Number((p.geo as { lat?: unknown } | null)?.lat);
+            const plon = Number((p.geo as { lon?: unknown } | null)?.lon);
+            if (!Number.isFinite(plat) || !Number.isFinite(plon)) continue;
+            const d = metresApart({ lat, lon }, { lat: plat, lon: plon });
+            if (d <= STAMP_ECHO_M && (!best || d < best.d)) best = { p, d };
+          }
+          const nearAt = best?.p.stamped_at;
+          const nearWord = nearAt ? stampWord(nearAt) : null;
+          const nearSpoken = nearAt ? stampSpoken(nearAt) : null;
+          if (nearAt && nearWord && nearSpoken) {
+            stamp = { word: nearWord, spoken: nearSpoken, kind: "near", label: best?.p.label ?? null };
+          }
+        }
+      }
+    }
     return {
       placeName: truth.name,
       placeStale: truth.stale,
@@ -150,6 +160,7 @@ export function BootSequence() {
       daypart: daypartInZone(tz),
       seasonLabel: Number.isFinite(lat) ? seasonFor(new Date(), lat).short : null,
       occasion: occasion ? { name: occasion.name, tone: occasion.tone } : null,
+      stamp,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place, snapshot]);
@@ -160,11 +171,12 @@ export function BootSequence() {
      once, never on a re-render loop. */
   const stamped = useRef(false);
   const hasOccasion = !!facts.occasion;
+  const hasStamp = !!facts.stamp;
   useEffect(() => {
-    if (!hasOccasion || stamped.current || mode === "skip") return;
+    if ((!hasOccasion && !hasStamp) || stamped.current || mode === "skip") return;
     stamped.current = true;
     if (!reducedMotion()) play("stamp", { gain: 0.35 });
-  }, [hasOccasion, mode]);
+  }, [hasOccasion, hasStamp, mode]);
 
   useEffect(() => {
     if (mode === "skip") return;
@@ -245,6 +257,18 @@ export function BootSequence() {
                   aria-label={`Kept occasion today: ${facts.occasion.name}`}
                 >
                   {facts.occasion.name}
+                </span>
+              )}
+              {i === 1 && facts.stamp && (
+                <span
+                  className="boot-stamp boot-stamp-welcome"
+                  aria-label={
+                    facts.stamp.kind === "here"
+                      ? `You stamped this place ${facts.stamp.spoken}`
+                      : `Stamped ground nearby: ${facts.stamp.label ?? "a saved place"}, ${facts.stamp.spoken}`
+                  }
+                >
+                  Stamped {facts.stamp.word}
                 </span>
               )}
               <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{call.line}</p>

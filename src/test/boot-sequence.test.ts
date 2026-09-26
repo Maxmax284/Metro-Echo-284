@@ -196,3 +196,25 @@ describe("bootHoldMs", () => {
     expect(bootHoldMs("full", true)).toBeLessThan(bootHoldMs("full", false));
   });
 });
+
+describe("welcome stamp echo", () => {
+  it("names your stamp on the place line as provenance, never a drum", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, stamp: { word: "SEP 20", spoken: "Sep 20", kind: "here" } });
+    expect(roll[1].line).toContain("on file since Sep 20");
+    expect(roll.map((c) => c.word)).not.toContain("STAMPED");
+  });
+
+  it("says when you're back on ground you stamped before", () => {
+    const roll = buildRollCall({
+      ...BASE_FACTS,
+      stamp: { word: "SEP 20", spoken: "Sep 20", kind: "near", label: "Fairfax" },
+    });
+    expect(roll[1].line).toContain("stamped ground — Fairfax, since Sep 20");
+  });
+
+  it("no stamp, no mention", () => {
+    const roll = buildRollCall(BASE_FACTS);
+    expect(roll[1].line).not.toContain("on file");
+    expect(roll[1].line).not.toContain("stamped ground");
+  });
+});
