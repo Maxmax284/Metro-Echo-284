@@ -243,6 +243,27 @@ export function FieldPolaroid({
             <figcaption className="pt-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/70">
               field snap {shot + 1}/{photos.length}
             </figcaption>
+            {/* The license on these photos requires the credit to travel with
+                the image — artist + license, linked to its Commons page. */}
+            {(() => {
+              const credit = data.credits?.find((c) => c.url === photos[shot]);
+              if (!credit || (!credit.artist && !credit.license)) return null;
+              const line = `photo: ${credit.artist ?? "Wikimedia Commons"}${credit.license ? ` · ${credit.license}` : ""}`;
+              return credit.page ? (
+                <a
+                  href={credit.page}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-0.5 block max-w-52 truncate text-center text-[9.5px] normal-case tracking-normal text-muted-foreground/80 underline decoration-dotted underline-offset-2 hover:text-foreground/80"
+                >
+                  {line}
+                </a>
+              ) : (
+                <span className="mt-0.5 block max-w-52 truncate text-center text-[9.5px] normal-case tracking-normal text-muted-foreground/80">
+                  {line}
+                </span>
+              );
+            })()}
           </figure>
           {photos.length > 1 ? (
             <div className="flex gap-2 self-start max-[460px]:flex-row min-[461px]:flex-col">
