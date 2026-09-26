@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Home, MapPinned, Moon, Signal, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
-import { connectionRead, type ConnectionRead } from "@/lib/connectionRead";
+import { signalRead, type SignalRead } from "@/lib/signalBars";
 import {
   clockFromMinutes,
   dateKeyDiff,
