@@ -21,6 +21,7 @@ import { daypartInZone } from "@/lib/daylight";
 import { seasonFor } from "@/lib/station";
 import { OCCASIONS_KEY, occasionFor } from "@/lib/occasions";
 import {
+  BOOT_ENCORE_KEY,
   buildRollCall,
   bootHoldMs,
   bootTurn,
@@ -80,6 +81,17 @@ export function BootSequence() {
 
   /* The decision is made once, at mount, from what is true right then. */
   const [mode] = useState<BootMode>(() => {
+    /* A sign-in just delivered you here (Google's round trip or the email
+       form). That is an arrival, not a reopen — the encore marker forces the
+       full roll call once, however fresh the last boot was. */
+    try {
+      if (localStorage.getItem(BOOT_ENCORE_KEY)) {
+        localStorage.removeItem(BOOT_ENCORE_KEY);
+        return "full";
+      }
+    } catch {
+      /* private window — fall through to the ordinary decision */
+    }
     const last = readLastBoot();
     return decideBoot({
       now: Date.now(),
