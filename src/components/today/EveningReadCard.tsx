@@ -13,9 +13,11 @@ import { useAgenda } from "@/hooks/useAgenda";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { eveningRead } from "@/lib/eveningRead";
 import { placeTruth } from "@/lib/placeTruth";
+import { useTempUnit } from "@/lib/tempUnit";
 
 export function EveningReadCard({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
+  const [tempUnit] = useTempUnit();
   const { events } = useAgenda();
   const { snapshot, place } = useAwareness();
 
@@ -38,6 +40,7 @@ export function EveningReadCard({ className }: { className?: string }) {
       rainChance: h.rainChance,
     })),
     placeLabel: placeName,
+    unit: tempUnit,
   });
 
   return (

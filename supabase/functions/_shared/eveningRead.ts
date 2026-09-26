@@ -63,16 +63,20 @@ function list(parts: string[]): string {
 const WET = ["rain", "showers", "thunderstorm", "snow"];
 
 /** The weather half: what those hours look like, in the fewest honest words. */
-function weatherClause(hours: ForecastHour[]): string | null {
+function weatherClause(hours: ForecastHour[], unit: "c" | "f" = "c"): string | null {
   if (hours.length === 0) return null;
   const temps = hours.map((h) => h.tempC).filter((t): t is number => typeof t === "number");
   const wet = hours.filter((h) => h.condition && WET.includes(h.condition));
   const bits: string[] = [];
+  /* Fahrenheit carries its letter; Celsius stays the established bare degree.
+     The "easing" threshold is judged in Celsius either way, so the wording
+     never shifts just because the unit did. */
+  const deg = (c: number) => `${Math.round(unit === "f" ? (c * 9) / 5 + 32 : c)}°${unit === "f" ? "F" : ""}`;
 
   if (temps.length > 0) {
     const lo = Math.round(Math.min(...temps));
     const hi = Math.round(Math.max(...temps));
-    bits.push(hi - lo >= 2 ? `${hi}° easing to ${lo}°` : `around ${hi}°`);
+    bits.push(hi - lo >= 2 ? `${deg(Math.max(...temps))} easing to ${deg(Math.min(...temps))}` : `around ${deg(Math.max(...temps))}`);
   }
 
   if (wet.length > 0) {
@@ -93,6 +97,8 @@ export function eveningRead(input: {
   forecast?: ForecastHour[];
   /** Where the forecast was read for, e.g. "Rawai". */
   placeLabel?: string | null;
+  /** Display unit for the weather half. Server callers leave it at "c". */
+  unit?: "c" | "f";
 }): EveningRead {
   const now = input.now ?? Date.now();
   const cutoff = endOfLocalDay(new Date(now));
