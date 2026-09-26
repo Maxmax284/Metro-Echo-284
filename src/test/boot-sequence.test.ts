@@ -133,10 +133,10 @@ describe("buildRollCall", () => {
 });
 
 describe("bootHoldMs", () => {
-  it("gives the full roll call at least ~2.4s so the drums can be read", () => {
+  it("gives the full roll call at least ~4.4s so the drums can be read", () => {
     const hold = bootHoldMs("full", false);
-    expect(hold).toBeGreaterThanOrEqual(2400);
-    expect(hold).toBeLessThanOrEqual(3200);
+    expect(hold).toBeGreaterThanOrEqual(4400);
+    expect(hold).toBeLessThanOrEqual(5200);
   });
 
   it("is a nod, not a ceremony, on reopen", () => {

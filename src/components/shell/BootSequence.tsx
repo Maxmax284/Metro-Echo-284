@@ -123,8 +123,8 @@ export function BootSequence() {
     const reduced = reducedMotion();
     if (mode === "full" && !reduced) {
       play("turnstile", { gain: 0.7 });
-      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.5 }), 1100));
-      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.4 }), 2100));
+      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.5 }), 1600));
+      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.4 }), 3200));
     }
     const hold = feelMs(bootHoldMs(mode, reduced), { min: mode === "micro" ? 200 : 420 });
     timers.current.push(window.setTimeout(() => setLeaving(true), hold));

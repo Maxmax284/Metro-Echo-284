@@ -135,9 +135,9 @@ export function buildRollCall(facts: BootFacts): BootCall[] {
 
 /** Hold times per mode, before the shutter lifts. Feel knob scales these.
  *  Full boot keeps the board up long enough to actually read the roll call —
- *  around 2.6s of hold plus the shutter lift lands at ~3s total. */
+ *  around 4.6s of hold, landing at roughly 5s with the shutter lift. */
 export function bootHoldMs(mode: BootMode, motionReduced: boolean): number {
   if (mode === "micro") return 340;
-  if (motionReduced) return 1200;
-  return 2600;
+  if (motionReduced) return 1800;
+  return 4600;
 }
