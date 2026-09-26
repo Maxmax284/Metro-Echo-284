@@ -21,6 +21,12 @@ export type BootDecision = { mode: BootMode; reason: string };
 
 /** Reopening inside this window means the last boot just happened. */
 export const BOOT_JUST_NOW_MS = 10_000;
+/**
+ * localStorage key for the sign-in encore. Set just before a sign-in (Google
+ * redirect or email), consumed once by the boot. Signing back in must never
+ * read as a "quick reopen" — the round trip home gets the full roll call.
+ */
+export const BOOT_ENCORE_KEY = "vanta.boot.encore";
 /** Longer than this since the last boot counts as a cold start. */
 export const BOOT_COLD_MS = 4 * 60 * 60 * 1000;
 

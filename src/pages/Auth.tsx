@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
+import { BOOT_ENCORE_KEY } from "@/lib/bootSequence";
 import { ProductMark } from "@/components/shell/AmbientHeader";
 import { InstallFlyer } from "@/components/settings/InstallFlyer";
 import { Loader2 } from "lucide-react";
@@ -44,6 +45,9 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
+      /* Signing in is an arrival — flag it so the boot gives the full roll
+         call instead of reading this as a quick reopen. */
+      try { localStorage.setItem(BOOT_ENCORE_KEY, "1"); } catch { /* private window */ }
       nav("/", { replace: true });
     } catch (err) {
       toast.fromError(err, vantaSay.authFailed());
@@ -54,11 +58,16 @@ export default function Auth() {
 
   const onGoogle = async () => {
     setBusy(true);
+    /* Set the encore before the redirect: the round trip through Google
+       reloads the app, and without this the boot reads it as a quick reopen
+       and skips the roll call. Consumed once on arrival. */
+    try { localStorage.setItem(BOOT_ENCORE_KEY, "1"); } catch { /* private window */ }
     try {
       const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
       if (r.error) throw r.error;
       if (!r.redirected) nav("/", { replace: true });
     } catch (err) {
+      try { localStorage.removeItem(BOOT_ENCORE_KEY); } catch { /* private window */ }
       toast.error(err instanceof Error ? err.message : "Google sign-in failed");
       setBusy(false);
     }
