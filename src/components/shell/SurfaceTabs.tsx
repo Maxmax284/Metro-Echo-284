@@ -13,6 +13,7 @@ import { PRIMARY_ROOMS, roomForSurface, type SurfaceId } from "@/lib/navigation"
 import { setRoom, throwFrom } from "@/lib/skins";
 import { beginRoomSwap } from "@/lib/roomSwap";
 import { beginDeskTransit } from "@/lib/deskTransit";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 
 const ROOM_WORD: Record<RoomKey, string> = {
   today: "TODAY",
@@ -59,6 +60,10 @@ export function SurfaceTabs({
 }) {
   const primaryItems = PRIMARY_ROOMS.map((k) => items.find((i) => i.key === k)).filter((i): i is (typeof items)[number] => Boolean(i));
   const activeRoom = roomForSurface(active);
+  /* The software keyboard takes half the phone. While it is up the tab bar
+     cannot do its job anyway, so it slides out of the way and hands the
+     pixels to the room. It rides back up the moment the keys close. */
+  const keyboardOpen = useKeyboardOpen();
 
   // The world has four corners: tell the backdrop which room we are in so the
   // ambient wash moves with navigation instead of being swapped out.
@@ -103,7 +108,12 @@ export function SurfaceTabs({
     return (
       <nav
         aria-label="Primary"
-        className="glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 px-2 pt-1.5 md:hidden"
+        aria-hidden={keyboardOpen || undefined}
+        className={cn(
+          "glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 px-2 pt-1.5 md:hidden",
+          "transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
+          keyboardOpen && "pointer-events-none translate-y-[110%]",
+        )}
       >
         {primaryItems.map(({ key, label, Icon }) => {
           const isActive = activeRoom === key;
