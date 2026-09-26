@@ -63,4 +63,4 @@
 - [x] Emergency-number strip keyed to the board place's country (fixed table, named country, no dialing)
 - [x] Nearest care glance (ER/hospital/clinic/pharmacy) around the live fix with expander, kind chips, search, keep/forget
 - [x] Saved-place boards keep the numbers and kept pins but never borrow the live care list
-- [ ] Verify live at 384px with a signed-in session
+- [x] Verify live at 384px with a signed-in session
