@@ -182,7 +182,18 @@ Deno.serve(async (req) => {
       ? { localName: dos.localName, intro: dos.intro, history: dos.history, geography: dos.geography }
       : null;
 
-    if (!b.withRead) return json({ page, area, photos, read: null });
+    /* Attribution is not optional decoration — the photo licenses require
+       it, so artist + license are resolved for every photo we ship. */
+    const leadUrl = (page?.photo ?? dos?.photo ?? null) as string | null;
+    const galleryFiles = pics.filter((p) => photos.includes(p.url)).map((p) => ({ name: p.file, url: p.url }));
+    const leadName = fileNameFromUrl(leadUrl);
+    const needsLead = Boolean(leadUrl && photos.includes(leadUrl) && leadName && !galleryFiles.some((f) => f.url === leadUrl));
+    const credits = await creditsFor([
+      ...(needsLead ? [{ name: leadName!, url: leadUrl! }] : []),
+      ...galleryFiles,
+    ]);
+
+    if (!b.withRead) return json({ page, area, photos, credits, read: null });
 
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
     const { count } = await client.from("audit_log").select("id", { count: "exact", head: true })
