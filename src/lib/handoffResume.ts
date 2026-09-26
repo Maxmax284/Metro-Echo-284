@@ -107,7 +107,7 @@ export function resumeNotice(input: {
   if (!anchorLabel && !projectId && !threadId) return null;
 
   const where = deviceWords(from);
-  const subject = anchorLabel ?? (threadId ? "a thread in Ask" : "open work");
+  const subject = anchorLabel ?? (threadId ? "a thread with Echo" : "open work");
   const line = `You were on ${subject} ${agoWords(gap)}${where ? ` ${where}` : ""}.`;
 
   return {

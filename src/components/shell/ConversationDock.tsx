@@ -451,7 +451,8 @@ export function ConversationDock({
           rows={1}
           placeholder={listening ? "Listening…" : ph}
           className={cn(
-            "flex-1 resize-none bg-transparent py-1.5 text-[15px] leading-snug text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+            /* 16px minimum: below that Android zooms the page on focus. */
+            "flex-1 resize-none bg-transparent py-1.5 text-base leading-snug text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
           )}
         />
         {speechSupported && (

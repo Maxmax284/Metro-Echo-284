@@ -31,7 +31,7 @@ export const INTRO_COPY = {
   rooms: [
     { name: "Today", line: "The read on right now." },
     { name: "Work", line: "Desks for the doing." },
-    { name: "Ask", line: "The wire to Echo." },
+    { name: "Echo", line: "Talk it through." },
     { name: "Receipts", line: "Proof of everything." },
   ],
   rules: [

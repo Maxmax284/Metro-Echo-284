@@ -202,7 +202,7 @@ function ThreadList({ onPicked }: { onPicked?: () => void }) {
       <div className="scrollbar-thin min-h-0 flex-1 space-y-1 overflow-y-auto pb-4">
         {threads.length === 0 && (
           <p className="px-2 py-6 text-[12px] leading-relaxed text-muted-foreground">
-            No threads in this room yet. Ask something, or open Ask from a project — the thread
+            No threads in this room yet. Say something, or open Echo from a project — the thread
             keeps that context so you never re-explain it.
           </p>
         )}
@@ -288,7 +288,7 @@ export function ThreadRail() {
     return (
       <aside
         className="hidden w-12 shrink-0 flex-col items-center gap-1 border-r border-border/50 py-3 md:flex"
-        aria-label="Ask threads, collapsed"
+        aria-label="Echo threads, collapsed"
       >
         <Button
           variant="ghost"
@@ -355,9 +355,9 @@ export function ThreadRail() {
   }
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 py-3 md:flex" aria-label="Ask threads">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-border/50 bg-background/55 py-3 backdrop-blur-md md:flex" aria-label="Echo threads">
       <div className="flex items-center gap-1 px-2 pb-1">
-        <span className="vanta-machine-label text-foreground/70">Ask</span>
+        <span className="vanta-machine-label text-foreground/70">Echo</span>
         <WhatEchoCanDo className="ml-auto" />
         <ExplainThisButton room="ask" />
         <Button
@@ -430,7 +430,7 @@ export function ThreadBar() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
           <SheetHeader className="pb-2">
-            <SheetTitle className="text-sm">Ask threads</SheetTitle>
+            <SheetTitle className="text-sm">Echo threads</SheetTitle>
           </SheetHeader>
           <div className="h-[calc(100dvh-6rem)]">
             <ThreadList onPicked={() => setOpen(false)} />

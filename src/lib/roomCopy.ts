@@ -11,7 +11,7 @@ export type RoomKey = "today" | "work" | "ask" | "receipts" | "settings";
 export const ROOM_INTRO: Record<RoomKey, string> = {
   today: "The short version of what matters now.",
   work: "What came in, what is moving, and what Echo noticed.",
-  ask: "Ask naturally. Add a file, photo, or voice note when needed.",
+  ask: "Talk naturally. Add a file, photo, or voice note when needed.",
   receipts: "What happened, what worked, and what did not.",
   settings: "How Echo behaves, remembers, and reaches you.",
 };
@@ -33,7 +33,7 @@ export const ROOM_EXPLAIN: Record<RoomKey, string[]> = {
   ],
 
   ask: [
-    "Ask is a conversation with a workspace behind it.",
+    "Echo is a conversation with a workspace behind it.",
     "Threads keep their own context: what they were about, which space owned them, and what they produced.",
     "You can attach a photo, a file, or a voice note. Echo reads and drafts — it never executes from here.",
   ],
@@ -105,7 +105,7 @@ export const ROOM_MAP: Array<{
   },
   {
     key: "ask",
-    title: "Ask",
+    title: "Echo",
     purpose: "Talk to Echo with context.",
     owns: ["Threads", "Files", "Research", "Questions", "Prepared work"],
   },
@@ -166,8 +166,8 @@ export const ROOM_HELP: Record<RoomKey, RoomHelpCopy> = {
     forWhat: "A conversation that already knows your workspace, so you don't re-explain yourself.",
     lands:
       "Threads you started, plus anything you attached to them: a photo, a file, a voice note, or a project you pointed the thread at.",
-    canDo: "Ask, attach, have Echo read or research, and save the result to a desk as a draft.",
-    never: "Ask never executes. It drafts and suggests; approval only happens on the desk that owns the object.",
+    canDo: "Talk, attach, have Echo read or research, and save the result to a desk as a draft.",
+    never: "Echo never executes. It drafts and suggests; approval only happens on the desk that owns the object.",
     next: "Saving from a thread files a note, a promise or a proposed action — and records where it came from.",
     empty: "No threads yet. Ask one plain question and the thread keeps its own context from then on.",
   },

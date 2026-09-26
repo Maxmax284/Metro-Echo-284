@@ -33,7 +33,7 @@ const SOURCE_WORD: Record<string, string> = {
   calendar: "the calendar",
   upload: "an upload",
   website: "a form",
-  ask: "Ask",
+  ask: "Echo",
   sherlock: "Sherlock",
   you: "you",
   vanta: "Echo",

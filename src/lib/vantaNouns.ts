@@ -46,7 +46,7 @@ export const OBJECT_HOME: Record<VantaObject, { label: string; surface: SurfaceI
   receipt: { label: "Receipts", surface: "receipts" },
   project: { label: "Projects", surface: "projects" },
   responsibility: { label: "Work", surface: "work" },
-  thread: { label: "Ask", surface: "ask" },
+  thread: { label: "Echo", surface: "ask" },
 };
 
 /**
@@ -190,7 +190,7 @@ export const PROVENANCE_LABEL: Record<ProvenanceSource, string> = {
   upload: "From an upload",
   website: "From your website",
   sherlock: "Spotted by Sherlock",
-  ask: "Drafted in Ask",
+  ask: "Drafted with Echo",
   vanta: "Recorded by Echo",
   hub: "From Ground Truth Hub",
   campcore: "From CampCore",
@@ -383,7 +383,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   },
   {
     term: "Thread",
-    means: "One conversation in Ask, kept so you can come back to it.",
+    means: "One conversation with Echo, kept so you can come back to it.",
   },
   {
     term: "Scope",

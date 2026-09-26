@@ -1623,10 +1623,12 @@ html[data-room="receipts"] .vanta-bd-scrim { --bd-scrim: 0.4; }
   .vanta-bd-scrim { --bd-scrim: 0.44; }
 }
 html[data-ambient="off"] .vanta-bd-scrim { --bd-scrim: 0.2; }
-/* Today and Ask show the full wall: no flat scrim, only grain and light.
-   Cards carry their own surface, so text keeps its contrast. */
-html[data-room="today"] .vanta-bd-scrim,
-html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0; }
+/* Today shows the full wall: no flat scrim, only grain and light — its cards
+   carry their own surface, so text keeps its contrast. Echo is the reading
+   room: the alley wall stays, but under a heavier scrim so long transcripts
+   stop fighting the paint. */
+html[data-room="today"] .vanta-bd-scrim { --bd-scrim: 0; }
+html[data-room="ask"] .vanta-bd-scrim { --bd-scrim: 0.55; }
 
 
 /* ---- Flight deck --------------------------------------------------------
