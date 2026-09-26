@@ -199,11 +199,11 @@ Deno.serve(async (req) => {
     const { count } = await client.from("audit_log").select("id", { count: "exact", head: true })
       .eq("event", "ground_read.composed").gte("created_at", dayAgo);
     if ((count ?? 0) >= 6) {
-      return json({ page, area, photos, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
+      return json({ page, area, photos, credits, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
     }
 
     const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) return json({ page, area, photos, error: "Echo's local read isn't set up yet." }, 500);
+    if (!key) return json({ page, area, photos, credits, error: "Echo's local read isn't set up yet." }, 500);
 
     const facts = [
       `Place: ${[b.city, b.region, b.country].filter(Boolean).join(", ")}`,
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     await client.from("audit_log").insert({
       user_id: user.id, event: "ground_read.composed", entity_type: "place", payload: { city: b.city },
     } as any);
-    return json({ page, area, photos, read: text || null });
+    return json({ page, area, photos, credits, read: text || null });
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;
     return json({ error: e instanceof Error ? e.message : "Echo couldn't read the place." }, status);
