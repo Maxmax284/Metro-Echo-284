@@ -495,6 +495,7 @@ export type Database = {
           label: string
           notes: string | null
           region: string | null
+          stamped_at: string | null
           updated_at: string
           user_id: string
         }
@@ -509,6 +510,7 @@ export type Database = {
           label: string
           notes?: string | null
           region?: string | null
+          stamped_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -523,6 +525,7 @@ export type Database = {
           label?: string
           notes?: string | null
           region?: string | null
+          stamped_at?: string | null
           updated_at?: string
           user_id?: string
         }
