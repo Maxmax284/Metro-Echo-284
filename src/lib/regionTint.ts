@@ -31,6 +31,9 @@ export function regionTint(input: {
   lat?: unknown;
   daypart?: Daypart | null;
 }): RegionTint | null {
+  /* Number(null) and Number("") are both 0 — the equator. An absent fix must
+     never silently become the Gulf of Guinea. */
+  if (input.lat == null || input.lat === "") return null;
   const lat = Number(input.lat);
   if (!Number.isFinite(lat) || Math.abs(lat) > 90) return null;
   return { band: latBand(lat), daypart: input.daypart ?? "day" };
