@@ -94,7 +94,7 @@ export function AmbientHeader({
                 {awareness && (
                   <span
                     className={cn(
-                      "sticker-slap px-1 py-px text-[9px] uppercase tracking-wider ring-1",
+                      "sticker-slap whitespace-nowrap px-1 py-px text-[9px] uppercase tracking-wider ring-1",
                       freshnessTone[awareness.freshness]
                     )}
                   >
