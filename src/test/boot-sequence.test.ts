@@ -163,6 +163,22 @@ describe("station framing", () => {
     const roll = buildRollCall(BASE_FACTS);
     expect(roll[1].line).not.toContain("season");
   });
+
+  it("names a kept occasion on the place line as provenance, never a drum", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, occasion: { name: "Songkran", tone: "celebration" } });
+    expect(roll[1].line).toContain("Songkran");
+    expect(roll.map((c) => c.word)).not.toContain("SONGKRAN");
+  });
+
+  it("never stamps a stale fix — the occasion stays off the LAST KNOWN line", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, placeStale: true, occasion: { name: "Songkran", tone: "celebration" } });
+    expect(roll[1].line).not.toContain("Songkran");
+  });
+
+  it("says no occasion when none is kept today", () => {
+    const roll = buildRollCall(BASE_FACTS);
+    expect(roll[1].line).not.toContain("Songkran");
+  });
 });
 
 describe("bootHoldMs", () => {
