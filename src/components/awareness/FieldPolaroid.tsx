@@ -18,7 +18,11 @@ import { cn } from "@/lib/utils";
 
 type Page = { title: string; extract: string; photo: string | null; url: string | null };
 type Area = { localName: string | null; intro: string | null; history: string | null; geography: string | null };
-type Payload = { page: Page | null; area: Area | null; photos: string[]; read: string | null };
+/** Artist + license per photo, from Wikimedia — the licenses require this
+    to travel with the image. Older cached payloads may not carry it; the
+    credit line simply stays out then. */
+type Credit = { url: string; artist: string | null; license: string | null; page: string | null };
+type Payload = { page: Page | null; area: Area | null; photos: string[]; credits?: Credit[]; read: string | null };
 
 /** Local-language Wikipedia code, so the second name line is the real one. */
 const LANG_BY_COUNTRY: Record<string, string> = {
