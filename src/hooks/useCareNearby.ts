@@ -22,7 +22,10 @@ export type KeptCare = {
 
 const HEALTH_KINDS: CareKind[] = ["emergency", "hospital", "clinic", "doctor", "pharmacy", "dentist"];
 
-export function useCareNearby(kinds: CareKind[] = []) {
+export function useCareNearby(kinds: CareKind[] = [], opts?: { lookup?: boolean }) {
+  /* A board reading somewhere you are not standing passes lookup: false —
+     kept places still load, but no care lookup fires for the live fix. */
+  const lookupEnabled = opts?.lookup !== false;
   const { user } = useAuth();
   const { place } = useAwareness();
   const [places, setPlaces] = useState<CarePlace[]>([]);
@@ -83,10 +86,12 @@ export function useCareNearby(kinds: CareKind[] = []) {
     void loadKept();
   }, [loadKept]);
 
-  /* The first look happens when a fix exists and the kinds change — one call. */
+  /* The first look happens when a fix exists and the kinds change — one call.
+     With lookup disabled the list stays empty and says so instead of
+     borrowing care from wherever you happen to be standing. */
   useEffect(() => {
-    void look();
-  }, [look]);
+    if (lookupEnabled) void look();
+  }, [look, lookupEnabled]);
 
   const keep = useCallback(
     async (p: CarePlace) => {
