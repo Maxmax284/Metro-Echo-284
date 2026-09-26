@@ -9,16 +9,10 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { reducedMotion } from "@/lib/reducedMotion";
 
 const STEP_MS = 62;
 const STEP_MS_LG = 88;
-
-function reducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
 
 export function SolariNumber({
   value,

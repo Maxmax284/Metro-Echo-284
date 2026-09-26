@@ -85,13 +85,7 @@ export function takeFlipOrigin(): OriginRect | null {
 }
 
 
-function reducedMotion() {
-  try {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
+import { reducedMotion } from "./reducedMotion";
 
 /**
  * Animate `el` as if it grew out of the last-tapped element. Returns a cleanup

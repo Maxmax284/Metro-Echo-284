@@ -13,12 +13,7 @@
 const MAX_V = 30; // px per frame that counts as a full-strength flick
 const DECAY = 0.93;
 
-function reducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
+import { reducedMotion } from "./reducedMotion";
 
 export function startFlickInertia(): () => void {
   if (typeof window === "undefined" || reducedMotion()) return () => undefined;

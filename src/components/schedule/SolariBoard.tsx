@@ -10,13 +10,10 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { reducedMotion } from "@/lib/reducedMotion";
 
 const DRUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const STEP_MS = 55;
-
-function reducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-}
 
 export function SolariBoard({
   text,
