@@ -17,9 +17,12 @@ import { skyFromCondition, skyIsFresh } from "@/lib/sky";
 import { reducedMotion } from "@/lib/reducedMotion";
 import { play } from "@/lib/streetSound";
 import { feelMs } from "@/lib/motion";
+import { daypartInZone } from "@/lib/daylight";
+import { seasonFor } from "@/lib/station";
 import {
   buildRollCall,
   bootHoldMs,
+  bootTurn,
   decideBoot,
   type BootFacts,
   type BootMode,
@@ -104,6 +107,11 @@ export function BootSequence() {
       fresh && wx && wx.tempC != null && wx.condition
         ? `${Math.round(unit === "f" ? (wx.tempC * 9) / 5 + 32 : wx.tempC)}° ${wx.condition}`
         : null;
+    /* The station layer: the turn of day and the season come off the fix and
+       the calendar — the device's own clock answers when the fix names no zone. */
+    const geo = ((place?.geo ?? {}) as { lat?: unknown; time_zone?: unknown });
+    const lat = Number(geo.lat);
+    const tz = typeof geo.time_zone === "string" ? geo.time_zone : null;
     return {
       placeName: truth.name,
       placeStale: truth.stale,
@@ -112,6 +120,8 @@ export function BootSequence() {
       weatherLabel,
       operational: currentWeather(),
       online: reachNow().online,
+      daypart: daypartInZone(tz),
+      seasonLabel: Number.isFinite(lat) ? seasonFor(new Date(), lat).short : null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [place, snapshot]);
@@ -179,7 +189,7 @@ export function BootSequence() {
         <div className="flex items-center gap-2">
           <span className="echo-lens echo-lens-live is-lit h-2.5 w-2.5 rounded-full" aria-hidden />
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Now boarding
+            {bootTurn(facts.daypart).header}
           </span>
           <span className="ml-auto text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
             tap to skip
