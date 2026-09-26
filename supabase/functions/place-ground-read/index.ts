@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       dossier(sourceTitle, b.lang),
       gallery(sourceTitle),
     ]);
-    const photos = [page?.photo ?? dos?.photo, ...pics.map((p) => p.url)]
+    const photosAll = [page?.photo ?? dos?.photo, ...pics.map((p) => p.url)]
       .filter((u, i, a): u is string => Boolean(u) && a.indexOf(u) === i)
       .slice(0, 5);
     const area = dos
