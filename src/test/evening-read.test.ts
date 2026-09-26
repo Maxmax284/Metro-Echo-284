@@ -33,6 +33,31 @@ describe("evening read", () => {
     expect(read.sources).toContain("the forecast for Rawai");
   });
 
+  it("fahrenheit carries its letter when the device asks for it", () => {
+    const read = eveningRead({
+      now,
+      events: [],
+      forecast: [
+        { at: at(17), tempC: 30, condition: "clear", rainChance: 5 },
+        { at: at(20), tempC: 26, condition: "clear", rainChance: 5 },
+      ],
+      unit: "f",
+    });
+    expect(read.sentence).toContain("86°F easing to 79°F");
+  });
+
+  it("celsius stays the established bare degree", () => {
+    const read = eveningRead({
+      now,
+      events: [],
+      forecast: [
+        { at: at(17), tempC: 30, condition: "clear", rainChance: 5 },
+        { at: at(20), tempC: 26, condition: "clear", rainChance: 5 },
+      ],
+    });
+    expect(read.sentence).toContain("30° easing to 26°");
+  });
+
   it("a missing forecast stays missing", () => {
     const read = eveningRead({ now, events: [{ id: "a", title: "Call", starts_at: at(19) }] });
     expect(read.sentence).toContain("No forecast has been read");

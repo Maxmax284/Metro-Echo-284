@@ -121,7 +121,7 @@ export function eveningRead(input: {
   if (ahead.length > 0) sources.push("your connected calendar");
   if (hours.length > 0) sources.push(`the forecast${input.placeLabel ? ` for ${input.placeLabel}` : ""}`);
 
-  const weather = weatherClause(hours);
+  const weather = weatherClause(hours, input.unit);
 
   let eventClause: string;
   if (ahead.length === 0) {
