@@ -119,20 +119,28 @@ function fileNameFromUrl(u: string | null): string | null {
   } catch { return null; }
 }
 
-/** One batched lookup of artist + license for a set of File: names. */
+/** One batched lookup of artist + license + source page for a set of File: names. */
 async function creditsFor(files: { name: string; url: string }[]): Promise<Credit[]> {
   if (!files.length) return [];
   const titles = files.map((f) => `File:${f.name}`).join("|");
   const j = await getJson(
-    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata` +
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata|url` +
       `&titles=${encodeURIComponent(titles)}`,
   );
-  const byName = new Map<string, any>();
+  /* The API normalizes titles (underscores to spaces, first-letter case);
+     match our raw URL-derived names through its normalization table. */
+  const norm = new Map<string, string>();
+  for (const n of (j?.query?.normalized ?? []) as any[]) norm.set(String(n.from), String(n.to));
+  const byCanonical = new Map<string, any>();
   for (const p of Object.values(j?.query?.pages ?? {}) as any[]) {
     const name = String(p.title ?? "").replace(/^File:/, "");
-    if (name) byName.set(name, p.imageinfo?.[0]);
+    if (name) byCanonical.set(name, p.imageinfo?.[0]);
   }
-  return files.map((f) => creditFrom(byName.get(f.name), f.url));
+  return files.map((f) => {
+    const requested = `File:${f.name}`;
+    const canonical = (norm.get(requested) ?? requested).replace(/^File:/, "");
+    return creditFrom(byCanonical.get(canonical), f.url);
+  });
 }
 
 /** A few more real photographs of the same article, for the taped strip. */
