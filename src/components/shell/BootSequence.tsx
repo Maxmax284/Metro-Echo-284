@@ -8,6 +8,7 @@
 // skips it entirely, and offline it says NO SIGNAL instead of ALL CLEAR.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { readTempUnit, tempIn } from "@/lib/tempUnit";
 import { SolariWord } from "@/components/today/SignalBeacon";
 import { useAwareness } from "@/providers/AwarenessProvider";
 import { placeTruth } from "@/lib/placeTruth";
@@ -88,16 +89,10 @@ export function BootSequence() {
     const truth = placeTruth(place);
     const wx = snapshot?.compact?.weather ?? null;
     const fresh = skyIsFresh(wx?.updated_at ?? null);
-    const unit = (() => {
-      try {
-        return localStorage.getItem("vanta.tempunit") === "f" ? "f" : "c";
-      } catch {
-        return "c";
-      }
-    })();
+    const unit = readTempUnit();
     const weatherLabel =
       fresh && wx && wx.tempC != null && wx.condition
-        ? `${Math.round(unit === "f" ? (wx.tempC * 9) / 5 + 32 : wx.tempC)}° ${wx.condition}`
+        ? `${tempIn(wx.tempC, unit)}°${unit.toUpperCase()} ${wx.condition}`
         : null;
     /* The station layer: the turn of day and the season come off the fix and
        the calendar — the device's own clock answers when the fix names no zone. */

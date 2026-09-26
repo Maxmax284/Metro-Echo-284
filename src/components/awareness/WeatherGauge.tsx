@@ -2,22 +2,9 @@
 // A split-flap temperature, a CRT-style animated glyph, and one honest
 // field line (feels-like, humidity). Motion is ambient only; reduced motion
 // gets the still glyph and the same words.
-import { useState } from "react";
 import { SolariWord } from "@/components/today/SignalBeacon";
 import { cn } from "@/lib/utils";
-
-const UNIT_KEY = "vanta.tempunit";
-type TempUnit = "c" | "f";
-
-function readUnit(): TempUnit {
-  try {
-    return localStorage.getItem(UNIT_KEY) === "f" ? "f" : "c";
-  } catch {
-    return "c";
-  }
-}
-
-const toF = (c: number) => c * 9 / 5 + 32;
+import { tempIn, useTempUnit } from "@/lib/tempUnit";
 
 export type LiveWeather = {
   temp: number;
@@ -59,21 +46,17 @@ function Glyph({ kind }: { kind: WxKind }) {
 }
 
 export function WeatherGauge({ wx, className }: { wx: LiveWeather; className?: string }) {
-  const [unit, setUnit] = useState<TempUnit>(readUnit);
+  const [unit, setUnit] = useTempUnit();
   const kind = wxKind(wx.code, wx.isDay);
   const rough = kind === "rain" || kind === "storm";
   const hot = (wx.feels ?? wx.temp) >= 33;
-  const show = (c: number) => Math.round(unit === "f" ? toF(c) : c);
+  const show = (c: number) => tempIn(c, unit);
   const field = [
     wx.feels != null && Math.round(wx.feels) !== Math.round(wx.temp) ? `feels ${show(wx.feels)}°` : null,
     wx.humidity != null ? `humidity ${Math.round(wx.humidity)}%` : null,
     rough ? "roads slick" : hot ? "find shade" : null,
   ].filter(Boolean).join(" · ");
-  const flipUnit = () => {
-    const next: TempUnit = unit === "c" ? "f" : "c";
-    setUnit(next);
-    try { localStorage.setItem(UNIT_KEY, next); } catch { /* private mode */ }
-  };
+  const flipUnit = () => setUnit(unit === "c" ? "f" : "c");
   return (
     <div className={cn("wx-gauge inline-flex items-center gap-2.5 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5", className)} role="status" aria-label={`${show(wx.temp)} degrees ${unit === "f" ? "Fahrenheit" : "Celsius"}, ${wx.label}${field ? `, ${field}` : ""}`}>
       <Glyph kind={kind} />
