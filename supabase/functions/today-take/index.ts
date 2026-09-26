@@ -36,7 +36,9 @@ Deno.serve(async (req) => {
       client.from("audit_log").select("id", { count: "exact", head: true }).eq("event", "today_take.composed").gte("created_at", dayAgo),
     ]);
     if ((hour ?? 0) >= 4 || (day ?? 0) >= 12) {
-      return json({ error: "Echo's take is resting — it refreshes on its own later.", limited: true }, 429);
+      /* Resting is a designed state, not a fault: answer 200 so the preview
+         and clients never read it as a runtime error. The body says limited. */
+      return json({ error: "Echo's take is resting — it refreshes on its own later.", limited: true });
     }
 
     const key = Deno.env.get("LOVABLE_API_KEY");

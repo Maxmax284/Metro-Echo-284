@@ -17,7 +17,7 @@ const ACK_KEY = "vanta.today.ack";
 const TAKE_KEY = "vanta.today.take";
 const AUTO_GAP_MS = 60 * 60_000;
 
-type Cached = { signature: string; text: string; at: number };
+type Cached = { signature: string; text: string; at: number; limited?: boolean };
 
 function readTake(): Cached | null {
   try { return JSON.parse(localStorage.getItem(TAKE_KEY) ?? "null"); } catch { return null; }
@@ -56,9 +56,30 @@ export function TodayBriefing(props: {
       },
     });
     setBusy(false);
-    const msg = (data as any)?.error ?? (error ? "Echo couldn't read the day right now." : null);
-    if (msg || !(data as any)?.take) { setErr(msg ?? "Echo came back empty."); return; }
-    const next = { signature: brief.signature, text: (data as any).take as string, at: Date.now() };
+    const d = (data ?? null) as { take?: string; error?: string; limited?: boolean } | null;
+
+    /* Rate cap is a designed resting state, not a failure. Older deployments
+       answer 429, which arrives as an error — read the body off the response. */
+    let resting: string | null = d?.limited ? (d.error ?? "Echo's take is resting — it refreshes on its own later.") : null;
+    if (!resting && error) {
+      const res = (error as { context?: Response }).context;
+      if (res && typeof res.clone === "function") {
+        try {
+          const body = (await res.clone().json()) as { limited?: boolean; error?: string };
+          if (body?.limited) resting = body.error ?? "Echo's take is resting — it refreshes on its own later.";
+        } catch { /* body was not JSON */ }
+      }
+    }
+    if (resting) {
+      const rest = { signature: brief.signature, text: resting, at: Date.now(), limited: true };
+      localStorage.setItem(TAKE_KEY, JSON.stringify(rest));
+      setTake(rest);
+      return;
+    }
+
+    const msg = d?.error ?? (error ? "Echo couldn't read the day right now." : null);
+    if (msg || !d?.take) { setErr(msg ?? "Echo came back empty."); return; }
+    const next = { signature: brief.signature, text: d.take, at: Date.now() };
     localStorage.setItem(TAKE_KEY, JSON.stringify(next));
     setTake(next);
   };
