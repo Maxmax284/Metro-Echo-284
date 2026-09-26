@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   clockFromMinutes,
+  dateKeyDiff,
   daylightFor,
   hemisphere,
   hoursFromMinutes,
@@ -10,6 +11,7 @@ import {
   seasonFor,
   stationRead,
   sunFraction,
+  zoneClock,
   tzOffsetMinutes,
 } from "@/lib/station";
 
@@ -184,5 +186,32 @@ describe("display helpers", () => {
     expect(clockFromMinutes(372)).toBe("06:12");
     expect(hoursFromMinutes(786)).toBe("13h 06m");
     expect(hoursFromMinutes(720)).toBe("12h");
+  });
+});
+
+describe("zoneClock", () => {
+  const at = new Date("2026-09-26T03:35:00Z");
+
+  it("reads the wall clock and calendar day in another zone", () => {
+    expect(zoneClock(at, "Asia/Bangkok")).toEqual({ hhmm: "10:35", dateKey: "2026-09-26" });
+    // New York is still yesterday evening.
+    expect(zoneClock(at, "America/New_York")).toEqual({ hhmm: "23:35", dateKey: "2026-09-25" });
+  });
+
+  it("returns null for a zone that doesn't exist", () => {
+    expect(zoneClock(at, "Not/AZone")).toBeNull();
+  });
+});
+
+describe("dateKeyDiff", () => {
+  it("counts whole days between calendar keys", () => {
+    expect(dateKeyDiff("2026-09-26", "2026-09-25")).toBe(-1);
+    expect(dateKeyDiff("2026-09-25", "2026-09-26")).toBe(1);
+    expect(dateKeyDiff("2026-09-26", "2026-09-26")).toBe(0);
+    expect(dateKeyDiff("2026-12-31", "2027-01-01")).toBe(1);
+  });
+
+  it("says 0 for a bad key rather than guessing", () => {
+    expect(dateKeyDiff("soon", "2026-09-26")).toBe(0);
   });
 });

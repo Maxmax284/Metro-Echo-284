@@ -317,3 +317,43 @@ export function hoursFromMinutes(min: number): string {
   const m = min % 60;
   return m === 0 ? `${h}h` : `${h}h ${String(m).padStart(2, "0")}m`;
 }
+
+// --------------------------------------------------------------------------
+// Zone clocks — what the hour is somewhere else, figured here from the zone
+// database on the device. No fetch, so a home clock holds with no signal.
+// --------------------------------------------------------------------------
+
+export type ZoneClock = {
+  /** "14:32" — the wall clock in that zone. */
+  hhmm: string;
+  /** "2026-09-26" — the calendar day in that zone. */
+  dateKey: string;
+};
+
+export function zoneClock(at: Date, timeZone: string): ZoneClock | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).formatToParts(at);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+    const hh = get("hour") === "24" ? "00" : get("hour");
+    if (!hh || !get("minute") || !get("year")) return null;
+    return { hhmm: `${hh}:${get("minute")}`, dateKey: `${get("year")}-${get("month")}-${get("day")}` };
+  } catch {
+    return null;
+  }
+}
+
+/** Whole days between two "YYYY-MM-DD" keys: b minus a. Bad keys say 0. */
+export function dateKeyDiff(a: string, b: string): number {
+  const pa = a.split("-").map(Number);
+  const pb = b.split("-").map(Number);
+  if (pa.length !== 3 || pb.length !== 3 || [...pa, ...pb].some((n) => !Number.isFinite(n))) return 0;
+  return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86_400_000);
+}

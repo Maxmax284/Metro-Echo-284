@@ -2631,3 +2631,58 @@ html[data-sky="wind"]  { --sky-dim: 0.04; --sky-chill: 0.04; }
 @media (prefers-reduced-motion: reduce) {
   .boot-stamp { animation: none; }
 }
+
+/* Cabinet — stage 5 dials: home clock, signal bars, travel count. */
+.cab-clockface {
+  display: inline-block;
+  padding: 7px 9px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--background) / 0.65);
+  box-shadow: inset 0 1px 0 hsl(var(--foreground) / 0.06), inset 0 -8px 14px hsl(var(--background) / 0.7);
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  color: hsl(var(--foreground));
+}
+.cab-blink { animation: cab-blink 2s steps(1) infinite; }
+@keyframes cab-blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.25; } }
+
+.cab-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 40px;
+  padding: 5px 0;
+}
+.cab-bar {
+  width: 7px;
+  border-radius: 2px 2px 1px 1px;
+  background: hsl(var(--muted-foreground) / 0.22);
+  transition: background 260ms ease, box-shadow 260ms ease;
+}
+.cab-bar:nth-child(1) { height: 26%; }
+.cab-bar:nth-child(2) { height: 46%; }
+.cab-bar:nth-child(3) { height: 70%; }
+.cab-bar:nth-child(4) { height: 100%; }
+.cab-bar.on {
+  background: hsl(var(--primary));
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.45);
+}
+
+.cab-count {
+  display: inline-block;
+  font-size: 26px;
+  line-height: 40px;
+  letter-spacing: 0.04em;
+  color: hsl(var(--foreground));
+  text-shadow: 0 0 8px hsl(var(--foreground) / 0.18);
+}
+
+.cab-home-mark {
+  display: inline-block;
+  height: 40px;
+  line-height: 40px;
+  font-size: 22px;
+  color: hsl(var(--muted-foreground) / 0.55);
+}
