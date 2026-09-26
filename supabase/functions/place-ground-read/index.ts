@@ -93,6 +93,56 @@ async function dossier(title: string, lang: string | null) {
   };
 }
 
+/** Who made a photo and how it may be used — the license terms require this
+ *  to travel with the image, so credits are fetched with the photos and
+ *  rendered under each one. */
+type Credit = { url: string; artist: string | null; license: string | null; page: string | null };
+
+function stripHtml(s: string) {
+  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function creditFrom(ii: any, url: string): Credit {
+  const em = ii?.extmetadata ?? {};
+  const artist = em.Artist?.value ? stripHtml(String(em.Artist.value)).slice(0, 120) : null;
+  const license = em.LicenseShortName?.value ? String(em.LicenseShortName.value).slice(0, 60) : null;
+  const page = typeof ii?.descriptionurl === "string" ? ii.descriptionurl : null;
+  return { url, artist: artist || null, license, page };
+}
+
+/** The File: name a Wikimedia image URL ends in (thumb URLs carry a width prefix). */
+function fileNameFromUrl(u: string | null): string | null {
+  if (!u) return null;
+  try {
+    const last = new URL(u).pathname.split("/").pop() ?? "";
+    return decodeURIComponent(last.replace(/^\d+px-/, "")) || null;
+  } catch { return null; }
+}
+
+/** One batched lookup of artist + license + source page for a set of File: names. */
+async function creditsFor(files: { name: string; url: string }[]): Promise<Credit[]> {
+  if (!files.length) return [];
+  const titles = files.map((f) => `File:${f.name}`).join("|");
+  const j = await getJson(
+    `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata|url` +
+      `&titles=${encodeURIComponent(titles)}`,
+  );
+  /* The API normalizes titles (underscores to spaces, first-letter case);
+     match our raw URL-derived names through its normalization table. */
+  const norm = new Map<string, string>();
+  for (const n of (j?.query?.normalized ?? []) as any[]) norm.set(String(n.from), String(n.to));
+  const byCanonical = new Map<string, any>();
+  for (const p of Object.values(j?.query?.pages ?? {}) as any[]) {
+    const name = String(p.title ?? "").replace(/^File:/, "");
+    if (name) byCanonical.set(name, p.imageinfo?.[0]);
+  }
+  return files.map((f) => {
+    const requested = `File:${f.name}`;
+    const canonical = (norm.get(requested) ?? requested).replace(/^File:/, "");
+    return creditFrom(byCanonical.get(canonical), f.url);
+  });
+}
+
 /** A few more real photographs of the same article, for the taped strip. */
 async function gallery(title: string) {
   const j = await getJson(
@@ -104,7 +154,11 @@ async function gallery(title: string) {
     .map((p) => ({ name: String(p.title ?? ""), url: p.imageinfo?.[0]?.thumburl as string | undefined }))
     .filter((p) => p.url && /\.(jpe?g|png)$/i.test(p.name) && !/(logo|icon|flag|seal|map|locator|svg|commons)/i.test(p.name))
     .slice(0, 5)
-    .map((p) => ({ caption: p.name.replace(/^File:/, "").replace(/\.[a-z]+$/i, "").replace(/[_-]+/g, " "), url: p.url! }));
+    .map((p) => ({
+      file: p.name.replace(/^File:/, ""),
+      caption: p.name.replace(/^File:/, "").replace(/\.[a-z]+$/i, "").replace(/[_-]+/g, " "),
+      url: p.url!,
+    }));
 }
 
 Deno.serve(async (req) => {
@@ -129,24 +183,42 @@ Deno.serve(async (req) => {
       dossier(sourceTitle, b.lang),
       gallery(sourceTitle),
     ]);
-    const photos = [page?.photo ?? dos?.photo, ...pics.map((p) => p.url)]
+    const photosAll = [page?.photo ?? dos?.photo, ...pics.map((p) => p.url)]
       .filter((u, i, a): u is string => Boolean(u) && a.indexOf(u) === i)
       .slice(0, 5);
     const area = dos
       ? { localName: dos.localName, intro: dos.intro, history: dos.history, geography: dos.geography }
       : null;
 
-    if (!b.withRead) return json({ page, area, photos, read: null });
+    /* Attribution is not optional decoration — the photo licenses require
+       it, so artist + license are resolved for every photo we ship, and a
+       photo whose credit cannot be resolved does not ship at all. */
+    const leadUrl = (page?.photo ?? dos?.photo ?? null) as string | null;
+    const galleryFiles = pics.filter((p) => photosAll.includes(p.url)).map((p) => ({ name: p.file, url: p.url }));
+    const leadName = fileNameFromUrl(leadUrl);
+    const needsLead = Boolean(leadUrl && photosAll.includes(leadUrl) && leadName && !galleryFiles.some((f) => f.url === leadUrl));
+    const resolved = await creditsFor([
+      ...(needsLead ? [{ name: leadName!, url: leadUrl! }] : []),
+      ...galleryFiles,
+    ]);
+    const byUrl = new Map(resolved.map((c) => [c.url, c]));
+    const photos = photosAll.filter((u) => {
+      const c = byUrl.get(u);
+      return c && (c.artist || c.license);
+    });
+    const credits = photos.map((u) => byUrl.get(u)!);
+
+    if (!b.withRead) return json({ page, area, photos, credits, read: null });
 
     const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
     const { count } = await client.from("audit_log").select("id", { count: "exact", head: true })
       .eq("event", "ground_read.composed").gte("created_at", dayAgo);
     if ((count ?? 0) >= 6) {
-      return json({ page, area, photos, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
+      return json({ page, area, photos, credits, read: null, error: "Echo's local read is resting until tomorrow.", limited: true }, 429);
     }
 
     const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) return json({ page, area, photos, error: "Echo's local read isn't set up yet." }, 500);
+    if (!key) return json({ page, area, photos, credits, error: "Echo's local read isn't set up yet." }, 500);
 
     const facts = [
       `Place: ${[b.city, b.region, b.country].filter(Boolean).join(", ")}`,
@@ -176,7 +248,7 @@ Deno.serve(async (req) => {
     await client.from("audit_log").insert({
       user_id: user.id, event: "ground_read.composed", entity_type: "place", payload: { city: b.city },
     } as any);
-    return json({ page, area, photos, read: text || null });
+    return json({ page, area, photos, credits, read: text || null });
   } catch (e) {
     const status = (e as { status?: number }).status ?? 500;
     return json({ error: e instanceof Error ? e.message : "Echo couldn't read the place." }, status);

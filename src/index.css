@@ -8,6 +8,60 @@
   Dark-first, calm, cinematic. Subtle glass surfaces. Restrained motion.
 */
 
+/* Self-hosted fonts (OFL-licensed Rubik + Space Mono, latin/latin-ext).
+   Same faces the Google Fonts link served, bundled so the app never calls
+   a third party to render text — and works fully offline. */
+@font-face {
+  font-family: "Rubik"; font-style: normal; font-weight: 300 700; font-display: swap;
+  src: url("/fonts/rubik-normal-300700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Rubik"; font-style: normal; font-weight: 300 700; font-display: swap;
+  src: url("/fonts/rubik-normal-300700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Rubik"; font-style: italic; font-weight: 300 600; font-display: swap;
+  src: url("/fonts/rubik-italic-300600-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Rubik"; font-style: italic; font-weight: 300 600; font-display: swap;
+  src: url("/fonts/rubik-italic-300600-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/spacemono-normal-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("/fonts/spacemono-normal-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/spacemono-normal-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("/fonts/spacemono-normal-700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url("/fonts/spacemono-italic-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Space Mono"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url("/fonts/spacemono-italic-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 @layer base {
   :root {
     /* Surfaces */
@@ -1190,8 +1244,11 @@ html.vanta-exhale-once body {
    Weather (data-weather) still tints on top of all of it.                */
 
 :root {
-  --bd-hue-a: 188;             /* leading wash hue */
-  --bd-hue-b: 268;             /* trailing wash hue */
+  /* The wash hue is layered: the climate band (data-lat-band) sets the base
+     pair, the turn of day (data-daypart) bends it, and a chosen skin
+     (data-skin) overrides the whole stack by setting these directly. */
+  --bd-hue-a: calc(var(--bd-band-a, 188) + var(--bd-day-shift, 0));
+  --bd-hue-b: calc(var(--bd-band-b, 268) + var(--bd-day-shift, 0));
   --bd-wash-a: 0.09;
   --bd-wash-b: 0.07;
   --bd-grid: 0;
@@ -1206,6 +1263,24 @@ html.vanta-exhale-once body {
   --bd-throw-x: 50%;
   --bd-throw-y: 50%;
 }
+
+/* ---- Region tint: every country gets a coherent wall, no painted asset
+   required. The climate band sets the base hue pair, the turn of day bends
+   it — warmer toward dawn and golden hour, violet into dusk and night.
+   RegionTintChannel keeps both attributes honest from the recorded place; a
+   stale fix clears them and the home hues return. A chosen data-skin sets
+   --bd-hue-a/b directly and always wins over the tint. ---- */
+html[data-lat-band="equatorial"]  { --bd-band-a: 150; --bd-band-b: 196; }
+html[data-lat-band="tropical"]    { --bd-band-a: 158; --bd-band-b: 206; }
+html[data-lat-band="subtropical"] { --bd-band-a: 172; --bd-band-b: 224; }
+html[data-lat-band="temperate"]   { --bd-band-a: 190; --bd-band-b: 238; }
+html[data-lat-band="subpolar"]    { --bd-band-a: 206; --bd-band-b: 252; }
+html[data-lat-band="polar"]       { --bd-band-a: 214; --bd-band-b: 262; }
+
+html[data-daypart="dawn"]   { --bd-day-shift: -14; }
+html[data-daypart="golden"] { --bd-day-shift: -30; }
+html[data-daypart="dusk"]   { --bd-day-shift: 12; }
+html[data-daypart="night"]  { --bd-day-shift: 8; }
 
 .vanta-backdrop {
   position: fixed;

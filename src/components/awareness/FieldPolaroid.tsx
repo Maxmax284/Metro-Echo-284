@@ -18,7 +18,11 @@ import { cn } from "@/lib/utils";
 
 type Page = { title: string; extract: string; photo: string | null; url: string | null };
 type Area = { localName: string | null; intro: string | null; history: string | null; geography: string | null };
-type Payload = { page: Page | null; area: Area | null; photos: string[]; read: string | null };
+/** Artist + license per photo, from Wikimedia — the licenses require this
+    to travel with the image. Older cached payloads may not carry it; the
+    credit line simply stays out then. */
+type Credit = { url: string; artist: string | null; license: string | null; page: string | null };
+type Payload = { page: Page | null; area: Area | null; photos: string[]; credits?: Credit[]; read: string | null };
 
 /** Local-language Wikipedia code, so the second name line is the real one. */
 const LANG_BY_COUNTRY: Record<string, string> = {
@@ -239,6 +243,27 @@ export function FieldPolaroid({
             <figcaption className="pt-1.5 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-foreground/70">
               field snap {shot + 1}/{photos.length}
             </figcaption>
+            {/* The license on these photos requires the credit to travel with
+                the image — artist + license, linked to its Commons page. */}
+            {(() => {
+              const credit = data.credits?.find((c) => c.url === photos[shot]);
+              if (!credit || (!credit.artist && !credit.license)) return null;
+              const line = `photo: ${credit.artist ?? "Wikimedia Commons"}${credit.license ? ` · ${credit.license}` : ""}`;
+              return credit.page ? (
+                <a
+                  href={credit.page}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-0.5 block max-w-52 truncate text-center text-[9.5px] normal-case tracking-normal text-muted-foreground/80 underline decoration-dotted underline-offset-2 hover:text-foreground/80"
+                >
+                  {line}
+                </a>
+              ) : (
+                <span className="mt-0.5 block max-w-52 truncate text-center text-[9.5px] normal-case tracking-normal text-muted-foreground/80">
+                  {line}
+                </span>
+              );
+            })()}
           </figure>
           {photos.length > 1 ? (
             <div className="flex gap-2 self-start max-[460px]:flex-row min-[461px]:flex-col">
