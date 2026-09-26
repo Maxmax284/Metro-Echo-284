@@ -289,13 +289,6 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
           Drop to attach to this thread
         </div>
       )}
-      {/* What this thread is about stays visible without exposing machinery. */}
-      <AskContextStrip />
-      {/* Where you are, the clock there, what is next. Nothing when irrelevant. */}
-      <AskEnvironmentEdge />
-      <div className="border-b border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
-        Echo can prepare the work here. You still approve anything that acts.
-      </div>
       {cold && (
         <div className="flex flex-wrap items-center gap-2 border-b border-border/40 bg-muted/15 px-4 py-2 text-[11.5px] text-muted-foreground">
           <span className="min-w-0">
@@ -316,6 +309,14 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
       <ThreadJump scrollRef={scrollRef} deps={msgs.length} />
       <div ref={scrollRef} className="scrollbar-thin flex-1 overflow-y-auto px-4 pb-32 pt-2 md:pb-4">
         <div className="mx-auto max-w-3xl space-y-3">
+          {/* The banner rides the stream: what this thread is bound to and
+              where you are scroll away with the messages instead of squatting
+              on the cramped keyboard view. One scroll up brings them back. */}
+          <AskContextStrip className="rounded-lg border border-border/40" />
+          <AskEnvironmentEdge className="rounded-lg border border-border/40" />
+          <div className="rounded-lg border border-border/40 bg-surface-elevated/30 px-4 py-2 text-[11px] text-muted-foreground">
+            Echo can prepare the work here. You still approve anything that acts.
+          </div>
           {msgs.length === 0 && (
             <div className="mt-10 space-y-4 motion-fade">
               <p className="text-balance text-center text-sm text-muted-foreground">

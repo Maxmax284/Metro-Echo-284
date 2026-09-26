@@ -17,6 +17,7 @@ import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { COMPANION_TOOLS, getToolAvailability, type Tool, type ToolScope } from "@/lib/companionTools";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useScope } from "@/hooks/useScope";
+import { useKeyboardOpen } from "@/hooks/useKeyboardOpen";
 import type { AppMode } from "@/hooks/useMode";
 import type { SystemControls } from "@/hooks/useSystemControls";
 
@@ -200,6 +201,10 @@ export function ConversationDock({
   const SRClass = getSpeechRecognition();
   const speechSupported = !!SRClass;
 
+  /* While the keyboard is up the bottom tab bar has slid away, so the dock
+     gives back its clearance and sits straight on the keys. */
+  const keyboardOpen = useKeyboardOpen();
+
   // Slash palette state
   const { scope: activeScope } = useScope();
   const toolScope: ToolScope =
@@ -287,8 +292,14 @@ export function ConversationDock({
 
   return (
     // The composer sits over the room wall, so it carries its own scrim: text
-    // stays readable and the bottom nav keeps its clearance on phones.
-    <div className="safe-bottom sticky bottom-[68px] z-30 bg-gradient-to-t from-background via-background/90 to-transparent px-3 pb-3 pt-3 md:bottom-0 md:relative md:bg-none md:px-0 md:pb-0">
+    // stays readable. On phones it clears the bottom tab bar — unless the
+    // keyboard is up and the bar has slid away, then it docks on the keys.
+    <div
+      className={cn(
+        "safe-bottom sticky z-30 bg-gradient-to-t from-background via-background/90 to-transparent px-3 pb-3 pt-3 md:bottom-0 md:relative md:bg-none md:px-0 md:pb-0",
+        keyboardOpen ? "bottom-0" : "bottom-[68px]",
+      )}
+    >
       {/* Slash palette */}
       {slashActive && paletteTools.length > 0 && (
         <div className="mx-auto mb-1.5 w-full max-w-3xl overflow-hidden rounded-2xl glass bg-background/85 shadow-lg backdrop-blur-xl">
