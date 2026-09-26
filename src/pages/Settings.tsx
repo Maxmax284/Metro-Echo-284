@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldAlert, Power, ChevronRight } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { SETTINGS_GROUPS } from "@/lib/settingsGroups";
 import { SystemHealthLine } from "@/components/settings/SystemHealthLine";
+import { GoogleAttentionLine } from "@/components/settings/GoogleAttentionLine";
 import { InstallVantaSection } from "@/components/settings/InstallVantaSection";
 import { TelegramQuickConnect } from "@/components/settings/TelegramQuickConnect";
 import { CalendarQuickConnect } from "@/components/settings/CalendarQuickConnect";
