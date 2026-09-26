@@ -17,6 +17,8 @@ export type AwarenessPlace = {
   category?: string | null;
   notes?: string | null;
   address?: string | null;
+  /** Your welcome stamp, pressed by hand. Cleared by a real move. */
+  stamped_at?: string | null;
 };
 
 export type AwarenessBriefing = {
@@ -99,6 +101,8 @@ type Ctx = {
   refreshSnapshot: (force?: boolean) => Promise<void>;
   setActivePlace: (id: string) => Promise<void>;
   deletePlace: (id: string) => Promise<void>;
+  /** Rows carrying your welcome stamp — the boot echoes them on stamped ground. */
+  stampedPlaces: AwarenessPlace[];
 };
 
 const AwarenessCtx = createContext<Ctx | null>(null);
@@ -107,6 +111,7 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const [place, setPlace] = useState<AwarenessPlace | null>(null);
   const [briefings, setBriefings] = useState<AwarenessBriefing[]>([]);
+  const [stampedPlaces, setStampedPlaces] = useState<AwarenessPlace[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<AwarenessSnapshot | null>(null);
@@ -117,13 +122,14 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
     if (!session) {
       setPlace(null);
       setBriefings([]);
+      setStampedPlaces([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     const { data: p } = await supabase
       .from("awareness_places")
-      .select("id,label,geo,country,region,address,category,notes,updated_at")
+      .select("id,label,geo,country,region,address,category,notes,updated_at,stamped_at")
       // "reading" places are kept to read about, never to stand in for your fix.
       .or("category.is.null,category.not.in.(care,nearby,reading)")
       .is("archived_at", null)
@@ -136,6 +142,14 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     const active = (p ?? null) as AwarenessPlace | null;
     setPlace(active);
+    /* Stamped ground: the rows carrying your welcome stamp, so the boot can
+       echo them when you stand on (or back near) one. */
+    const { data: stamped } = await supabase
+      .from("awareness_places")
+      .select("id,label,geo,stamped_at")
+      .not("stamped_at", "is", null)
+      .is("archived_at", null);
+    setStampedPlaces((stamped ?? []) as AwarenessPlace[]);
     if (active?.id) {
       const { data: b } = await supabase
         .from("awareness_briefings")
@@ -254,7 +268,7 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
        briefings go, so a deleted pin can still be accounted for. */
     const { data: row } = await supabase
       .from("awareness_places")
-      .select("id,label,geo,country,region,category,notes,address,created_at")
+      .select("id,label,geo,country,region,category,notes,address,created_at,stamped_at")
       .eq("id", id)
       .maybeSingle();
     if (row) await recordDeletion("place", id, row as unknown as Record<string, unknown>);
@@ -266,8 +280,8 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => ({
     place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall,
-    snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace,
-  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall, snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace]);
+    snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace, stampedPlaces,
+  }), [place, briefings, latestBySection, loading, refresh, generate, generating, getSlice, overall, snapshot, snapshotLoading, refreshSnapshot, setActivePlace, deletePlace, stampedPlaces]);
 
   return <AwarenessCtx.Provider value={value}>{children}</AwarenessCtx.Provider>;
 }

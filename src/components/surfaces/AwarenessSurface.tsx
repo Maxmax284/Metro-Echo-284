@@ -49,6 +49,7 @@ import { NearbyPlacesPanel } from "@/components/awareness/NearbyPlacesPanel";
 import { TripHistoryPanel } from "@/components/awareness/TripHistoryPanel";
 import { placeDisplayLabel } from "@/lib/placeLabels";
 import { PlacesBoardMap } from "@/components/awareness/PlacesBoardMap";
+import { WelcomeStamp } from "@/components/awareness/WelcomeStamp";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -230,7 +231,7 @@ export function AwarenessSurface() {
   const loadList = async () => {
     const { data } = await supabase
       .from("awareness_places")
-      .select("id,label,geo,country,region,updated_at,category,notes,address")
+      .select("id,label,geo,country,region,updated_at,category,notes,address,stamped_at")
       .is("archived_at", null)
       .order("updated_at", { ascending: false });
     setPlaces((data ?? []) as AwarenessPlace[]);
@@ -412,6 +413,12 @@ export function AwarenessSurface() {
   }));
   const boardPlace = (boardPlaceId ? places.find((p) => p.id === boardPlaceId) : null) ?? place ?? null;
   const boardIsLive = !boardPlaceId || boardPlaceId === liveId;
+  /* The welcome stamp: update the row in place, and when it's the live fix
+     make the provider reload so the boot's echo reads the same truth. */
+  const onStampChanged = (id: string, at: string | null) => {
+    setPlaces((ps) => ps.map((p) => (p.id === id ? { ...p, stamped_at: at } : p)));
+    if (id === place?.id) void refresh();
+  };
   const boardGeo = (boardPlace?.geo ?? {}) as Record<string, unknown>;
 
   /* Keep a place purely to read about it. The town is named by the person and
@@ -566,6 +573,9 @@ export function AwarenessSurface() {
             {placeDisplayLabel(place?.label ?? "your current spot")}.
           </p>
         ) : null}
+
+        {/* Your mark on this ground: deliberate, receipted, echoed at boot. */}
+        <WelcomeStamp place={boardPlace} onChanged={onStampChanged} />
 
         <FieldPolaroid
           key={boardPlace?.id ?? "live"}

@@ -41,6 +41,8 @@ export type UserPreferences = {
   };
   /** Journeys you said were over. Display only — no record is removed. */
   trips_wrapped?: string[];
+  /** The once-per-account welcome ran. Set once, never reset by the app. */
+  intro_seen_at?: string | null;
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
@@ -66,6 +68,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   intake: {},
   entry: {},
   trips_wrapped: [],
+  intro_seen_at: null,
 };
 
 export function useUserPreferences() {

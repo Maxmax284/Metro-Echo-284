@@ -85,6 +85,9 @@ export function placePatchForFix(
   if (movedFar(prev?.geo, fix, thresholdM)) {
     patch.country = null;
     patch.region = null;
+    /* A stamp is place identity: it obeys the same law as names and never
+       travels with coordinates. */
+    patch.stamped_at = null;
   }
   return patch;
 }
