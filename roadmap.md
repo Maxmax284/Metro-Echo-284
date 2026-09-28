@@ -113,3 +113,11 @@
 - [x] Tests (12 mark-record + 18 station-marks green), typecheck, build
 - [ ] Live verify at 384px signed-in: tap both marks, check journey replay + place beats
 - [ ] Publish Stages 2–6 together (security scan is stale — refresh at publish)
+
+## Awareness plan (approved 2026-09-28) — Phases 0-2
+- [ ] Phase 0: fix look_up thread-misdelivery; fix push failure_count increment; consolidate quiet-hours helpers; watch lifecycle receipts (created/checked/changed/stopped/paused); paused state support
+- [ ] Phase 1: Today "On the radar" card (states, last/next check, all-clear, zero-watch teaching, entry point); WatchShelf empty state + next check + pause; watch-health signal kinds; SourceHealthStrip wire-or-delete
+- [ ] Phase 2: Ask follow-up chips after live-world answers (Keep me updated via real web_page watch); source chips with authority/freshness; widen research routing for current-events phrasing; decline cooldowns
+- [ ] Verify: typecheck, targeted tests, full suite, 384px live pass
+- [ ] NOT in this build: Phases 3-6 (Receipts provenance, Notifications unification, Settings reorg, topic watches)
+- [ ] Documents desk elevated to its own visible station on the main Work shelf; "Analyze document" affordance next to "File it" (user request, same round as Phases 0-2)

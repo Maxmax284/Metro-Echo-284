@@ -8,6 +8,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
 import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessage.ts";
+import { isInQuietHours } from "../_shared/drift.ts";
 
 
 
@@ -21,24 +22,9 @@ type Prefs = {
   quiet_hours_end?: string;
 };
 
-function isInQuietHours(tz: string, start = "22:00", end = "07:00"): boolean {
-  try {
-    const now = new Date();
-    const hhmm = new Intl.DateTimeFormat("en-GB", {
-      timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false,
-    }).format(now); // "HH:MM"
-    const [h, m] = hhmm.split(":").map((x) => parseInt(x, 10));
-    const nowMin = h * 60 + m;
-    const [sh, sm] = start.split(":").map((x) => parseInt(x, 10));
-    const [eh, em] = end.split(":").map((x) => parseInt(x, 10));
-    const sMin = sh * 60 + sm;
-    const eMin = eh * 60 + em;
-    if (sMin === eMin) return false;
-    if (sMin < eMin) return nowMin >= sMin && nowMin < eMin;
-    // wraps midnight
-    return nowMin >= sMin || nowMin < eMin;
-  } catch { return false; }
-}
+/* Quiet hours live in one place (_shared/drift.ts) so every sender agrees. */
+
+
 
 type TgInlineButton = { text: string; callback_data?: string; url?: string };
 type TgReplyMarkup = { inline_keyboard: TgInlineButton[][] };

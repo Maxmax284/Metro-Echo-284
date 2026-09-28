@@ -206,6 +206,61 @@ export async function runExtraction(documentId: string): Promise<{ ok: boolean; 
   return { ok: !!data?.ok, error: data?.error };
 }
 
+// ---------- "Analyze document" — one shared path -----------------------------
+// The analyze affordance lives wherever files land (memory tray, upload card,
+// Documents desk) and must mean the same thing everywhere: file becomes a
+// documents row, the read runs, the result is ready for review.
+
+/** Loose sniff: does this file look like a reviewable document? */
+export function isDocumentLike(file: { filename: string; detectedDocType?: string | null }): boolean {
+  const t = (file.detectedDocType ?? "").toLowerCase();
+  if (["contract", "invoice", "waiver", "policy", "other"].includes(t)) return true;
+  return /\.(pdf|docx?|rtf|txt)$/i.test(file.filename);
+}
+
+/** Map the ingest classifier's type onto a documents kind. */
+export function detectedToDocKind(t: string | null): DocumentKind {
+  switch ((t ?? "").toLowerCase()) {
+    case "contract": return "other";
+    case "invoice": return "invoice";
+    case "policy": return "policy";
+    default: return "unknown";
+  }
+}
+
+/**
+ * Turn saved ingested files into documents and run the read on each.
+ * Returns the document ids that made it — one file failing never blocks
+ * the rest, and the caller toasts the outcome.
+ */
+export async function analyzeIngestedFiles(args: {
+  userId: string;
+  organizationId?: string | null;
+  files: { id: string; filename: string; detectedDocType?: string | null }[];
+}): Promise<string[]> {
+  const docIds: string[] = [];
+  for (const f of args.files) {
+    if (!isDocumentLike({ filename: f.filename, detectedDocType: f.detectedDocType })) continue;
+    try {
+      const doc = await treatFileAsDocument({
+        userId: args.userId,
+        organizationId: args.organizationId ?? null,
+        fileId: f.id,
+        filename: f.filename,
+        kind: detectedToDocKind(f.detectedDocType ?? null),
+      });
+      /* The words were already pulled when the file arrived — the read is a
+         copy, not a fresh AI call. A failed read leaves the doc uploaded and
+         the user can tap Read on it. */
+      await runExtraction(doc.id).catch(() => ({ ok: false }));
+      docIds.push(doc.id);
+    } catch {
+      /* keep going — the batch reports what it managed */
+    }
+  }
+  return docIds;
+}
+
 export async function runReview(documentId: string): Promise<{ ok: boolean; error?: string }> {
   const { data, error } = await supabase.functions.invoke("documents-review", {
     body: { document_id: documentId },

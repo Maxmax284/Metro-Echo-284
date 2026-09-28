@@ -16,7 +16,7 @@ import {
   Coins, Sun, LayoutGrid, Eye, EyeOff, Check, Users, History, FileSearch,
 } from "lucide-react";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
-import { treatFileAsDocument, runExtraction, type DocumentKind } from "@/lib/documents";
+import { treatFileAsDocument, runExtraction, isDocumentLike, detectedToDocKind } from "@/lib/documents";
 import { formatDistanceToNow } from "date-fns";
 import { AttachToProjectMenu } from "@/components/projects/AttachToProjectMenu";
 import { objectIntentFor, kindForObject, nextStepsLine, readSummaryLine } from "@/lib/objectIntent";
@@ -97,21 +97,8 @@ function firstPerson(entities: unknown): string | null {
   return null;
 }
 
-function isDocumentLike(row: { filename: string; detected_doc_type: string | null }): boolean {
-  const t = (row.detected_doc_type ?? "").toLowerCase();
-  if (["contract", "invoice", "waiver", "policy", "other"].includes(t)) return true;
-  const f = row.filename.toLowerCase();
-  return /\.(pdf|docx?|rtf|txt)$/.test(f);
-}
-
-function detectedToDocKind(t: string | null): DocumentKind {
-  switch ((t ?? "").toLowerCase()) {
-    case "contract": return "other";
-    case "invoice": return "invoice";
-    case "policy": return "policy";
-    default: return "unknown";
-  }
-}
+/* isDocumentLike / detectedToDocKind live in @/lib/documents so the analyze
+   affordance means the same thing on every surface. */
 
 const ACTIVITY_LABELS: Record<string, string> = {
   "file.staged": "Staged for upload",
@@ -497,8 +484,8 @@ export function FileAftermathTray({
         </div>
       )}
 
-      {/* Treat as document — opens a dedicated Documents review surface */}
-      {!sensitive && isDocumentLike(row) && (
+      {/* Analyze document — opens a dedicated Documents review surface */}
+      {!sensitive && isDocumentLike({ filename: row.filename, detectedDocType: row.detected_doc_type }) && (
         <div className="mt-2">
           <Button
             size="sm"
@@ -528,7 +515,7 @@ export function FileAftermathTray({
               }
             }}
           >
-            <FileSearch className="h-3 w-3" /> Treat as document
+            <FileSearch className="h-3 w-3" /> Analyze document
           </Button>
           <DocumentDetailSheet
             documentId={openDocumentId}

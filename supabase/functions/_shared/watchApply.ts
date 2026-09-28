@@ -25,6 +25,26 @@ type Sb = {
   from: (table: string) => any;
 };
 
+/* A watch that claims to exist leaves a receipt the moment it does. The
+   receipt never blocks the watch itself. */
+async function watchReceipt(
+  sb: Sb,
+  userId: string,
+  event: string,
+  watchId: string | null,
+  meta: Record<string, unknown>,
+) {
+  try {
+    await sb.from("audit_log").insert({
+      user_id: userId,
+      entity_type: "watch",
+      entity_id: watchId,
+      event,
+      payload: meta,
+    });
+  } catch { /* the act stands; the receipt is best-effort */ }
+}
+
 export type WatchApplyResult = {
   reply: string;
   watchId?: string | null;
@@ -121,6 +141,7 @@ export async function startCalendarWatch(
     .select("id")
     .single();
   if (error || !data) return { reply: "I couldn't start that one. Nothing is being watched.", readOnly: true };
+  await watchReceipt(sb, userId, "watch.created", data.id, { goal, kind: "calendar_event", source });
   return { reply: watchStartedReply(goal, 30), watchId: data.id };
 }
 
@@ -212,6 +233,7 @@ export async function startWatchFromWords(
   if (error || !data) {
     return { reply: "I couldn't start that one. Nothing is being watched.", readOnly: true };
   }
+  await watchReceipt(sb, userId, "watch.created", data.id, { goal, kind, source: input.source ?? "ask" });
   return { reply: watchStartedReply(goal, cadence), watchId: data.id };
 }
 
@@ -237,6 +259,7 @@ export async function stopWatchFromWords(
     .eq("id", match.watch.id)
     .eq("user_id", userId);
   if (error) return { reply: "I couldn't stop that one. It's still running.", readOnly: true };
+  await watchReceipt(sb, userId, "watch.stopped", match.watch.id, { goal: match.watch.goal });
   return { reply: watchStoppedReply(match.watch.goal), watchId: match.watch.id };
 }
 

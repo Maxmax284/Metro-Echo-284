@@ -562,16 +562,22 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
               }).text;
             }
           }
-          const { data: conv } = await supabase
-            .from("conversations")
-            .select("id")
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (conv?.id) {
+          /* The answer belongs to the thread that asked, not whichever
+             conversation happened to be touched last. */
+          let convId = typeof provenance?.conversation_id === "string" ? provenance.conversation_id : null;
+          if (!convId) {
+            const { data: conv } = await supabase
+              .from("conversations")
+              .select("id")
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            convId = conv?.id ?? null;
+          }
+          if (convId) {
             await supabase.from("messages").insert({
               user_id: user.id,
-              conversation_id: conv.id,
+              conversation_id: convId,
               role: "assistant",
               content: composed,
               metadata: { source: mail ? "gmail" : "drive", provenance: "google", question },
@@ -615,16 +621,21 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             composed = payload.answer ?? "Nothing useful came back from the web on that one.";
           }
 
-          const { data: conv } = await supabase
-            .from("conversations")
-            .select("id")
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (conv?.id) {
+          /* Same law as above: the thread that asked gets the answer. */
+          let convId = typeof provenance?.conversation_id === "string" ? provenance.conversation_id : null;
+          if (!convId) {
+            const { data: conv } = await supabase
+              .from("conversations")
+              .select("id")
+              .order("updated_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            convId = conv?.id ?? null;
+          }
+          if (convId) {
             await supabase.from("messages").insert({
               user_id: user.id,
-              conversation_id: conv.id,
+              conversation_id: convId,
               role: "assistant",
               content: composed,
               metadata: {

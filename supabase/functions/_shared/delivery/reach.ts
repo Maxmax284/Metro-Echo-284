@@ -88,7 +88,7 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
 
   const { data: subs } = await admin
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
+    .select("id, endpoint, p256dh, auth, failure_count")
     .eq("user_id", input.userId);
   if (!subs?.length) return false;
 
@@ -120,7 +120,12 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
       await admin.from("push_subscriptions").delete().eq("id", s.id);
     } else {
       failed++;
-      await admin.from("push_subscriptions").update({ last_error: r.error ?? `status ${r.status}` }).eq("id", s.id);
+      /* The count is the stale-endpoint signal — it has to move on every
+         failure, or the diagnostic can never tell a sick device from a well
+         one. */
+      await admin.from("push_subscriptions")
+        .update({ last_error: r.error ?? `status ${r.status}`, failure_count: (s.failure_count ?? 0) + 1 })
+        .eq("id", s.id);
     }
   }
 

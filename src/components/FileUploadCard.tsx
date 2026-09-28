@@ -13,7 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
+import { Loader2, Upload, FileText, FileSearch, Search, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { analyzeIngestedFiles, isDocumentLike } from "@/lib/documents";
+import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";
@@ -113,6 +116,40 @@ export function FileUploadCard() {
     await staged.commitAll();
   };
 
+  /* Analyze document — same staged files, but filed straight into the
+     Documents desk with the read already run. Sits next to "File these"
+     because both are ways to give a staged file its next life. */
+  const navigate = useNavigate();
+  const orgId = useActiveOrgId();
+  const [analyzing, setAnalyzing] = useState(false);
+  const analyzeStaged = async () => {
+    if (!user || analyzing) return;
+    setAnalyzing(true);
+    try {
+      const items = await staged.commitAll();
+      const saved = items.filter((s) => s.status === "saved" && s.ingestedFileId);
+      const docIds = await analyzeIngestedFiles({
+        userId: user.id,
+        organizationId: orgId,
+        files: saved.map((s) => ({ id: s.ingestedFileId!, filename: s.file.name })),
+      });
+      if (docIds.length === 0) {
+        if (saved.length > 0 && !saved.some((s) => isDocumentLike({ filename: s.file.name }))) {
+          toast.info("Filed. Nothing document-like among them — PDF, Word or text files can be analyzed.");
+        } else {
+          toast.error("Couldn't start the analysis — the files are filed, try Analyze from the tray below.");
+        }
+        return;
+      }
+      toast.success(docIds.length === 1 ? "Read and ready for review." : `${docIds.length} documents ready for review.`);
+      navigate(docIds.length === 1 ? `/documents?document=${docIds[0]}` : "/documents");
+    } catch (e) {
+      toast.fromError?.(e);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const stagedCount = staged.staged.filter((s) => s.status === "staged").length;
 
   return (
@@ -192,14 +229,27 @@ export function FileUploadCard() {
               >
                 Clear saved
               </Button>
-              <Button
-                size="sm"
-                className="h-7 text-[11px]"
-                onClick={() => setConfirmOpen(true)}
-                disabled={busy || !staged.staged.some((s) => s.status === "staged")}
-              >
-                {busy ? "Reading…" : "File these"}
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => void analyzeStaged()}
+                  disabled={busy || analyzing || !staged.staged.some((s) => s.status === "staged")}
+                  title="File and read as documents, ready for review"
+                >
+                  {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSearch className="h-3 w-3" />}
+                  Analyze document
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={busy || analyzing || !staged.staged.some((s) => s.status === "staged")}
+                >
+                  {busy ? "Reading…" : "File these"}
+                </Button>
+              </div>
             </div>
           </div>
         )}
