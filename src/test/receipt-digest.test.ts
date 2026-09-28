@@ -59,6 +59,26 @@ describe("receiptDigest", () => {
     expect(approved.at).toBe("2026-09-11T09:00:00Z");
   });
 
+  it("counts a delivered heads-up as something Echo did, a failed one as failed", () => {
+    const lines = receiptDigest(
+      [
+        row("nudge.delivered", "flight_plan", "2026-09-11T10:00:00Z"),
+        row("nudge.reached_messaging", "watch", "2026-09-11T10:05:00Z"),
+        row("nudge.delivery_failed", "watch", "2026-09-11T10:06:00Z"),
+      ],
+      [],
+    );
+    const by = Object.fromEntries(lines.map((l) => [l.key, l]));
+    expect(by.echo_did.count).toBe(2);
+    expect(by.failed.count).toBe(1);
+  });
+
+  it("keeps quiet watch checks out of the Echo-did line", () => {
+    const lines = receiptDigest([row("watch.checked", "watch", "2026-09-11T10:00:00Z")], []);
+    expect(lines.find((l) => l.key === "echo_did")!.count).toBe(0);
+    expect(lines.find((l) => l.key === "happened")!.count).toBe(1);
+  });
+
   it("treats calendar and message rows as outside changes", () => {
     const lines = receiptDigest(
       [row("event_changed", "calendar_event", "2026-09-11T08:00:00Z"), row("note_created", "note", "2026-09-11T08:10:00Z")],

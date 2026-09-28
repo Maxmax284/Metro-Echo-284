@@ -35,7 +35,7 @@ export function FindingFeedback({
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return;
-      const { error } = await supabase.from("corrections").insert({
+      const { data: inserted, error } = await supabase.from("corrections").insert({
         user_id: u.user.id,
         organization_id: orgId ?? null,
         surface: "sherlock",
@@ -49,8 +49,18 @@ export function FindingFeedback({
           summary: finding.summary,
         } as never,
         source_label: "user_feedback",
-      });
+      }).select("id").single();
       if (error) throw error;
+
+      // Receipt: a correction is a recorded event, traceable in Receipts.
+      await supabase.from("audit_log").insert({
+        user_id: u.user.id,
+        organization_id: orgId ?? null,
+        entity_type: "correction",
+        entity_id: inserted?.id ?? null,
+        event: `correction:${verdict}`,
+        payload: { surface: "sherlock", target_type: "sherlock_finding", target_id: finding.id } as never,
+      });
 
       if (verdict === "wrong") {
         // Quiet this one for the cooldown window. Status is untouched: being

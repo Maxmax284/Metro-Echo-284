@@ -64,7 +64,7 @@ export function plainLabel(event: string) {
 export function bucketFor(event: string): BucketKey {
   const e = event.toLowerCase();
   if (/sherlock|insight|noticed|pattern|nudge|awareness/.test(e)) return "insights";
-  if (/remind|commit|calendar|schedule|meeting|flight|due/.test(e)) return "schedule";
+  if (/remind|commit|calendar|schedule|meeting|flight|journey|travel|due/.test(e)) return "schedule";
   if (/action|execute|transition|approv|staged|run/.test(e)) return "actions";
   return "inbound";
 }
