@@ -214,6 +214,18 @@ export function useAskTurn(opts?: {
             if (p.intent) {
               /* One staging path only. Anything else double-writes the draft. */
               staged.push(p.intent);
+              /* A lookup reads for a few seconds with no words streamed — say
+                 what is happening rather than leaving a blank bubble that used
+                 to harden into a fake approval line. */
+              if (!sawText && !pulseTimer && !pulseShown) {
+                pulseTimer = setTimeout(() => {
+                  pulseTimer = null;
+                  if (!sawText && !aborted) {
+                    pulseShown = true;
+                    write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: READING_PULSE } : m)));
+                  }
+                }, 1200);
+              }
               void internalIntent(p.intent.name, p.intent.args, {
                 surface: "ask",
                 conversation_id: threadId,
