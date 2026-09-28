@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, FilePlus2, FileSearch, FileText, HardHat, Loader2, Search, Sparkles } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 
 import { useAuth } from "@/lib/auth";
@@ -28,6 +28,7 @@ import { DeskIntro } from "@/components/work/DeskIntro";
 import { FlowRail, FLOWS } from "@/components/work/FlowRail";
 import { DocumentDetailSheet } from "@/components/documents/DocumentDetailSheet";
 import { NewDocumentDialog } from "@/components/documents/NewDocumentDialog";
+import { AnalyzeDocumentDialog } from "@/components/documents/AnalyzeDocumentDialog";
 import { useActivity } from "@/components/workstatus/ActivityStore";
 import { WorkProgressCard } from "@/components/workstatus/WorkProgressCard";
 import { listExportPresets, runExportPreset, EXPORT_PRESETS, type ExportPresetId } from "@/lib/exportPresets";
@@ -45,6 +46,22 @@ export default function DocumentsPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
+
+  /* Deep links from the Work shelf station: ?new=1 opens the draft composer,
+     ?analyze=1 opens the analyze door. Params are consumed so a refresh or a
+     back-nav doesn't reopen the dialog. */
+  useEffect(() => {
+    const wantsNew = searchParams.get("new") === "1";
+    const wantsAnalyze = searchParams.get("analyze") === "1";
+    if (!wantsNew && !wantsAnalyze) return;
+    if (wantsNew) setComposerOpen(true);
+    if (wantsAnalyze) setAnalyzeOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    next.delete("analyze");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Project picker for presets that need one (e.g. project-summary-report).
   const [projectPickerFor, setProjectPickerFor] = useState<ExportPresetId | null>(null);
@@ -180,6 +197,9 @@ export default function DocumentsPage() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setAnalyzeOpen(true)}>
+            <FileSearch className="h-4 w-4" /> Analyze document
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1.5">
@@ -335,6 +355,15 @@ export default function DocumentsPage() {
         organizationId={orgId}
         onCreated={(id) => {
           setSelectedId(id);
+          void refresh();
+        }}
+      />
+
+      <AnalyzeDocumentDialog
+        open={analyzeOpen}
+        onOpenChange={setAnalyzeOpen}
+        onAnalyzed={(ids) => {
+          if (ids.length === 1) setSelectedId(ids[0]);
           void refresh();
         }}
       />
