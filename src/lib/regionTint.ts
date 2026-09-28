@@ -14,13 +14,14 @@
 //
 // Pure module: no IO, no React.
 
-import { latBand, type LatBand } from "./station";
+import { latBand, type LatBand, type SeasonKey } from "./station";
 import type { Daypart } from "./daylight";
 
 export type RegionTint = { band: LatBand; daypart: Daypart };
 
 const BAND_ATTR = "data-lat-band";
 const DAY_ATTR = "data-daypart";
+const SEASON_ATTR = "data-season";
 
 /**
  * The tint for a fix, or null when there is no honest latitude. A missing
