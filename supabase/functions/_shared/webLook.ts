@@ -209,3 +209,60 @@ export function webWatchGoal(url: string, why?: string | null): string {
   const reason = (why ?? "").trim();
   return reason ? `Watch ${host} — ${reason}`.slice(0, 200) : `Watch ${host} for changes`;
 }
+
+/* ------------------------------------------------------ watching a topic */
+
+export type SearchHit = { title: string; url: string; snippet: string };
+
+/**
+ * Stable identity for "the web's answer to this question is the same". Only
+ * the set of pages counts — the same pages in a different order is ranking
+ * jitter, not news — so the fingerprint folds the top urls, sorted.
+ */
+export function searchFingerprint(hits: SearchHit[]): string {
+  const keys = hits
+    .map((h) =>
+      String(h.url ?? "")
+        .toLowerCase()
+        .replace(/^https?:\/\/(www\.)?/, "")
+        .replace(/\/+$/, ""),
+    )
+    .filter(Boolean)
+    .sort();
+  const joined = keys.join("|");
+  let h1 = 0x811c9dc5;
+  for (let i = 0; i < joined.length; i++) {
+    h1 = (h1 ^ joined.charCodeAt(i)) >>> 0;
+    h1 = (h1 * 0x01000193) >>> 0;
+  }
+  return `${h1.toString(16)}-${keys.length}`;
+}
+
+export type SearchCheck =
+  | { changed: false; fingerprint: string }
+  | { changed: true; fingerprint: string; outcome: string };
+
+/**
+ * A topic check. Silence while the same pages still answer; one plain sentence
+ * when new pages show up. The first check has no baseline, so it records one
+ * and says nothing.
+ */
+export function checkSearch(
+  prev: { fingerprint?: string | null },
+  query: string,
+  hits: SearchHit[],
+): SearchCheck {
+  const fingerprint = searchFingerprint(hits);
+  const before = (prev.fingerprint ?? "").trim();
+  if (!before || before === fingerprint) return { changed: false, fingerprint };
+  return {
+    changed: true,
+    fingerprint,
+    outcome: `New pages are showing for “${query}”.`,
+  };
+}
+
+export function webSearchWatchGoal(query: string): string {
+  const q = query.trim().replace(/\s+/g, " ");
+  return `Watch the web for “${q}”`.slice(0, 200);
+}
