@@ -250,6 +250,7 @@ export function useAskTurn(opts?: {
          a read-exclusion list: a lookup, a watch or a tool the model half-named
          all fail closed here — they answer with their own result or with the
          honest empty stream, never with "Drafted for approval". */
+      clearPulse();
       const stagedLine = staged.length
         ? staged.map((s) => stagedApprovalLine(s.name, s.args)).filter(Boolean).join("\n")
         : "";
