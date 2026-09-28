@@ -1,10 +1,19 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CuriosityCabinet } from "@/components/awareness/CuriosityCabinet";
 
 const BKK = { lat: 13.7563, lon: 100.5018, timeZone: "Asia/Bangkok" };
 
 describe("CuriosityCabinet — about-you dials", () => {
+  // The sixth slot rotates one dial a day; 2026-01-01 is a travel-dial day,
+  // so the board count these tests assert on is the one showing.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T12:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   it("teaches when no home is pinned and no places are kept", () => {
     render(
       <CuriosityCabinet city="Bangkok" lat={BKK.lat} lon={BKK.lon} timeZone={BKK.timeZone} home={null} counts={null} />,
