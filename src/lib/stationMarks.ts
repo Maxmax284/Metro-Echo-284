@@ -23,6 +23,13 @@ export type StationMark = {
   name: string;
   /** ISO of the deliberate act. */
   at: string;
+  /**
+   * Pointer to the record behind the mark: the place id for a stamp, the
+   * journey id (its legs' plan ids joined with "+") for a wrap. Null when
+   * the receipt was pressed before records were linked — then the receipt
+   * itself is all the record there is, and the replay says so.
+   */
+  recordId: string | null;
 };
 
 export type StationMarkEvent = {
