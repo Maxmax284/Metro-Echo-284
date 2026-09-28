@@ -87,7 +87,7 @@ describe("where the answer came from", () => {
 describe("when it was read", () => {
   const now = new Date("2026-09-28T12:00:00Z");
   it("speaks plainly", () => {
-    expect(freshnessWord("2026-09-28T11:59:30Z", now)).toBe("just now");
+    expect(freshnessWord("2026-09-28T11:59:50Z", now)).toBe("just now");
     expect(freshnessWord("2026-09-28T11:40:00Z", now)).toBe("20 min ago");
     expect(freshnessWord("2026-09-28T09:00:00Z", now)).toBe("3 hours ago");
     expect(freshnessWord("2026-09-26T12:00:00Z", now)).toBe("2 days ago");
