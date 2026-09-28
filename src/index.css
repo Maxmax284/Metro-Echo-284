@@ -1247,8 +1247,8 @@ html.vanta-exhale-once body {
   /* The wash hue is layered: the climate band (data-lat-band) sets the base
      pair, the turn of day (data-daypart) bends it, and a chosen skin
      (data-skin) overrides the whole stack by setting these directly. */
-  --bd-hue-a: calc(var(--bd-band-a, 188) + var(--bd-day-shift, 0));
-  --bd-hue-b: calc(var(--bd-band-b, 268) + var(--bd-day-shift, 0));
+  --bd-hue-a: calc(var(--bd-band-a, 188) + var(--bd-day-shift, 0) + var(--bd-season-shift, 0));
+  --bd-hue-b: calc(var(--bd-band-b, 268) + var(--bd-day-shift, 0) + var(--bd-season-shift, 0));
   --bd-wash-a: 0.09;
   --bd-wash-b: 0.07;
   --bd-grid: 0;
@@ -1281,6 +1281,20 @@ html[data-daypart="dawn"]   { --bd-day-shift: -14; }
 html[data-daypart="golden"] { --bd-day-shift: -30; }
 html[data-daypart="dusk"]   { --bd-day-shift: 12; }
 html[data-daypart="night"]  { --bd-day-shift: 8; }
+
+/* ---- Season tier: the station's own calendar, bent into the wash. The key
+   comes from station.ts (band + hemisphere + date — September is never
+   assumed autumn), RegionTintChannel keeps data-season honest, and a stale
+   fix clears it with the rest. The shifts are small and additive: a season
+   leans on the band, it never repaints it, and a seeded region or a chosen
+   skin still outranks every value here. "equatorial" sets nothing — no
+   marked season is the honest read, and the wall stays the band's. ---- */
+html[data-season="spring"] { --bd-season-shift: 4; }
+html[data-season="summer"] { --bd-season-shift: -6; }
+html[data-season="autumn"] { --bd-season-shift: -10; --bd-season-dim: 0.02; }
+html[data-season="winter"] { --bd-season-chill: 0.06; --bd-season-dim: 0.03; }
+html[data-season="wet"]    { --bd-season-chill: 0.05; --bd-season-dim: 0.04; }
+html[data-season="dry"]    { --bd-season-shift: -5; }
 
 /* ---- Region tier: seeded identities above the band. Hand-seeded in
    lib/regions.ts, country-gated, graceful nothing when unmapped — the band
