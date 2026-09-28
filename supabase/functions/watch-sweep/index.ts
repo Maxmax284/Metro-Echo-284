@@ -255,6 +255,39 @@ Deno.serve(async (req: Request) => {
           success: finalState === "done",
           metadata: { goal: row.goal, kind: row.kind, attempts, outcome: finalOutcome },
         });
+        /* A watch that reached couldnt_finish in the sweep failed on its own —
+           a user stop never passes through here. Failure says so out loud. */
+        if (finalState === "couldnt_finish") {
+          const { error: nudgeError } = await admin.from("nudges").upsert({
+            user_id: row.user_id,
+            organization_id: row.organization_id ?? null,
+            kind: "watch_failed",
+            title: "Echo couldn't keep watching that.",
+            body: `${row.goal}. ${finalOutcome ?? "It ended without an answer."}`,
+            priority: 60,
+            related_entity_type: "watch",
+            related_entity_id: row.id,
+            dedupe_key: `watch.failed:${row.id}`,
+            status: "pending",
+            expires_at: new Date(now.getTime() + 3 * 86400_000).toISOString(),
+          }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+          if (nudgeError) console.error("[watch-sweep] failed nudge", nudgeError.message);
+        }
+      } else {
+        /* A quiet check still leaves a receipt: Receipts proves the silence
+           was earned, never presents it as proof nothing happened. */
+        await writeAuditEvent(admin as never, {
+          actor: row.user_id,
+          organizationId: row.organization_id,
+          entityType: "watch",
+          entityId: row.id,
+          event: "watch.checked",
+          source: "watch-sweep",
+          previousState: row.state,
+          nextState: finalState,
+          success: true,
+          metadata: { goal: row.goal, kind: row.kind, attempts, changed: false },
+        });
       }
     }
 

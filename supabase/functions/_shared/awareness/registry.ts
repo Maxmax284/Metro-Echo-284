@@ -84,6 +84,8 @@ seed("continuity_changed", "continuity", 0.35);
 seed("capture_unrouted", "captures", 0.3);
 /* A watched page moved because the person asked for that page to be watched. */
 seed("web_page_changed", "watch", 0.5);
+/* A watch ended without an answer. Failure is a status, never silence. */
+seed("watch_failed", "watch", 0.6);
 /* A signed signal from a first-party system that already earns an interruption. */
 seed("inbound_needs_you", "reach", 0.7);
 

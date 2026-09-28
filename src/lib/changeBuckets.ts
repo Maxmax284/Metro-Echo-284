@@ -25,6 +25,7 @@ const NOISE = [
   /token[_ ]refresh/i, /oauth/i, /sweep/i, /scan/i, /embedding/i, /autolink/i, /viewed/i, /opened/i,
   /prefs?[_ .]/i, /preference/i, /settings?[_ .]/i, /acknowledg/i, /today[_ ]take/i,
   /brief(ing)?[_ ](generated|composed|read)/i,
+  /^watch[_ .]checked/i,
 ];
 
 
@@ -42,6 +43,13 @@ const PLAIN: Array<[RegExp, string]> = [
   [/sherlock[_ ]suggest/i, "Echo spotted something"],
   [/commitment[_ ]completed/i, "Promise kept"],
   [/commitment[_ ]reopened/i, "Promise reopened"],
+  [/watch[_ .](created|web_page_started)/i, "Watch started"],
+  [/watch[_ .]stopped/i, "Watch stopped"],
+  [/watch[_ .]paused/i, "Watch paused"],
+  [/watch[_ .]resumed/i, "Watch resumed"],
+  [/watch[_ .]needs_you/i, "Watch needs you"],
+  [/watch[_ .]done/i, "Watch finished"],
+  [/watch[_ .]couldnt_finish/i, "Watch couldn't finish"],
 ];
 
 export function isNoise(event: string) {
