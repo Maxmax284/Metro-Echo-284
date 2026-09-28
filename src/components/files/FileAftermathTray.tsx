@@ -484,8 +484,8 @@ export function FileAftermathTray({
         </div>
       )}
 
-      {/* Treat as document — opens a dedicated Documents review surface */}
-      {!sensitive && isDocumentLike(row) && (
+      {/* Analyze document — opens a dedicated Documents review surface */}
+      {!sensitive && isDocumentLike({ filename: row.filename, detectedDocType: row.detected_doc_type }) && (
         <div className="mt-2">
           <Button
             size="sm"
@@ -515,7 +515,7 @@ export function FileAftermathTray({
               }
             }}
           >
-            <FileSearch className="h-3 w-3" /> Treat as document
+            <FileSearch className="h-3 w-3" /> Analyze document
           </Button>
           <DocumentDetailSheet
             documentId={openDocumentId}
