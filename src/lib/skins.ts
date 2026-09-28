@@ -1,6 +1,6 @@
 import { play } from "@/lib/streetSound";
 import { applyDaylight } from "@/lib/daylight";
-import { localDay, readLastBoot } from "@/lib/bootStorage";
+import { localDay, readBootClaim, readLastBoot } from "@/lib/bootStorage";
 import { dawnShutterAllowed, SHUTTER_DAY_KEY } from "@/lib/ceremonyGate";
 import { currentWeather } from "@/lib/weather";
 // Skins — the background is a surface, not wallpaper.

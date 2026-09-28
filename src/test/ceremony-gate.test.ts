@@ -6,7 +6,17 @@ import {
   sprayVariant,
   SPRAY_KEY,
 } from "@/lib/ceremonyGate";
-import { BOOT_DAY_KEY, claimBootDay, localDay, readLastBoot } from "@/lib/bootStorage";
+import {
+  BOOT_CLAIM_KEY,
+  BOOT_DAY_KEY,
+  claimBootDay,
+  localDay,
+  readBootClaim,
+  readLastBoot,
+  recordBoot,
+} from "@/lib/bootStorage";
+import { decideBootAtMount } from "@/lib/bootDecision";
+import { BOOT_ENCORE_KEY } from "@/lib/bootSequence";
 
 describe("sprayVariant", () => {
   it("tags the door in full once, sweeps on return visits", () => {

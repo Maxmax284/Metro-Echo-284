@@ -77,6 +77,16 @@ function IndexInner() {
   const [focusReceiptActionId, setFocusReceiptActionId] = useState<string | null>(null);
   const [focusActionId, setFocusActionId] = useState<string | null>(null);
 
+  /* Ceremony arbitration: if this landing earns a full roll call, the day is
+     claimed NOW — at the shell's first render, before any room effect can
+     lift the dawn shutter, and even while the boot itself still stands down
+     behind the intro gate. This is a peek, never a spend: the sign-in encore
+     marker belongs to the boot's own decision at mount. */
+  useState(() => {
+    if (decideBootAtMount({ consumeEncore: false }) === "full") claimBootDay();
+    return null;
+  });
+
   // Per-surface scroll memory. We capture the active surface's scroll position
   // right before switching, then restore the incoming surface's position on
   // mount. Surfaces all use a `.overflow-y-auto` scroller, so we grab the
