@@ -127,10 +127,23 @@ export function useAskTurn(opts?: {
     beginAskStream(threadId, ctrl);
     let aborted = false;
     let assistantSoFar = "";
+    /* Live lookups read in silence for a moment — an honest pulse, never an
+       approval card. The instant real words arrive the pulse is gone. */
+    const READING_PULSE = "_Checking live sources…_";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
     /* Plain-English provenance for the reads the server ran this turn. */
     const readLines: string[] = [];
     let hints: AttachmentHint[] = [];
+    let sawText = false;
+    let pulseShown = false;
+    let pulseTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearPulse = () => {
+      if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; }
+      if (pulseShown && !sawText) {
+        pulseShown = false;
+        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: "" } : m)));
+      }
+    };
 
     const bound = o?.context ?? (active && active.id === threadId
       ? { kind: active.context_kind, id: active.context_id, label: active.context_label }
