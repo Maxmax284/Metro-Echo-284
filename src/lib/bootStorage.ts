@@ -7,6 +7,11 @@
 
 export const BOOT_AT_KEY = "vanta.boot.at";
 export const BOOT_DAY_KEY = "vanta.boot.day";
+/* Separate from the completed-boot record: the day is claimed the moment a
+   full boot is DECIDED, before the boot component necessarily mounts (the
+   intro gate can still be loading). decideBoot never reads this key, so a
+   claim can't demote the boot it's claiming for. */
+export const BOOT_CLAIM_KEY = "vanta.boot.claimed";
 
 export function localDay(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
