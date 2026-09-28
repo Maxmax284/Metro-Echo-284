@@ -39,14 +39,6 @@ function whenWords(iso: string): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-function wordsFor(leg: LegRow): string {
-  const from = leg.origin || "?";
-  const to = airportWords((leg.destination ?? "").toUpperCase()) || leg.destination || "?";
-  if (leg.status === "dropped") return `${from} → ${to} — set aside`;
-  if (leg.leg_state === "landed" && leg.leg_state_source === "you") return `${from} → ${to} — landed, your word`;
-  if (leg.leg_state === "landed" || leg.status === "flown") return `${from} → ${to} — landed`;
-  return `${from} → ${to} — on record`;
-}
 
 export function JourneySummary() {
   const { user } = useAuth();
@@ -142,7 +134,7 @@ export function JourneySummary() {
             <ul className="space-y-0.5">
               {trip.legs.map((leg) => (
                 <li key={leg.id} className="text-[12px] leading-snug text-foreground/90">
-                  {wordsFor(leg)}
+                  {legRecordWords(leg)}
                 </li>
               ))}
             </ul>
