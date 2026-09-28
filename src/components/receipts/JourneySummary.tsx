@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { Plane } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { airportWords } from "@/lib/airports";
+import { legRecordWords } from "@/lib/markRecord";
 
 type LegRow = {
   id: string;
