@@ -297,6 +297,7 @@ export function useAskTurn(opts?: {
         toast.fromError(e);
       }
     } finally {
+      clearPulse();
       endAskStream(threadId);
       if (hints.length) attachRef.current?.clearCompleted();
     }
