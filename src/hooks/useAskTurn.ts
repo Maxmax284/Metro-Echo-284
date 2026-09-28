@@ -220,19 +220,12 @@ export function useAskTurn(opts?: {
         }
       }
 
-      /* A turn that only prepares a draft still has to be readable tomorrow.
-         Keeping an eye on something approves nothing and runs nothing, so it
-         must not be described as waiting for approval. */
-      /* Intents whose result speaks for itself produce no staged line: a
-         lookup answers in its own message, a watch leaves its own receipt. */
-      const QUIET_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched", "where_do_i_stand", "look_up", "check_page"]);
+      /* Only a real proposal may carry the staged wording. An allow-list, not
+         a read-exclusion list: a lookup, a watch or a tool the model half-named
+         all fail closed here — they answer with their own result or with the
+         honest empty stream, never with "Drafted for approval". */
       const stagedLine = staged.length
-        ? staged.map((s) => {
-            const a = (s.args ?? {}) as Record<string, unknown>;
-            const what = String(a.title ?? a.summary ?? a.text ?? a.reference ?? "").trim();
-            if (QUIET_INTENTS.has(s.name)) return "";
-            return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
-          }).join("\n")
+        ? staged.map((s) => stagedApprovalLine(s.name, s.args)).filter(Boolean).join("\n")
         : "";
       const finalContent = aborted && assistantSoFar
         ? `${assistantSoFar}\n\n_Stopped._`
