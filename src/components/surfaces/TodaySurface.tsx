@@ -15,6 +15,7 @@ import { TimezoneFollowPrompt } from "@/components/context/TimezoneFollowPrompt"
 import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { SituationRead } from "@/components/today/SituationRead";
 import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
+import { RadarCard } from "@/components/today/RadarCard";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
 import { StationEdition } from "@/components/shell/StationEdition";
 import { NextMoveLane } from "@/components/today/NextMoveLane";
@@ -608,6 +609,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           entry, one cue; silent once filed, dismissed, or only a transfer. */}
       <EntryReadyLane onOpen={() => onNavigate("schedule")} />
 
+      {/* On the radar — everything Echo is keeping an eye on. Always on the
+          board: quiet checks say so in one line, and at zero the card teaches
+          how a watch is born instead of hiding the capability. */}
+      <RadarCard />
 
       {/* Coming back after a real gap: three lines of consequence, never a
           count of unread anything. Quiet when nothing moved. */}
