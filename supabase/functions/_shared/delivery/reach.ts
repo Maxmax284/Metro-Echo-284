@@ -140,6 +140,19 @@ export type ReachInput = {
  * stamped, and the whole attempt lands in the audit log either way.
  */
 export async function reachPhone(admin: any, input: ReachInput): Promise<boolean> {
+  if (!input.gateApplied) {
+    const gate = await floorGate(admin, {
+      userId: input.userId,
+      organizationId: input.organizationId,
+      urgency: input.urgency,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      category: input.category,
+      source: input.source,
+    });
+    /* Held or not push-worthy: the situation stays where the person finds it. */
+    if (gate.channel !== "push") return false;
+  }
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
   const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
@@ -164,11 +177,12 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
 
   let sent = 0;
   let failed = 0;
+  const header = pushUrgencyHeader(levelForUrgency(input.urgency));
   for (const s of subs as any[]) {
     const r = await sendWebPush(
       { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
       payload,
-      { vapidPublicKey, vapidPrivateKey, vapidSubject },
+      { vapidPublicKey, vapidPrivateKey, vapidSubject, urgency: header },
     );
     if (r.ok) {
       sent++;
@@ -251,6 +265,19 @@ export async function reachOnce(admin: any, input: ReachInput & {
   /** False when the person has not opted into Telegram awareness pings. */
   messagingAllowed?: boolean;
 }): Promise<"phone" | "messaging" | null> {
+  /* One gate for both surfaces: a floor that holds an item back holds the
+     phone buzz and the Telegram ping. The Today nudge is already there. */
+  const gate = await floorGate(admin, {
+    userId: input.userId,
+    organizationId: input.organizationId,
+    urgency: input.urgency,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    category: input.category ?? categoryForSituation(input.situationKind),
+    source: input.source,
+  });
+  if (gate.channel !== "push") return null;
+
   const order: Array<"phone" | "messaging"> = (await hasPushDevice(admin, input.userId))
     ? ["phone", "messaging"]
     : ["messaging", "phone"];
