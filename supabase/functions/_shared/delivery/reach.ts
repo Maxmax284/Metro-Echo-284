@@ -13,6 +13,61 @@ import { sendWebPush } from "../webpush.ts";
 import { chatIdForUser, sendTelegram } from "../telegramApi.ts";
 import { attentionButtons, keyboard, openButton, type VantaLinkKind } from "../telegramReplies.ts";
 import { planDelivery, pushPayload } from "./rail.ts";
+import {
+  applyFloor,
+  categoryForSituation,
+  levelForUrgency,
+  pushUrgencyHeader,
+  readFloors,
+  type FloorDecision,
+  type NotifyCategory,
+} from "../notifyPolicy.ts";
+
+/**
+ * The ladder gate. Every reach passes here before a device is touched:
+ * informational stays in Today, and a per-category floor can hold an
+ * important item back to Today or the digest. Critical always punches
+ * through. A hold is a status with a receipt, never silence.
+ */
+export async function floorGate(
+  admin: any,
+  args: {
+    userId: string;
+    organizationId?: string | null;
+    urgency: string;
+    entityType: string;
+    entityId?: string | null;
+    category?: NotifyCategory | null;
+    source: string;
+  },
+): Promise<FloorDecision> {
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("preferences")
+    .eq("id", args.userId)
+    .maybeSingle();
+  const floors = readFloors((prof?.preferences as Record<string, unknown>) ?? null);
+  const category = args.category ?? categoryForSituation(args.entityType);
+  const decision = applyFloor({ urgency: args.urgency, category, floors });
+  if (decision.channel !== "push") {
+    await admin.from("audit_log").insert({
+      user_id: args.userId,
+      organization_id: args.organizationId ?? null,
+      entity_type: args.entityType,
+      entity_id: args.entityId ?? null,
+      event: "nudge.held_by_settings",
+      payload: {
+        channel: decision.channel,
+        level: decision.level,
+        category: decision.category,
+        urgency: args.urgency,
+        because: decision.because,
+        source: args.source,
+      },
+    });
+  }
+  return decision;
+}
 
 export type ClaimInput = {
   userId: string;
@@ -74,6 +129,10 @@ export type ReachInput = {
   entityId: string | null;
   /** Which sweep spoke, for the receipt. */
   source: string;
+  /** Notification category. Derived from entityType when absent. */
+  category?: NotifyCategory | null;
+  /** Skip the floor gate — reachOnce already applied it. */
+  gateApplied?: boolean;
 };
 
 /**
@@ -81,6 +140,19 @@ export type ReachInput = {
  * stamped, and the whole attempt lands in the audit log either way.
  */
 export async function reachPhone(admin: any, input: ReachInput): Promise<boolean> {
+  if (!input.gateApplied) {
+    const gate = await floorGate(admin, {
+      userId: input.userId,
+      organizationId: input.organizationId,
+      urgency: input.urgency,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      category: input.category,
+      source: input.source,
+    });
+    /* Held or not push-worthy: the situation stays where the person finds it. */
+    if (gate.channel !== "push") return false;
+  }
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
   const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
@@ -105,11 +177,12 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
 
   let sent = 0;
   let failed = 0;
+  const header = pushUrgencyHeader(levelForUrgency(input.urgency));
   for (const s of subs as any[]) {
     const r = await sendWebPush(
       { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
       payload,
-      { vapidPublicKey, vapidPrivateKey, vapidSubject },
+      { vapidPublicKey, vapidPrivateKey, vapidSubject, urgency: header },
     );
     if (r.ok) {
       sent++;
@@ -192,6 +265,19 @@ export async function reachOnce(admin: any, input: ReachInput & {
   /** False when the person has not opted into Telegram awareness pings. */
   messagingAllowed?: boolean;
 }): Promise<"phone" | "messaging" | null> {
+  /* One gate for both surfaces: a floor that holds an item back holds the
+     phone buzz and the Telegram ping. The Today nudge is already there. */
+  const gate = await floorGate(admin, {
+    userId: input.userId,
+    organizationId: input.organizationId,
+    urgency: input.urgency,
+    entityType: input.entityType,
+    entityId: input.entityId,
+    category: input.category ?? categoryForSituation(input.situationKind),
+    source: input.source,
+  });
+  if (gate.channel !== "push") return null;
+
   const order: Array<"phone" | "messaging"> = (await hasPushDevice(admin, input.userId))
     ? ["phone", "messaging"]
     : ["messaging", "phone"];
@@ -212,7 +298,7 @@ export async function reachOnce(admin: any, input: ReachInput & {
     if (!claimId) return null; /* Already delivered — one event, one delivery. */
 
     const ok = surface === "phone"
-      ? await reachPhone(admin, input)
+      ? await reachPhone(admin, { ...input, gateApplied: true })
       : await reachMessagingNudge(admin, input);
     if (ok) return surface;
 

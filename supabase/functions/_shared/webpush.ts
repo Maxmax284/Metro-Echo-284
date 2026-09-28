@@ -144,7 +144,14 @@ export interface SendPushResult {
 export async function sendWebPush(
   sub: Subscription,
   payload: object,
-  opts: { vapidPublicKey: string; vapidPrivateKey: string; vapidSubject: string; ttl?: number },
+  opts: {
+    vapidPublicKey: string;
+    vapidPrivateKey: string;
+    vapidSubject: string;
+    ttl?: number;
+    /** Web Push Urgency header. Defaults to high — the historical behavior. */
+    urgency?: "very-low" | "low" | "normal" | "high";
+  },
 ): Promise<SendPushResult> {
   try {
     const url = new URL(sub.endpoint);
@@ -163,7 +170,7 @@ export async function sendWebPush(
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
         "TTL": String(opts.ttl ?? 60),
-        "Urgency": "high",
+        "Urgency": opts.urgency ?? "high",
       },
       body: ciphertext,
     });
