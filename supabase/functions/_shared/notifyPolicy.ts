@@ -16,7 +16,7 @@
 // Pure module. No IO. Mirrored into the client so Settings and the sweeps
 // agree on the same ladder.
 
-export const NOTIFY_CATEGORIES = ["safety", "flights", "schedule", "watches", "sherlock"] as const;
+export const NOTIFY_CATEGORIES = ["safety", "flights", "schedule", "watches", "documents", "sherlock"] as const;
 export type NotifyCategory = (typeof NOTIFY_CATEGORIES)[number];
 
 export const NOTIFY_FLOORS = ["buzz", "today", "digest"] as const;
@@ -29,6 +29,7 @@ export const CATEGORY_LABEL: Record<NotifyCategory, string> = {
   flights: "Flights and travel",
   schedule: "Schedule and reminders",
   watches: "Watches on the world",
+  documents: "Documents and drafts",
   sherlock: "What Echo noticed",
 };
 
@@ -37,6 +38,7 @@ export const CATEGORY_DETAIL: Record<NotifyCategory, string> = {
   flights: "Gate moves, delays, journey changes.",
   schedule: "Reminders, meetings starting, moved appointments.",
   watches: "Pages and topics Echo checks for you.",
+  documents: "Drafts ready for review, files Echo read.",
   sherlock: "Patterns Echo spots in your own records.",
 };
 
@@ -61,6 +63,7 @@ export const DEFAULT_NOTIFY_FLOORS: Record<NotifyCategory, NotifyFloor> = {
   flights: "buzz",
   schedule: "buzz",
   watches: "buzz",
+  documents: "buzz",
   sherlock: "digest",
 };
 
@@ -93,6 +96,7 @@ export function categoryForSituation(kind: string | null | undefined): NotifyCat
   if (/hazard|scam|safety|weather_alert|severe/.test(k)) return "safety";
   if (/flight|journey|trip|boarding|airport/.test(k)) return "flights";
   if (/watch|web_page|web_search/.test(k)) return "watches";
+  if (/document|draft/.test(k)) return "documents";
   if (/sherlock|finding/.test(k)) return "sherlock";
   if (/reminder|commitment|calendar|meeting|schedule|appointment/.test(k)) return "schedule";
   return null;
