@@ -1,23 +1,26 @@
 // CuriosityCabinet — small dials about the sky over the place you're reading,
 // and the ground under you.
 //
-// Moon, daylight, season — plus three about-you dials: the hour at home, the
-// line the device claims, and how many places you've kept. Every one is
-// figured on this device from the date, the fix, the zone database and the
-// board — no feed, no AI, no network — so the cabinet works with no signal
-// at all, and says where each reading comes from when you tap a dial.
+// Moon, daylight, season — plus about-you dials: the hour at home, the line
+// the device claims, and a sixth slot that rotates one dial a day (places
+// kept, the platform clock, marks pressed). Every one is figured on this
+// device from the date, the fix, the zone database and the board — no feed,
+// no AI, no network — so the cabinet works with no signal at all, and says
+// where each reading comes from when you tap a dial.
 //
 // Doctrine:
-//   - No widget pile: one card, six dials, one caption line.
+//   - No widget pile: one card, six dials, one caption line — the sixth slot
+//     rotates with the date, it never grows.
 //   - A season read is a generalization and is labelled as one — the usual
 //     pattern for a band of the world, never a forecast.
 //   - No coordinates, no cabinet claims: the empty state teaches how the
 //     dials get their sky.
 //   - The travel counter counts the board. No route history, no breadcrumbs.
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Home, MapPinned, Moon, Signal, Sun } from "lucide-react";
+import { CalendarDays, Clock, Home, MapPinned, Moon, Signal, Stamp, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { play } from "@/lib/streetSound";
+import { rotatingDial, type RotatingDialId } from "@/lib/stationMarks";
 import { signalRead, type SignalRead } from "@/lib/signalBars";
 import {
   clockFromMinutes,
@@ -31,7 +34,7 @@ import {
   type SeasonKey,
 } from "@/lib/station";
 
-type DialId = "moon" | "light" | "season" | "home" | "signal" | "travel";
+type DialId = "moon" | "light" | "season" | "home" | "signal" | RotatingDialId;
 
 export type CabinetHome = {
   label: string;
@@ -122,6 +125,7 @@ export function CuriosityCabinet({
   timeZone,
   home = null,
   counts = null,
+  marks = null,
   className,
 }: {
   city: string | null;
@@ -130,6 +134,8 @@ export function CuriosityCabinet({
   timeZone?: string | null;
   home?: CabinetHome | null;
   counts?: CabinetCounts | null;
+  /** Marks still standing, or null when unknown — unknown never joins the rotation. */
+  marks?: number | null;
   className?: string;
 }) {
   const [tick, setTick] = useState(0);
@@ -178,6 +184,17 @@ export function CuriosityCabinet({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   }, [now, timeZone]);
   const homeShift = homeClock && hereDateKey ? shiftWord(dateKeyDiff(hereDateKey, homeClock.dateKey)) : null;
+
+  /* The rotating sixth slot: the places count always qualifies, the platform
+     clock needs a zone on file, the marks dial needs a known count. The date
+     picks — never a flicker inside a day. */
+  const hereClock = timeZone ? zoneClock(now, timeZone) : null;
+  const extras: RotatingDialId[] = [
+    "travel",
+    ...(hereClock ? (["clock"] as const) : []),
+    ...(marks != null ? (["marks"] as const) : []),
+  ];
+  const slotDial = rotatingDial(hereDateKey ?? "undated", extras);
 
   const flip = (d: DialId) => {
     play("tick", { gain: 0.35 });
