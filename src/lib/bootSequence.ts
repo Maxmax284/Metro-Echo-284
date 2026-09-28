@@ -30,6 +30,25 @@ export const BOOT_JUST_NOW_MS = 10_000;
 export const BOOT_ENCORE_KEY = "vanta.boot.encore";
 /** Longer than this since the last boot counts as a cold start. */
 export const BOOT_COLD_MS = 4 * 60 * 60 * 1000;
+/**
+ * Power-up: how long the cover may wait for the facts (auth, the intro gate,
+ * the place read) before the roll speaks anyway — with honest unknowns, never
+ * invented ones. Load time must never stall the ceremony.
+ */
+export const POWER_UP_CAP_MS = 4000;
+/** The roll speaks one drum at a time; this is the gap between flips. */
+export const BOOT_STAGGER_MS = 1100;
+
+/**
+ * Clack timings for a roll of `count` drums. Drum one is already lit from
+ * power-up, so the schedule covers drums 1..count-1, each clack landing with
+ * its flip.
+ */
+export function bootClackSchedule(count: number): number[] {
+  const out: number[] = [];
+  for (let i = 1; i < count; i++) out.push((i - 1) * BOOT_STAGGER_MS);
+  return out;
+}
 
 export type BootDecisionInput = {
   now: number;
@@ -61,6 +80,9 @@ export function decideBoot(input: BootDecisionInput): BootDecision {
 export type BootFacts = {
   /** Verified place name at speakable precision, or null. */
   placeName: string | null;
+  /** True while the place read is still in flight — drum two says so instead
+   *  of claiming NEW GROUND it hasn't checked for. */
+  placePending?: boolean | null;
   /** True when the fix is old enough to be "last known", not "now". */
   placeStale: boolean;
   /** Plain age of the fix ("2 hours ago"), or null. */
@@ -146,6 +168,11 @@ export function buildRollCall(facts: BootFacts): BootCall[] {
       line: facts.placeStale
         ? `${facts.placeName} — last place Echo knew${facts.placeAge ? `, ${facts.placeAge}` : ""}${seasonBit}.`
         : `Where you are${facts.placeAge ? ` — fix ${facts.placeAge}` : ""}${seasonBit}${occasionBit}${stampBit}.`,
+    });
+  } else if (facts.placePending) {
+    calls.push({
+      word: "READING",
+      line: "Still fixing where you are — nothing claimed yet.",
     });
   } else {
     calls.push({

@@ -2465,9 +2465,21 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   from { opacity: 0; transform: translateY(10px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+/* The roll speaks one drum at a time: each call flips in behind its clack,
+   on the delay the component sets per position. Drum one is already lit from
+   power-up, so it never re-animates. */
+.boot-call-in {
+  animation: boot-call-in 420ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+  animation-delay: var(--boot-delay, 0ms);
+}
+@keyframes boot-call-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @media (prefers-reduced-motion: reduce) {
   .boot-sequence, .boot-box { animation: none; }
   .boot-sequence-out { animation: none; opacity: 0; transition: opacity 120ms linear; }
+  .boot-call-in { animation: none; }
 }
 
 /* ── Sky channel (scaffold) ─────────────────────────────────────────────────

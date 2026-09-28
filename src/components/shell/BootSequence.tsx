@@ -1,12 +1,14 @@
 // BootSequence — the station lights up before you step onto the platform.
 //
-// Not a splash screen: Today paints underneath immediately, and this is a
-// cover that speaks a roll call of verified facts — the place at speakable
-// precision, the clock, weather Echo already fetched, the operational state —
-// then lifts like a shutter. It never blocks essential UI: any tap skips it,
-// a quick reopen gets a nod, a notification deep-link or a pressured day
-// skips it entirely, and offline it says NO SIGNAL instead of ALL CLEAR.
-import { useEffect, useMemo, useRef, useState } from "react";
+// One flow, not separate screens: the cover is up from the first paint
+// (power-up — the wordmark drum is lit, nothing is claimed yet), the Solari
+// roll call speaks one drum at a time as the facts arrive (place at speakable
+// precision, the clock, weather Echo already fetched, the operational state),
+// then the shutter lifts onto an already-painted Today. It never blocks
+// essential UI: any tap skips it, a quick reopen gets a nod, a notification
+// deep-link or a pressured day skips it entirely, and offline it says
+// NO SIGNAL instead of ALL CLEAR.
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import { readTempUnit, tempIn } from "@/lib/tempUnit";
 import { SolariWord } from "@/components/today/SignalBeacon";
@@ -22,6 +24,9 @@ import { daypartInZone } from "@/lib/daylight";
 import { seasonFor } from "@/lib/station";
 import { OCCASIONS_KEY, occasionFor } from "@/lib/occasions";
 import {
+  BOOT_STAGGER_MS,
+  POWER_UP_CAP_MS,
+  bootClackSchedule,
   buildRollCall,
   bootHoldMs,
   bootTurn,
@@ -49,8 +54,8 @@ function clockLabel(): string {
   }
 }
 
-export function BootSequence() {
-  const { place, snapshot, stampedPlaces } = useAwareness();
+export function BootSequence({ ready }: { ready: boolean }) {
+  const { place, snapshot, stampedPlaces, loading: placePending } = useAwareness();
   const timers = useRef<number[]>([]);
 
   /* The decision is made once, at mount, from what is true right then. The
@@ -58,6 +63,13 @@ export function BootSequence() {
      (bootDecision, consumeEncore: false) claimed the ceremony day without
      touching it. */
   const [mode] = useState<BootMode>(() => decideBootAtMount({ consumeEncore: true }));
+  /* Power-up: the cover rides from the first paint while auth, the intro
+     gate and the place read settle. Only drum one (the wordmark — never a
+     claim) is lit. The roll speaks once the facts are ready, or when the cap
+     says they've had long enough; a slow network gets honest unknowns, never
+     a stalled ceremony. A micro reopen is a nod — it skips the theatre. */
+  const [phase, setPhase] = useState<"powering" | "roll">("powering");
+  const powered = ready && !placePending;
   const [leaving, setLeaving] = useState(false);
   const [gone, setGone] = useState(false);
 
@@ -122,6 +134,7 @@ export function BootSequence() {
     }
     return {
       placeName: truth.name,
+      placePending,
       placeStale: truth.stale,
       placeAge: truth.age,
       clockLabel: clockLabel(),
@@ -134,29 +147,45 @@ export function BootSequence() {
       stamp,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [place, snapshot]);
+  }, [place, snapshot, placePending]);
 
   const roll = useMemo(() => buildRollCall(facts), [facts]);
 
+  /* Power-up ends when the facts are ready; the cap is the backstop that
+     keeps a hung read from holding the cover hostage. */
+  useEffect(() => {
+    if (mode === "skip" || phase !== "powering") return;
+    if (mode === "micro" || powered) {
+      setPhase("roll");
+      return;
+    }
+    const t = window.setTimeout(() => setPhase("roll"), feelMs(POWER_UP_CAP_MS, { min: 1500 }));
+    return () => window.clearTimeout(t);
+  }, [mode, phase, powered]);
+
   /* The stamp lands the moment the occasion arrives, with its own sound —
-     once, never on a re-render loop. */
+     once, and only once the roll is actually speaking. */
   const stamped = useRef(false);
   const hasOccasion = !!facts.occasion;
   const hasStamp = !!facts.stamp;
   useEffect(() => {
-    if ((!hasOccasion && !hasStamp) || stamped.current || mode === "skip") return;
+    if ((!hasOccasion && !hasStamp) || stamped.current || mode === "skip" || phase !== "roll") return;
     stamped.current = true;
     if (!reducedMotion()) play("stamp", { gain: 0.35 });
-  }, [hasOccasion, hasStamp, mode]);
+  }, [hasOccasion, hasStamp, mode, phase]);
 
+  /* The roll: the turnstile, one clack per drum as it flips, the hold, then
+     the shutter. Everything starts when the roll starts — load time never
+     eats reading time. */
   useEffect(() => {
-    if (mode === "skip") return;
+    if (mode === "skip" || phase !== "roll") return;
     const reduced = reducedMotion();
     if (mode === "full" && !reduced) {
       play("turnstile", { gain: 0.7 });
-      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.5 }), 1600));
-      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.4 }), 3200));
-      timers.current.push(window.setTimeout(() => play("clack", { gain: 0.35 }), 4800));
+      const gains = [0.5, 0.4, 0.35, 0.3];
+      bootClackSchedule(roll.length).forEach((at, i) => {
+        timers.current.push(window.setTimeout(() => play("clack", { gain: gains[i] ?? 0.3 }), at));
+      });
     }
     const hold = feelMs(bootHoldMs(mode, reduced), { min: mode === "micro" ? 200 : 420 });
     timers.current.push(window.setTimeout(() => setLeaving(true), hold));
@@ -170,21 +199,23 @@ export function BootSequence() {
       timers.current.forEach((t) => window.clearTimeout(t));
       timers.current = [];
     };
-  }, [mode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, phase]);
 
   /* Pressure arriving mid-boot cuts the ceremony short: when something needs
-     the person, the cover gets out of the way at once. */
+     the person, the cover gets out of the way at once. A boot that never
+     reached the roll is not recorded — nothing was announced. */
   useEffect(() => {
     if (mode === "skip" || gone) return;
     const obs = new MutationObserver(() => {
       if (currentWeather() === "pressure") {
-        recordBoot();
+        if (phase === "roll") recordBoot();
         setGone(true);
       }
     });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-weather"] });
     return () => obs.disconnect();
-  }, [mode, gone]);
+  }, [mode, gone, phase]);
 
   if (mode === "skip" || gone) return null;
 
@@ -194,6 +225,12 @@ export function BootSequence() {
     recordBoot();
     setGone(true);
   };
+
+  /* Drums flip in one at a time behind their clacks — but only for the full
+     ceremony in the roll phase. Drum one rides through from power-up and
+     never re-animates; micro and reduced motion show the board settled. */
+  const staggerOn = mode === "full" && phase === "roll";
+  const calls = phase === "powering" ? roll.slice(0, 1) : roll;
 
   return (
     <div
@@ -219,8 +256,16 @@ export function BootSequence() {
         </div>
 
         <div className="mt-3 space-y-2.5">
-          {roll.map((call, i) => (
-            <div key={`${call.word}-${i}`} className="relative">
+          {calls.map((call, i) => (
+            <div
+              key={`${call.word}-${i}`}
+              className={cn("relative", staggerOn && i > 0 && "boot-call-in")}
+              style={
+                staggerOn && i > 0
+                  ? ({ "--boot-delay": `${(i - 1) * BOOT_STAGGER_MS}ms` } as CSSProperties)
+                  : undefined
+              }
+            >
               <SolariWord word={call.word} tone={call.word === "ALL CLEAR" ? "live" : call.word === "NEEDS YOU" || call.word === "NEEDS A LOOK" || call.word === "NO SIGNAL" ? "hold" : undefined} />
               {i === 1 && facts.occasion && (
                 <span

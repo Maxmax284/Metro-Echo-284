@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   BOOT_COLD_MS,
   BOOT_JUST_NOW_MS,
+  BOOT_STAGGER_MS,
+  POWER_UP_CAP_MS,
+  bootClackSchedule,
   bootHoldMs,
   bootTurn,
   buildRollCall,
@@ -178,6 +181,35 @@ describe("station framing", () => {
   it("says no occasion when none is kept today", () => {
     const roll = buildRollCall(BASE_FACTS);
     expect(roll[1].line).not.toContain("Songkran");
+  });
+});
+
+describe("power-up and the staggered roll", () => {
+  it("drum one is already lit from power-up — clacks cover only the later drums", () => {
+    expect(bootClackSchedule(1)).toEqual([]);
+    expect(bootClackSchedule(3)).toEqual([0, BOOT_STAGGER_MS]);
+    expect(bootClackSchedule(4)).toEqual([0, BOOT_STAGGER_MS, BOOT_STAGGER_MS * 2]);
+  });
+
+  it("power-up waits long enough for real facts, never long enough to stall", () => {
+    expect(POWER_UP_CAP_MS).toBeGreaterThanOrEqual(2500);
+    expect(POWER_UP_CAP_MS).toBeLessThanOrEqual(6000);
+  });
+
+  it("a place read still in flight says READING — never a premature NEW GROUND", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, placeName: null, placePending: true });
+    expect(roll[1].word).toBe("READING");
+    expect(roll.map((c) => c.word)).not.toContain("NEW GROUND");
+  });
+
+  it("a settled empty read still says NEW GROUND honestly", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, placeName: null, placePending: false });
+    expect(roll[1].word).toBe("NEW GROUND");
+  });
+
+  it("a real place outranks the pending flag", () => {
+    const roll = buildRollCall({ ...BASE_FACTS, placePending: true });
+    expect(roll[1].word).toBe("KO SAMUI");
   });
 });
 
