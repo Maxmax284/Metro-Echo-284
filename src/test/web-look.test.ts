@@ -95,3 +95,42 @@ describe("fingerprint and watching", () => {
     expect(webWatchGoal("https://www.example.com/x")).toBe("Watch example.com for changes");
   });
 });
+
+describe("watching a topic", () => {
+  const hitsA = [
+    { title: "Flooding worsens", url: "https://news.example/bangkok-floods", snippet: "…" },
+    { title: "Official updates", url: "https://gov.example/flood-watch", snippet: "…" },
+  ];
+
+  it("treats the same pages in a new order as ranking jitter, not news", () => {
+    const reordered = [...hitsA].reverse();
+    expect(searchFingerprint(reordered)).toBe(searchFingerprint(hitsA));
+    const checked = checkSearch({ fingerprint: searchFingerprint(hitsA) }, "bangkok flooding", reordered);
+    expect(checked.changed).toBe(false);
+  });
+
+  it("stays quiet on the first reading — no baseline, no claim of change", () => {
+    const first = checkSearch({ fingerprint: null }, "bangkok flooding", hitsA);
+    expect(first.changed).toBe(false);
+    expect(first.fingerprint).toBe(searchFingerprint(hitsA));
+  });
+
+  it("speaks when new pages show up, and names the question", () => {
+    const moved = [...hitsA, { title: "Evacuations ordered", url: "https://wire.example/evac", snippet: "…" }];
+    const checked = checkSearch({ fingerprint: searchFingerprint(hitsA) }, "bangkok flooding", moved);
+    expect(checked.changed).toBe(true);
+    if (checked.changed) expect(checked.outcome).toContain("bangkok flooding");
+  });
+
+  it("normalizes host and trailing slash so the same page fingerprints the same", () => {
+    const variants = [
+      { title: "t", url: "https://www.news.example/bangkok-floods/", snippet: "" },
+      { title: "u", url: "https://gov.example/flood-watch", snippet: "" },
+    ];
+    expect(searchFingerprint(variants)).toBe(searchFingerprint(hitsA));
+  });
+
+  it("states the watched question in the goal", () => {
+    expect(webSearchWatchGoal("  bangkok   flooding ")).toBe('Watch the web for "bangkok flooding"'.replace(/"/g, "“").replace(" flooding”", " flooding”"));
+  });
+});
