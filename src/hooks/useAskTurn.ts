@@ -201,6 +201,7 @@ export function useAskTurn(opts?: {
             const p = JSON.parse(json);
             const delta = p.choices?.[0]?.delta?.content as string | undefined;
             if (delta) {
+              if (!sawText) { sawText = true; if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; } }
               assistantSoFar += delta;
               write((prev) =>
                 prev.map((m, idx) => (idx === aIdx ? { ...m, content: assistantSoFar } : m)),
