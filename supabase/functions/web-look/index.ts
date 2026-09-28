@@ -20,10 +20,13 @@ import { fetchPage } from "../_shared/webFetch.ts";
 import {
   BLOCK_LINE,
   safeUrl,
+  searchFingerprint,
   sourceLine,
+  webSearchWatchGoal,
   webWatchGoal,
   type PageRead,
 } from "../_shared/webLook.ts";
+import { serpSearch } from "../_shared/serpSearch.ts";
 
 const Body = z.object({
   mode: z.enum(["read", "search", "watch"]).default("read"),
@@ -66,27 +69,6 @@ async function answerFrom(question: string, read: PageRead): Promise<string> {
 }
 
 type Hit = { title: string; url: string; snippet: string };
-
-async function serpSearch(query: string): Promise<Hit[]> {
-  if (!SERPAPI_KEY) throw new Error("SERPAPI_KEY missing");
-  const u = new URL("https://serpapi.com/search.json");
-  u.searchParams.set("q", query);
-  u.searchParams.set("engine", "google");
-  u.searchParams.set("num", "5");
-  u.searchParams.set("api_key", SERPAPI_KEY);
-  const r = await fetch(u.toString());
-  if (!r.ok) throw new Error(`serpapi ${r.status}`);
-  const j = await r.json();
-  const organic = Array.isArray(j?.organic_results) ? j.organic_results : [];
-  return organic
-    .slice(0, 5)
-    .map((o: Record<string, unknown>) => ({
-      title: String(o?.title ?? "").slice(0, 300),
-      url: String(o?.link ?? ""),
-      snippet: String(o?.snippet ?? "").slice(0, 400),
-    }))
-    .filter((h: Hit) => h.url);
-}
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
