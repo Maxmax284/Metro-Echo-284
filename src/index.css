@@ -1282,6 +1282,32 @@ html[data-daypart="golden"] { --bd-day-shift: -30; }
 html[data-daypart="dusk"]   { --bd-day-shift: 12; }
 html[data-daypart="night"]  { --bd-day-shift: 8; }
 
+/* ---- Region tier: seeded identities above the band. Hand-seeded in
+   lib/regions.ts, country-gated, graceful nothing when unmapped — the band
+   keeps painting those places. Region rules sit after the band so a seeded
+   region refines it, and before the skins so a chosen data-skin still wins
+   every weight it sets (and skins that set --bd-hue-a/b directly never feel
+   the tier at all). */
+html[data-region="island-coastal"] {
+  --bd-band-a: 166; --bd-band-b: 198;
+  --bd-wash-a: 0.11; --bd-wash-b: 0.09;
+  --bd-sheen: 0.2; --bd-sheen-hue: 174;
+}
+html[data-region="capital-metro"] {
+  --bd-band-a: 200; --bd-band-b: 258;
+  --bd-sheen: 0.24; --bd-sheen-hue: 36;
+}
+html[data-region="northern-mist"] {
+  --bd-band-a: 206; --bd-band-b: 228;
+  --bd-wash-a: 0.12; --bd-wash-b: 0.11;
+  --bd-wash-sat: 44%;
+}
+html[data-region="brutalist-metro"] {
+  --bd-band-a: 214; --bd-band-b: 252;
+  --bd-wash-sat: 52%;
+  --bd-grain: 0.06;
+}
+
 .vanta-backdrop {
   position: fixed;
   inset: -6vh -6vw;
@@ -1303,9 +1329,12 @@ html[data-overlay="on"] .vanta-backdrop { filter: blur(1.5px) saturate(0.9); }
 /* ---- Layer 1: the wash. Present in every skin, moves with the room. ---- */
 .vanta-bd-wash {
   background-image:
-    radial-gradient(1200px 620px at var(--bd-x) var(--bd-y), hsl(var(--bd-hue-a) 70% 50% / var(--bd-wash-a)), transparent 62%),
-    radial-gradient(860px 460px at calc(100% - var(--bd-x)) calc(100% - var(--bd-y)), hsl(var(--bd-hue-b) 70% 52% / var(--bd-wash-b)), transparent 62%);
-  transition: background-image 900ms var(--ease-out), background-position 900ms var(--ease-out);
+    radial-gradient(1200px 620px at var(--bd-x) var(--bd-y), hsl(var(--bd-hue-a) var(--bd-wash-sat, 70%) 50% / var(--bd-wash-a)), transparent 62%),
+    radial-gradient(860px 460px at calc(100% - var(--bd-x)) calc(100% - var(--bd-y)), hsl(var(--bd-hue-b) var(--bd-wash-sat, 70%) 52% / var(--bd-wash-b)), transparent 62%);
+  /* The meteorological sky (data-sky) dims and greys the wash — weather
+     modifies the atmosphere, never the authority. */
+  filter: brightness(calc(1 - var(--sky-dim, 0))) saturate(calc(1 - var(--sky-chill, 0) * 2.5));
+  transition: background-image 900ms var(--ease-out), background-position 900ms var(--ease-out), filter 900ms var(--ease-out);
 }
 
 /* Room-keyed position: switching rooms moves the world instead of swapping it. */
@@ -1562,6 +1591,26 @@ html[data-place="tokyo"] .vanta-bd-place {
     background-size: auto, auto 108%;
     background-position: center, 62% center;
   }
+}
+
+/* Region moods: a seeded region with no painted city wall still gets a
+   horizon, painted in pure gradients — no assets. A kept painted wall
+   (data-place) always takes the layer; the mood steps aside for it. */
+html[data-region="island-coastal"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.4;
+  background-image: radial-gradient(100% 46% at 50% 104%, hsl(172 65% 45% / 0.55), transparent 68%);
+}
+html[data-region="capital-metro"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.35;
+  background-image: radial-gradient(76% 42% at 12% 100%, hsl(38 90% 56% / 0.45), transparent 70%);
+}
+html[data-region="northern-mist"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.4;
+  background-image: linear-gradient(to top, hsl(208 32% 62% / 0.5), transparent 46%);
+}
+html[data-region="brutalist-metro"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.35;
+  background-image: linear-gradient(to bottom, hsl(214 26% 58% / 0.4), transparent 42%);
 }
 
 /* Concrete stays cold, and a quiet day dims the district first. */
@@ -2482,12 +2531,12 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   .boot-call-in { animation: none; }
 }
 
-/* ── Sky channel (scaffold) ─────────────────────────────────────────────────
+/* ── Sky channel ────────────────────────────────────────────────────────────
    `data-sky` is the meteorological sky — written by lib/sky.ts only from
    weather Echo already fetched, cleared when the reading goes stale. It is
    strictly separate from `data-weather` (operational pressure): a storm must
-   never read as overdue promises. Stage 2 paints with these tokens; for now
-   they only exist so the channel has a stable contract. */
+   never read as overdue promises. The wash consumes these tokens: dim lowers
+   its brightness, chill pulls its saturation toward grey. */
 html[data-sky="clear"] { --sky-dim: 0; --sky-chill: 0; }
 html[data-sky="cloud"] { --sky-dim: 0.04; --sky-chill: 0.02; }
 html[data-sky="fog"]   { --sky-dim: 0.06; --sky-chill: 0.03; }

@@ -80,3 +80,11 @@
 - [x] Micro reopen and reduced motion skip the stagger; pressure mid-power-up cuts the cover without recording a boot that never spoke
 - [x] Tests (stagger schedule, power-up cap, pending-vs-new-ground honesty), typecheck, build, 384px live verification signed-in (power-up at first paint, staggered roll, shutter, records)
 - [ ] Deferred from the old Stage 2 line: FieldPolaroid's own Open-Meteo fetch — dedupe needs the snapshot to carry gauge-grade weather (feels/humidity/is-day) first, or the gauge loses data
+
+## Region atmosphere (Stage 3)
+- [x] regions.ts: seeded country-gated archetypes (island-coastal, capital-metro, northern-mist, brutalist-metro) for TH/TW/JP + DMV cities; city tried before region; unmapped or stale = honest nothing
+- [x] RegionTintChannel applies region alongside band/daypart; both clear on stale fix and on sign-out; painted city walls still outrank the region mood layer
+- [x] CSS: region classes bend the wash hues/saturation/grain/sheen; horizon moods on the place layer only when no painted wall is up; wash now consumes the sky dim/chill tokens
+- [x] Tests (9 region-mapping/attribute cases; atmosphere suites 32/32), typecheck, build
+- [x] Live at 384px signed-in: 2-day-old fix = no atmosphere claim (doctrine); fresh fix at Ko Samui → island-coastal + tropical + daypart, Bangkok wall keeps the place layer; wash probe confirmed hue response
+- [ ] Publish Stage 2 + Stage 3 together
