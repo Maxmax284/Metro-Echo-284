@@ -104,4 +104,12 @@
 - [x] Cabinet sixth slot rotates daily — travel / platform clock / marks — never grows past six; provenance line per dial
 - [x] 13 unit tests; no new audit events, no schema changes
 - [x] Live verify at 384px signed-in: wall shows Ko Samui stamp + IAD→USM trip with the no-coordinates note; cabinet sixth slot rotated to marks (2) matching the wall; no page errors
-- [ ] Publish Stages 2–5 together (security scan is stale — refresh at publish)
+
+## Journey replay + stamp provenance (Stage 6)
+- [x] markRecord.ts (pure): journeyPlanIds splits the wrap's journey_id back into legs, orderLegs restores flight order, legRecordWords (shared with JourneySummary), placeStampBeats reads one place's press/lift life from the receipts
+- [x] StationMark carries recordId — the place id, or the journey id from the wrap payload; null when pressed before records were linked
+- [x] MarkRecordSheet: tap a wall stamp → its record. Journeys replay the legs as the books hold them + changes on record; places show press/lift beats + whether the place is still on the books. Lazy load on tap only; gone/unlinked records say so honestly; no coordinates
+- [x] StationStamps: stamps are buttons now; useStationMarks returns the raw receipts so a mark's history needs no second fetch
+- [x] Tests (12 mark-record + 18 station-marks green), typecheck, build
+- [ ] Live verify at 384px signed-in: tap both marks, check journey replay + place beats
+- [ ] Publish Stages 2–6 together (security scan is stale — refresh at publish)
