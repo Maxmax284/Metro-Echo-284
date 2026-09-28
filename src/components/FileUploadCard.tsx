@@ -16,7 +16,7 @@ import {
 import { Loader2, Upload, FileText, FileSearch, Search, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { analyzeIngestedFiles, isDocumentLike } from "@/lib/documents";
-import { useActiveOrgId } from "@/hooks/useScope";
+import { useActiveOrgId } from "@/providers/WorkspaceProvider";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";
@@ -229,14 +229,27 @@ export function FileUploadCard() {
               >
                 Clear saved
               </Button>
-              <Button
-                size="sm"
-                className="h-7 text-[11px]"
-                onClick={() => setConfirmOpen(true)}
-                disabled={busy || !staged.staged.some((s) => s.status === "staged")}
-              >
-                {busy ? "Reading…" : "File these"}
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-[11px]"
+                  onClick={() => void analyzeStaged()}
+                  disabled={busy || analyzing || !staged.staged.some((s) => s.status === "staged")}
+                  title="File and read as documents, ready for review"
+                >
+                  {analyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileSearch className="h-3 w-3" />}
+                  Analyze document
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={busy || analyzing || !staged.staged.some((s) => s.status === "staged")}
+                >
+                  {busy ? "Reading…" : "File these"}
+                </Button>
+              </div>
             </div>
           </div>
         )}
