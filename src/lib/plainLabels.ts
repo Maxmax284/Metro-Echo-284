@@ -169,11 +169,43 @@ export function humanizeEvent(event: string): string {
     "recap.monthly_created": "Monthly review ready",
     "flight.local_transfer_verified": "Local transfer details recorded",
     "entry.filing_state_said_by_person": "You said where your arrival declaration got to",
-
-
-
+    // Watch lifecycle — one label per recorded state, no raw state words.
+    "watch.created": "Echo started keeping an eye on this",
+    "watch.checked": "Echo checked — nothing new",
+    "watch.needs_you": "Something changed on a watch",
+    "watch.done": "Watch finished — the answer is in",
+    "watch.couldnt_finish": "Echo couldn't keep watching that",
+    "watch.stopped": "Watch stopped",
+    "watch.paused": "Watch paused",
+    "watch.resumed": "Watch resumed",
+    // Heads-up delivery — a reach (or a miss) is a recorded event.
+    "nudge.delivered": "A heads-up reached your phone",
+    "nudge.delivery_failed": "A heads-up couldn't reach your phone",
+    "nudge.reached_messaging": "A heads-up went to Telegram",
+    "nudge.reach_messaging_failed": "A heads-up couldn't reach Telegram",
+    // Journey notices — the disruption is on the record, not only in a nudge.
+    "journey.moved": "Your journey moved",
+    "journey.notice_updated": "A journey heads-up was refreshed",
+    "journey.before_you_leave": "Before-you-leave reminder noted",
+    "journey.landed": "Touchdown noted",
+    // Briefings append — a refresh is an event, earlier versions stay.
+    "briefing.regenerated": "Briefing refreshed",
   };
   if (exact[event]) return scrubBannedTokens(exact[event]);
+  // Corrections are recorded as `correction:<verdict>` — colon family, so they
+  // never fall through to the raw-token path.
+  if (event.startsWith("correction:")) {
+    const verdict = event.slice("correction:".length);
+    const corrections: Record<string, string> = {
+      useful: "You marked this useful",
+      wrong: "You marked this wrong",
+      outdated: "You marked this outdated",
+      source_bad: "You flagged a source",
+      reject: "You hid this from Echo",
+      continuity: "You corrected what Echo remembered",
+    };
+    return corrections[verdict] ?? "You corrected Echo";
+  }
   const [domain, verb] = event.split(".");
   const domainLabel = kindLabel(domain);
   if (!verb) return scrubBannedTokens(domainLabel);
@@ -255,6 +287,16 @@ export function trustNote(event: string): string {
     return "Logged when this document moved through review.";
   if (e.startsWith("research."))
     return "Logged when you approved the research run.";
+  if (e.startsWith("watch."))
+    return "Logged when the watch was checked or moved.";
+  if (e.startsWith("nudge."))
+    return "Logged when a heads-up reached — or missed — a surface.";
+  if (e.startsWith("journey."))
+    return "Logged by the journey watch when your travel moved.";
+  if (e.startsWith("correction:") || e.startsWith("correction."))
+    return "Logged the moment you corrected Echo.";
+  if (e.startsWith("briefing.regenerated"))
+    return "Logged when Echo refreshed this briefing — earlier versions stay on the record.";
   return "Logged automatically the moment it happened.";
 }
 
@@ -302,6 +344,9 @@ export function eventWhere(entityType: string | null | undefined): { label: stri
     nudge: { label: "Today", surface: "today" },
     sherlock_finding: { label: "Sherlock", surface: "sherlock" },
     place: { label: "Awareness", surface: "awareness" },
+    awareness_place: { label: "Awareness", surface: "awareness" },
+    watch: { label: "Today", surface: "today" },
+    flight_plan: { label: "Flights", surface: "schedule" },
     telegram: { label: "Receipts", surface: "receipts" },
     cross_link: { label: "Projects", surface: "projects" },
   };

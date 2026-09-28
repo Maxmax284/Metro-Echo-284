@@ -1,5 +1,6 @@
 import { resolveUser } from "../_shared/authContext.ts";
 import { corsHeaders } from "../_shared/http.ts";
+import { writeAuditEvent } from "../_shared/auditEvent.ts";
 // awareness-brief: generate a structured VantaSignal for one section of a place.
 // Stage 2 refactor — JSON-mode Gemini, Zod validation, safe fallback signal,
 // persists both the structured signal and a short prose summary for back-compat.
@@ -376,6 +377,24 @@ Deno.serve(async (req: Request) => {
       signal,
     });
     if (insErr) throw insErr;
+
+    /* Receipt: every refresh is a recorded event. Briefings append, never
+       overwrite — and when a correction shaped this version, the receipt says
+       so, so "Echo changed its mind" is traceable instead of silent. */
+    await writeAuditEvent(supabase as never, {
+      actor: user.id,
+      organizationId: null,
+      entityType: "awareness_place",
+      entityId: place_id,
+      event: "briefing.regenerated",
+      source: "awareness-brief",
+      metadata: {
+        section,
+        corrected: hasInvalidate,
+        confidence: signal.confidence,
+        fallback: usedFallback,
+      },
+    });
 
     return jsonResp({ ok: true, signal, used_fallback: usedFallback });
   } catch (e) {

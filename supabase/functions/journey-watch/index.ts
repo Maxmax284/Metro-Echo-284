@@ -23,6 +23,7 @@ import {
 import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
 import { reachOnce } from "../_shared/delivery/reach.ts";
+import { writeAuditEvent } from "../_shared/auditEvent.ts";
 import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_shared/preDeparture.ts";
 import { landedAlert } from "../_shared/landedAlert.ts";
 
@@ -67,6 +68,17 @@ async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<b
   } as never).select("id").maybeSingle();
   const nudgeId = (row as { id?: string } | null)?.id ?? null;
   if (!nudgeId) return false;
+
+  /* Receipt: the countdown note is a recorded event, not just a nudge. */
+  await writeAuditEvent(sb as never, {
+    actor: userId,
+    organizationId: orgId,
+    entityType: "flight_plan",
+    entityId: p.id,
+    event: "journey.before_you_leave",
+    source: "journey_watch",
+    metadata: { title: notice.title, nudge_id: nudgeId },
+  });
 
   const gate = await reachGate(sb, userId, { urgency: "normal" } as JourneyNotice);
   if (!gate.allowed) return false;
@@ -384,7 +396,18 @@ Deno.serve(async (req) => {
           .eq("user_id", userId).eq("kind", "journey_moved").eq("status", "pending")
           .eq("title", notice.title).eq("related_entity_id", planId).limit(1);
         if (sameTitle && sameTitle.length) {
-          await sb.from("nudges").update({ body } as never).eq("id", (sameTitle[0] as { id: string }).id);
+          const editId = (sameTitle[0] as { id: string }).id;
+          await sb.from("nudges").update({ body } as never).eq("id", editId);
+          /* A fresher countdown is an edit — the edit leaves a receipt too. */
+          await writeAuditEvent(sb as never, {
+            actor: userId,
+            organizationId: orgId,
+            entityType: "flight_plan",
+            entityId: planId,
+            event: "journey.notice_updated",
+            source: "journey_watch",
+            metadata: { title: notice.title, nudge_id: editId },
+          });
           return;
         }
         const dedupe = `journey_moved:${after.id}:${body.slice(0, 60)}`;
@@ -407,6 +430,17 @@ Deno.serve(async (req) => {
            both firing for one gate change. The buttons only acknowledge, and they
            settle the same nudge Today reads, so the signal clears from the chat. */
         const nudgeId = (nudgeRow as { id?: string } | null)?.id ?? null;
+        /* Receipt: the move itself is a recorded event — Receipts can show the
+           disruption even after the nudge is settled. */
+        await writeAuditEvent(sb as never, {
+          actor: userId,
+          organizationId: orgId,
+          entityType: "flight_plan",
+          entityId: planId,
+          event: "journey.moved",
+          source: "journey_watch",
+          metadata: { title: notice.title, body, nudge_id: nudgeId },
+        });
         if (notice.reachMessaging && nudgeId) {
           const gate = await reachGate(sb, userId, notice);
           if (gate.allowed) {
@@ -496,6 +530,18 @@ Deno.serve(async (req) => {
             dedupe_key: dedupe,
           } as never).select("id").maybeSingle();
           nudgeId = (row as { id?: string } | null)?.id ?? null;
+          if (nudgeId) {
+            /* Receipt: the touchdown is a recorded event, not only a nudge. */
+            await writeAuditEvent(sb as never, {
+              actor: userId,
+              organizationId: orgId,
+              entityType: "flight_plan",
+              entityId: p.id,
+              event: "journey.landed",
+              source: "journey_watch",
+              metadata: { title: alert.title, nudge_id: nudgeId },
+            });
+          }
         }
         if (!nudgeId) continue;
 

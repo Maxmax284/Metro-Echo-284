@@ -324,7 +324,7 @@ export function useContinuity(enabled = true): ContinuityState {
   const recordCorrection = useCallback(
     async (projectId: string, feedback: string, note: string) => {
       if (!user) return;
-      await supabase.from("corrections").insert(
+      const { data: inserted } = await supabase.from("corrections").insert(
         withScope({
           user_id: user.id,
           scope: "continuity",
@@ -336,6 +336,16 @@ export function useContinuity(enabled = true): ContinuityState {
           source_label: "user",
           confidence_impact: "medium",
           status: "active",
+        }) as never,
+      ).select("id").single();
+      // Receipt: a correction is a recorded event, traceable in Receipts.
+      await supabase.from("audit_log").insert(
+        withScope({
+          user_id: user.id,
+          entity_type: "correction",
+          entity_id: inserted?.id ?? null,
+          event: "correction:continuity",
+          payload: { surface: "continuity", target_type: "project", target_id: projectId, feedback },
         }) as never,
       );
     },

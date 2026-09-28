@@ -121,5 +121,13 @@
 - [x] web_search watch pulled forward from Phase 6: "Keep me updated" on a question needs a real recurring mechanism — a single-page watch cannot cover a topic. 6h cadence, 14-day stop, quiet until new pages show; fingerprint compares the set of pages, ranking order is jitter
 - [x] Verify: typecheck clean; 49 focused tests (web-look fingerprint/diff, worldFollowUps, router); full suite 2292 passed, 2 known Telegram date failures; build OK; web-look/watch-sweep/vanta-converse deployed
 - [x] 384px live pass signed-in: "What's going on with the Bangkok flooding?" → live answer with named sources (youtube/straitstimes/bangkokpost, read just now) + Keep me updated / Show affected areas chips → tap starts a real watch, chip flips to watching, receipt line lands in-thread; console clean of new errors
-- [ ] NOT in this build: Phases 3-6 (Receipts provenance, Notifications unification, Settings reorg, remaining topic-watch surfaces)
+- [ ] NOT in this build: Phases 4-6 (Notifications unification, Settings reorg, remaining topic-watch surfaces)
+
+## Awareness plan — Phase 3 (Receipts provenance)
+- [x] Journey notices leave audit rows — journey.moved / journey.notice_updated / journey.before_you_leave / journey.landed written beside the nudges (journey-watch, deployed)
+- [x] Briefing refreshes leave a receipt — briefing.regenerated with { section, corrected, confidence, fallback }; awareness_briefings already append-only, so earlier versions stay and a correction-shaped refresh says so
+- [x] Correction receipts completed — FindingFeedback + useContinuity now write correction:* audit rows (FeedbackBar/useSignalRoute already did); colon-format corrections get plain labels instead of raw tokens
+- [x] Plain labels for watch.* / nudge.* / journey.* / correction:* / briefing.regenerated + trustNote families + eventWhere (watch→Today, flight_plan→Flights, awareness_place→Awareness); delivered heads-ups count as "What Echo did"; journey events bucket to Schedule
+- [x] Tests: 8 plain-labels + 2 new digest cases; full suite 2302 passed, 2 known Telegram date failures; typecheck clean
+- [ ] 384px live pass on Receipts with a signed-in session
 - [x] Documents desk elevated to its own visible station on the main Work shelf; "Analyze document" affordance next to "File it" (user request, same round as Phases 0-2)
