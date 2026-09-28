@@ -129,5 +129,5 @@
 - [x] Correction receipts completed — FindingFeedback + useContinuity now write correction:* audit rows (FeedbackBar/useSignalRoute already did); colon-format corrections get plain labels instead of raw tokens
 - [x] Plain labels for watch.* / nudge.* / journey.* / correction:* / briefing.regenerated + trustNote families + eventWhere (watch→Today, flight_plan→Flights, awareness_place→Awareness); delivered heads-ups count as "What Echo did"; journey events bucket to Schedule
 - [x] Tests: 8 plain-labels + 2 new digest cases; full suite 2302 passed, 2 known Telegram date failures; typecheck clean
-- [ ] 384px live pass on Receipts with a signed-in session
+- [x] 384px live pass on Receipts — signed in, no raw tokens anywhere, watch/journey rows render plain, no page errors (drawer labels covered by unit tests)
 - [x] Documents desk elevated to its own visible station on the main Work shelf; "Analyze document" affordance next to "File it" (user request, same round as Phases 0-2)
