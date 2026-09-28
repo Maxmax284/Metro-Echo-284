@@ -56,6 +56,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { WatchShelf } from "@/components/work/WatchShelf";
+import { DocumentsStation } from "@/components/work/DocumentsStation";
 import { MailShelf } from "@/components/work/MailShelf";
 import { DriveFindPanel } from "@/components/work/DriveFindPanel";
 
@@ -188,6 +189,7 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
         <ShelfHeading title="In motion" line="Jobs, promises and anything waiting on your yes." />
         <section className="space-y-2" aria-label="In motion">
           <WatchShelf />
+          <DocumentsStation />
           {error ? (
             <ErrorState error={error} doing="pulling your work together" onRetry={refresh} />
           ) : loading ? (
@@ -268,16 +270,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
 
 
         {/* More desks. Every route is unchanged; the front page just carries
-            less. Documents lives here once, and inside each project. */}
-        <CollapsibleSection
-          title="More desks"
-          storageKey="work.more"
-          icon={<LayoutGrid className="h-3.5 w-3.5" />}
-          defaultOpen={false}
-          summary="More desks · documents, schedule, flights, money, body"
-        >
-          <div className="mt-2.5 grid grid-cols-2 gap-2 min-[420px]:grid-cols-3">
-            <JumpTile label="Documents" word="Documents" line="Read, review, draft" Icon={FileText} href="/documents" />
+...
+          summary="More desks · schedule, flights, money, body"
+...
             <JumpTile label="Schedule" word="Schedule" line="Day, upcoming, week" Icon={CalendarClock} onOpen={() => onNavigate("schedule")} />
             <JumpTile label="Agenda board" word="Agenda" line="The whole day on one board" Icon={LayoutGrid} href="/?surface=schedule&tab=board" onOpen={() => onNavigate("schedule")} />
             <JumpTile label="Flights" word="Flights" line="Filed flights and journeys" Icon={Plane} href="/flights" />
