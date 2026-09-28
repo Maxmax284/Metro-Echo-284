@@ -298,7 +298,7 @@ export async function reachOnce(admin: any, input: ReachInput & {
     if (!claimId) return null; /* Already delivered — one event, one delivery. */
 
     const ok = surface === "phone"
-      ? await reachPhone(admin, input)
+      ? await reachPhone(admin, { ...input, gateApplied: true })
       : await reachMessagingNudge(admin, input);
     if (ok) return surface;
 
