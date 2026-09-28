@@ -34,6 +34,14 @@ export type AskMsg = {
     needs_review?: boolean;
     /** Plain-English lookups Echo ran before writing this answer. */
     reads?: string[];
+    /* Live-world provenance: an answer Echo really fetched from the web
+       carries where it came from, so follow-ups can ride on it. */
+    provenance?: string;
+    url?: string | null;
+    question?: string | null;
+    watching?: boolean;
+    checked_at?: string | null;
+    sources?: { host: string; url: string; title?: string | null }[];
   } | null;
 
 };
@@ -110,6 +118,9 @@ export function useAskTurn(opts?: {
       setAskMessages(threadId, u as never, { hydrated: true });
     const firstTurn = (getAskSession(threadId).messages as AskMsg[]).length === 0;
     write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
+    /* The streaming writer targets this exact message, never "the last one":
+       a follow-up landing mid-stream must not steal the caret's place. */
+    const aIdx = (getAskSession(threadId).messages as AskMsg[]).length - 1;
 
     const ctrl = new AbortController();
     beginAskStream(threadId, ctrl);
