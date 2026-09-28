@@ -73,7 +73,7 @@ export function editionFor(
   if (!opts.optedIn || opts.stale) return null;
   const o = occasionFor(at, country);
   if (!o) return null;
-  const [, end] = [o.window(at.getFullYear()).start, o.window(at.getFullYear()).end];
+  const { end } = o.window(at.getFullYear());
   return {
     id: o.id,
     name: o.name,

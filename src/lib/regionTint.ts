@@ -60,3 +60,25 @@ export function currentRegionTint(): RegionTint | null {
   if (!band) return null;
   return { band, daypart: (document.documentElement.getAttribute(DAY_ATTR) as Daypart | null) ?? "day" };
 }
+
+/* ---- Season: the same channel family, one more honest attribute. The key
+   comes from station.ts (seasonFor) — band + hemisphere + date, never a
+   northern assumption — and index.css owns every visual consequence. null
+   clears it; a place with no latitude wears no season. ---- */
+
+/** Write the season onto <html>; null clears the attribute. */
+export function applySeason(season: SeasonKey | null): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (!season) {
+    root.removeAttribute(SEASON_ATTR);
+    return;
+  }
+  if (root.getAttribute(SEASON_ATTR) !== season) root.setAttribute(SEASON_ATTR, season);
+}
+
+/** Read the current season. Test/debug convenience. */
+export function currentSeason(): SeasonKey | null {
+  if (typeof document === "undefined") return null;
+  return (document.documentElement.getAttribute(SEASON_ATTR) as SeasonKey | null) ?? null;
+}
