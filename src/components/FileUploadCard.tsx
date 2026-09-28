@@ -116,6 +116,40 @@ export function FileUploadCard() {
     await staged.commitAll();
   };
 
+  /* Analyze document — same staged files, but filed straight into the
+     Documents desk with the read already run. Sits next to "File these"
+     because both are ways to give a staged file its next life. */
+  const navigate = useNavigate();
+  const orgId = useActiveOrgId();
+  const [analyzing, setAnalyzing] = useState(false);
+  const analyzeStaged = async () => {
+    if (!user || analyzing) return;
+    setAnalyzing(true);
+    try {
+      const items = await staged.commitAll();
+      const saved = items.filter((s) => s.status === "saved" && s.ingestedFileId);
+      const docIds = await analyzeIngestedFiles({
+        userId: user.id,
+        organizationId: orgId,
+        files: saved.map((s) => ({ id: s.ingestedFileId!, filename: s.file.name })),
+      });
+      if (docIds.length === 0) {
+        if (saved.length > 0 && !saved.some((s) => isDocumentLike({ filename: s.file.name }))) {
+          toast.info("Filed. Nothing document-like among them — PDF, Word or text files can be analyzed.");
+        } else {
+          toast.error("Couldn't start the analysis — the files are filed, try Analyze from the tray below.");
+        }
+        return;
+      }
+      toast.success(docIds.length === 1 ? "Read and ready for review." : `${docIds.length} documents ready for review.`);
+      navigate(docIds.length === 1 ? `/documents?document=${docIds[0]}` : "/documents");
+    } catch (e) {
+      toast.fromError?.(e);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   const stagedCount = staged.staged.filter((s) => s.status === "staged").length;
 
   return (
