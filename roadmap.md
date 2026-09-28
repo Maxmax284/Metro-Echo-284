@@ -115,9 +115,11 @@
 - [ ] Publish Stages 2–6 together (security scan is stale — refresh at publish)
 
 ## Awareness plan (approved 2026-09-28) — Phases 0-2
-- [ ] Phase 0: fix look_up thread-misdelivery; fix push failure_count increment; consolidate quiet-hours helpers; watch lifecycle receipts (created/checked/changed/stopped/paused); paused state support
+- [x] Phase 0: fix look_up thread-misdelivery; fix push failure_count increment; consolidate quiet-hours helpers; watch lifecycle receipts (created/checked/changed/stopped/paused); paused state support (watches.paused column + constraint migration 0039/0040)
 - [x] Phase 1: Today "On the radar" card (states, last/next check, all-clear, zero-watch teaching, entry point); WatchShelf empty state + next check + pause; watch-health signal kinds; SourceHealthStrip wire-or-delete
-- [ ] Phase 2: Ask follow-up chips after live-world answers (Keep me updated via real web_page watch); source chips with authority/freshness; widen research routing for current-events phrasing; decline cooldowns
-- [ ] Verify: typecheck, targeted tests, full suite, 384px live pass
-- [ ] NOT in this build: Phases 3-6 (Receipts provenance, Notifications unification, Settings reorg, topic watches)
+- [x] Phase 2: Ask follow-up chips after live-world answers — Keep me updated (real watch only: page watch for a page answer, web_search topic watch for a question), Show affected areas as the next question in-thread, source chips + freshness, decline cooldown per answer; current-events phrasing routes to a live lookup (converse prompt + capabilityRouter); lookup answers land in the open thread live (no revisit needed); streaming writer pinned to its own message index so follow-ups can't steal the caret
+- [x] web_search watch pulled forward from Phase 6: "Keep me updated" on a question needs a real recurring mechanism — a single-page watch cannot cover a topic. 6h cadence, 14-day stop, quiet until new pages show; fingerprint compares the set of pages, ranking order is jitter
+- [x] Verify: typecheck clean; 49 focused tests (web-look fingerprint/diff, worldFollowUps, router); full suite 2292 passed, 2 known Telegram date failures; build OK; web-look/watch-sweep/vanta-converse deployed
+- [ ] 384px live pass: live-world question → answer with chips → Keep me updated creates a real watch
+- [ ] NOT in this build: Phases 3-6 (Receipts provenance, Notifications unification, Settings reorg, remaining topic-watch surfaces)
 - [x] Documents desk elevated to its own visible station on the main Work shelf; "Analyze document" affordance next to "File it" (user request, same round as Phases 0-2)

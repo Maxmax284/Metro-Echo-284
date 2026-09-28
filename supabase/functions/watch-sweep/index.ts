@@ -20,7 +20,8 @@ import {
   type WatchRow,
 } from "../_shared/watch.ts";
 import { fetchPage } from "../_shared/webFetch.ts";
-import { checkPage } from "../_shared/webLook.ts";
+import { checkPage, checkSearch } from "../_shared/webLook.ts";
+import { serpSearch } from "../_shared/serpSearch.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -214,6 +215,73 @@ Deno.serve(async (req: Request) => {
                 .update({
                   success_when: { ...row.success_when, fingerprint: checked.fingerprint, misses: 0 },
                 })
+                .eq("id", row.id);
+            }
+          }
+        }
+      } else if (row.kind === "web_search") {
+        /* A topic watch re-asks the same question and compares the set of
+           pages answering it. The same pages in a new order is ranking jitter,
+           not news; new pages showing up is. */
+        const query = String(row.success_when?.query ?? "");
+        if (!query) {
+          result = { state: "couldnt_finish", outcome: "That watch has no question on it." };
+        } else {
+          try {
+            const hits = await serpSearch(query, Deno.env.get("SERPAPI_KEY") ?? "");
+            const checked = checkSearch(
+              { fingerprint: (row.success_when?.fingerprint as string | null) ?? null },
+              query,
+              hits,
+            );
+            if (checked.changed) {
+              result = { state: "needs_you", outcome: checked.outcome };
+              /* Same rail as a page change: Today already reads nudges, one
+                 row, deduped per watch per day. */
+              const { error: nudgeError } = await admin.from("nudges").upsert({
+                user_id: row.user_id,
+                organization_id: row.organization_id ?? null,
+                kind: "web_page_changed",
+                title: checked.outcome,
+                body: `${row.goal}. Echo read public results, nothing else. Ask Echo what is new to see what moved.`,
+                priority: 65,
+                related_entity_type: "watch",
+                related_entity_id: row.id,
+                dedupe_key: `web.search.changed:${row.id}:${now.toISOString().slice(0, 10)}`,
+                status: "pending",
+                expires_at: new Date(now.getTime() + 3 * 86400_000).toISOString(),
+              }, { onConflict: "user_id,dedupe_key", ignoreDuplicates: true });
+              if (nudgeError) console.error("[watch-sweep] search nudge", nudgeError.message);
+              await admin
+                .from("watches")
+                .update({
+                  success_when: {
+                    ...row.success_when,
+                    fingerprint: checked.fingerprint,
+                    misses: 0,
+                    hits: hits.slice(0, 3).map((h) => h.title),
+                  },
+                })
+                .eq("id", row.id);
+            } else {
+              result = { state: "watching", outcome: null };
+              await admin
+                .from("watches")
+                .update({
+                  success_when: { ...row.success_when, fingerprint: checked.fingerprint, misses: 0 },
+                })
+                .eq("id", row.id);
+            }
+          } catch (e) {
+            console.error("[watch-sweep] search check", e);
+            const misses = Number(row.success_when?.misses ?? 0) + 1;
+            if (misses >= 3) {
+              result = { state: "couldnt_finish", outcome: "Echo could not reach the web search for that watch." };
+            } else {
+              result = { state: "watching", outcome: null };
+              await admin
+                .from("watches")
+                .update({ success_when: { ...row.success_when, misses } })
                 .eq("id", row.id);
             }
           }

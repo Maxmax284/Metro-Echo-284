@@ -34,6 +34,14 @@ export type AskMsg = {
     needs_review?: boolean;
     /** Plain-English lookups Echo ran before writing this answer. */
     reads?: string[];
+    /* Live-world provenance: an answer Echo really fetched from the web
+       carries where it came from, so follow-ups can ride on it. */
+    provenance?: string;
+    url?: string | null;
+    question?: string | null;
+    watching?: boolean;
+    checked_at?: string | null;
+    sources?: { host: string; url: string; title?: string | null }[];
   } | null;
 
 };
@@ -110,6 +118,9 @@ export function useAskTurn(opts?: {
       setAskMessages(threadId, u as never, { hydrated: true });
     const firstTurn = (getAskSession(threadId).messages as AskMsg[]).length === 0;
     write((p) => [...p, { role: "user", content: text }, { role: "assistant", content: "" }]);
+    /* The streaming writer targets this exact message, never "the last one":
+       a follow-up landing mid-stream must not steal the caret's place. */
+    const aIdx = (getAskSession(threadId).messages as AskMsg[]).length - 1;
 
     const ctrl = new AbortController();
     beginAskStream(threadId, ctrl);
@@ -178,7 +189,7 @@ export function useAskTurn(opts?: {
             if (delta) {
               assistantSoFar += delta;
               write((prev) =>
-                prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: assistantSoFar } : m)),
+                prev.map((m, idx) => (idx === aIdx ? { ...m, content: assistantSoFar } : m)),
               );
             }
             /* The reads Echo performed before it wrote a word. These arrive
@@ -211,12 +222,14 @@ export function useAskTurn(opts?: {
       /* A turn that only prepares a draft still has to be readable tomorrow.
          Keeping an eye on something approves nothing and runs nothing, so it
          must not be described as waiting for approval. */
-      const WATCH_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched", "where_do_i_stand"]);
+      /* Intents whose result speaks for itself produce no staged line: a
+         lookup answers in its own message, a watch leaves its own receipt. */
+      const QUIET_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched", "where_do_i_stand", "look_up", "check_page"]);
       const stagedLine = staged.length
         ? staged.map((s) => {
             const a = (s.args ?? {}) as Record<string, unknown>;
             const what = String(a.title ?? a.summary ?? a.text ?? a.reference ?? "").trim();
-            if (WATCH_INTENTS.has(s.name)) return "";
+            if (QUIET_INTENTS.has(s.name)) return "";
             return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
           }).join("\n")
         : "";
@@ -224,7 +237,7 @@ export function useAskTurn(opts?: {
         ? `${assistantSoFar}\n\n_Stopped._`
         : (assistantSoFar || stagedLine);
       if (aborted || (!assistantSoFar && stagedLine)) {
-        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: finalContent } : m)));
       }
 
       if (finalContent) {
@@ -243,13 +256,15 @@ export function useAskTurn(opts?: {
           const { generateEmbedding } = await import("@/lib/embeddings");
           inserted.forEach((m) => generateEmbedding("message", m.id));
         }
-        await noteActivity(threadId, firstTurn ? text : undefined);
       }
+      /* A lookup-only turn has no streamed text, but the thread still moved
+         — and a first-turn lookup still deserves its name. */
+      await noteActivity(threadId, firstTurn ? text : undefined);
     } catch (e: any) {
       if (e?.name === "AbortError") {
         aborted = true;
         const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
-        write((prev) => prev.map((m, idx) => (idx === prev.length - 1 ? { ...m, content: finalContent } : m)));
+        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: finalContent } : m)));
         try {
           await supabase.from("messages").insert([
             { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },

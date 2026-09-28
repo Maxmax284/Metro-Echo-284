@@ -20,10 +20,13 @@ import { fetchPage } from "../_shared/webFetch.ts";
 import {
   BLOCK_LINE,
   safeUrl,
+  searchFingerprint,
   sourceLine,
+  webSearchWatchGoal,
   webWatchGoal,
   type PageRead,
 } from "../_shared/webLook.ts";
+import { serpSearch } from "../_shared/serpSearch.ts";
 
 const Body = z.object({
   mode: z.enum(["read", "search", "watch"]).default("read"),
@@ -67,27 +70,6 @@ async function answerFrom(question: string, read: PageRead): Promise<string> {
 
 type Hit = { title: string; url: string; snippet: string };
 
-async function serpSearch(query: string): Promise<Hit[]> {
-  if (!SERPAPI_KEY) throw new Error("SERPAPI_KEY missing");
-  const u = new URL("https://serpapi.com/search.json");
-  u.searchParams.set("q", query);
-  u.searchParams.set("engine", "google");
-  u.searchParams.set("num", "5");
-  u.searchParams.set("api_key", SERPAPI_KEY);
-  const r = await fetch(u.toString());
-  if (!r.ok) throw new Error(`serpapi ${r.status}`);
-  const j = await r.json();
-  const organic = Array.isArray(j?.organic_results) ? j.organic_results : [];
-  return organic
-    .slice(0, 5)
-    .map((o: Record<string, unknown>) => ({
-      title: String(o?.title ?? "").slice(0, 300),
-      url: String(o?.link ?? ""),
-      snippet: String(o?.snippet ?? "").slice(0, 400),
-    }))
-    .filter((h: Hit) => h.url);
-}
-
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
   if (pre) return pre;
@@ -126,7 +108,7 @@ Deno.serve(async (req: Request) => {
           query: q,
           cache_ttl_seconds: 3600,
         },
-        () => serpSearch(q),
+        () => serpSearch(q, SERPAPI_KEY),
       );
       if (!res.ok) {
         return jsonResponse({
@@ -136,6 +118,92 @@ Deno.serve(async (req: Request) => {
         });
       }
       return jsonResponse({ ok: true, hits: res.data, source: "web search" });
+    }
+
+    /* ----------------------------------------------------- watch a topic */
+    /* "Keep me updated" on a question, not a page: Echo re-asks the same
+       question on a cadence and speaks only when new pages show up. A real
+       watch row or an honest no — monitoring is never claimed without one. */
+    if (mode === "watch" && !(parsed.data.url ?? "").trim()) {
+      const q = (question ?? "").trim();
+      if (q.length < 3) {
+        return jsonResponse({ ok: false, answer: "Echo needs the actual question to keep an eye on it." }, 200);
+      }
+      const goal = webSearchWatchGoal(q);
+
+      const { data: existing } = await db
+        .from("watches")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("kind", "web_search")
+        .in("state", ["on_it", "watching", "waiting", "needs_you"])
+        .contains("success_when", { query: q })
+        .maybeSingle();
+      if (existing?.id) {
+        return jsonResponse({
+          ok: true,
+          watch_id: existing.id,
+          answer: `Echo is already keeping an eye on “${q}”.`,
+        });
+      }
+
+      const res = await runGuarded(
+        {
+          owner_id: user.id,
+          user_id: user.id,
+          provider: "serpapi",
+          feature: "web.watch",
+          query: q,
+          cache_ttl_seconds: 0,
+        },
+        () => serpSearch(q, SERPAPI_KEY),
+      );
+      if (!res.ok) {
+        return jsonResponse({
+          ok: false,
+          blocked: res.reason,
+          answer: "Web lookups are switched off right now, so Echo could not start that watch.",
+        });
+      }
+
+      const cadence = cadence_minutes ?? 360;
+      const { data: row, error } = await db
+        .from("watches")
+        .insert({
+          user_id: user.id,
+          organization_id: null,
+          goal,
+          kind: "web_search",
+          subject_id: null,
+          source: "ask",
+          cadence_minutes: cadence,
+          next_check_at: new Date(Date.now() + cadence * 60_000).toISOString(),
+          stop_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          success_when: {
+            query: q,
+            fingerprint: searchFingerprint(res.data),
+            hits: res.data.slice(0, 3).map((h) => h.title),
+          },
+        })
+        .select("id")
+        .maybeSingle();
+      if (error) return jsonResponse({ ok: false, answer: "Echo could not start that watch." }, 500);
+
+      await db.from("audit_log").insert({
+        user_id: user.id,
+        entity_type: "watch",
+        entity_id: row?.id ?? null,
+        event: "watch.created",
+        payload: { goal, kind: "web_search", source: "ask", query: q },
+      });
+
+      return jsonResponse({
+        ok: true,
+        watch_id: row?.id ?? null,
+        answer:
+          `Echo will keep checking what the web says about “${q}”. ` +
+          `You will hear about it when it changes, not before.`,
+      });
     }
 
     /* -------------------------------------------------------- read / watch */

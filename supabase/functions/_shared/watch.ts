@@ -24,7 +24,7 @@ export const WATCH_STATES = [
 ] as const;
 export type WatchState = (typeof WATCH_STATES)[number];
 
-export const WATCH_KINDS = ["action_settled", "calendar_event", "web_page"] as const;
+export const WATCH_KINDS = ["action_settled", "calendar_event", "web_page", "web_search"] as const;
 export type WatchKind = (typeof WATCH_KINDS)[number];
 
 export const OPEN_STATES: WatchState[] = ["on_it", "watching", "waiting"];

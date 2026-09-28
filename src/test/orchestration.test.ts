@@ -38,6 +38,17 @@ describe("capability routing", () => {
     expect(plan.min_confidence).toBe("high");
   });
 
+  it("sends current-events phrasing to a live lookup, not a memory answer", () => {
+    const plan = routeRequest({ text: "What's going on with the Bangkok flooding?", scope: "personal" });
+    expect(plan.research?.intent).toBe("lookup");
+    expect(plan.capabilities).toContain("web_lookup");
+  });
+
+  it("keeps internal project talk internal", () => {
+    const plan = routeRequest({ text: "What did we decide about this project last time?", scope: "personal" });
+    expect(plan.research?.intent).not.toBe("lookup");
+  });
+
   it("retrieves internally before reasoning about our own history", () => {
     const plan = routeRequest({ text: "What did we decide about rollback?", scope: "personal" });
     expect(plan.retrieval).toContain("memory");
