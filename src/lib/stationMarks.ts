@@ -66,6 +66,7 @@ export function stationMarks(rows: readonly StationMarkEvent[]): StationMark[] {
           kind: "place",
           name: payloadWord(row.payload, "label") ?? "A place you stamped",
           at: payloadWord(row.payload, "stamped_at") ?? row.created_at,
+          recordId: row.entity_id,
         });
         break;
       }
@@ -78,6 +79,7 @@ export function stationMarks(rows: readonly StationMarkEvent[]): StationMark[] {
           kind: "journey",
           name: payloadWord(row.payload, "route") ?? "A trip you closed",
           at: row.created_at,
+          recordId: payloadWord(row.payload, "journey_id"),
         });
         break;
       case "journey.wrap_up_reopened":
