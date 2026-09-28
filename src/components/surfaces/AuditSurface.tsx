@@ -25,6 +25,7 @@ import { MachineText, SectionRail } from "@/components/ui/instrument";
 import { ReceiptsFront } from "@/components/receipts/ReceiptsFront";
 import { ReceiptsLedger } from "@/components/receipts/ReceiptsLedger";
 import { JourneySummary } from "@/components/receipts/JourneySummary";
+import { StationStamps } from "@/components/receipts/StationStamps";
 import { isQuietRecord, receiptDigest, type ReceiptLine } from "@/lib/receiptDigest";
 
 type AuditRow = {
@@ -264,6 +265,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
 
       <div className={cn("flex-1 space-y-4 overflow-y-auto p-3 md:p-4", MOTION_BOOT)}>
         <JourneySummary />
+        <StationStamps />
         <ReceiptsFront lines={digest} onDrill={drill} className="hidden" />
         <ReceiptsLedger rows={audit} />
         {quiet && (

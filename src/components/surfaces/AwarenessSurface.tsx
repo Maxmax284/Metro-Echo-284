@@ -51,6 +51,7 @@ import { placeDisplayLabel } from "@/lib/placeLabels";
 import { PlacesBoardMap } from "@/components/awareness/PlacesBoardMap";
 import { WelcomeStamp } from "@/components/awareness/WelcomeStamp";
 import { LocalHelpCard } from "@/components/awareness/LocalHelpCard";
+import { useStationMarks } from "@/hooks/useStationMarks";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -87,6 +88,8 @@ export function AwarenessSurface() {
   /* Same read Today uses, so a meeting can't be quiet here and loud there. */
   const digest = useTodayDigest();
   const { read: situation } = useSituation(digest);
+  /* Marks you pressed — feeds the cabinet's rotating slot; null stays out of it. */
+  const { marks: stationMarkList } = useStationMarks();
   const onSignalRoute = useSignalRoute();
   const [places, setPlaces] = useState<AwarenessPlace[]>([]);
   /* Which place the field board is reading. null = wherever you are now. */
@@ -608,6 +611,7 @@ export function AwarenessSurface() {
               : null
           }
           counts={cabinetCounts}
+          marks={stationMarkList ? stationMarkList.length : null}
         />
 
         {/* Help and care for the ground being read: the published number for

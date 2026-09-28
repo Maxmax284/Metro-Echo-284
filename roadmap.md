@@ -96,3 +96,12 @@
 - [x] CSS: season leans the wash (wet chill/dim, dry warm, spring/summer/autumn/winter shifts); edition stamp + tone/motif classes
 - [x] Tests (9 edition + applySeason cases; atmosphere suites 53/53), typecheck, build
 - [x] Live at 384px signed-in: Ko Samui → tropical + dawn + wet + island-coastal all honest; no decal out of window; celebration/water and remembrance/remember decal probes render correctly
+
+## Station stamps + cabinet extensions (Stage 5)
+- [x] src/lib/stationMarks.ts (pure): folds place.stamped/stamp_lifted + journey.wrapped_up/wrap_up_reopened receipts into marks still standing; rollback takes the mark off; name snapshots only, no coordinates; wallTilt from the key; rotatingDial picks one dial a day from what's known
+- [x] useStationMarks hook: audit log read through the scope filter; null while unknown so nothing guesses
+- [x] Station stamps wall in Receipts (StationStamps.tsx + .stamp-wall CSS): stamped places + closed trips as pressed stamps; empty state teaches
+- [x] Cabinet sixth slot rotates daily — travel / platform clock / marks — never grows past six; provenance line per dial
+- [x] 13 unit tests; no new audit events, no schema changes
+- [ ] Live verify at 384px: press a stamp → wall + count; lift → mark gone
+- [ ] Publish Stages 2–5 together (security scan is stale — refresh at publish)
