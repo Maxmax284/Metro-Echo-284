@@ -11,7 +11,6 @@ import {
   ListChecks,
   Search,
   Compass,
-  
   ChevronRight,
   Briefcase,
   Plane,
