@@ -39,7 +39,7 @@ export const OPEN_WATCH_STATES: WatchState[] = ["on_it", "watching", "waiting", 
 export type Watch = {
   id: string;
   goal: string;
-  kind: "action_settled" | "calendar_event" | "web_page";
+  kind: "action_settled" | "calendar_event" | "web_page" | "web_search";
   subject_id: string | null;
   state: WatchState;
   last_check_at: string | null;
