@@ -33,3 +33,17 @@ export function recordBoot() {
     /* a private window still gets its boot; it just forgets it happened */
   }
 }
+
+/* A full roll call claims the day the moment it is decided — synchronously,
+   inside the boot's state initializer — so the claim always lands before the
+   room effect that would lift the dawn shutter behind the cover. The boot's
+   own lift is that day's shutter moment (see ceremonyGate). Unlike
+   recordBoot, the last-boot clock stays untouched: a claimed day must not
+   read as a completed boot. */
+export function claimBootDay() {
+  try {
+    localStorage.setItem(BOOT_DAY_KEY, localDay());
+  } catch {
+    /* private window — the shutter simply keeps its own counsel */
+  }
+}

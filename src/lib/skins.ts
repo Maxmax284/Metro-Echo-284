@@ -1,5 +1,8 @@
 import { play } from "@/lib/streetSound";
 import { applyDaylight } from "@/lib/daylight";
+import { localDay, readLastBoot } from "@/lib/bootStorage";
+import { dawnShutterAllowed, SHUTTER_DAY_KEY } from "@/lib/ceremonyGate";
+import { currentWeather } from "@/lib/weather";
 // Skins — the background is a surface, not wallpaper.
 //
 // Doctrine:
@@ -98,12 +101,19 @@ export function setRoom(room: string): void {
   applyDaylight();
   // Turnstile click on a real room change; zippo when Ask opens. Opt-in only.
   if (prev) play(room === "ask" ? "zippo" : "turnstile");
-  // Dawn shutter: first Today of the local day, once per device.
+  // Dawn shutter: the cheapest ceremony yields to every other — the ceremony
+  // gate decides (a claimed boot day, an earlier lift, or pressure keeps it
+  // down). Its niche is arrivals that skipped the roll call.
   if (room === "today") {
     try {
-      const day = new Date().toDateString();
-      if (localStorage.getItem("vanta.shutter.day") !== day) {
-        localStorage.setItem("vanta.shutter.day", day);
+      const allowed = dawnShutterAllowed({
+        today: localDay(),
+        bootDay: readLastBoot().day,
+        shutterDay: localStorage.getItem(SHUTTER_DAY_KEY),
+        pressured: currentWeather() === "pressure",
+      });
+      if (allowed) {
+        localStorage.setItem(SHUTTER_DAY_KEY, localDay());
         root.setAttribute("data-shutter", "lift");
         window.setTimeout(() => root.removeAttribute("data-shutter"), 1200);
       }
