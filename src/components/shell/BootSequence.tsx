@@ -22,26 +22,20 @@ import { daypartInZone } from "@/lib/daylight";
 import { seasonFor } from "@/lib/station";
 import { OCCASIONS_KEY, occasionFor } from "@/lib/occasions";
 import {
-  BOOT_ENCORE_KEY,
   buildRollCall,
   bootHoldMs,
   bootTurn,
-  decideBoot,
   type BootFacts,
   type BootMode,
 } from "@/lib/bootSequence";
 /* The boot's memory of itself lives in bootStorage — bootSequence.ts stays
-   pure, and the intro writes through the same module. */
-import { claimBootDay, localDay, readLastBoot, recordBoot } from "@/lib/bootStorage";
+   pure, and the intro writes through the same module. The mode decision
+   itself is shared with the shell (bootDecision) so the ceremony-day claim
+   and the boot never disagree. */
+import { localDay, recordBoot } from "@/lib/bootStorage";
+import { decideBootAtMount } from "@/lib/bootDecision";
 import { metresApart } from "@/lib/placeMove";
 import { STAMP_ECHO_M, stampSpoken, stampWord } from "@/lib/welcomeStamp";
-
-/** A notification tap or saved room link asked for something specific. */
-function isDeepLink(): boolean {
-  if (typeof window === "undefined") return false;
-  const p = new URLSearchParams(window.location.search);
-  return ["room", "commitment", "surface", "ack", "as"].some((k) => p.has(k));
-}
 
 function clockLabel(): string {
   try {
