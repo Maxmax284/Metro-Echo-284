@@ -43,6 +43,7 @@ export const KNOWN_SIGNAL_KINDS = [
   "capture_unrouted",
   "sherlock_finding_pending",
   "web_page_changed",
+  "watch_failed",
   "inbound_needs_you",
 ] as const;
 

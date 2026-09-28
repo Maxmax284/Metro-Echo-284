@@ -72,7 +72,7 @@ async function watchReceipt(event: string, watchId: string | null, meta: Record<
       entity_type: "watch",
       entity_id: watchId,
       event,
-      payload: meta,
+      payload: meta as Json,
     });
   } catch { /* the act stands; the receipt is best-effort */ }
 }
