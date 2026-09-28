@@ -281,6 +281,13 @@
       "when": 1790577822329,
       "tag": "0039_watches_state_add_paused",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1790583361278,
+      "tag": "0040_watches_kind_add_web_search",
+      "breakpoints": true
     }
   ]
 }
