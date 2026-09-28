@@ -71,3 +71,12 @@
 - [x] Spray-can reveal on the logged-out door (once per device, sweep on return, static under reduced motion, tap-to-skip)
 - [x] AUTH REJECTED terminal strip replaces toast-only sign-in failures
 - [x] Tests (full suite green bar two known Telegram date expectations), typecheck, build, 384px live verification (spray, sweep, reduced motion, AUTH REJECTED, boot/shutter arbitration signed-in)
+- [x] Published 2026-09-28
+
+## Boot as one flow (Stage 2)
+- [x] Boot cover rides from the first paint — power-up phase (wordmark lit, no claims) replaces the spinner screen and the naked-Today flash
+- [x] Roll call speaks when facts are ready (auth + intro gate + place read), with a 4s cap that degrades to honest unknowns instead of stalling; place read still in flight says READING, never a premature NEW GROUND
+- [x] Solari drums flip in one at a time behind their clacks; drum one rides through from power-up; hold time starts at roll start so load never eats reading time
+- [x] Micro reopen and reduced motion skip the stagger; pressure mid-power-up cuts the cover without recording a boot that never spoke
+- [x] Tests (stagger schedule, power-up cap, pending-vs-new-ground honesty), typecheck, build, 384px live verification signed-in (power-up at first paint, staggered roll, shutter, records)
+- [ ] Deferred from the old Stage 2 line: FieldPolaroid's own Open-Meteo fetch — dedupe needs the snapshot to carry gauge-grade weather (feels/humidity/is-day) first, or the gauge loses data
