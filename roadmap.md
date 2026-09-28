@@ -64,3 +64,10 @@
 - [x] Nearest care glance (ER/hospital/clinic/pharmacy) around the live fix with expander, kind chips, search, keep/forget
 - [x] Saved-place boards keep the numbers and kept pins but never borrow the live care list
 - [x] Verify live at 384px with a signed-in session
+
+## Front door: ceremony gate + spray tag (Stage 1)
+- [x] ceremonyGate: one welcome per landing (spray variant, dawn-shutter yields to boot/intro/pressure)
+- [x] Boot claims the ceremony day synchronously; dawn shutter consolidated under the gate
+- [x] Spray-can reveal on the logged-out door (once per device, sweep on return, static under reduced motion, tap-to-skip)
+- [x] AUTH REJECTED terminal strip replaces toast-only sign-in failures
+- [ ] Tests, typecheck, build, 384px live verification

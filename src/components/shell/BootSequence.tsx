@@ -32,7 +32,7 @@ import {
 } from "@/lib/bootSequence";
 /* The boot's memory of itself lives in bootStorage — bootSequence.ts stays
    pure, and the intro writes through the same module. */
-import { localDay, readLastBoot, recordBoot } from "@/lib/bootStorage";
+import { claimBootDay, localDay, readLastBoot, recordBoot } from "@/lib/bootStorage";
 import { metresApart } from "@/lib/placeMove";
 import { STAMP_ECHO_M, stampSpoken, stampWord } from "@/lib/welcomeStamp";
 
@@ -61,26 +61,34 @@ export function BootSequence() {
 
   /* The decision is made once, at mount, from what is true right then. */
   const [mode] = useState<BootMode>(() => {
+    let decided: BootMode | null = null;
     /* A sign-in just delivered you here (Google's round trip or the email
        form). That is an arrival, not a reopen — the encore marker forces the
        full roll call once, however fresh the last boot was. */
     try {
       if (localStorage.getItem(BOOT_ENCORE_KEY)) {
         localStorage.removeItem(BOOT_ENCORE_KEY);
-        return "full";
+        decided = "full";
       }
     } catch {
       /* private window — fall through to the ordinary decision */
     }
-    const last = readLastBoot();
-    return decideBoot({
-      now: Date.now(),
-      lastBootAt: last.at,
-      lastBootDay: last.day,
-      today: localDay(),
-      deepLink: isDeepLink(),
-      urgent: currentWeather() === "pressure",
-    }).mode;
+    if (!decided) {
+      const last = readLastBoot();
+      decided = decideBoot({
+        now: Date.now(),
+        lastBootAt: last.at,
+        lastBootDay: last.day,
+        today: localDay(),
+        deepLink: isDeepLink(),
+        urgent: currentWeather() === "pressure",
+      }).mode;
+    }
+    /* A full roll call claims the ceremony day synchronously — render runs
+       before any room effect, so the dawn shutter always sees the claim and
+       stays down. The boot's own lift is that day's shutter moment. */
+    if (decided === "full") claimBootDay();
+    return decided;
   });
   const [leaving, setLeaving] = useState(false);
   const [gone, setGone] = useState(false);

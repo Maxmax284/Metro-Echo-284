@@ -2725,3 +2725,170 @@ html[data-sky="wind"]  { --sky-dim: 0.04; --sky-chill: 0.04; }
   font-size: 22px;
   color: hsl(var(--muted-foreground) / 0.55);
 }
+
+/* ——— Spray reveal: the door gets tagged once per device ———
+   One 3.05s timeline drives the can, the wipe, the base/chrome coats, the
+   mist and the drip; SprayReveal.tsx fires the street sounds on the same
+   beats. The gate never mounts this under reduced motion — the kill-switch
+   below is the belt to those suspenders. */
+.spray-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--background));
+  cursor: pointer;
+  transition: opacity 280ms ease;
+}
+.spray-overlay-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.spray-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spray-emblem {
+  position: relative;
+  width: min(58vw, 230px);
+  transform: rotate(-2deg);
+  clip-path: inset(0 100% 0 0);
+  animation: spray-wipe 3.05s linear both;
+}
+.spray-emblem-img {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  animation: spray-coat 3.05s linear both;
+}
+.spray-drip {
+  position: absolute;
+  left: 30%;
+  bottom: -4px;
+  width: 4px;
+  height: 16px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(#7ef0e2, #1fb6a6);
+  transform: scaleY(0);
+  transform-origin: top;
+  animation: spray-drip 420ms ease-out 2.58s both;
+}
+.spray-can-run {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: -40px 0 0 -24px;
+  animation: spray-can-run 3.05s cubic-bezier(0.45, 0, 0.35, 1) both;
+}
+.spray-can-rattle {
+  animation: spray-rattle 90ms linear 5 alternate;
+}
+.spray-can {
+  width: 48px;
+  height: 80px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+}
+.spray-mist {
+  position: absolute;
+  left: -34px;
+  top: 6px;
+  width: 44px;
+  height: 34px;
+  background: radial-gradient(closest-side, rgba(126, 240, 226, 0.5), transparent 70%);
+  filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  animation: spray-mist 3.05s linear both;
+}
+.spray-skip {
+  position: absolute;
+  left: 50%;
+  bottom: -72px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+@keyframes spray-wipe {
+  0%, 16% { clip-path: inset(0 100% 0 0); }
+  44%, 100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes spray-coat {
+  0%, 15% { opacity: 0; filter: brightness(0.9); }
+  18% { opacity: 0.55; }
+  44% { opacity: 0.62; }
+  52% { opacity: 0.78; }
+  66% { opacity: 1; filter: brightness(1.18); }
+  78%, 100% { opacity: 1; filter: brightness(1); }
+}
+@keyframes spray-can-run {
+  0% { transform: translate(52vw, 26vh) rotate(24deg); opacity: 0; }
+  5% { transform: translate(36vw, 16vh) rotate(18deg); opacity: 1; }
+  14% { transform: translate(36vw, 16vh) rotate(18deg); }
+  16% { transform: translate(33vw, 10vh) rotate(12deg); }
+  44% { transform: translate(-33vw, 6vh) rotate(-8deg); }
+  48% { transform: translate(-36vw, 10vh) rotate(-10deg); }
+  52% { transform: translate(-30vw, -4vh) rotate(-6deg); }
+  68% { transform: translate(30vw, -8vh) rotate(10deg); }
+  74% { transform: translate(38vw, -2vh) rotate(16deg); }
+  88% { transform: translate(58vw, 32vh) rotate(38deg); opacity: 1; }
+  100% { transform: translate(64vw, 42vh) rotate(45deg); opacity: 0; }
+}
+@keyframes spray-rattle {
+  from { transform: rotate(-5deg); }
+  to { transform: rotate(5deg); }
+}
+@keyframes spray-mist {
+  0%, 15% { opacity: 0; }
+  18%, 43% { opacity: 0.55; }
+  47%, 51% { opacity: 0; }
+  54%, 67% { opacity: 0.45; }
+  71%, 100% { opacity: 0; }
+}
+@keyframes spray-drip {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* Return visits: the tag is already up — one chrome sweep across it. */
+.spray-sheen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.spray-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.3) 50%, transparent 58%);
+  transform: translateX(-75%);
+  pointer-events: none;
+  animation: spray-sheen-run 850ms ease-out 300ms both;
+}
+@keyframes spray-sheen-run {
+  to { transform: translateX(75%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spray-emblem,
+  .spray-emblem-img,
+  .spray-can-run,
+  .spray-can-rattle,
+  .spray-mist,
+  .spray-drip,
+  .spray-sheen::after {
+    animation: none !important;
+  }
+  .spray-overlay {
+    transition: none;
+  }
+}
