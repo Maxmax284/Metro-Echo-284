@@ -59,6 +59,7 @@ import { BootSequence } from "@/components/shell/BootSequence";
 import { IntroSequence } from "@/components/shell/IntroSequence";
 import { useIntroGate } from "@/hooks/useIntroGate";
 import { decideBootAtMount } from "@/lib/bootDecision";
+import type { BootMode } from "@/lib/bootSequence";
 import { claimBootDay } from "@/lib/bootStorage";
 import { useEffect } from "react";
 import { useRoomSignals } from "@/hooks/useRoomSignals";
