@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { applyRegionTint, currentRegionTint, regionTint } from "@/lib/regionTint";
+import { applyRegionTint, applySeason, currentRegionTint, currentSeason, regionTint } from "@/lib/regionTint";
 
 describe("regionTint", () => {
   it("tints from the latitude band — any country, no painted asset needed", () => {
@@ -53,5 +53,24 @@ describe("applyRegionTint", () => {
     expect(document.documentElement.hasAttribute("data-lat-band")).toBe(false);
     expect(document.documentElement.hasAttribute("data-daypart")).toBe(false);
     expect(currentRegionTint()).toBeNull();
+  });
+});
+
+describe("applySeason", () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute("data-season");
+  });
+
+  it("writes the season key for css to lean on", () => {
+    applySeason("wet");
+    expect(document.documentElement.getAttribute("data-season")).toBe("wet");
+    expect(currentSeason()).toBe("wet");
+  });
+
+  it("clears on null — a place with no honest latitude wears no season", () => {
+    applySeason("winter");
+    applySeason(null);
+    expect(document.documentElement.hasAttribute("data-season")).toBe(false);
+    expect(currentSeason()).toBeNull();
   });
 });
