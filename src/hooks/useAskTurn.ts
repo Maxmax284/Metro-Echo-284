@@ -14,6 +14,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { detectDeviceClass } from "@/lib/deviceClass";
 import { attachmentHints, type AttachmentHint } from "@/lib/askCapabilities";
 import { RECEIPT_META } from "@/lib/askReceipts";
+import { stagedApprovalLine } from "@/lib/intentKinds";
 import type { ThreadContext } from "@/lib/askThreads";
 import {
   getAskSession, setAskMessages, beginAskStream, endAskStream, adoptAskSession,
@@ -126,10 +127,23 @@ export function useAskTurn(opts?: {
     beginAskStream(threadId, ctrl);
     let aborted = false;
     let assistantSoFar = "";
+    /* Live lookups read in silence for a moment — an honest pulse, never an
+       approval card. The instant real words arrive the pulse is gone. */
+    const READING_PULSE = "_Checking live sources…_";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
     /* Plain-English provenance for the reads the server ran this turn. */
     const readLines: string[] = [];
     let hints: AttachmentHint[] = [];
+    let sawText = false;
+    let pulseShown = false;
+    let pulseTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearPulse = () => {
+      if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; }
+      if (pulseShown && !sawText) {
+        pulseShown = false;
+        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: "" } : m)));
+      }
+    };
 
     const bound = o?.context ?? (active && active.id === threadId
       ? { kind: active.context_kind, id: active.context_id, label: active.context_label }
@@ -187,6 +201,7 @@ export function useAskTurn(opts?: {
             const p = JSON.parse(json);
             const delta = p.choices?.[0]?.delta?.content as string | undefined;
             if (delta) {
+              if (!sawText) { sawText = true; if (pulseTimer) { clearTimeout(pulseTimer); pulseTimer = null; } }
               assistantSoFar += delta;
               write((prev) =>
                 prev.map((m, idx) => (idx === aIdx ? { ...m, content: assistantSoFar } : m)),
@@ -199,6 +214,18 @@ export function useAskTurn(opts?: {
             if (p.intent) {
               /* One staging path only. Anything else double-writes the draft. */
               staged.push(p.intent);
+              /* A lookup reads for a few seconds with no words streamed — say
+                 what is happening rather than leaving a blank bubble that used
+                 to harden into a fake approval line. */
+              if (!sawText && !pulseTimer && !pulseShown) {
+                pulseTimer = setTimeout(() => {
+                  pulseTimer = null;
+                  if (!sawText && !aborted) {
+                    pulseShown = true;
+                    write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: READING_PULSE } : m)));
+                  }
+                }, 1200);
+              }
               void internalIntent(p.intent.name, p.intent.args, {
                 surface: "ask",
                 conversation_id: threadId,
@@ -219,19 +246,13 @@ export function useAskTurn(opts?: {
         }
       }
 
-      /* A turn that only prepares a draft still has to be readable tomorrow.
-         Keeping an eye on something approves nothing and runs nothing, so it
-         must not be described as waiting for approval. */
-      /* Intents whose result speaks for itself produce no staged line: a
-         lookup answers in its own message, a watch leaves its own receipt. */
-      const QUIET_INTENTS = new Set(["keep_an_eye_on", "stop_watching", "whats_being_watched", "where_do_i_stand", "look_up", "check_page"]);
+      /* Only a real proposal may carry the staged wording. An allow-list, not
+         a read-exclusion list: a lookup, a watch or a tool the model half-named
+         all fail closed here — they answer with their own result or with the
+         honest empty stream, never with "Drafted for approval". */
+      clearPulse();
       const stagedLine = staged.length
-        ? staged.map((s) => {
-            const a = (s.args ?? {}) as Record<string, unknown>;
-            const what = String(a.title ?? a.summary ?? a.text ?? a.reference ?? "").trim();
-            if (QUIET_INTENTS.has(s.name)) return "";
-            return `Drafted for approval${what ? `: ${what}` : ""}. Nothing has run.`;
-          }).join("\n")
+        ? staged.map((s) => stagedApprovalLine(s.name, s.args)).filter(Boolean).join("\n")
         : "";
       const finalContent = aborted && assistantSoFar
         ? `${assistantSoFar}\n\n_Stopped._`
@@ -261,6 +282,7 @@ export function useAskTurn(opts?: {
          — and a first-turn lookup still deserves its name. */
       await noteActivity(threadId, firstTurn ? text : undefined);
     } catch (e: any) {
+      clearPulse();
       if (e?.name === "AbortError") {
         aborted = true;
         const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
@@ -275,6 +297,7 @@ export function useAskTurn(opts?: {
         toast.fromError(e);
       }
     } finally {
+      clearPulse();
       endAskStream(threadId);
       if (hints.length) attachRef.current?.clearCompleted();
     }
