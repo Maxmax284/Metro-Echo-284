@@ -23,6 +23,13 @@ export type StationMark = {
   name: string;
   /** ISO of the deliberate act. */
   at: string;
+  /**
+   * Pointer to the record behind the mark: the place id for a stamp, the
+   * journey id (its legs' plan ids joined with "+") for a wrap. Null when
+   * the receipt was pressed before records were linked — then the receipt
+   * itself is all the record there is, and the replay says so.
+   */
+  recordId: string | null;
 };
 
 export type StationMarkEvent = {
@@ -59,6 +66,7 @@ export function stationMarks(rows: readonly StationMarkEvent[]): StationMark[] {
           kind: "place",
           name: payloadWord(row.payload, "label") ?? "A place you stamped",
           at: payloadWord(row.payload, "stamped_at") ?? row.created_at,
+          recordId: row.entity_id,
         });
         break;
       }
@@ -71,6 +79,7 @@ export function stationMarks(rows: readonly StationMarkEvent[]): StationMark[] {
           kind: "journey",
           name: payloadWord(row.payload, "route") ?? "A trip you closed",
           at: row.created_at,
+          recordId: payloadWord(row.payload, "journey_id"),
         });
         break;
       case "journey.wrap_up_reopened":

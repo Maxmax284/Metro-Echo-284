@@ -26,7 +26,7 @@ describe("stationMarks", () => {
       ev("place.stamped", "2026-09-26T10:00:00Z", { label: "Ko Samui", stamped_at: "2026-09-26T09:58:00Z" }),
     ]);
     expect(marks).toEqual([
-      { key: "place:p1", kind: "place", name: "Ko Samui", at: "2026-09-26T09:58:00Z" },
+      { key: "place:p1", kind: "place", name: "Ko Samui", at: "2026-09-26T09:58:00Z", recordId: "p1" },
     ]);
   });
 
@@ -79,8 +79,21 @@ describe("stationMarks", () => {
   it("a wrapped trip stands as a journey mark", () => {
     const marks = stationMarks([ev("journey.wrapped_up", "2026-09-25T10:00:00Z", { route: "IAD → USM" }, null)]);
     expect(marks).toEqual([
-      { key: "journey:2026-09-25T10:00:00Z", kind: "journey", name: "IAD → USM", at: "2026-09-25T10:00:00Z" },
+      {
+        key: "journey:2026-09-25T10:00:00Z",
+        kind: "journey",
+        name: "IAD → USM",
+        at: "2026-09-25T10:00:00Z",
+        recordId: null,
+      },
     ]);
+  });
+
+  it("a wrap carries the journey id as the pointer to its record", () => {
+    const marks = stationMarks([
+      ev("journey.wrapped_up", "2026-09-25T10:00:00Z", { route: "IAD → USM", journey_id: "leg1+leg2" }, null),
+    ]);
+    expect(marks[0].recordId).toBe("leg1+leg2");
   });
 
   it("reopening lifts only the latest standing wrap", () => {
