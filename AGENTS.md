@@ -1,15 +1,15 @@
 # Project Rules
 
-- Boot ceremony lives in `src/lib/bootSequence.ts` (decisions/copy/holds, pure) + `src/components/shell/BootSequence.tsx` (render) — keep logic pure so holds and copy stay testable.
-- `src/lib/station.ts` is the only source for season, moon, daylight and latitude-band math — computed on-device from date + coordinates, never from a feed, so it holds offline.
-- `data-sky` (meteorological, `src/lib/sky.ts`) is strictly separate from `data-weather` (task pressure) — a thunderstorm must never read as overdue promises.
-- Reduced-motion checks go through `src/lib/reducedMotion.ts` — one helper, no per-component reimplementation.
-- The Curiosity Cabinet (`src/components/awareness/CuriosityCabinet.tsx`) only ever speaks when coordinates exist; no fix means teaching copy, never a guessed reading.
-- Atmosphere: `regionTint.ts` (band/daypart/season) + `regions.ts` (seeded, country-gated; unmapped=nothing) set data-lat-band/data-daypart/data-season/data-region; precedence band<season<region<skin<wall.
-- Wikipedia photos ship with attribution: `place-ground-read` resolves artist + license per photo and `FieldPolaroid` renders the credit under each image. Licenses require it — never strip it.
-- Fonts (Rubik, Space Mono, OFL) and Leaflet pins are bundled under `public/fonts` and `public/vendor/leaflet` — no third-party calls to render the app's own chrome.
-- Kept occasions live in `src/lib/occasions.ts` (pure: fixed dates, weekday rules, computus, November full moon via station.ts); `stationEdition.ts` wears one as a windowed Today decal. Opt-in via `vanta.occasions.on`; a stale fix never gets stamped; remembrance stays quiet. No feed, no per-city hardcoding.
-- Curiosity Cabinet about-you dials (home clock, signal, travel count): home is the place marked Home on the board, the signal meter is the device's own report (no probes), the travel counter counts saved places only. Home without a clock zone on file says so; nothing guesses.
-- The live place ("where you are") is only ever a row with geo.source = device (AwarenessProvider filters on it) — editing a saved place bumps updated_at and must never teleport the app.
-- Welcome stamps are deliberate and receipted: `stamped_at` on awareness_places (one press, one audit event `place.stamped`/`place.stamp_lifted`), echoed at boot over the place drum ("here" = the live row is stamped, "near" = fix within STAMP_ECHO_M of stamped ground), never on a stale fix. A stamp is place identity — `placePatchForFix` clears it on a real move, the same law as names.
-- The once-per-account intro (`src/lib/introSequence.ts` pure + `IntroSequence.tsx` + `useIntroGate`) gates on `profiles.preferences.intro_seen_at` — the server flag outranks device state, so the Google sign-in round trip can't bypass it. Finishing writes the flag, burns the sign-in encore, and records a boot so no second ceremony fires on the same landing; a failed read never traps anyone (intro skipped that launch).
+- Boot ceremony: `src/lib/bootSequence.ts` (pure) + `BootSequence.tsx` (render) — logic stays pure so holds and copy stay testable.
+- `src/lib/station.ts` is the only source for season, moon, daylight and lat-band math — on-device from date + coordinates, never a feed.
+- `data-sky` (meteorological, `src/lib/sky.ts`) is strictly separate from `data-weather` (task pressure) — a storm never reads as overdue promises.
+- Reduced-motion checks go through `src/lib/reducedMotion.ts` — one helper only.
+- The Curiosity Cabinet only speaks when coordinates exist; no fix means teaching copy, never a guess.
+- Atmosphere: `regionTint.ts` (band/daypart/season) + `regions.ts` (seeded, country-gated; unmapped=nothing); precedence band<season<region<skin<wall.
+- Wikipedia photos keep attribution: `place-ground-read` resolves artist + license, `FieldPolaroid` renders the credit — never strip it.
+- Fonts (Rubik, Space Mono, OFL) and Leaflet pins are bundled under `public/` — no third-party calls for the app's own chrome.
+- Kept occasions: `src/lib/occasions.ts` (pure; computus, Nov full moon via station.ts), worn by `stationEdition.ts` as a windowed Today decal. Opt-in `vanta.occasions.on`; stale fix never stamped; remembrance quiet. No per-city hardcoding.
+- Cabinet dials: home = place marked Home, signal = device's own report, travel = saved places only. The sixth slot rotates one dial/day (travel/platform clock/marks) via `rotatingDial` in `stationMarks.ts` — never grows past six; unknown counts stay out.
+- The live place is only ever a row with geo.source = device — editing a saved place bumps updated_at and must never teleport the app.
+- Stamps are deliberate + receipted (`stamped_at`, one audit event per press/lift, echoed at boot, never on a stale fix; `placePatchForFix` clears on a real move). `stationMarks.ts` folds stamp + journey-wrap receipts into the Station stamps wall in Receipts — name snapshots, no coordinates, rollback removes the mark.
+- The once-per-account intro gates on `profiles.preferences.intro_seen_at` — server flag outranks device state, so the Google sign-in round trip can't bypass it. Finishing writes the flag + records a boot; a failed read never traps (intro skipped that launch).
