@@ -67,7 +67,7 @@
 
 ## Front door: ceremony gate + spray tag (Stage 1)
 - [x] ceremonyGate: one welcome per landing (spray variant, dawn-shutter yields to boot/intro/pressure)
-- [x] Boot claims the ceremony day synchronously; dawn shutter consolidated under the gate
+- [x] Boot claims the ceremony day at the shell's first render (peek/consume split in bootDecision); dawn shutter consolidated under the gate — race caught and closed live
 - [x] Spray-can reveal on the logged-out door (once per device, sweep on return, static under reduced motion, tap-to-skip)
 - [x] AUTH REJECTED terminal strip replaces toast-only sign-in failures
-- [ ] Tests, typecheck, build, 384px live verification
+- [x] Tests (full suite green bar two known Telegram date expectations), typecheck, build, 384px live verification (spray, sweep, reduced motion, AUTH REJECTED, boot/shutter arbitration signed-in)

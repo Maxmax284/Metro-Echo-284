@@ -22,26 +22,20 @@ import { daypartInZone } from "@/lib/daylight";
 import { seasonFor } from "@/lib/station";
 import { OCCASIONS_KEY, occasionFor } from "@/lib/occasions";
 import {
-  BOOT_ENCORE_KEY,
   buildRollCall,
   bootHoldMs,
   bootTurn,
-  decideBoot,
   type BootFacts,
   type BootMode,
 } from "@/lib/bootSequence";
 /* The boot's memory of itself lives in bootStorage — bootSequence.ts stays
-   pure, and the intro writes through the same module. */
-import { claimBootDay, localDay, readLastBoot, recordBoot } from "@/lib/bootStorage";
+   pure, and the intro writes through the same module. The mode decision
+   itself is shared with the shell (bootDecision) so the ceremony-day claim
+   and the boot never disagree. */
+import { recordBoot } from "@/lib/bootStorage";
+import { decideBootAtMount } from "@/lib/bootDecision";
 import { metresApart } from "@/lib/placeMove";
 import { STAMP_ECHO_M, stampSpoken, stampWord } from "@/lib/welcomeStamp";
-
-/** A notification tap or saved room link asked for something specific. */
-function isDeepLink(): boolean {
-  if (typeof window === "undefined") return false;
-  const p = new URLSearchParams(window.location.search);
-  return ["room", "commitment", "surface", "ack", "as"].some((k) => p.has(k));
-}
 
 function clockLabel(): string {
   try {
@@ -59,37 +53,11 @@ export function BootSequence() {
   const { place, snapshot, stampedPlaces } = useAwareness();
   const timers = useRef<number[]>([]);
 
-  /* The decision is made once, at mount, from what is true right then. */
-  const [mode] = useState<BootMode>(() => {
-    let decided: BootMode | null = null;
-    /* A sign-in just delivered you here (Google's round trip or the email
-       form). That is an arrival, not a reopen — the encore marker forces the
-       full roll call once, however fresh the last boot was. */
-    try {
-      if (localStorage.getItem(BOOT_ENCORE_KEY)) {
-        localStorage.removeItem(BOOT_ENCORE_KEY);
-        decided = "full";
-      }
-    } catch {
-      /* private window — fall through to the ordinary decision */
-    }
-    if (!decided) {
-      const last = readLastBoot();
-      decided = decideBoot({
-        now: Date.now(),
-        lastBootAt: last.at,
-        lastBootDay: last.day,
-        today: localDay(),
-        deepLink: isDeepLink(),
-        urgent: currentWeather() === "pressure",
-      }).mode;
-    }
-    /* A full roll call claims the ceremony day synchronously — render runs
-       before any room effect, so the dawn shutter always sees the claim and
-       stays down. The boot's own lift is that day's shutter moment. */
-    if (decided === "full") claimBootDay();
-    return decided;
-  });
+  /* The decision is made once, at mount, from what is true right then. The
+     encore marker is spent here and only here; the shell's earlier peek
+     (bootDecision, consumeEncore: false) claimed the ceremony day without
+     touching it. */
+  const [mode] = useState<BootMode>(() => decideBootAtMount({ consumeEncore: true }));
   const [leaving, setLeaving] = useState(false);
   const [gone, setGone] = useState(false);
 

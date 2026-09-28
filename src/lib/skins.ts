@@ -1,6 +1,6 @@
 import { play } from "@/lib/streetSound";
 import { applyDaylight } from "@/lib/daylight";
-import { localDay, readLastBoot } from "@/lib/bootStorage";
+import { localDay, readBootClaim, readLastBoot } from "@/lib/bootStorage";
 import { dawnShutterAllowed, SHUTTER_DAY_KEY } from "@/lib/ceremonyGate";
 import { currentWeather } from "@/lib/weather";
 // Skins — the background is a surface, not wallpaper.
@@ -106,14 +106,20 @@ export function setRoom(room: string): void {
   // down). Its niche is arrivals that skipped the roll call.
   if (room === "today") {
     try {
+      /* A full boot claims its day the moment it's decided (vanta.boot.
+         claimed), a completed boot or intro is on the boot's own record —
+         either one is today's ceremony, so the shutter yields to both. */
+      const today = localDay();
+      const ceremonyDay =
+        readBootClaim() === today || readLastBoot().day === today ? today : null;
       const allowed = dawnShutterAllowed({
-        today: localDay(),
-        bootDay: readLastBoot().day,
+        today,
+        bootDay: ceremonyDay,
         shutterDay: localStorage.getItem(SHUTTER_DAY_KEY),
         pressured: currentWeather() === "pressure",
       });
       if (allowed) {
-        localStorage.setItem(SHUTTER_DAY_KEY, localDay());
+        localStorage.setItem(SHUTTER_DAY_KEY, today);
         root.setAttribute("data-shutter", "lift");
         window.setTimeout(() => root.removeAttribute("data-shutter"), 1200);
       }
