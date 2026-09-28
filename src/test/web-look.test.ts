@@ -10,7 +10,10 @@ import {
   pageTitle,
   readPage,
   safeUrl,
+  searchFingerprint,
+  checkSearch,
   sourceLine,
+  webSearchWatchGoal,
   webWatchGoal,
 } from "@/lib/webLook";
 
@@ -131,6 +134,6 @@ describe("watching a topic", () => {
   });
 
   it("states the watched question in the goal", () => {
-    expect(webSearchWatchGoal("  bangkok   flooding ")).toBe('Watch the web for "bangkok flooding"'.replace(/"/g, "“").replace(" flooding”", " flooding”"));
+    expect(webSearchWatchGoal("  bangkok   flooding ")).toBe("Watch the web for “bangkok flooding”");
   });
 });
