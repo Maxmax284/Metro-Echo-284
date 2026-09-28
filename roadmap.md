@@ -120,3 +120,4 @@
 - [ ] Phase 2: Ask follow-up chips after live-world answers (Keep me updated via real web_page watch); source chips with authority/freshness; widen research routing for current-events phrasing; decline cooldowns
 - [ ] Verify: typecheck, targeted tests, full suite, 384px live pass
 - [ ] NOT in this build: Phases 3-6 (Receipts provenance, Notifications unification, Settings reorg, topic watches)
+- [ ] Documents desk elevated to its own visible station on the main Work shelf; "Analyze document" affordance next to "File it" (user request, same round as Phases 0-2)
