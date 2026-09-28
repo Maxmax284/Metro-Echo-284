@@ -13,7 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Upload, FileText, Search, RefreshCw } from "lucide-react";
+import { Loader2, Upload, FileText, FileSearch, Search, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { analyzeIngestedFiles, isDocumentLike } from "@/lib/documents";
+import { useActiveOrgId } from "@/hooks/useScope";
 import { formatDistanceToNow } from "date-fns";
 import { useSherlock } from "@/components/sherlock/SherlockContext";
 import { StatusDot, ingestStatusTone } from "@/components/ui/status-dot";
