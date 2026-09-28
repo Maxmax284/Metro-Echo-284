@@ -22,6 +22,7 @@ import { useStagedUpload } from "@/hooks/useStagedUpload";
 import { AttachmentStrip } from "@/components/ask/AttachmentStrip";
 import { LookAtSheet } from "@/components/ask/LookAtSheet";
 import { WhyThis } from "@/components/ask/WhyThis";
+import { WorldFollowUps } from "@/components/ask/WorldFollowUps";
 import { ThreadNav, ThreadJump } from "@/components/ask/ThreadNav";
 import { coldOffer, markSeen } from "@/lib/threadShelf";
 
@@ -142,6 +143,16 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
 
   // One turn engine for every Ask body, including the inline heads-up reply.
   const { send } = useAskTurn({ attachments: stagedUpload });
+
+  /* A watch started from a follow-up leaves the same receipt line as one
+     started by sentence — session-local, like every other ack. */
+  const appendWatchReceipt = (summary: string) => {
+    const meta = RECEIPT_META.keep_an_eye_on;
+    setMsgs((prev) => [
+      ...prev,
+      { role: "system", content: summary, receipt: { kind: "keep_an_eye_on", summary, surface: meta.surface } },
+    ]);
+  };
 
 
   // Thread selection lives in the shared engine; this surface only loads turns.
@@ -432,6 +443,18 @@ export function ConversationSurface({ readOnly = false }: { readOnly?: boolean }
                     </div>
                   )}
                 </div>
+                {/* The doors a live-world answer opens: where it came from,
+                    keep watching (a real watch, never a claim), and where it
+                    hits. Only answers Echo really fetched carry these. */}
+                {isEcho && !readOnly && m.content && !(streaming && i === msgs.length - 1) && (
+                  <WorldFollowUps
+                    messageId={m.id}
+                    metadata={m.metadata}
+                    busy={busy}
+                    onSendPrompt={(t) => void send(t)}
+                    onWatched={appendWatchReceipt}
+                  />
+                )}
                 {m.role === "user" && m.metadata && (m.metadata.source || m.metadata.detected_type || m.metadata.routed_to) && (
                   <div className="mr-1 flex flex-wrap items-center justify-end gap-1 text-[10px] text-muted-foreground">
                     {m.metadata.source && (
