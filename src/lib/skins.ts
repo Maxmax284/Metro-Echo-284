@@ -120,8 +120,6 @@ export function setRoom(room: string): void {
       });
       if (allowed) {
         localStorage.setItem(SHUTTER_DAY_KEY, today);
-      if (allowed) {
-        localStorage.setItem(SHUTTER_DAY_KEY, localDay());
         root.setAttribute("data-shutter", "lift");
         window.setTimeout(() => root.removeAttribute("data-shutter"), 1200);
       }
