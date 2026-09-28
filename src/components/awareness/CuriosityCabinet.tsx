@@ -250,6 +250,8 @@ export function CuriosityCabinet({
       : "Mark a saved place as Home and this dial keeps its hour while you're away.",
     signal: "Your device's own report — its word, not a test. Echo doesn't spend a packet to check the line.",
     travel: "Counted from the places on your board — nothing else. No route history, no breadcrumb trail.",
+    clock: "The hour on this station's platform — figured from the place's clock zone on this device, never fetched.",
+    marks: "Counted from marks you pressed on purpose — stamped places and trips you closed. Lift one and the count drops. No route history.",
   };
 
   return (
@@ -372,43 +374,77 @@ export function CuriosityCabinet({
           <span className="cab-dial-sub">{conn.sub}</span>
         </button>
 
-        {/* Travel — the board, counted. */}
-        <button
-          type="button"
-          onClick={() => flip("travel")}
-          aria-pressed={src === "travel"}
-          aria-label={
-            travelCount
-              ? `Travel: ${travelCount.places} places kept across ${travelCount.countries} countries. Tap for where this reading comes from.`
-              : "Travel: no places kept yet. Tap for where this reading comes from."
-          }
-          className="cab-dial"
-        >
-          <span className="cab-dial-icon"><MapPinned className="h-3 w-3" /> travel</span>
-          {travelCount ? (
-            <>
-              <span className="cab-count font-mono" aria-hidden>{travelCount.places}</span>
-              <span className="cab-dial-word">{travelCount.places === 1 ? "Place kept" : "Places kept"}</span>
-              <span className="cab-dial-sub">
-                {travelCount.countries === 0
-                  ? "one country's worth"
-                  : `${travelCount.countries} ${travelCount.countries === 1 ? "country" : "countries"}`}
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="cab-count font-mono" aria-hidden>0</span>
-              <span className="cab-dial-word">No places yet</span>
-              <span className="cab-dial-sub">save one and the count starts</span>
-            </>
-          )}
-        </button>
+        {/* The rotating sixth slot — one dial a day, picked by the date. */}
+        {slotDial === "clock" && hereClock ? (
+          <button
+            type="button"
+            onClick={() => flip("clock")}
+            aria-pressed={src === "clock"}
+            aria-label={`Platform clock: ${hereClock.hhmm} at ${city ?? "this station"}. Tap for where this reading comes from.`}
+            className="cab-dial"
+          >
+            <span className="cab-dial-icon"><Clock className="h-3 w-3" /> clock</span>
+            <span className="cab-clockface font-mono" aria-hidden>
+              {hereClock.hhmm.split(":")[0]}
+              <span className="cab-blink">:</span>
+              {hereClock.hhmm.split(":")[1]}
+            </span>
+            <span className="cab-dial-word">Platform</span>
+            <span className="cab-dial-sub">{city ?? "this station"}</span>
+          </button>
+        ) : slotDial === "marks" && marks != null ? (
+          <button
+            type="button"
+            onClick={() => flip("marks")}
+            aria-pressed={src === "marks"}
+            aria-label={`Marks: ${marks} ${marks === 1 ? "mark" : "marks"} pressed — stamped places and closed trips. Tap for where this reading comes from.`}
+            className="cab-dial"
+          >
+            <span className="cab-dial-icon"><Stamp className="h-3 w-3" /> marks</span>
+            <span className="cab-count font-mono" aria-hidden>{marks}</span>
+            <span className="cab-dial-word">{marks === 1 ? "Mark pressed" : "Marks pressed"}</span>
+            <span className="cab-dial-sub">
+              {marks === 0 ? "stamp a place or close a trip" : "places and trips"}
+            </span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => flip("travel")}
+            aria-pressed={src === "travel"}
+            aria-label={
+              travelCount
+                ? `Travel: ${travelCount.places} places kept across ${travelCount.countries} countries. Tap for where this reading comes from.`
+                : "Travel: no places kept yet. Tap for where this reading comes from."
+            }
+            className="cab-dial"
+          >
+            <span className="cab-dial-icon"><MapPinned className="h-3 w-3" /> travel</span>
+            {travelCount ? (
+              <>
+                <span className="cab-count font-mono" aria-hidden>{travelCount.places}</span>
+                <span className="cab-dial-word">{travelCount.places === 1 ? "Place kept" : "Places kept"}</span>
+                <span className="cab-dial-sub">
+                  {travelCount.countries === 0
+                    ? "one country's worth"
+                    : `${travelCount.countries} ${travelCount.countries === 1 ? "country" : "countries"}`}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="cab-count font-mono" aria-hidden>0</span>
+                <span className="cab-dial-word">No places yet</span>
+                <span className="cab-dial-sub">save one and the count starts</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       <p key={src ?? "base"} className="ground-line mt-3 text-[11px] leading-snug text-muted-foreground">
         {src
           ? PROVENANCE[src]
-          : "Figured on this device from the date and the fix — no feed, so these hold with no signal. Tap a dial for where its reading comes from."}
+          : "Figured on this device from the date and the fix — no feed, so these hold with no signal. Tap a dial for where its reading comes from; the last one changes with the date."}
       </p>
     </section>
   );
