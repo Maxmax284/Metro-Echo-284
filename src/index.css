@@ -1593,6 +1593,26 @@ html[data-place="tokyo"] .vanta-bd-place {
   }
 }
 
+/* Region moods: a seeded region with no painted city wall still gets a
+   horizon, painted in pure gradients — no assets. A kept painted wall
+   (data-place) always takes the layer; the mood steps aside for it. */
+html[data-region="island-coastal"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.4;
+  background-image: radial-gradient(100% 46% at 50% 104%, hsl(172 65% 45% / 0.55), transparent 68%);
+}
+html[data-region="capital-metro"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.35;
+  background-image: radial-gradient(76% 42% at 12% 100%, hsl(38 90% 56% / 0.45), transparent 70%);
+}
+html[data-region="northern-mist"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.4;
+  background-image: linear-gradient(to top, hsl(208 32% 62% / 0.5), transparent 46%);
+}
+html[data-region="brutalist-metro"]:not([data-place]) .vanta-bd-place {
+  --bd-place: 0.35;
+  background-image: linear-gradient(to bottom, hsl(214 26% 58% / 0.4), transparent 42%);
+}
+
 /* Concrete stays cold, and a quiet day dims the district first. */
 html[data-skin="concrete"] .vanta-bd-place { filter: saturate(0.4) contrast(1.06); }
 html[data-ambient="off"] .vanta-bd-place { opacity: 0; }
@@ -2511,12 +2531,12 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   .boot-call-in { animation: none; }
 }
 
-/* ── Sky channel (scaffold) ─────────────────────────────────────────────────
+/* ── Sky channel ────────────────────────────────────────────────────────────
    `data-sky` is the meteorological sky — written by lib/sky.ts only from
    weather Echo already fetched, cleared when the reading goes stale. It is
    strictly separate from `data-weather` (operational pressure): a storm must
-   never read as overdue promises. Stage 2 paints with these tokens; for now
-   they only exist so the channel has a stable contract. */
+   never read as overdue promises. The wash consumes these tokens: dim lowers
+   its brightness, chill pulls its saturation toward grey. */
 html[data-sky="clear"] { --sky-dim: 0; --sky-chill: 0; }
 html[data-sky="cloud"] { --sky-dim: 0.04; --sky-chill: 0.02; }
 html[data-sky="fog"]   { --sky-dim: 0.06; --sky-chill: 0.03; }
