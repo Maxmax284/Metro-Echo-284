@@ -88,3 +88,11 @@
 - [x] Tests (9 region-mapping/attribute cases; atmosphere suites 32/32), typecheck, build
 - [x] Live at 384px signed-in: 2-day-old fix = no atmosphere claim (doctrine); fresh fix at Ko Samui → island-coastal + tropical + daypart, Bangkok wall keeps the place layer; wash probe confirmed hue response
 - [ ] Publish Stage 2 + Stage 3 together
+
+## Cultural moments + seasons (Stage 4)
+- [x] stationEdition.ts: windowed kept-day editions (opt-in, fresh fix, country the list speaks; motif fallback "mark"; until = window end)
+- [x] StationEdition decal on the Today concourse — expires on its own, remembrance stays quiet grey, non-interactive, says when it leaves
+- [x] data-season from station.ts (band + hemisphere + date; September never assumed autumn) applied by RegionTintChannel, cleared on stale/unmount
+- [x] CSS: season leans the wash (wet chill/dim, dry warm, spring/summer/autumn/winter shifts); edition stamp + tone/motif classes
+- [x] Tests (9 edition + applySeason cases; atmosphere suites 53/53), typecheck, build
+- [x] Live at 384px signed-in: Ko Samui → tropical + dawn + wet + island-coastal all honest; no decal out of window; celebration/water and remembrance/remember decal probes render correctly
