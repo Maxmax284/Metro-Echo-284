@@ -2831,16 +2831,16 @@ html[data-sky="wind"]  { --sky-dim: 0.04; --sky-chill: 0.04; }
   78%, 100% { opacity: 1; filter: brightness(1); }
 }
 @keyframes spray-can-run {
-  0% { transform: translate(52vw, 30vh) rotate(24deg); opacity: 0; }
-  5% { transform: translate(36vw, 22vh) rotate(18deg); opacity: 1; }
-  14% { transform: translate(36vw, 22vh) rotate(18deg); }
-  16% { transform: translate(33vw, 18vh) rotate(12deg); }
-  44% { transform: translate(-33vw, 14vh) rotate(-8deg); }
-  48% { transform: translate(-36vw, 18vh) rotate(-10deg); }
-  52% { transform: translate(-30vw, 6vh) rotate(-6deg); }
-  68% { transform: translate(30vw, 2vh) rotate(10deg); }
-  74% { transform: translate(38vw, 8vh) rotate(16deg); }
-  88% { transform: translate(58vw, 34vh) rotate(38deg); opacity: 1; }
+  0% { transform: translate(52vw, 26vh) rotate(24deg); opacity: 0; }
+  5% { transform: translate(36vw, 16vh) rotate(18deg); opacity: 1; }
+  14% { transform: translate(36vw, 16vh) rotate(18deg); }
+  16% { transform: translate(33vw, 10vh) rotate(12deg); }
+  44% { transform: translate(-33vw, 6vh) rotate(-8deg); }
+  48% { transform: translate(-36vw, 10vh) rotate(-10deg); }
+  52% { transform: translate(-30vw, -4vh) rotate(-6deg); }
+  68% { transform: translate(30vw, -8vh) rotate(10deg); }
+  74% { transform: translate(38vw, -2vh) rotate(16deg); }
+  88% { transform: translate(58vw, 32vh) rotate(38deg); opacity: 1; }
   100% { transform: translate(64vw, 42vh) rotate(45deg); opacity: 0; }
 }
 @keyframes spray-rattle {
