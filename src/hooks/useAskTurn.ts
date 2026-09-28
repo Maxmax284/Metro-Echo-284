@@ -14,6 +14,7 @@ import { vantaToast as toast } from "@/lib/vantaVoice";
 import { detectDeviceClass } from "@/lib/deviceClass";
 import { attachmentHints, type AttachmentHint } from "@/lib/askCapabilities";
 import { RECEIPT_META } from "@/lib/askReceipts";
+import { stagedApprovalLine } from "@/lib/intentKinds";
 import type { ThreadContext } from "@/lib/askThreads";
 import {
   getAskSession, setAskMessages, beginAskStream, endAskStream, adoptAskSession,
