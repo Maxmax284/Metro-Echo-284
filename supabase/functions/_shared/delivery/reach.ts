@@ -13,6 +13,61 @@ import { sendWebPush } from "../webpush.ts";
 import { chatIdForUser, sendTelegram } from "../telegramApi.ts";
 import { attentionButtons, keyboard, openButton, type VantaLinkKind } from "../telegramReplies.ts";
 import { planDelivery, pushPayload } from "./rail.ts";
+import {
+  applyFloor,
+  categoryForSituation,
+  levelForUrgency,
+  pushUrgencyHeader,
+  readFloors,
+  type FloorDecision,
+  type NotifyCategory,
+} from "../notifyPolicy.ts";
+
+/**
+ * The ladder gate. Every reach passes here before a device is touched:
+ * informational stays in Today, and a per-category floor can hold an
+ * important item back to Today or the digest. Critical always punches
+ * through. A hold is a status with a receipt, never silence.
+ */
+export async function floorGate(
+  admin: any,
+  args: {
+    userId: string;
+    organizationId?: string | null;
+    urgency: string;
+    entityType: string;
+    entityId?: string | null;
+    category?: NotifyCategory | null;
+    source: string;
+  },
+): Promise<FloorDecision> {
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("preferences")
+    .eq("id", args.userId)
+    .maybeSingle();
+  const floors = readFloors((prof?.preferences as Record<string, unknown>) ?? null);
+  const category = args.category ?? categoryForSituation(args.entityType);
+  const decision = applyFloor({ urgency: args.urgency, category, floors });
+  if (decision.channel !== "push") {
+    await admin.from("audit_log").insert({
+      user_id: args.userId,
+      organization_id: args.organizationId ?? null,
+      entity_type: args.entityType,
+      entity_id: args.entityId ?? null,
+      event: "nudge.held_by_settings",
+      payload: {
+        channel: decision.channel,
+        level: decision.level,
+        category: decision.category,
+        urgency: args.urgency,
+        because: decision.because,
+        source: args.source,
+      },
+    });
+  }
+  return decision;
+}
 
 export type ClaimInput = {
   userId: string;
@@ -74,6 +129,10 @@ export type ReachInput = {
   entityId: string | null;
   /** Which sweep spoke, for the receipt. */
   source: string;
+  /** Notification category. Derived from entityType when absent. */
+  category?: NotifyCategory | null;
+  /** Skip the floor gate — reachOnce already applied it. */
+  gateApplied?: boolean;
 };
 
 /**
