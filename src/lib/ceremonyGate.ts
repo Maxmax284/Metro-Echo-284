@@ -6,9 +6,10 @@
 // only by luck. This module is the arbiter:
 //
 //  - The boot claims the day the moment a full roll call is decided —
-//    synchronously, inside its state initializer — so the claim always lands
-//    before the room effect that would lift the dawn shutter behind the
-//    cover. The boot's own lift is that day's shutter moment.
+//    synchronously, at the shell's first render (vanta.boot.claimed), before
+//    the boot component itself necessarily mounts — so the claim always
+//    lands before the room effect that would lift the dawn shutter behind
+//    the cover. The boot's own lift is that day's shutter moment.
 //  - The dawn shutter is the cheapest ceremony and yields to every other:
 //    a claimed boot day, its own earlier lift, or a pressured day — no
 //    theatre when something needs you. Its niche is arrivals that skipped

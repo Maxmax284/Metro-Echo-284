@@ -106,12 +106,20 @@ export function setRoom(room: string): void {
   // down). Its niche is arrivals that skipped the roll call.
   if (room === "today") {
     try {
+      /* A full boot claims its day the moment it's decided (vanta.boot.
+         claimed), a completed boot or intro is on the boot's own record —
+         either one is today's ceremony, so the shutter yields to both. */
+      const today = localDay();
+      const ceremonyDay =
+        readBootClaim() === today || readLastBoot().day === today ? today : null;
       const allowed = dawnShutterAllowed({
-        today: localDay(),
-        bootDay: readLastBoot().day,
+        today,
+        bootDay: ceremonyDay,
         shutterDay: localStorage.getItem(SHUTTER_DAY_KEY),
         pressured: currentWeather() === "pressure",
       });
+      if (allowed) {
+        localStorage.setItem(SHUTTER_DAY_KEY, today);
       if (allowed) {
         localStorage.setItem(SHUTTER_DAY_KEY, localDay());
         root.setAttribute("data-shutter", "lift");

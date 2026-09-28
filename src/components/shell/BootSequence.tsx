@@ -32,7 +32,7 @@ import {
    pure, and the intro writes through the same module. The mode decision
    itself is shared with the shell (bootDecision) so the ceremony-day claim
    and the boot never disagree. */
-import { localDay, recordBoot } from "@/lib/bootStorage";
+import { recordBoot } from "@/lib/bootStorage";
 import { decideBootAtMount } from "@/lib/bootDecision";
 import { metresApart } from "@/lib/placeMove";
 import { STAMP_ECHO_M, stampSpoken, stampWord } from "@/lib/welcomeStamp";
