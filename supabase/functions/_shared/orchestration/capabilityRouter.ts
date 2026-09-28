@@ -77,6 +77,9 @@ const RESEARCH_PHRASES: Array<{ re: RegExp; intent: ResearchIntent }> = [
   { re: /\b(compare|which (one|laptop|option)|versus|vs\.?)\b/i, intent: "compare" },
   { re: /\b(what changed|explain what|why did .* change)\b/i, intent: "explain" },
   { re: /\b(look ?up|find the manual|what time does|price of|spec(s|ification)s?)\b/i, intent: "lookup" },
+  /* Current-events phrasing is a live lookup, never a memory answer. Kept
+     tight on purpose: "update on the project" stays internal. */
+  { re: /\b(what'?s going on (with|in)|what'?s happening (with|in)|what is happening (with|in)|latest (news|developments) (on|in|about))\b/i, intent: "lookup" },
 ];
 
 const INTERNAL_PHRASES =

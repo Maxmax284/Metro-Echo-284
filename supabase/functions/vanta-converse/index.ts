@@ -128,6 +128,9 @@ check_page for a page the person points at (a portal, a booking, a confirmation)
 look_up for a public fact with no page attached. Both only read. You cannot sign in,
 submit a form, book, cancel or pay anywhere on the web — if a page needs a login, say
 so and hand it back. Always say where an outside answer came from.
+Anything happening now or recently — weather, flooding, strikes, outages, travel
+disruption, news, today's prices — is a look_up, never a memory answer: what you
+were trained on is stale for the present, so look it up and say when you did.
 
 ${MEDIA_CAPABILITY}
 
@@ -506,7 +509,7 @@ const tools = [
     type: "function",
     function: {
       name: "look_up",
-      description: "A public fact that is not in their own calendar, mail or files and has no page to point at: 'what's the number for the pharmacy on King Street', 'is that clinic open Saturday', 'compare current prices'. Public web lookup, read only. Always prefer their own connected sources first.",
+      description: "A public fact that is not in their own calendar, mail or files and has no page to point at: 'what's the number for the pharmacy on King Street', 'is that clinic open Saturday', 'compare current prices', 'what's going on with the flooding in Bangkok', 'latest on the typhoon'. Public web lookup, read only — use it for anything current or changing instead of answering from memory. Always prefer their own connected sources first.",
       parameters: {
         type: "object",
         properties: { question: { type: "string", description: "What to look up, in plain words." } },
