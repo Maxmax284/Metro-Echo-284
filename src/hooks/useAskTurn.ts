@@ -282,6 +282,7 @@ export function useAskTurn(opts?: {
          — and a first-turn lookup still deserves its name. */
       await noteActivity(threadId, firstTurn ? text : undefined);
     } catch (e: any) {
+      clearPulse();
       if (e?.name === "AbortError") {
         aborted = true;
         const finalContent = assistantSoFar ? `${assistantSoFar}\n\n_Stopped._` : "_Stopped._";
