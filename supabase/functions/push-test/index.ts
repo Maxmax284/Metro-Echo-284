@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: subs } = await admin
     .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
+    .select("id, endpoint, p256dh, auth, failure_count")
     .eq("user_id", userId);
 
   if (!subs || subs.length === 0) {
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
     } else {
       failed++;
       await admin.from("push_subscriptions")
-        .update({ last_error: r.error ?? `status ${r.status}` })
+        .update({ last_error: r.error ?? `status ${r.status}`, failure_count: (s.failure_count ?? 0) + 1 })
         .eq("id", s.id);
     }
   }
