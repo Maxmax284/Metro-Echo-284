@@ -20,6 +20,7 @@ export const WATCH_STATES = [
   "needs_you",
   "done",
   "couldnt_finish",
+  "paused",
 ] as const;
 export type WatchState = (typeof WATCH_STATES)[number];
 

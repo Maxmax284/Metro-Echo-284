@@ -12,6 +12,7 @@ import { sendTelegram } from "../_shared/telegramApi.ts";
 //     to look, and carries no approve/execute control
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { isInQuietHours } from "../_shared/drift.ts";
 
 
 /** Bounds per run, so one invocation always ends. */
@@ -44,19 +45,7 @@ function weekStart(now: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-function inQuietHours(tz: string, start: string, end: string, now: Date): boolean {
-  try {
-    const local = new Date(now.toLocaleString("en-US", { timeZone: tz }));
-    const mins = local.getHours() * 60 + local.getMinutes();
-    const [sh, sm] = start.split(":").map(Number);
-    const [eh, em] = end.split(":").map(Number);
-    const s = sh * 60 + (sm || 0);
-    const e = eh * 60 + (em || 0);
-    return s <= e ? mins >= s && mins < e : mins >= s || mins < e;
-  } catch {
-    return false;
-  }
-}
+/* Quiet hours live in one place (_shared/drift.ts) so every sender agrees. */
 
 /** Single-flight: one runner at a time, and the lease expires on its own. */
 async function acquireLease(admin: any, jobName: string, runId: string): Promise<boolean> {
@@ -283,7 +272,7 @@ async function runForUser(admin: any, userId: string, settings: Record<string, u
         .maybeSingle();
       const prefs = ((profile as any)?.preferences ?? {}) as Record<string, unknown>;
       const tz = ((profile as any)?.timezone as string) || "UTC";
-      const quiet = inQuietHours(
+      const quiet = isInQuietHours(
         tz,
         (prefs.quiet_hours_start as string) ?? "22:00",
         (prefs.quiet_hours_end as string) ?? "07:00",
