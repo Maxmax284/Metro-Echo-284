@@ -103,5 +103,5 @@
 - [x] Station stamps wall in Receipts (StationStamps.tsx + .stamp-wall CSS): stamped places + closed trips as pressed stamps; empty state teaches
 - [x] Cabinet sixth slot rotates daily — travel / platform clock / marks — never grows past six; provenance line per dial
 - [x] 13 unit tests; no new audit events, no schema changes
-- [ ] Live verify at 384px: press a stamp → wall + count; lift → mark gone
+- [x] Live verify at 384px signed-in: wall shows Ko Samui stamp + IAD→USM trip with the no-coordinates note; cabinet sixth slot rotated to marks (2) matching the wall; no page errors
 - [ ] Publish Stages 2–5 together (security scan is stale — refresh at publish)
