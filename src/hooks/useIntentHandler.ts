@@ -26,6 +26,8 @@ import { findConflicts, resolveEventReference, type ResolvableEvent } from "@/li
 import { calendarFieldLabel, calendarWriteState, normalizeCalendarField } from "@/lib/calendarWrite";
 import { resolveReminderReference } from "@/lib/reminderActions";
 import { readWatchStatus, startWatchFromWords, stopWatchFromWords } from "@/lib/watchApply";
+import { getAskSession, setAskMessages } from "@/lib/askSession";
+import { hostLabel } from "@/lib/webLook";
 import { travelAnswer } from "@/lib/travelAnswer";
 import { crossSourceReply, type AnchorRow } from "@/lib/crossSourceAnswer";
 import { whereYouStand } from "@/lib/workReads";
@@ -604,6 +606,9 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             answer?: string | null;
             source?: string | null;
             behind_login?: boolean;
+            host?: string | null;
+            title?: string | null;
+            url?: string | null;
             hits?: { title?: string; url?: string; snippet?: string }[];
           };
 
@@ -620,6 +625,32 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           } else {
             composed = payload.answer ?? "Nothing useful came back from the web on that one.";
           }
+
+          /* Provenance the follow-ups can act on: what was asked, where it
+             came from and when — so "keep me updated" and "show affected
+             areas" ride with the answer itself. */
+          const meta = {
+            source: page ? "web_page" : "web_search",
+            provenance: "web",
+            url: page ? url : null,
+            question: asked || null,
+            watching: wantsWatch,
+            checked_at: new Date().toISOString(),
+            sources: page
+              ? payload.url
+                ? [{ host: payload.host ?? hostLabel(payload.url), url: payload.url, title: payload.title ?? null }]
+                : url
+                  ? [{ host: hostLabel(url), url, title: null as string | null }]
+                  : []
+              : (payload.hits ?? [])
+                  .slice(0, 4)
+                  .map((h) => ({
+                    host: h.url ? hostLabel(h.url) : "",
+                    url: h.url ?? "",
+                    title: h.title ?? null,
+                  }))
+                  .filter((s) => s.host && s.url),
+          };
 
           /* Same law as above: the thread that asked gets the answer. */
           let convId = typeof provenance?.conversation_id === "string" ? provenance.conversation_id : null;
@@ -638,14 +669,22 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
               conversation_id: convId,
               role: "assistant",
               content: composed,
-              metadata: {
-                source: page ? "web_page" : "web_search",
-                provenance: "web",
-                url: page ? url : null,
-                question: asked || null,
-                watching: wantsWatch,
-              },
+              metadata: meta,
             });
+            /* And the open thread sees it now, not on the next visit — but
+               only when a live session is already there to receive it. A
+               thread nobody is watching loads it from the record instead. */
+            const sess = getAskSession(convId);
+            if (sess.hydrated || sess.messages.length) {
+              setAskMessages(
+                convId,
+                ((prev: unknown[]) => [
+                  ...prev,
+                  { role: "assistant", content: composed, metadata: meta },
+                ]) as never,
+                { hydrated: true },
+              );
+            }
           }
           if (wantsWatch && payload.ok) {
             onAck?.({ kind: "keep_an_eye_on", summary: payload.answer ?? "Echo is watching that page." });
