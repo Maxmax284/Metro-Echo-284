@@ -5,7 +5,6 @@ import { requestScheduleTab } from "@/lib/scheduleTab";
 import {
   FolderKanban,
   Inbox,
-  FileText,
   Notebook,
   CheckSquare,
   CalendarClock,
