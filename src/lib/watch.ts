@@ -3,6 +3,7 @@
 // Six words, no jargon, no percentages. Anything the watch would actually
 // change still arrives as a draft you approve.
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export type WatchState =
   | "on_it"
