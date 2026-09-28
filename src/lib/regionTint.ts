@@ -14,13 +14,14 @@
 //
 // Pure module: no IO, no React.
 
-import { latBand, type LatBand } from "./station";
+import { latBand, type LatBand, type SeasonKey } from "./station";
 import type { Daypart } from "./daylight";
 
 export type RegionTint = { band: LatBand; daypart: Daypart };
 
 const BAND_ATTR = "data-lat-band";
 const DAY_ATTR = "data-daypart";
+const SEASON_ATTR = "data-season";
 
 /**
  * The tint for a fix, or null when there is no honest latitude. A missing
@@ -58,4 +59,26 @@ export function currentRegionTint(): RegionTint | null {
   const band = document.documentElement.getAttribute(BAND_ATTR) as LatBand | null;
   if (!band) return null;
   return { band, daypart: (document.documentElement.getAttribute(DAY_ATTR) as Daypart | null) ?? "day" };
+}
+
+/* ---- Season: the same channel family, one more honest attribute. The key
+   comes from station.ts (seasonFor) — band + hemisphere + date, never a
+   northern assumption — and index.css owns every visual consequence. null
+   clears it; a place with no latitude wears no season. ---- */
+
+/** Write the season onto <html>; null clears the attribute. */
+export function applySeason(season: SeasonKey | null): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (!season) {
+    root.removeAttribute(SEASON_ATTR);
+    return;
+  }
+  if (root.getAttribute(SEASON_ATTR) !== season) root.setAttribute(SEASON_ATTR, season);
+}
+
+/** Read the current season. Test/debug convenience. */
+export function currentSeason(): SeasonKey | null {
+  if (typeof document === "undefined") return null;
+  return (document.documentElement.getAttribute(SEASON_ATTR) as SeasonKey | null) ?? null;
 }

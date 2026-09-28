@@ -16,6 +16,7 @@ import { useUserTimezone } from "@/hooks/useUserTimezone";
 import { SituationRead } from "@/components/today/SituationRead";
 import { WhileYouWereOut } from "@/components/today/WhileYouWereOut";
 import { PlaceCueStrip } from "@/components/today/PlaceCueStrip";
+import { StationEdition } from "@/components/shell/StationEdition";
 import { NextMoveLane } from "@/components/today/NextMoveLane";
 import { TransferLane } from "@/components/today/TransferLane";
 import { EntryReadyLane } from "@/components/today/EntryReadyLane";
@@ -556,6 +557,9 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
         {/* The answer belongs to the hero: the situational read is the first
             thing a person reads, not the seventh block down the page. */}
         <div className="mt-3 border-t border-border/40 pt-3">
+          {/* A kept day holds its window decal here, right over the place it
+              belongs to. Opt-in, fresh fix only; most days render nothing. */}
+          <StationEdition className="mb-0.5" />
           <PlaceCueStrip
             cue={placeCue}
             board={placeBoard.board}

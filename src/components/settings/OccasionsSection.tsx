@@ -48,8 +48,9 @@ export function OccasionsSection() {
             <h2 className="text-sm font-semibold">Occasions at the boot</h2>
             <p className="mt-0.5 text-[12px] text-muted-foreground">
               When you're standing somewhere with a kept day — Songkran, Carnival, a quiet Memorial
-              Day — the morning boot stamps it over the place name. Dates come from the calendar and
-              the moon, computed on this device. Nothing is fetched, and off means off.
+              Day — the morning boot stamps it over the place name, and the day holds a small decal
+              on Today until its window passes. Dates come from the calendar and the moon, computed
+              on this device. Nothing is fetched, and off means off.
             </p>
           </div>
         </div>
