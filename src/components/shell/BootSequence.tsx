@@ -53,37 +53,11 @@ export function BootSequence() {
   const { place, snapshot, stampedPlaces } = useAwareness();
   const timers = useRef<number[]>([]);
 
-  /* The decision is made once, at mount, from what is true right then. */
-  const [mode] = useState<BootMode>(() => {
-    let decided: BootMode | null = null;
-    /* A sign-in just delivered you here (Google's round trip or the email
-       form). That is an arrival, not a reopen — the encore marker forces the
-       full roll call once, however fresh the last boot was. */
-    try {
-      if (localStorage.getItem(BOOT_ENCORE_KEY)) {
-        localStorage.removeItem(BOOT_ENCORE_KEY);
-        decided = "full";
-      }
-    } catch {
-      /* private window — fall through to the ordinary decision */
-    }
-    if (!decided) {
-      const last = readLastBoot();
-      decided = decideBoot({
-        now: Date.now(),
-        lastBootAt: last.at,
-        lastBootDay: last.day,
-        today: localDay(),
-        deepLink: isDeepLink(),
-        urgent: currentWeather() === "pressure",
-      }).mode;
-    }
-    /* A full roll call claims the ceremony day synchronously — render runs
-       before any room effect, so the dawn shutter always sees the claim and
-       stays down. The boot's own lift is that day's shutter moment. */
-    if (decided === "full") claimBootDay();
-    return decided;
-  });
+  /* The decision is made once, at mount, from what is true right then. The
+     encore marker is spent here and only here; the shell's earlier peek
+     (bootDecision, consumeEncore: false) claimed the ceremony day without
+     touching it. */
+  const [mode] = useState<BootMode>(() => decideBootAtMount({ consumeEncore: true }));
   const [leaving, setLeaving] = useState(false);
   const [gone, setGone] = useState(false);
 
