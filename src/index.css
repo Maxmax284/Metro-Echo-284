@@ -1282,6 +1282,32 @@ html[data-daypart="golden"] { --bd-day-shift: -30; }
 html[data-daypart="dusk"]   { --bd-day-shift: 12; }
 html[data-daypart="night"]  { --bd-day-shift: 8; }
 
+/* ---- Region tier: seeded identities above the band. Hand-seeded in
+   lib/regions.ts, country-gated, graceful nothing when unmapped — the band
+   keeps painting those places. Region rules sit after the band so a seeded
+   region refines it, and before the skins so a chosen data-skin still wins
+   every weight it sets (and skins that set --bd-hue-a/b directly never feel
+   the tier at all). */
+html[data-region="island-coastal"] {
+  --bd-band-a: 166; --bd-band-b: 198;
+  --bd-wash-a: 0.11; --bd-wash-b: 0.09;
+  --bd-sheen: 0.2; --bd-sheen-hue: 174;
+}
+html[data-region="capital-metro"] {
+  --bd-band-a: 200; --bd-band-b: 258;
+  --bd-sheen: 0.24; --bd-sheen-hue: 36;
+}
+html[data-region="northern-mist"] {
+  --bd-band-a: 206; --bd-band-b: 228;
+  --bd-wash-a: 0.12; --bd-wash-b: 0.11;
+  --bd-wash-sat: 44%;
+}
+html[data-region="brutalist-metro"] {
+  --bd-band-a: 214; --bd-band-b: 252;
+  --bd-wash-sat: 52%;
+  --bd-grain: 0.06;
+}
+
 .vanta-backdrop {
   position: fixed;
   inset: -6vh -6vw;
@@ -1303,9 +1329,12 @@ html[data-overlay="on"] .vanta-backdrop { filter: blur(1.5px) saturate(0.9); }
 /* ---- Layer 1: the wash. Present in every skin, moves with the room. ---- */
 .vanta-bd-wash {
   background-image:
-    radial-gradient(1200px 620px at var(--bd-x) var(--bd-y), hsl(var(--bd-hue-a) 70% 50% / var(--bd-wash-a)), transparent 62%),
-    radial-gradient(860px 460px at calc(100% - var(--bd-x)) calc(100% - var(--bd-y)), hsl(var(--bd-hue-b) 70% 52% / var(--bd-wash-b)), transparent 62%);
-  transition: background-image 900ms var(--ease-out), background-position 900ms var(--ease-out);
+    radial-gradient(1200px 620px at var(--bd-x) var(--bd-y), hsl(var(--bd-hue-a) var(--bd-wash-sat, 70%) 50% / var(--bd-wash-a)), transparent 62%),
+    radial-gradient(860px 460px at calc(100% - var(--bd-x)) calc(100% - var(--bd-y)), hsl(var(--bd-hue-b) var(--bd-wash-sat, 70%) 52% / var(--bd-wash-b)), transparent 62%);
+  /* The meteorological sky (data-sky) dims and greys the wash — weather
+     modifies the atmosphere, never the authority. */
+  filter: brightness(calc(1 - var(--sky-dim, 0))) saturate(calc(1 - var(--sky-chill, 0) * 2.5));
+  transition: background-image 900ms var(--ease-out), background-position 900ms var(--ease-out), filter 900ms var(--ease-out);
 }
 
 /* Room-keyed position: switching rooms moves the world instead of swapping it. */
