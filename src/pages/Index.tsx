@@ -83,10 +83,13 @@ function IndexInner() {
      claimed NOW — at the shell's first render, before any room effect can
      lift the dawn shutter, and even while the boot itself still stands down
      behind the intro gate. This is a peek, never a spend: the sign-in encore
-     marker belongs to the boot's own decision at mount. */
-  useState(() => {
-    if (decideBootAtMount({ consumeEncore: false }) === "full") claimBootDay();
-    return null;
+     marker belongs to the boot's own decision at mount. The planned mode is
+     kept so the cover can ride from the first paint and the bare loader only
+     shows on landings that skip the ceremony. */
+  const [plannedBoot] = useState<BootMode>(() => {
+    const m = decideBootAtMount({ consumeEncore: false });
+    if (m === "full") claimBootDay();
+    return m;
   });
 
   // Per-surface scroll memory. We capture the active surface's scroll position
@@ -191,23 +194,31 @@ function IndexInner() {
     }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/auth" replace />;
-
-
+  /* One flow, not separate screens: the boot cover is up from the first
+     paint (power-up — wordmark lit, no claims), the Solari roll speaks as
+     the facts arrive, and the shutter lifts onto an already-painted shell.
+     The once-per-account intro still outranks the boot; a landing that
+     skips the ceremony keeps the bare loader it always had. */
   return (
-    <div className="relative flex min-h-dvh flex-col">
-      {/* The roll call covers first paint only; the rooms render regardless.
-          The once-per-account intro outranks it and never replays. */}
+    <>
       {introGate === "show" && user && <IntroSequence userId={user.id} onFinished={finishIntro} />}
-      {introGate === "done" && <BootSequence />}
+      {introGate !== "show" && plannedBoot !== "skip" && (
+        <BootSequence ready={!loading && !!user && introGate === "done"} />
+      )}
+      {loading ? (
+        plannedBoot === "skip" ? (
+          <div className="flex min-h-dvh items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : (
+          /* The boot covers this beat; anything under it would be a second
+             screen fighting the first. */
+          <div className="min-h-dvh" aria-hidden />
+        )
+      ) : !user ? (
+        <Navigate to="/auth" replace />
+      ) : (
+    <div className="relative flex min-h-dvh flex-col">
       <AmbientHeader
 
         state={state}
@@ -397,5 +408,7 @@ function IndexInner() {
       <GlobalDropZone />
       <ClipboardImageIntake />
     </div>
+      )}
+    </>
   );
 }
