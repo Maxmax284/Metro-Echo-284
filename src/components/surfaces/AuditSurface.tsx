@@ -267,7 +267,7 @@ export function AuditSurface({ focusActionId }: { focusActionId?: string | null 
         <JourneySummary />
         <StationStamps />
         <ReceiptsFront lines={digest} onDrill={drill} className="hidden" />
-        <ReceiptsLedger rows={audit} />
+        <ReceiptsLedger rows={audit} onOpen={(r) => setDrawerRow(r as AuditRow)} />
         {quiet && (
           <p className="px-1 text-[11.5px] text-muted-foreground">
             Nothing to prove yet. Save, approve or run something and it lands here with a time on it.
