@@ -47,7 +47,8 @@ export function precisionFor(accuracyMetres: number | null | undefined): PlacePr
 
 export function sourceFor(raw: unknown): PlaceSource {
   const s = String(raw ?? "").toLowerCase();
-  if (s === "manual" || s === "pin" || s === "dragged") return "manual";
+  /* Mirror of src/lib/placeTruth.ts — every hand-fix tag reads as "manual". */
+  if (["manual", "pin", "dragged", "manual_fix", "map_picker", "manual_search", "nearby_suggestion"].includes(s)) return "manual";
   if (s === "device" || s === "gps") return "device";
   if (s === "saved") return "saved";
   return "unknown";

@@ -74,11 +74,28 @@ async function receipt(
    Google's actual reason instead of a shrug. */
 type SweepResult = SweepCounts & { reason?: string; said?: string };
 
-async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | null): Promise<SweepResult> {
+async function sweepUser(sb: SupabaseClient, userId: string, orgId: string | null, manual = false): Promise<SweepResult> {
   const counts = emptyCounts();
 
   if (!(await hasGoogleService(userId, GOOGLE_MAIL_CONNECTOR_ID))) {
     return { ...counts, reason: "gmail_not_connected" };
+  }
+
+  /* A known switched-off API is a held sweep, not another hourly 403. The
+     mark clears the moment any Google call succeeds again, and a deliberate
+     tap ("sweep now") always tries — that is how recovery is discovered. */
+  if (!manual) {
+    const { data: conn } = await sb
+      .from("app_user_connections")
+      .select("last_error, last_error_at")
+      .eq("user_id", userId)
+      .eq("connector_id", GOOGLE_MAIL_CONNECTOR_ID)
+      .maybeSingle();
+    const said = (conn?.last_error as string | null) ?? null;
+    const markedAt = conn?.last_error_at ? new Date(conn.last_error_at as string).getTime() : 0;
+    if (said && said.includes("switched off") && Date.now() - markedAt < 12 * 60 * 60 * 1000) {
+      return { ...counts, reason: "service_off_held", said };
+    }
   }
   if ((await spentToday(sb, userId)) >= MAIL_DAILY_CEILING) {
     return { ...counts, reason: "day_ceiling" };
@@ -274,7 +291,9 @@ Deno.serve(async (req: Request) => {
     const out: Record<string, unknown>[] = [];
     for (const row of (rows ?? []) as { user_id: string }[]) {
       try {
-        const counts = await sweepUser(sb, row.user_id, null);
+        /* A run naming one person is somebody pressing "sweep now" — that
+           always tries, even while the automatic rail is holding. */
+        const counts = await sweepUser(sb, row.user_id, null, !!body?.user_id);
         /* A refusal is kept in the person's own words, so the settings screen
            says why mail stopped rather than going quiet. */
         if (counts.said) {

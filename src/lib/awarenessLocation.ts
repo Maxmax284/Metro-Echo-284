@@ -154,7 +154,7 @@ export function resolveLocationState(
   if (advisorMode === "exact_local") sources.push("phone_gps");
   if (placeStatus === "confirmed" || placeStatus === "broad_confirmed") {
     if (source === "manual_search") sources.push("searched_place");
-    else if (source === "manual" || source === "map_pick") sources.push("manual_place");
+    else if (["manual", "map_pick", "map_picker", "manual_fix", "nearby_suggestion"].includes(source)) sources.push("manual_place");
     else if (!sources.includes("phone_gps")) sources.push("saved_place");
   }
   if (advisorMode === "broad_area") sources.push("broad_area");
@@ -180,7 +180,7 @@ export function resolveLocationState(
   } else if (advisorMode === "exact_local") {
     const a = acc != null ? `${Math.round(acc)}m accuracy` : "good accuracy";
     message = `Using your current location · ${a}.`;
-  } else if (source === "manual" || source === "map_pick") {
+  } else if (["manual", "map_pick", "map_picker", "manual_fix", "nearby_suggestion"].includes(source)) {
     message = `Manually set to ${placeLabel}.`;
   } else if (source === "manual_search") {
     message = `Using ${placeLabel} (searched).`;

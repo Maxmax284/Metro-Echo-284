@@ -261,22 +261,34 @@ export function useAskTurn(opts?: {
         write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: finalContent } : m)));
       }
 
+      /* A turn with no words of its own (a lookup, a capture, a watch) is
+         answered by the receipt the intent handler appends — a blank bubble
+         under it would be a lie of omission, so the placeholder goes. */
+      if (!finalContent) {
+        write((prev) => prev.filter((_, idx) => idx !== aIdx));
+      }
+
+      /* The question is ALWAYS kept. Only the assistant half needs words —
+         a lookup's answer arrives through the intent handler instead, and
+         gating the whole insert on text used to erase the entire exchange
+         from history. */
+      const rows: Record<string, unknown>[] = [
+        { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
+      ];
       if (finalContent) {
-        const { data: inserted } = await supabase.from("messages").insert([
-          { user_id: session.user.id, conversation_id: threadId, role: "user", content: text },
-          {
-            user_id: session.user.id,
-            conversation_id: threadId,
-            role: "assistant",
-            content: finalContent,
-            /* Only recorded reads travel with the answer. No reads, no claim. */
-            ...(readLines.length ? { metadata: { reads: readLines } } : {}),
-          },
-        ]).select("id");
-        if (inserted) {
-          const { generateEmbedding } = await import("@/lib/embeddings");
-          inserted.forEach((m) => generateEmbedding("message", m.id));
-        }
+        rows.push({
+          user_id: session.user.id,
+          conversation_id: threadId,
+          role: "assistant",
+          content: finalContent,
+          /* Only recorded reads travel with the answer. No reads, no claim. */
+          ...(readLines.length ? { metadata: { reads: readLines } } : {}),
+        });
+      }
+      const { data: inserted } = await supabase.from("messages").insert(rows as never).select("id");
+      if (inserted) {
+        const { generateEmbedding } = await import("@/lib/embeddings");
+        inserted.forEach((m) => generateEmbedding("message", m.id));
       }
       /* A lookup-only turn has no streamed text, but the thread still moved
          — and a first-turn lookup still deserves its name. */
