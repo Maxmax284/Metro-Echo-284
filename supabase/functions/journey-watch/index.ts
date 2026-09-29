@@ -20,8 +20,7 @@ import {
   packDiff,
   whereOnJourney,
 } from "../_shared/journey.ts";
-import { journeyNotice, mayPingDuringQuietHours, type JourneyNotice } from "../_shared/journeyNotice.ts";
-import { isInQuietHours } from "../_shared/drift.ts";
+import { journeyNotice } from "../_shared/journeyNotice.ts";
 import { reachOnce } from "../_shared/delivery/reach.ts";
 import { writeAuditEvent } from "../_shared/auditEvent.ts";
 import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_shared/preDeparture.ts";
@@ -80,7 +79,7 @@ async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<b
     metadata: { title: notice.title, nudge_id: nudgeId },
   });
 
-  const gate = await reachGate(sb, userId, { urgency: "normal" } as JourneyNotice);
+  const gate = await reachGate(sb, userId);
   if (!gate.allowed) return false;
   const surface = await reachOnce(sb, {
     userId,
@@ -106,28 +105,24 @@ async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<b
 /**
  * Consent for a second surface, read once per user.
  *
- * Double-gated as before: the awareness opt-in has to be on for Telegram, and
- * quiet hours hold everything except a leg that is off or diverted. This decides
- * WHETHER Echo may speak; the shared rail decides WHERE.
+ * The awareness opt-in has to be on for Telegram. Quiet hours are NOT decided
+ * here anymore: the shared rail's floor gate holds everything but the urgent
+ * inside the person's own window, and leaves the receipt. One gate, one window,
+ * no hardcoded night.
  */
 async function reachGate(
   sb: any,
   userId: string,
-  notice: JourneyNotice,
 ): Promise<{ allowed: boolean; messagingAllowed: boolean }> {
   const { data: profile } = await sb
     .from("profiles")
-    .select("timezone, preferences")
+    .select("preferences")
     .eq("id", userId)
     .maybeSingle();
   const prefs = ((profile as { preferences?: Record<string, unknown> } | null)?.preferences ?? {}) as Record<
     string,
     unknown
   >;
-  const tz = ((profile as { timezone?: string } | null)?.timezone as string) || "UTC";
-  if (isInQuietHours(tz) && !mayPingDuringQuietHours(notice.urgency)) {
-    return { allowed: false, messagingAllowed: false };
-  }
   return { allowed: true, messagingAllowed: prefs.telegram_awareness_enabled === true };
 }
 
@@ -442,7 +437,7 @@ Deno.serve(async (req) => {
           metadata: { title: notice.title, body, nudge_id: nudgeId },
         });
         if (notice.reachMessaging && nudgeId) {
-          const gate = await reachGate(sb, userId, notice);
+          const gate = await reachGate(sb, userId);
           if (gate.allowed) {
             const surface = await reachOnce(sb, {
               userId,
@@ -547,7 +542,7 @@ Deno.serve(async (req) => {
 
         /* Quiet hours hold the note, never lose it: no claim is made while they
            run, so the next sweep tries again until it reaches a surface. */
-        const gate = await reachGate(sb, userId, { urgency: "high" } as JourneyNotice);
+        const gate = await reachGate(sb, userId);
         if (!gate.allowed) continue;
         const surface = await reachOnce(sb, {
           userId,

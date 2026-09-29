@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
 import {
   applyFloor,
+  applyQuietHours,
   categoryForSituation,
   DEFAULT_NOTIFY_FLOORS,
   levelForUrgency,
   NOTIFY_CATEGORIES,
   pushUrgencyHeader,
   readFloors,
+  readQuietHours,
 } from "@/lib/notifyPolicy";
 
 describe("the level ladder", () => {
@@ -117,5 +119,47 @@ describe("the wire priority", () => {
     expect(pushUrgencyHeader("important")).toBe("high");
     expect(pushUrgencyHeader("informational")).toBe("normal");
     expect(pushUrgencyHeader("digest")).toBe("low");
+  });
+});
+
+describe("the quiet window", () => {
+  it("defaults to the hours the Settings form shows", () => {
+    expect(readQuietHours(null)).toEqual({ start: "22:00", end: "07:00" });
+    expect(readQuietHours({})).toEqual({ start: "22:00", end: "07:00" });
+  });
+
+  it("reads the person's own hours and ignores garbage", () => {
+    expect(readQuietHours({ quiet_hours_start: "23:30", quiet_hours_end: "06:15" }))
+      .toEqual({ start: "23:30", end: "06:15" });
+    expect(readQuietHours({ quiet_hours_start: "bedtime", quiet_hours_end: 7 }))
+      .toEqual({ start: "22:00", end: "07:00" });
+    expect(readQuietHours({ quiet_hours_start: "25:00" }))
+      .toEqual({ start: "22:00", end: "07:00" });
+  });
+
+  it("holds an important buzz until morning, with a plain-English because", () => {
+    const floors = readFloors(null);
+    const push = applyFloor({ urgency: "time_sensitive", category: "flights", floors });
+    expect(push.channel).toBe("push");
+    const held = applyQuietHours({ decision: push, inQuietHours: true });
+    expect(held.channel).toBe("today");
+    expect(held.held).toBe(true);
+    expect(held.because).toContain("quiet hours");
+  });
+
+  it("lets the urgent punch through the window", () => {
+    const floors = readFloors(null);
+    const push = applyFloor({ urgency: "critical", category: "safety", floors });
+    const d = applyQuietHours({ decision: push, inQuietHours: true });
+    expect(d.channel).toBe("push");
+    expect(d.held).toBe(false);
+  });
+
+  it("changes nothing outside the window or below the buzz line", () => {
+    const floors = readFloors(null);
+    const push = applyFloor({ urgency: "time_sensitive", category: "flights", floors });
+    expect(applyQuietHours({ decision: push, inQuietHours: false }).channel).toBe("push");
+    const quiet = applyFloor({ urgency: "attention", category: "flights", floors });
+    expect(applyQuietHours({ decision: quiet, inQuietHours: true }).channel).toBe("today");
   });
 });

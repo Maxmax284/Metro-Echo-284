@@ -34,6 +34,28 @@ async function fetchVapidPublicKey(): Promise<string | null> {
 }
 
 /**
+ * Subscribing a device IS consent to be buzzed — the channel toggle in
+ * Settings has to say the same thing, or the screen and the rail disagree.
+ * Best-effort: a failed pref write never undoes a working subscription.
+ */
+async function writePushOptIn(userId: string, on: boolean): Promise<void> {
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("id", userId)
+      .maybeSingle();
+    const prefs = {
+      ...((data?.preferences as Record<string, unknown> | null) ?? {}),
+      push_reminders_enabled: on,
+    };
+    await supabase.from("profiles").update({ preferences: prefs }).eq("id", userId);
+  } catch {
+    // the subscription stands; the toggle can be set by hand
+  }
+}
+
+/**
  * The worker belongs to the real published address only. In a preview frame or
  * a dev host it would bind Metro Echo to a throwaway origin — which is exactly
  * how an installed shortcut ends up pointing at the wrong address. In those
@@ -200,6 +222,8 @@ export async function subscribeToPush(userId: string): Promise<{
     );
   if (upErr) return { ok: false, status: "ready", error: upErr.message };
 
+  await writePushOptIn(userId, true);
+
   await supabase.from("audit_log").insert({
     user_id: userId,
     entity_type: "push",
@@ -216,6 +240,7 @@ export async function unsubscribeFromPush(userId: string): Promise<void> {
   if (sub) {
     await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
     await sub.unsubscribe();
+    await writePushOptIn(userId, false);
     await supabase.from("audit_log").insert({
       user_id: userId,
       entity_type: "push",

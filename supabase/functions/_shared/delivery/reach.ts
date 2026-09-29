@@ -15,13 +15,16 @@ import { attentionButtons, keyboard, openButton, type VantaLinkKind } from "../t
 import { planDelivery, pushPayload } from "./rail.ts";
 import {
   applyFloor,
+  applyQuietHours,
   categoryForSituation,
   levelForUrgency,
   pushUrgencyHeader,
   readFloors,
+  readQuietHours,
   type FloorDecision,
   type NotifyCategory,
 } from "../notifyPolicy.ts";
+import { isInQuietHours } from "../drift.ts";
 
 /**
  * The ladder gate. Every reach passes here before a device is touched:
@@ -43,12 +46,22 @@ export async function floorGate(
 ): Promise<FloorDecision> {
   const { data: prof } = await admin
     .from("profiles")
-    .select("preferences")
+    .select("preferences, timezone")
     .eq("id", args.userId)
     .maybeSingle();
-  const floors = readFloors((prof?.preferences as Record<string, unknown>) ?? null);
+  const prefs = (prof?.preferences as Record<string, unknown>) ?? null;
+  const floors = readFloors(prefs);
   const category = args.category ?? categoryForSituation(args.entityType);
-  const decision = applyFloor({ urgency: args.urgency, category, floors });
+  let decision = applyFloor({ urgency: args.urgency, category, floors });
+  /* The quiet window holds everything but the urgent — the person's own hours,
+     not a hardcoded night. The hold gets the same receipt any other hold gets. */
+  const quiet = readQuietHours(prefs);
+  const tz = (prof as { timezone?: string } | null)?.timezone || "UTC";
+  const wasPush = decision.channel === "push";
+  decision = applyQuietHours({
+    decision,
+    inQuietHours: isInQuietHours(tz, quiet.start, quiet.end),
+  });
   if (decision.channel !== "push") {
     await admin.from("audit_log").insert({
       user_id: args.userId,
@@ -58,6 +71,8 @@ export async function floorGate(
       event: "nudge.held_by_settings",
       payload: {
         channel: decision.channel,
+        /* The floor said push and the window said wait — quiet hours did this. */
+        held_reason: wasPush && decision.channel !== "push" ? "quiet_hours" : "floor",
         level: decision.level,
         category: decision.category,
         urgency: args.urgency,
@@ -152,6 +167,32 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
     });
     /* Held or not push-worthy: the situation stays where the person finds it. */
     if (gate.channel !== "push") return false;
+  }
+  /* The channel toggle is an opt-in every other sender already honours —
+     subscribing a device sets it, turning it off here holds the buzz with a
+     receipt instead of buzzing anyway. */
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("preferences")
+    .eq("id", input.userId)
+    .maybeSingle();
+  const prefs = (prof?.preferences as Record<string, unknown>) ?? {};
+  if (prefs["push_reminders_enabled"] !== true) {
+    await admin.from("audit_log").insert({
+      user_id: input.userId,
+      organization_id: input.organizationId ?? null,
+      entity_type: input.entityType,
+      entity_id: input.entityId,
+      event: "nudge.held_by_settings",
+      payload: {
+        channel: "today",
+        held_reason: "push_off",
+        urgency: input.urgency,
+        because: "the push channel is switched off in your settings",
+        source: input.source,
+      },
+    });
+    return false;
   }
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";

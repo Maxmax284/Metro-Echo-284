@@ -96,24 +96,6 @@ export function PushReadinessSection() {
     }
   };
 
-  const sendTest = async () => {
-    if (!user) return;
-    setBusy(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("push-test");
-      if (error) throw error;
-      const d = (data ?? {}) as { sent?: number; reason?: string };
-      if (d.reason === "no_subscriptions") toast("No active subscriptions. Enable push first.");
-      else if (d.sent && d.sent > 0) toast.success(`Test sent to ${d.sent} device${d.sent === 1 ? "" : "s"}.`);
-      else toast("Sent — but nothing delivered. Check Audit.");
-      await refresh();
-    } catch (e: any) {
-      toast(e?.message || "Test push failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (!pushSupported()) {
     return (
       <section className="mb-6 rounded-xl surface-elevated p-4 ring-1 ring-border/60">
@@ -174,10 +156,10 @@ export function PushReadinessSection() {
 
         {allGreen && (
           <>
-            <Button size="sm" className="w-full gap-2" disabled={busy} onClick={sendTest}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-              Send test push
-            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              All five checks green. The <span className="text-foreground">Test a pulse</span> button below,
+              under Quiet hours and channels, proves the whole rail end to end.
+            </p>
             <Button size="sm" variant="outline" className="w-full" disabled={busy} onClick={disable}>
               Turn off on this device
             </Button>

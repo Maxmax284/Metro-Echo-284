@@ -206,3 +206,41 @@ export function pushUrgencyHeader(level: NotifyLevel): "high" | "normal" | "low"
   if (level === "informational") return "normal";
   return "low";
 }
+
+/**
+ * The person's quiet window out of a raw preferences blob, defensively.
+ * Defaults match what the Settings form shows, so a never-touched blob and
+ * the screen agree.
+ */
+export function readQuietHours(
+  prefs: Record<string, unknown> | null | undefined,
+): { start: string; end: string } {
+  const p = prefs ?? {};
+  const asHhmm = (v: unknown): string | null =>
+    typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null;
+  return {
+    start: asHhmm(p["quiet_hours_start"]) ?? "22:00",
+    end: asHhmm(p["quiet_hours_end"]) ?? "07:00",
+  };
+}
+
+/**
+ * The quiet-window gate, kept pure so the rail and the tests agree on it.
+ * Inside the window anything but urgent waits for morning; urgent punches
+ * through, because a bedtime is a courtesy, never a gag on an emergency.
+ * The caller decides whether it is currently quiet and leaves the receipt.
+ */
+export function applyQuietHours(args: {
+  decision: FloorDecision;
+  inQuietHours: boolean;
+}): FloorDecision {
+  const d = args.decision;
+  if (d.channel !== "push" || d.level === "urgent" || !args.inQuietHours) return d;
+  return {
+    channel: "today",
+    held: true,
+    because: "your quiet hours — it waits for morning",
+    level: d.level,
+    category: d.category,
+  };
+}
