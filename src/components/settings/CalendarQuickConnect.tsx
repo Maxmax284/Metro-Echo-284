@@ -46,7 +46,7 @@ export function CalendarQuickConnect() {
 
   return (
     <Link
-      to="/settings/g/calendar"
+      to="/settings/g/time"
       className="vanta-focus group mb-3 flex min-h-[64px] items-center gap-3 rounded-xl surface-elevated p-3.5 ring-1 ring-primary/30 transition-colors hover:bg-surface-elevated hover:ring-primary/50"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">

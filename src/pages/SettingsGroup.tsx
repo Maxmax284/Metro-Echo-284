@@ -1,8 +1,8 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useIsOwner } from "@/hooks/useIsOwner";
-import { findSettingsGroup } from "@/lib/settingsGroups";
+import { findSettingsGroup, resolveSettingsGroupId } from "@/lib/settingsGroups";
 
 /** One category of the control room, on its own page with a way back. */
 export default function SettingsGroup() {
@@ -10,6 +10,13 @@ export default function SettingsGroup() {
   const { session } = useAuth();
   const isOwner = useIsOwner();
   const group = findSettingsGroup(groupId);
+
+  /* Merged groups keep their old doors: /settings/g/calendar lands on
+     /settings/g/time, /settings/g/spending on /settings/g/records. */
+  const resolved = resolveSettingsGroupId(groupId);
+  if (resolved && resolved !== groupId) {
+    return <Navigate to={`/settings/g/${resolved}`} replace />;
+  }
 
   if (!session) return <div className="p-8 text-sm text-muted-foreground">Sign in required.</div>;
   if (isOwner === null) return <div className="p-8 text-sm text-muted-foreground">Loading control room…</div>;

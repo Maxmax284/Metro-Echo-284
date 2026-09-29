@@ -19,17 +19,17 @@ import {
 
 /** Where each service's own row (and its button) lives. Drive shares the calendar room. */
 const ROOM_ROUTE: Record<GoogleCapability["key"], string> = {
-  calendar: "/settings/g/calendar",
+  calendar: "/settings/g/time",
   gmail: "/settings/g/mail",
-  drive: "/settings/g/calendar",
-  tasks: "/settings/g/calendar",
+  drive: "/settings/g/time",
+  tasks: "/settings/g/time",
 };
 
 const ROOM_NAME: Record<GoogleCapability["key"], string> = {
-  calendar: "Your calendar",
+  calendar: "Time and calendar",
   gmail: "Your inbox",
-  drive: "Your calendar",
-  tasks: "Your calendar",
+  drive: "Time and calendar",
+  tasks: "Time and calendar",
 };
 
 export function GoogleAttentionLine() {

@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Clock, Globe, AlertTriangle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
@@ -30,7 +29,8 @@ const COMMON_TZ = [
 ];
 
 /**
- * Time & Reminders — timezone, default times, quiet hours, delivery preferences.
+ * Time — timezone and default times. Quiet hours and channels live under
+ * Notifications; proactive awareness under Your awareness.
  * Persists to profiles.timezone + profiles.preferences. All changes audited.
  */
 export function TimeRemindersSection() {
@@ -193,95 +193,10 @@ export function TimeRemindersSection() {
           </div>
         </div>
 
-        {/* Proactive awareness */}
-        <div>
-          <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Proactive awareness
-          </label>
-          <div className="mt-1.5 flex items-start justify-between gap-3 py-2">
-            <div className="min-w-0">
-              <div className="text-xs font-medium">Let Echo speak up on its own</div>
-              <div className="text-[11px] text-muted-foreground">
-                Off by default. When on, Echo raises at most one quiet note in Today when a project goes silent, a
-                promise keeps slipping, a flagged risk sits unread, or a real appointment is coming.
-                It stays a draft — nothing is staged, approved or run for you, and nothing arrives during quiet hours.
-              </div>
-              <div className="mt-1.5 text-[11px] text-muted-foreground">
-                Appointments: one calm heads-up the evening before, one a few hours out on the day, plus anything that
-                moves or collides. Holds, busy blocks and birthdays stay silent unless you asked Echo to keep an eye on
-                one. This is Echo's own read of your calendar, not a copy of Google's alarms — those keep firing on their
-                own.
-              </div>
-            </div>
-            <Switch
-              checked={!!prefs.proactive_awareness_enabled}
-              onCheckedChange={(v) => {
-                update({ proactive_awareness_enabled: v });
-                audit("preferences.updated", { field: "proactive_awareness_enabled", value: v });
-              }}
-            />
-          </div>
-          {prefs.proactive_awareness_enabled && (
-            <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
-              <div className="min-w-0">
-                <div className="text-xs font-medium">Watch quietly first (shadow mode)</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Echo runs the full check and keeps the reasoning in Receipts, but says nothing in Today. Use it for a
-                  few days to see what it would have raised before letting it speak.
-                </div>
-              </div>
-              <Switch
-                checked={!!prefs.awareness_shadow_mode}
-                onCheckedChange={(v) => {
-                  update({ awareness_shadow_mode: v });
-                  audit("preferences.updated", { field: "awareness_shadow_mode", value: v });
-                }}
-              />
-            </div>
-          )}
-          {prefs.proactive_awareness_enabled && (
-            <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
-              <div className="min-w-0">
-                <div className="text-xs font-medium">Let Google keep the day-of alarm</div>
-                <div className="text-[11px] text-muted-foreground">
-                  On by default. Google already buzzes you before an appointment starts, so Echo stays out of that lane
-                  and only says what Google never says: what tomorrow looks like, a time that moved, a collision.
-                  Turn it off if you want Echo's own heads-up on the day too. Anything you asked Echo to keep an eye on
-                  always speaks, either way.
-                </div>
-              </div>
-              <Switch
-                checked={prefs.calendar_defer_to_google !== false}
-                onCheckedChange={(v) => {
-                  update({ calendar_defer_to_google: v });
-                  audit("preferences.updated", { field: "calendar_defer_to_google", value: v });
-                }}
-              />
-            </div>
-          )}
-          {prefs.proactive_awareness_enabled && !prefs.awareness_shadow_mode && (
-            <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
-              <div className="min-w-0">
-                <div className="text-xs font-medium">Reach me on Telegram when it's time-sensitive</div>
-                <div className="text-[11px] text-muted-foreground">
-                  Only for notes Echo considers time-sensitive, and only if your chat is linked. The message tells you
-                  what changed and where to look — you still approve and run everything inside Metro Echo.
-                </div>
-              </div>
-              <Switch
-                checked={!!prefs.telegram_awareness_enabled}
-                onCheckedChange={(v) => {
-                  update({ telegram_awareness_enabled: v });
-                  audit("preferences.updated", { field: "telegram_awareness_enabled", value: v });
-                }}
-              />
-            </div>
-          )}
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Quiet hours, channels and test sends moved to <strong>Notifications</strong> in the Control Room.
-          </p>
-
-        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Quiet hours and channels live under <strong>Notifications</strong>; proactive awareness under{" "}
+          <strong>Your awareness</strong> — both in the Control Room.
+        </p>
       </div>
     </section>
   );
