@@ -14,6 +14,13 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
 import { planDelivery, pushPayload } from "../_shared/delivery/index.ts";
+import {
+  applyFloor,
+  categoryForSituation,
+  levelForUrgency,
+  pushUrgencyHeader,
+  readFloors,
+} from "../_shared/notifyPolicy.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
