@@ -172,6 +172,7 @@ export function SurfaceTabs({
             </button>
           );
         })}
+        </div>
       </nav>
     );
   }
