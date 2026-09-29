@@ -79,7 +79,7 @@ async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<b
     metadata: { title: notice.title, nudge_id: nudgeId },
   });
 
-  const gate = await reachGate(sb, userId, { urgency: "normal" } as JourneyNotice);
+  const gate = await reachGate(sb, userId);
   if (!gate.allowed) return false;
   const surface = await reachOnce(sb, {
     userId,
@@ -113,7 +113,6 @@ async function beforeYouLeave(sb: any, userId: string, p: FlightPlan): Promise<b
 async function reachGate(
   sb: any,
   userId: string,
-  notice: JourneyNotice,
 ): Promise<{ allowed: boolean; messagingAllowed: boolean }> {
   const { data: profile } = await sb
     .from("profiles")
@@ -438,7 +437,7 @@ Deno.serve(async (req) => {
           metadata: { title: notice.title, body, nudge_id: nudgeId },
         });
         if (notice.reachMessaging && nudgeId) {
-          const gate = await reachGate(sb, userId, notice);
+          const gate = await reachGate(sb, userId);
           if (gate.allowed) {
             const surface = await reachOnce(sb, {
               userId,
