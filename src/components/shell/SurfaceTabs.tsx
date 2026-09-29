@@ -28,6 +28,7 @@ const ROOM_LINE: Record<RoomKey, string> = {
   receipts: "Every change, on the record.",
 };
 import { RoomSignal } from "@/components/shell/RoomSignal";
+import { ConcourseLine } from "@/components/shell/ConcourseLine";
 import type { RoomKey } from "@/lib/navigation";
 import type { RoomSignal as RoomSignalState } from "@/lib/roomSignals";
 
@@ -110,11 +111,14 @@ export function SurfaceTabs({
         aria-label="Primary"
         aria-hidden={keyboardOpen || undefined}
         className={cn(
-          "glass safe-bottom fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border/60 px-2 pt-1.5 md:hidden",
+          "glass safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-border/60 px-2 pt-1.5 md:hidden",
           "transition-transform duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
           keyboardOpen && "pointer-events-none translate-y-[110%]",
         )}
       >
+        {/* The route map: which station you are standing in, drawn as track. */}
+        <ConcourseLine active={activeRoom} signals={signals} />
+        <div className="flex justify-around">
         {primaryItems.map(({ key, label, Icon }) => {
           const isActive = activeRoom === key;
           /* Ask is the intelligence room, so it marks in accent purple. The
