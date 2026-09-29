@@ -4435,6 +4435,7 @@ export type Database = {
           id: string
           kind: string
           last_check_at: string | null
+          last_read: string | null
           max_attempts: number
           next_check_at: string
           organization_id: string | null
@@ -4455,6 +4456,7 @@ export type Database = {
           id?: string
           kind: string
           last_check_at?: string | null
+          last_read?: string | null
           max_attempts?: number
           next_check_at?: string
           organization_id?: string | null
@@ -4475,6 +4477,7 @@ export type Database = {
           id?: string
           kind?: string
           last_check_at?: string | null
+          last_read?: string | null
           max_attempts?: number
           next_check_at?: string
           organization_id?: string | null

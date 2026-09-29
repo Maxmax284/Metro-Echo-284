@@ -8,7 +8,7 @@ import {
   settleFromAction,
   settleFromCalendar,
 } from "../../supabase/functions/_shared/watch";
-import { WATCH_LABEL, type WatchState } from "@/lib/watch";
+import { WATCH_LABEL, checkNowLine, sweepSummaryLine, type WatchState } from "@/lib/watch";
 
 const base = {
   state: "watching" as WatchState,
@@ -63,5 +63,26 @@ describe("checkers", () => {
     const fp = calendarFingerprint({ title: "Wingate", starts_at: "2026-01-01T10:00:00Z" });
     expect(settleFromCalendar(fp, { title: "Wingate", starts_at: "2026-01-01T14:00:00Z" }).state).toBe("done");
     expect(settleFromCalendar(fp, null).outcome).toContain("gone");
+  });
+});
+
+describe("check-now lines", () => {
+  it("speaks the outcome first when a check found something", () => {
+    expect(checkNowLine({ state: "needs_you", outcome: "New pages are showing." })).toBe("New pages are showing.");
+  });
+
+  it("never leaves a needs_you without words", () => {
+    expect(checkNowLine({ state: "needs_you", outcome: null })).toBe("Something moved — have a look.");
+  });
+
+  it("treats silence as a valid answer, said plainly", () => {
+    expect(checkNowLine({ state: "watching", outcome: null })).toBe("Checked just now — nothing has moved.");
+  });
+
+  it("summarizes a forced sweep honestly", () => {
+    expect(sweepSummaryLine(0, 0)).toBe("Nothing open to check right now.");
+    expect(sweepSummaryLine(3, 0)).toBe("Checked 3 watches — nothing has moved.");
+    expect(sweepSummaryLine(1, 1)).toBe("Checked 1 watch — 1 has news.");
+    expect(sweepSummaryLine(5, 2)).toBe("Checked 5 watches — 2 have news.");
   });
 });

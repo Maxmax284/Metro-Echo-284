@@ -36,6 +36,10 @@ export const WATCH_TONE: Record<WatchState, string> = {
 
 export const OPEN_WATCH_STATES: WatchState[] = ["on_it", "watching", "waiting", "needs_you"];
 
+/** The states a fresh check can run against — a needs_you watch is waiting
+    on the person, not on a check, so Check now stays off those rows. */
+export const CHECKABLE_WATCH_STATES: WatchState[] = ["on_it", "watching", "waiting"];
+
 export type Watch = {
   id: string;
   goal: string;
@@ -46,6 +50,8 @@ export type Watch = {
   next_check_at: string;
   attempts: number;
   outcome: string | null;
+  /** The headline Echo actually saw on the last read — the bulletin's top line. */
+  last_read: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -136,4 +142,54 @@ export async function resumeWatch(id: string, goal?: string): Promise<void> {
     .eq("id", id);
   if (error) throw error;
   await watchReceipt("watch.resumed", id, { goal: goal ?? null });
+}
+
+/* ------------------------------------------------------------------ */
+/* Check now — a person asking is never told to wait for the schedule. */
+
+export type WatchCheckResult = { state: WatchState; outcome: string | null };
+
+/** What Echo says right after you press Check now. */
+export function checkNowLine(res: WatchCheckResult): string {
+  if (res.outcome) return res.outcome;
+  if (res.state === "needs_you") return "Something moved — have a look.";
+  return "Checked just now — nothing has moved.";
+}
+
+/** One line for a forced sweep of everything open. */
+export function sweepSummaryLine(checked: number, news: number): string {
+  if (checked === 0) return "Nothing open to check right now.";
+  const noun = checked === 1 ? "watch" : "watches";
+  if (news === 0) return `Checked ${checked} ${noun} — nothing has moved.`;
+  return `Checked ${checked} ${noun} — ${news === 1 ? "1 has" : `${news} have`} news.`;
+}
+
+/** Force one watch checked right now, due or not. The sweep stays user-scoped. */
+export async function checkWatchNow(id: string): Promise<WatchCheckResult> {
+  const { data, error } = await supabase.functions.invoke("watch-sweep", { body: { watch_id: id } });
+  if (error) throw error;
+  const payload = (data ?? {}) as {
+    ok?: boolean;
+    error?: string;
+    results?: Array<{ id: string; state: WatchState; outcome: string | null }>;
+  };
+  if (!payload.ok) throw new Error(payload.error ?? "Echo could not run that check.");
+  const r = payload.results?.find((x) => x.id === id);
+  if (!r) throw new Error("That watch is not open any more.");
+  return { state: r.state, outcome: r.outcome };
+}
+
+/** Force every open watch you own checked now. */
+export async function checkAllWatchesNow(): Promise<{ checked: number; news: number }> {
+  const { data, error } = await supabase.functions.invoke("watch-sweep", { body: { force: true } });
+  if (error) throw error;
+  const payload = (data ?? {}) as {
+    checked?: number;
+    results?: Array<{ state: WatchState; outcome: string | null }>;
+  };
+  const results = payload.results ?? [];
+  return {
+    checked: payload.checked ?? results.length,
+    news: results.filter((r) => r.outcome).length,
+  };
 }

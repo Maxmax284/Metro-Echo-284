@@ -295,6 +295,13 @@
       "when": 1790645498014,
       "tag": "0041_push_optin_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1790668559650,
+      "tag": "0042_watches_last_read",
+      "breakpoints": true
     }
   ]
 }
