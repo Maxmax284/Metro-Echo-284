@@ -5,6 +5,7 @@
 // the same audit facts as before, just presented as a printed artifact so the
 // most trustworthy surface in Metro Echo is also the coolest one.
 import { cn } from "@/lib/utils";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export type SlipLine = { label: string; value: string; tone?: "default" | "muted" | "accent" };
 
@@ -27,7 +28,7 @@ export function ReceiptSlip({
   return (
     <div className={cn("vanta-slip relative rounded-md bg-muted/20 px-3 pb-3 pt-4", className)}>
       <div className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-        vanta · receipt
+        {PRODUCT_NAME} · receipt
       </div>
       <div className="mt-1 font-mono text-[12.5px] leading-snug text-foreground/95">{title}</div>
       {meta && <div className="mt-0.5 font-mono text-[10.5px] text-muted-foreground">{meta}</div>}

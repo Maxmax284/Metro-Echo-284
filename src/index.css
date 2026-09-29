@@ -2210,7 +2210,7 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
    ticket: page-coloured core with an inner lip, so it reads as absence. */
 .ticket-punch {
   position: absolute;
-  left: -5px;
+  left: 1px;
   top: 50%;
   width: 11px;
   height: 11px;
