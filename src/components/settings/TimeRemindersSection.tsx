@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch"; // eslint-disable-line @typescript-eslint/no-unused-vars -- kept for parity
 import { Clock, Globe, AlertTriangle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,8 @@ const COMMON_TZ = [
 ];
 
 /**
- * Time & Reminders — timezone, default times, quiet hours, delivery preferences.
+ * Time — timezone and default times. Quiet hours and channels live under
+ * Notifications; proactive awareness under Your awareness.
  * Persists to profiles.timezone + profiles.preferences. All changes audited.
  */
 export function TimeRemindersSection() {
