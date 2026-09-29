@@ -2178,6 +2178,51 @@ html[data-daypart="dusk"][data-room="today"] .vanta-bd-light {
   pointer-events: none;
 }
 
+/* Rubber-ink station stamp on a ledger ticket. Printed ink, not a pill:
+   doubled outline, a degree of tilt, and a bleed so it reads pressed on. */
+.ticket-stamp {
+  --stamp-ink: hsl(var(--muted-foreground) / 0.9);
+  display: inline-block;
+  padding: 1.5px 5px;
+  border-radius: 2px;
+  outline: 1.5px solid var(--stamp-ink);
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 1px hsl(var(--background) / 0.55), inset 0 0 4px var(--stamp-ink);
+  color: var(--stamp-ink);
+  font-family: var(--font-mono, ui-monospace), monospace;
+  font-size: 8.5px;
+  letter-spacing: 0.09em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  text-shadow: 0 0 0.7px var(--stamp-ink);
+  transform: rotate(var(--stamp-tilt, -2deg));
+  white-space: nowrap;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .92 .08'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)'/%3E%3C/svg%3E");
+  mask-size: 60px 60px;
+}
+.ticket-stamp[data-status="failed"]   { --stamp-ink: hsl(var(--destructive)); --stamp-tilt: -3deg; }
+.ticket-stamp[data-status="held"]     { --stamp-ink: hsl(var(--warn)); --stamp-tilt: 2deg; }
+.ticket-stamp[data-status="waiting"]  { --stamp-ink: hsl(var(--accent)); --stamp-tilt: -1.5deg; }
+.ticket-stamp[data-status="approved"] { --stamp-ink: hsl(var(--primary)); --stamp-tilt: -2.5deg; }
+.ticket-stamp[data-status="done"]     { --stamp-ink: hsl(var(--muted-foreground) / 0.85); --stamp-tilt: 1.5deg; }
+
+/* Conductor's hole-punch through the stub edge of a filed or approved
+   ticket: page-coloured core with an inner lip, so it reads as absence. */
+.ticket-punch {
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 50%;
+  background: hsl(var(--background));
+  box-shadow:
+    inset 0 1px 2px hsl(0 0% 0% / 0.75),
+    0 0 0 1px hsl(var(--border) / 0.45);
+  pointer-events: none;
+}
+
 /* Nothing filed yet still wears the sticker language: a blank die-cut tag so
    the room reads as a board with an empty slot, not an empty page. */
 .die-sticker[data-blank="true"] {
