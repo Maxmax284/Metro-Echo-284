@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Rocket, User, CalendarClock, CalendarCheck2, Inbox, Radar, Sparkles, Plug, Gauge, Receipt,
+  Rocket, User, CalendarClock, CalendarCheck2, Inbox, Radar, Sparkles, Plug, Gauge, Receipt, Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,6 +18,9 @@ import { SensorConsentSection } from "@/components/settings/SensorConsentSection
 import { OccasionsSection } from "@/components/settings/OccasionsSection";
 import { DeviceSignalsSection } from "@/components/settings/DeviceSignalsSection";
 import { PushReadinessSection } from "@/components/settings/PushReadinessSection";
+import { NotifyLadderSection } from "@/components/settings/NotifyLadderSection";
+import { NotifyFloorsSection } from "@/components/settings/NotifyFloorsSection";
+import { NotificationChannelsSection } from "@/components/settings/NotificationChannelsSection";
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
 import { SkinSection } from "@/components/settings/SkinSection";
 import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
@@ -102,9 +105,23 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     render: () => <MailSection />,
   },
   {
+    id: "notifications",
+    title: "Notifications",
+    blurb: "What buzzes you, what waits in Today, quiet hours, and a test pulse.",
+    icon: Bell,
+    render: () => (
+      <>
+        <NotifyLadderSection />
+        <NotifyFloorsSection />
+        <PushReadinessSection />
+        <NotificationChannelsSection />
+      </>
+    ),
+  },
+  {
     id: "time",
     title: "Time and reminders",
-    blurb: "Quiet hours, your day boundaries, when the daily recap lands.",
+    blurb: "Your timezone, your day boundaries, when the daily recap lands.",
     icon: CalendarClock,
     render: () => (
       <>
@@ -134,7 +151,6 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         <SensorConsentSection />
         <OccasionsSection />
         <DeviceSignalsSection />
-        <PushReadinessSection />
       </>
     ),
   },
