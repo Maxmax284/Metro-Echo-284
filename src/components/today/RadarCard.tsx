@@ -5,57 +5,34 @@
 // Quiet checks stay quiet here too — "nothing has moved" is one line, not a
 // feed. Failure is a visible state, never silence.
 //
-// Every row is a call-box: "Check now" forces a real check this second (the
-// schedule never makes you wait when you asked), and "Ask Echo" opens a
-// debrief on that watch with the question already typed. When Echo read
-// something, the row shows the headline it actually saw.
+// A row is a bulletin line: tap it and the dispatch slip opens in place —
+// full goal, what Echo saw, the recorded sweep log, and the call-box
+// controls — without leaving Today. "Check now" stays on the row for the
+// quick hit; Echo is one door further, inside the slip, never the default.
 import { useState } from "react";
-import { MessageSquare, Radar } from "lucide-react";
+import { ChevronRight, Radar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useWatches } from "@/hooks/useWatches";
-import { useAskContext } from "@/hooks/useAskContext";
 import {
   WATCH_TONE,
-  OPEN_WATCH_STATES,
   CHECKABLE_WATCH_STATES,
   checkNowLine,
   checkWatchNow,
-  stopWatch,
-  resumeWatch,
 } from "@/lib/watch";
-import { debriefPrompt, radarModel, quietHeadline, type RadarRow } from "@/lib/radar";
+import { radarModel, quietHeadline } from "@/lib/radar";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
+import { WatchDispatchSheet } from "@/components/today/WatchDispatchSheet";
 
 export function RadarCard() {
   const { items, loading, refresh } = useWatches({ openOnly: false, limit: 30 });
   const navigate = useNavigate();
-  const { openAskWithContext } = useAskContext();
   const [checkingId, setCheckingId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   if (loading) return null;
   const model = radarModel(items);
-
-  const stop = async (id: string, goal: string) => {
-    try {
-      await stopWatch(id, goal);
-      toast.success("Stopped. Echo will not check that again.");
-      refresh();
-    } catch {
-      toast.error("Could not stop that one.");
-    }
-  };
-
-  const resume = async (id: string, goal: string) => {
-    try {
-      await resumeWatch(id, goal);
-      toast.success("Back on it — the next check runs on schedule.");
-      refresh();
-    } catch {
-      toast.error("Could not resume that one.");
-    }
-  };
 
   /* A forced check answers out loud: what Echo found, or that nothing moved. */
   const checkNow = async (id: string) => {
@@ -72,16 +49,9 @@ export function RadarCard() {
     }
   };
 
-  /* The debrief hands Echo the watch and the question — never sent for you. */
-  const debrief = (r: RadarRow) => {
-    void openAskWithContext({
-      kind: "watch",
-      id: r.id,
-      label: r.goal,
-      question: debriefPrompt(r.goal),
-      expand: true,
-    });
-  };
+  /* The slip reads the live row, so a check landed while it stands open
+     shows the new truth without closing. */
+  const openWatch = openId ? (items.find((w) => w.id === openId) ?? null) : null;
 
   return (
     <div className="vanta-card p-3">
@@ -123,11 +93,14 @@ export function RadarCard() {
           />
           <ul className="mt-2 space-y-1.5">
             {model.rows.map((r) => {
-              const open = (OPEN_WATCH_STATES as string[]).includes(r.state);
               const checkable = (CHECKABLE_WATCH_STATES as string[]).includes(r.state);
               return (
                 <li key={r.id} className="vanta-inset px-3 py-2">
-                  <div className="flex items-start gap-2">
+                  <button
+                    onClick={() => setOpenId(r.id)}
+                    className="flex w-full items-start gap-2 text-left"
+                    aria-label={`Open the dispatch slip for ${r.goal}`}
+                  >
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs font-medium">{r.goal}</span>
                       {r.latest && (
@@ -139,24 +112,20 @@ export function RadarCard() {
                         {r.check}
                       </span>
                     </span>
-                    <span
-                      className={cn(
-                        "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
-                        WATCH_TONE[r.state],
-                      )}
-                    >
-                      {r.stateLabel}
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ring-1",
+                          WATCH_TONE[r.state],
+                        )}
+                      >
+                        {r.stateLabel}
+                      </span>
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                     </span>
-                  </div>
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3">
-                    <button
-                      onClick={() => debrief(r)}
-                      className="inline-flex min-h-[36px] items-center gap-1 text-[11px] text-primary hover:underline"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Ask Echo
-                    </button>
-                    {checkable && (
+                  </button>
+                  {checkable && (
+                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3">
                       <button
                         onClick={() => void checkNow(r.id)}
                         disabled={checkingId !== null}
@@ -164,29 +133,23 @@ export function RadarCard() {
                       >
                         {checkingId === r.id ? "Checking…" : "Check now"}
                       </button>
-                    )}
-                    {open ? (
-                      <button
-                        onClick={() => void stop(r.id, r.goal)}
-                        className="min-h-[36px] text-[11px] text-muted-foreground hover:text-foreground"
-                      >
-                        Stop
-                      </button>
-                    ) : r.state === "paused" ? (
-                      <button
-                        onClick={() => void resume(r.id, r.goal)}
-                        className="min-h-[36px] text-[11px] text-muted-foreground hover:text-foreground"
-                      >
-                        Resume
-                      </button>
-                    ) : null}
-                  </span>
+                    </span>
+                  )}
                 </li>
               );
             })}
           </ul>
         </>
       )}
+
+      <WatchDispatchSheet
+        watch={openWatch}
+        open={openId !== null}
+        onOpenChange={(o) => {
+          if (!o) setOpenId(null);
+        }}
+        onChanged={refresh}
+      />
     </div>
   );
 }
