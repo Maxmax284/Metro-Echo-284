@@ -156,7 +156,7 @@ export function AwarenessMap({
     setSaving(true);
     /* Drop a pin far from the last one and the old names go with it — Echo
        stays quiet about the spot until the lookup for it answers. */
-    const patch = placePatchForFix(place as any, { lat: drag[0], lon: drag[1], acc: 30, source: "manual" });
+    const patch = placePatchForFix(place as any, { lat: drag[0], lon: drag[1], acc: 30, source: "manual_fix" });
     const { error } = await supabase
       .from("awareness_places")
       .update(patch)

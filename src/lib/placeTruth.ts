@@ -72,7 +72,9 @@ export function precisionFor(acc: number | null): PlacePrecision {
 
 export function sourceFor(place: PlaceLike | null | undefined): PlaceSource {
   const s = String(geoOf(place).source ?? "").toLowerCase();
-  if (s === "manual" || s === "pin" || s === "dragged") return "manual";
+  /* Every tag a deliberate hand-fix can carry — a dragged pin, a map pick, a
+     search after a bad fix. All of them are "you set this". */
+  if (["manual", "pin", "dragged", "manual_fix", "map_picker", "manual_search", "nearby_suggestion"].includes(s)) return "manual";
   if (s === "device" || s === "gps") return "device";
   if (s === "saved") return "saved";
   return "unknown";
