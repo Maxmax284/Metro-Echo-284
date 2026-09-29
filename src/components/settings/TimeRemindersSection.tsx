@@ -263,38 +263,6 @@ export function TimeRemindersSection() {
           </div>
         </div>
 
-        {/* Quiet hours */}
-        <div>
-          <label className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            <BellOff className="h-3 w-3" /> Quiet hours
-          </label>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Low-priority reminders stay silent in this window.
-          </p>
-          <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <label className="block text-[11px] text-muted-foreground">
-              Start
-              <Input
-                type="time"
-                value={prefs.quiet_hours_start}
-                onChange={(e) => update({ quiet_hours_start: e.target.value })}
-                onBlur={() => audit("preferences.updated", { field: "quiet_hours_start", value: prefs.quiet_hours_start })}
-                className="mt-1 h-8 text-[12px]"
-              />
-            </label>
-            <label className="block text-[11px] text-muted-foreground">
-              End
-              <Input
-                type="time"
-                value={prefs.quiet_hours_end}
-                onChange={(e) => update({ quiet_hours_end: e.target.value })}
-                onBlur={() => audit("preferences.updated", { field: "quiet_hours_end", value: prefs.quiet_hours_end })}
-                className="mt-1 h-8 text-[12px]"
-              />
-            </label>
-          </div>
-        </div>
-
         {/* Proactive awareness */}
         <div>
           <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
