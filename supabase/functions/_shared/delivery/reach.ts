@@ -46,12 +46,22 @@ export async function floorGate(
 ): Promise<FloorDecision> {
   const { data: prof } = await admin
     .from("profiles")
-    .select("preferences")
+    .select("preferences, timezone")
     .eq("id", args.userId)
     .maybeSingle();
-  const floors = readFloors((prof?.preferences as Record<string, unknown>) ?? null);
+  const prefs = (prof?.preferences as Record<string, unknown>) ?? null;
+  const floors = readFloors(prefs);
   const category = args.category ?? categoryForSituation(args.entityType);
-  const decision = applyFloor({ urgency: args.urgency, category, floors });
+  let decision = applyFloor({ urgency: args.urgency, category, floors });
+  /* The quiet window holds everything but the urgent — the person's own hours,
+     not a hardcoded night. The hold gets the same receipt any other hold gets. */
+  const quiet = readQuietHours(prefs);
+  const tz = (prof as { timezone?: string } | null)?.timezone || "UTC";
+  const wasPush = decision.channel === "push";
+  decision = applyQuietHours({
+    decision,
+    inQuietHours: isInQuietHours(tz, quiet.start, quiet.end),
+  });
   if (decision.channel !== "push") {
     await admin.from("audit_log").insert({
       user_id: args.userId,
@@ -61,6 +71,9 @@ export async function floorGate(
       event: "nudge.held_by_settings",
       payload: {
         channel: decision.channel,
+        held_reason: wasPush && decision.held && decision.because.includes("quiet hours")
+          ? "quiet_hours"
+          : "floor",
         level: decision.level,
         category: decision.category,
         urgency: args.urgency,
